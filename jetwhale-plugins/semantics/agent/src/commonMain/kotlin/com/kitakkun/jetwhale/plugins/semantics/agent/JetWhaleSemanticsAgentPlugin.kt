@@ -144,6 +144,8 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         if (request.nodeId != null && request.ttlMs <= 0) {
             return HighlightResult(shown = false, message = "ttlMs must be positive to show a highlight, but was ${request.ttlMs}")
         }
+        // Highlighting reaches into the app's UI toolkit; any failure there is this request's answer, not the plugin's end.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
         } catch (e: CancellationException) {
@@ -163,6 +165,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     private suspend fun clearAllHighlights() {
         for (source in ComposeNodeSourceRegistry.sources) {
             val highlightSource = source as? NodeHighlightSource ?: continue
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 // Nothing is left up by a clear, so the TTL it carries is only there to satisfy the
                 // signature.

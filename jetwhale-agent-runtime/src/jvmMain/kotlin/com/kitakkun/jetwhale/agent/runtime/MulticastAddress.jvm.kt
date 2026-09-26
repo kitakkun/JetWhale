@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import java.io.IOException
 import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -40,7 +41,10 @@ private fun routedSourceAddress(): InetAddress? = try {
         socket.connect(InetAddress.getByName(ROUTE_PROBE_ADDRESS), 9)
         socket.localAddress
     }
-} catch (e: Exception) {
+} catch (e: IOException) {
     JetWhaleLogger.d("Could not determine the routed source address", e)
+    null
+} catch (e: SecurityException) {
+    JetWhaleLogger.d("Not allowed to probe the routed source address", e)
     null
 }

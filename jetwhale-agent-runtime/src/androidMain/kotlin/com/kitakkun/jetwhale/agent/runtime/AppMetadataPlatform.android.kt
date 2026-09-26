@@ -16,7 +16,7 @@ private const val APP_ICON_SIZE_PX: Int = 64
 internal actual fun getDeviceId(): String? = try {
     val context = currentApplicationOrNull() ?: return null
     Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-} catch (_: Throwable) {
+} catch (_: SecurityException) {
     null
 }
 
@@ -29,22 +29,23 @@ private fun currentApplicationOrNull(): Context? = try {
     val activityThread = Class.forName("android.app.ActivityThread")
     val method = activityThread.getMethod("currentApplication")
     method.invoke(null) as? Application
-} catch (_: Throwable) {
+} catch (_: ReflectiveOperationException) {
+    null
+} catch (_: SecurityException) {
     null
 }
 
-internal actual fun resolveDefaultAppName(): String? = try {
+internal actual fun resolveDefaultAppName(): String? {
     val context = currentApplicationOrNull() ?: return null
-    val applicationInfo = context.applicationInfo
-    context.packageManager.getApplicationLabel(applicationInfo).toString()
-} catch (_: Throwable) {
-    null
+    return context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 }
 
 /**
  * Rasterizes the launcher icon into a 64x64 PNG. Going through [Drawable] rather than the raw
  * resource is what makes adaptive icons work: those are XML, so they have no PNG bytes to read.
  */
+// Drawing runs the app's own Drawable, which can throw anything; the icon is optional metadata.
+@Suppress("KOTRAIL_CATCH_TOO_BROAD")
 internal actual fun resolveDefaultAppIconPng(): ByteArray? = try {
     val context = currentApplicationOrNull() ?: return null
     context.packageManager.getApplicationIcon(context.applicationInfo).toPngBytesOrNull()

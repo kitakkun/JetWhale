@@ -89,6 +89,7 @@ class DefaultPluginFactoryRepository(
         // bundling them; those jars were downloaded into the plugin libs directory at install time
         // and join the plugin's classpath here. A missing jar (or an unreadable manifest) fails the
         // load and surfaces the jar in the failed list. Fat-jars have no manifest → empty list.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val dependencyJarUrls = try {
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
         } catch (e: Exception) {
@@ -108,6 +109,8 @@ class DefaultPluginFactoryRepository(
         // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
         // must not close it; until then it (and its temp copy) is ours to discard on any failure.
         var committed = false
+        // Loading runs the plugin's own code (class initializers, factory constructors): any failure, LinkageError included, marks this jar failed instead of aborting the load.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
             val newPluginIds = loaded.map { it.manifest.pluginId }
@@ -303,6 +306,7 @@ class DefaultPluginFactoryRepository(
         val pluginIds = jarPathToPluginIds[pluginJarPath]?.takeIf { it.isNotEmpty() } ?: return emptyList()
         val classLoader = classLoaders[pluginJarPath] ?: return emptyList()
 
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             // Redefine every class this jar's classloader has already loaded, using the rebuilt jar's
             // bytecode. redefineClasses works on the loaded Class regardless of classloader, so this

@@ -241,6 +241,7 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
             return@post
         }
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
             val hint = if (sent) {
@@ -275,6 +276,7 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
             return@post
         }
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var reply: String
             val elapsed = measureTimeMillis {
@@ -309,6 +311,7 @@ private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
             )
             return@post
         }
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var status: HttpStatusCode
             lateinit var preview: String
@@ -355,6 +358,8 @@ private fun Route.sessionRoutes(apps: Map<String, QaApp>) {
  * handler stops. A control API driven by hand-written curl gets malformed bodies often enough that
  * every route needs the same answer.
  */
+// Ktor reports a malformed body as one of several exception types, depending on the plugin that rejects it.
+@Suppress("KOTRAIL_CATCH_TOO_BROAD")
 private suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest(): T? = try {
     receive<T>()
 } catch (e: CancellationException) {

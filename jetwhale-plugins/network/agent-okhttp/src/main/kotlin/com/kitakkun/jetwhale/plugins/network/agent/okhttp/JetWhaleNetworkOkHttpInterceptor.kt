@@ -21,6 +21,7 @@ import okio.Buffer
 import okio.Sink
 import okio.Timeout
 import okio.buffer
+import java.io.IOException
 import kotlin.io.encoding.Base64
 import kotlin.time.TimeSource
 
@@ -144,6 +145,8 @@ private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImage
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
     val mediaType = body.contentType()?.let { "${it.type}/${it.subtype}" }
     val isImage = isPreviewableImageMediaType(mediaType)
+    // RequestBody.writeTo is the app's code; a capture that fails in any way drops the capture, never the request.
+    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         // Keep at most maxChars * 4 bytes (the widest UTF encoding of one char) so large uploads
         // (files, multipart) are streamed through instead of fully materialized in memory. An image
@@ -220,7 +223,10 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
     if (isPreviewableImageMediaType(mediaType)) {
         return try {
             encodeImage(response.peekBody(maxImageBytes + 1L).bytes(), mediaType, maxImageBytes)
-        } catch (_: Exception) {
+        } catch (_: IOException) {
+            BodyCapture(null, false)
+        } catch (_: IllegalStateException) {
+            // Another interceptor returned a response whose body is already closed.
             BodyCapture(null, false)
         }
     }
@@ -230,7 +236,9 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
         // The peek limit is in bytes but truncate() counts chars, so a multi-byte body can hit the
         // byte cap while still decoding to fewer than maxChars chars — flag it truncated anyway.
         if (peeked.contentLength() > maxChars && !capture.truncated) capture.copy(truncated = true) else capture
-    } catch (_: Exception) {
+    } catch (_: IOException) {
+        BodyCapture(null, false)
+    } catch (_: IllegalStateException) {
         BodyCapture(null, false)
     }
 }

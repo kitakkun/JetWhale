@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 import java.util.logging.Logger
 
@@ -119,10 +120,13 @@ class DefaultPluginTrustService(
             computeSha256(jarPath)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             // A jar we cannot read is a jar we cannot verify: fail safe as untrusted instead of
             // letting an IO error abort loading of every other plugin.
             logger.warning("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
+            return false
+        } catch (e: SecurityException) {
+            logger.warning("Not allowed to read plugin jar, treating as untrusted: $jarPath (${e.message})")
             return false
         }
         return entry.sha256 == currentSha256

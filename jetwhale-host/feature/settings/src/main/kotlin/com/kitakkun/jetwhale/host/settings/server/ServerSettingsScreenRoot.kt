@@ -9,7 +9,9 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
+import java.io.IOException
 import java.net.URI
+import java.util.logging.Logger
 
 private const val MCP_GUIDE_URL = "https://kitakkun.github.io/JetWhale/guide/mcp-server"
 
@@ -56,8 +58,12 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
             onClickOpenMcpGuide = {
                 try {
                     Desktop.getDesktop().browse(URI(MCP_GUIDE_URL))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (e: IOException) {
+                    logger.warning("Could not open $MCP_GUIDE_URL: ${e.message}")
+                } catch (e: UnsupportedOperationException) {
+                    logger.warning("This desktop cannot open links: ${e.message}")
+                } catch (e: SecurityException) {
+                    logger.warning("Not allowed to open $MCP_GUIDE_URL: ${e.message}")
                 }
             },
             onSetHostGroupAllowed = { group, allowed -> screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed)) },
@@ -72,3 +78,5 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
         )
     }
 }
+
+private val logger: Logger = Logger.getLogger("com.kitakkun.jetwhale.host.settings.ServerSettingsScreenRoot")

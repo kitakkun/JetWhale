@@ -91,6 +91,7 @@ internal class JetWhaleAgentPluginService(
             runtime.active = true
             // A plugin whose onActivate throws must not take down the connection (and with it every
             // other plugin): isolate the failure and keep the plugin activated so its peer still works.
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 runtime.plugin.dispatchActivate()
             } catch (e: Throwable) {
