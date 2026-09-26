@@ -50,10 +50,10 @@ internal fun CoroutineInspectorScreenRoot(state: CoroutineInspectorState, modifi
     var filter by remember { mutableStateOf(CoroutineFilter.None) }
     // Turning auto-refresh off must not read once more: the view would change right after the
     // user froze it. A tab opened while it is off is read once, so it shows something current.
-    LaunchedEffect(tab) {
+    LaunchedEffect(state, tab) {
         if (tab != InspectorTab.Dump && !autoRefresh) state.refresh(tab)
     }
-    LaunchedEffect(tab, autoRefresh) {
+    LaunchedEffect(key1 = state, key2 = tab, key3 = autoRefresh) {
         if (tab == InspectorTab.Dump || !autoRefresh) return@LaunchedEffect
         while (true) {
             state.refresh(tab)
