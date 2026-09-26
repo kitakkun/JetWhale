@@ -28,29 +28,45 @@ class DrawerPluginListTest {
     )
 
     @Test
-    fun `a short greyed tail is listed after the enabled plugins without a fold`() = runComposeUiTest {
+    fun `a few disabled plugins are listed open under their fold after the enabled ones`() = runComposeUiTest {
         showDrawer(listOf(plugin("Network", PluginAvailability.Enabled), plugin("Recorder", PluginAvailability.Disabled)))
 
         onNodeWithText("Network").assertExists()
+        onNodeWithText("1 disabled").assertExists()
         onNodeWithText("Recorder").assertExists()
-        onNodeWithText("1 more").assertDoesNotExist()
     }
 
     @Test
-    fun `a long greyed tail folds behind one row that expands in place`() = runComposeUiTest {
+    fun `many disabled plugins start folded and open in place`() = runComposeUiTest {
         showDrawer(
             listOf(
                 plugin("Network", PluginAvailability.Enabled),
                 plugin("Recorder", PluginAvailability.Disabled),
                 plugin("Profiler", PluginAvailability.Disabled),
-                plugin("Storage", PluginAvailability.Unavailable),
+                plugin("Tracer", PluginAvailability.Disabled),
             ),
         )
 
         onNodeWithText("Recorder").assertDoesNotExist()
-        onNodeWithText("3 more").performClick()
+        onNodeWithText("3 disabled").performClick()
 
         onNodeWithText("Recorder").assertExists()
+    }
+
+    @Test
+    fun `plugins the app doesn't include sit in their own fold, folded to begin with`() = runComposeUiTest {
+        showDrawer(
+            listOf(
+                plugin("Network", PluginAvailability.Enabled),
+                plugin("Recorder", PluginAvailability.Disabled),
+                plugin("Storage", PluginAvailability.Unavailable),
+            ),
+        )
+
+        onNodeWithText("Recorder").assertExists()
+        onNodeWithText("Storage").assertDoesNotExist()
+        onNodeWithText("1 not in this app").performClick()
+
         onNodeWithText("Storage").assertExists()
     }
 

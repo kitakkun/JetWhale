@@ -15,12 +15,12 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.enable
+import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.plugin_disabled_title
 import com.kitakkun.jetwhale.host.plugin_enable_failed
-import com.kitakkun.jetwhale.host.plugin_not_in_app
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
@@ -37,6 +37,7 @@ class DisabledPluginPresenterContext(
 /** Screen-role context, holding the presenter's. */
 @Inject
 class DisabledPluginScreenContext(
+    val hostVersionInfo: HostVersionInfo,
     val presenterContext: DisabledPluginPresenterContext,
 ) : ScreenContext
 
@@ -51,7 +52,8 @@ sealed interface DisabledPluginScreenActionResult {
 
 /**
  * The content pane for a plugin the drawer lists greyed out: a switched-off plugin offers to be
- * switched on, and opens once it is ([onEnabled]); one the selected app doesn't include only says so.
+ * switched on, and opens once it is ([onEnabled]); one the selected app doesn't include says how to
+ * add it to the app.
  */
 @Composable
 context(screenContext: DisabledPluginScreenContext)
@@ -59,6 +61,10 @@ fun DisabledPluginScreenRoot(
     navKey: DisabledPluginNavKey,
     onEnabled: () -> Unit,
 ) {
+    if (navKey.notInApp) {
+        NotInAppPluginScreen(pluginName = navKey.pluginName, setup = AgentSetup.forPlugin(navKey.pluginId, screenContext.hostVersionInfo))
+        return
+    }
     val screenChannel = rememberScreenChannel<DisabledPluginScreenAction, DisabledPluginScreenActionResult>()
     var enableFailed by remember { mutableStateOf(false) }
     ActionResultEffect(screenChannel) { result ->
@@ -72,7 +78,6 @@ fun DisabledPluginScreenRoot(
     }
     DisabledPluginScreen(
         pluginName = navKey.pluginName,
-        notInApp = navKey.notInApp,
         enableFailed = enableFailed,
         onClickEnable = {
             enableFailed = false
@@ -104,14 +109,9 @@ private fun DisabledPluginPresenter(
 @Composable
 fun DisabledPluginScreen(
     pluginName: String,
-    notInApp: Boolean,
     enableFailed: Boolean,
     onClickEnable: () -> Unit,
 ) {
-    if (notInApp) {
-        JwEmptyState(title = pluginName, description = stringResource(Res.string.plugin_not_in_app))
-        return
-    }
     JwEmptyState(
         title = stringResource(Res.string.plugin_disabled_title, pluginName),
         description = if (enableFailed) stringResource(Res.string.plugin_enable_failed) else null,
@@ -124,11 +124,5 @@ fun DisabledPluginScreen(
 @Preview
 @Composable
 private fun DisabledPluginScreenPreview() {
-    DisabledPluginScreen(pluginName = "Network Inspector", notInApp = false, enableFailed = false, onClickEnable = {})
-}
-
-@Preview
-@Composable
-private fun NotInAppPluginScreenPreview() {
-    DisabledPluginScreen(pluginName = "Network Inspector", notInApp = true, enableFailed = false, onClickEnable = {})
+    DisabledPluginScreen(pluginName = "Network Inspector", enableFailed = false, onClickEnable = {})
 }

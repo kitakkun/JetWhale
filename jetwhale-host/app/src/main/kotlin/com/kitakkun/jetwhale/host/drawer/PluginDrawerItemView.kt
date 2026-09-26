@@ -40,7 +40,7 @@ private val AiRingCornerRadius = 4.dp
  * How far an inactive row is faded. The list's own muted color sits too close to a normal row's in the
  * dark theme to tell them apart, and the row must stay clickable, which rules out disabling it.
  */
-private const val InactiveRowAlpha = 0.45f
+private const val INACTIVE_ROW_ALPHA = 0.45f
 
 /** Shrinks the "opens elsewhere" glyph to the tag's height. */
 private val BadgeIconInset = 3.dp
@@ -68,7 +68,7 @@ fun PluginDrawerItemView(
             text = name,
             selected = selected,
             muted = !active,
-            modifier = if (active) Modifier else Modifier.alpha(InactiveRowAlpha),
+            modifier = if (active) Modifier else Modifier.alpha(INACTIVE_ROW_ALPHA),
             onClick = onClick,
             leadingContent = {
                 JwIcon(

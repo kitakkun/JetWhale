@@ -40,16 +40,18 @@ When a session goes away the host says so (*&lt;device&gt; · &lt;app&gt; discon
 ## The plugin list
 
 Under the picker are the selected app's plugins; the plugins that need no app, above it, are listed
-the same way. Enabled plugins come first; the rest follow greyed out in the same list:
+the same way. Enabled plugins come first. The rest follow in two greyed groups at the end, each under
+a light fold row that expands in place:
 
-- **Disabled** — installed but switched off. Hovering says *Disabled — click to enable*; clicking
-  opens a screen with an **Enable** button, and the plugin opens as soon as it is enabled.
-- **Not in this app** — the selected app's agent never advertised this plugin id. Hovering (or
-  clicking) says *This app doesn't include this plugin*; there is nothing to enable.
+- **N disabled** — installed but switched off; open to begin with unless there are more than two.
+  Hovering a row says *Disabled — click to enable*; clicking opens a screen with an **Enable**
+  button, and the plugin opens as soon as it is enabled.
+- **N not in this app** — installed in the host, but the selected app's agent never advertised the
+  plugin id; folded to begin with. Clicking one opens a screen that says how to add it to the app:
+  the Gradle dependency of its agent library and its `register(...)` call to copy, with a link to the
+  plugin's guide for official plugins. The plugins that need no app never land here.
 
-When more than two plugins are greyed out, they fold behind one *N more* row at the end of the list,
-which expands in place. With no app connected, the lower list says *Connect an app to see its
-plugins.* instead.
+With no app connected, the lower list says *Connect an app to see its plugins.* instead.
 
 Click an enabled plugin to open it. Every row except a "not in this app" one carries an overflow
 (**⋯**) menu:

@@ -57,7 +57,8 @@ import com.kitakkun.jetwhale.host.no_plugins_installed
 import com.kitakkun.jetwhale.host.plugin_disabled_tooltip
 import com.kitakkun.jetwhale.host.plugin_load_error_hint
 import com.kitakkun.jetwhale.host.plugin_not_in_app
-import com.kitakkun.jetwhale.host.plugins_folded
+import com.kitakkun.jetwhale.host.plugins_folded_disabled
+import com.kitakkun.jetwhale.host.plugins_folded_not_in_app
 import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.settings
@@ -297,13 +298,14 @@ private fun NoPluginsView(
     )
 }
 
-/** How many greyed-out plugins a list shows before it folds the rest behind one row. */
-private const val INACTIVE_PLUGINS_SHOWN_UNFOLDED = 2
+/** How many disabled plugins a list shows unfolded to begin with; more start folded. */
+private const val DISABLED_PLUGINS_SHOWN_UNFOLDED = 2
 
 /**
- * One area's plugins: the enabled ones, then the rest greyed out in the same list — switched off
- * (enabled again from the row's menu) or not in the selected app (with the reason on hover). A long
- * greyed tail folds behind one row, whose state each area keeps for itself.
+ * One area's plugins: the enabled ones, then two greyed groups at the end, each under a light fold
+ * row whose state the area keeps for itself — the switched-off plugins, open to begin with unless
+ * there are many, and the ones the selected app doesn't include, folded to begin with. Plugins that
+ * need no app are never in the second group, so their area only ever has the first.
  */
 @Composable
 private fun PluginList(
@@ -327,27 +329,51 @@ private fun PluginList(
         onClickBringBack = onClickBringBack,
         onSetPluginEnabled = onSetPluginEnabled,
     )
-    val enabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Enabled } }
-    val inactivePlugins = remember(plugins) { plugins.filterNot { it.pluginAvailability == PluginAvailability.Enabled } }
-    var inactiveExpanded by retain { mutableStateOf(false) }
-    val folds = inactivePlugins.size > INACTIVE_PLUGINS_SHOWN_UNFOLDED
+    val byAvailability = remember(plugins) { plugins.groupBy(DrawerPluginItemUiState::pluginAvailability) }
+    val disabledPlugins = byAvailability[PluginAvailability.Disabled].orEmpty()
+    val notInAppPlugins = byAvailability[PluginAvailability.Unavailable].orEmpty()
+    var disabledExpanded by retain { mutableStateOf(disabledPlugins.size <= DISABLED_PLUGINS_SHOWN_UNFOLDED) }
+    var notInAppExpanded by retain { mutableStateOf(false) }
+    val disabledLabel = stringResource(Res.string.plugins_folded_disabled, disabledPlugins.size)
+    val notInAppLabel = stringResource(Res.string.plugins_folded_not_in_app, notInAppPlugins.size)
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(JwSpacing.extraSmall),
     ) {
-        enabledPluginRows(plugins = enabledPlugins, selectedPluginId = selectedPluginId, actions = actions)
-        if (folds) {
-            item(key = "fold") {
-                InactivePluginsFoldRow(
-                    count = inactivePlugins.size,
-                    expanded = inactiveExpanded,
-                    onToggle = { inactiveExpanded = !inactiveExpanded },
-                    modifier = Modifier.animateItem(),
-                )
-            }
-        }
-        if (!folds || inactiveExpanded) inactivePluginRows(plugins = inactivePlugins, actions = actions)
+        enabledPluginRows(plugins = byAvailability[PluginAvailability.Enabled].orEmpty(), selectedPluginId = selectedPluginId, actions = actions)
+        foldedPluginRows(
+            key = "fold:disabled",
+            label = disabledLabel,
+            plugins = disabledPlugins,
+            expanded = disabledExpanded,
+            actions = actions,
+            onToggle = { disabledExpanded = !disabledExpanded },
+        )
+        foldedPluginRows(
+            key = "fold:not-in-app",
+            label = notInAppLabel,
+            plugins = notInAppPlugins,
+            expanded = notInAppExpanded,
+            actions = actions,
+            onToggle = { notInAppExpanded = !notInAppExpanded },
+        )
     }
+}
+
+/** One greyed group: its fold row, then its rows while unfolded. An empty group emits nothing. */
+private fun LazyListScope.foldedPluginRows(
+    key: String,
+    label: String,
+    plugins: List<DrawerPluginItemUiState>,
+    expanded: Boolean,
+    actions: PluginActions,
+    onToggle: () -> Unit,
+) {
+    if (plugins.isEmpty()) return
+    item(key = key) {
+        InactivePluginsFoldRow(label = label, expanded = expanded, onToggle = onToggle, modifier = Modifier.animateItem())
+    }
+    if (expanded) inactivePluginRows(plugins = plugins, actions = actions)
 }
 
 /**
@@ -463,16 +489,16 @@ private fun LazyListScope.inactivePluginRows(
     }
 }
 
-/** The light row that folds a long greyed-out tail away, and brings it back in place. */
+/** The light row that folds a greyed group away, and brings it back in place. */
 @Composable
 private fun InactivePluginsFoldRow(
-    count: Int,
+    label: String,
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwListItem(
-        text = stringResource(Res.string.plugins_folded, count),
+        text = label,
         selected = false,
         muted = true,
         onClick = onToggle,

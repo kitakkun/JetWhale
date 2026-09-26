@@ -70,9 +70,15 @@
     <string name="plugin_actions">プラグインの操作</string>
     <string name="mcp_tools_search_clear">検索をクリア</string>
     <string name="no_app_connected">アプリを接続すると、そのプラグインが表示されます。</string>
-    <string name="plugins_folded">他 %1$d 件</string>
     <string name="plugin_not_in_app">このアプリにはこのプラグインが含まれていません</string>
     <string name="plugin_disabled_tooltip">無効 — クリックして有効化</string>
     <string name="plugin_disabled_title">%1$s は無効です</string>
     <string name="plugin_enable_failed">プラグインを有効にできませんでした。もう一度お試しください。</string>
+    <string name="plugins_folded_disabled">無効 %1$d 件</string>
+    <string name="plugins_folded_not_in_app">このアプリにない %1$d 件</string>
+    <string name="plugin_not_in_app_title">このアプリには %1$s が含まれていません</string>
+    <string name="plugin_not_in_app_add_agent">アプリにプラグインの agent ライブラリを追加します:</string>
+    <string name="plugin_not_in_app_register">JetWhale を起動している箇所で登録し、アプリを再接続します:</string>
+    <string name="plugin_not_in_app_open_guide">プラグインのガイドを開く</string>
+    <string name="copy">コピー</string>
 </resources>

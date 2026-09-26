@@ -70,9 +70,15 @@
     <string name="plugin_actions">Plugin actions</string>
     <string name="mcp_tools_search_clear">Clear search</string>
     <string name="no_app_connected">Connect an app to see its plugins.</string>
-    <string name="plugins_folded">%1$d more</string>
     <string name="plugin_not_in_app">This app doesn't include this plugin</string>
     <string name="plugin_disabled_tooltip">Disabled — click to enable</string>
     <string name="plugin_disabled_title">%1$s is disabled</string>
     <string name="plugin_enable_failed">Couldn't enable the plugin. Try again.</string>
+    <string name="plugins_folded_disabled">%1$d disabled</string>
+    <string name="plugins_folded_not_in_app">%1$d not in this app</string>
+    <string name="plugin_not_in_app_title">This app doesn't include %1$s</string>
+    <string name="plugin_not_in_app_add_agent">Add the plugin's agent library to the app:</string>
+    <string name="plugin_not_in_app_register">Then register it where the app starts JetWhale, and reconnect the app:</string>
+    <string name="plugin_not_in_app_open_guide">Open the plugin's guide</string>
+    <string name="copy">Copy</string>
 </resources>
