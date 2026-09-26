@@ -118,7 +118,7 @@ in the IDE.
 | `version` | ✅ | — | Your plugin's version. |
 | `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
 | `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, one instance in the `host` session, usable with no app connected. |
-| `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. An agent plugin whose `pluginVersion` falls outside the range is reported back to the agent as *incompatible* and never paired. Omit the object to accept any agent version. |
+| `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. When several versions of the plugin are installed, each app gets the newest one whose range includes its agent plugin's `pluginVersion`; an app that no installed version accepts is told the plugin is *incompatible* and never paired. Omit the object to accept any agent version. |
 | `icon` | | none | `{ "activePath": …, "inactivePath": … }` — see below. |
 
 #### Icons
@@ -336,6 +336,10 @@ Things to know:
 - **Declare parameters as properties, never inside `execute`.** The list is read once, and declaring
   one afterwards — or declaring the same name twice — throws with a message saying so.
 - **`mcpCommands` is read once** per plugin instance activation and treated as static from then on.
+- **Several installed versions share one tool list.** A tool is listed with the definition from the
+  newest version that has it, and a call runs the version serving the target session. A call to a
+  tool that session's version does not have fails with an error naming that version, so rename or
+  remove tools with that in mind.
 - Every declarator takes an optional `name` to override the wire name, for when the property cannot
   be called what the parameter should be called (`by stringOrNull("…", name = "name")`).
 - The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
@@ -486,8 +490,9 @@ Every host plugin instance gets a persistent key-value store via the protected `
 available from `onCreate()` onwards. Values live on disk under the host's app data directory and
 survive plugin reloads, session changes and host restarts.
 
-The store is **scoped to your `pluginId`**: a plugin can neither name another plugin's id nor reach
-its data.
+The store is **scoped to your `pluginId` and version**: a plugin can neither name another plugin's
+id nor reach its data, and two versions of your plugin installed side by side (see
+[Several versions side by side](#several-versions-side-by-side)) each write their own copy.
 
 Anything with a `kotlinx.serialization` serializer can be stored — primitives, collections, and your
 own `@Serializable` classes. The reified overloads resolve the serializer for you:
@@ -563,6 +568,19 @@ Rules of thumb:
   no longer decode read as `null`.
 - A value that fails to decode (for example after a schema change without a migration) is treated as
   absent rather than crashing your plugin — but prefer writing a migration so the data is not lost.
+
+### Upgrades and several versions side by side {#several-versions-side-by-side}
+
+The host can run several versions of one plugin at once, one per app (see the manifest's
+`agentVersionRange`), and each version has its own store. When a version runs for the first time and
+has no data yet, its store starts as a **copy of the nearest older version's data**, so an upgrade
+keeps the user's settings. From then on each version writes only its own copy: settings changed in
+1.3.0 do not reach an app still served by 1.2.0.
+
+The copy carries the storage version stamp, so a new release that bumped `storageVersion` migrates
+the copy through its own `onStorageMigrate`, exactly as it would migrate data it wrote itself. The
+older version's data stays as it was, so that version keeps working for the apps it still serves. A
+version never starts from a newer version's data.
 
 ## Gradle tasks
 
