@@ -113,7 +113,7 @@ class MirrorViewingTest {
     }
 
     @Test
-    fun `clearing waits for a frame being written instead of closing its bitmap mid-write`() {
+    fun `switching devices waits for a frame being written instead of closing its bitmap mid-write`() {
         val surface = MirrorSurface()
         val clearStarted = CountDownLatch(1)
         val cleared = CountDownLatch(1)
@@ -122,7 +122,7 @@ class MirrorViewingTest {
         surface.writeFrame(width = 4, height = 4) { target ->
             thread {
                 clearStarted.countDown()
-                surface.clear()
+                surface.switchTo("device-2")
                 cleared.countDown()
             }
             clearStarted.await()
@@ -173,7 +173,7 @@ class MirrorViewingTest {
         surface.drawFrame { bitmap ->
             drawn = bitmap
             thread {
-                surface.clear()
+                surface.switchTo("device-2")
                 surface.close()
             }.join()
             openAfterClose = !bitmap.isClosed
@@ -225,6 +225,67 @@ class MirrorViewingTest {
         assertTrue(written.none { it === onScreen })
         assertEquals(Color.RED, onScreen?.getColor(0, 0))
     }
+
+    @Test
+    fun `switching back to a device shows its last frame until its stream sends a new one`() {
+        MirrorSurface().use { surface ->
+            surface.showLive("phone", Color.RED)
+            surface.showLive("tablet", Color.BLUE)
+
+            surface.switchTo("phone")
+
+            assertEquals(Color.RED, surface.drawnFrame()?.getColor(0, 0))
+            assertTrue(surface.showingKeptFrame)
+
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.GREEN))
+            assertEquals(Color.GREEN, surface.drawnFrame()?.getColor(0, 0))
+            assertFalse(surface.showingKeptFrame)
+        }
+    }
+
+    @Test
+    fun `only the devices shown most recently keep a frame`() {
+        MirrorSurface().use { surface ->
+            listOf("a", "b", "c", "d", "e", "f").forEach { surface.showLive(it, Color.RED) }
+
+            surface.switchTo("a")
+            assertNull(surface.drawnFrame())
+
+            surface.switchTo("e")
+            assertEquals(Color.RED, surface.drawnFrame()?.getColor(0, 0))
+        }
+    }
+
+    @Test
+    fun `a device that is no longer connected loses its kept frame`() {
+        MirrorSurface().use { surface ->
+            surface.showLive("phone", Color.RED)
+            surface.showLive("tablet", Color.BLUE)
+
+            surface.keepFramesOf(setOf("tablet"))
+            surface.switchTo("phone")
+
+            assertNull(surface.drawnFrame())
+        }
+    }
+
+    @Test
+    fun `closing frees the frames kept for every device`() {
+        val surface = MirrorSurface()
+        val written = mutableListOf<Bitmap>()
+        listOf("a", "b", "c").forEach { device ->
+            surface.switchTo(device)
+            surface.writeFrame(width = 4, height = 4) { bitmap ->
+                written += bitmap
+                true
+            }
+            surface.drawnFrame()
+        }
+
+        surface.close()
+
+        assertTrue(written.all(Bitmap::isClosed))
+    }
 }
 
 // The bitmap a draw was given; it stays open after the draw as long as the surface does.
@@ -232,6 +293,13 @@ private fun MirrorSurface.drawnFrame(): Bitmap? {
     var drawn: Bitmap? = null
     drawFrame { drawn = it }
     return drawn
+}
+
+/** Mirrors [device] until a frame of [color] is on screen. */
+private fun MirrorSurface.showLive(device: String, color: Int) {
+    switchTo(device)
+    writeFrame(width = 4, height = 4, write = fill(color))
+    drawnFrame()
 }
 
 private fun fill(color: Int): (Bitmap) -> Boolean = { bitmap ->
@@ -242,5 +310,5 @@ private fun fill(color: Int): (Bitmap) -> Boolean = { bitmap ->
 private const val CLOSE_RACE_ROUNDS = 200
 private const val FRAMES_PER_ROUND = 50
 
-/** Long enough for an unguarded clear to finish while the write is still running. */
+/** Long enough for an unguarded switch to finish while the write is still running. */
 private const val CLEAR_GRACE_MILLIS = 200L
