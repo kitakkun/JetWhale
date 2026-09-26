@@ -51,5 +51,6 @@ class PluginSessionTargetTest {
         exposesMcpTools = false,
         isHeadless = false,
         needsApp = needsApp,
+        failureMessage = null,
     )
 }

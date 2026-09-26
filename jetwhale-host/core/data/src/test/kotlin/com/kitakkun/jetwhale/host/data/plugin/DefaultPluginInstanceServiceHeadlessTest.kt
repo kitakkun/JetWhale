@@ -93,6 +93,18 @@ class DefaultPluginInstanceServiceHeadlessTest {
     }
 
     @Test
+    fun `an exception a host session plugin lets escape is recorded against the host session`() = runBlocking {
+        val service = serviceWith { ThrowingCoroutinePlugin() }
+
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
+
+        val failure = withTimeout(TIMEOUT_MILLIS) {
+            service.pluginFailuresFlow.first { it.latestFor(HostSession.ID, pluginId) != null }.latestFor(HostSession.ID, pluginId)
+        }
+        assertEquals("java.lang.IllegalStateException: coroutine boom", failure?.message)
+    }
+
+    @Test
     fun `unloading a plugin forgets its recorded failure`() = runBlocking {
         val service = serviceWith { ThrowingCoroutinePlugin() }
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
