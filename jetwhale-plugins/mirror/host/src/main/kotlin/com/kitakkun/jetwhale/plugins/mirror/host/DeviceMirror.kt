@@ -229,13 +229,13 @@ internal class DeviceMirror(
         }
         surface.deviceSize = screen
         val outputSize = screen?.let { decodingSize(it, surface.viewSize) }
-        val process = try {
-            device.controller.openVideoStream()
+        val stream = try {
+            device.controller.openVideoStream(outputSize)
         } catch (e: DeviceControlException) {
             return StreamOutcome.Unavailable(e.message.orEmpty())
         }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
-        thread(isDaemon = true, name = "mirror-stream-stderr") { process.errorStream.use(InputStream::readAllBytes) }
+        thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
         val lastFrameAt = AtomicLong(System.nanoTime())
         return try {
@@ -244,7 +244,7 @@ internal class DeviceMirror(
                 // purpose is not mistaken for one that broke.
                 val decoding = async(Dispatchers.IO) {
                     try {
-                        decodeH264Into(surface, process.inputStream, outputSize) {
+                        decode(stream, outputSize) {
                             lastFrameAt.set(System.nanoTime())
                             watchdog.frameArrived()
                             state = MirrorState.Streaming
@@ -258,7 +258,7 @@ internal class DeviceMirror(
                 // lets it return, and this scope waits for it, so the stream is closed here the
                 // moment the body ends or is cancelled. The resize watch only ends on a resize, so
                 // it is cancelled there too, or this scope would wait for it after the stream ended.
-                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, process) } }
+                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream.process) } }
                 try {
                     if (device.kind.platform == DevicePlatform.Android) {
                         state = MirrorState.Streaming
@@ -271,14 +271,19 @@ internal class DeviceMirror(
                     }
                 } finally {
                     resizing?.cancel()
-                    process.destroyForcibly()
+                    stream.process.destroyForcibly()
                 }
             }
         } catch (e: DeviceControlException) {
             StreamOutcome.Unavailable(e.message.orEmpty())
         } finally {
-            process.destroyForcibly()
+            stream.process.destroyForcibly()
         }
+    }
+
+    private fun decode(stream: VideoStream, outputSize: IntSize?, onFrame: () -> Unit) = when (stream) {
+        is VideoStream.H264 -> decodeH264Into(surface, stream.process.inputStream, outputSize, onFrame)
+        is VideoStream.RawBgra -> readRawBgraInto(surface, stream.process.inputStream, stream.frameSize, onFrame)
     }
 
     /**

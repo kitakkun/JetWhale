@@ -20,7 +20,8 @@ import java.nio.ByteBuffer
  * and the measured decode time of a phone-sized frame stays in single milliseconds.
  */
 internal fun decodeH264Into(surface: MirrorSurface, stream: InputStream, outputSize: IntSize?, onFrame: () -> Unit) {
-    val grabber = FFmpegFrameGrabber(stream, 0)
+    val timedStream = WaitTimingInputStream(stream)
+    val grabber = FFmpegFrameGrabber(timedStream, 0)
     // Shrinking here, with area averaging, keeps text crisp on every renderer and leaves a
     // fraction of the pixels to copy and upload; drawing a full-size frame small would sample it.
     outputSize?.let {
@@ -40,9 +41,7 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: InputStream, outputS
     try {
         grabber.start()
         while (true) {
-            val started = System.nanoTime()
-            val frame = grabber.grabImage() ?: break
-            surface.recordDecode(System.nanoTime() - started)
+            val frame = timedStream.timingWork(surface::recordDecode, grabber::grabImage) ?: break
             if (surface.writeFrame(frame)) onFrame()
         }
     } catch (e: FrameGrabber.Exception) {
@@ -76,7 +75,20 @@ private fun copyRows(pixels: ByteBuffer, sourceRowBytes: Int, target: Long, targ
     }
 }
 
-/** A JavaCPP view of memory Skia owns, so ffmpeg's output can be copied into it directly. */
+/** Copies [pixels], rows of [sourceRowBytes], into the native memory at [target], rows of [targetRowBytes]. */
+internal fun copyRows(pixels: ByteArray, sourceRowBytes: Int, target: Long, targetRowBytes: Int, height: Int) {
+    val destination = NativeAddress(target)
+    if (sourceRowBytes == targetRowBytes) {
+        destination.put(pixels, 0, sourceRowBytes * height)
+        return
+    }
+    val rowBytes = minOf(sourceRowBytes, targetRowBytes)
+    for (row in 0 until height) {
+        destination.position(row.toLong() * targetRowBytes).put(pixels, row * sourceRowBytes, rowBytes)
+    }
+}
+
+/** A JavaCPP view of memory Skia owns, so a frame can be copied into it directly. */
 private class NativeAddress(address: Long) : BytePointer() {
     init {
         this.address = address

@@ -36,10 +36,12 @@ internal interface DeviceController {
     suspend fun startRecording(outputFile: File): DeviceRecording
 
     /**
-     * Starts a process that writes the screen as a raw H.264 stream to stdout. The stream may end
-     * on its own (adb's screenrecord stops after three minutes); open a new one to continue.
+     * Starts a process that writes the screen to stdout, in the format the returned stream names.
+     * [wanted] is the size the frames will be shown at, when smaller than the screen; a device that
+     * can scale its stream itself sends frames about that size. The stream may end on its own (adb's
+     * screenrecord stops after three minutes); open a new one to continue.
      */
-    suspend fun openVideoStream(): Process
+    suspend fun openVideoStream(wanted: IntSize?): VideoStream
 
     /** Releases what the controller holds for streaming, such as an idb companion. */
     suspend fun release()

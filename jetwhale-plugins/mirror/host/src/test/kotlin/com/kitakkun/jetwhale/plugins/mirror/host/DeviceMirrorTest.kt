@@ -167,7 +167,7 @@ private class SlowRecorder : DeviceController {
 
     override suspend fun sleep() = Unit
 
-    override suspend fun openVideoStream(): Process = throw deviceControlError("no stream in tests")
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
 }
@@ -212,9 +212,9 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
 
     override suspend fun inputText(text: String) = Unit
 
-    override suspend fun openVideoStream(): Process {
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
-        return EmptyProcess()
+        return VideoStream.H264(EmptyProcess())
     }
 
     override suspend fun release() = Unit

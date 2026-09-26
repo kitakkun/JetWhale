@@ -67,8 +67,8 @@ internal class AndroidDeviceController(
     }
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
-    override suspend fun openVideoStream(): Process = withContext(Dispatchers.IO) {
-        SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-"))
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
+        VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")))
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
