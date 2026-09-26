@@ -1,0 +1,141 @@
+package com.kitakkun.jetwhale.plugins.coroutines.agent
+
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineNode
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TestTimeSource
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class JobTreeWalkerTest {
+    private val clock = TestTimeSource()
+
+    @Test
+    fun `the tree shows each coroutine below a registered job with its name and state`() = runTest {
+        val root = Job()
+        val app = CoroutineScope(root + StandardTestDispatcher(testScheduler))
+        val gate = CompletableDeferred<Unit>()
+        app.launch(CoroutineName("loader")) {
+            launch(CoroutineName("child")) { gate.await() }
+            gate.await()
+        }
+        app.launch(CoroutineName("lazy"), start = CoroutineStart.LAZY) { gate.await() }
+        runCurrent()
+
+        val tree = JobTreeWalker(nodeLimit = 100, timeSource = clock).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
+
+        val appNode = tree.roots.single()
+        assertEquals("app", appNode.name)
+        assertEquals(listOf("loader" to CoroutineState.Active, "lazy" to CoroutineState.New), appNode.children.map { it.name to it.state })
+        assertEquals(listOf("child"), appNode.children.first().children.map(CoroutineNode::name))
+        assertEquals(4, tree.coroutineCount)
+        gate.complete(Unit)
+        root.cancel()
+    }
+
+    @Test
+    fun `a coroutine keeps its id from one walk to the next`() = runTest {
+        val root = Job()
+        val gate = CompletableDeferred<Unit>()
+        CoroutineScope(root + StandardTestDispatcher(testScheduler)).launch(CoroutineName("worker")) { gate.await() }
+        runCurrent()
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
+
+        val first = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().id
+        val second = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().id
+
+        assertEquals(first, second)
+        gate.complete(Unit)
+        root.cancel()
+    }
+
+    @Test
+    fun `a walk stops at the node limit and says it was cut short`() = runTest {
+        val root = Job()
+        val gate = CompletableDeferred<Unit>()
+        val app = CoroutineScope(root + StandardTestDispatcher(testScheduler))
+        repeat(10) { app.launch { gate.await() } }
+        runCurrent()
+
+        val tree = JobTreeWalker(nodeLimit = 4, timeSource = clock).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
+
+        assertEquals(4, tree.coroutineCount)
+        assertTrue(tree.truncated)
+        gate.complete(Unit)
+        root.cancel()
+    }
+
+    @Test
+    fun `the node limit also bounds how many registered roots are walked`() = runTest {
+        val roots = (1..5).associate { "scope-$it" to Job() }
+
+        val tree = JobTreeWalker(nodeLimit = 3, timeSource = clock).walk(roots, capturedAtEpochMillis = 0)
+
+        assertEquals(3, tree.roots.size)
+        assertTrue(tree.truncated)
+        roots.values.forEach(Job::cancel)
+    }
+
+    @Test
+    fun `job states map to the coroutine states the host shows`() = runTest {
+        val completed = Job().apply { complete() }
+        val cancelled = Job().apply { cancel() }
+        val cancelling = Job()
+        val gate = CompletableDeferred<Unit>()
+        CoroutineScope(cancelling + StandardTestDispatcher(testScheduler)).launch { withContext(NonCancellable) { gate.await() } }
+        runCurrent()
+        cancelling.cancel()
+
+        assertEquals(CoroutineState.Active, Job().coroutineState())
+        assertEquals(CoroutineState.Completed, completed.coroutineState())
+        assertEquals(CoroutineState.Cancelled, cancelled.coroutineState())
+        assertEquals(CoroutineState.Cancelling, cancelling.coroutineState())
+        gate.complete(Unit)
+    }
+
+    @Test
+    fun `a registered root is as old as its registration when the tree is first asked for`() = runTest {
+        val root = Job()
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
+        walker.registered(root)
+
+        clock += AGE_WAIT
+        val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().observedMillis
+
+        assertEquals(AGE_WAIT.inWholeMilliseconds, age)
+        root.cancel()
+    }
+
+    @Test
+    fun `a coroutine noted by a sighting keeps that age when the tree is first asked for`() = runTest {
+        val root = Job()
+        val gate = CompletableDeferred<Unit>()
+        CoroutineScope(root + StandardTestDispatcher(testScheduler)).launch(CoroutineName("worker")) { gate.await() }
+        runCurrent()
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
+
+        walker.sight(listOf(root))
+        clock += AGE_WAIT
+        val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().observedMillis
+
+        assertEquals(AGE_WAIT.inWholeMilliseconds, age)
+        gate.complete(Unit)
+        root.cancel()
+    }
+}
+
+private val AGE_WAIT = 50.milliseconds
