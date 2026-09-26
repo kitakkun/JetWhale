@@ -92,6 +92,21 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a stream opened before its view is laid out waits for the view instead of asking for the full screen`() = runBlocking {
+        val controller = EndingStream(power = null)
+        val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
+        val session = scope.launch { mirror.mirror(streaming) }
+        // The mirror reads the screen's size just before it would open the stream.
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.screenSizeRead.await() }
+        mirror.surface.viewSize = IntSize(540, 1200)
+
+        val wanted = withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.firstWanted.await() }
+        session.cancel()
+
+        assertEquals(IntSize(540, 1200), wanted)
+    }
+
+    @Test
     fun `a mirrored Android device whose screen is off says so until mirroring stops`() = runBlocking {
         val asleep = ScreenPower(awake = false, locked = true)
         val controller = EndingStream(power = asleep)
@@ -184,6 +199,12 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     /** Completes once the mirror, done with the first stream, opens the next. */
     val reopened = CompletableDeferred<Unit>()
 
+    /** The size the first stream was asked for. */
+    val firstWanted = CompletableDeferred<IntSize?>()
+
+    /** Completes when the mirror first reads the screen's size. */
+    val screenSizeRead = CompletableDeferred<Unit>()
+
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = power != null)
 
     /** Completes when the screen state is read a second time. */
@@ -200,7 +221,10 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
 
-    override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
+    override suspend fun screenSize(): IntSize {
+        screenSizeRead.complete(Unit)
+        return IntSize(1080, 2400)
+    }
 
     override suspend fun captureScreenshot(): ByteArray = throw deviceControlError("no screenshots in tests")
 
@@ -213,6 +237,7 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     override suspend fun inputText(text: String) = Unit
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        firstWanted.complete(wanted)
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
         return VideoStream.H264(EmptyProcess())
     }
