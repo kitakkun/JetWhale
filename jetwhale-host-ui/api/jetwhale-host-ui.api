@@ -324,6 +324,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwShapes {
 public abstract interface class com/kitakkun/jetwhale/host/ui/JwSnackbarData {
 	public abstract fun dismiss ()V
 	public abstract fun getActionLabel ()Ljava/lang/String;
+	public abstract fun getDismissLabel ()Ljava/lang/String;
 	public abstract fun getDuration ()Lcom/kitakkun/jetwhale/host/ui/JwSnackbarDuration;
 	public abstract fun getMessage ()Ljava/lang/String;
 	public abstract fun performAction ()V
@@ -350,8 +351,8 @@ public final class com/kitakkun/jetwhale/host/ui/JwSnackbarHostState {
 	public static final field $stable I
 	public fun <init> ()V
 	public final fun getCurrentSnackbarData ()Lcom/kitakkun/jetwhale/host/ui/JwSnackbarData;
-	public final fun showSnackbar (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/ui/JwSnackbarDuration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun showSnackbar$default (Lcom/kitakkun/jetwhale/host/ui/JwSnackbarHostState;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/ui/JwSnackbarDuration;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun showSnackbar (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/ui/JwSnackbarDuration;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun showSnackbar$default (Lcom/kitakkun/jetwhale/host/ui/JwSnackbarHostState;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/ui/JwSnackbarDuration;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwSnackbarKt {
