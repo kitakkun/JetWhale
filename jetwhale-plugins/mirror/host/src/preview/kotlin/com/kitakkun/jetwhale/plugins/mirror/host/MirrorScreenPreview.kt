@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -23,23 +24,26 @@ private val androidCapabilities = DeviceCapabilities(
     screenPower = true,
 )
 
-private val previewCaptures = listOf(CaptureKind.Screenshot, CaptureKind.Recording).mapIndexed { index, kind ->
-    Capture(
-        file = File("/tmp/captures/Pixel-9-1a2b3c4d/2026-09-25/10300$index-${kind.suffix}.${kind.extension}"),
-        info = CaptureInfo(
-            deviceId = "emulator-5554",
-            deviceName = "Pixel 9",
-            platform = "Android",
-            deviceKind = "Emulator",
-            osVersion = null,
-            kind = kind,
-            widthPx = 1080,
-            heightPx = 2400,
-            capturedAtEpochMillis = 1_790_300_000_000 + index * 60_000L,
-            durationMillis = if (kind == CaptureKind.Recording) 12_400 else null,
-        ),
-    )
-}
+private val previewCaptures = listOf(
+    previewCapture(index = 0, kind = CaptureKind.Screenshot, durationMillis = null),
+    previewCapture(index = 1, kind = CaptureKind.Recording, durationMillis = 12_400),
+)
+
+private fun previewCapture(index: Int, kind: CaptureKind, durationMillis: Long?) = Capture(
+    file = File("/tmp/captures/Pixel-9-1a2b3c4d/2026-09-25/10300$index-${kind.suffix}.${kind.extension}"),
+    info = CaptureInfo(
+        deviceId = "emulator-5554",
+        deviceName = "Pixel 9",
+        platform = "Android",
+        deviceKind = "Emulator",
+        osVersion = null,
+        kind = kind,
+        widthPx = 1080,
+        heightPx = 2400,
+        capturedAtEpochMillis = 1_790_300_000_000 + index * 60_000L,
+        durationMillis = durationMillis,
+    ),
+)
 
 private object NoThumbnails : ThumbnailSource {
     override fun cachedThumbnail(capture: Capture): ImageBitmap? = null
@@ -241,3 +245,44 @@ private fun rememberPreviewSurface(): MirrorSurface = remember {
         }
     }
 }
+
+@Preview
+@Composable
+private fun DeviceToolbarPreview() {
+    JwTheme(darkTheme = false) {
+        Column {
+            DeviceToolbar(
+                pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = null),
+                actions = NoActions,
+                showCaptures = false,
+                onToggleCaptures = {},
+            )
+            DeviceToolbar(
+                pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = 0L),
+                actions = NoActions,
+                showCaptures = true,
+                onToggleCaptures = {},
+            )
+            DeviceToolbar(
+                pane = previewPane(
+                    device = previewDevices[1],
+                    capabilities = DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home), recording = true, screenPower = false),
+                    recordingSinceMillis = null,
+                ),
+                actions = NoActions,
+                showCaptures = false,
+                onToggleCaptures = {},
+            )
+        }
+    }
+}
+
+private fun previewPane(device: DeviceListing, capabilities: DeviceCapabilities, recordingSinceMillis: Long?) = DevicePaneState(
+    device = device,
+    capabilities = capabilities,
+    state = MirrorState.Streaming,
+    status = null,
+    screenPower = ScreenPower(awake = true, locked = false).takeIf { capabilities.screenPower },
+    recordingSinceMillis = recordingSinceMillis,
+    recordingElsewhere = null,
+)
