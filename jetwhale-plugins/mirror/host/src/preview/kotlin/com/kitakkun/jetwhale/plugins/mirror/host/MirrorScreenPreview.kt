@@ -112,7 +112,9 @@ private fun MirrorScreenStreamingPreview() {
             surface = rememberPreviewSurface(),
             actions = NoActions,
             showCaptures = false,
+            livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
+            onShowGrid = {},
             capturesPanel = {},
         )
     }
@@ -135,7 +137,9 @@ private fun MirrorScreenScreenOffPreview() {
             surface = rememberPreviewSurface(),
             actions = NoActions,
             showCaptures = false,
+            livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
+            onShowGrid = {},
             capturesPanel = {},
         )
     }
@@ -158,7 +162,9 @@ private fun MirrorScreenNoFramesPreview() {
             surface = remember(::MirrorSurface),
             actions = NoActions,
             showCaptures = false,
+            livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
+            onShowGrid = {},
             capturesPanel = {},
         )
     }
@@ -181,7 +187,9 @@ private fun MirrorScreenEmptyPreview() {
             surface = remember(::MirrorSurface),
             actions = NoActions,
             showCaptures = false,
+            livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
+            onShowGrid = {},
             capturesPanel = {},
         )
     }
@@ -204,7 +212,9 @@ private fun MirrorScreenWithCapturesPreview() {
             surface = rememberPreviewSurface(),
             actions = NoActions,
             showCaptures = true,
+            livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
+            onShowGrid = {},
             capturesPanel = { CapturesPanelPreview() },
         )
     }
