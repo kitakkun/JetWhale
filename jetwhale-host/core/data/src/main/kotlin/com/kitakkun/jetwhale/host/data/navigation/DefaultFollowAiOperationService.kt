@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -22,6 +23,7 @@ class DefaultFollowAiOperationService(
     private val mcpActivityRepository: McpActivityRepository,
     private val debuggerSettingsRepository: DebuggerSettingsRepository,
     private val hostNavigationService: HostNavigationService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : FollowAiOperationService {
 
     override suspend fun followAiOperations() {
@@ -41,6 +43,9 @@ class DefaultFollowAiOperationService(
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
         // Host tools (navigation, settings, status) name no plugin, and there is nothing to follow.
         val pluginId = invocation.pluginId ?: return
+        // A call can name a plugin that has nothing running (switched off, not installed for that
+        // session, not started yet): its tool fails, and there is no screen to bring up for it.
+        if (!hasRunningInstance(pluginId, invocation.sessionId)) return
 
         val currentView = hostNavigationService.currentView.value
         // Null until the window reports its first destination; navigating then is still right,
@@ -48,6 +53,12 @@ class DefaultFollowAiOperationService(
         if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
 
         hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId, followsAgent = true))
+    }
+
+    /** A call that names no session is followed in the drawer's session, so any instance counts. */
+    private fun hasRunningInstance(pluginId: String, sessionId: String?): Boolean = when (sessionId) {
+        null -> pluginInstanceService.getLoadedPluginInstances().any { it.pluginId == pluginId }
+        else -> pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) != null
     }
 }
 

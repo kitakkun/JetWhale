@@ -45,6 +45,7 @@ import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
+import com.kitakkun.jetwhale.host.navigation.removeEntriesOfUninstalledPlugins
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -157,6 +158,12 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
             }
             // Not done inside debugWebSocketServer itself: that would be a dependency cycle.
             appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
+        }
+    }
+
+    LaunchedEffect(backStack) {
+        appGraph.pluginFactoryRepository.loadedPluginsFlow.collect { loadedPlugins ->
+            backStack.removeEntriesOfUninstalledPlugins(loadedPlugins.keys)
         }
     }
 

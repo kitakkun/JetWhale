@@ -25,6 +25,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequestParams
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -183,11 +184,39 @@ class ScrollToolTest {
         assertTrue(receivedDeltas.isEmpty(), "No scroll event should be dispatched, but got $receivedDeltas")
     }
 
+    @Test
+    fun `scroll on a plugin with no running instance answers with an error naming it`() = runBlocking {
+        val server = Server(
+            serverInfo = Implementation(name = "test", version = "1.0.0"),
+            options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
+        )
+        ScrollMcpTool(FakePluginComposeSceneService(scene = null)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        val handler = server.tools.getValue("jetwhale.scroll").handler
+        val request = CallToolRequest(
+            CallToolRequestParams(
+                name = "jetwhale.scroll",
+                arguments = buildJsonObject {
+                    put("pluginId", "plugin-off")
+                    put("sessionId", "session")
+                    put("x", 100)
+                    put("y", 100)
+                    put("deltaY", 50)
+                },
+            ),
+        )
+
+        val result = handler(noOpClientConnection(), request)
+
+        assertEquals(true, result.isError)
+        val text = (result.content.single() as TextContent).text
+        assertTrue("No running instance of 'plugin-off' in session 'session'" in text, "Unexpected error text: $text")
+    }
+
     private class FakePluginComposeSceneService(
-        private val scene: PluginComposeScene,
+        private val scene: PluginComposeScene?,
     ) : PluginComposeSceneService {
         override fun updateHostDensity(density: Density) = Unit
-        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene = scene
+        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? = scene
         override fun disposePluginSceneForSession(sessionId: String) = Unit
         override fun disposePluginScenesForPlugin(pluginId: String) = Unit
         override fun disposeAppSessionPluginScenes() = Unit

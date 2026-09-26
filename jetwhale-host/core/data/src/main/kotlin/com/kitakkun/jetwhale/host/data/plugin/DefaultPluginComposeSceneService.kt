@@ -61,13 +61,11 @@ class DefaultPluginComposeSceneService(
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-    ): PluginComposeScene {
+    ): PluginComposeScene? {
         val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
-        ) ?: run {
-            error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
-        }
+        ) ?: return null
         return withContext(Dispatchers.Main) {
             val sceneKey = SceneKey(pluginId, sessionId)
             val cached = pluginScenes[sceneKey]

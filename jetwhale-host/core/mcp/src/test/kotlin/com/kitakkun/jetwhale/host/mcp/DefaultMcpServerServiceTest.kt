@@ -595,6 +595,37 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    fun `a plugin tool called after its plugin is disabled answers that it is not available`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
+        val testPluginId = "com.example.test"
+        val testSessionId = "test-session-disabled"
+        every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns FakeMcpCapablePlugin()
+
+        service.start(host, port)
+        try {
+            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
+            awaitCapableFor(testSessionId) { testPluginId in it }
+            // The tool list is fixed when the client connects, so it still offers the tool below.
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                eventFlow.emit(PluginInstanceEvent.Disposed(testPluginId, testSessionId))
+                awaitCapableFor(testSessionId) { testPluginId !in it }
+
+                val result = client.callTool("com.example.test.greet", mapOf("sessionId" to testSessionId, "name" to "World"))
+
+                assertEquals(true, result.isError)
+                val text = (result.content.single() as TextContent).text
+                assertTrue("is not available in session '$testSessionId'" in text, "Unexpected text: $text")
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
     fun `a connected client is counted until it disconnects`() = runBlocking<Unit> {
         service.start(host, port)
         try {

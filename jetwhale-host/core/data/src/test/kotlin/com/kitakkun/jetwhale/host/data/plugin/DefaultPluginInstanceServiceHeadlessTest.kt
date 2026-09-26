@@ -16,11 +16,19 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 /**
  * Whether a plugin renders a UI is only knowable from the instantiated plugin, so the service that
@@ -73,6 +81,26 @@ class DefaultPluginInstanceServiceHeadlessTest {
 
         assertEquals(null, service.getPluginInstanceForSession(pluginId, sessionId))
         assertNotNull(service.getPluginInstanceForSession(pluginId, HostSession.ID))
+    }
+
+    @Test
+    fun `waiting for an instance ends once the plugin is created for the session`() = runBlocking {
+        val service = serviceWith { object : JetWhaleHostPlugin() {} }
+        val waiting = async(start = CoroutineStart.UNDISPATCHED) { service.pluginInstanceFlow(pluginId, sessionId).filterNotNull().first() }
+
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        assertSame(service.getPluginInstanceForSession(pluginId, sessionId), withTimeout(5_000) { waiting.await() })
+    }
+
+    @Test
+    fun `the instance flow turns null when the instance is disposed`() = runBlocking {
+        val service = serviceWith { object : JetWhaleHostPlugin() {} }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        service.unloadPluginInstancesForPlugin(pluginId)
+
+        assertNull(service.pluginInstanceFlow(pluginId, sessionId).first())
     }
 
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(

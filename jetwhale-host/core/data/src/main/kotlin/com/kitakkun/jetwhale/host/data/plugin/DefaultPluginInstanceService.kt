@@ -30,11 +30,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -83,11 +86,18 @@ class DefaultPluginInstanceService(
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
 
+    /** A snapshot of [loadedPlugins], republished on every change so a caller can wait for an instance. */
+    private val instancesFlow = MutableStateFlow<Map<PluginInstanceKey, JetWhaleHostPlugin>>(emptyMap())
+
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
     }
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
+
+    override fun pluginInstanceFlow(pluginId: String, sessionId: String): Flow<JetWhaleHostPlugin?> = instancesFlow
+        .map { it[PluginInstanceKey(pluginId, sessionId)] }
+        .distinctUntilChanged()
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
@@ -105,7 +115,7 @@ class DefaultPluginInstanceService(
             if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
         }
 
-        publishHeadlessPlugins()
+        publishInstances()
         newlyInitializedSessions.forEach { sessionId ->
             emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
@@ -271,16 +281,17 @@ class DefaultPluginInstanceService(
                 }
             }
         }
-        publishHeadlessPlugins()
+        publishInstances()
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**
-     * Recomputes the headless set from the live instances. Republishing the whole set (rather than
-     * patching it) is what keeps it correct across a reload, where the same pluginId is replaced by
-     * an instance from a new classloader that may not answer the same way.
+     * Recomputes the published instances and the headless set from the live instances. Republishing
+     * the whole set (rather than patching it) is what keeps it correct across a reload, where the same
+     * pluginId is replaced by an instance from a new classloader that may not answer the same way.
      */
-    private fun publishHeadlessPlugins() {
+    private fun publishInstances() {
+        instancesFlow.value = loadedPlugins.mapValues { (_, instance) -> instance.plugin }
         headlessPluginsFlow.value = HeadlessPlugins(
             loadedPlugins.entries
                 .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }

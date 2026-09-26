@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -209,6 +210,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
+        override fun pluginInstanceFlow(pluginId: String, sessionId: String): Flow<JetWhaleHostPlugin?> = flowOf(null)
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
         override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit

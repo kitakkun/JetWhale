@@ -62,7 +62,7 @@ fun PluginScreenRoot() {
                 SoilDataBoundary(
                     state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
                     fallback = SoilFallbackDefaults.custom(
-                        suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
+                        suspenseFallback = { PluginStartingScreen() },
                         errorFallback = {
                             PluginScreenErrorFallback(
                                 pluginId = screenContext.pluginId,
