@@ -1,17 +1,18 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,11 +22,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
 import com.kitakkun.jetwhale.host.ui.JwListItem
@@ -37,7 +40,6 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 
 /** The live screen keeps most of the pane while the captures sit beside it. */
@@ -182,22 +184,7 @@ private fun DevicePane(
     capturesPanel: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        // The title and the device's buttons share what the capture actions leave: those stay whole
-        // at the right end, and the buttons scroll sideways when the window is too narrow for them.
-        JwToolbar(
-            actions = {
-                JwText(
-                    text = pane.device.name,
-                    style = JwTheme.textStyles.subtitle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(horizontal = JwSpacing.extraSmall),
-                )
-                DeviceButtons(pane.device.kind, pane.capabilities, pane.screenPower, actions, Modifier.weight(1f, fill = false))
-                CaptureActions(pane.capabilities, pane.recording, pane.recordingElsewhere, actions)
-                JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
-            },
-        )
+        DeviceToolbar(pane, actions, showCaptures, onToggleCaptures)
         pane.status?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
         if (showCaptures) {
             JwSplitPane(
@@ -236,28 +223,92 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
     }
 }
 
+/**
+ * The device's name and controls, in groups that wrap to another line as a whole when the window is
+ * too narrow for one: every control stays visible, and the capture group keeps to the line's end.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DeviceButtons(kind: DeviceKind, capabilities: DeviceCapabilities, screenPower: ScreenPower?, actions: MirrorActions, modifier: Modifier) {
-    Row(modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-        capabilities.buttons.forEach { button ->
+private fun DeviceToolbar(pane: DevicePaneState, actions: MirrorActions, showCaptures: Boolean, onToggleCaptures: () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(JwTheme.colors.toolbarBackground)
+                .padding(horizontal = JwSpacing.medium, vertical = JwSpacing.extraSmall),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            JwText(
+                text = pane.device.name,
+                style = JwTheme.textStyles.subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = DEVICE_NAME_MAX_WIDTH),
+            )
+            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
+            VolumeGroup(pane.device.kind, pane.capabilities, actions)
+            ScreenPowerButton(pane.screenPower, actions)
+            // The one group allowed to break: in a window narrower than all three buttons it would
+            // otherwise run off the edge.
+            FlowRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                CaptureActions(pane.capabilities, pane.recording, pane.recordingElsewhere, actions)
+                JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
+            }
+        }
+        JwHorizontalDivider()
+    }
+}
+
+/** Past this the name gives way to the controls; its full text is in the device list. */
+private val DEVICE_NAME_MAX_WIDTH = 220.dp
+
+private val NAVIGATION_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
+
+@Composable
+private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
+    if (buttons.isEmpty()) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        buttons.forEach { button ->
             JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
                 JwIcon(imageVector = button.icon, contentDescription = button.label)
             }
         }
+    }
+}
+
+@Composable
+private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, actions: MirrorActions) {
+    val volume = listOf(DeviceButton.VolumeUp, DeviceButton.VolumeDown)
+    when {
+        volume.any { it in capabilities.buttons } -> ButtonGroup(capabilities.buttons.filter(volume::contains), actions)
+
         // Shown disabled rather than left out, so their absence is explained rather than puzzling.
-        if (kind == DeviceKind.IosSimulator) {
-            listOf(DeviceButton.VolumeUp, DeviceButton.VolumeDown).forEach { button ->
+        kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
+            volume.forEach { button ->
                 JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
                     JwIcon(imageVector = button.icon, contentDescription = button.label)
                 }
             }
         }
-        // Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
-        when (screenPower?.awake) {
-            true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = "Screen off") }
-            false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = "Wake") }
-            null -> Unit
-        }
+
+        else -> Unit
+    }
+}
+
+// Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
+@Composable
+private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
+    when (screenPower?.awake) {
+        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = "Screen off") }
+        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = "Wake") }
+        null -> Unit
     }
 }
 

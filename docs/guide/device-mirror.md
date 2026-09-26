@@ -47,10 +47,12 @@ When a tool is missing, the device list says which one and what it would enable.
   screenshots and says why above the text field.
 - **Switching devices.** Switching back to a device shows its last frame at once, dimmed, until
   its stream reconnects. The last frames of the four devices shown most recently are kept.
-- **Hardware buttons.** Icon buttons in the toolbar, with the name in a tooltip; in a narrow window
-  the row scrolls sideways, and Record, Screenshot and Captures stay in view. Android has Home,
-  Back, Power, Volume up and Volume down; a simulator has Home and Power, and shows its volume
-  buttons disabled because idb cannot press them.
+- **Hardware buttons.** Icon buttons in the toolbar, with the name in a tooltip, in groups
+  (navigation, volume, screen power, captures) that wrap to another line as a whole in a narrow
+  window, so every button stays visible. Android has Home,
+  Back, Recent apps, Power, Volume up and Volume down; a simulator has Home, Recent apps (two
+  quick presses of Home, which open its app switcher) and Power, and shows its volume buttons
+  disabled because idb cannot press them.
 - **Text.** The field under the screen types into whatever has focus on the device. On Android,
   text with a line break is refused; type each line separately.
 - **Screen off and Wake (Android).** A device whose screen is off sends nothing, so the live view

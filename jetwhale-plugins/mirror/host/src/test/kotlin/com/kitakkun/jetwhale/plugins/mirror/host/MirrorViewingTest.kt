@@ -30,6 +30,22 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a phone in a narrow view is fitted inside it and taps map to the right device pixels`() {
+        // 1080x2424 into 760x1200: the height limits it, about 535 wide, centered.
+        val fitted = FittedFrame(frameWidth = 1080, frameHeight = 2424, viewWidth = 760f, viewHeight = 1200f)
+        assertTrue(fitted.bounds.right <= 760f)
+        assertEquals(1200f, fitted.bounds.bottom)
+        assertEquals(fitted.bounds.left, 760f - fitted.bounds.right, absoluteTolerance = 0.01f)
+
+        // Narrower than the phone's own shape: the width limits it, edge to edge.
+        val narrow = FittedFrame(frameWidth = 1080, frameHeight = 2424, viewWidth = 300f, viewHeight = 1200f)
+        assertEquals(0f, narrow.bounds.left)
+        assertEquals(300f, narrow.bounds.right)
+        assertEquals(IntOffset(1079, 1212), narrow.toDevicePixel(Offset(299.9f, 600f), IntSize(1080, 2424)))
+        assertEquals(IntOffset(0, 1212), narrow.toDevicePixel(Offset(0f, 600f), IntSize(1080, 2424)))
+    }
+
+    @Test
     fun `a point on a frame decoded smaller than the screen maps to the screen's own pixels`() {
         // A 540x1200 frame of a 1080x2400 screen, drawn at 540x1200: each view pixel is two device pixels.
         val fitted = FittedFrame(frameWidth = 540, frameHeight = 1200, viewWidth = 540f, viewHeight = 1200f)
