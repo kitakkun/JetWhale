@@ -26,6 +26,7 @@ import com.kitakkun.jetwhale.host.plugin_arrived_update_action
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -149,30 +150,32 @@ private const val SHORT_HASH_LENGTH = 12
 @Preview
 @Composable
 private fun PluginJarArrivalBannerPreview() {
-    val network = DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.3.0")
-    PluginJarArrivalBanner(
-        arrivedJars = persistentListOf(
-            ArrivedPluginJar(
-                jarPath = "/plugins/network.jar",
-                sizeBytes = 2_300_000,
-                sha256 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
-                declaredPlugins = listOf(network),
-                unreadableReason = null,
-                replacedPlugins = listOf(DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0")),
-                loadFailure = null,
+    JwTheme(darkTheme = false) {
+        val network = DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.3.0")
+        PluginJarArrivalBanner(
+            arrivedJars = persistentListOf(
+                ArrivedPluginJar(
+                    jarPath = "/plugins/network.jar",
+                    sizeBytes = 2_300_000,
+                    sha256 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+                    declaredPlugins = listOf(network),
+                    unreadableReason = null,
+                    replacedPlugins = listOf(DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0")),
+                    loadFailure = null,
+                ),
+                ArrivedPluginJar(
+                    jarPath = "/plugins/storage.jar",
+                    sizeBytes = 840_000,
+                    sha256 = "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
+                    declaredPlugins = listOf(DeclaredPlugin(pluginId = "com.example.storage", pluginName = "Storage", version = "0.4.0")),
+                    unreadableReason = null,
+                    replacedPlugins = emptyList(),
+                    loadFailure = "Declared dependency io.ktor:ktor-client-core:3.2.0 is missing",
+                ),
             ),
-            ArrivedPluginJar(
-                jarPath = "/plugins/storage.jar",
-                sizeBytes = 840_000,
-                sha256 = "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
-                declaredPlugins = listOf(DeclaredPlugin(pluginId = "com.example.storage", pluginName = "Storage", version = "0.4.0")),
-                unreadableReason = null,
-                replacedPlugins = emptyList(),
-                loadFailure = "Declared dependency io.ktor:ktor-client-core:3.2.0 is missing",
-            ),
-        ),
-        onLoad = {},
-        onPostpone = {},
-        onReviewInSettings = {},
-    )
+            onLoad = {},
+            onPostpone = {},
+            onReviewInSettings = {},
+        )
+    }
 }
