@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -84,7 +86,59 @@ class DefaultPluginFactoryRepositoryTest {
         assertTrue(repository.failedJarsFlow.first().single().reason.contains("larger than"))
     }
 
+    @Test
+    fun `jars with different versions of one plugin are loaded side by side`() = runBlocking {
+        val older = versionJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+
+        assertEquals(listOf("1.3.0", "1.2.0"), repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version })
+        assertEquals("1.3.0", repository.loadedPlugins.getValue(PLUGIN_ID).manifest.version)
+        assertEquals(listOf(PLUGIN_ID), repository.findPluginIdsByJarPath(older.absolutePath))
+    }
+
+    @Test
+    fun `a jar with the same version as another jar takes that version over`() = runBlocking {
+        val older = versionJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+        val copy = versionJar("example-copy.jar", "1.3.0")
+
+        repository.loadPlugin(copy.absolutePath, expectedSha256 = null)
+
+        assertEquals(
+            listOf("1.3.0" to copy.absolutePath, "1.2.0" to older.absolutePath),
+            repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version to it.jarPath },
+        )
+    }
+
+    @Test
+    fun `unloading one version's jar keeps the other versions`() = runBlocking {
+        val older = versionJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+
+        repository.unloadPluginJar(older.absolutePath)
+
+        assertEquals(listOf("1.3.0"), repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version })
+    }
+
+    private fun versionJar(name: String, version: String): File = File(pluginsDir, name).apply {
+        JarOutputStream(outputStream()).use { archive ->
+            archive.putNextEntry(JarEntry(PLUGIN_MANIFEST_PATH))
+            val factoryClass = VersionTestPluginFactory::class.java.name
+            archive.write("""{"plugins":[{"pluginId":"$PLUGIN_ID","pluginName":"Example","version":"$version","factoryClass":"$factoryClass"}]}""".toByteArray())
+            archive.closeEntry()
+        }
+    }
+
     private companion object {
         const val APPROVAL_MISMATCH = "changed after it was approved"
+        const val PLUGIN_ID = "com.example.plugin"
     }
+}
+
+/** Resolved through the host's classloader, which each plugin jar's classloader delegates to. */
+class VersionTestPluginFactory : JetWhaleHostPluginFactory {
+    override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
 }

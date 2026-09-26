@@ -21,6 +21,6 @@ class DefaultPluginInstallMutationKey(
         val copiedJarFilePath = appDataDirectoryProvider.copyJarFileToAppDataDirectory(jarUrlString)
         // Installing via the file picker is the user's explicit consent: approve (pin the content
         // hash) and load. A jar that merely appears in the directory by other means is not trusted.
-        pluginTrustService.trustAndLoad(copiedJarFilePath, approvedSha256 = null)
+        pluginTrustService.trustAndLoad(copiedJarFilePath, approvedSha256 = null, replaceOtherVersions = false)
     },
 )

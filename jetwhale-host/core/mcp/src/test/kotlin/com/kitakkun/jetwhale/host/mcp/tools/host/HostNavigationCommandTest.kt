@@ -238,6 +238,7 @@ private fun viewState(destination: HostDestination) = HostViewState(
 )
 
 private fun loadedPlugin(pluginId: String) = LoadedHostPlugin(
+    jarPath = "/plugins/plugin.jar",
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = pluginId,

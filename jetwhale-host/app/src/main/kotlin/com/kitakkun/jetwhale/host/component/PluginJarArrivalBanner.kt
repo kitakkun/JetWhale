@@ -13,11 +13,14 @@ import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.model.ArrivedPluginJar
 import com.kitakkun.jetwhale.host.model.DeclaredPlugin
+import com.kitakkun.jetwhale.host.plugin_arrived_alongside
 import com.kitakkun.jetwhale.host.plugin_arrived_failed
 import com.kitakkun.jetwhale.host.plugin_arrived_later
 import com.kitakkun.jetwhale.host.plugin_arrived_load
+import com.kitakkun.jetwhale.host.plugin_arrived_load_alongside
 import com.kitakkun.jetwhale.host.plugin_arrived_more
 import com.kitakkun.jetwhale.host.plugin_arrived_new
+import com.kitakkun.jetwhale.host.plugin_arrived_replace
 import com.kitakkun.jetwhale.host.plugin_arrived_review
 import com.kitakkun.jetwhale.host.plugin_arrived_unreadable
 import com.kitakkun.jetwhale.host.plugin_arrived_unreadable_because
@@ -36,12 +39,13 @@ import java.util.Locale
 /**
  * Asks about the jars that appeared in the plugins directory while the host was running, one strip
  * each: what the jar declares, then its file name, size and the start of its SHA-256, with Load (or
- * Update, for a jar that overwrote a running one) and Later. Nothing in a jar runs before Load.
+ * Update, for a jar that overwrote a running one) and Later. A new version of an installed plugin
+ * offers Load alongside and Replace instead of Load. Nothing in a jar runs before it is loaded.
  */
 @Composable
 fun PluginJarArrivalBanner(
     arrivedJars: ImmutableList<ArrivedPluginJar>,
-    onLoad: (jar: ArrivedPluginJar) -> Unit,
+    onLoad: (jar: ArrivedPluginJar, replaceOtherVersions: Boolean) -> Unit,
     onPostpone: (jarPath: String) -> Unit,
     onReviewInSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,11 +80,24 @@ fun PluginJarArrivalBanner(
                 text = jar.headline(),
                 tone = JwTone.Warning,
                 actions = {
-                    JwButton(
-                        text = stringResource(if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action),
-                        onClick = { guarded { onLoad(jar) } },
-                        style = JwButtonStyle.Text,
-                    )
+                    if (jar.replacedPlugins.isEmpty() && jar.otherVersions.isNotEmpty()) {
+                        JwButton(
+                            text = stringResource(Res.string.plugin_arrived_load_alongside),
+                            onClick = { guarded { onLoad(jar, false) } },
+                            style = JwButtonStyle.Text,
+                        )
+                        JwButton(
+                            text = stringResource(Res.string.plugin_arrived_replace, jar.otherVersions.joinToString(transform = DeclaredPlugin::version)),
+                            onClick = { guarded { onLoad(jar, true) } },
+                            style = JwButtonStyle.Text,
+                        )
+                    } else {
+                        JwButton(
+                            text = stringResource(if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action),
+                            onClick = { guarded { onLoad(jar, false) } },
+                            style = JwButtonStyle.Text,
+                        )
+                    }
                     JwButton(
                         text = stringResource(Res.string.plugin_arrived_later),
                         onClick = { guarded { onPostpone(jar.jarPath) } },
@@ -118,6 +135,13 @@ private fun ArrivedPluginJar.headline(): String {
             null -> stringResource(Res.string.plugin_arrived_unreadable, details)
             else -> stringResource(Res.string.plugin_arrived_unreadable_because, details, reason)
         }
+
+        replacedPlugins.isEmpty() && otherVersions.isNotEmpty() -> stringResource(
+            Res.string.plugin_arrived_alongside,
+            declaredPlugins.joinToString { "${it.pluginName} ${it.version}" },
+            otherVersions.joinToString { "${it.pluginName} ${it.version}" },
+            details,
+        )
 
         replacedPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_new, declaredPlugins.joinToString { "${it.pluginName} ${it.version}" }, details)
 
@@ -159,6 +183,17 @@ private fun PluginJarArrivalBannerPreview() {
                 declaredPlugins = listOf(network),
                 unreadableReason = null,
                 replacedPlugins = listOf(DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0")),
+                otherVersions = emptyList(),
+                loadFailure = null,
+            ),
+            ArrivedPluginJar(
+                jarPath = "/plugins/network-1.4.0.jar",
+                sizeBytes = 2_400_000,
+                sha256 = "2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+                declaredPlugins = listOf(network.copy(version = "1.4.0")),
+                unreadableReason = null,
+                replacedPlugins = emptyList(),
+                otherVersions = listOf(network),
                 loadFailure = null,
             ),
             ArrivedPluginJar(
@@ -168,10 +203,11 @@ private fun PluginJarArrivalBannerPreview() {
                 declaredPlugins = listOf(DeclaredPlugin(pluginId = "com.example.storage", pluginName = "Storage", version = "0.4.0")),
                 unreadableReason = null,
                 replacedPlugins = emptyList(),
+                otherVersions = emptyList(),
                 loadFailure = "Declared dependency io.ktor:ktor-client-core:3.2.0 is missing",
             ),
         ),
-        onLoad = {},
+        onLoad = { _, _ -> },
         onPostpone = {},
         onReviewInSettings = {},
     )

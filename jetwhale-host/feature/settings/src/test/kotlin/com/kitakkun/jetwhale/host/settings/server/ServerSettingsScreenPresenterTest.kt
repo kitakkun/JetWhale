@@ -256,6 +256,7 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     pluginInstallMutationKey = noop("plugin_install"),
     pluginInstallFromMavenMutationKey = noop("plugin_install_maven"),
     trustPluginMutationKey = noop("trust_plugin"),
+    removePluginJarMutationKey = noop("remove_plugin_jar"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},

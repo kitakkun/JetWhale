@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.host.data.server.negotiation
 
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
+import com.kitakkun.jetwhale.host.model.newestFor
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -27,22 +27,18 @@ class PluginNegotiationStrategy(
         val availablePlugins = mutableListOf<JetWhalePluginInfo>()
         val incompatiblePlugins = mutableListOf<JetWhalePluginInfo>()
 
-        val loadedPlugins = pluginFactoryRepository.loadedPlugins
+        val loadedVersions = pluginFactoryRepository.loadedPluginVersions
         request.plugins.forEach { requestedPlugin ->
-            val loaded = loadedPlugins[requestedPlugin.pluginId] ?: return@forEach
-            val isEnabled = requestedPlugin.pluginId in enabledPluginIds
-            val isCompatible = loaded.manifest.agentVersionRange
-                ?.isCompatibleWith(requestedPlugin.pluginVersion)
-                ?: true
-
-            when {
-                !isEnabled -> Unit
-
-                !isCompatible -> incompatiblePlugins += requestedPlugin
+            val versions = loadedVersions[requestedPlugin.pluginId] ?: return@forEach
+            if (requestedPlugin.pluginId !in enabledPluginIds) return@forEach
+            // The same rule the instance service binds the session with, so the version reported here
+            // is the one the session gets.
+            when (val bound = versions.newestFor(requestedPlugin.pluginVersion)) {
+                null -> incompatiblePlugins += requestedPlugin
 
                 else -> availablePlugins += JetWhalePluginInfo(
-                    pluginId = loaded.manifest.pluginId,
-                    pluginVersion = loaded.manifest.version,
+                    pluginId = bound.manifest.pluginId,
+                    pluginVersion = bound.manifest.version,
                 )
             }
         }
@@ -57,20 +53,3 @@ class PluginNegotiationStrategy(
         return PluginNegotiationResult(requestedPlugins = request.plugins)
     }
 }
-
-private fun JetWhaleHostPluginManifest.AgentVersionRange.isCompatibleWith(version: String): Boolean {
-    val v = version.toVersionParts()
-    return (min?.let { compareVersionParts(v, it.toVersionParts()) >= 0 } ?: true) &&
-        (max?.let { compareVersionParts(v, it.toVersionParts()) <= 0 } ?: true)
-}
-
-private fun compareVersionParts(a: List<Int>, b: List<Int>): Int {
-    val maxLen = maxOf(a.size, b.size)
-    for (i in 0 until maxLen) {
-        val diff = a.getOrElse(i) { 0 } - b.getOrElse(i) { 0 }
-        if (diff != 0) return diff
-    }
-    return 0
-}
-
-private fun String.toVersionParts(): List<Int> = split(".").map { it.toIntOrNull() ?: 0 }

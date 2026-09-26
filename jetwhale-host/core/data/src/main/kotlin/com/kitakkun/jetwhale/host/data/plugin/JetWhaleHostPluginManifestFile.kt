@@ -20,11 +20,11 @@ internal fun readJetWhaleHostPluginManifestFile(jar: File): JetWhaleHostPluginMa
 }
 
 /**
- * The plugin ids [jar] declares, or none when its manifest cannot be read (the load then fails and
+ * The plugins [jar] declares, or none when its manifest cannot be read (the load then fails and
  * says why). Read before loading, to find the running plugins a jar would take over.
  */
-internal fun declaredPluginIds(jar: File): List<String> = try {
-    readJetWhaleHostPluginManifestFile(jar).plugins.map(JetWhaleHostPluginManifest::pluginId)
+internal fun declaredPlugins(jar: File): List<JetWhaleHostPluginManifest> = try {
+    readJetWhaleHostPluginManifestFile(jar).plugins
 } catch (_: IOException) {
     emptyList()
 } catch (_: IllegalStateException) {

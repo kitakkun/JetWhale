@@ -10,6 +10,8 @@ import com.kitakkun.jetwhale.host.model.PluginIconResource
  * @property needsApp False for a plugin that runs without any app (`requiresAgent = false`): it lives in
  *   [com.kitakkun.jetwhale.host.model.HostSession], is listed apart from the selected app's plugins,
  *   and is usable with no app connected.
+ * @property versionBadge The version the row's session runs, shown only when several versions of the
+ *   plugin are installed; null otherwise.
  */
 data class DrawerPluginItemUiState(
     val name: String,
@@ -21,4 +23,5 @@ data class DrawerPluginItemUiState(
     val exposesMcpTools: Boolean,
     val isHeadless: Boolean,
     val needsApp: Boolean,
+    val versionBadge: String?,
 )

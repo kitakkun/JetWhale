@@ -261,6 +261,7 @@ private fun ShrunkToolingDrawerViewPreview() {
                 exposesMcpTools = true,
                 isHeadless = false,
                 needsApp = true,
+                versionBadge = null,
             ),
         ),
         sessions = persistentListOf(),

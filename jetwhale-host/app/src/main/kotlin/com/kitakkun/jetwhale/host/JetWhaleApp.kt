@@ -302,7 +302,9 @@ private fun HostWindowContent(
                 arrivedJars = arrivedJars,
                 // A jar that cannot be loaded ends up among the failed jars in the plugin settings.
                 // Approves the content the banner showed, not whatever is at the path by now.
-                onLoad = { jar -> coroutineScope.launch { runCatching { trustPluginMutation.mutateAsync(TrustPluginRequest(jar.jarPath, jar.sha256)) } } },
+                onLoad = { jar, replaceOtherVersions ->
+                    coroutineScope.launch { runCatching { trustPluginMutation.mutateAsync(TrustPluginRequest(jar.jarPath, jar.sha256, replaceOtherVersions)) } }
+                },
                 onPostpone = { jarPath -> coroutineScope.launch { postponeMutation.mutateAsync(PostponeArrivedPluginJarRequest(jarPath)) } },
                 onReviewInSettings = onClickReviewArrivedPlugins,
             )

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.BoundPluginVersions
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -45,6 +47,7 @@ class DefaultPluginSessionReconciliationServiceTest {
     )
 
     private val loadedPlugin = LoadedHostPlugin(
+        jarPath = "/plugins/plugin.jar",
         manifest = JetWhaleHostPluginManifest(
             pluginId = pluginId,
             pluginName = "Test",
@@ -59,6 +62,7 @@ class DefaultPluginSessionReconciliationServiceTest {
     private val hostOnlyPluginId = "com.example.device"
 
     private val hostOnlyPlugin = LoadedHostPlugin(
+        jarPath = "/plugins/plugin.jar",
         manifest = JetWhaleHostPluginManifest(
             pluginId = hostOnlyPluginId,
             pluginName = "Device",
@@ -130,9 +134,9 @@ class DefaultPluginSessionReconciliationServiceTest {
             pluginInstanceService = FakePluginInstanceService(factoryRepository),
         )
 
-        assertEquals(setOf(HostSession.ID), service.targetSessionIds(hostOnlyPluginId, listOf(activeSession)))
-        assertEquals(setOf(sessionId), service.targetSessionIds(pluginId, listOf(activeSession)))
-        assertEquals(emptySet(), service.targetSessionIds(pluginId, emptyList()))
+        assertEquals(mapOf(HostSession.ID to null), service.targetSessions(hostOnlyPluginId, listOf(activeSession)))
+        assertEquals(mapOf(sessionId to "1.0.0"), service.targetSessions(pluginId, listOf(activeSession)))
+        assertEquals(emptyMap(), service.targetSessions(pluginId, emptyList()))
     }
 
     private class FakeDebugSessionRepository(
@@ -169,6 +173,8 @@ class DefaultPluginSessionReconciliationServiceTest {
         private val plugins: MutableStateFlow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = plugins
         override val loadedPlugins: Map<String, LoadedHostPlugin> get() = plugins.value
+        override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = plugins.map { it.mapValues { (_, plugin) -> listOf(plugin) } }
+        override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> get() = plugins.value.mapValues { (_, plugin) -> listOf(plugin) }
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         fun load(plugin: LoadedHostPlugin) {
@@ -194,12 +200,14 @@ class DefaultPluginSessionReconciliationServiceTest {
 
         override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
 
-        override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
+        override val boundVersionsFlow: StateFlow<BoundPluginVersions> = MutableStateFlow(BoundPluginVersions.Empty)
+
+        override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessions: Map<String, String?>): Set<String> {
             // Mirrors the real service: an id with no loaded plugin yields no instance.
             val newSessionIds = if (factoryRepository.loadedPlugins[pluginId] == null) {
                 emptySet()
             } else {
-                sessionIds - initializedSessionIds
+                sessions.keys - initializedSessionIds
             }
             initializedSessionIds += newSessionIds
             calls.trySend(newSessionIds)
@@ -210,6 +218,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
+        override fun unloadPluginInstancesForJar(jarPath: String) = Unit
         override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit
     }

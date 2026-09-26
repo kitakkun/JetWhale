@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.component.rememberAiOperating
+import com.kitakkun.jetwhale.host.model.BoundPluginVersions
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -116,6 +117,7 @@ fun toolingScaffoldPresenter(
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
     headlessPlugins: HeadlessPlugins,
+    boundPluginVersions: BoundPluginVersions,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
     isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
@@ -137,7 +139,7 @@ fun toolingScaffoldPresenter(
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, boundPluginVersions, activeInvocation) {
         derivedStateOf {
             loadedPlugins.map { metaData ->
                 // A plugin that needs no app lives in the host session, whatever app is selected.
@@ -164,6 +166,7 @@ fun toolingScaffoldPresenter(
                     exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
                     isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
                     needsApp = metaData.requiresAgent,
+                    versionBadge = boundPluginVersions.versionOf(sessionId, metaData.id)?.takeIf { metaData.installedVersions.size > 1 },
                 )
             }.toImmutableList()
         }

@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.ArrivedPluginJar
 import com.kitakkun.jetwhale.host.model.DeclaredPlugin
+import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
@@ -92,7 +93,7 @@ class DefaultPluginTrustService(
         }
     }
 
-    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?) {
+    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?, replaceOtherVersions: Boolean) {
         require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
@@ -123,7 +124,43 @@ class DefaultPluginTrustService(
                     arrived.map { if (it.jarPath == jarPath) it.copy(loadFailure = loadFailure) else it }
                 }
             }
+            if (loadFailure == null && replaceOtherVersions) removeOtherVersions(jarPath)
         }
+    }
+
+    override suspend fun removePluginJar(jarPath: String) {
+        require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
+            "Refusing to remove a jar outside the managed plugins directory: $jarPath"
+        }
+        jarStateMutex.withLock { removeJar(jarPath) }
+    }
+
+    /**
+     * Removes the installed jars of the other versions of the plugins [jarPath] provides. A jar that
+     * also provides a plugin [jarPath] does not is kept, since removing it would take that plugin
+     * away too; so is a jar outside the managed directory, which the user put there by hand.
+     */
+    private suspend fun removeOtherVersions(jarPath: String) {
+        val replacingPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).toSet()
+        val otherJarPaths = replacingPluginIds
+            .flatMap { pluginId -> pluginFactoryRepository.loadedPluginVersions[pluginId].orEmpty() }
+            .map(LoadedHostPlugin::jarPath)
+            .filter { it != jarPath && appDataDirectoryProvider.isManagedPluginJarPath(it) }
+            .distinct()
+        for (otherJarPath in otherJarPaths) {
+            if (replacingPluginIds.containsAll(pluginFactoryRepository.findPluginIdsByJarPath(otherJarPath))) {
+                removeJar(otherJarPath)
+            } else {
+                logger.info("Keeping $otherJarPath: it also provides plugins that $jarPath does not replace")
+            }
+        }
+    }
+
+    private suspend fun removeJar(jarPath: String) {
+        pluginTrustRepository.revoke(jarPath)
+        pluginJarSwapService.remove(jarPath)
+        withContext(Dispatchers.IO) { File(jarPath).delete() }
+        forget(jarPath)
     }
 
     override suspend fun onPluginJarsChanged(jarPaths: Set<String>): Unit = jarStateMutex.withLock {
@@ -150,14 +187,16 @@ class DefaultPluginTrustService(
     }
 
     /**
-     * Loads [jarPath] against [approvedSha256]. A jar whose plugins already run, from this path or
-     * from another jar it takes over, goes through the swap service, which disposes their instances
+     * Loads [jarPath] against [approvedSha256]. A jar whose plugin versions already run, from this
+     * path or from another jar it takes over, goes through the swap service, which disposes their instances
      * and scenes before their classloader is closed.
      */
     private suspend fun loadApproved(jarPath: String, approvedSha256: String) {
-        val declared = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
+        val declared = withContext(Dispatchers.IO) { declaredPlugins(File(jarPath)) }
         val replacesRunningPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isNotEmpty() ||
-            declared.any { it in pluginFactoryRepository.loadedPlugins }
+            declared.any { manifest ->
+                pluginFactoryRepository.loadedPluginVersions[manifest.pluginId].orEmpty().any { it.manifest.version == manifest.version }
+            }
         if (replacesRunningPlugins) {
             pluginJarSwapService.reload(jarPath, approvedSha256)
         } else {
@@ -198,15 +237,23 @@ class DefaultPluginTrustService(
         } finally {
             snapshot.delete()
         }
+        val declaredPlugins = manifest?.plugins.orEmpty()
         return ArrivedPluginJar(
             jarPath = jarPath,
             sizeBytes = sizeBytes,
             sha256 = sha256,
-            declaredPlugins = manifest?.plugins.orEmpty().map(JetWhaleHostPluginManifest::toDeclaredPlugin),
+            declaredPlugins = declaredPlugins.map(JetWhaleHostPluginManifest::toDeclaredPlugin),
             unreadableReason = unreadableReason,
             loadFailure = null,
-            replacedPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).mapNotNull { pluginId ->
-                pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.toDeclaredPlugin()
+            replacedPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).flatMap { pluginId ->
+                pluginFactoryRepository.loadedPluginVersions[pluginId].orEmpty()
+                    .filter { it.jarPath == jarPath }
+                    .map { it.manifest.toDeclaredPlugin() }
+            },
+            otherVersions = declaredPlugins.flatMap { declared ->
+                pluginFactoryRepository.loadedPluginVersions[declared.pluginId].orEmpty()
+                    .filter { it.jarPath != jarPath && it.manifest.version != declared.version }
+                    .map { it.manifest.toDeclaredPlugin() }
             },
         )
     }

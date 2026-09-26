@@ -68,13 +68,15 @@ suspend fun listPlugins(
     }
 
     val loadedPlugins = pluginFactoryRepository.loadedPlugins
+    val boundVersions = pluginInstanceService.boundVersionsFlow.value
     val result = pluginIds.mapNotNull { pluginId ->
         val manifest = loadedPlugins[pluginId]?.manifest ?: return@mapNotNull null
         val instance = pluginInstanceService.getPluginInstanceForSession(manifest.pluginId, sessionId)
         PluginInfo(
             pluginId = manifest.pluginId,
             pluginName = manifest.pluginName,
-            version = manifest.version,
+            // The version this session runs, which is older than the newest when its app needs that.
+            version = boundVersions.versionOf(sessionId, pluginId) ?: manifest.version,
             mcpCapable = instance is JetWhaleMcpCapablePlugin,
         )
     }

@@ -11,6 +11,9 @@
     <string name="plugin_arrived_load">Load</string>
     <string name="plugin_arrived_update_action">Update</string>
     <string name="plugin_arrived_later">Later</string>
+    <string name="plugin_arrived_alongside">New version: %1$s (installed: %2$s) · %3$s</string>
+    <string name="plugin_arrived_load_alongside">Load alongside</string>
+    <string name="plugin_arrived_replace">Replace %1$s</string>
     <string name="plugin_arrived_review">Review in Settings</string>
     <plurals name="plugin_arrived_more">
         <item quantity="one">%1$d more new plugin JAR</item>

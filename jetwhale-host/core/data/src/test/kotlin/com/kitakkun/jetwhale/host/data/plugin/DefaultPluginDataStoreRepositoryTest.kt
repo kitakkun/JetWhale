@@ -28,7 +28,7 @@ class DefaultPluginDataStoreRepositoryTest {
 
     @Test
     fun `stores and reads back primitive and structured values`() = runBlocking {
-        val storage = newRepository().storageFor("plugin.a")
+        val storage = newRepository().storageFor("plugin.a", "1.0.0")
 
         // Primitives plus structured data. Collections resolve their serializer from the type, just
         // as a plugin's own @Serializable classes do (plugins apply the serialization compiler plugin).
@@ -51,8 +51,8 @@ class DefaultPluginDataStoreRepositoryTest {
     @Test
     fun `data is isolated between plugins`() = runBlocking {
         val repository = newRepository()
-        val a = repository.storageFor("plugin.a")
-        val b = repository.storageFor("plugin.b")
+        val a = repository.storageFor("plugin.a", "1.0.0")
+        val b = repository.storageFor("plugin.b", "1.0.0")
 
         a.put("secret", "owned-by-a")
 
@@ -65,7 +65,7 @@ class DefaultPluginDataStoreRepositoryTest {
 
     @Test
     fun `remove and clear delete only the targeted data`() = runBlocking {
-        val storage = newRepository().storageFor("plugin.a")
+        val storage = newRepository().storageFor("plugin.a", "1.0.0")
         storage.put("keep", 1)
         storage.put("drop", 2)
 
@@ -80,7 +80,7 @@ class DefaultPluginDataStoreRepositoryTest {
 
     @Test
     fun `getFlow emits current value and reflects updates`() = runBlocking {
-        val storage = newRepository().storageFor("plugin.a")
+        val storage = newRepository().storageFor("plugin.a", "1.0.0")
 
         assertNull(storage.getFlow<Int>("count").first())
         storage.put("count", 42)
@@ -91,7 +91,7 @@ class DefaultPluginDataStoreRepositoryTest {
     fun `storage migration hook runs once with the stored version`() = runBlocking {
         val repository = newRepository()
         // Seed pre-versioning (v1) data directly through the raw repository storage.
-        repository.storageFor("plugin.migrating").put("draft", "hello")
+        repository.storageFor("plugin.migrating", "1.0.0").put("draft", "hello")
 
         val plugin = object : JetWhaleHostPlugin() {
             override val storageVersion: Int = 2
@@ -109,7 +109,7 @@ class DefaultPluginDataStoreRepositoryTest {
             suspend fun readDraftInput(): String? = storage.get<String>("draft-input")
             suspend fun readDraft(): String? = storage.get<String>("draft")
         }
-        plugin.bindStorage(repository.storageFor("plugin.migrating"))
+        plugin.bindStorage(repository.storageFor("plugin.migrating", "1.0.0"))
 
         assertEquals("hello", plugin.readDraftInput())
         assertNull(plugin.readDraft())
@@ -126,7 +126,7 @@ class DefaultPluginDataStoreRepositoryTest {
 
             suspend fun readDraftInput(): String? = storage.get<String>("draft-input")
         }
-        second.bindStorage(repository.storageFor("plugin.migrating"))
+        second.bindStorage(repository.storageFor("plugin.migrating", "1.0.0"))
         assertEquals("hello", second.readDraftInput())
         assertFalse(second.migrationRan)
     }
@@ -147,7 +147,7 @@ class DefaultPluginDataStoreRepositoryTest {
                 return storage.keysFlow.first()
             }
         }
-        plugin.bindStorage(repository.storageFor("plugin.fresh"))
+        plugin.bindStorage(repository.storageFor("plugin.fresh", "1.0.0"))
 
         assertEquals(setOf("only-key"), plugin.writeAndListKeys())
         assertFalse(plugin.migrationRan)

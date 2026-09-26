@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.model.PluginMetaData
+import com.kitakkun.jetwhale.host.model.RemovePluginJarRequest
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
@@ -27,6 +28,7 @@ fun pluginSettingsScreenPresenter(
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
     val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
+    val removePluginJarMutation = rememberMutation(presenterContext.removePluginJarMutationKey)
     val signPluginTrustRegistryMutation = rememberMutation(presenterContext.signPluginTrustRegistryMutationKey)
     val officialPluginInstallMutation = rememberMutation(presenterContext.officialPluginInstallMutationKey)
 
@@ -45,7 +47,11 @@ fun pluginSettingsScreenPresenter(
             }
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
-                trustPluginMutation.mutateAsync(TrustPluginRequest(action.path, approvedSha256 = null))
+                trustPluginMutation.mutateAsync(TrustPluginRequest(action.path, approvedSha256 = null, replaceOtherVersions = false))
+            }
+
+            is PluginSettingsScreenAction.RemovePluginVersion -> {
+                removePluginJarMutation.mutateAsync(RemovePluginJarRequest(action.jarPath))
             }
 
             is PluginSettingsScreenAction.ChangeSignPluginTrustRegistry -> {
@@ -66,7 +72,7 @@ fun pluginSettingsScreenPresenter(
             PluginInfoUiState(
                 id = it.id,
                 name = it.name,
-                version = it.version,
+                versions = it.installedVersions.toPersistentList(),
             )
         }.toPersistentList(),
         officialPlugins = OfficialPluginCatalog.plugins.map { plugin ->

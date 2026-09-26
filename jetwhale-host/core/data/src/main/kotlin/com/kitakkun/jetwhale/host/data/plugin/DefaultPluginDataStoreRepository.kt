@@ -8,6 +8,7 @@ import androidx.datastore.core.okio.OkioSerializer
 import androidx.datastore.core.okio.OkioStorage
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
+import com.kitakkun.jetwhale.host.model.PluginVersionOrder
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -20,12 +21,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import okio.BufferedSink
 import okio.BufferedSource
 import okio.FileSystem
+import okio.Path
 import okio.Path.Companion.toPath
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
@@ -36,32 +40,95 @@ import java.util.logging.Logger
 class DefaultPluginDataStoreRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginDataStoreRepository {
-    // One storage handle per pluginId, shared across that plugin's sessions. A single DataStore per
-    // file is required anyway: DataStore forbids more than one active instance over the same file.
-    private val storages: ConcurrentHashMap<String, JetWhalePluginStorage> = ConcurrentHashMap()
+    // One storage handle per plugin version, shared across the sessions bound to it. A single
+    // DataStore per file is required anyway: DataStore forbids more than one active instance over the
+    // same file.
+    private val storages: ConcurrentHashMap<Path, JetWhalePluginStorage> = ConcurrentHashMap()
 
-    override fun storageFor(pluginId: String): JetWhalePluginStorage = storages.computeIfAbsent(pluginId) {
-        DataStorePluginStorage(createDataStore(pluginId))
+    override fun storageFor(pluginId: String, version: String): JetWhalePluginStorage {
+        val versionDir = appDataDirectoryProvider.resolvePluginVersionDataDir(pluginId, version)
+        val storePath = versionDir / STORE_FILE_NAME
+        return storages.computeIfAbsent(storePath) {
+            writeMetadata(versionDir, version)
+            DataStorePluginStorage(createDataStore(pluginId, storePath))
+        }
     }
 
-    private fun createDataStore(pluginId: String): DataStore<JsonObject> = DataStoreFactory.create(
+    override fun storedVersions(pluginId: String): List<String?> {
+        val pluginDir = appDataDirectoryProvider.resolvePluginDataDir(pluginId)
+        val fileSystem = FileSystem.SYSTEM
+        if (!fileSystem.exists(pluginDir)) return emptyList()
+        val unversioned = if (fileSystem.exists(pluginDir / STORE_FILE_NAME)) listOf(null) else emptyList()
+        val versioned = fileSystem.list(pluginDir)
+            .filter { fileSystem.exists(it / STORE_FILE_NAME) }
+            .mapNotNull(::readVersion)
+            .sortedWith(PluginVersionOrder)
+        return unversioned + versioned
+    }
+
+    override fun readEntries(pluginId: String, version: String?): Map<String, JsonElement> {
+        val storePath = when (version) {
+            null -> appDataDirectoryProvider.resolvePluginDataDir(pluginId) / STORE_FILE_NAME
+            else -> appDataDirectoryProvider.resolvePluginVersionDataDir(pluginId, version) / STORE_FILE_NAME
+        }
+        val text = FileSystem.SYSTEM.read(storePath) { readUtf8() }
+        if (text.isBlank()) return emptyMap()
+        return try {
+            Json.decodeFromString(JsonObject.serializer(), text)
+        } catch (e: SerializationException) {
+            logger.warning("Stored data of plugin '$pluginId' ${version ?: "(unversioned)"} is malformed and is not carried over: ${e.message}")
+            emptyMap()
+        }
+    }
+
+    override fun seed(pluginId: String, version: String, entries: Map<String, JsonElement>) {
+        val versionDir = appDataDirectoryProvider.resolvePluginVersionDataDir(pluginId, version)
+        FileSystem.SYSTEM.createDirectories(versionDir)
+        FileSystem.SYSTEM.write(versionDir / STORE_FILE_NAME) {
+            writeUtf8(Json.encodeToString(JsonObject.serializer(), JsonObject(entries)))
+        }
+        writeMetadata(versionDir, version)
+    }
+
+    private fun writeMetadata(versionDir: Path, version: String) {
+        val metadataPath = versionDir / METADATA_FILE_NAME
+        if (FileSystem.SYSTEM.exists(metadataPath)) return
+        FileSystem.SYSTEM.createDirectories(versionDir)
+        FileSystem.SYSTEM.write(metadataPath) { writeUtf8(Json.encodeToString(StoreMetadata.serializer(), StoreMetadata(version))) }
+    }
+
+    /**
+     * The version whose store is in [versionDir], or null when it is not recorded: the directory name
+     * is a sanitized version, so only the metadata says which version it is.
+     */
+    private fun readVersion(versionDir: Path): String? {
+        val metadataPath = versionDir / METADATA_FILE_NAME
+        if (!FileSystem.SYSTEM.exists(metadataPath)) return null
+        return try {
+            Json.decodeFromString(StoreMetadata.serializer(), FileSystem.SYSTEM.read(metadataPath) { readUtf8() }).version
+        } catch (e: SerializationException) {
+            logger.warning("Plugin data metadata $metadataPath is malformed; its data is not carried over: ${e.message}")
+            null
+        }
+    }
+
+    private fun createDataStore(pluginId: String, storePath: Path): DataStore<JsonObject> = DataStoreFactory.create(
         storage = OkioStorage(
             fileSystem = FileSystem.SYSTEM,
             serializer = JsonObjectOkioSerializer,
-            producePath = { appDataDirectoryProvider.resolvePluginDataFilePath(pluginId) },
+            producePath = { storePath },
         ),
         corruptionHandler = ReplaceFileCorruptionHandler { exception ->
             // Replacing a corrupted store keeps the plugin functional, but silently discarding user
             // data would be dangerous — keep a timestamped copy next to the store for recovery and
             // make the incident visible in the logs.
-            backUpCorruptedStore(pluginId, exception)
+            backUpCorruptedStore(pluginId, storePath, exception)
             EMPTY_JSON_OBJECT
         },
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     )
 
-    private fun backUpCorruptedStore(pluginId: String, exception: CorruptionException) {
-        val storePath = appDataDirectoryProvider.resolvePluginDataFilePath(pluginId)
+    private fun backUpCorruptedStore(pluginId: String, storePath: Path, exception: CorruptionException) {
         runCatching {
             val backupPath = "$storePath.corrupted-${System.currentTimeMillis()}".toPath()
             FileSystem.SYSTEM.copy(storePath, backupPath)
@@ -78,10 +145,15 @@ class DefaultPluginDataStoreRepository(
     }
 
     private companion object {
+        const val STORE_FILE_NAME = "store.json"
+        const val METADATA_FILE_NAME = "metadata.json"
         val EMPTY_JSON_OBJECT = JsonObject(emptyMap())
         val logger: Logger = Logger.getLogger(DefaultPluginDataStoreRepository::class.java.name)
     }
 }
+
+@Serializable
+private data class StoreMetadata(val version: String)
 
 /**
  * Backs a single plugin's [JetWhalePluginStorage] with a [DataStore] holding one [JsonObject]: each

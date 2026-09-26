@@ -30,13 +30,12 @@ class DefaultPluginSessionReconciliationService(
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
-        sessions
-            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-            .map(DebugSession::id)
-            .toSet()
+    override fun targetSessions(pluginId: String, sessions: List<DebugSession>): Map<String, String?> = if (requiresAgent(pluginId)) {
+        sessions.mapNotNull { session ->
+            session.installedPlugins.firstOrNull { it.pluginId == pluginId }?.let { advertised -> session.id to advertised.pluginVersion }
+        }.toMap()
     } else {
-        setOf(HostSession.ID)
+        mapOf(HostSession.ID to null)
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
@@ -47,18 +46,18 @@ class DefaultPluginSessionReconciliationService(
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
                 sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter(DebugSession::isActive) },
-                // Loading a plugin is a reconciliation trigger in its own right. The enabled set only
+                // Loading a plugin (or another version of it) is a reconciliation trigger in its own right. The enabled set only
                 // ever grows (nothing removes an id when a jar is deleted or its trust revoked), so
                 // installing a jar whose pluginId is already enabled changes neither of the flows
                 // above — without this the freshly loaded plugin would never get an instance, and
                 // opening it would fail until the next enable toggle, session, or app restart.
-                pluginFactoryRepository.loadedPluginsFlow,
+                pluginFactoryRepository.loadedPluginVersionsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
-                            sessionIds = targetSessionIds(pluginId, activeSessions),
+                            sessions = targetSessions(pluginId, activeSessions),
                         )
                         // Only newly-initialized sessions are notified (some may already have the
                         // instance from an earlier reconciliation), and only for agent-backed plugins
