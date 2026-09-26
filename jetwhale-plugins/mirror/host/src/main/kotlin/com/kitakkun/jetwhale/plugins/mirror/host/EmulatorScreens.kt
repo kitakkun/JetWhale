@@ -165,7 +165,8 @@ internal class EmulatorImageReader(private val input: InputStream) {
                 else -> message.skipField(key)
             }
         }
-        if (size.width <= 0 || size.height <= 0 || pixelBytes < size.width.toLong() * size.height * 4) throw deviceControlError("the emulator sent a frame of ${size.width}x${size.height} with $pixelBytes bytes of pixels")
+        val sizeInRange = size.width in 1..MAX_FRAME_SIDE && size.height in 1..MAX_FRAME_SIDE
+        if (!sizeInRange || pixelBytes < size.width.toLong() * size.height * 4) throw deviceControlError("the emulator sent a frame of ${size.width}x${size.height} with $pixelBytes bytes of pixels")
         return EmulatorImage(size.width, size.height)
     }
 
@@ -276,8 +277,11 @@ private fun Buffer.writeVarint(value: Long) {
 
 private val GRPC_MEDIA_TYPE = "application/grpc".toMediaType()
 
-/** The largest frame the mirror reads, 4096 by 4096 RGBA; an emulator asked for its shown size sends far less. */
-private const val MAX_FRAME_BYTES = 4096L * 4096 * 4
+/** The longest side of a frame the mirror reads; an emulator asked for its shown size sends far less. */
+private const val MAX_FRAME_SIDE = 4096
+
+/** The largest frame the mirror reads: [MAX_FRAME_SIDE] squared, RGBA. */
+private const val MAX_FRAME_BYTES = MAX_FRAME_SIDE.toLong() * MAX_FRAME_SIDE * 4
 
 private const val IMAGE_FORMAT_RGBA8888 = 1L
 

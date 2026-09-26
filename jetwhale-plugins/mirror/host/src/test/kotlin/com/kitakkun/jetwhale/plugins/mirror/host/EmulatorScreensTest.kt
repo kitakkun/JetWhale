@@ -87,6 +87,11 @@ class EmulatorScreensTest {
     }
 
     @Test
+    fun `a frame announcing absurd dimensions is refused`() {
+        assertFailsWith<DeviceControlException> { EmulatorImageReader(ByteArrayInputStream(imageMessage(Int.MAX_VALUE, Int.MAX_VALUE, ByteArray(8), seq = 1))).next() }
+    }
+
+    @Test
     fun `a stream cut off inside a frame ends after the frames that came whole`() {
         val whole = imageMessage(2, 1, ByteArray(8) { 5 }, seq = 1)
         val cut = imageMessage(2, 1, ByteArray(8), seq = 2).let { it.copyOf(it.size - 3) }
