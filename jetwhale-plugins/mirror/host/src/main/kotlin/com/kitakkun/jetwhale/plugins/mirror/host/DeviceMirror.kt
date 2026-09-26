@@ -60,8 +60,8 @@ internal sealed interface MirrorState {
 
     data object Streaming : MirrorState
 
-    /** The device cannot stream, so screenshots stand in for video. */
-    data object Polling : MirrorState
+    /** The device cannot stream, for [reason], so screenshots stand in for video. */
+    data class Polling(val reason: String) : MirrorState
 
     /** The stream opened but sent nothing; [hints] say what to check. */
     data class NoFrames(val hints: List<String>) : MirrorState
@@ -186,14 +186,14 @@ internal class DeviceMirror(
                     state = MirrorState.NoFrames(noFramesHints(device.kind))
                     delay(STREAM_RETRY_MILLIS)
                 } else {
-                    pollScreenshots(device)
+                    pollScreenshots(device, reason = "the video stream sent no picture")
                 }
 
                 is StreamOutcome.Unavailable -> if (device.kind == DeviceKind.IosDevice) {
                     state = MirrorState.Failed(outcome.message)
                     delay(STREAM_RETRY_MILLIS)
                 } else {
-                    pollScreenshots(device)
+                    pollScreenshots(device, reason = outcome.message)
                 }
             }
         }
@@ -328,8 +328,8 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun pollScreenshots(device: MirrorDevice) {
-        state = MirrorState.Polling
+    private suspend fun pollScreenshots(device: MirrorDevice, reason: String) {
+        state = MirrorState.Polling(reason)
         while (coroutineContext.isActive) {
             try {
                 showScreenshot(device)
