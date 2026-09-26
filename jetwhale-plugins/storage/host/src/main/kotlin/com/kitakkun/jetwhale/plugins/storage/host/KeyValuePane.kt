@@ -101,6 +101,7 @@ private fun StoreEntries(storeName: String, content: KeyValueStoreContent?, acti
             title = "Delete ${selectedEntry.key}?",
             message = "The entry is removed from $storeName. This cannot be undone.",
             confirmLabel = "Delete",
+            confirmTone = JwTone.Error,
             onConfirm = {
                 confirmingDelete = false
                 selectedKey = null

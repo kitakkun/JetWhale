@@ -17,6 +17,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.zip.ZipOutputStream
 import kotlin.io.encoding.Base64
 
 /** How much of a file the UI reads to preview it; the rest is left to a tool that pages through it. */
@@ -27,6 +30,11 @@ private const val PREVIEW_BYTES = 256 * 1024
  * hold thousands of cache entries, each directory among them one more request to the app.
  */
 private const val SUBTREE_ENTRY_LIMIT = 500
+
+// Every byte of a ZIP download crosses the debug connection and every file costs at least one
+// request, so past either size the download takes long enough to be worth confirming first.
+private const val ZIP_CONFIRM_BYTES = 100L * 1024 * 1024
+private const val ZIP_CONFIRM_FILES = 10_000
 
 internal data class StorageStatus(val message: String, val isError: Boolean)
 
@@ -59,6 +67,16 @@ internal interface StorageInspectorActions {
 
     /** Adds up the size of the directory at [location] and everything below it. */
     fun measureDirectory(location: FileLocation)
+
+    /**
+     * Downloads the directory at [location] with everything below it into a ZIP at [target]. A large
+     * directory waits for [confirmZipDownload]; see `StorageBrowser.pendingZipDownload`.
+     */
+    fun requestZipDownload(location: FileLocation, target: File)
+
+    fun confirmZipDownload()
+
+    fun cancelZipDownload()
 
     /** Computes the SHA-256 of the whole file at [location]. */
     fun computeSha256(location: FileLocation)
@@ -115,6 +133,10 @@ internal class StorageBrowser(
 
     /** An upload that would replace an existing file, waiting for the user to confirm it. */
     var pendingUpload: PendingUpload? by mutableStateOf(null)
+        private set
+
+    /** A ZIP download of a directory large enough to confirm first. */
+    var pendingZipDownload: PendingZipDownload? by mutableStateOf(null)
         private set
 
     /** Loads the locations, then everything the user had open, so a reconnect restores the view. */
@@ -293,6 +315,68 @@ internal class StorageBrowser(
         }
     }
 
+    override fun requestZipDownload(location: FileLocation, target: File) = launchReporting {
+        if (treeRows.firstOrNull { it.location == location }?.entry?.isSymbolicLink == true) {
+            status = StorageStatus(message = "${location.name} is a symbolic link; a ZIP never follows links.", isError = true)
+            return@launchReporting
+        }
+        val measurement = client.measureDirectory(location)
+        measurement.error?.let { error ->
+            status = StorageStatus(message = error, isError = true)
+            return@launchReporting
+        }
+        val isLarge = measurement.truncated || measurement.totalSizeBytes > ZIP_CONFIRM_BYTES || measurement.fileCount > ZIP_CONFIRM_FILES
+        if (isLarge) {
+            pendingZipDownload = PendingZipDownload(location, target, measurement)
+        } else {
+            zipTo(location, target)
+        }
+    }
+
+    override fun confirmZipDownload() {
+        val download = pendingZipDownload ?: return
+        pendingZipDownload = null
+        launchReporting { zipTo(download.location, download.target) }
+    }
+
+    override fun cancelZipDownload() {
+        pendingZipDownload = null
+    }
+
+    /**
+     * Writes the ZIP, reporting progress in [status]. Only the status is touched, never the selection
+     * or the previews, so selecting something else meanwhile is safe. The ZIP is written beside
+     * [target] under a name of its own and moved over it only once complete, so a failed download
+     * removes only its own partial file, two downloads to the same target cannot touch each other's,
+     * and a file the user chose to overwrite stays as it was until then.
+     */
+    private suspend fun zipTo(location: FileLocation, target: File) {
+        var partial: File? = null
+        var finished = false
+        try {
+            partial = File.createTempFile(".${target.name}.", ".part", target.absoluteFile.parentFile)
+            // The measured file count includes symbolic links, which the ZIP leaves out, so it
+            // cannot serve as the denominator of the progress.
+            val error = ZipOutputStream(partial.outputStream()).use { zip ->
+                client.zipDirectory(location, zip) { zipped ->
+                    status = StorageStatus(message = "Zipping ${location.name}: $zipped files so far", isError = false)
+                }
+            }
+            if (error == null) {
+                Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                finished = true
+            }
+            status = when (error) {
+                null -> StorageStatus(message = "Saved ${location.name} to ${target.absolutePath}.", isError = false)
+                else -> StorageStatus(message = "Could not zip ${location.name}: $error", isError = true)
+            }
+        } catch (e: IOException) {
+            status = StorageStatus(message = "Could not write ${target.absolutePath}: ${e.message}", isError = true)
+        } finally {
+            if (!finished) partial?.delete()
+        }
+    }
+
     override fun computeSha256(location: FileLocation) = launchReporting {
         val digest = client.sha256Of(location)
         if (selectedLocation != location) return@launchReporting
@@ -351,6 +435,9 @@ internal class StorageBrowser(
         }
     }
 }
+
+/** A ZIP download of the directory at [location] into [target], held for confirmation because of its [measurement]. */
+internal data class PendingZipDownload(val location: FileLocation, val target: File, val measurement: DirectoryMeasurement)
 
 /** An upload of [source] that would replace the existing file at [target]. */
 internal data class PendingUpload(val target: FileLocation, val source: File)

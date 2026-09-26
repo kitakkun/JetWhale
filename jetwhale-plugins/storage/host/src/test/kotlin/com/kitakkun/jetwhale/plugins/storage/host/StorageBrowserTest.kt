@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
+import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -10,6 +11,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -100,6 +104,97 @@ class StorageBrowserTest {
 
         assertContentEquals(large, target.readBytes())
         assertEquals(3, app.fileReads.size)
+    }
+
+    @Test
+    fun `a linked directory is not zipped since a zip never follows links`() {
+        val linkedApp = FakeStorageClient(
+            directories = mutableMapOf(
+                location("Files") to listOf(directoryEntry("linked").copy(isSymbolicLink = true)),
+                location("Files", "linked") to listOf(fileEntry("notes.txt", sizeBytes = 5)),
+            ),
+            files = mutableMapOf(location("Files", "linked", "notes.txt") to "hello".encodeToByteArray()),
+            stores = mutableMapOf(),
+        )
+        val linkedBrowser = StorageBrowser(linkedApp, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { linkedBrowser.load() }
+        linkedBrowser.toggleDirectory(location("Files"))
+        val target = File.createTempFile("storage-zip", ".zip").apply { deleteOnExit() }
+
+        linkedBrowser.requestZipDownload(location("Files", "linked"), target)
+
+        assertEquals(true, linkedBrowser.status?.isError)
+        assertEquals(0, target.length())
+        assertTrue(linkedApp.fileReads.isEmpty())
+    }
+
+    @Test
+    fun `a small directory is zipped straight into the chosen file`() {
+        val zipBrowser = StorageBrowser(readableApp(), CoroutineScope(Dispatchers.Unconfined))
+        val target = File.createTempFile("storage-zip", ".zip").apply { deleteOnExit() }
+
+        zipBrowser.requestZipDownload(location("Files"), target)
+
+        assertNull(zipBrowser.pendingZipDownload)
+        assertEquals(setOf("Files/", "Files/notes.txt"), zipEntryNames(target))
+    }
+
+    @Test
+    fun `a directory too large to take without asking waits for confirmation`() {
+        val hugeApp = object : StorageClient by readableApp() {
+            override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement = DirectoryMeasurement(totalSizeBytes = 5, fileCount = 100_000, directoryCount = 0, truncated = true, error = null)
+        }
+        val hugeBrowser = StorageBrowser(hugeApp, CoroutineScope(Dispatchers.Unconfined))
+        val target = File.createTempFile("storage-zip", ".zip").apply { deleteOnExit() }
+
+        hugeBrowser.requestZipDownload(location("Files"), target)
+
+        assertEquals(location("Files"), hugeBrowser.pendingZipDownload?.location)
+        assertEquals(0, target.length())
+
+        hugeBrowser.confirmZipDownload()
+
+        assertNull(hugeBrowser.pendingZipDownload)
+        assertEquals(setOf("Files/", "Files/notes.txt"), zipEntryNames(target))
+    }
+
+    @Test
+    fun `a zip that fails partway leaves the file it would have replaced and no partial file of its own`() {
+        val failingRead = object : StorageClient by client {
+            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "", totalSizeBytes = 0, error = "permission denied")
+        }
+        val failingBrowser = StorageBrowser(failingRead, CoroutineScope(Dispatchers.Unconfined))
+        val directory = createTempDirectory("storage-zip").toFile().apply { deleteOnExit() }
+        val target = File(directory, "files.zip").apply { writeText("previous archive") }
+        val unrelated = File(directory, ".files.zip.part").apply { writeText("someone else's") }
+
+        failingBrowser.requestZipDownload(location("Files"), target)
+
+        assertEquals("previous archive", target.readText())
+        assertEquals("someone else's", unrelated.readText())
+        assertEquals(setOf(target, unrelated), directory.listFiles().orEmpty().toSet())
+        assertEquals(true, failingBrowser.status?.isError)
+    }
+
+    @Test
+    fun `a zip whose destination folder is missing reports the write failure`() {
+        val zipBrowser = StorageBrowser(readableApp(), CoroutineScope(Dispatchers.Unconfined))
+        val target = File(createTempDirectory("storage-zip").toFile(), "missing/files.zip")
+
+        zipBrowser.requestZipDownload(location("Files"), target)
+
+        assertEquals(true, zipBrowser.status?.isError)
+    }
+
+    /** An app whose every listed file has content, so a ZIP of it can complete. */
+    private fun readableApp() = FakeStorageClient(
+        directories = mutableMapOf(location("Files") to listOf(fileEntry("notes.txt", sizeBytes = 5))),
+        files = mutableMapOf(location("Files", "notes.txt") to "hello".encodeToByteArray()),
+        stores = mutableMapOf(),
+    )
+
+    private fun zipEntryNames(zip: File): Set<String> = ZipInputStream(zip.inputStream()).use { input ->
+        generateSequence { input.nextEntry }.map(ZipEntry::getName).toSet()
     }
 
     @Test
