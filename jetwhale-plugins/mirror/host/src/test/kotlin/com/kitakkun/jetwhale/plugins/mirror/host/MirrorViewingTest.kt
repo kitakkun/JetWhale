@@ -259,6 +259,19 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `the newest frame is kept even when the screen had no time to show it`() {
+        MirrorSurface().use { surface ->
+            surface.showLive("phone", Color.RED)
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.GREEN))
+
+            surface.switchTo("tablet")
+            surface.switchTo("phone")
+
+            assertEquals(Color.GREEN, surface.drawnFrame()?.getColor(0, 0))
+        }
+    }
+
+    @Test
     fun `only the devices shown most recently keep a frame`() {
         MirrorSurface().use { surface ->
             listOf("a", "b", "c", "d", "e", "f").forEach { surface.showLive(it, Color.RED) }
