@@ -69,6 +69,7 @@ fun JetWhaleApp() {
                 polymorphic(NavKey::class, SettingsNavKey::class, SettingsNavKey.serializer())
                 polymorphic(NavKey::class, InfoNavKey::class, InfoNavKey.serializer())
                 polymorphic(NavKey::class, PluginNavKey::class, PluginNavKey.serializer())
+                polymorphic(NavKey::class, DisabledPluginNavKey::class, DisabledPluginNavKey.serializer())
                 polymorphic(NavKey::class, LicensesNavKey::class, LicensesNavKey.serializer())
             }
         },
