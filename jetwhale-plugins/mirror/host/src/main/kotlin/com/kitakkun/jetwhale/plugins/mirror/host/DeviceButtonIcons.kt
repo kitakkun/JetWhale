@@ -91,6 +91,22 @@ internal val CapturesIcon: ImageVector = outlineIcon("Captures") {
     lineTo(17f, 18f)
 }
 
+/** Corners pointing outward: show this device on its own, at full size. */
+internal val OpenFullIcon: ImageVector = outlineIcon("OpenFull") {
+    moveTo(4f, 9f)
+    lineTo(4f, 4f)
+    lineTo(9f, 4f)
+    moveTo(15f, 4f)
+    lineTo(20f, 4f)
+    lineTo(20f, 9f)
+    moveTo(20f, 15f)
+    lineTo(20f, 20f)
+    lineTo(15f, 20f)
+    moveTo(9f, 20f)
+    lineTo(4f, 20f)
+    lineTo(4f, 15f)
+}
+
 private val HomeIcon: ImageVector = outlineIcon("Home") {
     moveTo(4f, 11f)
     lineTo(12f, 4f)
