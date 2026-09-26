@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import java.time.ZoneId
 import kotlin.time.Duration.Companion.minutes
 
@@ -45,6 +46,18 @@ private val companions: IdbCompanions? by lazy {
     }
 }
 
+// Shared like the companions: its HTTP/2 connections to an emulator serve every instance.
+private val emulatorScreens: EmulatorScreens by lazy {
+    EmulatorScreens(
+        emulatorRunningDirectories(
+            osName = System.getProperty("os.name").orEmpty(),
+            home = File(System.getProperty("user.home")),
+            temp = File(System.getProperty("java.io.tmpdir")),
+            runtimeDir = System.getenv("XDG_RUNTIME_DIR"),
+        ),
+    )
+}
+
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
     JetWhaleHostPlugin(),
@@ -53,7 +66,7 @@ private class MirrorHostPlugin :
 
     private val mirror by lazy {
         DeviceMirror(
-            discovery = DeviceDiscovery(tools, companions),
+            discovery = DeviceDiscovery(tools, companions, emulatorScreens),
             captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault()),
             scope = pluginScope,
         )

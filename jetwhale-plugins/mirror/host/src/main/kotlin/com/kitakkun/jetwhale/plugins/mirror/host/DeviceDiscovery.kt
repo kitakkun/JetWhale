@@ -17,6 +17,7 @@ internal class Discovery(
 internal class DeviceDiscovery(
     private val tools: MirrorTools,
     private val companions: IdbCompanions?,
+    private val emulatorScreens: EmulatorScreens,
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
 
@@ -51,7 +52,8 @@ internal class DeviceDiscovery(
     }
 
     private fun controllerFor(listing: DeviceListing): DeviceController = when (listing.kind) {
-        DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id)
+        DeviceKind.AndroidEmulator -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = emulatorScreens)
+        DeviceKind.AndroidDevice -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = null)
         DeviceKind.IosSimulator -> IosSimulatorController(udid = listing.id, xcrun = checkNotNull(tools.xcrun), idb = tools.idb)
         DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idb = checkNotNull(tools.idb), companions = checkNotNull(companions))
     }

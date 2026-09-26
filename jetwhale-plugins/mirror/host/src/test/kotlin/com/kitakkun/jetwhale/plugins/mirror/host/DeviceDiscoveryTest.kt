@@ -26,7 +26,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null)
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
 

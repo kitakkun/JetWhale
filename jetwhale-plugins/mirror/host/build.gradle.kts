@@ -42,6 +42,9 @@ dependencies {
     compileOnly(libs.kotlinxSerializationJson)
     // H.264 decoding of the adb screenrecord / idb video-stream output. Only the ffmpeg bindings
     // of javacv are used, so its other presets stay out; the natives are the build machine's own.
+    // The emulator's gRPC screen stream is plain HTTP/2 with prior knowledge; okhttp speaks it,
+    // and the two messages it needs are encoded by hand rather than pulling in grpc-java.
+    implementation(libs.okhttp)
     implementation(libs.javacv) {
         isTransitive = false
     }
@@ -55,6 +58,7 @@ dependencies {
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.okhttpMockwebserver)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(compose.desktop.currentOs)

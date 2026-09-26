@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
 import java.io.File
 import java.io.InputStream
@@ -251,7 +252,7 @@ internal class DeviceMirror(
             return StreamOutcome.Unavailable(e.message.orEmpty())
         }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
-        thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
+        if (stream is VideoStream.OfProcess) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
         val lastFrameAt = AtomicLong(System.nanoTime())
         return try {
@@ -274,12 +275,14 @@ internal class DeviceMirror(
                 // lets it return, and this scope waits for it, so the stream is closed here the
                 // moment the body ends or is cancelled. The resize watch only ends on a resize, so
                 // it is cancelled there too, or this scope would wait for it after the stream ended.
-                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream.process) } }
+                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream) } }
                 try {
                     if (device.kind.platform == DevicePlatform.Android) {
                         state = MirrorState.Streaming
-                        val settling = launch { settleStillScreen(device, lastFrameAt) }
-                        decoding.await().also { settling.cancel() }
+                        // Only screenrecord holds a still screen's last frame back; the emulator's
+                        // own stream sends every change as it happens.
+                        val settling = if (stream is VideoStream.H264) launch { settleStillScreen(device, lastFrameAt) } else null
+                        decoding.await().also { settling?.cancel() }
                     } else if (!watchdog.awaitFirstFrame()) {
                         StreamOutcome.Silent
                     } else {
@@ -287,26 +290,27 @@ internal class DeviceMirror(
                     }
                 } finally {
                     resizing?.cancel()
-                    stream.process.destroyForcibly()
+                    stream.close()
                 }
             }
         } catch (e: DeviceControlException) {
             StreamOutcome.Unavailable(e.message.orEmpty())
         } finally {
-            stream.process.destroyForcibly()
+            stream.close()
         }
     }
 
     private fun decode(stream: VideoStream, outputSize: IntSize?, onFrame: () -> Unit) = when (stream) {
-        is VideoStream.H264 -> decodeH264Into(surface, stream.process.inputStream, outputSize, onFrame)
+        is VideoStream.H264 -> decodeH264Into(surface, stream.frames, outputSize, onFrame)
         is VideoStream.RawBgra -> readRawBgraInto(surface, stream, onFrame)
+        is VideoStream.EmulatorRgba -> readEmulatorFramesInto(surface, stream.frames, onFrame)
     }
 
     /**
      * Ends the stream once the view has settled at a size the frames no longer fit, so the next one
      * is decoded at the new size. Small changes are ignored: reopening a stream takes a second.
      */
-    private suspend fun reopenWhenResized(screen: IntSize, decodedAt: IntSize?, process: Process) {
+    private suspend fun reopenWhenResized(screen: IntSize, decodedAt: IntSize?, stream: VideoStream) {
         val current = decodedAt ?: screen
         var candidate: IntSize? = null
         while (coroutineContext.isActive) {
@@ -314,7 +318,7 @@ internal class DeviceMirror(
             val wanted = decodingSize(screen, surface.viewSize) ?: screen
             val changed = abs(wanted.width - current.width) > current.width * RESIZE_THRESHOLD
             if (changed && wanted == candidate) {
-                process.destroyForcibly()
+                stream.close()
                 return
             }
             candidate = if (changed) wanted else null
@@ -359,7 +363,7 @@ internal class DeviceMirror(
         val png = device.controller.captureScreenshot()
         withContext(Dispatchers.IO) {
             Image.makeFromEncoded(png).use { image ->
-                surface.writeFrame(image.width, image.height) { image.readPixels(it, 0, 0) }
+                surface.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
             }
         }
     }
