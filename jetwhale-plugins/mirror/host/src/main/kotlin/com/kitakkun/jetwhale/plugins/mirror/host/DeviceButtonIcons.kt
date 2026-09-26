@@ -16,6 +16,7 @@ internal val DeviceButton.icon: ImageVector
     get() = when (this) {
         DeviceButton.Home -> HomeIcon
         DeviceButton.Back -> BackIcon
+        DeviceButton.Recents -> RecentsIcon
         DeviceButton.Power -> PowerIcon
         DeviceButton.VolumeUp -> VolumeUpIcon
         DeviceButton.VolumeDown -> VolumeDownIcon
@@ -62,6 +63,18 @@ private val BackIcon: ImageVector = outlineIcon("Back") {
     lineTo(8f, 12f)
     lineTo(16f, 19f)
     close()
+}
+
+private val RecentsIcon: ImageVector = outlineIcon("Recents") {
+    // Two stacked screens: the one in front and the one behind it.
+    moveTo(7f, 7f)
+    lineTo(17f, 7f)
+    lineTo(17f, 20f)
+    lineTo(7f, 20f)
+    close()
+    moveTo(9f, 4f)
+    lineTo(19f, 4f)
+    lineTo(19f, 16f)
 }
 
 private val PowerIcon: ImageVector = outlineIcon("Power") {

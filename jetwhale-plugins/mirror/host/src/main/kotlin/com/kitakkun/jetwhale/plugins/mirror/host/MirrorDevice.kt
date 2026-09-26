@@ -15,6 +15,7 @@ internal enum class DeviceKind(val platform: DevicePlatform, val label: String) 
 internal enum class DeviceButton(val label: String) {
     Home("Home"),
     Back("Back"),
+    Recents("Recent apps"),
     Power("Power"),
     VolumeUp("Volume up"),
     VolumeDown("Volume down"),

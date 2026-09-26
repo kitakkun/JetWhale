@@ -14,7 +14,7 @@ internal class AndroidDeviceController(
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = true,
-        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
+        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
         recording = true,
         screenPower = true,
     )
@@ -34,14 +34,7 @@ internal class AndroidDeviceController(
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        val keycode = when (button) {
-            DeviceButton.Home -> "KEYCODE_HOME"
-            DeviceButton.Back -> "KEYCODE_BACK"
-            DeviceButton.Power -> "KEYCODE_POWER"
-            DeviceButton.VolumeUp -> "KEYCODE_VOLUME_UP"
-            DeviceButton.VolumeDown -> "KEYCODE_VOLUME_DOWN"
-        }
-        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", keycode)
+        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", androidKeycodeOf(button))
     }
 
     override suspend fun inputText(text: String) {
@@ -122,4 +115,14 @@ internal fun parseScreenPower(output: String): ScreenPower? {
     val wakefulness = Regex("""mWakefulness=(\w+)""").find(output)?.groupValues?.get(1) ?: return null
     val locked = Regex("""isKeyguardShowing=(\w+)""").find(output)?.groupValues?.get(1) == "true"
     return ScreenPower(awake = wakefulness == "Awake" || wakefulness == "Dreaming", locked = locked)
+}
+
+/** The `input keyevent` code that presses [button] on an Android device. */
+internal fun androidKeycodeOf(button: DeviceButton): String = when (button) {
+    DeviceButton.Home -> "KEYCODE_HOME"
+    DeviceButton.Back -> "KEYCODE_BACK"
+    DeviceButton.Recents -> "KEYCODE_APP_SWITCH"
+    DeviceButton.Power -> "KEYCODE_POWER"
+    DeviceButton.VolumeUp -> "KEYCODE_VOLUME_UP"
+    DeviceButton.VolumeDown -> "KEYCODE_VOLUME_DOWN"
 }

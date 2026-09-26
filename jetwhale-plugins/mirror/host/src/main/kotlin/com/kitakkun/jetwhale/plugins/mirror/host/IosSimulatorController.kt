@@ -20,7 +20,7 @@ internal class IosSimulatorController(
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = idb != null,
-        buttons = if (idb != null) listOf(DeviceButton.Home, DeviceButton.Power) else emptyList(),
+        buttons = if (idb != null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
         recording = true,
         screenPower = false,
     )
@@ -56,12 +56,8 @@ internal class IosSimulatorController(
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        val idbButton = when (button) {
-            DeviceButton.Home -> "HOME"
-            DeviceButton.Power -> "LOCK"
-            DeviceButton.Back, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> throw deviceControlError("the iOS simulator has no ${button.label} button")
-        }
-        runCommandChecked(requireIdb(), "ui", "button", "--udid", udid, idbButton)
+        val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
+        presses.forEach { idbButton -> runCommandChecked(requireIdb(), "ui", "button", "--udid", udid, idbButton) }
     }
 
     override suspend fun inputText(text: String) {
@@ -123,3 +119,16 @@ internal class IosSimulatorController(
 }
 
 internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): brew install idb-companion && pipx install fb-idb"
+
+/**
+ * The idb buttons pressed, in order, for [button] on a simulator, or null for a button it lacks.
+ * A Face ID iPhone has no home button to double-press, but the simulator still opens the app
+ * switcher on two HOME presses in quick succession; two idb calls in a row land about 0.3 s apart,
+ * well inside that window.
+ */
+internal fun iosSimulatorPressesOf(button: DeviceButton): List<String>? = when (button) {
+    DeviceButton.Home -> listOf("HOME")
+    DeviceButton.Recents -> listOf("HOME", "HOME")
+    DeviceButton.Power -> listOf("LOCK")
+    DeviceButton.Back, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> null
+}
