@@ -11,10 +11,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.nio.file.Files
 import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
@@ -29,7 +32,7 @@ class DeviceMirrorTest {
     private val recorder = SlowRecorder()
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(MirrorTools(adb = null, idb = null, idbCompanion = null, xcrun = null), companions = null),
+        discovery = DeviceDiscovery(MirrorTools(adb = null, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
         captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC),
         scope = scope,
     )
@@ -107,6 +110,18 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `an emulator's own stream is shown as it arrives with no screenshot patching a still screen`() = runBlocking {
+        val controller = StillEmulator()
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        // screenrecord's stream would be patched by a screenshot once the screen stays still.
+        val screenshot = withTimeoutOrNull(STILL_SCREEN_PATCH_WINDOW_MILLIS) { controller.screenshotTaken.await() }
+        session.cancel()
+
+        assertNull(screenshot)
+    }
+
+    @Test
     fun `a mirrored Android device whose screen is off says so until mirroring stops`() = runBlocking {
         val asleep = ScreenPower(awake = false, locked = true)
         val controller = EndingStream(power = asleep)
@@ -138,6 +153,9 @@ class DeviceMirrorTest {
 private const val SIMULTANEOUS_CALLS = 8
 
 private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
+
+/** Longer than the mirror waits before patching a still screenrecord stream with a screenshot. */
+private const val STILL_SCREEN_PATCH_WINDOW_MILLIS = 1_500L
 
 /** Long enough that every concurrent call reaches the recorder while the first is still inside it. */
 private const val RECORDER_LATENCY_MILLIS = 100L
@@ -244,6 +262,50 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
 
     override suspend fun release() = Unit
 }
+
+/** An emulator whose gRPC stream sends one frame and then nothing, as a still screen does. */
+private class StillEmulator : DeviceController {
+    /** Completes if the mirror asks for a screenshot. */
+    val screenshotTaken = CompletableDeferred<Unit>()
+
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+
+    override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
+
+    override suspend fun captureScreenshot(): ByteArray {
+        screenshotTaken.complete(Unit)
+        throw deviceControlError("no screenshots in tests")
+    }
+
+    override suspend fun tap(x: Int, y: Int) = Unit
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
+
+    override suspend fun pressButton(button: DeviceButton) = Unit
+
+    override suspend fun inputText(text: String) = Unit
+
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        val writer = PipedOutputStream()
+        val frames = PipedInputStream(writer, ONE_FRAME_MESSAGE.size)
+        writer.write(ONE_FRAME_MESSAGE)
+        writer.flush()
+        return VideoStream.EmulatorRgba(frames = frames, cancel = writer::close)
+    }
+
+    override suspend fun release() = Unit
+}
+
+/** A gRPC `Image` message of one 1x1 RGBA frame. */
+private val ONE_FRAME_MESSAGE = grpcMessage(byteArrayOf(0x0a, 0x04, 0x18, 0x01, 0x20, 0x01, 0x22, 0x04, 1, 2, 3, 4))
 
 private class EmptyProcess : Process() {
     override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()

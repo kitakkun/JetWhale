@@ -1,15 +1,31 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import org.jetbrains.skia.ColorType
 import java.io.InputStream
 import kotlin.math.floor
 
-/** A process writing the device's screen to its stdout, and how to read what it writes. */
+/** Where the device's screen arrives, how to read it, and how to stop it. */
 internal sealed interface VideoStream {
-    val process: Process
+    /** The stream's bytes; reading them ends once [close] runs. */
+    val frames: InputStream
+
+    /** Stops the stream. Safe to call more than once. */
+    fun close()
+
+    /** A stream a tool writes to its stdout. */
+    sealed interface OfProcess : VideoStream {
+        val process: Process
+
+        override val frames: InputStream get() = process.inputStream
+
+        override fun close() {
+            process.destroyForcibly()
+        }
+    }
 
     /** Raw H.264, decoded on the host. */
-    class H264(override val process: Process) : VideoStream
+    class H264(override val process: Process) : OfProcess
 
     /**
      * Uncompressed BGRA frames of [frameSize], back to back with no header, each row [rowBytes]
@@ -24,7 +40,12 @@ internal sealed interface VideoStream {
         val rowBytes: Int,
         val fps: Int,
         val onFellBehind: (arrivedFps: Int) -> Boolean,
-    ) : VideoStream
+    ) : OfProcess
+
+    /** An emulator's gRPC screen stream: `Image` messages of RGBA pixels, read by [readEmulatorFramesInto]. */
+    class EmulatorRgba(override val frames: InputStream, private val cancel: () -> Unit) : VideoStream {
+        override fun close() = cancel()
+    }
 }
 
 /**
@@ -94,7 +115,7 @@ internal const val MIN_RAW_WIDTH = 240
  */
 internal fun readRawBgraInto(surface: MirrorSurface, stream: VideoStream.RawBgra, onFrame: () -> Unit) {
     val frame = ByteArray(stream.rowBytes * stream.frameSize.height)
-    val input = WaitTimingInputStream(stream.process.inputStream)
+    val input = WaitTimingInputStream(stream.frames)
     val pace = ArrivalPace(requestedFps = stream.fps, windowNanos = PACE_WINDOW_NANOS)
     while (input.timingWork(surface::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
         surface.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
@@ -135,7 +156,7 @@ internal class ArrivalPace(private val requestedFps: Int, private val windowNano
 private const val KEPT_PACE_SHARE = 0.85
 
 private fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
-    writeFrame(frameSize.width, frameSize.height) { target ->
+    writeFrame(frameSize.width, frameSize.height, ColorType.BGRA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
         copyRows(frame, sourceRowBytes = rowBytes, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frameSize.height)
         true

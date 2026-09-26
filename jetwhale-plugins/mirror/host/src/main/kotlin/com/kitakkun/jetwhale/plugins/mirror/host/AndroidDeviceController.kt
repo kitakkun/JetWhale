@@ -7,10 +7,14 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-/** An Android emulator or device, driven through adb. */
+/**
+ * An Android emulator or device, driven through adb. An emulator's screen comes from its own gRPC
+ * stream through [emulatorScreens] when it has one, and from screenrecord otherwise.
+ */
 internal class AndroidDeviceController(
     private val adb: String,
     private val serial: String,
+    private val emulatorScreens: EmulatorScreens?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = true,
@@ -61,7 +65,8 @@ internal class AndroidDeviceController(
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
-        VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")))
+        emulatorScreens?.open(serial, wanted)
+            ?: VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")))
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
