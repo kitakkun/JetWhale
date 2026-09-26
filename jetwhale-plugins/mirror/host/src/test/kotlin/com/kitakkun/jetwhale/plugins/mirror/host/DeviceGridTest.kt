@@ -13,7 +13,6 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.awaitCancellation
 import kotlin.test.Test
@@ -33,7 +32,7 @@ class DeviceGridTest {
                     devices = devices,
                     selectedId = null,
                     missingTools = emptyList(),
-                    snackbarHostState = JwSnackbarHostState(),
+                    notices = IgnoredNotices,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { id, _ ->
                         polling += id
@@ -68,7 +67,7 @@ class DeviceGridTest {
                     devices = devices.take(2),
                     selectedId = null,
                     missingTools = emptyList(),
-                    snackbarHostState = JwSnackbarHostState(),
+                    notices = IgnoredNotices,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -134,7 +133,7 @@ class DeviceGridTest {
                     devices = emptyList(),
                     selectedId = null,
                     missingTools = emptyList(),
-                    snackbarHostState = JwSnackbarHostState(),
+                    notices = IgnoredNotices,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -170,7 +169,7 @@ class DeviceGridTest {
                     devices = devices.take(2),
                     selectedId = null,
                     missingTools = emptyList(),
-                    snackbarHostState = JwSnackbarHostState(),
+                    notices = IgnoredNotices,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -197,7 +196,7 @@ class DeviceGridTest {
                     devices = devices.take(2),
                     selectedId = null,
                     missingTools = emptyList(),
-                    snackbarHostState = JwSnackbarHostState(),
+                    notices = IgnoredNotices,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -213,4 +212,15 @@ class DeviceGridTest {
 
         assertEquals("device-1", opened)
     }
+}
+
+/** Notice actions for tests that show no notice. */
+private object IgnoredNotices : MirrorNoticeActions {
+    override val notice: MirrorNotice? get() = null
+
+    override fun perform(action: NoticeAction) = Unit
+
+    override fun dismiss() = Unit
+
+    override fun hold(held: Boolean) = Unit
 }

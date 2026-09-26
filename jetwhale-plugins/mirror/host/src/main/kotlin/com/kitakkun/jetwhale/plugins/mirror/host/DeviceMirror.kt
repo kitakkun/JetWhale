@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.skia.Image
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
@@ -75,8 +76,6 @@ internal sealed interface MirrorState {
     data class Failed(val message: String) : MirrorState
 }
 
-internal data class MirrorStatus(val message: String, val isError: Boolean)
-
 /** What the mirror's UI can ask of it. */
 internal interface MirrorActions {
     fun select(deviceId: String)
@@ -107,6 +106,7 @@ internal interface MirrorActions {
 internal class DeviceMirror(
     private val discovery: DeviceDiscovery,
     val captures: MirrorCaptures,
+    val notices: MirrorNotices,
     private val scope: CoroutineScope,
 ) : MirrorActions,
     MirrorDevices {
@@ -120,9 +120,6 @@ internal class DeviceMirror(
         private set
 
     var state: MirrorState by mutableStateOf(MirrorState.Idle)
-        private set
-
-    var status: MirrorStatus? by mutableStateOf(null)
         private set
 
     var recordingDeviceId: String? by mutableStateOf(null)
@@ -376,18 +373,61 @@ internal class DeviceMirror(
 
     override fun inputText(text: String) = control { it.inputText(text) }
 
-    override fun saveScreenshot() = control {
-        val capture = saveScreenshot(checkNotNull(selectedDevice))
-        status = MirrorStatus("Saved ${capture.file.name}", isError = false)
+    override fun saveScreenshot() {
+        val device = selectedDevice ?: return
+        scope.launch { notices.show(MirrorNotice.screenshotsSaved(listOf(screenshotResultOf(device)))) }
     }
 
-    override fun toggleRecording() = control {
-        recordings.withLock {
-            if (recording != null) {
-                status = MirrorStatus("Saved ${stopRunningRecording().file.name}", isError = false)
-            } else {
-                startRecordingOf(checkNotNull(selectedDevice))
+    /** Saves a screenshot of [device], turning a failure into its reason instead of throwing. */
+    suspend fun screenshotResultOf(device: MirrorDevice): ScreenshotResult {
+        val reason = try {
+            return ScreenshotResult.Saved(saveScreenshot(device))
+        } catch (e: DeviceControlException) {
+            e.message.orEmpty()
+        } catch (e: IllegalArgumentException) {
+            // The capture library decodes the screenshot to learn its size.
+            e.message ?: "the screenshot could not be read as an image"
+        } catch (e: IOException) {
+            e.message ?: "the screenshot could not be saved"
+        }
+        return ScreenshotResult.Failed(deviceId = device.id, deviceName = device.listing.name, reason = reason)
+    }
+
+    override fun toggleRecording() {
+        val device = selectedDevice ?: return
+        scope.launch {
+            recordings.withLock {
+                if (recording != null) stopRecordingFromUi() else startRecordingFromUi(device)
             }
+        }
+    }
+
+    /** Starts recording [deviceId] again after a failed start, unless a recording has started since. */
+    fun retryRecording(deviceId: String) {
+        val device = devices.firstOrNull { it.id == deviceId } ?: return
+        scope.launch {
+            recordings.withLock {
+                if (recording == null) startRecordingFromUi(device)
+            }
+        }
+    }
+
+    private suspend fun stopRecordingFromUi() {
+        val notice = try {
+            MirrorNotice.saved(stopRunningRecording())
+        } catch (e: DeviceControlException) {
+            MirrorNotice.failure("Could not stop the recording: ${e.message}", retry = null)
+        } catch (e: IOException) {
+            MirrorNotice.failure("The recording stopped, but could not be saved: ${e.message}", retry = null)
+        }
+        notices.show(notice)
+    }
+
+    private suspend fun startRecordingFromUi(device: MirrorDevice) {
+        try {
+            startRecordingOf(device)
+        } catch (e: DeviceControlException) {
+            notices.show(MirrorNotice.failure("Could not start recording ${device.listing.name}: ${e.message}", retry = NoticeAction.RetryRecording(device.id)))
         }
     }
 
@@ -395,7 +435,7 @@ internal class DeviceMirror(
         controller.wake()
         val power = controller.screenPower()
         screenPower = power
-        if (power.locked) status = MirrorStatus("The device is still locked. Unlock it to continue.", isError = false)
+        if (power.locked) notices.show(MirrorNotice.info("The device is still locked. Unlock it to continue."))
     }
 
     override fun sleep() = control { controller ->
@@ -455,7 +495,7 @@ internal class DeviceMirror(
         surface.close()
     }
 
-    // Runs [action] on the selected device, reporting a failure in [status] instead of throwing.
+    // Runs [action] on the selected device, reporting a failure as a notice instead of throwing.
     private fun control(action: suspend (DeviceController) -> Unit) {
         val device = selectedDevice ?: return
         scope.launch {
@@ -464,7 +504,7 @@ internal class DeviceMirror(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: DeviceControlException) {
-                status = MirrorStatus(e.message.orEmpty(), isError = true)
+                notices.show(MirrorNotice.failure(e.message.orEmpty(), retry = null))
             }
         }
     }

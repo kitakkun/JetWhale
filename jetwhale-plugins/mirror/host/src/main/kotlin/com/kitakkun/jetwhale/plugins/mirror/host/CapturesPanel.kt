@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
@@ -71,7 +70,6 @@ internal fun CapturesPanel(
     kind: CaptureKind?,
     day: String?,
     selected: Capture?,
-    status: MirrorStatus?,
     thumbnails: ThumbnailSource,
     actions: CapturesActions,
     modifier: Modifier = Modifier,
@@ -80,7 +78,6 @@ internal fun CapturesPanel(
     val shown = captures.filter { day == null || DayFormat.format(Instant.ofEpochMilli(it.info.capturedAtEpochMillis)) == day }
     Column(modifier.fillMaxSize()) {
         CaptureFilters(allDevices, kind, day, days, actions)
-        status?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (shown.isEmpty()) {
                 JwEmptyState(title = "No captures", description = "Screenshots and recordings of this device appear here as soon as they are taken.")

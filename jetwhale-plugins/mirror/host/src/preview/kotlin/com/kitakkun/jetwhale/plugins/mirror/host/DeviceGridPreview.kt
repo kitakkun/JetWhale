@@ -3,10 +3,8 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.awaitCancellation
 
@@ -30,7 +28,7 @@ private fun DeviceGridPreview() {
             devices = gridDevices,
             selectedId = "emulator-5554",
             missingTools = emptyList(),
-            snackbarHostState = remember(calculation = ::JwSnackbarHostState),
+            notices = PreviewNotices(notice = null),
             thumbnailOf = { id -> DeviceThumbnail(image = null, updatedAtMillis = null, state = gridStates.getValue(id)) },
             poll = { _, _ -> awaitCancellation() },
             livenessOf = { DeviceLiveness.Unknown },
@@ -49,7 +47,7 @@ private fun DeviceGridEmptyPreview() {
             devices = emptyList(),
             selectedId = null,
             missingTools = listOf("adb was not found; install the Android SDK platform tools to mirror Android devices."),
-            snackbarHostState = remember(calculation = ::JwSnackbarHostState),
+            notices = PreviewNotices(notice = MirrorNotice("Saved 3 screenshots", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())),
             thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
             poll = { _, _ -> awaitCancellation() },
             livenessOf = { DeviceLiveness.Unknown },

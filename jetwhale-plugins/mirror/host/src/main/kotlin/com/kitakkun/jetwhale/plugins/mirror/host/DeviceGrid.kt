@@ -49,8 +49,6 @@ import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwShapes
-import com.kitakkun.jetwhale.host.ui.JwSnackbarHost
-import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -97,7 +95,7 @@ internal fun DeviceGrid(
     devices: List<DeviceListing>,
     selectedId: String?,
     missingTools: List<String>,
-    snackbarHostState: JwSnackbarHostState,
+    notices: MirrorNoticeActions,
     thumbnailOf: (String) -> DeviceThumbnail,
     poll: suspend (deviceId: String, heightPx: Int) -> Unit,
     livenessOf: (String) -> DeviceLiveness,
@@ -125,7 +123,7 @@ internal fun DeviceGrid(
             } else {
                 TileGroup(devices, selectedId, thumbnailOf, poll, livenessOf, onOpen, onScreenshot)
             }
-            JwSnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
+            MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
     }
 }
