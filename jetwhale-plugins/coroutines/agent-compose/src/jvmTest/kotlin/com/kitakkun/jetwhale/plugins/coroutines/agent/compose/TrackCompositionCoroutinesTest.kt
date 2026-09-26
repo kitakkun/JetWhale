@@ -59,6 +59,20 @@ class TrackCompositionCoroutinesTest {
         }
     }
 
+    @Test
+    fun `leaving composition keeps a newer registration under the same name`() = runTest {
+        var tracked by mutableStateOf(true)
+        val otherWindow = Job()
+        composing({ ScreenWithCoroutines(tracked = tracked) }) {
+            inspector.register(otherWindow, name = "Compose")
+            Snapshot.withMutableSnapshot { tracked = false }
+            it.settle()
+
+            assertTrue(inspector.registeredRoots()["Compose"] === otherWindow)
+        }
+        otherWindow.cancel()
+    }
+
     @Composable
     private fun ScreenWithCoroutines(tracked: Boolean) {
         if (tracked) inspector.TrackCompositionCoroutines(name = "Compose")
