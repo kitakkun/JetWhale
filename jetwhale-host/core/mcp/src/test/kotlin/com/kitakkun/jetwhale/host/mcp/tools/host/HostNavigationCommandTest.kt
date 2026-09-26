@@ -56,7 +56,7 @@ class HostNavigationCommandTest {
         every { this@mock.currentView } returns this@HostNavigationCommandTest.currentView
     }
     private val debugSessionRepository = mock<DebugSessionRepository> {
-        every { debugSessionsFlow } returns flowOf(persistentListOf(session))
+        every { debugSessionsFlow } returns flowOf(persistentListOf(session, session.copy(id = "session-closed", isActive = false)))
     }
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { loadedPlugins } returns mapOf(
@@ -170,6 +170,20 @@ class HostNavigationCommandTest {
             )
         }
         assertContains(error, "no session")
+    }
+
+    @Test
+    fun `navigate rejects a session that has disconnected`(): Unit = runBlocking {
+        val error = assertFailsWithArgumentException {
+            command.execute(
+                arguments(
+                    "destination" to JsonPrimitive("PLUGIN"),
+                    "pluginId" to JsonPrimitive("com.example.agent"),
+                    "sessionId" to JsonPrimitive("session-closed"),
+                ),
+            )
+        }
+        assertContains(error, "disconnected")
     }
 
     @Test
