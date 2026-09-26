@@ -102,13 +102,19 @@ compose.resources {
 val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
 val userHome = providers.systemProperty("user.home")
 tasks.withType<JavaExec>().matching { it.name == "run" || it.name == "runHeadless" }.configureEach {
+    // Locals, so the lambdas below capture providers rather than this script, which the
+    // configuration cache cannot store.
+    val dataDir = appDataDir
+    val crashLogDir = dataDir.orElse(userHome.map { "$it/.jetwhale" }).map { "$it/logs" }
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
-            val crashLogDir = appDataDir.orElse(userHome.map { "$it/.jetwhale" }).get() + "/logs"
-            appDataDir.map { listOf("-Djetwhale.appDataDir=$it") }.getOrElse(emptyList()) +
-                "-XX:ErrorFile=$crashLogDir/hs_err_pid%p.log"
+            dataDir.map { listOf("-Djetwhale.appDataDir=$it") }.getOrElse(emptyList()) +
+                "-XX:ErrorFile=${crashLogDir.get()}/hs_err_pid%p.log"
         },
     )
+    // HotSpot does not create ErrorFile's parent directory; without it a crash before the host
+    // first writes its log would put the report in the working directory instead.
+    doFirst { File(crashLogDir.get()).mkdirs() }
 }
 
 // Headless launch, for CI and agent-driven QA: the same entry point and the same DI graph as the
