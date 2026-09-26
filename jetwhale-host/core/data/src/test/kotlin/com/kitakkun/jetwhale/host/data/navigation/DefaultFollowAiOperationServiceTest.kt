@@ -43,7 +43,7 @@ class DefaultFollowAiOperationServiceTest {
 
         startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
 
-        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1"), awaitRequest())
+        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
     }
 
@@ -88,7 +88,7 @@ class DefaultFollowAiOperationServiceTest {
         followEnabled.value = true
         startCall("jetwhale.click", pluginId = "plugin-2", sessionId = "session-1")
 
-        assertEquals(HostNavigationRequest.Plugin("plugin-2", "session-1"), awaitRequest())
+        assertEquals(HostNavigationRequest.Plugin("plugin-2", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
     }
 
@@ -132,7 +132,7 @@ class DefaultFollowAiOperationServiceTest {
 
         startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-2")
 
-        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-2"), awaitRequest())
+        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-2", followsAgent = true), awaitRequest())
         following.cancel()
     }
 

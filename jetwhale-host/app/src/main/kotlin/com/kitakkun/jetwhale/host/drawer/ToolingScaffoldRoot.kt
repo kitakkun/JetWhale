@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
+import com.kitakkun.jetwhale.host.following_ai_toast
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -23,6 +25,7 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -79,7 +82,6 @@ fun ToolingScaffoldRoot(
                     headlessPlugins = headlessPlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     persistedSidebarWidth = persistedSidebarWidth,
-                    isPluginPoppedOut = isPoppedOut,
                 )
             }
 
@@ -90,8 +92,16 @@ fun ToolingScaffoldRoot(
                 selectedPluginId = uiState.selectedPluginId,
             )
 
+            val scope = rememberCoroutineScope()
             HostNavigationRequestEffect(
                 screenChannel = screenChannel,
+                // Launched, not awaited: showing a snackbar suspends until it is dismissed, and the
+                // next navigation request must not wait for that.
+                onFollowAgent = { pluginName ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
+                    }
+                },
                 onClickPlugin = onClickPlugin,
                 onClickInfo = onClickInfo,
                 onNavigateHome = onNavigateHome,
@@ -177,8 +187,8 @@ private fun ToolingScaffoldWithActions(
         onSetPluginEnabled = { pluginId, enabled ->
             screenChannel.send(ToolingScaffoldScreenAction.SetPluginEnabled(pluginId, enabled))
         },
-        onClickStopFollowingAiOperation = {
-            screenChannel.send(ToolingScaffoldScreenAction.StopFollowingAiOperation)
+        onFollowAiOperationChange = { enabled ->
+            screenChannel.send(ToolingScaffoldScreenAction.SetFollowAiOperation(enabled))
         },
         onResizeSidebar = { screenChannel.send(ToolingScaffoldScreenAction.ResizeSidebar(it)) },
         onSidebarResizeFinished = { screenChannel.send(ToolingScaffoldScreenAction.SaveSidebarWidth) },
@@ -222,6 +232,7 @@ private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
     sessions: ImmutableList<DebugSession>,
     uiState: ToolingScaffoldUiState,
+    onFollowAgent: (pluginName: String) -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInfo: () -> Unit,
     onNavigateHome: () -> Unit,
@@ -237,6 +248,7 @@ private fun HostNavigationRequestEffect(
     val currentOnNavigateHome by rememberUpdatedState(onNavigateHome)
     val currentOnNavigateSettings by rememberUpdatedState(onNavigateSettings)
     val currentOnNavigateLogViewer by rememberUpdatedState(onNavigateLogViewer)
+    val currentOnFollowAgent by rememberUpdatedState(onFollowAgent)
 
     LaunchedEffect(screenChannel) {
         screenContext.hostNavigationService.requests.collect { request ->
@@ -250,6 +262,9 @@ private fun HostNavigationRequestEffect(
                 is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
 
                 is HostNavigationRequest.Plugin -> {
+                    if (request.followsAgent) {
+                        currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+                    }
                     // A plugin that needs no app opens in the host session and leaves the app
                     // selection alone, whether or not the request named that session.
                     if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {

@@ -78,9 +78,17 @@ the session currently selected.
 
 While an AI agent is actually calling one of that plugin's tools, the badge fills with the accent
 color and the whole row takes an accent-colored rotating ring, so the plugin being driven is
-unmistakable even if the label has scrolled out of view. A strip under the app picker reports
-the connection itself — *AI agent connected* — and names the tool running underneath it while a call
-is in flight.
+unmistakable even if the label has scrolled out of view.
+
+### AI activity
+
+The sidebar header shows whether an AI agent is connected over MCP; with none connected it holds only
+the collapse control. While one is connected it reads *AI agent connected*; while a call runs, a
+rotating ring goes round its icon and the tool's short name (`mirror.tap`) takes the text's place,
+with the full name on hover. The header keeps its height either way, so nothing below it moves.
+Clicking it opens the details — the tool, the plugin it operates, the app — and the **Follow the
+AI** switch, the same setting as [AI Activity](/guide/host-settings#ai-activity). On the collapsed
+rail only the icon is shown.
 
 ## The sidebar footer
 

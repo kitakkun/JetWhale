@@ -47,7 +47,7 @@ class DefaultFollowAiOperationService(
         // because the request waits in the channel until the window is there to take it.
         if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
 
-        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId))
+        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId, followsAgent = true))
     }
 }
 

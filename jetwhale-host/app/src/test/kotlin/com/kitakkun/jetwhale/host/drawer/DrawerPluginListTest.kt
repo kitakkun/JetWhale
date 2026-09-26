@@ -120,6 +120,7 @@ class DrawerPluginListTest {
                     width = JwMetrics.sidebarWidth,
                     onResize = {},
                     onResizeFinished = {},
+                    onFollowAiOperationChange = {},
                     onClickShrinkDrawer = {},
                     onClickSettings = {},
                     onClickPluginSettings = {},

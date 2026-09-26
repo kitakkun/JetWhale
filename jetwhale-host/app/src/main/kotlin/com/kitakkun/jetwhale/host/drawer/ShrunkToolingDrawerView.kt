@@ -64,6 +64,7 @@ fun ShrunkToolingDrawerView(
     selectedSession: DebugSession?,
     selectedPluginId: String,
     aiActivity: AiActivityUiState,
+    onFollowAiOperationChange: (Boolean) -> Unit,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPlugin: (String) -> Unit,
@@ -88,6 +89,9 @@ fun ShrunkToolingDrawerView(
                 JwIcon(painter = painterResource(Res.drawable.sidebar_unfold), contentDescription = null)
             }
         }
+        // The rail's form of the header's AI banner. Its slot is kept while no agent is connected, so
+        // the rail below never moves.
+        AiActivityIndicator(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
         JwHorizontalDivider()
         Column(
             modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
@@ -99,7 +103,6 @@ fun ShrunkToolingDrawerView(
                 selectedSession = selectedSession,
                 onSelectSession = onSelectSession,
             )
-            CompactAiActivityIndicatorView(uiState = aiActivity)
         }
         JwHorizontalDivider()
         LazyColumn(
@@ -109,7 +112,7 @@ fun ShrunkToolingDrawerView(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             items(
-                // The plugins that need no app first, as in the expanded sidebar.
+                // The tools that need no app first, as in the expanded sidebar.
                 items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
                 key = DrawerPluginItemUiState::id,
             ) {
@@ -267,6 +270,7 @@ private fun ShrunkToolingDrawerViewPreview() {
         selectedSession = null,
         selectedPluginId = "com.example.inspector",
         aiActivity = AiActivityUiState.Idle,
+        onFollowAiOperationChange = {},
         onClickExpandMenu = {},
         onClickSettings = {},
         onClickPlugin = {},
