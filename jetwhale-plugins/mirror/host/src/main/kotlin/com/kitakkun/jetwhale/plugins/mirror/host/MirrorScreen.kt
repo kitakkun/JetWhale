@@ -209,13 +209,14 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
 @Composable
 private fun DeviceActions(capabilities: DeviceCapabilities, screenPower: ScreenPower?, recording: Boolean, actions: MirrorActions) {
     Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalAlignment = Alignment.CenterVertically) {
+        capabilities.buttons.forEach { button ->
+            JwButton(text = button.label, onClick = { actions.pressButton(button) }, style = JwButtonStyle.Text)
+        }
+        // Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
         when (screenPower?.awake) {
             true -> JwButton(text = "Screen off", onClick = actions::sleep, style = JwButtonStyle.Text)
             false -> JwButton(text = "Wake", onClick = actions::wake, style = JwButtonStyle.Text)
             null -> Unit
-        }
-        capabilities.buttons.forEach { button ->
-            JwButton(text = button.label, onClick = { actions.pressButton(button) }, style = JwButtonStyle.Text)
         }
         if (capabilities.recording) {
             JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
