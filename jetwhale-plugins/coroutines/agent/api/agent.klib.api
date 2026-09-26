@@ -19,4 +19,5 @@ final class com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInsp
     final fun register(kotlinx.coroutines/Job, kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.register|register(kotlinx.coroutines.Job;kotlin.String){}[0]
     final fun track(kotlinx.coroutines/CoroutineDispatcher, kotlin/String, kotlin.time/Duration): kotlinx.coroutines/CoroutineDispatcher // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.track|track(kotlinx.coroutines.CoroutineDispatcher;kotlin.String;kotlin.time.Duration){}[0]
     final fun unregister(kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.unregister|unregister(kotlin.String){}[0]
+    final fun unregister(kotlinx.coroutines/Job, kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.unregister|unregister(kotlinx.coroutines.Job;kotlin.String){}[0]
 }

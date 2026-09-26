@@ -82,11 +82,19 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     fun register(job: Job, name: String) {
         walker.registered(job)
         roots.updateAndGet { it + (name to WeakReference(job)) }
-        job.invokeOnCompletion { roots.updateAndGet { current -> if (current[name]?.get() === job) current - name else current } }
+        job.invokeOnCompletion { unregister(job, name) }
     }
 
     fun unregister(name: String) {
         roots.updateAndGet { it - name }
+    }
+
+    /**
+     * Stops showing [job] under [name], unless [name] has since been registered to another job: a
+     * caller that registered a name another caller may reuse removes only its own registration.
+     */
+    fun unregister(job: Job, name: String) {
+        roots.updateAndGet { current -> if (current[name]?.get() === job) current - name else current }
     }
 
     /**

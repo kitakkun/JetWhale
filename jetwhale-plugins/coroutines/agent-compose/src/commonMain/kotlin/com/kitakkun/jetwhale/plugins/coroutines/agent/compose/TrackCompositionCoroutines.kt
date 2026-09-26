@@ -3,6 +3,10 @@ package com.kitakkun.jetwhale.plugins.coroutines.agent.compose
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.plugins.coroutines.agent.JetWhaleCoroutineInspectorAgentPlugin
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -32,12 +36,14 @@ import kotlin.coroutines.coroutineContext
 fun JetWhaleCoroutineInspectorAgentPlugin.TrackCompositionCoroutines(name: String) {
     // The effect's own coroutine is a child of the composition's effect job; reading its parent
     // and returning at once leaves nothing of it behind in the tree.
+    var trackedJob by remember(this, name) { mutableStateOf<Job?>(null) }
     LaunchedEffect(this, name) {
         @OptIn(ExperimentalCoroutinesApi::class)
-        coroutineContext[Job]?.parent?.let { register(it, name) }
+        trackedJob = coroutineContext[Job]?.parent?.also { register(it, name) }
     }
-    // The effect job outlives this call (it belongs to the Recomposer), so it is unregistered here.
+    // The effect job outlives this call (it belongs to the Recomposer), so it is unregistered here;
+    // only this call's own registration, since another window may reuse the name.
     DisposableEffect(this, name) {
-        onDispose { unregister(name) }
+        onDispose { trackedJob?.let { unregister(it, name) } }
     }
 }
