@@ -178,7 +178,7 @@ class HostNavigationCommandTest {
             command.execute(
                 arguments(
                     "destination" to JsonPrimitive("PLUGIN"),
-                    "pluginId" to JsonPrimitive("com.example.hostonly"),
+                    "pluginId" to JsonPrimitive("com.example.agent"),
                     "sessionId" to JsonPrimitive("session-closed"),
                 ),
             )
