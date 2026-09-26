@@ -156,7 +156,7 @@ internal fun View.isScrollable(): Boolean = canScrollVertically(1) || canScrollV
  * A generated id — the kind `View.generateViewId()` hands out — has no entry to look up, so the
  * lookup is allowed to fail rather than being guarded by a check on the id's packing.
  */
-private fun View.resourceEntryName(): String? {
+internal fun View.resourceEntryName(): String? {
     if (id == View.NO_ID) return null
     return try {
         resources?.getResourceEntryName(id)
