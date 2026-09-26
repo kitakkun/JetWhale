@@ -28,6 +28,11 @@
     <string name="sessions_connected_message">%1$d 件のセッションが接続されました</string>
     <string name="session_disconnected_message">%1$s が切断されました</string>
     <string name="sessions_disconnected_message">%1$d 件のセッションが切断されました</string>
+    <string name="plugin_installed_message">%1$s をインストールしました</string>
+    <string name="plugin_install_failed_message">%1$s をインストールできませんでした: %2$s</string>
+    <string name="plugin_install_open">開く</string>
+    <string name="plugin_install_retry">再試行</string>
+    <string name="notice_dismiss">閉じる</string>
     <string name="initializing">初期化中...</string>
     <string name="unlocking_trust_registry">信頼済みプラグインレジストリを検証中…</string>
     <string name="shutting_down">シャットダウン中...</string>

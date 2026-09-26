@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginInstallJob
 import com.kitakkun.jetwhale.host.navigation.toPage
 import com.kitakkun.jetwhale.host.session_connected_message
 import com.kitakkun.jetwhale.host.session_disconnected_message
@@ -53,13 +54,14 @@ fun ToolingScaffoldRoot(
         state6 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
     ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars, mcpActivity, mcpCapablePlugins ->
         // Nested rather than further states: the boundary above is already at the arity it provides,
-        // and both reads here are backed by an eagerly-started store, so the extra level resolves in
+        // and every read here is backed by an eagerly-started store, so the extra level resolves in
         // the same frame.
         SoilDataBoundary(
             state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
             state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
             state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth ->
+            state4 = rememberSubscription(screenContext.pluginInstallJobsSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, installJobs ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -88,6 +90,16 @@ fun ToolingScaffoldRoot(
                 selectedSession = uiState.selectedSession,
                 selectedSessionId = uiState.selectedSessionId,
                 selectedPluginId = uiState.selectedPluginId,
+            )
+
+            // Here rather than on the plugin settings page: an install outlives that page, and its
+            // outcome has to reach the user wherever they went meanwhile.
+            PluginInstallNotices(
+                installJobs = installJobs,
+                snackbarHostState = snackbarHostState,
+                onOpen = { job -> openInstalledPlugin(job, uiState, screenChannel, onClickPlugin, onClickInactivePlugin, onNavigateSettings) },
+                onRetry = { request -> screenChannel.send(ToolingScaffoldScreenAction.RetryPluginInstall(request)) },
+                onDismiss = { jobId -> screenChannel.send(ToolingScaffoldScreenAction.DismissPluginInstall(jobId)) },
             )
 
             HostNavigationRequestEffect(
@@ -274,6 +286,34 @@ private fun HostNavigationRequestEffect(
                 }
             }
         }
+    }
+}
+
+/**
+ * Where Open on an install's notice goes: where a click on the plugin in the drawer goes, judged by
+ * the drawer as it is now. A plugin the drawer does not know by id is found in the settings'
+ * installed list.
+ */
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openInstalledPlugin(
+    job: PluginInstallJob,
+    uiState: ToolingScaffoldUiState,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
+    onNavigateSettings: (SettingsScreenPage) -> Unit,
+) {
+    val plugin = job.request.pluginId?.let { id -> uiState.plugins.find { it.id == id } }
+    if (plugin == null) {
+        onNavigateSettings(SettingsScreenPage.InstalledPlugins)
+        return
+    }
+    val sessionId = uiState.sessionIdFor(plugin.id)
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(plugin.id))
+    if (plugin.pluginAvailability == PluginAvailability.Enabled && sessionId != null) {
+        onClickPlugin(plugin.id, sessionId)
+    } else {
+        onClickInactivePlugin(plugin.id, plugin.name, sessionId, plugin.pluginAvailability == PluginAvailability.Unavailable)
     }
 }
 

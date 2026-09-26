@@ -21,6 +21,7 @@ import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.SidebarWidth
@@ -44,6 +45,12 @@ sealed interface ToolingScaffoldScreenAction {
 
     /** The drag ended: the width the sidebar has now is stored for the next launch. */
     data object SaveSidebarWidth : ToolingScaffoldScreenAction
+
+    /** From a failed install's notice: the same install again. */
+    data class RetryPluginInstall(val request: PluginInstallRequest) : ToolingScaffoldScreenAction
+
+    /** A finished install's notice left; the install leaves the plugin settings' list with it. */
+    data class DismissPluginInstall(val jobId: String) : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -132,6 +139,8 @@ fun toolingScaffoldPresenter(
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
     val saveSidebarWidthMutation = rememberMutation(presenterContext.saveSidebarWidthMutationKey)
+    val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
+    val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)
     // Retained so a settings dialog over the window does not reset a width being dragged; seeded
     // from storage only until the user drags.
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
@@ -217,6 +226,10 @@ fun toolingScaffoldPresenter(
                 val width = draggedSidebarWidth ?: return@ActionEffect
                 saveSidebarWidthMutation.mutateAsync(width.value)
             }
+
+            is ToolingScaffoldScreenAction.RetryPluginInstall -> startPluginInstallMutation.mutateAsync(action.request)
+
+            is ToolingScaffoldScreenAction.DismissPluginInstall -> dismissPluginInstallMutation.mutateAsync(action.jobId)
         }
     }
 

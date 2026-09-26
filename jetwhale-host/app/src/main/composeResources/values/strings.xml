@@ -29,6 +29,11 @@
     <string name="sessions_connected_message">%1$d sessions connected</string>
     <string name="session_disconnected_message">%1$s disconnected</string>
     <string name="sessions_disconnected_message">%1$d sessions disconnected</string>
+    <string name="plugin_installed_message">%1$s installed</string>
+    <string name="plugin_install_failed_message">Couldn’t install %1$s: %2$s</string>
+    <string name="plugin_install_open">Open</string>
+    <string name="plugin_install_retry">Retry</string>
+    <string name="notice_dismiss">Dismiss</string>
     <string name="initializing">Initializing...</string>
     <string name="unlocking_trust_registry">Unlocking trust registry…</string>
     <string name="shutting_down">Shutting down...</string>
