@@ -20,7 +20,7 @@ on:
       - 'gradle/libs.versions.toml'
       - '.github/workflows/screenshot-check.yml'
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, closed]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
     paths:
       - 'jetwhale-host-ui/**'
       - 'gradle/libs.versions.toml'

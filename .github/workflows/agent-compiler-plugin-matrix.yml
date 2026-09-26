@@ -17,7 +17,7 @@ on:
       - 'jetwhale-agent-runtime/src/commonMain/**'
       - '.github/workflows/agent-compiler-plugin-matrix.yml'
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - 'jetwhale-agent-plugin/**'
       - 'jetwhale-agent-runtime/src/commonMain/**'
