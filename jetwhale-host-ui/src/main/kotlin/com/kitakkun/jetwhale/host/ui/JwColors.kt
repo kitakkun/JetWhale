@@ -24,7 +24,12 @@ import androidx.compose.ui.graphics.Color
  * control.
  * @property panelBackground Background of a panel or an input: the lightest surface, so it reads as
  * a sheet on the pane.
- * @property elevatedBackground Background of a menu or a dialog floating over the content.
+ * @property elevatedBackground Background of a raised block inside a pane: a card, a code or message
+ * sheet. Not for anything floating over the content; that is [popupBackground].
+ * @property popupBackground Background of a menu, a popover or a dialog floating over the content:
+ * lighter than every surface beneath it, so the popup reads as lifted off them in either scheme.
+ * @property popupBorder The edge of a popup: stronger than [border], so the popup's outline holds
+ * where its shadow does not show, on a dark scheme.
  * @property border Hairline borders between panes and around panels. Decorative: lighter than a
  * control's edge.
  * @property controlBorder The edge of a control — an input, a secondary button — strong enough to
@@ -73,6 +78,8 @@ public class JwColors internal constructor(
     public val toolbarBackground: Color,
     public val panelBackground: Color,
     public val elevatedBackground: Color,
+    public val popupBackground: Color,
+    public val popupBorder: Color,
     public val border: Color,
     public val controlBorder: Color,
     public val hover: Color,
@@ -115,6 +122,8 @@ public class JwColors internal constructor(
         toolbarBackground: Color = this.toolbarBackground,
         panelBackground: Color = this.panelBackground,
         elevatedBackground: Color = this.elevatedBackground,
+        popupBackground: Color = this.popupBackground,
+        popupBorder: Color = this.popupBorder,
         border: Color = this.border,
         controlBorder: Color = this.controlBorder,
         hover: Color = this.hover,
@@ -155,6 +164,8 @@ public class JwColors internal constructor(
         toolbarBackground = toolbarBackground,
         panelBackground = panelBackground,
         elevatedBackground = elevatedBackground,
+        popupBackground = popupBackground,
+        popupBorder = popupBorder,
         border = border,
         controlBorder = controlBorder,
         hover = hover,
@@ -197,6 +208,8 @@ public class JwColors internal constructor(
         toolbarBackground == other.toolbarBackground &&
         panelBackground == other.panelBackground &&
         elevatedBackground == other.elevatedBackground &&
+        popupBackground == other.popupBackground &&
+        popupBorder == other.popupBorder &&
         border == other.border &&
         controlBorder == other.controlBorder &&
         hover == other.hover &&
@@ -234,6 +247,7 @@ public class JwColors internal constructor(
         for (color in arrayOf(
             surface, onSurface, textSecondary, textDisabled,
             sidebarBackground, toolbarBackground, panelBackground, elevatedBackground,
+            popupBackground, popupBorder,
             border, controlBorder, hover, selection, onSelection,
             accent, onAccent, accentContainer, onAccentContainer, neutralContainer,
             error, onError, errorContainer, onErrorContainer,
@@ -269,6 +283,8 @@ public class JwColors internal constructor(
             toolbarBackground = Color(0xFFFFFFFF),
             panelBackground = Color(0xFFFFFFFF),
             elevatedBackground = Color(0xFFF1F2F5),
+            popupBackground = Color(0xFFFFFFFF),
+            popupBorder = Color(0xFFC2C5CD),
             border = Color(0xFFDFE2E8),
             controlBorder = Color(0xFF868B97),
             hover = Color(0xFF1D1F23).copy(alpha = 0.05f),
@@ -311,6 +327,8 @@ public class JwColors internal constructor(
             toolbarBackground = Color(0xFF1E1F22),
             panelBackground = Color(0xFF191A1D),
             elevatedBackground = Color(0xFF27282C),
+            popupBackground = Color(0xFF35373D),
+            popupBorder = Color(0xFF4D515A),
             border = Color(0xFF3A3D45),
             controlBorder = Color(0xFF747986),
             hover = Color(0xFFE6E7EA).copy(alpha = 0.08f),

@@ -67,8 +67,8 @@ public final class com/kitakkun/jetwhale/host/ui/JwCodeBlockKt {
 public final class com/kitakkun/jetwhale/host/ui/JwColors {
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/ui/JwColors$Companion;
-	public final fun copy-Ljmi3tk (JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJZ)Lcom/kitakkun/jetwhale/host/ui/JwColors;
-	public static synthetic fun copy-Ljmi3tk$default (Lcom/kitakkun/jetwhale/host/ui/JwColors;JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJZIILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/ui/JwColors;
+	public final fun copy-0EgJgxk (JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJZ)Lcom/kitakkun/jetwhale/host/ui/JwColors;
+	public static synthetic fun copy-0EgJgxk$default (Lcom/kitakkun/jetwhale/host/ui/JwColors;JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJZIILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/ui/JwColors;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAccent-0d7_KjU ()J
 	public final fun getAccentContainer-0d7_KjU ()J
@@ -97,6 +97,8 @@ public final class com/kitakkun/jetwhale/host/ui/JwColors {
 	public final fun getOnWarning-0d7_KjU ()J
 	public final fun getOnWarningContainer-0d7_KjU ()J
 	public final fun getPanelBackground-0d7_KjU ()J
+	public final fun getPopupBackground-0d7_KjU ()J
+	public final fun getPopupBorder-0d7_KjU ()J
 	public final fun getSelection-0d7_KjU ()J
 	public final fun getSidebarBackground-0d7_KjU ()J
 	public final fun getSuccess-0d7_KjU ()J

@@ -10,6 +10,9 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
@@ -67,6 +70,16 @@ private fun ColorScheme.toJwColors(dark: Boolean): JwColors {
         toolbarBackground = surface.takeOrElse { base.toolbarBackground },
         panelBackground = surfaceContainerLowest.takeOrElse { base.panelBackground },
         elevatedBackground = surfaceContainer.takeOrElse { base.elevatedBackground },
+        // A popup is the lightest container of the scheme: white over light chrome, the highest
+        // tone over dark, so it never matches the pane it opens over.
+        popupBackground = (if (dark) surfaceContainerHighest else surfaceContainerLowest).takeOrElse { base.popupBackground },
+        // Each endpoint falls back on its own, so a scheme that sets only one of them still moves the
+        // popup edge with it; with neither set, the library's own popup edge stands.
+        popupBorder = if (outlineVariant.isUnspecified && outline.isUnspecified) {
+            base.popupBorder
+        } else {
+            lerp(outlineVariant.takeOrElse { base.border }, outline.takeOrElse { base.controlBorder }, POPUP_BORDER_FRACTION)
+        },
         border = outlineVariant.takeOrElse { base.border },
         controlBorder = outline.takeOrElse { base.controlBorder },
         hover = onSurface.takeOrElse { base.onSurface }.copy(alpha = if (dark) DARK_HOVER_ALPHA else LIGHT_HOVER_ALPHA),
@@ -136,3 +149,9 @@ private const val LIGHT_HOVER_ALPHA = 0.05f
 private const val DARK_HOVER_ALPHA = 0.08f
 private const val LIGHT_SELECTION_ALPHA = 0.14f
 private const val DARK_SELECTION_ALPHA = 0.24f
+
+/**
+ * Material has no role for a popup's edge: a third of the way from the hairline outlineVariant to the
+ * control outline, so it is firmer than a pane divider without reading as a control.
+ */
+private const val POPUP_BORDER_FRACTION = 0.33f

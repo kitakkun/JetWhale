@@ -122,8 +122,8 @@ public fun JwDialogSurface(
                 .width(width)
                 .shadow(DialogShadowElevation, shape)
                 .clip(shape)
-                .background(JwTheme.colors.elevatedBackground, shape)
-                .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
+                .background(JwTheme.colors.popupBackground, shape)
+                .border(JwMetrics.borderWidth, JwTheme.colors.popupBorder, shape),
             content = content,
         )
     }
