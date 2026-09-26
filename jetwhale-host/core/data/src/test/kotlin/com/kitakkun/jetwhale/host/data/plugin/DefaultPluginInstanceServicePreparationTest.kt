@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
+import com.kitakkun.jetwhale.host.model.PluginStorageService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -28,7 +28,7 @@ class DefaultPluginInstanceServicePreparationTest {
     @Test
     fun `an instance of a plugin that needs an agent prepares only once its preparation is started`() = runBlocking {
         val service = serviceFor(requiresAgent = true)
-        service.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, setOf(SESSION_ID))
+        service.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, mapOf(SESSION_ID to "1.0.0"))
 
         assertNull(receiveSentFrameOrNull())
 
@@ -40,7 +40,7 @@ class DefaultPluginInstanceServicePreparationTest {
     @Test
     fun `an instance of a plugin that needs no agent prepares as soon as it is created`() = runBlocking {
         val service = serviceFor(requiresAgent = false)
-        service.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, setOf(HostSession.ID))
+        service.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, mapOf(HostSession.ID to null))
 
         assertIs<PluginFrame.Request>(withTimeout(5.seconds) { sentFrames.receive() })
         service.unloadPluginInstancesForPlugin(PLUGIN_ID)
@@ -55,6 +55,7 @@ class DefaultPluginInstanceServicePreparationTest {
     private fun serviceFor(requiresAgent: Boolean) = DefaultPluginInstanceService(
         pluginFactoryRepository = SinglePluginFactoryRepository(
             LoadedHostPlugin(
+                jarPath = "/plugins/plugin.jar",
                 manifest = JetWhaleHostPluginManifest(
                     pluginId = PLUGIN_ID,
                     pluginName = "Test",
@@ -72,7 +73,7 @@ class DefaultPluginInstanceServicePreparationTest {
                 sentFrames.send(frame)
             }
         },
-        pluginDataStoreRepository = mock<PluginDataStoreRepository> {
+        pluginStorageService = mock<PluginStorageService> {
             every { storageFor(any()) } returns mock()
         },
     )

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import com.kitakkun.jetwhale.host.model.BoundPluginVersions
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -15,6 +16,7 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -23,7 +25,9 @@ import kotlin.test.assertEquals
 class SessionToolsTest {
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository>()
-    private val pluginInstanceService = mock<PluginInstanceService>()
+    private val pluginInstanceService = mock<PluginInstanceService> {
+        every { boundVersionsFlow } returns MutableStateFlow(BoundPluginVersions.Empty)
+    }
 
     private val hostOnlyPlugins = mapOf(
         "com.example.device" to loadedPlugin("com.example.device", requiresAgent = false),
@@ -118,11 +122,32 @@ class SessionToolsTest {
         val result = listPlugins(HostSession.ID, repo, pluginFactoryRepository, pluginInstanceService)
         assertEquals("""[{"pluginId":"com.example.device","pluginName":"com.example.device","version":"1.0.0","mcpCapable":false}]""", result)
     }
+
+    @Test
+    fun `listPlugins reports the version the session runs rather than the newest installed`() = runBlocking {
+        val session = DebugSession(
+            id = "old-app",
+            name = "Device",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.PLAINTEXT,
+            installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "0.9.0")),
+        )
+        val repo = mock<DebugSessionRepository> {
+            every { debugSessionsFlow } returns flowOf(persistentListOf(session))
+        }
+        every { pluginFactoryRepository.loadedPlugins } returns mapOf("com.example.plugin" to loadedPlugin("com.example.plugin", requiresAgent = true))
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.plugin", "old-app") } returns null
+        every { pluginInstanceService.boundVersionsFlow } returns MutableStateFlow(BoundPluginVersions(mapOf("old-app" to mapOf("com.example.plugin" to "0.9.0"))))
+
+        val result = listPlugins("old-app", repo, pluginFactoryRepository, pluginInstanceService)
+        assertEquals("""[{"pluginId":"com.example.plugin","pluginName":"com.example.plugin","version":"0.9.0","mcpCapable":false}]""", result)
+    }
 }
 
 private const val EMPTY_HOST_SESSION = """{"sessionId":"host","sessionName":"Host","isActive":true,"installedPlugins":[]}"""
 
 private fun loadedPlugin(pluginId: String, requiresAgent: Boolean) = LoadedHostPlugin(
+    jarPath = "/plugins/plugin.jar",
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = pluginId,

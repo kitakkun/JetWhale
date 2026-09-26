@@ -62,7 +62,8 @@ fun ToolingScaffoldRoot(
             state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
             state4 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
             state5 = rememberSubscription(screenContext.pluginInstallJobsSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus, installJobs ->
+            state6 = rememberSubscription(screenContext.boundPluginVersionsSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus, installJobs, boundPluginVersions ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -78,6 +79,7 @@ fun ToolingScaffoldRoot(
                     mcpActivity = mcpActivity,
                     mcpCapablePlugins = mcpCapablePlugins,
                     headlessPlugins = headlessPlugins,
+                    boundPluginVersions = boundPluginVersions,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     persistedSidebarWidth = persistedSidebarWidth,
                     mcpServerStatus = mcpServerStatus,

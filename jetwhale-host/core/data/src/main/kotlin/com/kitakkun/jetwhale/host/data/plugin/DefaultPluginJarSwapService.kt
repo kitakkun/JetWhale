@@ -22,11 +22,12 @@ import java.util.logging.Logger
 
 /**
  * Reload sequence for a changed jar:
- * 1. dispose the affected plugin's running instances ([PluginInstanceService.unloadPluginInstancesForPlugin],
- *    which calls each instance's `onDispose`) and close its compose scenes,
+ * 1. dispose the running instances of the jar's plugin versions ([PluginInstanceService.unloadPluginInstancesForJar],
+ *    which calls each instance's `onDispose`) and close their plugins' compose scenes,
  * 2. reload the factory from a fresh classloader (the old classloader is dropped — see
  *    [PluginFactoryRepository.reloadPlugin]),
- * 3. re-create instances for active sessions that have the plugin installed, and
+ * 3. re-create instances for active sessions that have the plugin installed, each bound to a version
+ *    that fits it, and
  * 4. emit [pluginReloadedFlow] so the open plugin screen re-creates its scene from the new code.
  */
 @Inject
@@ -69,10 +70,14 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        val takenOverPluginIds = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
-            .filter { it in pluginFactoryRepository.loadedPlugins }
-        val previousPluginIds = (pluginFactoryRepository.findPluginIdsByJarPath(jarPath) + takenOverPluginIds).distinct()
-        previousPluginIds.forEach { disposePlugin(it) }
+        val takenOverJarPaths = withContext(Dispatchers.IO) { declaredPlugins(File(jarPath)) }.mapNotNull { declared ->
+            pluginFactoryRepository.loadedPluginVersions[declared.pluginId]
+                ?.firstOrNull { it.manifest.version == declared.version }
+                ?.jarPath
+        }
+        val replacedJarPaths = (takenOverJarPaths + jarPath).distinct()
+        val previousPluginIds = replacedJarPaths.flatMap(pluginFactoryRepository::findPluginIdsByJarPath).distinct()
+        disposeJars(replacedJarPaths, previousPluginIds)
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
@@ -86,22 +91,27 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
-
-        reloadedPluginIds.forEach { reinitializeInstances(it) }
+        val affectedPluginIds = (previousPluginIds + reloadedPluginIds).distinct()
+        affectedPluginIds.forEach { reinitializeInstances(it) }
 
         logger.info("Reloaded plugin(s): ${reloadedPluginIds.joinToString()}")
-        reloadedPluginIds.forEach { pluginReloadedFlow.emit(it) }
+        affectedPluginIds.forEach { pluginReloadedFlow.emit(it) }
     }
 
     override suspend fun remove(jarPath: String) {
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { disposePlugin(it) }
+        val pluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
+        disposeJars(listOf(jarPath), pluginIds)
         pluginFactoryRepository.unloadPluginJar(jarPath)
+        // Sessions bound to the removed version move to another loaded version that fits them.
+        pluginIds.forEach {
+            reinitializeInstances(it)
+            pluginReloadedFlow.emit(it)
+        }
     }
 
-    private suspend fun disposePlugin(pluginId: String) = withContext(Dispatchers.Main) {
-        pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-        pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
+    private suspend fun disposeJars(jarPaths: List<String>, pluginIds: List<String>) = withContext(Dispatchers.Main) {
+        jarPaths.forEach(pluginInstanceService::unloadPluginInstancesForJar)
+        pluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
     }
 
     /**
@@ -112,16 +122,17 @@ class DefaultPluginJarSwapService(
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
-        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
+        val targetSessions = reconciliationService.targetSessions(pluginId, activeSessions)
 
-        if (activeSessionIds.isEmpty()) return
+        if (targetSessions.isEmpty()) return
 
         withContext(Dispatchers.Main) {
             pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                 pluginId = pluginId,
-                sessionIds = activeSessionIds,
+                sessions = targetSessions,
             ).forEach { sessionId ->
-                // A reload replaces only the host's instances; the agents keep the plugin active.
+                // A reload or a removal replaces only the host's instances; the agents keep the plugin
+                // active.
                 pluginInstanceService.startPluginInstancePreparation(pluginId = pluginId, sessionId = sessionId)
             }
         }

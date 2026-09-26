@@ -19,6 +19,6 @@ class DefaultPluginInstallMutationKey(
     mutate = { jarUrlString: String ->
         appDataDirectoryProvider.createAppDataDirectoriesIfNeeded()
         val copiedJarFilePath = appDataDirectoryProvider.copyJarFileToAppDataDirectory(jarUrlString)
-        pluginTrustService.trustAndLoad(copiedJarFilePath, approvedSha256 = null)
+        pluginTrustService.trustAndLoad(copiedJarFilePath, approvedSha256 = null, replaceOtherVersions = false)
     },
 )

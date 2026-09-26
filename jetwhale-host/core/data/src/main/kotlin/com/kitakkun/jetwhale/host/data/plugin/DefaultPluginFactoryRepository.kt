@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginVersionOrder
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import dev.zacsweers.metro.AppScope
@@ -16,7 +17,10 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,10 +41,12 @@ import kotlin.io.path.Path
 class DefaultPluginFactoryRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginFactoryRepository {
-    private val mutablePluginsFlow: MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>> =
-        MutableStateFlow(persistentMapOf())
-    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
-    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutablePluginsFlow.value
+    override val loadedPluginVersionsFlow: StateFlow<ImmutableMap<String, List<LoadedHostPlugin>>>
+        field = MutableStateFlow<ImmutableMap<String, List<LoadedHostPlugin>>>(persistentMapOf())
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> get() = loadedPluginVersionsFlow.value
+
+    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = loadedPluginVersionsFlow.map(::newestOfEach).distinctUntilChanged()
+    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = newestOfEach(loadedPluginVersionsFlow.value)
 
     private val mutableFailedJarsFlow: MutableStateFlow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
     override val failedJarsFlow: Flow<List<FailedPluginJar>> = mutableFailedJarsFlow.asStateFlow()
@@ -52,8 +58,8 @@ class DefaultPluginFactoryRepository(
      */
     private val classLoaders: ConcurrentHashMap<String, URLClassLoader> = ConcurrentHashMap()
 
-    /** Maps the absolute jar path a plugin was loaded from to the `pluginId`s it provides. */
-    private val jarPathToPluginIds: ConcurrentHashMap<String, List<String>> = ConcurrentHashMap()
+    /** Maps the absolute jar path plugins were loaded from to the plugin versions it provides. */
+    private val jarPathToPlugins: ConcurrentHashMap<String, List<PluginVersionKey>> = ConcurrentHashMap()
 
     /**
      * Private per-jar copy of the jar that each classloader actually opens, keyed by absolute jar path.
@@ -66,7 +72,7 @@ class DefaultPluginFactoryRepository(
 
     /**
      * Serializes load/unload/reload: each performs compound read-modify-write across several maps
-     * ([classLoaders], [jarPathToPluginIds], [runtimeJars], [mutablePluginsFlow]), which per-map
+     * ([classLoaders], [jarPathToPlugins], [runtimeJars], [loadedPluginVersionsFlow]), which per-map
      * atomicity alone does not make safe. `loadPlugin` is invoked from the initial load, the install
      * flow, and the hot-reload watcher, so these can overlap.
      */
@@ -113,23 +119,18 @@ class DefaultPluginFactoryRepository(
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
-            val newPluginIds = loaded.map { it.manifest.pluginId }
+            val newPlugins = loaded.map(LoadedHostPlugin::versionKey)
 
-            detachPluginIdsFromOtherJars(newPluginIds.toSet(), keepJarPath = pluginJarPath)
+            detachPluginVersionsFromOtherJars(newPlugins.toSet(), keepJarPath = pluginJarPath)
 
             val previousClassLoader = classLoaders.put(pluginJarPath, classLoader)
             committed = true
             previousClassLoader?.close()
             if (runtimeJar != null) runtimeJars[pluginJarPath] = runtimeJar else runtimeJars.remove(pluginJarPath)
 
-            val removedPluginIds = jarPathToPluginIds[pluginJarPath].orEmpty() - newPluginIds.toSet()
-            jarPathToPluginIds[pluginJarPath] = newPluginIds
-
-            mutablePluginsFlow.update { current ->
-                current.toMutableMap().apply {
-                    removedPluginIds.forEach { remove(it) }
-                    loaded.forEach { put(it.manifest.pluginId, it) }
-                }.toPersistentMap()
+            jarPathToPlugins[pluginJarPath] = newPlugins
+            loadedPluginVersionsFlow.update { current ->
+                (current.withoutJar(pluginJarPath).values.flatten() + loaded).toVersionsById()
             }
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
             mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
@@ -210,26 +211,28 @@ class DefaultPluginFactoryRepository(
                 "Factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' in $pluginJarPath " +
                     "is not a ${JetWhaleHostPluginFactory::class.java.simpleName}"
             }
-            LoadedHostPlugin(manifest = manifest, factory = factory)
+            LoadedHostPlugin(manifest = manifest, factory = factory, jarPath = pluginJarPath)
         }
     }
 
     /**
-     * Removes [pluginIds] from every jar other than [keepJarPath] that currently provides them; a jar
-     * left with no plugins has its classloader closed and dropped. Their `loadedPlugins` entries are
-     * left for the caller to overwrite with the new jar's plugins.
+     * Removes [plugins] from every jar other than [keepJarPath] that currently provides them, together
+     * with their loaded entries; a jar left with no plugins has its classloader closed and dropped.
      */
-    private fun detachPluginIdsFromOtherJars(pluginIds: Set<String>, keepJarPath: String) {
-        for ((jarPath, ids) in jarPathToPluginIds) {
+    private fun detachPluginVersionsFromOtherJars(plugins: Set<PluginVersionKey>, keepJarPath: String) {
+        for ((jarPath, provided) in jarPathToPlugins) {
             if (jarPath == keepJarPath) continue
-            val remaining = ids.filterNot(pluginIds::contains)
-            if (remaining.size == ids.size) continue
+            val remaining = provided.filterNot(plugins::contains)
+            if (remaining.size == provided.size) continue
+            loadedPluginVersionsFlow.update { current ->
+                current.values.flatten().filterNot { it.jarPath == jarPath && it.versionKey() in plugins }.toVersionsById()
+            }
             if (remaining.isEmpty()) {
-                jarPathToPluginIds.remove(jarPath)
+                jarPathToPlugins.remove(jarPath)
                 classLoaders.remove(jarPath)?.close()
                 runtimeJars.remove(jarPath)
             } else {
-                jarPathToPluginIds[jarPath] = remaining
+                jarPathToPlugins[jarPath] = remaining
             }
         }
     }
@@ -252,30 +255,28 @@ class DefaultPluginFactoryRepository(
     }
 
     override suspend fun unloadPluginJar(pluginJarPath: String): Unit = loadMutex.withLock {
-        val pluginIds = jarPathToPluginIds.remove(pluginJarPath).orEmpty()
-        mutablePluginsFlow.update { current ->
-            current.toMutableMap().apply { pluginIds.forEach(::remove) }.toPersistentMap()
-        }
+        val plugins = jarPathToPlugins.remove(pluginJarPath).orEmpty()
+        loadedPluginVersionsFlow.update { current -> current.withoutJar(pluginJarPath) }
         classLoaders.remove(pluginJarPath)?.close()
         runtimeJars.remove(pluginJarPath)
         mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
-        pluginIds.forEach { println("Unloaded plugin: $it") }
+        plugins.forEach { println("Unloaded plugin: ${it.pluginId} v${it.version}") }
     }
 
-    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginIds[pluginJarPath].orEmpty()
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPlugins[pluginJarPath].orEmpty().map(PluginVersionKey::pluginId)
 
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
         loadPluginUnderLock(pluginJarPath, expectedSha256)
         if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
             emptyList()
         } else {
-            jarPathToPluginIds[pluginJarPath].orEmpty()
+            findPluginIdsByJarPath(pluginJarPath)
         }
     }
 
     override fun tryRedefinePlugin(pluginJarPath: String): List<String> {
         val instrumentation = instrumentation ?: return emptyList()
-        val pluginIds = jarPathToPluginIds[pluginJarPath]?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        val pluginIds = findPluginIdsByJarPath(pluginJarPath).takeIf { it.isNotEmpty() } ?: return emptyList()
         val classLoader = classLoaders[pluginJarPath] ?: return emptyList()
 
         // Any failure of the in-place redefine falls back to a full reload, which is always
@@ -317,6 +318,20 @@ class DefaultPluginFactoryRepository(
         runCatching { ByteBuddyAgent.install() }.getOrNull()
     }
 }
+
+/** One version of one plugin, as a jar provides it. */
+private data class PluginVersionKey(val pluginId: String, val version: String)
+
+private fun LoadedHostPlugin.versionKey(): PluginVersionKey = PluginVersionKey(manifest.pluginId, manifest.version)
+
+private fun Map<String, List<LoadedHostPlugin>>.withoutJar(jarPath: String): ImmutableMap<String, List<LoadedHostPlugin>> = values.flatten().filterNot { it.jarPath == jarPath }.toVersionsById()
+
+/** Groups loaded versions by plugin id, newest first. */
+private fun List<LoadedHostPlugin>.toVersionsById(): ImmutableMap<String, List<LoadedHostPlugin>> = groupBy { it.manifest.pluginId }
+    .mapValues { (_, versions) -> versions.sortedWith(compareByDescending(PluginVersionOrder) { it.manifest.version }) }
+    .toPersistentMap()
+
+private fun newestOfEach(versions: Map<String, List<LoadedHostPlugin>>): Map<String, LoadedHostPlugin> = versions.mapValues { (_, newestFirst) -> newestFirst.first() }
 
 /** The jar's plugin manifest exists but could not be parsed (malformed or incompatible schema). */
 class PluginManifestParseException(

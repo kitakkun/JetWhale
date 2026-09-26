@@ -33,7 +33,7 @@ internal class FakeTrustService(private val onApprove: suspend (jarPath: String,
     override val signingEnabledFlow: StateFlow<Boolean> = MutableStateFlow(false)
     override suspend fun loadTrustedPlugins() = Unit
 
-    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?) {
+    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?, replaceOtherVersions: Boolean) {
         approvals += jarPath to approvedSha256
         onApprove(jarPath, approvedSha256)
     }
@@ -44,6 +44,8 @@ internal class FakeTrustService(private val onApprove: suspend (jarPath: String,
     override suspend fun revokeTrust(jarPath: String) {
         revoked += jarPath
     }
+
+    override suspend fun removePluginJar(jarPath: String) = Unit
 
     override suspend fun setSigningEnabled(enabled: Boolean) = Unit
 }
@@ -68,6 +70,8 @@ internal class FakeTrustRepository : PluginTrustRepository {
 internal class FakeFactoryRepository : PluginFactoryRepository {
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
     override val loadedPlugins: Map<String, LoadedHostPlugin> = emptyMap()
+    override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = MutableStateFlow(emptyMap())
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> = emptyMap()
     override val failedJarsFlow = MutableStateFlow(emptyList<FailedPluginJar>())
     override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
     override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
@@ -80,6 +84,8 @@ internal class FakeFactoryRepository : PluginFactoryRepository {
 internal class SinglePluginFactoryRepository(plugin: LoadedHostPlugin) : PluginFactoryRepository {
     override val loadedPlugins: Map<String, LoadedHostPlugin> = mapOf(plugin.manifest.pluginId to plugin)
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> = mapOf(plugin.manifest.pluginId to listOf(plugin))
+    override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = MutableStateFlow(loadedPluginVersions)
     override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
     override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit

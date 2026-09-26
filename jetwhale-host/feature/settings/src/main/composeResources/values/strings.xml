@@ -49,6 +49,9 @@
     <string name="view_host_log">View Log</string>
     <string name="current_version">Current Version</string>
     <string name="installed_plugins">Installed Plugins</string>
+    <string name="remove_plugin_version">Remove</string>
+    <string name="remove_plugin_version_title">Remove %1$s %2$s?</string>
+    <string name="remove_plugin_version_description">Its jar is unloaded and deleted. Apps using this version move to another installed version that fits them, if there is one. Its stored data is kept.</string>
     <string name="failed_to_load_plugins">Incompatible Plugins</string>
     <string name="failed_jar_path_hint">These jars could not be loaded. They may be built for a different JetWhale version, be missing their dependencies, or not be valid plugin jars.</string>
     <string name="untrusted_plugins">Unverified Plugins</string>
