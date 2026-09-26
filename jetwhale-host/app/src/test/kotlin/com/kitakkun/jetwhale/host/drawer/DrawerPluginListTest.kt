@@ -149,4 +149,5 @@ private fun plugin(name: String, availability: PluginAvailability) = DrawerPlugi
     exposesMcpTools = false,
     isHeadless = false,
     needsApp = true,
+    failureMessage = null,
 )

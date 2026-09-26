@@ -11,8 +11,8 @@ import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
-import com.kitakkun.jetwhale.host.model.SaveSidebarWidthMutationKey
 import com.kitakkun.jetwhale.host.model.PluginFailuresSubscriptionKey
+import com.kitakkun.jetwhale.host.model.SaveSidebarWidthMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SidebarWidthSubscriptionKey

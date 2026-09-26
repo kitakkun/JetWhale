@@ -614,6 +614,7 @@ private fun ExpandedToolingDrawerViewPreview() {
                 exposesMcpTools = false,
                 isHeadless = false,
                 needsApp = false,
+                failureMessage = null,
             ),
             DrawerPluginItemUiState(
                 name = "Inspector",
