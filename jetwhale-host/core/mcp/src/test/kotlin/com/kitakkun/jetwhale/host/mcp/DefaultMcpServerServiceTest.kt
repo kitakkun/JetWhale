@@ -227,6 +227,35 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    fun `a plugin tool whose instance is gone answers that it is not available`() = runBlocking {
+        val testPluginId = "com.example.test"
+        val testSessionId = "test-session-gone"
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin()),
+        )
+        // Disposed after the tool was registered, before its Disposed event reached the registry.
+        every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns null
+
+        service.start(host, port)
+        try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val result = client.callTool(
+                    "com.example.test.greet",
+                    mapOf("sessionId" to testSessionId, "name" to "World"),
+                )
+                assertEquals(true, result.isError)
+                val text = result.content.filterIsInstance<TextContent>().first().text
+                assertTrue("is not available in session '$testSessionId'" in text, text)
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 1)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
