@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -28,11 +29,17 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
+import com.kitakkun.jetwhale.host.model.PluginInstallJob
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
+import com.kitakkun.jetwhale.host.model.PluginInstallStatus
+import com.kitakkun.jetwhale.host.model.isActive
+import com.kitakkun.jetwhale.host.model.isCancellable
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
+import com.kitakkun.jetwhale.host.settings.adding_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
 import com.kitakkun.jetwhale.host.settings.close
 import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
@@ -41,10 +48,17 @@ import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
+import com.kitakkun.jetwhale.host.settings.install_action_cancel
+import com.kitakkun.jetwhale.host.settings.install_action_dismiss
+import com.kitakkun.jetwhale.host.settings.install_action_retry
 import com.kitakkun.jetwhale.host.settings.install_from_maven
 import com.kitakkun.jetwhale.host.settings.install_progress_downloading_dependencies
 import com.kitakkun.jetwhale.host.settings.install_progress_downloading_plugin
 import com.kitakkun.jetwhale.host.settings.install_progress_loading_plugin
+import com.kitakkun.jetwhale.host.settings.install_status_failed
+import com.kitakkun.jetwhale.host.settings.install_status_installed
+import com.kitakkun.jetwhale.host.settings.install_status_installing
+import com.kitakkun.jetwhale.host.settings.install_status_queued
 import com.kitakkun.jetwhale.host.settings.installed_plugins
 import com.kitakkun.jetwhale.host.settings.maven_install_install
 import com.kitakkun.jetwhale.host.settings.no_plugins_installed
@@ -79,6 +93,9 @@ fun PluginSettingsScreen(
     onApproveUntrustedJar: (String) -> Unit,
     onClickInstallFromMaven: () -> Unit,
     onClickInstallOfficialPlugin: (OfficialPlugin) -> Unit,
+    onCancelInstall: (jobId: String) -> Unit,
+    onRetryInstall: (PluginInstallRequest) -> Unit,
+    onDismissInstall: (jobId: String) -> Unit,
     onChangeSignPluginTrustRegistry: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,23 +128,17 @@ fun PluginSettingsScreen(
         if (page == SettingsScreenPage.AddPlugins) {
             item(key = "add_actions") {
                 AddPluginActionsRow(
-                    installEnabled = !uiState.isInstalling,
+                    addFromFileEnabled = !uiState.isAddingFromFile,
                     onClickAddPlugin = onClickAddPlugin,
                     onClickInstallFromMaven = onClickInstallFromMaven,
                 )
             }
-        }
-        if (page == SettingsScreenPage.AddPlugins && uiState.isInstalling) {
-            item(key = "install_progress") {
-                InstallProgressRow(progress = uiState.installProgress)
-            }
-        }
-        // Beside the progress it replaces: an install only starts from this page, so its failure has
-        // no business appearing over the installed list or the security settings.
-        if (page == SettingsScreenPage.AddPlugins) {
-            uiState.installError?.let { error ->
-                item(key = "install_error") { InstallErrorBanner(error = error) }
-            }
+            installActivityItems(
+                uiState = uiState,
+                onCancelInstall = onCancelInstall,
+                onRetryInstall = onRetryInstall,
+                onDismissInstall = onDismissInstall,
+            )
         }
         if (page == SettingsScreenPage.InstalledPlugins) {
             items(
@@ -181,7 +192,6 @@ fun PluginSettingsScreen(
             ) { officialPlugin ->
                 OfficialPluginRow(
                     uiState = officialPlugin,
-                    installEnabled = !uiState.isInstalling,
                     onClickInstall = { onClickInstallOfficialPlugin(officialPlugin.plugin) },
                 )
             }
@@ -194,6 +204,36 @@ fun PluginSettingsScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * Installs in flight or just finished, beside the actions that start them: an install only starts
+ * from this page, so its failure has no business appearing over the installed list or the security
+ * settings.
+ */
+private fun LazyListScope.installActivityItems(
+    uiState: PluginSettingsScreenUiState,
+    onCancelInstall: (jobId: String) -> Unit,
+    onRetryInstall: (PluginInstallRequest) -> Unit,
+    onDismissInstall: (jobId: String) -> Unit,
+) {
+    if (uiState.isAddingFromFile) {
+        item(key = "add_from_file_progress") { AddingFromFileRow() }
+    }
+    uiState.addFromFileError?.let { error ->
+        item(key = "add_from_file_error") { InstallErrorBanner(error = error) }
+    }
+    items(
+        items = uiState.installJobs,
+        key = { job -> "install:${job.id}" },
+    ) { job ->
+        InstallJobRow(
+            job = job,
+            onCancel = { onCancelInstall(job.id) },
+            onRetry = { onRetryInstall(job.request) },
+            onDismiss = { onDismissInstall(job.id) },
+        )
     }
 }
 
@@ -258,9 +298,10 @@ private fun FailedJarsButton(
     )
 }
 
+/** A Maven install is always accepted: it joins the install queue rather than competing with it. */
 @Composable
 private fun AddPluginActionsRow(
-    installEnabled: Boolean,
+    addFromFileEnabled: Boolean,
     onClickAddPlugin: () -> Unit,
     onClickInstallFromMaven: () -> Unit,
     modifier: Modifier = Modifier,
@@ -273,39 +314,93 @@ private fun AddPluginActionsRow(
         JwButton(
             text = stringResource(Res.string.add_plugin_from_file),
             onClick = onClickAddPlugin,
-            enabled = installEnabled,
+            enabled = addFromFileEnabled,
             style = JwButtonStyle.Text,
         )
         JwButton(
             text = stringResource(Res.string.install_from_maven),
             onClick = onClickInstallFromMaven,
-            enabled = installEnabled,
             style = JwButtonStyle.Text,
         )
     }
 }
 
 @Composable
-private fun InstallProgressRow(
-    progress: PluginInstallProgress?,
-    modifier: Modifier = Modifier,
-) {
+private fun AddingFromFileRow(modifier: Modifier = Modifier) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
     ) {
         JwProgressIndicator()
-        if (progress != null) {
-            JwText(
-                text = installProgressText(progress),
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        JwText(
+            text = stringResource(Res.string.adding_plugin_from_file),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    }
+}
+
+/**
+ * One queued, running or finished install. It keeps running when this screen closes, and reopening
+ * the screen shows it where it is.
+ */
+@Composable
+private fun InstallJobRow(
+    job: PluginInstallJob,
+    onCancel: () -> Unit,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val status = job.status
+    JwPanel(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PluginRowPadding,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (status.isActive) JwProgressIndicator()
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                JwText(
+                    text = job.request.displayName,
+                    style = JwTheme.textStyles.subtitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                JwText(
+                    text = installStatusText(status),
+                    style = JwTheme.textStyles.bodySmall,
+                    color = if (status is PluginInstallStatus.Failed) JwTheme.colors.error else JwTheme.colors.textSecondary,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (status.isCancellable) {
+                JwButton(text = stringResource(Res.string.install_action_cancel), onClick = onCancel, style = JwButtonStyle.Text)
+            }
+            if (status is PluginInstallStatus.Failed) {
+                JwButton(text = stringResource(Res.string.install_action_retry), onClick = onRetry, style = JwButtonStyle.Secondary)
+            }
+            if (!status.isActive) {
+                JwButton(text = stringResource(Res.string.install_action_dismiss), onClick = onDismiss, style = JwButtonStyle.Text)
+            }
         }
     }
+}
+
+@Composable
+private fun installStatusText(status: PluginInstallStatus): String = when (status) {
+    PluginInstallStatus.Queued -> stringResource(Res.string.install_status_queued)
+    is PluginInstallStatus.Running -> status.progress?.let { installProgressText(it) } ?: stringResource(Res.string.install_status_installing)
+    PluginInstallStatus.Succeeded -> stringResource(Res.string.install_status_installed)
+    is PluginInstallStatus.Failed -> stringResource(Res.string.install_status_failed, status.reason)
 }
 
 @Composable
@@ -475,7 +570,6 @@ private fun UntrustedPluginsSection(
 @Composable
 private fun OfficialPluginRow(
     uiState: OfficialPluginUiState,
-    installEnabled: Boolean,
     onClickInstall: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -523,11 +617,23 @@ private fun OfficialPluginRow(
                         maxLines = 1,
                     )
                 }
+            } else if (uiState.installJob?.status?.isActive == true) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    JwProgressIndicator()
+                    JwText(
+                        text = stringResource(Res.string.install_status_installing),
+                        style = JwTheme.textStyles.label,
+                        color = JwTheme.colors.textSecondary,
+                        maxLines = 1,
+                    )
+                }
             } else {
                 JwButton(
                     text = stringResource(Res.string.maven_install_install),
                     onClick = onClickInstall,
-                    enabled = installEnabled,
                     style = JwButtonStyle.Secondary,
                 )
             }
@@ -553,11 +659,17 @@ private fun PluginSettingsScreenPreview() {
                 failedJars = persistentListOf(),
                 untrustedJarPaths = persistentListOf(),
                 signPluginTrustRegistry = false,
+                installJobs = persistentListOf(),
+                isAddingFromFile = false,
+                addFromFileError = null,
             ),
             onClickAddPlugin = {},
             onApproveUntrustedJar = {},
             onClickInstallFromMaven = {},
             onClickInstallOfficialPlugin = {},
+            onCancelInstall = {},
+            onRetryInstall = {},
+            onDismissInstall = {},
             onChangeSignPluginTrustRegistry = {},
         )
     }

@@ -26,8 +26,8 @@ fun PluginSettingsScreenRoot(page: SettingsScreenPage) {
             state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
             state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
             state3 = rememberSubscription(screenContext.untrustedPluginJarPathsSubscriptionKey),
-            state4 = rememberSubscription(screenContext.pluginInstallProgressSubscriptionKey),
-        ) { loadedPlugins, failedJars, untrustedJars, installProgress ->
+            state4 = rememberSubscription(screenContext.pluginInstallJobsSubscriptionKey),
+        ) { loadedPlugins, failedJars, untrustedJars, installJobs ->
             val screenChannel = rememberScreenChannel<PluginSettingsScreenAction, Nothing>()
             val uiState = context(screenContext.presenterContext) {
                 pluginSettingsScreenPresenter(
@@ -35,7 +35,7 @@ fun PluginSettingsScreenRoot(page: SettingsScreenPage) {
                     loadedPlugins = loadedPlugins,
                     failedJars = failedJars,
                     untrustedJarPaths = untrustedJars.paths,
-                    installProgress = installProgress,
+                    installJobs = installJobs,
                     signPluginTrustRegistry = signingState.enabled,
                 )
             }
@@ -55,6 +55,15 @@ fun PluginSettingsScreenRoot(page: SettingsScreenPage) {
                 },
                 onClickInstallOfficialPlugin = { plugin ->
                     screenChannel.send(PluginSettingsScreenAction.InstallOfficialPlugin(plugin))
+                },
+                onCancelInstall = { jobId ->
+                    screenChannel.send(PluginSettingsScreenAction.CancelInstall(jobId))
+                },
+                onRetryInstall = { request ->
+                    screenChannel.send(PluginSettingsScreenAction.RetryInstall(request))
+                },
+                onDismissInstall = { jobId ->
+                    screenChannel.send(PluginSettingsScreenAction.DismissInstall(jobId))
                 },
                 onChangeSignPluginTrustRegistry = { enabled ->
                     screenChannel.send(PluginSettingsScreenAction.ChangeSignPluginTrustRegistry(enabled))
