@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,13 +26,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,25 +46,41 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
+import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import com.kitakkun.jetwhale.host.ui.jwFocusRing
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.IOException
+import kotlin.time.Clock
 
 /** Below this a phone's layout stops being readable; tiles scroll instead of shrinking further. */
 private val MIN_TILE_SCREEN_HEIGHT = 220.dp
@@ -329,3 +352,42 @@ private fun NoDevices() {
 }
 
 private val EMPTY_STATE_COMMANDS_WIDTH = 360.dp
+
+/**
+ * The grid, wired to the mirror: its tiles capture through the mirror's devices, and opening one
+ * selects it in the single view.
+ */
+@Composable
+internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, notices: MirrorNoticeActions, onShowSingle: () -> Unit) {
+    val devices = mirror.devices
+    val scope = rememberCoroutineScope()
+    DeviceGrid(
+        devices = devices.map(MirrorDevice::listing),
+        selectedId = mirror.selectedId,
+        missingTools = mirror.missingTools,
+        notices = notices,
+        thumbnailOf = thumbnails::thumbnailOf,
+        poll = { deviceId, heightPx -> thumbnails.keepFresh(heightPx) { mirror.devices.firstOrNull { it.id == deviceId } } },
+        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = false) },
+        onOpen = { deviceId ->
+            mirror.select(deviceId)
+            onShowSingle()
+        },
+        onScreenshot = { deviceId ->
+            val device = mirror.devices.firstOrNull { it.id == deviceId } ?: return@DeviceGrid
+            saveScreenshots(listOf(device), mirror, thumbnails, scope)
+        },
+        onScreenshotAll = { saveScreenshots(mirror.devices, mirror, thumbnails, scope) },
+    )
+}
+
+/**
+ * Saves one screenshot of each of [devices] into the capture library, and says how that went. The
+ * captures share the tiles' limit, so they never add to the processes the grid already runs.
+ */
+internal fun saveScreenshots(devices: List<MirrorDevice>, mirror: DeviceMirror, thumbnails: DeviceThumbnails, scope: CoroutineScope) {
+    scope.launch {
+        val results = devices.map { device -> thumbnails.withCapturePermit(device.id) { mirror.screenshotResultOf(device) } }
+        mirror.notices.show(MirrorNotice.screenshotsSaved(results))
+    }
+}

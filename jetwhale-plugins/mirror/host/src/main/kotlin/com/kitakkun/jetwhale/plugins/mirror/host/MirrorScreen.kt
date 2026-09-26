@@ -121,24 +121,6 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
     }
 }
 
-/** Where Open takes a capture. */
-internal enum class CaptureDestination {
-    /** Its device's captures panel, with the capture selected. */
-    Panel,
-
-    /** Its file in its folder, since its device is not connected and the panel cannot show it. */
-    Folder,
-
-    /** Nowhere: its file is gone. */
-    Missing,
-}
-
-internal fun destinationOf(capture: Capture, connectedDeviceIds: Set<String>): CaptureDestination = when {
-    !capture.file.exists() -> CaptureDestination.Missing
-    capture.info.deviceId in connectedDeviceIds -> CaptureDestination.Panel
-    else -> CaptureDestination.Folder
-}
-
 /** Shows [capture] where [destinationOf] says; for the panel, [showPanel] brings it up. */
 private fun openCapture(capture: Capture, mirror: DeviceMirror, showPanel: () -> Unit) {
     when (destinationOf(capture, mirror.devices.map(MirrorDevice::id).toSet())) {
@@ -206,7 +188,7 @@ private fun SingleMirrorRoot(
  * and every device's while the grid is shown, from the grid's last look at it, which is nothing
  * until the grid has been shown.
  */
-private fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, streaming: Boolean): DeviceLiveness {
+internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, streaming: Boolean): DeviceLiveness {
     if (!streaming || deviceId != mirror.selectedId) {
         return when (thumbnails.thumbnailOf(deviceId).state) {
             is ThumbnailState.Live -> DeviceLiveness.Live
@@ -264,7 +246,7 @@ internal fun MirrorScreen(
  *
  * @property recordingSinceMillis when the selected device's recording started; null while it is not recording.
  */
-private class DevicePaneState(
+internal class DevicePaneState(
     val devices: List<DeviceListing>,
     val device: DeviceListing,
     val capabilities: DeviceCapabilities,
@@ -325,155 +307,6 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
         if (pane.capabilities.input) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }
-}
-
-/**
- * The device picker and the device's controls, in groups that wrap to another line as a whole when the window is
- * too narrow for one: every control stays visible, and the capture group keeps to the line's end.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DeviceToolbar(
-    pane: DevicePaneState,
-    actions: MirrorActions,
-    showCaptures: Boolean,
-    livenessOf: (String) -> DeviceLiveness,
-    onToggleCaptures: () -> Unit,
-    onShowGrid: () -> Unit,
-) {
-    Column(Modifier.fillMaxWidth()) {
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(JwTheme.colors.toolbarBackground)
-                .padding(horizontal = JwSpacing.medium, vertical = JwSpacing.extraSmall),
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
-            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
-            VolumeGroup(pane.device.kind, pane.capabilities, actions)
-            ScreenPowerButton(pane.screenPower, actions)
-            // Pushed to the line's end, and wrapped to a line of its own only as a whole.
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                JwVerticalDivider(Modifier.height(CAPTURE_DIVIDER_HEIGHT).padding(end = JwSpacing.extraSmall))
-                CaptureActions(pane.capabilities, pane.recordingSinceMillis, pane.recordingElsewhere, actions)
-                JwIconButton(tooltip = if (showCaptures) "Hide captures" else "Captures", onClick = onToggleCaptures, selected = showCaptures) {
-                    JwIcon(imageVector = CapturesIcon, contentDescription = null)
-                }
-            }
-        }
-        JwHorizontalDivider()
-    }
-}
-
-private val NAVIGATION_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
-
-@Composable
-private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
-    if (buttons.isEmpty()) return
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        buttons.forEach { button ->
-            JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
-                JwIcon(imageVector = button.icon, contentDescription = button.label)
-            }
-        }
-    }
-}
-
-@Composable
-private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, actions: MirrorActions) {
-    val volume = listOf(DeviceButton.VolumeUp, DeviceButton.VolumeDown)
-    when {
-        volume.any { it in capabilities.buttons } -> ButtonGroup(capabilities.buttons.filter(volume::contains), actions)
-
-        // Shown disabled rather than left out, so their absence is explained rather than puzzling.
-        kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
-            volume.forEach { button ->
-                JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
-                    JwIcon(imageVector = button.icon, contentDescription = button.label)
-                }
-            }
-        }
-
-        else -> Unit
-    }
-}
-
-// Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
-@Composable
-private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
-    when (screenPower?.awake) {
-        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = "Screen off") }
-        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = "Wake") }
-        null -> Unit
-    }
-}
-
-@Composable
-private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, recordingElsewhere: String?, actions: MirrorActions) {
-    when {
-        recordingElsewhere != null -> JwButton(
-            text = "Stop recording on $recordingElsewhere",
-            onClick = actions::toggleRecording,
-            tone = JwTone.Error,
-            leadingIcon = { RecordingDot() },
-        )
-
-        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::toggleRecording)
-
-        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::toggleRecording) {
-            JwIcon(imageVector = RecordIcon, contentDescription = null)
-        }
-
-        else -> Unit
-    }
-    JwIconButton(tooltip = "Screenshot", onClick = actions::saveScreenshot) {
-        JwIcon(imageVector = ScreenshotIcon, contentDescription = null)
-    }
-}
-
-/** A running recording can't be missed: red, counting, and a click away from stopping. */
-@Composable
-private fun RecordingButton(sinceMillis: Long, onStop: () -> Unit) {
-    val elapsed by produceState(recordingElapsed(System.currentTimeMillis() - sinceMillis), sinceMillis) {
-        while (true) {
-            delay(RECORDING_TICK_MILLIS)
-            value = recordingElapsed(System.currentTimeMillis() - sinceMillis)
-        }
-    }
-    JwTooltip(text = "Stop recording") {
-        JwButton(
-            text = elapsed,
-            onClick = onStop,
-            tone = JwTone.Error,
-            leadingIcon = { RecordingDot() },
-            modifier = Modifier.semantics { contentDescription = "Stop recording, $elapsed recorded" },
-        )
-    }
-}
-
-@Composable
-private fun RecordingDot() {
-    Box(Modifier.size(RECORDING_DOT_SIZE).background(JwTheme.colors.error, CircleShape))
-}
-
-private val RECORDING_DOT_SIZE = 8.dp
-private val CAPTURE_DIVIDER_HEIGHT = 20.dp
-private const val RECORDING_TICK_MILLIS = 1_000L
-
-/** "0:12", or "1:02:03" past an hour. */
-internal fun recordingElapsed(millis: Long): String {
-    val seconds = (millis / 1_000).coerceAtLeast(0)
-    val hours = seconds / 3_600
-    val minutes = seconds / 60 % 60
-    val rest = seconds % 60
-    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, rest) else "%d:%02d".format(minutes, rest)
 }
 
 /** What the mirror has to say in place of a picture: connecting, or why nothing arrives. */
@@ -566,43 +399,4 @@ private fun statsText(source: String, stats: MirrorStats): String {
     if (stats.receivedFps == 0) return "$source · the screen is not changing, so the device sends no frames"
     return "$source · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
         "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"
-}
-
-/**
- * The grid, wired to the mirror: its tiles capture through the mirror's devices, and opening one
- * selects it in the single view.
- */
-@Composable
-private fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, notices: MirrorNoticeActions, onShowSingle: () -> Unit) {
-    val devices = mirror.devices
-    val scope = rememberCoroutineScope()
-    DeviceGrid(
-        devices = devices.map(MirrorDevice::listing),
-        selectedId = mirror.selectedId,
-        missingTools = mirror.missingTools,
-        notices = notices,
-        thumbnailOf = thumbnails::thumbnailOf,
-        poll = { deviceId, heightPx -> thumbnails.keepFresh(heightPx) { mirror.devices.firstOrNull { it.id == deviceId } } },
-        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = false) },
-        onOpen = { deviceId ->
-            mirror.select(deviceId)
-            onShowSingle()
-        },
-        onScreenshot = { deviceId ->
-            val device = mirror.devices.firstOrNull { it.id == deviceId } ?: return@DeviceGrid
-            saveScreenshots(listOf(device), mirror, thumbnails, scope)
-        },
-        onScreenshotAll = { saveScreenshots(mirror.devices, mirror, thumbnails, scope) },
-    )
-}
-
-/**
- * Saves one screenshot of each of [devices] into the capture library, and says how that went. The
- * captures share the tiles' limit, so they never add to the processes the grid already runs.
- */
-private fun saveScreenshots(devices: List<MirrorDevice>, mirror: DeviceMirror, thumbnails: DeviceThumbnails, scope: CoroutineScope) {
-    scope.launch {
-        val results = devices.map { device -> thumbnails.withCapturePermit(device.id) { mirror.screenshotResultOf(device) } }
-        mirror.notices.show(MirrorNotice.screenshotsSaved(results))
-    }
 }
