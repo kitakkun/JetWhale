@@ -7,6 +7,18 @@ plugins {
 
 extensions.create("jetwhalePublish", JetWhalePublishExtension::class)
 
+// Apache-2.0 asks every redistribution to carry the license, and the notices credit the icon artwork
+// the jars bundle. The included builds (the Gradle plugins) sit below the repository root, so the
+// files are looked up from the nearest directory that has them.
+val legalFiles = generateSequence(rootDir, File::getParentFile)
+    .first { File(it, "LICENSE").isFile }
+    .let { repositoryRoot -> listOf(File(repositoryRoot, "LICENSE"), File(repositoryRoot, "THIRD_PARTY_NOTICES.md")) }
+    .filter(File::isFile)
+
+tasks.withType<Jar>().configureEach {
+    from(legalFiles) { into("META-INF") }
+}
+
 afterEvaluate {
     val jetwhalePublish = extensions.getByType(JetWhalePublishExtension::class)
 

@@ -32,6 +32,7 @@
 - Commit messages follow a Conventional Commits style (e.g., `feat:`, `fix:`, `chore:`, `refactor:`) with optional scopes like `fix(demo):`.
 - Keep PRs focused, include a short description of changes, and note how they were tested.
 - For UI changes in the host or demo apps, include screenshots or a short recording.
+- Record third-party assets (icons, fonts) with their source and license in `THIRD_PARTY_NOTICES.md`.
 - Open work-in-progress PRs as drafts: PR workflows skip drafts and run once the PR is marked *Ready for review*.
 - To push without running CI, put `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`) in the head commit message.
 
