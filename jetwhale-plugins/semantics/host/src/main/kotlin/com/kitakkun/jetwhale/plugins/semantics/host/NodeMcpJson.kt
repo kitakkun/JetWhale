@@ -84,11 +84,8 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
         }
     }
 
-    if (actions.isNotEmpty()) put("actions", JsonArray(actions.map { JsonPrimitive(it) }))
-    // `actions` holds the platform's own names (OnClick, SetTextSubstitution, …), which
-    // performNodeAction does not accept; this is the same set in the names it does.
-    val performable = NodeAction.entries.filter { it.advertisedAs in actions }
-    if (performable.isNotEmpty()) put("performable", JsonArray(performable.map { JsonPrimitive(it.name) }))
+    val performable = performableActions()
+    if (performable.isNotEmpty()) put("actions", JsonArray(performable.map { JsonPrimitive(it.name) }))
 
     if (this@toMcpJson !is AppleNode) put("unit", "px")
     putJsonObject("bounds") {
@@ -135,5 +132,12 @@ private fun JsonObjectBuilder.putKindFields(node: UiNode) {
         }
     }
 }
+
+/**
+ * The actions this node exposes, named as performNodeAction takes them. The node itself carries the
+ * platform's names (OnClick, SetTextSubstitution, …), which differ for some actions and include ones
+ * nothing can perform.
+ */
+internal fun UiNode.performableActions(): List<NodeAction> = NodeAction.entries.filter { it.advertisedAs in actions }
 
 internal fun NodeBounds.formatted(): String = "(${left.roundToInt()}, ${top.roundToInt()}) ${width.roundToInt()}×${height.roundToInt()}"
