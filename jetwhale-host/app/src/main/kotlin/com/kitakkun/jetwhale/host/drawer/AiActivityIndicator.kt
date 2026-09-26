@@ -438,16 +438,17 @@ private fun McpConnectHelp(
     ) {
         JwText(text = stringResource(Res.string.ai_connect_agent), style = JwTheme.textStyles.subtitle)
         JwText(text = stringResource(Res.string.ai_connect_agent_description), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
+        // The menu scrolls past its max height; the ways out stay above the snippets that push it there.
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+            JwButton(text = stringResource(Res.string.ai_mcp_open_guide), onClick = { uriHandler.openUri(McpClientSetup.GUIDE_URL) }, style = JwButtonStyle.Text)
+            JwButton(text = stringResource(Res.string.ai_mcp_open_settings), onClick = onOpenMcpSettings, style = JwButtonStyle.Text)
+        }
         JwText(text = stringResource(Res.string.ai_mcp_endpoint), style = JwTheme.textStyles.label)
         JwCodeBlock(text = setup.endpointUrl, copyLabel = copy)
         JwText(text = stringResource(Res.string.ai_mcp_claude_code), style = JwTheme.textStyles.label)
         JwCodeBlock(text = setup.claudeCodeCommand, wrap = true, copyLabel = copy)
         JwText(text = stringResource(Res.string.ai_mcp_other_clients), style = JwTheme.textStyles.label)
         JwCodeBlock(text = setup.jsonConfig, copyLabel = copy)
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-            JwButton(text = stringResource(Res.string.ai_mcp_open_guide), onClick = { uriHandler.openUri(McpClientSetup.GUIDE_URL) }, style = JwButtonStyle.Text)
-            JwButton(text = stringResource(Res.string.ai_mcp_open_settings), onClick = onOpenMcpSettings, style = JwButtonStyle.Text)
-        }
     }
 }
 
