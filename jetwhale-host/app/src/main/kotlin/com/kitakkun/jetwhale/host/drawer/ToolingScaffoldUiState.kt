@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.ui.unit.Dp
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostSession
 import kotlinx.collections.immutable.ImmutableList
@@ -49,6 +50,7 @@ data class ToolingScaffoldUiState(
     val plugins: ImmutableList<DrawerPluginItemUiState>,
     val hasFailedJars: Boolean,
     val aiActivity: AiActivityUiState,
+    val sidebarWidth: Dp,
 ) {
     val selectedSession: DebugSession? get() = sessions.find { it.id == selectedSessionId }
 

@@ -11,9 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import com.kitakkun.jetwhale.host.component.FollowingAiOperationBanner
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHost
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwSpacing
@@ -43,6 +45,8 @@ fun ToolingScaffold(
     onSelectSession: (DebugSession) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     onClickStopFollowingAiOperation: () -> Unit,
+    onResizeSidebar: (Dp) -> Unit,
+    onSidebarResizeFinished: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -58,6 +62,9 @@ fun ToolingScaffold(
             selectedSession = uiState.selectedSession,
             selectedPluginId = uiState.selectedPluginId,
             aiActivity = uiState.aiActivity,
+            sidebarWidth = uiState.sidebarWidth,
+            onResizeSidebar = onResizeSidebar,
+            onSidebarResizeFinished = onSidebarResizeFinished,
             onClickSettings = onClickSettings,
             onClickPluginSettings = onClickPluginSettings,
             onClickInfo = onClickInfo,
@@ -106,6 +113,7 @@ private fun ToolingScaffoldPreview() {
             plugins = persistentListOf(),
             hasFailedJars = false,
             aiActivity = AiActivityUiState.Idle,
+            sidebarWidth = JwMetrics.sidebarWidth,
         ),
         onClickSettings = {},
         onClickPluginSettings = {},
@@ -120,6 +128,8 @@ private fun ToolingScaffoldPreview() {
         onClickBringBack = {},
         onSetPluginEnabled = { _, _ -> },
         onClickStopFollowingAiOperation = {},
+        onResizeSidebar = {},
+        onSidebarResizeFinished = {},
         snackbarHostState = remember { JwSnackbarHostState() },
     ) {
         JwText("Hello, World!")

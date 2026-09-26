@@ -58,7 +58,8 @@ fun ToolingScaffoldRoot(
         SoilDataBoundary(
             state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
             state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins ->
+            state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -77,6 +78,7 @@ fun ToolingScaffoldRoot(
                     mcpCapablePlugins = mcpCapablePlugins,
                     headlessPlugins = headlessPlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
+                    persistedSidebarWidth = persistedSidebarWidth,
                     isPluginPoppedOut = isPoppedOut,
                 )
             }
@@ -178,6 +180,8 @@ private fun ToolingScaffoldWithActions(
         onClickStopFollowingAiOperation = {
             screenChannel.send(ToolingScaffoldScreenAction.StopFollowingAiOperation)
         },
+        onResizeSidebar = { screenChannel.send(ToolingScaffoldScreenAction.ResizeSidebar(it)) },
+        onSidebarResizeFinished = { screenChannel.send(ToolingScaffoldScreenAction.SaveSidebarWidth) },
         snackbarHostState = snackbarHostState,
         content = content,
     )

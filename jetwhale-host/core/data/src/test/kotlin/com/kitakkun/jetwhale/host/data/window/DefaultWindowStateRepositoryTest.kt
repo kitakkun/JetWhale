@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okio.Path.Companion.toPath
 import java.nio.file.Files
@@ -62,5 +63,15 @@ class DefaultWindowStateRepositoryTest {
             PersistedWindowState(width = 1280f, height = 800f, x = null, y = null),
             repository.loadWindowState(),
         )
+    }
+
+    @Test
+    fun `the sidebar width is unset until the user drags it, then comes back as saved`() = runBlocking {
+        val repository = newRepository()
+        assertNull(repository.sidebarWidthFlow.first())
+
+        repository.saveSidebarWidth(340f)
+
+        assertEquals(340f, repository.sidebarWidthFlow.first())
     }
 }

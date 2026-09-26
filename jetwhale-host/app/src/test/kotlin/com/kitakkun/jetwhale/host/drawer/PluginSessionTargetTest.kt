@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
@@ -37,6 +38,7 @@ class PluginSessionTargetTest {
         plugins = persistentListOf(item("com.example.device", needsApp = false), item("com.example.network", needsApp = true)),
         hasFailedJars = false,
         aiActivity = AiActivityUiState.Idle,
+        sidebarWidth = 280.dp,
     )
 
     private fun item(id: String, needsApp: Boolean) = DrawerPluginItemUiState(

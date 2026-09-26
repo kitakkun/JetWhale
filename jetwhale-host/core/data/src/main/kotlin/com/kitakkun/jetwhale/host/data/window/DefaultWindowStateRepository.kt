@@ -11,7 +11,9 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
@@ -50,7 +52,14 @@ class DefaultWindowStateRepository(
         }
     }
 
+    override val sidebarWidthFlow: Flow<Float?> = dataStore.data.map { it[sidebarWidthPreferencesKey] }
+
+    override suspend fun saveSidebarWidth(widthDp: Float) {
+        dataStore.edit { it[sidebarWidthPreferencesKey] = widthDp }
+    }
+
     companion object {
+        private val sidebarWidthPreferencesKey = floatPreferencesKey("sidebar_width")
         private val widthPreferencesKey = floatPreferencesKey("window_width")
         private val heightPreferencesKey = floatPreferencesKey("window_height")
         private val xPreferencesKey = floatPreferencesKey("window_x")

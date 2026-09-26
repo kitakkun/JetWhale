@@ -8,6 +8,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
+import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -86,6 +87,22 @@ class DrawerPluginListTest {
         assertEquals(emptyList(), opened)
     }
 
+    @Test
+    fun `an app with no plugins says so instead of leaving the area blank`() = runComposeUiTest {
+        showDrawer(listOf(plugin("Device Mirror", PluginAvailability.Enabled).copy(needsApp = false)))
+
+        onNodeWithText("Device Mirror").assertExists()
+        onNodeWithText("This app has no plugins yet.").assertExists()
+    }
+
+    @Test
+    fun `an app with only plugins it doesn't include shows their fold, not the empty message`() = runComposeUiTest {
+        showDrawer(listOf(plugin("Storage", PluginAvailability.Unavailable)))
+
+        onNodeWithText("1 not in this app").assertExists()
+        onNodeWithText("This app has no plugins yet.").assertDoesNotExist()
+    }
+
     private fun ComposeUiTest.showDrawer(
         plugins: List<DrawerPluginItemUiState>,
         onClickPlugin: (DrawerPluginItemUiState) -> Unit = {},
@@ -100,6 +117,9 @@ class DrawerPluginListTest {
                     selectedSession = session,
                     sessions = persistentListOf(session),
                     aiActivity = AiActivityUiState.Idle,
+                    width = JwMetrics.sidebarWidth,
+                    onResize = {},
+                    onResizeFinished = {},
                     onClickShrinkDrawer = {},
                     onClickSettings = {},
                     onClickPluginSettings = {},

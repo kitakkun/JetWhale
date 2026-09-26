@@ -2,6 +2,9 @@ package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,14 +37,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.app_has_no_plugins
 import com.kitakkun.jetwhale.host.app_icon
 import com.kitakkun.jetwhale.host.app_short_name
 import com.kitakkun.jetwhale.host.bring_back_from_popout
@@ -75,6 +85,7 @@ import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSplitPaneDefaults
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
@@ -84,6 +95,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import java.awt.Cursor
 
 /** The app mark in the sidebar header: a little larger than a glyph, since it is the brand. */
 private val AppMarkSize = 18.dp
@@ -104,6 +116,9 @@ fun ExpandedToolingDrawerView(
     selectedSession: DebugSession?,
     sessions: ImmutableList<DebugSession>,
     aiActivity: AiActivityUiState,
+    width: Dp,
+    onResize: (Dp) -> Unit,
+    onResizeFinished: () -> Unit,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
@@ -120,79 +135,125 @@ fun ExpandedToolingDrawerView(
     modifier: Modifier = Modifier,
 ) {
     val (appPlugins, hostPlugins) = remember(plugins) { plugins.partition(DrawerPluginItemUiState::needsApp) }
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .width(JwMetrics.sidebarWidth)
-            .background(JwTheme.colors.sidebarBackground),
-    ) {
-        SidebarHeader(onClickShrinkDrawer = onClickShrinkDrawer)
-        JwHorizontalDivider()
-        // The plugins that need no app come first, with no heading: the divider and the app picker
-        // below are what set the app's plugins apart.
-        if (hostPlugins.isNotEmpty()) {
-            // Weighted but not filled: it takes what it needs, yet never more than the app area's
-            // share, so a long list scrolls instead of pushing the picker out of view.
-            PluginList(
-                plugins = hostPlugins,
-                selectedPluginId = selectedPluginId,
-                onOpenMcpTools = onOpenMcpTools,
-                onClickPlugin = onClickPlugin,
-                onClickInactivePlugin = onClickInactivePlugin,
-                onClickPopout = onClickPopout,
-                isPoppedOut = isPoppedOut,
-                onClickBringBack = onClickBringBack,
-                onSetPluginEnabled = onSetPluginEnabled,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            JwHorizontalDivider()
-        }
+    Box(modifier = modifier.fillMaxHeight().width(width)) {
         Column(
-            modifier = Modifier.padding(JwSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(JwTheme.colors.sidebarBackground),
         ) {
-            SessionSelectorView(
-                selectedSession = selectedSession,
-                sessions = sessions,
-                onSelectSession = onSelectSession,
-            )
-            AiActivityIndicatorView(uiState = aiActivity)
-        }
-        JwHorizontalDivider()
-        when {
-            plugins.isEmpty() -> NoPluginsView(
-                hasFailedJars = hasFailedJars,
-                onClickPluginSettings = onClickPluginSettings,
-                modifier = Modifier.weight(1f),
-            )
+            SidebarHeader(onClickShrinkDrawer = onClickShrinkDrawer)
+            JwHorizontalDivider()
+            // The plugins that need no app come first, with no heading: the divider and the app picker
+            // below are what set the app's plugins apart.
+            if (hostPlugins.isNotEmpty()) {
+                // Weighted but not filled: it takes what it needs, yet never more than the app area's
+                // share, so a long list scrolls instead of pushing the picker out of view.
+                PluginList(
+                    plugins = hostPlugins,
+                    selectedPluginId = selectedPluginId,
+                    onOpenMcpTools = onOpenMcpTools,
+                    onClickPlugin = onClickPlugin,
+                    onClickInactivePlugin = onClickInactivePlugin,
+                    onClickPopout = onClickPopout,
+                    isPoppedOut = isPoppedOut,
+                    onClickBringBack = onClickBringBack,
+                    onSetPluginEnabled = onSetPluginEnabled,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                JwHorizontalDivider()
+            }
+            Column(
+                modifier = Modifier.padding(JwSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+            ) {
+                SessionSelectorView(
+                    selectedSession = selectedSession,
+                    sessions = sessions,
+                    onSelectSession = onSelectSession,
+                )
+                AiActivityIndicatorView(uiState = aiActivity)
+            }
+            JwHorizontalDivider()
+            when {
+                plugins.isEmpty() -> NoPluginsView(
+                    hasFailedJars = hasFailedJars,
+                    onClickPluginSettings = onClickPluginSettings,
+                    modifier = Modifier.weight(1f),
+                )
 
-            // With no app selected every app plugin would be greyed, which reads as broken; say what
-            // brings them instead.
-            selectedSession == null -> JwEmptyState(
-                title = stringResource(Res.string.no_app_connected),
-                modifier = Modifier.weight(1f),
-            )
+                // With no app selected every app plugin would be greyed, which reads as broken; say what
+                // brings them instead.
+                selectedSession == null -> JwEmptyState(
+                    title = stringResource(Res.string.no_app_connected),
+                    modifier = Modifier.weight(1f),
+                )
 
-            else -> PluginList(
-                plugins = appPlugins,
-                selectedPluginId = selectedPluginId,
-                onOpenMcpTools = onOpenMcpTools,
-                onClickPlugin = onClickPlugin,
-                onClickInactivePlugin = onClickInactivePlugin,
-                onClickPopout = onClickPopout,
-                isPoppedOut = isPoppedOut,
-                onClickBringBack = onClickBringBack,
-                onSetPluginEnabled = onSetPluginEnabled,
-                modifier = Modifier.weight(1f),
+                // Otherwise the area below the picker is blank, which reads as a failure to load.
+                appPlugins.isEmpty() -> JwEmptyState(
+                    title = stringResource(Res.string.app_has_no_plugins),
+                    modifier = Modifier.weight(1f),
+                )
+
+                else -> PluginList(
+                    plugins = appPlugins,
+                    selectedPluginId = selectedPluginId,
+                    onOpenMcpTools = onOpenMcpTools,
+                    onClickPlugin = onClickPlugin,
+                    onClickInactivePlugin = onClickInactivePlugin,
+                    onClickPopout = onClickPopout,
+                    isPoppedOut = isPoppedOut,
+                    onClickBringBack = onClickBringBack,
+                    onSetPluginEnabled = onSetPluginEnabled,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            JwHorizontalDivider()
+            SidebarFooter(
+                onOpenAllMcpTools = onOpenAllMcpTools,
+                onClickSettings = onClickSettings,
+                onClickInfo = onClickInfo,
             )
         }
-        JwHorizontalDivider()
-        SidebarFooter(
-            onOpenAllMcpTools = onOpenAllMcpTools,
-            onClickSettings = onClickSettings,
-            onClickInfo = onClickInfo,
+        // Laid over the sidebar's trailing edge, where the divider beside it is.
+        SidebarResizeHandle(
+            width = width,
+            onResize = onResize,
+            onResizeFinished = onResizeFinished,
+            modifier = Modifier.align(Alignment.CenterEnd),
         )
     }
+}
+
+/** The grab area on the sidebar's edge: dragging it resizes the sidebar through [onResize]. */
+@Composable
+private fun SidebarResizeHandle(
+    width: Dp,
+    onResize: (Dp) -> Unit,
+    onResizeFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val currentWidth by rememberUpdatedState(width)
+    val density = LocalDensity.current
+    // Accumulated here rather than read back from [width]: several drag deltas can arrive before
+    // the new width comes back through the presenter, and each must add to the last.
+    var draggedWidth by remember { mutableStateOf(width) }
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(JwSplitPaneDefaults.handleSize)
+            .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
+            .draggable(
+                state = rememberDraggableState(
+                    onDelta = { delta ->
+                        draggedWidth += with(density) { delta.toDp() }
+                        onResize(draggedWidth)
+                    },
+                ),
+                orientation = Orientation.Horizontal,
+                onDragStarted = { draggedWidth = currentWidth },
+                onDragStopped = { onResizeFinished() },
+            ),
+    )
 }
 
 @Composable
@@ -575,6 +636,9 @@ private fun ExpandedToolingDrawerViewPreview() {
         selectedSession = session,
         sessions = persistentListOf(session),
         aiActivity = AiActivityUiState.Idle,
+        width = JwMetrics.sidebarWidth,
+        onResize = {},
+        onResizeFinished = {},
         onClickShrinkDrawer = {},
         onClickSettings = {},
         onClickPluginSettings = {},
