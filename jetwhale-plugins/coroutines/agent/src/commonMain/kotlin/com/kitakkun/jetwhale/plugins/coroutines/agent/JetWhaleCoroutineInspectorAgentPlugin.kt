@@ -30,6 +30,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 /**
  * Agent plugin that shows the host what the app's coroutines are doing: the coroutines below the
@@ -60,7 +61,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     private val roots = AtomicReference(emptyMap<String, WeakReference<Job>>())
     private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
     private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
-    private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES)
+    private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES, timeSource = TimeSource.Monotonic)
     private val walkLock = Mutex()
     private var sighting: Job? = null
 
