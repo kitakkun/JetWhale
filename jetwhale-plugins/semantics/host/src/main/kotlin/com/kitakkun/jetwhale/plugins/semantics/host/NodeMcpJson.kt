@@ -3,12 +3,15 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -53,30 +56,7 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
 internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
     put("id", id)
     rootId?.let { put("rootId", it) }
-    // Only the surprising kinds are emitted: most of a tree is Compose, and a View or an iOS node
-    // is the one a caller has to read differently — negative id, a class instead of a role.
-    when (this@toMcpJson) {
-        is ViewNode -> {
-            put("kind", "View")
-            put("viewClass", viewClass)
-            resourceId?.let { put("resourceId", it) }
-        }
-
-        is AppleNode -> {
-            put("kind", "Apple")
-            put("unit", "pt")
-            put("className", className)
-            accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
-            accessibilityValue?.let { put("accessibilityValue", it) }
-            if (traits.isNotEmpty()) put("traits", JsonArray(traits.map { JsonPrimitive(it) }))
-        }
-
-        is ComposeNode -> {
-            role?.let { put("role", it) }
-            testTag?.let { put("testTag", it) }
-            stateDescription?.let { put("stateDescription", it) }
-        }
-    }
+    putKindFields(this@toMcpJson)
     text?.let { put("text", it) }
     editableText?.let { put("editableText", it) }
     contentDescription?.let { put("contentDescription", it) }
@@ -104,7 +84,8 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
         }
     }
 
-    if (actions.isNotEmpty()) put("actions", JsonArray(actions.map { JsonPrimitive(it) }))
+    val performable = performableActions()
+    if (performable.isNotEmpty()) put("actions", JsonArray(performable.map { JsonPrimitive(it.name) }))
 
     if (this@toMcpJson !is AppleNode) put("unit", "px")
     putJsonObject("bounds") {
@@ -124,5 +105,39 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
         put("children", JsonArray(children.map { it.toMcpJson(includeChildren = true) }))
     }
 }
+
+// Only the surprising kinds are emitted: most of a tree is Compose, and a View or an iOS node is the
+// one a caller has to read differently — negative id, a class instead of a role.
+private fun JsonObjectBuilder.putKindFields(node: UiNode) {
+    when (node) {
+        is ViewNode -> {
+            put("kind", "View")
+            put("viewClass", node.viewClass)
+            node.resourceId?.let { put("resourceId", it) }
+        }
+
+        is AppleNode -> {
+            put("kind", "Apple")
+            put("unit", "pt")
+            put("className", node.className)
+            node.accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
+            node.accessibilityValue?.let { put("accessibilityValue", it) }
+            if (node.traits.isNotEmpty()) put("traits", JsonArray(node.traits.map { JsonPrimitive(it) }))
+        }
+
+        is ComposeNode -> {
+            node.role?.let { put("role", it) }
+            node.testTag?.let { put("testTag", it) }
+            node.stateDescription?.let { put("stateDescription", it) }
+        }
+    }
+}
+
+/**
+ * The actions this node exposes, named as performNodeAction takes them. The node itself carries the
+ * platform's names (OnClick, SetTextSubstitution, …), which differ for some actions and include ones
+ * nothing can perform.
+ */
+internal fun UiNode.performableActions(): List<NodeAction> = NodeAction.entries.filter { it.advertisedAs in actions }
 
 internal fun NodeBounds.formatted(): String = "(${left.roundToInt()}, ${top.roundToInt()}) ${width.roundToInt()}×${height.roundToInt()}"
