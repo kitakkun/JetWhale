@@ -105,8 +105,18 @@ class DragToolTest {
             assertTrue(dragPositions[i].y >= dragPositions[i - 1].y, "Drag Y should be non-decreasing at step $i")
         }
 
-        assertEquals(expected = 400f, actual = dragPositions.last().x, absoluteTolerance = 0.01f, message = "Last drag position X should be at endX")
-        assertEquals(expected = 400f, actual = dragPositions.last().y, absoluteTolerance = 0.01f, message = "Last drag position Y should be at endY")
+        assertEquals(
+            expected = 400f,
+            actual = dragPositions.last().x,
+            absoluteTolerance = 0.01f,
+            message = "Last drag position X should be at endX",
+        )
+        assertEquals(
+            expected = 400f,
+            actual = dragPositions.last().y,
+            absoluteTolerance = 0.01f,
+            message = "Last drag position Y should be at endY",
+        )
     }
 
     /** Drags across a box that records every press, move and release it receives. */

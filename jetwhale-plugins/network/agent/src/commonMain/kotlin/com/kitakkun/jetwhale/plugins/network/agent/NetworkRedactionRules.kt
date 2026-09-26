@@ -89,4 +89,5 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
 }
 
 /** Builds [NetworkRedactionRules] with the DSL documented on the class. */
-fun NetworkRedactionRules(configure: NetworkRedactionRules.Builder.() -> Unit): NetworkRedactionRules = NetworkRedactionRules.Builder().apply(configure).build()
+fun NetworkRedactionRules(configure: NetworkRedactionRules.Builder.() -> Unit): NetworkRedactionRules =
+    NetworkRedactionRules.Builder().apply(configure).build()

@@ -19,7 +19,8 @@ internal class AddMockRuleCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.addMockRule"
     override val description =
-        "Adds a mock rule: requests matching the URL pattern (and optional method) receive the canned response instead of hitting the network. Returns the created rule."
+        "Adds a mock rule: requests matching the URL pattern (and optional method) receive the canned response instead of hitting the " +
+            "network. Returns the created rule."
 
     private val urlPattern by string("URL pattern to match, interpreted per matchType.")
     private val matchType by enumOrNull(

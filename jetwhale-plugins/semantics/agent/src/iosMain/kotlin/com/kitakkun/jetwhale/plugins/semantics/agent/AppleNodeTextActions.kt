@@ -106,10 +106,12 @@ internal object AppleNodeTextActions {
         // does not implement would throw rather than answer.
         private val RETURN_SELECTOR = NSSelectorFromString("textFieldShouldReturn:")
 
-        private fun UITextField.returnHandler(): UITextFieldDelegateProtocol? = delegate?.takeIf { (it as NSObject).respondsToSelector(RETURN_SELECTOR) }
+        private fun UITextField.returnHandler(): UITextFieldDelegateProtocol? =
+            delegate?.takeIf { (it as NSObject).respondsToSelector(RETURN_SELECTOR) }
     }
 
-    private const val NOT_A_TEXT_VIEW = "the node is not a UITextField or UITextView; a SwiftUI TextField is one underneath, but a Compose text field's accessibility value is read-only, so text entry into it is not available on iOS"
+    private const val NOT_A_TEXT_VIEW = "the node is not a UITextField or UITextView; a SwiftUI TextField is one underneath, " +
+        "but a Compose text field's accessibility value is read-only, so text entry into it is not available on iOS"
 
     private fun NSObject.isTextView(): Boolean = this is UITextField || (this is UITextView && editable)
 

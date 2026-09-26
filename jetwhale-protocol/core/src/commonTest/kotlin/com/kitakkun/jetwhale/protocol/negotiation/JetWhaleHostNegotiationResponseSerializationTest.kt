@@ -101,7 +101,9 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
         val encoded = json.encodeToString(response)
 
         assertEquals(
-            expected = """{"type":"negotiation/host/available_plugins_response","availablePlugins":[{"type":"model/plugin_info","pluginId":"plugin-a","pluginVersion":"1.0.0"}],"incompatiblePlugins":[{"type":"model/plugin_info","pluginId":"plugin-b","pluginVersion":"0.9.0"}]}""",
+            expected = """{"type":"negotiation/host/available_plugins_response",""" +
+                """"availablePlugins":[{"type":"model/plugin_info","pluginId":"plugin-a","pluginVersion":"1.0.0"}],""" +
+                """"incompatiblePlugins":[{"type":"model/plugin_info","pluginId":"plugin-b","pluginVersion":"0.9.0"}]}""",
             actual = encoded,
         )
     }

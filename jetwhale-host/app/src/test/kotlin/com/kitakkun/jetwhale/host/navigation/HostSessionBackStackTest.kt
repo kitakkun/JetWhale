@@ -41,8 +41,18 @@ class HostSessionBackStackTest {
 
     @Test
     fun `the server stopping removes an app plugin's explanation screen and keeps a host one's`() {
-        val appDisabled = DisabledPluginNavKey(pluginId = "com.example.network", pluginName = "Network", sessionId = "app-1", notInApp = false)
-        val hostDisabled = DisabledPluginNavKey(pluginId = "com.example.device", pluginName = "Device", sessionId = HostSession.ID, notInApp = false)
+        val appDisabled = DisabledPluginNavKey(
+            pluginId = "com.example.network",
+            pluginName = "Network",
+            sessionId = "app-1",
+            notInApp = false,
+        )
+        val hostDisabled = DisabledPluginNavKey(
+            pluginId = "com.example.device",
+            pluginName = "Device",
+            sessionId = HostSession.ID,
+            notInApp = false,
+        )
         val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, appDisabled, hostDisabled)
 
         backStack.removeAppPluginEntries()

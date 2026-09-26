@@ -67,7 +67,8 @@ class DefaultPluginTrustRepositoryTest {
             keyPresent = false
         }
 
-        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+        private fun digest(payload: String): String =
+            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     @Test
@@ -85,7 +86,8 @@ class DefaultPluginTrustRepositoryTest {
     // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
     // cache. Whether the registry is signed is decided entirely by the injected signer (key present
     // or not); the repository holds no policy of its own.
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) =
+        DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
 
     @Test
     fun `revoke removes the entry and persists`() = runBlocking {

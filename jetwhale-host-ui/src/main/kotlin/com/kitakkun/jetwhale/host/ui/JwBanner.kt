@@ -68,7 +68,15 @@ public fun JwBanner(
     icon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    BannerStrip(text = text, modifier = modifier, tone = tone, dismissLabel = dismissLabel, onDismiss = onDismiss, icon = icon, actions = actions)
+    BannerStrip(
+        text = text,
+        modifier = modifier,
+        tone = tone,
+        dismissLabel = dismissLabel,
+        onDismiss = onDismiss,
+        icon = icon,
+        actions = actions,
+    )
 }
 
 @Composable

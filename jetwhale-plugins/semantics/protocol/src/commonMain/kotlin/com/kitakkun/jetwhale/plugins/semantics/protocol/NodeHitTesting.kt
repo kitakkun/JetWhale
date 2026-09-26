@@ -49,7 +49,8 @@ object NodeHitTesting {
      * The question an agent has when it works out a coordinate for itself — from a screenshot, say —
      * rather than from a node's own bounds. [targetAt] separates the two ways of reaching `null`.
      */
-    fun nodeAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): NodeRef? = (targetAt(roots, screenX, screenY) as? TouchTarget.Node)?.ref
+    fun nodeAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): NodeRef? =
+        (targetAt(roots, screenX, screenY) as? TouchTarget.Node)?.ref
 
     /**
      * Where a tap at ([screenX], [screenY]) ends up, distinguishing a window that swallows it from
@@ -136,7 +137,8 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
  * the list around it, so a descendant taking the touch obstructs nothing. A click is different: a
  * clickable descendant consumes the tap and the ancestor's click never fires.
  */
-private fun UiNode.descendantWinnerAt(rootId: String, screenX: Float, screenY: Float): NodeRef? = topmostAt(screenX, screenY)?.let { NodeRef(rootId, it.id) }
+private fun UiNode.descendantWinnerAt(rootId: String, screenX: Float, screenY: Float): NodeRef? =
+    topmostAt(screenX, screenY)?.let { NodeRef(rootId, it.id) }
 
 private fun UiNode.withHits(isHittable: Boolean, obscuredBy: NodeRef?, children: List<UiNode>): UiNode = when (this) {
     is ComposeNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)

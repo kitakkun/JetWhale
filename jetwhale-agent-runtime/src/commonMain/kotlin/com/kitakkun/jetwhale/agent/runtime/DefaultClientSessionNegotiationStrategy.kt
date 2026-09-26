@@ -81,7 +81,9 @@ internal class DefaultClientSessionNegotiationStrategy(
         return receiveDeserialized()
     }
 
-    private suspend fun DefaultClientWebSocketSession.negotiatePlugins(plugins: List<AgentPlugin>): JetWhaleHostNegotiationResponse.AvailablePluginsResponse {
+    private suspend fun DefaultClientWebSocketSession.negotiatePlugins(
+        plugins: List<AgentPlugin>,
+    ): JetWhaleHostNegotiationResponse.AvailablePluginsResponse {
         val request = JetWhaleAgentNegotiationRequest.AvailablePlugins(
             plugins = plugins.map {
                 JetWhalePluginInfo(

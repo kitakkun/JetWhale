@@ -110,13 +110,14 @@ internal class AndroidWindowNodeSource(rootView: View) :
         viewInWindow(nodeId, rootView)?.readAttributes(rootId = sourceId, nodeId = nodeId)
     }
 
-    override suspend fun setAttribute(nodeId: Int, attributeId: String, value: ViewAttributeValue): ViewAttributeResult = AndroidComposeUiThread.await {
-        val rootView = attachedRootView()
-            ?: return@await ViewAttributeResult(applied = false, message = "the window is no longer readable")
-        val view = viewInWindow(nodeId, rootView)
-            ?: return@await ViewAttributeResult(applied = false, message = noViewAttributesMessage(nodeId))
-        view.writeAttribute(attributeId = attributeId, value = value)
-    }
+    override suspend fun setAttribute(nodeId: Int, attributeId: String, value: ViewAttributeValue): ViewAttributeResult =
+        AndroidComposeUiThread.await {
+            val rootView = attachedRootView()
+                ?: return@await ViewAttributeResult(applied = false, message = "the window is no longer readable")
+            val view = viewInWindow(nodeId, rootView)
+                ?: return@await ViewAttributeResult(applied = false, message = noViewAttributesMessage(nodeId))
+            view.writeAttribute(attributeId = attributeId, value = value)
+        }
 
     // -- NodeHighlightSource ---------------------------------------------------
     //
@@ -211,7 +212,16 @@ private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (no
         // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
         // exception; empty is what "not on screen yet" means to the overlay.
         val placed = bounds.left.isFinite() && bounds.top.isFinite() && bounds.right.isFinite() && bounds.bottom.isFinite()
-        if (placed) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
+        if (placed) {
+            android.graphics.Rect(
+                bounds.left.roundToInt(),
+                bounds.top.roundToInt(),
+                bounds.right.roundToInt(),
+                bounds.bottom.roundToInt(),
+            )
+        } else {
+            android.graphics.Rect()
+        }
     }
 }
 

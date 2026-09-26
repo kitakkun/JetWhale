@@ -52,7 +52,8 @@ class DefaultMcpPermissionsRepository(
 
     override suspend fun setHostGroupAllowed(group: McpHostToolGroup, allowed: Boolean) {
         dataStore.edit { preferences ->
-            val current = preferences[KEY_ALLOWED_HOST_GROUPS] ?: McpPermissions.Default.allowedHostGroups.map(McpHostToolGroup::name).toSet()
+            val current =
+                preferences[KEY_ALLOWED_HOST_GROUPS] ?: McpPermissions.Default.allowedHostGroups.map(McpHostToolGroup::name).toSet()
             preferences[KEY_ALLOWED_HOST_GROUPS] = if (allowed) current + group.name else current - group.name
         }
     }

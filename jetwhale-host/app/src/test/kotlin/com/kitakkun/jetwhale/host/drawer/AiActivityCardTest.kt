@@ -21,7 +21,11 @@ class AiActivityCardTest {
     fun `with MCP running and no agent the card offers the endpoint and the Claude Code command`() = runComposeUiTest {
         setContent {
             JwTheme(darkTheme = false) {
-                AiActivityBanner(uiState = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(setup)), onFollowChange = {}, onOpenMcpSettings = {})
+                AiActivityBanner(
+                    uiState = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(setup)),
+                    onFollowChange = {},
+                    onOpenMcpSettings = {},
+                )
             }
         }
 
@@ -50,7 +54,11 @@ class AiActivityCardTest {
     fun `a failed MCP server shows why it could not start`() = runComposeUiTest {
         setContent {
             JwTheme(darkTheme = false) {
-                AiActivityBanner(uiState = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Off(reason = "port 7080 is in use")), onFollowChange = {}, onOpenMcpSettings = {})
+                AiActivityBanner(
+                    uiState = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Off(reason = "port 7080 is in use")),
+                    onFollowChange = {},
+                    onOpenMcpSettings = {},
+                )
             }
         }
 

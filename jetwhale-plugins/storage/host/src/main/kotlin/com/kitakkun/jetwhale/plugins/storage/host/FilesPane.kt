@@ -74,7 +74,8 @@ internal fun FilesPane(
         if (fileRoots.isEmpty()) {
             JwEmptyState(
                 title = "No file roots",
-                description = "The app exposes no directory to browse. The web has no file system; elsewhere, pass FileRoot entries to JetWhaleStorageAgentPlugin.",
+                description = "The app exposes no directory to browse. " +
+                    "The web has no file system; elsewhere, pass FileRoot entries to JetWhaleStorageAgentPlugin.",
             )
             return@Box
         }
@@ -116,7 +117,9 @@ private fun FileTreeSplit(
                         expanded = row.expanded,
                         selected = row.location == selectedRow?.location,
                         onClick = { if (altPressed && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
-                        onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
+                        onToggleExpanded = {
+                            if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location)
+                        },
                         modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
                             altPressed = it.keyboardModifiers.isAltPressed
                         },
@@ -174,7 +177,14 @@ private fun EntryDetail(
                 JwButton(text = "Delete…", onClick = { confirmingDelete = true }, tone = JwTone.Error)
             }
         }
-        facts.rows.forEach { (key, value) -> JwKeyValueRow(key = key, value = value, monospace = key in MONOSPACE_FACTS, wrap = key !in MONOSPACE_FACTS) }
+        facts.rows.forEach { (key, value) ->
+            JwKeyValueRow(
+                key = key,
+                value = value,
+                monospace = key in MONOSPACE_FACTS,
+                wrap = key !in MONOSPACE_FACTS,
+            )
+        }
         facts.loadedFile?.takeUnless { row.isDirectory }?.let { FilePreview(it, Modifier.weight(1f)) }
     }
     if (confirmingDelete) {
@@ -270,7 +280,9 @@ private fun ImagePreview(bytes: ByteArray) {
                 modifier = Modifier.fillMaxSize(),
             )
 
-            ImageScale.ActualSize -> Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState())) {
+            ImageScale.ActualSize -> Box(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()),
+            ) {
                 Image(bitmap = bitmap, contentDescription = "Image preview")
             }
         }

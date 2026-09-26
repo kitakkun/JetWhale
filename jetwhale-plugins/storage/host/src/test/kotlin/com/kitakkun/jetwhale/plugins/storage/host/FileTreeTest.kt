@@ -7,7 +7,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FileTreeTest {
-    private val roots = listOf(FileRootInfo(name = "Files", absolutePath = "/data/files"), FileRootInfo(name = "Cache", absolutePath = "/data/cache"))
+    private val roots = listOf(
+        FileRootInfo(name = "Files", absolutePath = "/data/files"),
+        FileRootInfo(name = "Cache", absolutePath = "/data/cache"),
+    )
     private val children = mapOf(
         location("Files") to listOf(directoryEntry("datastore"), fileEntry("notes.txt", sizeBytes = 5)),
         location("Files", "datastore") to listOf(fileEntry("settings.preferences_pb", sizeBytes = 5)),

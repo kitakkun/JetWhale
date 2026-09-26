@@ -76,9 +76,10 @@ public class BufferedMessenger(
     }
 
     /** Suspends until a transport is bound and flushing has been opened, then returns that transport. */
-    private suspend fun awaitFlushableTransport(): JetWhaleTransportMessenger = combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
-        .filterNotNull()
-        .first()
+    private suspend fun awaitFlushableTransport(): JetWhaleTransportMessenger =
+        combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
+            .filterNotNull()
+            .first()
 
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
         val transport = live.value

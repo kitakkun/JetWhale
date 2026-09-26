@@ -169,7 +169,10 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
 // Distinct from any exit code adb itself returns, which are small positive integers.
 private const val ADB_LAUNCH_FAILED = -1
 
-private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
+private class AdbUnavailableException(
+    adbPath: String,
+    cause: IOException,
+) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
 
 private sealed interface DeviceEvent {
     data class Connected(val serial: String) : DeviceEvent

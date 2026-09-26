@@ -71,5 +71,6 @@ internal class UnsupportedOnAppleNode(private val action: NodeAction) : AppleNod
 
     override fun isOfferedBy(node: NSObject) = false
 
-    override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult = NodeActionResult.notSupported("$action is not supported on an iOS node")
+    override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult =
+        NodeActionResult.notSupported("$action is not supported on an iOS node")
 }

@@ -18,7 +18,10 @@ class AccessibilityTraitNamesTest {
     fun `public traits are named`() {
         assertEquals(
             listOf("Button", "Selected", "NotEnabled", "ToggleButton"),
-            (UIAccessibilityTraitButton or UIAccessibilityTraitSelected or UIAccessibilityTraitNotEnabled or UIAccessibilityTraitToggleButton).names(),
+            (
+                UIAccessibilityTraitButton or UIAccessibilityTraitSelected or UIAccessibilityTraitNotEnabled or
+                    UIAccessibilityTraitToggleButton
+                ).names(),
         )
     }
 

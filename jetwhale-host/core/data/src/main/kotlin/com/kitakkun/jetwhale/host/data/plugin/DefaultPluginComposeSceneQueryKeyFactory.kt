@@ -18,17 +18,18 @@ class DefaultPluginComposeSceneQueryKeyFactory(
     private val pluginComposeSceneService: PluginComposeSceneService,
 ) : PluginComposeSceneQueryKeyFactory {
     @OptIn(InternalComposeUiApi::class)
-    override fun create(pluginId: String, sessionId: String): PluginComposeSceneQueryKey = object : PluginComposeSceneQueryKey by buildQueryKey(
-        id = QueryId("PluginComposeScene:$pluginId:$sessionId"),
-        fetch = {
-            pluginComposeSceneService.getOrCreatePluginScene(
-                pluginId = pluginId,
-                sessionId = sessionId,
-            )
-        },
-    ) {
-        override val contentCacheable: QueryContentCacheable<PluginComposeScene>
-            // Disable caching to avoid issues with ComposeScene re-use when session is resumed
-            get() = { false }
-    }
+    override fun create(pluginId: String, sessionId: String): PluginComposeSceneQueryKey =
+        object : PluginComposeSceneQueryKey by buildQueryKey(
+            id = QueryId("PluginComposeScene:$pluginId:$sessionId"),
+            fetch = {
+                pluginComposeSceneService.getOrCreatePluginScene(
+                    pluginId = pluginId,
+                    sessionId = sessionId,
+                )
+            },
+        ) {
+            override val contentCacheable: QueryContentCacheable<PluginComposeScene>
+                // Disable caching to avoid issues with ComposeScene re-use when session is resumed
+                get() = { false }
+        }
 }

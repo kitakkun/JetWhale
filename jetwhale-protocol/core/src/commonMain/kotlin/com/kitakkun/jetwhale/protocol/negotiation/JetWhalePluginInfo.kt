@@ -16,7 +16,8 @@ public class JetWhalePluginInfo(
     public val pluginId: String,
     public val pluginVersion: String,
 ) {
-    override fun equals(other: Any?): Boolean = other is JetWhalePluginInfo && pluginId == other.pluginId && pluginVersion == other.pluginVersion
+    override fun equals(other: Any?): Boolean =
+        other is JetWhalePluginInfo && pluginId == other.pluginId && pluginVersion == other.pluginVersion
 
     override fun hashCode(): Int = 31 * pluginId.hashCode() + pluginVersion.hashCode()
 

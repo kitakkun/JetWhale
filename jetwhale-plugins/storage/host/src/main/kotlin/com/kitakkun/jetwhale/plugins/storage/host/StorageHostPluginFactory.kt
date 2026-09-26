@@ -45,17 +45,22 @@ private class StorageHostPlugin :
 
     override suspend fun locations(): StorageLocations = messenger.request(GetStorageLocations)
 
-    override suspend fun listDirectory(location: FileLocation): DirectoryListing = messenger.request(ListDirectory(rootName = location.rootName, path = location.path))
+    override suspend fun listDirectory(location: FileLocation): DirectoryListing =
+        messenger.request(ListDirectory(rootName = location.rootName, path = location.path))
 
-    override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = messenger.request(ReadFile(rootName = location.rootName, path = location.path, offset = offset, maxBytes = maxBytes))
+    override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent =
+        messenger.request(ReadFile(rootName = location.rootName, path = location.path, offset = offset, maxBytes = maxBytes))
 
-    override suspend fun delete(location: FileLocation): StorageOperationResult = messenger.request(DeleteFileEntry(rootName = location.rootName, path = location.path))
+    override suspend fun delete(location: FileLocation): StorageOperationResult =
+        messenger.request(DeleteFileEntry(rootName = location.rootName, path = location.path))
 
-    override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement = messenger.request(MeasureDirectory(rootName = location.rootName, path = location.path))
+    override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement =
+        messenger.request(MeasureDirectory(rootName = location.rootName, path = location.path))
 
     override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent = messenger.request(ReadKeyValueStore(storeName))
 
-    override suspend fun removeKeyValue(storeName: String, key: String): StorageOperationResult = messenger.request(RemoveKeyValue(storeName = storeName, key = key))
+    override suspend fun removeKeyValue(storeName: String, key: String): StorageOperationResult =
+        messenger.request(RemoveKeyValue(storeName = storeName, key = key))
 
     @Composable
     override fun Content() {

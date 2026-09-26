@@ -88,7 +88,8 @@ class JetWhaleNetworkAgentPlugin(
     }
 
     /** Returns the mock response to serve for [method] [url], or null to perform the real call. */
-    fun findMock(method: String, url: String): MockResponseSpec? = mockRules.value.findMatching(method = method, url = url, enabled = mockingEnabled.value)
+    fun findMock(method: String, url: String): MockResponseSpec? =
+        mockRules.value.findMatching(method = method, url = url, enabled = mockingEnabled.value)
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.network"

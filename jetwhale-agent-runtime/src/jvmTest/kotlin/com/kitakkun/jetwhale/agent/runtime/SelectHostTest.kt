@@ -100,10 +100,16 @@ class SelectHostTest {
 
     @Test
     fun `hostName and address must both match when both are set`() {
-        assertEquals(emptyList(), selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("10.0.0.1"))))
+        assertEquals(
+            emptyList(),
+            selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("10.0.0.1"))),
+        )
         assertEquals(
             "192.168.3.27",
-            selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("192.168.3.27"))).firstOrNull()?.service?.address,
+            selectHosts(
+                listOf(secureHost),
+                discovery(hostNames = listOf("secure-host"), addresses = listOf("192.168.3.27")),
+            ).firstOrNull()?.service?.address,
         )
     }
 
@@ -117,7 +123,10 @@ class SelectHostTest {
             wssPort = 5443,
         )
 
-        assertEquals("192.168.3.29", selectHosts(listOf(unnamed), discovery(hostNames = listOf("fallback-name"))).firstOrNull()?.service?.address)
+        assertEquals(
+            "192.168.3.29",
+            selectHosts(listOf(unnamed), discovery(hostNames = listOf("fallback-name"))).firstOrNull()?.service?.address,
+        )
     }
 }
 

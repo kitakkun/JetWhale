@@ -20,7 +20,10 @@ internal class ReadFileCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.readFile"
     override val description =
-        "Reads a file from the app's storage. Text comes back as UTF-8 text, anything else as Base64; a Preferences DataStore file (*.preferences_pb) read whole is also decoded into its entries. A large file is read in pages: totalSizeBytes says how big it is, and offset picks up where the last read ended."
+        "Reads a file from the app's storage. Text comes back as UTF-8 text, anything else as Base64; a Preferences DataStore file " +
+            "(*.preferences_pb) read whole is also decoded into its entries. " +
+            "A large file is read in pages: totalSizeBytes says how big it " +
+            "is, and offset picks up where the last read ended."
 
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by string(PATH_ARGUMENT_DESCRIPTION)
@@ -45,7 +48,10 @@ internal class ReadFileCommand(
             put("content", text ?: content.contentBase64)
             if (start == 0L && PreviewFormat.Preferences in previewFormatsOf(file)) {
                 try {
-                    put("preferences", McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)))
+                    put(
+                        "preferences",
+                        McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)),
+                    )
                 } catch (e: IllegalArgumentException) {
                     put("preferencesError", e.message)
                 }

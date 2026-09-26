@@ -31,5 +31,12 @@ internal class FileDigest(val sha256Hex: String?, val error: String?)
 internal suspend fun StorageClient.sha256Of(location: FileLocation): FileDigest {
     val digest = MessageDigest.getInstance("SHA-256")
     val error = readWholeFile(location, digest::update)
-    return if (error != null) FileDigest(sha256Hex = null, error = error) else FileDigest(sha256Hex = digest.digest().toHexString(), error = null)
+    return if (error != null) {
+        FileDigest(
+            sha256Hex = null,
+            error = error,
+        )
+    } else {
+        FileDigest(sha256Hex = digest.digest().toHexString(), error = null)
+    }
 }

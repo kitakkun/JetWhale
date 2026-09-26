@@ -15,5 +15,6 @@ internal class ReadKeyValueStoreCommand(
 
     private val store by string("Name of the store, as listLocations reports it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(KeyValueStoreContent.serializer(), client.readKeyValueStore(arguments[store]))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String =
+        McpJson.encodeToString(KeyValueStoreContent.serializer(), client.readKeyValueStore(arguments[store]))
 }
