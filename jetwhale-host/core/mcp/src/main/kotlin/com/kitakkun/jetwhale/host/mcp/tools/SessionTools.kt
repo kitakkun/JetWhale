@@ -104,8 +104,8 @@ class ListSessionsMcpTool(
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.listSessions",
-            description = "Lists the debug sessions: first \"${HostSession.ID}\", which is always present and holds the tools that need no app " +
-                "(pass it as sessionId to reach them), then every app connected to JetWhale.",
+            description = "Lists the debug sessions: first \"${HostSession.ID}\", which is always present " +
+                "and holds the tools that need no app (pass it as sessionId to reach them), then every app connected to JetWhale.",
             inputSchema = ToolSchema(),
             permission = McpToolPermission.Unrestricted,
         ) { _ ->
@@ -125,7 +125,8 @@ class ListPluginsMcpTool(
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.listPlugins",
-            description = "Lists plugins installed in the specified debug session, including whether each plugin supports additional MCP tools.",
+            description = "Lists plugins installed in the specified debug session, " +
+                "including whether each plugin supports additional MCP tools.",
             inputSchema = ToolSchema(
                 properties = JsonObject(
                     mapOf(

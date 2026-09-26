@@ -55,11 +55,16 @@ class PluginContentSizeTest {
         measure()
         aiActivity = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Starting)
         measure()
-        aiActivity = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(McpClientSetup.forServer(host = "localhost", port = 7080)))
+        aiActivity =
+            AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(McpClientSetup.forServer(host = "localhost", port = 7080)))
         measure()
         aiActivity = connected
         measure()
-        aiActivity = connected.copy(operatingToolName = "com.example.plugin.tap", operatingToolShortName = "plugin.tap", operatingPluginName = "Plugin")
+        aiActivity = connected.copy(
+            operatingToolName = "com.example.plugin.tap",
+            operatingToolShortName = "plugin.tap",
+            operatingPluginName = "Plugin",
+        )
         measure()
         scope.launch { snackbarHostState.showSnackbar("Following the AI: Plugin", duration = JwSnackbarDuration.Long) }
         waitUntil { onAllNodesWithText("Following the AI: Plugin").fetchSemanticsNodes().isNotEmpty() }

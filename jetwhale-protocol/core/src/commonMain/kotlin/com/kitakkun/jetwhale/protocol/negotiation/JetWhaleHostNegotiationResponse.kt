@@ -41,7 +41,8 @@ public sealed interface JetWhaleHostNegotiationResponse {
             public val reason: String,
             public val supportedVersions: List<JetWhaleProtocolVersion>,
         ) : ProtocolVersionResponse {
-            override fun equals(other: Any?): Boolean = other is Reject && reason == other.reason && supportedVersions == other.supportedVersions
+            override fun equals(other: Any?): Boolean =
+                other is Reject && reason == other.reason && supportedVersions == other.supportedVersions
 
             override fun hashCode(): Int = 31 * reason.hashCode() + supportedVersions.hashCode()
 

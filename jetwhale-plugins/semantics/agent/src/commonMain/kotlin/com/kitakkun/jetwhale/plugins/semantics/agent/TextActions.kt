@@ -36,6 +36,7 @@ internal object TextActions {
     object ImeAction : SemanticsActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.OnImeAction) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.OnImeAction) { it() }
     }
 }

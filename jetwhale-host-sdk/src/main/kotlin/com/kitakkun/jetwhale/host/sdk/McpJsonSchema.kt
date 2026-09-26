@@ -143,7 +143,12 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
     }
 }
 
-private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: String, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+private fun SerialDescriptor.variantSchema(
+    discriminator: String?,
+    serialName: String,
+    context: SchemaContext,
+    enclosingTypes: MutableSet<String>,
+): JsonObject {
     val schema = buildSchema(context, enclosingTypes)
     val properties = schema["properties"] as? JsonObject ?: JsonObject(emptyMap())
     val required = (schema["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }

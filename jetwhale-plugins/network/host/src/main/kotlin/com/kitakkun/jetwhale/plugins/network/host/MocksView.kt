@@ -121,7 +121,8 @@ private fun MockRuleRow(
                     style = JwTheme.textStyles.label,
                 )
                 JwText(
-                    text = "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} '${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
+                    text = "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} " +
+                        "'${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
                     style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                 )

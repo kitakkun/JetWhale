@@ -28,7 +28,8 @@ class GetLogsCommand(
     override val name: String = "jetwhale.getLogs"
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
-        "Host-wide: reads the debug tool's own captured stdout/stderr, oldest first. Use it to diagnose JetWhale itself — plugin load failures, server errors — not the debugged app's logs."
+        "Host-wide: reads the debug tool's own captured stdout/stderr, oldest first. Use it to diagnose JetWhale itself — plugin load " +
+            "failures, server errors — not the debugged app's logs."
 
     private val limit by intOrNull("How many of the most recent matching entries to return. Default $DEFAULT_LIMIT, maximum $MAX_LIMIT.")
     private val level by enumOrNull("Only return entries logged at this level.", LogLevel.entries)
@@ -66,7 +67,8 @@ class ClearLogsCommand(
     override val name: String = "jetwhale.clearLogs"
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
-        "Host-wide: discards every captured host log entry. Clear before reproducing an issue so that jetwhale.getLogs afterwards shows only what the reproduction produced."
+        "Host-wide: discards every captured host log entry. Clear before reproducing an issue so that jetwhale.getLogs afterwards shows " +
+            "only what the reproduction produced."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val cleared = logCaptureService.logs.value.size

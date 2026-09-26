@@ -115,7 +115,11 @@ fun PluginDrawerItemView(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiRingCornerRadius),
+                    .aiOperatingBorder(
+                        color = JwTheme.colors.aiAccent,
+                        width = JwMetrics.focusStrokeWidth,
+                        cornerRadius = AiRingCornerRadius,
+                    ),
             )
         }
     }

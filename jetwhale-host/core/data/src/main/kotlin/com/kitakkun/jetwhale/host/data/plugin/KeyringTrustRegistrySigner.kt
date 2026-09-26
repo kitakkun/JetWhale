@@ -57,7 +57,8 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
 
     private fun keyState(): KeyState = cachedState ?: readKeyState().also { cachedState = it }
 
-    // OS credential stores fail in platform-specific ways (a locked keychain, no Secret Service, D-Bus errors); each one means the store is unavailable.
+    // OS credential stores fail in platform-specific ways (a locked keychain, no Secret Service, D-Bus
+    // errors); each one means the store is unavailable.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun readKeyState(): KeyState = try {
         Keyring.create().use { keyring ->

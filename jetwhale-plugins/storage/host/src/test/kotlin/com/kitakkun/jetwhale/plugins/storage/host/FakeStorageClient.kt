@@ -22,7 +22,9 @@ internal class FakeStorageClient(
     val fileReads = mutableListOf<Triple<FileLocation, Long, Int>>()
 
     override suspend fun locations(): StorageLocations = StorageLocations(
-        fileRoots = directories.keys.filter { it.path.isEmpty() }.map { FileRootInfo(name = it.rootName, absolutePath = "/data/${it.rootName}") },
+        fileRoots = directories.keys.filter {
+            it.path.isEmpty()
+        }.map { FileRootInfo(name = it.rootName, absolutePath = "/data/${it.rootName}") },
         keyValueStores = stores.keys.map(::KeyValueStoreInfo),
     )
 
@@ -33,9 +35,17 @@ internal class FakeStorageClient(
 
     override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent {
         fileReads += Triple(location, offset, maxBytes)
-        val bytes = files[location] ?: return FileContent(contentBase64 = "", totalSizeBytes = 0, error = "'${location.name}' is not a file")
+        val bytes = files[location] ?: return FileContent(
+            contentBase64 = "",
+            totalSizeBytes = 0,
+            error = "'${location.name}' is not a file",
+        )
         val end = minOf(bytes.size.toLong(), offset + maxBytes).toInt()
-        return FileContent(contentBase64 = Base64.encode(bytes.copyOfRange(offset.toInt(), end)), totalSizeBytes = bytes.size.toLong(), error = null)
+        return FileContent(
+            contentBase64 = Base64.encode(bytes.copyOfRange(offset.toInt(), end)),
+            totalSizeBytes = bytes.size.toLong(),
+            error = null,
+        )
     }
 
     override suspend fun delete(location: FileLocation): StorageOperationResult {
@@ -46,10 +56,17 @@ internal class FakeStorageClient(
     }
 
     override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement {
-        val entries = directories[location] ?: return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = "'${location.name}' is not a directory")
+        val entries = directories[location] ?: return DirectoryMeasurement(
+            totalSizeBytes = 0,
+            fileCount = 0,
+            directoryCount = 0,
+            truncated = false,
+            error = "'${location.name}' is not a directory",
+        )
         val below = entries.filter(FileEntry::isDirectory).map { measureDirectory(location.child(it.name)) }
         return DirectoryMeasurement(
-            totalSizeBytes = entries.filterNot(FileEntry::isDirectory).sumOf(FileEntry::sizeBytes) + below.sumOf(DirectoryMeasurement::totalSizeBytes),
+            totalSizeBytes = entries.filterNot(FileEntry::isDirectory).sumOf(FileEntry::sizeBytes) +
+                below.sumOf(DirectoryMeasurement::totalSizeBytes),
             fileCount = entries.count { !it.isDirectory } + below.sumOf(DirectoryMeasurement::fileCount),
             directoryCount = entries.count(FileEntry::isDirectory) + below.sumOf(DirectoryMeasurement::directoryCount),
             truncated = false,

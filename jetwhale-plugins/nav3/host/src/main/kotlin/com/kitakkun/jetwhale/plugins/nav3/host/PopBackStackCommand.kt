@@ -12,7 +12,8 @@ internal class PopBackStackCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.popBackStack"
     override val description =
-        "Navigates back: pops entries off the app's back stack, either a number of them or down to a given index. Popping the last remaining entry is refused, since Navigation 3 cannot render an empty stack."
+        "Navigates back: pops entries off the app's back stack, either a number of them or down to a given index. Popping the last " +
+            "remaining entry is refused, since Navigation 3 cannot render an empty stack."
 
     private val count by intOrNull("How many entries to pop from the top. Defaults to 1. Ignored when toIndex is given.")
     private val toIndex by intOrNull("Pop until the entry at this index is on top (0 is the root).")

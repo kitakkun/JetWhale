@@ -15,13 +15,18 @@ internal class ListTransactionsCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listTransactions"
     override val description =
-        "Lists captured HTTP transactions (oldest first) as summaries: txId, method, url, timestamp, status, duration, mock/failure flags. Returns {\"transactions\": [...]} plus \"nextCursor\" when a cursor page was truncated. Use getTransaction for headers and bodies."
+        "Lists captured HTTP transactions (oldest first) as summaries: txId, method, url, timestamp, status, duration, mock/failure " +
+            "flags. Returns {\"transactions\": [...]} plus \"nextCursor\" when a cursor page was truncated. " +
+            "Use getTransaction " +
+            "for headers and bodies."
 
     private val limit by intOrNull(
-        "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size counted forward from the cursor. Returns all if omitted.",
+        "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size " +
+            "counted forward from the cursor. Returns all if omitted.",
     )
     private val afterTxId by stringOrNull(
-        "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor to fetch the next page, or the last txId you have seen to fetch only new traffic.",
+        "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor " +
+            "to fetch the next page, or the last txId you have seen to fetch only new traffic.",
     )
     private val sinceTimestampMs by longOrNull(
         "Only include transactions whose request timestampMs is >= this epoch-millisecond value.",

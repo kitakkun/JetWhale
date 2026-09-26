@@ -157,7 +157,10 @@ internal class StorageBrowser(
         var listed = 0
         while (pending.isNotEmpty()) {
             if (listed >= SUBTREE_ENTRY_LIMIT) {
-                status = StorageStatus(message = "Stopped expanding ${location.name} after $listed entries; open the rest a level at a time.", isError = false)
+                status = StorageStatus(
+                    message = "Stopped expanding ${location.name} after $listed entries; open the rest a level at a time.",
+                    isError = false,
+                )
                 return
             }
             val directory = pending.removeFirst()

@@ -12,7 +12,9 @@ internal class PushNavKeyCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.pushNavKey"
     override val description =
-        "Navigates the app by pushing a NavKey onto its back stack. The key is a JSON object shaped like one of the templates from listNavKeyTypes (or the `key` of an existing entry from getBackStack); the app decodes it with its own serializers, so an unknown type is refused rather than guessed."
+        "Navigates the app by pushing a NavKey onto its back stack. The key is a JSON object shaped like one of the templates from " +
+            "listNavKeyTypes (or the `key` of an existing entry from getBackStack); the app decodes it with its own serializers, so an " +
+            "unknown type is refused rather than guessed."
 
     private val key by jsonObject("The NavKey to push, e.g. {\"type\":\"Detail\",\"id\":\"42\"}.")
     private val index by intOrNull("Insert the key at this index instead of on top of the stack (0 is the root).")

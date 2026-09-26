@@ -265,8 +265,14 @@ private fun StatusLine(
 private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, interactiveOnly: Boolean) {
     val (title, description) = when {
         snapshot == null -> "Not captured yet" to "Press Refresh to capture the app's node tree."
-        snapshot.roots.isEmpty() -> "No root reported" to "Install a probe: installJetWhaleSemanticsProbe(application) on Android, installJetWhaleSemanticsProbe() on iOS, or JetWhaleSemanticsProbe() inside your composition."
+
+        snapshot.roots.isEmpty() ->
+            "No root reported" to
+                "Install a probe: installJetWhaleSemanticsProbe(application) on Android, installJetWhaleSemanticsProbe() on iOS, " +
+                "or JetWhaleSemanticsProbe() inside your composition."
+
         search.isNotBlank() || interactiveOnly -> "No node matches the current filter" to null
+
         else -> "The app's roots are empty" to null
     }
     JwEmptyState(title = title, description = description)
@@ -439,20 +445,7 @@ private fun NodeDetail(
         }
 
         if (node.isScrollable) {
-            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                JwButton(
-                    text = "Scroll down",
-                    onClick = {
-                        onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = SCROLL_STEP_PX))
-                    },
-                )
-                JwButton(
-                    text = "Scroll up",
-                    onClick = {
-                        onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = -SCROLL_STEP_PX))
-                    },
-                )
-            }
+            ScrollStepButtons(rootId = rootId, node = node, onPerformAction = onPerformAction)
         }
 
         if (node.actions.contains("ScrollToIndex")) {
@@ -467,7 +460,9 @@ private fun NodeDetail(
                     text = "Scroll to index",
                     onClick = {
                         indexInput.toIntOrNull()?.let { index ->
-                            onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollToIndex, index = index))
+                            onPerformAction(
+                                PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollToIndex, index = index),
+                            )
                         }
                     },
                     enabled = indexInput.toIntOrNull() != null,
@@ -546,6 +541,33 @@ private fun NodeProperties(rootId: String, node: UiNode) {
         if (node.isInteractive && !node.isOperable) {
             PropertyRow("operable", "no — ${node.whyNotOperable()}", wrap = true)
         }
+    }
+}
+
+@Composable
+private fun ScrollStepButtons(
+    rootId: String,
+    node: UiNode,
+    onPerformAction: (PerformNodeAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+        JwButton(
+            text = "Scroll down",
+            onClick = {
+                onPerformAction(
+                    PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = SCROLL_STEP_PX),
+                )
+            },
+        )
+        JwButton(
+            text = "Scroll up",
+            onClick = {
+                onPerformAction(
+                    PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = -SCROLL_STEP_PX),
+                )
+            },
+        )
     }
 }
 

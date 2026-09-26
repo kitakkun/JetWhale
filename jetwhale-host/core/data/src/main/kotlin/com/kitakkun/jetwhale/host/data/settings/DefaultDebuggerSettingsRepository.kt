@@ -98,7 +98,8 @@ class DefaultDebuggerSettingsRepository(
             initialValue = DEFAULT_FOLLOW_AI_OPERATION_ENABLED,
         )
 
-    override suspend fun readAdbAutoPortMappingEnabled(): Boolean = dataStore.data.first()[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] ?: DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED
+    override suspend fun readAdbAutoPortMappingEnabled(): Boolean =
+        dataStore.data.first()[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] ?: DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -106,7 +107,8 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
-    override suspend fun readCheckForUpdatesOnStartup(): Boolean = dataStore.data.first()[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP
+    override suspend fun readCheckForUpdatesOnStartup(): Boolean =
+        dataStore.data.first()[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP
 
     override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -127,9 +129,11 @@ class DefaultDebuggerSettingsRepository(
         dropOverride { it.copy(serverPort = null) }
     }
 
-    override suspend fun readServerPort(): Int = portOverrides.value.serverPort ?: dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
+    override suspend fun readServerPort(): Int =
+        portOverrides.value.serverPort ?: dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
 
-    override suspend fun readMcpServerPort(): Int = portOverrides.value.mcpServerPort ?: dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
+    override suspend fun readMcpServerPort(): Int =
+        portOverrides.value.mcpServerPort ?: dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
 
     override suspend fun updateMcpServerPort(port: Int) {
         dataStore.edit { prefs ->
@@ -171,7 +175,8 @@ class DefaultDebuggerSettingsRepository(
     }
 
     /** Lets a launch override win over the stored value this flow carries. */
-    private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> = combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
+    private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> =
+        combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
 
     /**
      * Retires the launch override for a port the user just picked in the settings screen. Without

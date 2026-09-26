@@ -59,9 +59,16 @@ internal object AppleNodeScrollActions {
                 ?: return NodeActionResult.notSupported("ScrollBy needs a non-zero scrollX or scrollY")
             return NodeActionResult.performedIf(
                 node.accessibilityScroll(direction),
-                declined = "the node did not accept accessibilityScroll; only a scroll view or a scrollable container scrolls by a distance",
+                declined = "the node did not accept accessibilityScroll; " +
+                    "only a scroll view or a scrollable container scrolls by a distance",
             ).let { result ->
-                if (result.performed) result.copy(message = "sent accessibilityScroll(${direction.name()}), which moves one page rather than the distance asked for") else result
+                if (result.performed) {
+                    result.copy(
+                        message = "sent accessibilityScroll(${direction.name()}), which moves one page rather than the distance asked for",
+                    )
+                } else {
+                    result
+                }
             }
         }
 
@@ -92,7 +99,12 @@ internal object AppleNodeScrollActions {
          * on both ends: a navigation bar's inset puts the top of the content at a negative offset,
          * and a bottom inset lets the content scroll past its own end.
          */
-        private fun reachableRange(content: Double, viewport: Double, leadingInset: Double, trailingInset: Double): ClosedFloatingPointRange<Double> = -leadingInset..maxOf(-leadingInset, content - viewport + trailingInset)
+        private fun reachableRange(
+            content: Double,
+            viewport: Double,
+            leadingInset: Double,
+            trailingInset: Double,
+        ): ClosedFloatingPointRange<Double> = -leadingInset..maxOf(-leadingInset, content - viewport + trailingInset)
 
         private fun scrollDirection(scrollX: Float, scrollY: Float): UIAccessibilityScrollDirection? = when {
             scrollX == 0f && scrollY == 0f -> null
@@ -126,7 +138,11 @@ internal object AppleNodeScrollActions {
                     val sections = (0 until node.numberOfSections).map(node::numberOfRowsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
-                    node.scrollToRowAtIndexPath(NSIndexPath.indexPathForRow(path.item, inSection = path.section), atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop, animated = false)
+                    node.scrollToRowAtIndexPath(
+                        NSIndexPath.indexPathForRow(path.item, inSection = path.section),
+                        atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop,
+                        animated = false,
+                    )
                     NodeActionResult(performed = true)
                 }
 
@@ -134,7 +150,11 @@ internal object AppleNodeScrollActions {
                     val sections = (0 until node.numberOfSections).map(node::numberOfItemsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
-                    node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = node.startPosition(), animated = false)
+                    node.scrollToItemAtIndexPath(
+                        NSIndexPath.indexPathForItem(path.item, inSection = path.section),
+                        atScrollPosition = node.startPosition(),
+                        animated = false,
+                    )
                     NodeActionResult(performed = true)
                 }
 
@@ -195,7 +215,9 @@ internal object AppleNodeScrollActions {
                 ?: return if (node.isInsideItsWindow()) {
                     NodeActionResult(performed = true, message = "the node is already in view")
                 } else {
-                    NodeActionResult.notSupported("only a UIView can be scrolled into view on iOS; this node is a bare accessibility element")
+                    NodeActionResult.notSupported(
+                        "only a UIView can be scrolled into view on iOS; this node is a bare accessibility element",
+                    )
                 }
 
             val window = view.window ?: return NodeActionResult.notSupported("the view is not in a window")

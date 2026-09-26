@@ -200,9 +200,27 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             write = null,
         ),
     )
-    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = View::getElevation, write = { view, px -> view.elevation = px }, relayouts = false)
-    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = View::getTranslationX, write = { view, px -> view.translationX = px }, relayouts = false)
-    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = View::getTranslationY, write = { view, px -> view.translationY = px }, relayouts = false)
+    addDimension(
+        id = "elevation",
+        group = GROUP_APPEARANCE,
+        read = View::getElevation,
+        write = { view, px -> view.elevation = px },
+        relayouts = false,
+    )
+    addDimension(
+        id = "translationX",
+        group = GROUP_APPEARANCE,
+        read = View::getTranslationX,
+        write = { view, px -> view.translationX = px },
+        relayouts = false,
+    )
+    addDimension(
+        id = "translationY",
+        group = GROUP_APPEARANCE,
+        read = View::getTranslationY,
+        write = { view, px -> view.translationY = px },
+        relayouts = false,
+    )
     addFloat(id = "rotation", group = GROUP_APPEARANCE, read = View::getRotation, write = { view, value -> view.rotation = value })
     addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = View::getScaleX, write = { view, value -> view.scaleX = value })
     addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = View::getScaleY, write = { view, value -> view.scaleY = value })
@@ -235,7 +253,15 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             group = GROUP_TEXT,
             // The px figure is what the platform stores; the second figure is the sp the app would
             // have written, which is the number a reader recognises.
-            read = { view -> (view as? TextView)?.let { ViewAttributeValue.DimensionValue(px = it.textSize, dp = it.textSize / view.scaledTextDensity()) } },
+            read = { view ->
+                (view as? TextView)?.let {
+                    ViewAttributeValue.DimensionValue(
+                        px = it.textSize,
+                        dp =
+                        it.textSize / view.scaledTextDensity(),
+                    )
+                }
+            },
             write = { view, value -> (view as TextView).setTextSize(TypedValue.COMPLEX_UNIT_PX, value.asDimensionPx("textSize")) },
             relayouts = true,
         ),
@@ -469,9 +495,18 @@ private fun ViewAttributeValue.asLayoutSize(attributeId: String): Int {
     val size = this as? ViewAttributeValue.LayoutSizeValue
         ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "layoutSize", this))
     return when (size.constant) {
-        null -> (size.px ?: throw IllegalArgumentException("$attributeId needs either a constant or a pixel length, but neither was sent")).roundToInt()
+        null -> (
+            size.px ?: throw IllegalArgumentException(
+                "$attributeId needs either a constant or a pixel length, but neither was sent",
+            )
+            ).roundToInt()
+
         "MATCH_PARENT" -> ViewGroup.LayoutParams.MATCH_PARENT
+
         "WRAP_CONTENT" -> ViewGroup.LayoutParams.WRAP_CONTENT
-        else -> throw IllegalArgumentException("unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)")
+
+        else -> throw IllegalArgumentException(
+            "unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)",
+        )
     }
 }

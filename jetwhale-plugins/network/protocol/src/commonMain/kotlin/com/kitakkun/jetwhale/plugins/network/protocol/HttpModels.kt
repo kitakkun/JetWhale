@@ -68,4 +68,5 @@ fun Map<String, List<String>>.mediaType(): String? = entries
  *
  * SVG is excluded on purpose: it is markup, more useful read as text than decoded as a bitmap.
  */
-fun isPreviewableImageMediaType(mediaType: String?): Boolean = mediaType != null && mediaType.startsWith("image/") && mediaType != "image/svg+xml"
+fun isPreviewableImageMediaType(mediaType: String?): Boolean =
+    mediaType != null && mediaType.startsWith("image/") && mediaType != "image/svg+xml"

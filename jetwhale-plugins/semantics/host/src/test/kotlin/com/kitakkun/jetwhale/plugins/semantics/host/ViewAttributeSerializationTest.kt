@@ -32,7 +32,12 @@ class ViewAttributeSerializationTest {
         ViewAttributeValue.DimensionValue(px = 48f, dp = 24f) to "dimension",
         ViewAttributeValue.EnumValue("GONE", listOf("VISIBLE", "INVISIBLE", "GONE")) to "enum",
         // Both cases of the one variant, because it is the pair of them that has to survive.
-        ViewAttributeValue.LayoutSizeValue(constant = "WRAP_CONTENT", px = null, dp = null, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
+        ViewAttributeValue.LayoutSizeValue(
+            constant = "WRAP_CONTENT",
+            px = null,
+            dp = null,
+            constants = LAYOUT_SIZE_CONSTANTS,
+        ) to "layoutSize",
         ViewAttributeValue.LayoutSizeValue(constant = null, px = 500f, dp = 250f, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
     )
 
@@ -70,7 +75,12 @@ class ViewAttributeSerializationTest {
         val get = GetViewAttributes(rootId = "window-1", nodeId = -4)
         assertEquals(get, json.decodeFromString<GetViewAttributes>(json.encodeToString(get)))
 
-        val set = SetViewAttribute(rootId = "window-1", nodeId = -4, attributeId = "visibility", value = ViewAttributeValue.EnumValue("GONE", listOf("GONE")))
+        val set = SetViewAttribute(
+            rootId = "window-1",
+            nodeId = -4,
+            attributeId = "visibility",
+            value = ViewAttributeValue.EnumValue("GONE", listOf("GONE")),
+        )
         assertEquals(set, json.decodeFromString<SetViewAttribute>(json.encodeToString(set)))
 
         val absent = ViewAttributeResponse(snapshot = null, message = "this root has no View attributes")

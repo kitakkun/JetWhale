@@ -41,7 +41,14 @@ internal class EntryFacts(
         directoryMeasurement?.let { measurement ->
             val floor = if (measurement.truncated) "at least " else ""
             add("Total size" to floor + describeSize(measurement.totalSizeBytes))
-            add("Contents" to "$floor${count(measurement.fileCount, "file", "files")}, ${count(measurement.directoryCount, "directory", "directories")}")
+            add(
+                "Contents" to
+                    "$floor${count(
+                        measurement.fileCount,
+                        "file",
+                        "files",
+                    )}, ${count(measurement.directoryCount, "directory", "directories")}",
+            )
         }
         fileSha256?.let { add("SHA-256" to it) }
     }
@@ -53,7 +60,8 @@ internal fun formatByteSize(bytes: Long): String = when {
     else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
 }
 
-private fun describeSize(bytes: Long): String = "${formatByteSize(bytes)} (${NumberFormat.getIntegerInstance(Locale.ROOT).format(bytes)} bytes)"
+private fun describeSize(bytes: Long): String =
+    "${formatByteSize(bytes)} (${NumberFormat.getIntegerInstance(Locale.ROOT).format(bytes)} bytes)"
 
 private fun describeAccess(readable: Boolean, writable: Boolean): String = when {
     readable && writable -> "Read and write"

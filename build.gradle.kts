@@ -23,6 +23,14 @@ plugins {
     alias(libs.plugins.kotrail) apply false
 }
 
+// Spotless takes properties such as max_line_length from .editorconfig but ignores its rule switches,
+// so these two are switched off here as well: they would join every wrapped signature that fits
+// within the line length back onto one line.
+val ktlintDisabledRules = mapOf(
+    "ktlint_standard_function-signature" to "disabled",
+    "ktlint_standard_class-signature" to "disabled",
+)
+
 spotless {
     kotlin {
         target("**/*.kt")
@@ -30,12 +38,12 @@ spotless {
         // that record source offsets, so reformatting them would invalidate the golden files rather
         // than tidy anything. Their shape is part of what they assert.
         targetExclude("**/build/**", "**/testData/**")
-        ktlint()
+        ktlint().editorConfigOverride(ktlintDisabledRules)
     }
     kotlinGradle {
         target("**/*.gradle.kts")
         targetExclude("**/build/**")
-        ktlint()
+        ktlint().editorConfigOverride(ktlintDisabledRules)
     }
 }
 

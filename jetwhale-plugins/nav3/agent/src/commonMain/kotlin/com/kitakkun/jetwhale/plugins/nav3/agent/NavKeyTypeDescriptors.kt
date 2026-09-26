@@ -152,8 +152,18 @@ private fun placeholderFor(descriptor: SerialDescriptor, visited: Set<String>, d
 private fun readableTypeName(descriptor: SerialDescriptor): String {
     val base = when (descriptor.kind) {
         is StructureKind.LIST -> "List<${readableTypeName(descriptor.getElementDescriptor(0))}>"
-        is StructureKind.MAP -> "Map<${readableTypeName(descriptor.getElementDescriptor(0))}, ${readableTypeName(descriptor.getElementDescriptor(1))}>"
-        is SerialKind.ENUM -> (0 until descriptor.elementsCount).joinToString("|", prefix = "enum(", postfix = ")", transform = descriptor::getElementName)
+
+        is StructureKind.MAP -> "Map<${readableTypeName(
+            descriptor.getElementDescriptor(0),
+        )}, ${readableTypeName(descriptor.getElementDescriptor(1))}>"
+
+        is SerialKind.ENUM -> (0 until descriptor.elementsCount).joinToString(
+            "|",
+            prefix = "enum(",
+            postfix = ")",
+            transform = descriptor::getElementName,
+        )
+
         else -> descriptor.serialName.removeSuffix("?").substringAfterLast('.')
     }
     return if (descriptor.isNullable) "$base?" else base

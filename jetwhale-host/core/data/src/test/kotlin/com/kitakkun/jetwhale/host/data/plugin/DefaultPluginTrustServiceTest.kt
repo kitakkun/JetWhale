@@ -43,7 +43,12 @@ class DefaultPluginTrustServiceTest {
         trustRepository = FakePluginTrustRepository()
         factoryRepository = FakePluginFactoryRepository()
         signer = FakeTrustRegistrySigner(keyPresent = false)
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), trustRepository, factoryRepository, signer)
+        service = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            trustRepository,
+            factoryRepository,
+            signer,
+        )
     }
 
     @AfterTest
@@ -149,16 +154,29 @@ class DefaultPluginTrustServiceTest {
 
         val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val diskFactory = FakePluginFactoryRepository()
-        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, diskSigner)
+        val diskService = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            diskRepository,
+            diskFactory,
+            diskSigner,
+        )
 
         diskService.trustAndLoad(jar.absolutePath)
         diskService.setSigningEnabled(true)
 
         // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
         // verify INVALID and drop every plugin; re-signing lets it verify and load.
-        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
+        val reloadedRepository = DefaultPluginTrustRepository(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            diskSigner,
+        )
         val reloadedFactory = FakePluginFactoryRepository()
-        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, diskSigner)
+        val reloadedService = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            reloadedRepository,
+            reloadedFactory,
+            diskSigner,
+        )
         reloadedService.loadTrustedPlugins()
 
         assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)
@@ -234,6 +252,7 @@ class DefaultPluginTrustServiceTest {
             keyPresent = false
         }
 
-        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+        private fun digest(payload: String): String =
+            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

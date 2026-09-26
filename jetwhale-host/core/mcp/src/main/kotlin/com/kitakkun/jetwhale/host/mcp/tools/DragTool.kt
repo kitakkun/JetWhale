@@ -66,7 +66,9 @@ class DragMcpTool(
             val steps = request.arguments?.get("steps")?.jsonFloat?.toInt() ?: 10
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            withContext(Dispatchers.Main) { dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps) }
+            withContext(Dispatchers.Main) {
+                dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps)
+            }
             successResult()
         }
     }

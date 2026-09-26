@@ -48,8 +48,12 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
             onWssPortTextChange = { screenChannel.send(ServerSettingsScreenAction.ChangeWssPortText(it)) },
             onWssEnabledChange = { screenChannel.send(ServerSettingsScreenAction.ChangeWssEnabled(it)) },
             onApplyDebugServerSettingsChange = { screenChannel.send(ServerSettingsScreenAction.ApplyDebugServerSettingsChange) },
-            onConfirmApplyDebugServerSettingsChange = { screenChannel.send(ServerSettingsScreenAction.ConfirmApplyDebugServerSettingsChange) },
-            onDismissApplyDebugServerSettingsDialog = { screenChannel.send(ServerSettingsScreenAction.DismissApplyDebugServerSettingsDialog) },
+            onConfirmApplyDebugServerSettingsChange = {
+                screenChannel.send(ServerSettingsScreenAction.ConfirmApplyDebugServerSettingsChange)
+            },
+            onDismissApplyDebugServerSettingsDialog = {
+                screenChannel.send(ServerSettingsScreenAction.DismissApplyDebugServerSettingsDialog)
+            },
             onMcpPortTextChange = { screenChannel.send(ServerSettingsScreenAction.ChangeMcpPortText(it)) },
             onApplyMcpPortChange = { screenChannel.send(ServerSettingsScreenAction.ApplyMcpPortChange) },
             onConfirmApplyMcpPortChange = { screenChannel.send(ServerSettingsScreenAction.ConfirmApplyMcpPortChange) },
@@ -65,10 +69,18 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                     logger.warning("Not allowed to open $McpClientSetup.GUIDE_URL: ${e.message}")
                 }
             },
-            onSetHostGroupAllowed = { group, allowed -> screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed)) },
-            onSetPluginInspectAllowed = { pluginId, allowed -> screenChannel.send(ServerSettingsScreenAction.SetPluginInspectAllowed(pluginId, allowed)) },
-            onSetPluginInteractAllowed = { pluginId, allowed -> screenChannel.send(ServerSettingsScreenAction.SetPluginInteractAllowed(pluginId, allowed)) },
-            onSetPluginToolAllowed = { toolName, allowed -> screenChannel.send(ServerSettingsScreenAction.SetPluginToolAllowed(toolName, allowed)) },
+            onSetHostGroupAllowed = { group, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed))
+            },
+            onSetPluginInspectAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInspectAllowed(pluginId, allowed))
+            },
+            onSetPluginInteractAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInteractAllowed(pluginId, allowed))
+            },
+            onSetPluginToolAllowed = { toolName, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginToolAllowed(toolName, allowed))
+            },
             onAddCertificate = { screenChannel.send(ServerSettingsScreenAction.AddCertificate) },
             onSetActiveCertificate = { screenChannel.send(ServerSettingsScreenAction.SetActiveCertificate(it)) },
             onDeleteCertificate = { screenChannel.send(ServerSettingsScreenAction.DeleteCertificate(it)) },

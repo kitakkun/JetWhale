@@ -27,7 +27,8 @@ data class McpToolSummary(
 value class McpCapablePlugins(val toolsBySessionAndPlugin: Map<String, Map<String, List<McpToolSummary>>>) {
     fun pluginIdsFor(sessionId: String?): Set<String> = sessionId?.let { toolsBySessionAndPlugin[it]?.keys }.orEmpty()
 
-    fun toolsFor(sessionId: String?, pluginId: String): List<McpToolSummary> = sessionId?.let { toolsBySessionAndPlugin[it]?.get(pluginId) }.orEmpty()
+    fun toolsFor(sessionId: String?, pluginId: String): List<McpToolSummary> =
+        sessionId?.let { toolsBySessionAndPlugin[it]?.get(pluginId) }.orEmpty()
 
     companion object {
         val Empty = McpCapablePlugins(emptyMap())

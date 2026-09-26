@@ -48,5 +48,6 @@ internal class UnsupportedOnAndroidView(private val action: NodeAction) : Androi
 
     override fun isOfferedBy(view: View) = false
 
-    override fun perform(view: View, request: PerformNodeAction): NodeActionResult = NodeActionResult.notSupported("$action is not supported on a View node")
+    override fun perform(view: View, request: PerformNodeAction): NodeActionResult =
+        NodeActionResult.notSupported("$action is not supported on a View node")
 }
