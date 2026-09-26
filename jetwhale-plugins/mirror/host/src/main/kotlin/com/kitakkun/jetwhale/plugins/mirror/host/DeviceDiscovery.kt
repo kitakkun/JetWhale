@@ -27,6 +27,8 @@ internal class DeviceDiscovery(
     suspend fun discover(): Discovery = looking.withLock {
         val listings = listAndroid() + listSimulators() + listIosDevices()
         val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing)) }
+        val gone = known.values.filter { known -> devices.none { it.id == known.id } }
+        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { companions?.forget(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         Discovery(devices = devices, missingTools = missingTools())
