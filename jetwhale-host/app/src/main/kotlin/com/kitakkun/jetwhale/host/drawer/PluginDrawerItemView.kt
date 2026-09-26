@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
@@ -34,6 +35,12 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Matches the small shape the row is clipped to. */
 private val AiRingCornerRadius = 4.dp
+
+/**
+ * How far an inactive row is faded. The list's own muted color sits too close to a normal row's in the
+ * dark theme to tell them apart, and the row must stay clickable, which rules out disabling it.
+ */
+private const val InactiveRowAlpha = 0.45f
 
 /** Shrinks the "opens elsewhere" glyph to the tag's height. */
 private val BadgeIconInset = 3.dp
@@ -61,6 +68,7 @@ fun PluginDrawerItemView(
             text = name,
             selected = selected,
             muted = !active,
+            modifier = if (active) Modifier else Modifier.alpha(InactiveRowAlpha),
             onClick = onClick,
             leadingContent = {
                 JwIcon(
