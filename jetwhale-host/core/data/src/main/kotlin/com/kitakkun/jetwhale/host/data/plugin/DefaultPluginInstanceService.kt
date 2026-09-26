@@ -7,6 +7,8 @@ import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginFailure
+import com.kitakkun.jetwhale.host.model.PluginFailures
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
@@ -24,6 +26,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -82,6 +86,9 @@ class DefaultPluginInstanceService(
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
+
+    override val pluginFailuresFlow: StateFlow<PluginFailures>
+        field = MutableStateFlow(PluginFailures.Empty)
 
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
@@ -145,7 +152,11 @@ class DefaultPluginInstanceService(
                     "its messenger will never reach an agent.",
             )
         }
-        val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
+        val instanceScope = CoroutineScope(
+            scope.coroutineContext +
+                SupervisorJob(scope.coroutineContext[Job]) +
+                CoroutineExceptionHandler { _, throwable -> recordFailure(pluginId, sessionId, throwable) },
+        )
         plugin.bindPluginScope(instanceScope)
 
         // Hand the plugin a storage handle already scoped to its own pluginId, so it can never
@@ -248,8 +259,31 @@ class DefaultPluginInstanceService(
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach { disposeInstance(it, emitEvent = false) }
     }
 
+    /**
+     * Keeps what a plugin's own coroutine let escape, so it is logged against the plugin and shown in
+     * the drawer instead of vanishing into the thread's default handler.
+     */
+    private fun recordFailure(pluginId: String, sessionId: String, throwable: Throwable) {
+        logger.log(Level.WARNING, "Plugin '$pluginId' in session '$sessionId' threw from one of its coroutines", throwable)
+        val failure = PluginFailure(
+            pluginId = pluginId,
+            sessionId = sessionId,
+            message = throwable.toString(),
+            stackTrace = throwable.stackTraceToString(),
+            occurredAtMillis = System.currentTimeMillis(),
+        )
+        pluginFailuresFlow.update { failures ->
+            val session = failures.bySession[sessionId].orEmpty() + (pluginId to failure)
+            PluginFailures(failures.bySession + (sessionId to session))
+        }
+    }
+
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
+        pluginFailuresFlow.update { failures ->
+            val session = failures.bySession[key.sessionId].orEmpty() - key.pluginId
+            PluginFailures(if (session.isEmpty()) failures.bySession - key.sessionId else failures.bySession + (key.sessionId to session))
+        }
         try {
             removed.plugin.dispatchDispose()
         } catch (e: Throwable) {

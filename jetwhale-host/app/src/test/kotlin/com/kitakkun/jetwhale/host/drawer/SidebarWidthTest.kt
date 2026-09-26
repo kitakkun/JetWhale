@@ -137,4 +137,5 @@ private fun plugin(name: String, needsApp: Boolean) = DrawerPluginItemUiState(
     exposesMcpTools = false,
     isHeadless = false,
     needsApp = needsApp,
+    failureMessage = null,
 )

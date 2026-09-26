@@ -281,6 +281,8 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
             buildList {
                 add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
                 add("-Djetwhale.appDataDir=${sandboxDirProvider.get()}")
+                // A native crash writes its report here, next to host.log, instead of the working directory.
+                add("-XX:ErrorFile=${sandboxDirProvider.get()}/logs/hs_err_pid%p.log")
                 // The macOS Dock name (hover text) comes from the bundle name, which for a bare JVM
                 // can only be set via -Xdock:name at launch — it is not settable at runtime.
                 if (osName.getOrElse("").contains("mac", ignoreCase = true)) add("-Xdock:name=JetWhale")

@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 
 const val TEST_SCENE_WIDTH = 1280
 const val TEST_SCENE_HEIGHT = 720
@@ -23,7 +25,11 @@ const val TEST_SCENE_HEIGHT = 720
 @OptIn(InternalComposeUiApi::class)
 fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
     val platformContext = TestPlatformContext()
-    val composeScene = CanvasLayersComposeScene(platformContext = platformContext)
+    val failure = mutableStateOf<Throwable?>(null)
+    val composeScene = CanvasLayersComposeScene(
+        coroutineContext = Dispatchers.Unconfined + CoroutineExceptionHandler { _, throwable -> failure.value = throwable },
+        platformContext = platformContext,
+    )
     val isMcpCapture = mutableStateOf(false)
     composeScene.setContent {
         CompositionLocalProvider(LocalIsMcpCapture provides isMcpCapture.value) {
@@ -36,6 +42,7 @@ fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
         semanticsOwners = platformContext.semanticsOwners,
         isMcpCapture = isMcpCapture,
         pointerIcon = platformContext.pointerIcon,
+        failure = failure,
     )
 }
 

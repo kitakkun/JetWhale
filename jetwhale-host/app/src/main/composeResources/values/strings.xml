@@ -3,6 +3,16 @@
     <string name="version_format">Version %1$s</string>
     <string name="update_banner_message">New version %1$s is available</string>
     <string name="update_banner_open_settings">View in Settings</string>
+    <string name="unclean_exit_banner_message">JetWhale quit unexpectedly last time</string>
+    <string name="unclean_exit_banner_message_with_plugin">JetWhale quit unexpectedly last time, likely in %1$s</string>
+    <string name="unclean_exit_banner_open_crash_log">Open crash log</string>
+    <string name="unclean_exit_banner_open_logs">Open logs folder</string>
+    <string name="unclean_exit_banner_copy_crash_log_path">Copy crash log path</string>
+    <string name="unclean_exit_banner_copy_logs_path">Copy logs folder path</string>
+    <string name="unclean_exit_banner_disable_plugin">Disable %1$s</string>
+    <string name="safe_mode_banner_requested">Safe mode: plugins are not loaded (--safe-mode)</string>
+    <string name="safe_mode_banner_startup_crashes">Safe mode: JetWhale quit twice while starting, so plugins are not loaded</string>
+    <string name="safe_mode_banner_load_plugins">Load plugins</string>
     <string name="developed_by">Developed by kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSS Licenses</string>
@@ -67,6 +77,7 @@
     <string name="expand_sidebar">Expand sidebar</string>
     <string name="settings">Settings</string>
     <string name="info">About JetWhale</string>
+    <string name="plugin_failed">Error</string>
     <string name="plugin_actions">Plugin actions</string>
     <string name="mcp_tools_search_clear">Clear search</string>
     <string name="no_app_connected">Connect an app to see its plugins.</string>

@@ -3,6 +3,16 @@
     <string name="version_format">バージョン %1$s</string>
     <string name="update_banner_message">新しいバージョン %1$s が利用可能です</string>
     <string name="update_banner_open_settings">設定で確認</string>
+    <string name="unclean_exit_banner_message">前回 JetWhale が予期せず終了しました</string>
+    <string name="unclean_exit_banner_message_with_plugin">前回 JetWhale が予期せず終了しました（%1$s が原因の可能性があります）</string>
+    <string name="unclean_exit_banner_open_crash_log">crash log を開く</string>
+    <string name="unclean_exit_banner_open_logs">ログフォルダを開く</string>
+    <string name="unclean_exit_banner_copy_crash_log_path">crash log のパスをコピー</string>
+    <string name="unclean_exit_banner_copy_logs_path">ログフォルダのパスをコピー</string>
+    <string name="unclean_exit_banner_disable_plugin">%1$s を無効化</string>
+    <string name="safe_mode_banner_requested">Safe mode: プラグインを読み込んでいません (--safe-mode)</string>
+    <string name="safe_mode_banner_startup_crashes">Safe mode: 起動中に 2 回続けて終了したため、プラグインを読み込んでいません</string>
+    <string name="safe_mode_banner_load_plugins">プラグインを読み込む</string>
     <string name="developed_by">開発者: kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSSライセンス</string>
@@ -67,6 +77,7 @@
     <string name="expand_sidebar">サイドバーを展開</string>
     <string name="settings">設定</string>
     <string name="info">JetWhale について</string>
+    <string name="plugin_failed">エラー</string>
     <string name="plugin_actions">プラグインの操作</string>
     <string name="mcp_tools_search_clear">検索をクリア</string>
     <string name="no_app_connected">アプリを接続すると、そのプラグインが表示されます。</string>

@@ -18,9 +18,14 @@ import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 /**
  * Whether a plugin renders a UI is only knowable from the instantiated plugin, so the service that
@@ -75,6 +80,47 @@ class DefaultPluginInstanceServiceHeadlessTest {
         assertNotNull(service.getPluginInstanceForSession(pluginId, HostSession.ID))
     }
 
+    @Test
+    fun `an exception a plugin coroutine lets escape is recorded against the plugin`() = runBlocking {
+        val service = serviceWith { ThrowingCoroutinePlugin() }
+
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        val failure = withTimeout(TIMEOUT_MILLIS) {
+            service.pluginFailuresFlow.first { it.latestFor(sessionId, pluginId) != null }.latestFor(sessionId, pluginId)
+        }
+        assertEquals("java.lang.IllegalStateException: coroutine boom", failure?.message)
+    }
+
+    @Test
+    fun `an exception a host session plugin lets escape is recorded against the host session`() = runBlocking {
+        val service = serviceWith { ThrowingCoroutinePlugin() }
+
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
+
+        val failure = withTimeout(TIMEOUT_MILLIS) {
+            service.pluginFailuresFlow.first { it.latestFor(HostSession.ID, pluginId) != null }.latestFor(HostSession.ID, pluginId)
+        }
+        assertEquals("java.lang.IllegalStateException: coroutine boom", failure?.message)
+    }
+
+    @Test
+    fun `unloading a plugin forgets its recorded failure`() = runBlocking {
+        val service = serviceWith { ThrowingCoroutinePlugin() }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+        withTimeout(TIMEOUT_MILLIS) { service.pluginFailuresFlow.first { it.latestFor(sessionId, pluginId) != null } }
+
+        service.unloadPluginInstancesForPlugin(pluginId)
+
+        assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId))
+    }
+
+    private class ThrowingCoroutinePlugin : JetWhaleHostPlugin() {
+        override fun onCreate() {
+            pluginScope.launch { error("coroutine boom") }
+        }
+    }
+
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(
         pluginFactoryRepository = FakePluginFactoryRepository(
             LoadedHostPlugin(
@@ -111,5 +157,9 @@ class DefaultPluginInstanceServiceHeadlessTest {
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
         override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+    }
+
+    private companion object {
+        const val TIMEOUT_MILLIS = 5_000L
     }
 }

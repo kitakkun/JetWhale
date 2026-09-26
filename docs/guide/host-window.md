@@ -69,6 +69,19 @@ If no plugins are installed at all, the sidebar says so and — when some jars f
 shortcut to the plugin settings screen. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for installing them.
 
+### Failed plugins
+
+When a plugin lets an exception escape from its own coroutines, the host keeps running, logs the
+exception with the plugin id and session, and marks the plugin's row with an **Error** tag (a red dot
+in the collapsed rail). Hover the tag to read the exception. The mark stays until the plugin's
+instance goes away — disable and re-enable the plugin, or reconnect the session.
+
+A plugin whose UI throws while composing, drawing or handling input shows an error placeholder in
+place of its screen, with a **Reload** button that builds the screen again. The rest of the window,
+and every other plugin, keeps working. An exception thrown by one of the plugin's
+[MCP tools](/guide/mcp-server#plugin-provided-tools) comes back to the agent as an error naming the
+plugin instead of failing the call.
+
 ### MCP badges
 
 A plugin that contributes [MCP tools](/guide/mcp-server#plugin-provided-tools) carries an **MCP**
@@ -109,3 +122,34 @@ stdout/stderr in a separate window: filter by substring, toggle auto-scroll, and
 This is the **host's** log, not the debugged app's — it is where a plugin jar that failed to load,
 or a server that failed to bind, reports itself. The same buffer backs the `jetwhale.getLogs` and
 `jetwhale.clearLogs` [MCP tools](/guide/mcp-server#host-tools).
+
+## Crashes and safe mode
+
+A plugin runs inside the host's process, so the host catches what the JVM lets it catch — see
+[Failed plugins](#failed-plugins) — but a crash in native code (a plugin drawing into a bitmap that
+Skia has already freed, say) ends the process outright. The host leaves a note for itself when it
+starts and removes it when it shuts down, so the next launch knows the previous one did not finish.
+
+That launch opens with a banner: *JetWhale quit unexpectedly last time*. From it you can:
+
+- **Open crash log** — the JVM's `hs_err_pid<pid>.log` for that process, when it wrote one.
+- **Open logs folder** — `~/.jetwhale/logs/`, which holds the crash logs and `host.log`, the host's
+  own log (`INFO` and above, rotated at 10 MB, three files kept).
+- **Disable \<plugin\>** — offered when the crashing thread was running a plugin's code. The host
+  reads the Java frames of the crash log and names the plugin whose factory's package they belong to, as long as no other plugin shares that package.
+
+Crash logs are written to `~/.jetwhale/logs/` by the packaged app and by `runJetWhale` /
+`runJetWhaleHot` (into the sandbox's `logs/`). A JVM started some other way writes it to its working
+directory or the temp directory; the host looks there too.
+
+If the host quits twice in a row within 30 seconds of starting, the third launch comes up in
+**safe mode**: plugins are listed but no plugin instance is created, and a banner says so. Choose
+**Load plugins** in the banner to leave safe mode for the rest of that run — after disabling the
+plugin you suspect, for instance. Start with `--safe-mode` (see
+[Command-line options](/guide/host-settings#other-options)) to get the same thing on purpose.
+
+::: info Out-of-process plugins
+A plugin that crashes the JVM still takes the host with it: these measures make the crash visible
+and recoverable, not impossible. Running each plugin in a process of its own would contain it, and
+is possible future work.
+:::

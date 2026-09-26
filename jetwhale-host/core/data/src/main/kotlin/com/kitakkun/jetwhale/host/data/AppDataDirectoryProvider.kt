@@ -68,6 +68,15 @@ class AppDataDirectoryProvider(
      */
     fun getTrustRegistryFile(): File = File(appDataDir, "trusted-plugins.json")
 
+    /** Where each running host keeps its marker; one left behind by a dead process means that run did not end cleanly. */
+    fun getRunMarkerDirectory(): File = File(appDataDir, "run-markers")
+
+    /**
+     * Where the host's own logs go, and where the launch tasks point the JVM's fatal error log
+     * (`-XX:ErrorFile`), so both are found in one place after a crash.
+     */
+    fun getLogsDirectory(): File = File(appDataDir, "logs")
+
     /**
      * Resolves the directory that stores TLS material (server keystores, CA certificates, metadata)
      * for secure WebSocket (wss) connections, creating it if necessary.

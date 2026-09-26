@@ -6,7 +6,14 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import dev.mokkery.answering.returns
+import dev.mokkery.every
 import dev.mokkery.mock
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
 import kotlin.test.Test
@@ -89,6 +96,20 @@ class McpToolRegistryTest {
     }
 
     @Test
+    fun `a plugin command that throws answers with an error naming the plugin`() = runBlocking {
+        val plugin = ThrowingToolPlugin()
+        val registry = McpToolRegistry(
+            mock<PluginInstanceService> { every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin },
+        )
+        registry.register("com.example.a", "session-1", plugin)
+
+        val result = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.boom", mapOf("sessionId" to JsonPrimitive("session-1"))))).jsonObject
+
+        assertEquals("com.example.a", result.getValue("pluginId").jsonPrimitive.content)
+        assertEquals("the plugin's tool failed: java.lang.IllegalStateException: command boom", result.getValue("error").jsonPrimitive.content)
+    }
+
+    @Test
     fun `pluginIdFor resolves the owner of a tool for a session`() {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
@@ -110,6 +131,19 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
             override suspend fun execute(arguments: JetWhaleMcpArguments): String = "ok"
         }
     }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class ThrowingToolPlugin :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "a.boom"
+            override val description = "Throws"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = error("command boom")
+        },
+    )
 }
 
 private const val ROUNDS = 200

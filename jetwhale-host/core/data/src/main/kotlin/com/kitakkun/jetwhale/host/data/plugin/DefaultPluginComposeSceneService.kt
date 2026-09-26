@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
+import com.kitakkun.jetwhale.host.model.isComposeSceneClosed
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
@@ -29,6 +30,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -71,14 +73,22 @@ class DefaultPluginComposeSceneService(
         return withContext(Dispatchers.Main) {
             val sceneKey = SceneKey(pluginId, sessionId)
             val cached = pluginScenes[sceneKey]
-            if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
+            if (cached != null && cached.pluginInstance === pluginInstance && cached.scene.failure.value == null) return@withContext cached.scene
             // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
-            // scene still composing the previous one would keep rendering discarded code.
+            // scene still composing the previous one would keep rendering discarded code. A scene whose
+            // plugin UI threw is left in whatever state the throw interrupted, so it is replaced too.
             cached?.scene?.composeScene?.close()
 
             val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+            val failure = mutableStateOf<Throwable?>(null)
             val composeScene = CanvasLayersComposeScene(
                 density = hostDensity,
+                // Recomposition runs in this context rather than inside render(), so an exception the
+                // plugin throws while recomposing arrives here; without a handler it would reach the
+                // thread's uncaught-exception handler and leave the plugin UI silently frozen.
+                coroutineContext = Dispatchers.Unconfined + CoroutineExceptionHandler { _, throwable ->
+                    if (!throwable.isComposeSceneClosed()) failure.value = throwable
+                },
                 platformContext = windowUpdatableContext,
             )
             val isMcpCapture = mutableStateOf(false)
@@ -103,6 +113,7 @@ class DefaultPluginComposeSceneService(
                 semanticsOwners = windowUpdatableContext.semanticsOwners,
                 isMcpCapture = isMcpCapture,
                 pointerIcon = windowUpdatableContext.pointerIcon,
+                failure = failure,
             )
             pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
             scene

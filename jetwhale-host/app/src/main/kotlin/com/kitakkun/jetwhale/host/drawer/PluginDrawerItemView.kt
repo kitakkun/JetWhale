@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.plugin_actions
+import com.kitakkun.jetwhale.host.plugin_failed
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
@@ -30,6 +31,7 @@ import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -56,6 +58,7 @@ fun PluginDrawerItemView(
     selected: Boolean,
     underAiControl: Boolean,
     exposesMcpTools: Boolean,
+    failureMessage: String?,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
@@ -83,6 +86,15 @@ fun PluginDrawerItemView(
                 )
             },
             trailingContent = {
+                failureMessage?.let {
+                    JwTooltip(text = failureMessage) {
+                        JwTag(
+                            text = stringResource(Res.string.plugin_failed),
+                            tone = JwTone.Error,
+                            style = JwTagStyle.Filled,
+                        )
+                    }
+                }
                 if (exposesMcpTools) {
                     McpBadge(
                         operating = underAiControl,
@@ -158,6 +170,7 @@ private fun PluginDrawerItemViewPreview() {
         selected = true,
         underAiControl = true,
         exposesMcpTools = true,
+        failureMessage = "java.lang.IllegalStateException: boom",
         activeIconResource = null,
         inactiveIconResource = null,
         onClick = {},

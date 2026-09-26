@@ -9,20 +9,27 @@ import com.kitakkun.jetwhale.host.headless.HeadlessHostRunner
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.CrashRecoveryService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.DismissUncleanExitReportMutationKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FollowAiOperationService
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
+import com.kitakkun.jetwhale.host.model.LeaveSafeModeMutationKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.model.SafeModeRequest
+import com.kitakkun.jetwhale.host.model.SafeModeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
+import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
+import com.kitakkun.jetwhale.host.model.UncleanExitReportSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
@@ -67,6 +74,12 @@ interface JetWhaleAppGraph : ScreenContext {
     val enabledPluginsRepository: EnabledPluginsRepository
     val debuggerSettingsRepository: DebuggerSettingsRepository
     val updateCheckMutationKey: UpdateCheckMutationKey
+    val crashRecoveryService: CrashRecoveryService
+    val uncleanExitReportSubscriptionKey: UncleanExitReportSubscriptionKey
+    val dismissUncleanExitReportMutationKey: DismissUncleanExitReportMutationKey
+    val safeModeSubscriptionKey: SafeModeSubscriptionKey
+    val leaveSafeModeMutationKey: LeaveSafeModeMutationKey
+    val setPluginEnabledMutationKey: SetPluginEnabledMutationKey
     val windowStateRepository: WindowStateRepository
 
     @DependencyGraph.Factory
@@ -77,6 +90,7 @@ interface JetWhaleAppGraph : ScreenContext {
             @Provides serverPortOverrides: ServerPortOverrides,
             @Provides mcpPermissionOverride: McpPermissionOverride,
             @Provides additionalPluginDirectories: AdditionalPluginDirectories,
+            @Provides safeModeRequest: SafeModeRequest,
         ): JetWhaleAppGraph
     }
 
