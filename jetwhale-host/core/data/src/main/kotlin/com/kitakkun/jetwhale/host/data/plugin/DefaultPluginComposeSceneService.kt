@@ -61,50 +61,50 @@ class DefaultPluginComposeSceneService(
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-    ): PluginComposeScene? {
+    ): PluginComposeScene? = withContext(Dispatchers.Main) {
         val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
-        ) ?: return null
-        return withContext(Dispatchers.Main) {
-            val sceneKey = SceneKey(pluginId, sessionId)
-            val cached = pluginScenes[sceneKey]
-            if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
-            // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
-            // scene still composing the previous one would keep rendering discarded code.
-            cached?.scene?.composeScene?.close()
+        ) ?: return@withContext null
+        val sceneKey = SceneKey(pluginId, sessionId)
+        val cached = pluginScenes[sceneKey]
+        if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
+        // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
+        // scene still composing the previous one would keep rendering discarded code.
+        cached?.scene?.composeScene?.close()
 
-            val windowUpdatableContext = DynamicWindowInfoPlatformContext()
-            val composeScene = CanvasLayersComposeScene(
-                density = hostDensity,
-                platformContext = windowUpdatableContext,
-            )
-            val isMcpCapture = mutableStateOf(false)
+        val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+        val composeScene = CanvasLayersComposeScene(
+            density = hostDensity,
+            platformContext = windowUpdatableContext,
+        )
+        val isMcpCapture = mutableStateOf(false)
 
-            composeScene.setContent {
-                // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
-                CompositionLocalProvider(
-                    LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
-                    LocalIsMcpCapture provides isMcpCapture.value,
-                ) {
-                    pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
-                        val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
-                        ui.Content()
-                    }
+        composeScene.setContent {
+            // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
+            CompositionLocalProvider(
+                LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
+                LocalIsMcpCapture provides isMcpCapture.value,
+            ) {
+                pluginBridgeProvider.PluginEntryPoint {
+                    // Headless plugins (not a JetWhaleHostPluginUi) render no content.
+                    val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
+                    ui.Content()
                 }
             }
-
-            val scene = PluginComposeScene(
-                composeScene = composeScene,
-                windowInfoUpdater = windowUpdatableContext,
-                semanticsOwners = windowUpdatableContext.semanticsOwners,
-                isMcpCapture = isMcpCapture,
-                pointerIcon = windowUpdatableContext.pointerIcon,
-            )
-            pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
-            scene
         }
+
+        val scene = PluginComposeScene(
+            composeScene = composeScene,
+            windowInfoUpdater = windowUpdatableContext,
+            semanticsOwners = windowUpdatableContext.semanticsOwners,
+            isMcpCapture = isMcpCapture,
+            pointerIcon = windowUpdatableContext.pointerIcon,
+        )
+        pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
+        // Instances are replaced off the main thread, so one can land while this scene is being
+        // composed. Answering null makes the caller ask again and get the replacement's scene.
+        scene.takeIf { pluginInstanceService.getPluginInstanceForSession(pluginId = sceneKey.pluginId, sessionId = sceneKey.sessionId) === pluginInstance }
     }
 
     override fun disposePluginSceneForSession(sessionId: String) {
