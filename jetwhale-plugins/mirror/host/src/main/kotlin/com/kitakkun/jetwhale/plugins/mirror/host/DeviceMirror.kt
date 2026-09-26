@@ -122,6 +122,10 @@ internal class DeviceMirror(
     var recordingDeviceId: String? by mutableStateOf(null)
         private set
 
+    /** When the running recording started, in epoch milliseconds; null while none runs. */
+    var recordingStartedAtMillis: Long? by mutableStateOf(null)
+        private set
+
     /** The mirrored device's screen state, for a device whose [DeviceCapabilities.screenPower] is true. */
     var screenPower: ScreenPower? by mutableStateOf(null)
         private set
@@ -408,8 +412,10 @@ internal class DeviceMirror(
             file.delete()
             throw e
         }
-        recording = ActiveRecording(device, handle, file, Instant.now())
+        val startedAt = Instant.now()
+        recording = ActiveRecording(device, handle, file, startedAt)
         recordingDeviceId = device.id
+        recordingStartedAtMillis = startedAt.toEpochMilli()
     }
 
     override suspend fun stopRecording(): Capture = recordings.withLock { stopRunningRecording() }
@@ -418,6 +424,7 @@ internal class DeviceMirror(
         val running = recording ?: throw deviceControlError("no recording is running")
         recording = null
         recordingDeviceId = null
+        recordingStartedAtMillis = null
         val file = running.handle.stop()
         val size = try {
             running.device.controller.screenSize()

@@ -49,7 +49,9 @@ When a tool is missing, the device list says which one and what it would enable.
   its stream reconnects. The last frames of the four devices shown most recently are kept.
 - **Hardware buttons.** Icon buttons in the toolbar, with the name in a tooltip, in groups
   (navigation, volume, screen power, captures) that wrap to another line as a whole in a narrow
-  window, so every button stays visible. Android has Home,
+  window, so every button stays visible. Record, Screenshot and Captures are icons at the right
+  end; while a recording runs, Record turns into a red counter of the time recorded, and clicking
+  it stops the recording. Android has Home,
   Back, Recent apps, Power, Volume up and Volume down; a simulator has Home, Recent apps (two
   quick presses of Home, which open its app switcher) and Power, and shows its volume buttons
   disabled because idb cannot press them.
