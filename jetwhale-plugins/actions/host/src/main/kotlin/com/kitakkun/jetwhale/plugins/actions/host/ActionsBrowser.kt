@@ -29,6 +29,7 @@ internal enum class RunOrigin { USER, AI_AGENT }
 /**
  * One run in the history.
  *
+ * @property startedAtMillis when the run started, in epoch milliseconds.
  * @property result null while the run is still going.
  */
 internal data class RunRecord(
@@ -37,8 +38,17 @@ internal data class RunRecord(
     val title: String,
     val arguments: JsonObject,
     val origin: RunOrigin,
+    val startedAtMillis: Long,
     val result: ActionResult?,
 )
+
+internal enum class ActionsTab { ACTIONS, HISTORY }
+
+/**
+ * Arguments to start [actionId]'s form from, taken from an earlier run. Compared by identity, so
+ * picking the same run again resets the form even when the arguments are unchanged.
+ */
+internal class FormPrefill(val actionId: String, val arguments: JsonObject)
 
 /** What the UI does with the actions. */
 internal interface ActionsScreenActions {
@@ -50,6 +60,13 @@ internal interface ActionsScreenActions {
     fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean)
 
     fun cancel(runId: String)
+
+    fun showTab(tab: ActionsTab)
+
+    fun selectRun(runId: String)
+
+    /** Opens the run's action on the Actions tab with its form filled from the run's arguments. */
+    fun runAgain(runId: String)
 }
 
 /**
@@ -66,6 +83,16 @@ internal class ActionsBrowser(
         private set
 
     var selectedId: String? by mutableStateOf(null)
+        private set
+
+    var tab: ActionsTab by mutableStateOf(ActionsTab.ACTIONS)
+        private set
+
+    var selectedRunId: String? by mutableStateOf(null)
+        private set
+
+    /** Set by [runAgain]; dropped once the form is run or another action is selected. */
+    var prefill: FormPrefill? by mutableStateOf(null)
         private set
 
     /** Newest first. */
@@ -104,12 +131,14 @@ internal class ActionsBrowser(
     }
 
     override fun select(actionId: String) {
+        if (prefill?.actionId != actionId) prefill = null
         selectedId = actionId
         val action = catalog?.actions?.firstOrNull { it.id == actionId } ?: return
         launchReporting { loadOptions(action) }
     }
 
     override fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) = launchReporting {
+        prefill = null
         val result = runNow(actionId, arguments, RunOrigin.USER, confirmedDestructive)
         val title = catalog?.actions?.firstOrNull { it.id == actionId }?.title ?: actionId
         status = when (result.outcome) {
@@ -122,11 +151,26 @@ internal class ActionsBrowser(
         client.cancel(runId)
     }
 
+    override fun showTab(tab: ActionsTab) {
+        this.tab = tab
+    }
+
+    override fun selectRun(runId: String) {
+        selectedRunId = runId
+    }
+
+    override fun runAgain(runId: String) {
+        val record = runs.firstOrNull { it.runId == runId } ?: return
+        select(record.actionId)
+        prefill = FormPrefill(record.actionId, record.arguments)
+        tab = ActionsTab.ACTIONS
+    }
+
     /** Runs the action and records the run in [history]; the MCP command waits on it directly. */
     suspend fun runNow(actionId: String, arguments: JsonObject, origin: RunOrigin, confirmedDestructive: Boolean): ActionResult {
         val runId = UUID.randomUUID().toString()
         val title = catalog?.actions?.firstOrNull { it.id == actionId }?.title ?: actionId
-        runs.add(0, RunRecord(runId = runId, actionId = actionId, title = title, arguments = arguments, origin = origin, result = null))
+        runs.add(0, RunRecord(runId = runId, actionId = actionId, title = title, arguments = arguments, origin = origin, startedAtMillis = System.currentTimeMillis(), result = null))
         if (runs.size > HISTORY_LIMIT) runs.removeRange(HISTORY_LIMIT, runs.size)
         val result = try {
             client.run(runId = runId, actionId = actionId, arguments = arguments, confirmedDestructive = confirmedDestructive)

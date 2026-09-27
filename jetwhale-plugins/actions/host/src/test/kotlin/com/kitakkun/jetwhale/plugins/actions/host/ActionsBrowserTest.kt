@@ -7,6 +7,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -64,4 +66,52 @@ class ActionsBrowserTest {
 
         assertEquals(null, browser.options[signIn.id])
     }
+
+    @Test
+    fun `the history keeps only the latest hundred runs with the newest first`() {
+        runBlocking {
+            browser.load()
+            repeat(105) { index -> browser.runNow(signIn.id, emailArguments("user$index@example.com"), RunOrigin.USER, confirmedDestructive = false) }
+        }
+
+        assertEquals(100, browser.history.size)
+        assertEquals(emailArguments("user104@example.com"), browser.history.first().arguments)
+        assertEquals(emailArguments("user5@example.com"), browser.history.last().arguments)
+    }
+
+    @Test
+    fun `run again opens the action on the actions tab with the run's arguments`() {
+        val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
+        client.actions = listOf(signIn, reset)
+        runBlocking {
+            browser.load()
+            browser.runNow(signIn.id, emailArguments("qa@example.com"), RunOrigin.AI_AGENT, confirmedDestructive = false)
+        }
+        browser.select(reset.id)
+        browser.showTab(ActionsTab.HISTORY)
+
+        browser.runAgain(browser.history.single().runId)
+
+        assertEquals(ActionsTab.ACTIONS, browser.tab)
+        assertEquals(signIn.id, browser.selectedId)
+        assertEquals(signIn.id, browser.prefill?.actionId)
+        assertEquals(emailArguments("qa@example.com"), browser.prefill?.arguments)
+    }
+
+    @Test
+    fun `selecting another action drops the run again arguments`() {
+        val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
+        client.actions = listOf(signIn, reset)
+        runBlocking {
+            browser.load()
+            browser.runNow(signIn.id, emailArguments("qa@example.com"), RunOrigin.USER, confirmedDestructive = false)
+        }
+        browser.runAgain(browser.history.single().runId)
+
+        browser.select(reset.id)
+
+        assertEquals(null, browser.prefill)
+    }
+
+    private fun emailArguments(email: String) = JsonObject(mapOf("email" to JsonPrimitive(email)))
 }

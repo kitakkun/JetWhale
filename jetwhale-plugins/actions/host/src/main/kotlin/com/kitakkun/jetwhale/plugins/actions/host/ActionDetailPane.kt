@@ -32,8 +32,6 @@ import com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
-private val PrettyJson = Json { prettyPrint = true }
-
 /** How many of the action's earlier runs are listed under its latest result. */
 private const val LISTED_RUNS = 10
 
@@ -127,28 +125,13 @@ private fun ActionHeader(action: ActionDescriptor) {
 }
 
 @Composable
-private fun RunResult(result: ActionResult) {
-    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
-            JwTag(text = result.outcome.name, tone = result.outcome.tone())
-            JwText(text = "${result.durationMillis} ms", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
-        }
-        result.error?.let { JwText(text = it, color = JwTone.Error.color) }
-        result.text?.let { JwCodeBlock(text = it, wrap = true, copyLabel = "Copy result", modifier = Modifier.fillMaxWidth()) }
-        result.json?.let { JwCodeBlock(text = PrettyJson.encodeToString(it), copyLabel = "Copy result", modifier = Modifier.fillMaxWidth()) }
-        result.stackTrace?.let { JwCodeBlock(text = it, maxLines = 12, copyLabel = "Copy stack trace", modifier = Modifier.fillMaxWidth()) }
-    }
-}
-
-@Composable
 private fun RunHistory(runs: List<RunRecord>) {
     Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
         JwSectionHeader(title = "Runs", count = runs.size, contentPadding = PaddingValues())
         runs.forEach { run ->
             Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
-                val result = run.result
-                JwTag(text = result?.outcome?.name ?: "RUNNING", tone = result?.outcome?.tone() ?: JwTone.Info)
-                JwText(text = if (run.origin == RunOrigin.AI_AGENT) "AI agent" else "You", style = JwTheme.textStyles.labelSmall)
+                run.StatusTag()
+                JwText(text = run.originLabel(), style = JwTheme.textStyles.labelSmall)
                 JwText(
                     text = run.arguments.takeIf { it.isNotEmpty() }?.toString() ?: "no arguments",
                     style = JwTheme.textStyles.code,
@@ -156,14 +139,8 @@ private fun RunHistory(runs: List<RunRecord>) {
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
-                result?.let { JwText(text = "${it.durationMillis} ms", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary) }
+                run.result?.let { JwText(text = "${it.durationMillis} ms", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary) }
             }
         }
     }
-}
-
-private fun ActionOutcome.tone(): JwTone = when (this) {
-    ActionOutcome.SUCCESS -> JwTone.Success
-    ActionOutcome.FAILURE -> JwTone.Error
-    ActionOutcome.TIMEOUT, ActionOutcome.CANCELLED -> JwTone.Warning
 }

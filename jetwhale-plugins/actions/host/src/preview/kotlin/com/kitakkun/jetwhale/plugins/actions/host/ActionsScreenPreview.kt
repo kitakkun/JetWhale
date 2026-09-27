@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.actions.host
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
@@ -54,7 +55,28 @@ private val finishedRun = RunRecord(
     title = loginAs.title,
     arguments = JsonObject(mapOf("email" to JsonPrimitive("qa@example.com"))),
     origin = RunOrigin.AI_AGENT,
+    startedAtMillis = 1_767_225_600_000,
     result = ActionResult(ActionOutcome.SUCCESS, text = "Signed in as user 42", json = null, error = null, stackTrace = null, durationMillis = 180),
+)
+
+private val failedRun = RunRecord(
+    runId = "2",
+    actionId = wipe.id,
+    title = wipe.title,
+    arguments = JsonObject(emptyMap()),
+    origin = RunOrigin.USER,
+    startedAtMillis = 1_767_225_660_000,
+    result = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "IllegalStateException: the database is open", stackTrace = null, durationMillis = 12),
+)
+
+private val runningRun = RunRecord(
+    runId = "3",
+    actionId = loginAs.id,
+    title = loginAs.title,
+    arguments = JsonObject(mapOf("email" to JsonPrimitive("pro@example.com"))),
+    origin = RunOrigin.USER,
+    startedAtMillis = 1_767_225_720_000,
+    result = null,
 )
 
 private object NoActions : ActionsScreenActions {
@@ -65,6 +87,12 @@ private object NoActions : ActionsScreenActions {
     override fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) = Unit
 
     override fun cancel(runId: String) = Unit
+
+    override fun showTab(tab: ActionsTab) = Unit
+
+    override fun selectRun(runId: String) = Unit
+
+    override fun runAgain(runId: String) = Unit
 }
 
 @Preview
@@ -74,7 +102,10 @@ private fun ActionsScreenPreview() {
         ActionsScreen(
             catalog = ActionCatalog(listOf(loginAs, wipe, fillCard)),
             selectedAction = loginAs,
+            tab = ActionsTab.ACTIONS,
             history = listOf(finishedRun),
+            selectedRunId = null,
+            prefill = null,
             options = mapOf(loginAs.id to mapOf("email" to listOf("qa@example.com", "pro@example.com"))),
             status = ActionsStatus(message = "Log in as finished in 180 ms.", isError = false),
             query = "",
@@ -95,7 +126,10 @@ private fun ActionsScreenEmptyPreview() {
         ActionsScreen(
             catalog = ActionCatalog(emptyList()),
             selectedAction = null,
+            tab = ActionsTab.ACTIONS,
             history = emptyList(),
+            selectedRunId = null,
+            prefill = null,
             options = emptyMap(),
             status = null,
             query = "",
@@ -138,6 +172,49 @@ private fun ActionDetailPanePreview() {
             onRun = { _, _ -> },
             onCancel = {},
         )
+    }
+}
+
+@Preview
+@Composable
+private fun ActionsScreenHistoryPreview() {
+    JwTheme(darkTheme = false) {
+        ActionsScreen(
+            catalog = ActionCatalog(listOf(loginAs, wipe, fillCard)),
+            selectedAction = loginAs,
+            tab = ActionsTab.HISTORY,
+            history = listOf(runningRun, failedRun, finishedRun),
+            selectedRunId = finishedRun.runId,
+            prefill = null,
+            options = emptyMap(),
+            status = null,
+            query = "",
+            pinnedIds = emptySet(),
+            rememberedArguments = emptyMap(),
+            actions = NoActions,
+            onQueryChange = {},
+            onTogglePin = {},
+            onRun = { _, _, _ -> },
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun RunResultPreview() {
+    JwTheme(darkTheme = false) {
+        Column {
+            runningRun.StatusTag()
+            failedRun.result?.let { RunResult(it) }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RunHistoryPaneEmptyPreview() {
+    JwTheme(darkTheme = true) {
+        RunHistoryPane(runs = emptyList(), selectedRunId = null, onSelect = {}, onRunAgain = {})
     }
 }
 
