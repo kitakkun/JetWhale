@@ -26,6 +26,7 @@ import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -74,13 +75,25 @@ class DefaultPluginInstanceServiceScreenStateTest {
     }
 
     @Test
-    fun `a plugin whose creation throws shows the failure`() = runBlocking<Unit> {
+    fun `a plugin whose creation throws shows that it failed to start`() = runBlocking<Unit> {
         val service = serviceWith(factoryOf { error("factory broke") })
 
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
-        val failed = assertIs<PluginScreenState.Failed>(service.pluginScreenStateFlow(pluginId, sessionId).first())
+        val failed = assertIs<PluginScreenState.FailedToStart>(service.pluginScreenStateFlow(pluginId, sessionId).first())
         assertEquals("factory broke", failed.cause.message)
+    }
+
+    @Test
+    fun `a later successful creation replaces a failed start`() = runBlocking<Unit> {
+        val repository = FakePluginFactoryRepository(loadedPlugin(factoryOf { error("factory broke") }))
+        val service = serviceWith(repository)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        repository.loaded = loadedPlugin(factoryOf { UiPlugin() })
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        awaitReady(service.pluginScreenStateFlow(pluginId, sessionId))
     }
 
     @Test
@@ -155,10 +168,25 @@ class DefaultPluginInstanceServiceScreenStateTest {
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
         sceneFactory.failNext = IllegalStateException("content broke")
 
-        val failed = assertIs<PluginScreenState.Failed>(service.pluginScreenStateFlow(pluginId, sessionId).first())
+        val failed = assertIs<PluginScreenState.ContentFailed>(service.pluginScreenStateFlow(pluginId, sessionId).first())
 
         assertEquals("content broke", failed.cause.message)
         assertIs<PluginScreenState.Ready>(service.pluginScreenStateFlow(pluginId, sessionId).first())
+    }
+
+    @Test
+    fun `a screen whose content failed shows the scene an MCP tool composes later`() = runBlocking<Unit> {
+        val service = serviceWith(factoryOf { UiPlugin() })
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+        sceneFactory.failNext = IllegalStateException("content broke")
+        val states = Channel<PluginScreenState>(Channel.UNLIMITED)
+        val collecting = launch { service.pluginScreenStateFlow(pluginId, sessionId).collect(states::send) }
+        assertIs<PluginScreenState.ContentFailed>(withTimeout(TIMEOUT_MILLIS) { states.receive() })
+
+        val scene = service.getOrCreatePluginScene(pluginId, sessionId)
+
+        assertSame(scene, assertIs<PluginScreenState.Ready>(withTimeout(TIMEOUT_MILLIS) { states.receive() }).scene)
+        collecting.cancel()
     }
 
     @Test

@@ -43,6 +43,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -79,23 +81,35 @@ private class LoadedInstance(
 
 /**
  * The scene of one instance, created on first use and closed when the instance goes, so a scene
- * never outlives the instance it composes. Used on the main thread only, where scenes live.
+ * never outlives the instance it composes. Created and closed on the main thread, where scenes live.
  */
 @OptIn(InternalComposeUiApi::class)
 private class PluginSceneSlot(private val createScene: () -> PluginComposeScene) {
-    private var scene: PluginComposeScene? = null
+    private val scene = MutableStateFlow<PluginComposeScene?>(null)
     private var closed = false
+
+    /**
+     * Ready once the scene exists. A slot that is closed by the time the main thread reaches it
+     * belongs to an instance that is already gone, and the publication that removed it brings the
+     * state that follows.
+     */
+    val screenState: Flow<PluginScreenState> = flow<PluginScreenState> {
+        withContext(Dispatchers.Main) { getOrCreate() }?.let { emit(PluginScreenState.Ready(it)) }
+    }.catch { cause ->
+        emit(PluginScreenState.ContentFailed(cause))
+        emit(PluginScreenState.Ready(scene.filterNotNull().first()))
+    }
 
     /** Null once closed: the instance is gone or reloaded, and its successor has a slot of its own. */
     fun getOrCreate(): PluginComposeScene? {
         if (closed) return null
-        return scene ?: createScene().also { scene = it }
+        return scene.value ?: createScene().also { scene.value = it }
     }
 
     fun close() {
         closed = true
-        scene?.composeScene?.close()
-        scene = null
+        scene.value?.composeScene?.close()
+        scene.value = null
     }
 }
 
@@ -149,17 +163,10 @@ class DefaultPluginInstanceService(
         .flatMapLatest { published ->
             when (published) {
                 null -> flowOf(PluginScreenState.Starting)
-                is PublishedInstance.Failed -> flowOf(PluginScreenState.Failed(published.cause))
-                is PublishedInstance.Running -> published.sceneSlot?.let(::readyState) ?: flowOf(PluginScreenState.Headless)
+                is PublishedInstance.Failed -> flowOf(PluginScreenState.FailedToStart(published.cause))
+                is PublishedInstance.Running -> published.sceneSlot?.screenState ?: flowOf(PluginScreenState.Headless)
             }
         }
-
-    // A slot that is closed by the time the main thread reaches it belongs to an instance that is
-    // already gone; the publication that removed it brings the state that follows. Content that
-    // throws while the scene is first composed fails the screen, not the flow, so a retry can run it again.
-    private fun readyState(sceneSlot: PluginSceneSlot): Flow<PluginScreenState> = flow<PluginScreenState> {
-        withContext(Dispatchers.Main) { sceneSlot.getOrCreate() }?.let { emit(PluginScreenState.Ready(it)) }
-    }.catch { cause -> emit(PluginScreenState.Failed(cause)) }
 
     @OptIn(InternalComposeUiApi::class)
     override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? {
@@ -168,8 +175,13 @@ class DefaultPluginInstanceService(
     }
 
     override fun recreatePluginScenes(pluginId: String) {
-        val replacedSlots = loadedPlugins.filterKeys { it.pluginId == pluginId }.values.mapNotNull { instance ->
-            instance.sceneSlot?.also { instance.sceneSlot = sceneSlotFor(instance.plugin) }
+        val replacedSlots = loadedPlugins.filterKeys { it.pluginId == pluginId }.mapNotNull { (key, instance) ->
+            val replacedSlot = instance.sceneSlot ?: return@mapNotNull null
+            val newSlot = sceneSlotFor(instance.plugin) ?: return@mapNotNull null
+            instance.sceneSlot = newSlot
+            // Disposed meanwhile, its disposal may have closed the slot it saw before this one.
+            if (loadedPlugins[key] !== instance) closeOnMainThread(newSlot)
+            replacedSlot
         }
         publishInstances()
         replacedSlots.forEach(::closeOnMainThread)

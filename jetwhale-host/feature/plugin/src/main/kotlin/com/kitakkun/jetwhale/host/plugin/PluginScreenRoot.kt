@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,48 +37,44 @@ import soil.query.compose.rememberSubscription
 @Composable
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
-    var reset by remember { mutableStateOf(false) }
     var reloadCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(screenContext) {
-        screenContext.pluginReloadedFlow.collect {
-            reset = !reset
-            reloadCount++
-        }
+        screenContext.pluginReloadedFlow.collect { reloadCount++ }
     }
 
     Box(Modifier.fillMaxSize()) {
-        key(reset) {
-            val screenState = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
-            val coroutineScope = rememberCoroutineScope()
-            SoilDataBoundary(
-                state = screenState,
-                fallback = SoilFallbackDefaults.custom(
-                    suspenseFallback = { PluginStartingScreen() },
-                    errorFallback = {
-                        PluginScreenErrorFallback(
-                            pluginId = screenContext.pluginId,
-                            errorBoundaryContext = it,
-                            onClickReset = { reset = !reset },
-                        )
-                    },
-                ),
-            ) { state ->
-                when (state) {
-                    PluginScreenState.Starting -> PluginStartingScreen()
+        val screenState = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
+        val coroutineScope = rememberCoroutineScope()
+        // The state flow reports failures as states, so the error fallback is only the boundary's
+        // required default.
+        SoilDataBoundary(
+            state = screenState,
+            fallback = SoilFallbackDefaults.custom(
+                suspenseFallback = { PluginStartingScreen() },
+                errorFallback = SoilFallbackDefaults.default().errorFallback,
+            ),
+        ) { state ->
+            when (state) {
+                PluginScreenState.Starting -> PluginStartingScreen()
 
-                    is PluginScreenState.Ready -> PluginScreen(pluginComposeScene = state.scene)
+                is PluginScreenState.Ready -> PluginScreen(pluginComposeScene = state.scene)
 
-                    PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
+                PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
 
-                    is PluginScreenState.Failed -> PluginScreenErrorFallback(
-                        pluginId = screenContext.pluginId,
-                        errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
-                        // Restarting the subscription retries a scene whose content threw while it
-                        // was first composed; a failed instance stays failed until it is recreated.
-                        onClickReset = { coroutineScope.launch { screenState.reset() } },
-                    )
-                }
+                // Nothing on this screen can make a new attempt to create the instance, so it offers none.
+                is PluginScreenState.FailedToStart -> PluginScreenErrorFallback(
+                    pluginId = screenContext.pluginId,
+                    errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
+                    onClickReset = null,
+                )
+
+                // Restarting the subscription composes the scene again.
+                is PluginScreenState.ContentFailed -> PluginScreenErrorFallback(
+                    pluginId = screenContext.pluginId,
+                    errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
+                    onClickReset = { coroutineScope.launch { screenState.reset() } },
+                )
             }
         }
 

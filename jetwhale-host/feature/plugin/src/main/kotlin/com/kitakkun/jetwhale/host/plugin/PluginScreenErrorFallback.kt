@@ -28,7 +28,7 @@ import java.awt.datatransfer.StringSelection
 fun PluginScreenErrorFallback(
     pluginId: String,
     errorBoundaryContext: ErrorBoundaryContext,
-    onClickReset: () -> Unit,
+    onClickReset: (() -> Unit)?,
 ) {
     val clipboard = LocalClipboard.current
 
@@ -65,11 +65,13 @@ fun PluginScreenErrorFallback(
                     )
                 },
             )
-            JwButton(
-                text = stringResource(Res.string.plugin_ui_crash_reload),
-                onClick = onClickReset,
-                style = JwButtonStyle.Primary,
-            )
+            if (onClickReset != null) {
+                JwButton(
+                    text = stringResource(Res.string.plugin_ui_crash_reload),
+                    onClick = onClickReset,
+                    style = JwButtonStyle.Primary,
+                )
+            }
         }
     }
 }
