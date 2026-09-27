@@ -227,13 +227,13 @@ class DefaultMcpServerServiceTest {
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 1)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
-        val testPluginId = "com.example.test"
-        val testSessionId = "test-session-xyz789"
-        val fakePlugin = FakeMcpCapablePlugin()
-        every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 
         service.start(host, port)
         try {
+            val testPluginId = "com.example.test"
+            val testSessionId = "test-session-xyz789"
+            val fakePlugin = FakeMcpCapablePlugin()
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(LoadedPluginInstance(testPluginId, testSessionId, fakePlugin, version = "1.0.0"))
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
 
             awaitCapableFor(testSessionId) { testPluginId in it }
@@ -248,13 +248,13 @@ class DefaultMcpServerServiceTest {
     fun `plugin tools are unregistered when Disposed event is received`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
-        val testPluginId = "com.example.test"
-        val testSessionId = "test-session-def456"
-        val fakePlugin = FakeMcpCapablePlugin()
-        every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 
         service.start(host, port)
         try {
+            val testPluginId = "com.example.test"
+            val testSessionId = "test-session-def456"
+            val fakePlugin = FakeMcpCapablePlugin()
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(LoadedPluginInstance(testPluginId, testSessionId, fakePlugin, version = "1.0.0"))
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
 
             awaitCapableFor(testSessionId) { testPluginId in it }
@@ -273,28 +273,51 @@ class DefaultMcpServerServiceTest {
     fun `disposing app-session instances withdraws only those sessions' tools`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 4)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
-        val appPlugin = "com.example.app"
-        val appSessions = listOf("app-session-1", "app-session-2")
-        appSessions.forEach { sessionId ->
-            every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns FakeMcpCapablePlugin(toolName = "com.example.app.greet")
-        }
-        val hostPlugin = "com.example.host"
-        every { pluginInstanceService.getPluginInstanceForSession(hostPlugin, HostSession.ID) } returns FakeMcpCapablePlugin(toolName = "com.example.host.greet")
 
         service.start(host, port)
         try {
+            val appPlugin = "com.example.app"
+            val appSessions = listOf("app-session-1", "app-session-2")
+            val hostPlugin = "com.example.host"
+            val hostInstance = LoadedPluginInstance(hostPlugin, HostSession.ID, FakeMcpCapablePlugin(toolName = "com.example.host.greet"), version = "1.0.0")
+            every { pluginInstanceService.getLoadedPluginInstances() } returns appSessions.map { sessionId ->
+                LoadedPluginInstance(appPlugin, sessionId, FakeMcpCapablePlugin(toolName = "com.example.app.greet"), version = "1.0.0")
+            } + hostInstance
             appSessions.forEach { eventFlow.emit(PluginInstanceEvent.Ready(appPlugin, it, version = "1.0.0")) }
             eventFlow.emit(PluginInstanceEvent.Ready(hostPlugin, HostSession.ID, version = "1.0.0"))
             awaitCapableFor(HostSession.ID) { hostPlugin in it }
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { appPlugin in it } }
 
-            appSessions.forEach { sessionId ->
-                every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns null
-                eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, sessionId))
-            }
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(hostInstance)
+            appSessions.forEach { sessionId -> eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, sessionId)) }
 
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { it.isEmpty() } }
             assertEquals(listOf("com.example.host.greet"), servedToolNames().filter { it.startsWith("com.example.") })
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
+    fun `a Ready for an instance already replaced by another version registers nothing`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
+
+        service.start(host, port)
+        try {
+            val testPluginId = "com.example.test"
+            val testSessionId = "test-session-replaced"
+            val otherPluginId = "com.example.other"
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+                LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin(), version = "2.0.0"),
+                LoadedPluginInstance(otherPluginId, testSessionId, FakeMcpCapablePlugin(toolName = "com.example.other.greet"), version = "1.0.0"),
+            )
+            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
+            // Handled after the stale one, so once it shows up the stale event has been handled too.
+            eventFlow.emit(PluginInstanceEvent.Ready(otherPluginId, testSessionId, version = "1.0.0"))
+
+            awaitCapableFor(testSessionId) { otherPluginId in it }
+            assertFalse(testPluginId in service.mcpCapablePluginsFlow.value.pluginIdsFor(testSessionId))
         } finally {
             service.stop()
         }
@@ -325,16 +348,16 @@ class DefaultMcpServerServiceTest {
     fun `every MCP-capable plugin in a session is reported as capable`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
-        val sessionId = "test-session-multi"
-        val pluginA = "com.example.a"
-        every { pluginInstanceService.getPluginInstanceForSession(pluginA, sessionId) } returns
-            FakeMcpCapablePlugin(toolName = "com.example.a.greet")
-        val pluginB = "com.example.b"
-        every { pluginInstanceService.getPluginInstanceForSession(pluginB, sessionId) } returns
-            FakeMcpCapablePlugin(toolName = "com.example.b.greet")
 
         service.start(host, port)
         try {
+            val sessionId = "test-session-multi"
+            val pluginA = "com.example.a"
+            val pluginB = "com.example.b"
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+                LoadedPluginInstance(pluginA, sessionId, FakeMcpCapablePlugin(toolName = "com.example.a.greet"), version = "1.0.0"),
+                LoadedPluginInstance(pluginB, sessionId, FakeMcpCapablePlugin(toolName = "com.example.b.greet"), version = "1.0.0"),
+            )
             eventFlow.emit(PluginInstanceEvent.Ready(pluginA, sessionId, version = "1.0.0"))
             eventFlow.emit(PluginInstanceEvent.Ready(pluginB, sessionId, version = "1.0.0"))
 
