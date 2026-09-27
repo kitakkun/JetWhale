@@ -49,13 +49,20 @@ class DefaultPluginComposeSceneFactory(
         )
         val isMcpCapture = mutableStateOf(false)
 
-        composeScene.setContent {
-            CompositionLocalProvider(
-                LocalJetWhalePluginStorage provides plugin.boundStorageForRuntime(),
-                LocalIsMcpCapture provides isMcpCapture.value,
-            ) {
-                pluginBridgeProvider.PluginEntryPoint(content)
+        var composed = false
+        try {
+            composeScene.setContent {
+                CompositionLocalProvider(
+                    LocalJetWhalePluginStorage provides plugin.boundStorageForRuntime(),
+                    LocalIsMcpCapture provides isMcpCapture.value,
+                ) {
+                    pluginBridgeProvider.PluginEntryPoint(content)
+                }
             }
+            composed = true
+        } finally {
+            // Content that throws while first composed leaves a scene no one else holds to close.
+            if (!composed) composeScene.close()
         }
 
         return PluginComposeScene(
