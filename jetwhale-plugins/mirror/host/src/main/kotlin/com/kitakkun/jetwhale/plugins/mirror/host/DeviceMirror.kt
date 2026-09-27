@@ -436,7 +436,14 @@ internal class DeviceMirror(
         recording = null
         recordingDeviceId = null
         recordingStartedAtMillis = null
-        val file = running.handle.stop()
+        // The recorder has been told to stop either way, so a failed stop cannot be retried; the
+        // reserved file would otherwise stay in the folder, unlisted because it has no sidecar.
+        val file = try {
+            running.handle.stop()
+        } catch (e: DeviceControlException) {
+            running.file.delete()
+            throw e
+        }
         val size = try {
             running.device.controller.screenSize()
         } catch (_: DeviceControlException) {

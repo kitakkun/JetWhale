@@ -82,6 +82,19 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a recording whose stop fails leaves no reserved file behind and a new one can start`() = runBlocking {
+        mirror.startRecording(device)
+        recorder.stopFailure = deviceControlError("pull failed")
+
+        runCatching { mirror.stopRecording() }
+        recorder.stopFailure = null
+        mirror.startRecording(device)
+        mirror.stopRecording()
+
+        assertEquals(1, root.walk().count { it.isFile && it.extension == CaptureKind.Recording.extension })
+    }
+
+    @Test
     fun `a stream that ends without a resize lets the mirror move on`() = runBlocking {
         val controller = EndingStream(power = null)
         val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
@@ -149,6 +162,9 @@ private class SlowRecorder : DeviceController {
     /** Completes when a recording has begun stopping. */
     val stopping = CompletableDeferred<Unit>()
 
+    /** Thrown by the next stop, as a pull that fails would. */
+    var stopFailure: DeviceControlException? = null
+
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true, screenPower = false)
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
@@ -158,6 +174,7 @@ private class SlowRecorder : DeviceController {
             override suspend fun stop(): File {
                 stopping.complete(Unit)
                 delay(RECORDER_LATENCY_MILLIS)
+                stopFailure?.let { throw it }
                 stopped.incrementAndGet()
                 return outputFile
             }
