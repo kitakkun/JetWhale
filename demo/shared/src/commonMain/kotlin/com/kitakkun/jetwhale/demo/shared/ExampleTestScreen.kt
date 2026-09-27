@@ -29,7 +29,7 @@ internal fun ExampleTestScreen() {
     DIModule.debugActionsAgentPlugin.DebugActions {
         action<SetCounter>("Set counter") {
             description = "Sets the Example tab's click counter and returns the previous value."
-            run { args -> counter.also { counter = args.value } }
+            perform { args -> counter.also { counter = args.value } }
         }
     }
 

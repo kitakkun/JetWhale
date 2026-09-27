@@ -29,7 +29,7 @@ class DebugActionsTest {
         var screenShown by mutableStateOf(true)
 
         composition.setContent {
-            if (screenShown) plugin.DebugActions { action("Fill test card") { run { } } }
+            if (screenShown) plugin.DebugActions { action("Fill test card") { perform { } } }
         }
         assertEquals(listOf("Fill test card"), plugin.catalog().actions.map(ActionDescriptor::id))
 
@@ -55,7 +55,7 @@ class DebugActionsTest {
         var card by mutableStateOf("visa")
 
         composition.setContent {
-            plugin.DebugActions(card) { action("Fill $card") { run { } } }
+            plugin.DebugActions(card) { action("Fill $card") { perform { } } }
         }
         card = "amex"
         // The recomposer has to be waiting for a frame before one is sent, or the frame is lost.

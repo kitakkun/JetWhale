@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlug
  * @Composable
  * fun CheckoutScreen(form: CheckoutFormState) {
  *     actionsPlugin.DebugActions(form) {
- *         action("Fill test card") { run { form.fill(TestCards.visa) } }
+ *         action("Fill test card") { perform { form.fill(TestCards.visa) } }
  *     }
  *     ...
  * }
@@ -21,7 +21,7 @@ import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlug
  *
  * The actions are declared when this enters composition and again whenever one of [keys] changes,
  * the way `LaunchedEffect` restarts. Pass as keys whatever the actions capture that can be
- * replaced, or read changing values through a `State` inside `run`.
+ * replaced, or read changing values through a `State` inside `perform`.
  */
 @Composable
 fun JetWhaleDebugActionsAgentPlugin.DebugActions(vararg keys: Any?, content: DebugActionsBuilder.() -> Unit) {

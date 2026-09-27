@@ -25,7 +25,7 @@ val actionsPlugin = JetWhaleDebugActionsAgentPlugin()
 actionsPlugin.register {
     platformBuiltInActions()
     action("Reset onboarding") {
-        run { onboarding.reset() }
+        perform { onboarding.reset() }
     }
 }
 
@@ -51,7 +51,7 @@ actionsPlugin.register {
         action<SignIn>("Sign in as test user") {
             description = "Replaces the session with a test account."
             options("email") { testAccounts.map { it.email } }
-            run { args -> auth.signIn(args.email, args.tier) }
+            perform { args -> auth.signIn(args.email, args.tier) }
         }
     }
 }
@@ -65,7 +65,7 @@ actionsPlugin.register {
 | `runsOnMainThread = true` | Runs on `Dispatchers.Main`, for UI objects bound to the main thread (Compose state does not need it; on the JVM the app needs a `Dispatchers.Main` provider such as kotlinx-coroutines-swing) |
 | `timeout` | How long a run may take (30 seconds unless set) |
 
-The value `run` returns is shown to whoever ran it: a `String` as text, a `JsonElement` as JSON,
+The value `perform` returns is shown to whoever ran it: a `String` as text, a `JsonElement` as JSON,
 anything else through `toString()`. A thrown exception is reported with its stack trace. An action
 can therefore also answer a question — "what is the current user id?" — rather than change
 anything.
@@ -81,7 +81,7 @@ With the Compose artifact, a composable registers actions that exist only while 
 @Composable
 fun CheckoutScreen(form: CheckoutFormState) {
     actionsPlugin.DebugActions(form) {
-        action("Fill test card") { run { form.fill(TestCards.visa) } }
+        action("Fill test card") { perform { form.fill(TestCards.visa) } }
     }
 }
 ```

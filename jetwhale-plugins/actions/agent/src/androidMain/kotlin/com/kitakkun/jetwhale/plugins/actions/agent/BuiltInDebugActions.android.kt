@@ -21,7 +21,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
     group("Built-in") {
         action("Restart app") {
             description = "Relaunches the app from its launcher activity in a new process. The debug session reconnects once the app is up again."
-            run {
+            perform {
                 val context = application()
                 val launch = checkNotNull(context.packageManager.getLaunchIntentForPackage(context.packageName)) { "the app has no launcher activity" }
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -32,7 +32,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
         }
         action<DeepLink>("Open deep link") {
             description = "Opens a URI inside this app, the way a tapped link or a notification would."
-            run { args ->
+            perform { args ->
                 val context = application()
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(args.uri))
                     .setPackage(context.packageName)
@@ -42,7 +42,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
         }
         action<DarkMode>("Set dark mode") {
             description = "Overrides the app's dark mode, or returns it to following the system. Requires Android 12."
-            run { args ->
+            perform { args ->
                 check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { "per-app dark mode needs Android 12 (API 31); this device runs API ${Build.VERSION.SDK_INT}" }
                 val mode = when (args.mode) {
                     NightMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
@@ -54,7 +54,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
         }
         action<AppLanguage>("Set app language") {
             description = "Overrides the app's language, or returns it to the system's. Requires Android 13."
-            run { args ->
+            perform { args ->
                 check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { "per-app languages need Android 13 (API 33); this device runs API ${Build.VERSION.SDK_INT}" }
                 application().getSystemService(LocaleManager::class.java).applicationLocales = LocaleList.forLanguageTags(args.languageTags)
             }

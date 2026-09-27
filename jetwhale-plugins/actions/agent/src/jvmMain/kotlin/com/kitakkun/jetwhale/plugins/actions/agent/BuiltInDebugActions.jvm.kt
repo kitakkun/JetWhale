@@ -9,7 +9,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
     group("Built-in") {
         action<OpenUrl>("Open URL") {
             description = "Opens a URL with the desktop's default handler — a browser, or the app registered for the scheme."
-            run { args ->
+            perform { args ->
                 check(Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) { "this desktop cannot open URLs" }
                 Desktop.getDesktop().browse(URI(args.url))
             }

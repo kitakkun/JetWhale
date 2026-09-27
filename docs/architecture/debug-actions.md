@@ -16,7 +16,7 @@ equally usable by a person in the host and by an agent over MCP.
 ## Shape
 
 ```
-app ── register { action<A>(title) { run { … } } } ──▶ agent registry ──▶ ListActions / ActionsChanged
+app ── register { action<A>(title) { perform { … } } } ──▶ agent registry ──▶ ListActions / ActionsChanged
                                                                         ◀── RunAction(runId, id, args)
 host ── form from ActionParameter list ── MCP listActions / runAction
 ```

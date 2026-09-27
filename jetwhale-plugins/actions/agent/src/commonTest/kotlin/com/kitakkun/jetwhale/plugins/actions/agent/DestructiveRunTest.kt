@@ -18,7 +18,7 @@ class DestructiveRunTest {
         plugin.register {
             action("Wipe data") {
                 destructive = true
-                run { wiped = true }
+                perform { wiped = true }
             }
         }
         plugin.dispatchActivate()

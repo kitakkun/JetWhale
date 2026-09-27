@@ -29,7 +29,7 @@ final class <#A: kotlin/Any?> com.kitakkun.jetwhale.plugins.actions.agent/DebugA
         final fun <set-timeout>(kotlin.time/Duration) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.timeout.<set-timeout>|<set-timeout>(kotlin.time.Duration){}[0]
 
     final fun options(kotlin/String, kotlin.coroutines/SuspendFunction0<kotlin.collections/List<kotlin/String>>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.options|options(kotlin.String;kotlin.coroutines.SuspendFunction0<kotlin.collections.List<kotlin.String>>){}[0]
-    final fun run(kotlin.coroutines/SuspendFunction1<#A, kotlin/Any?>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.run|run(kotlin.coroutines.SuspendFunction1<1:0,kotlin.Any?>){}[0]
+    final fun perform(kotlin.coroutines/SuspendFunction1<#A, kotlin/Any?>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.perform|perform(kotlin.coroutines.SuspendFunction1<1:0,kotlin.Any?>){}[0]
 }
 
 final class com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder { // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder|null[0]

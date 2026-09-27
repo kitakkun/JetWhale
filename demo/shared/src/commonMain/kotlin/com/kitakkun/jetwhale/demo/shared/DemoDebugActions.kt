@@ -19,7 +19,7 @@ internal fun registerDemoDebugActions(plugin: JetWhaleDebugActionsAgentPlugin) {
             action<SignIn>("Sign in as test user") {
                 description = "Replaces the demo session with a test account."
                 options("email") { TEST_ACCOUNTS }
-                run { args ->
+                perform { args ->
                     DemoSession.email = args.email
                     DemoSession.tier = args.tier
                     "Signed in as ${args.email} (${args.tier})"
@@ -27,7 +27,7 @@ internal fun registerDemoDebugActions(plugin: JetWhaleDebugActionsAgentPlugin) {
             }
             action("Current session") {
                 description = "Returns the demo session as JSON."
-                run {
+                perform {
                     buildJsonObject {
                         put("email", DemoSession.email)
                         put("tier", DemoSession.tier.name)
@@ -39,7 +39,7 @@ internal fun registerDemoDebugActions(plugin: JetWhaleDebugActionsAgentPlugin) {
         action("Wipe demo session") {
             description = "Signs out and forgets the session."
             destructive = true
-            run {
+            perform {
                 DemoSession.email = null
                 DemoSession.tier = Tier.FREE
             }

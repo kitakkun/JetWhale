@@ -103,7 +103,7 @@ class ActionRunTest {
         val builder = DebugActionsBuilder(group = null)
         builder.action<A>("Test") {
             timeout = 5.seconds
-            run(body)
+            perform(body)
         }
         @Suppress("UNCHECKED_CAST")
         return builder.definitions.single() as DebugActionDefinition<A>

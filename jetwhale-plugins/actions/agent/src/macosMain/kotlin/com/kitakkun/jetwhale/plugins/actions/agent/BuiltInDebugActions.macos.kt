@@ -9,7 +9,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
     group("Built-in") {
         action<OpenUrl>("Open URL") {
             description = "Opens a URL with the Mac's default handler for its scheme."
-            run { args ->
+            perform { args ->
                 val url = checkNotNull(NSURL.URLWithString(args.url)) { "'${args.url}' is not a URL" }
                 check(NSWorkspace.sharedWorkspace.openURL(url)) { "no application opened '${args.url}'" }
             }

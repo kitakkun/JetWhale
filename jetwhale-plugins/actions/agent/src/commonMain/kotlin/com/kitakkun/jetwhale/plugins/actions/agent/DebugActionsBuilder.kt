@@ -16,15 +16,15 @@ annotation class DebugActionsDsl
  * ```kotlin
  * actionsPlugin.register {
  *     action("Reset onboarding") {
- *         run { onboarding.reset() }
+ *         perform { onboarding.reset() }
  *     }
  *     action<LoginAs>("Log in as") {
  *         description = "Signs in with a test account"
  *         options("email") { testAccounts.map { it.email } }
- *         run { args -> auth.login(args.email, args.password) }
+ *         perform { args -> auth.login(args.email, args.password) }
  *     }
  *     group("Clock") {
- *         action<Shift>("Shift time") { run { clock.shift(it.minutes.minutes) } }
+ *         action<Shift>("Shift time") { perform { clock.shift(it.minutes.minutes) } }
  *     }
  * }
  * ```
@@ -64,7 +64,7 @@ class DebugActionsBuilder internal constructor(private val group: String?) {
 }
 
 /**
- * Configures one action. Only [run] is required.
+ * Configures one action. Only [perform] is required.
  *
  * @property destructive The action changes or discards something that cannot be restored. The host
  *   asks before running it, and an AI agent has to confirm explicitly.
@@ -96,7 +96,7 @@ class DebugActionBuilder<A> internal constructor() {
      * What the action does. Its return value is shown to whoever ran it: a `String` as text, a
      * `JsonElement` as JSON, anything else through `toString()`; `Unit` or `null` shows nothing.
      */
-    fun run(block: suspend (A) -> Any?) {
+    fun perform(block: suspend (A) -> Any?) {
         body = block
     }
 
@@ -109,7 +109,7 @@ class DebugActionBuilder<A> internal constructor() {
         timeout = timeout,
         argumentSerializer = argumentSerializer,
         optionProviders = optionProviders.toMap(),
-        body = checkNotNull(body) { "the debug action '$title' has no run { } block" },
+        body = checkNotNull(body) { "the debug action '$title' has no perform { } block" },
     )
 }
 

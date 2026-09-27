@@ -13,7 +13,7 @@ actual fun DebugActionsBuilder.platformBuiltInActions() {
             description = "Opens a URL the way the system would — a universal link or custom scheme can route back into this app."
             // UIApplication may only be used from the main thread.
             runsOnMainThread = true
-            run { args ->
+            perform { args ->
                 val url = checkNotNull(NSURL.URLWithString(args.url)) { "'${args.url}' is not a URL" }
                 val opened = suspendCancellableCoroutine { continuation ->
                     UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any?>()) { success -> continuation.resume(success) }

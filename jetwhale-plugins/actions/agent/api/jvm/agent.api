@@ -8,7 +8,7 @@ public final class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionBuilde
 	public final fun getRunsOnMainThread ()Z
 	public final fun getTimeout-UwyO8pc ()J
 	public final fun options (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public final fun run (Lkotlin/jvm/functions/Function2;)V
+	public final fun perform (Lkotlin/jvm/functions/Function2;)V
 	public final fun setDescription (Ljava/lang/String;)V
 	public final fun setDestructive (Z)V
 	public final fun setRunsOnMainThread (Z)V
