@@ -154,3 +154,17 @@ private fun ParameterFieldPreview() {
         )
     }
 }
+
+@Preview
+@Composable
+private fun ParameterFieldWithSuggestionPreview() {
+    JwTheme(darkTheme = true) {
+        ParameterField(
+            parameter = loginAs.parameters.first(),
+            value = "pro@example.com",
+            error = null,
+            suggestions = listOf("qa@example.com", "pro@example.com"),
+            onValueChange = {},
+        )
+    }
+}
