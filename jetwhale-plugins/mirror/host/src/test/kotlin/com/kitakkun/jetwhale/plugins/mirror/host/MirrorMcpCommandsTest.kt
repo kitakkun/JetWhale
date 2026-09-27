@@ -91,7 +91,7 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
-    fun `a tap on a physical iPhone is refused with the reason`() {
+    fun `a tap on a physical iPhone is refused with the reason and without asking for its screen size`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
             TapCommand(mirror).run(
                 buildJsonObject {
@@ -103,6 +103,24 @@ class MirrorMcpCommandsTest {
         }
 
         assertTrue("view-only" in failure.message.orEmpty())
+        assertEquals(0, iphone.screenSizeQueries)
+    }
+
+    @Test
+    fun `a tap off the screen never reaches the device`() {
+        val refused = listOf(1080 to 600, 540 to 2400).map { (x, y) ->
+            runCatching {
+                TapCommand(mirror).run(
+                    buildJsonObject {
+                        put("x", x)
+                        put("y", y)
+                    },
+                )
+            }.exceptionOrNull()
+        }
+
+        assertTrue(refused.all { it is JetWhaleMcpArgumentException }, refused.toString())
+        assertEquals(emptyList(), emulator.calls)
     }
 
     @Test
