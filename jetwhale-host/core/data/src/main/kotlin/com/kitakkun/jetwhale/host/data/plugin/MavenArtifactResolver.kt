@@ -12,6 +12,7 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.CancellationException
 import java.io.File
 
 @SingleIn(AppScope::class)
@@ -53,6 +54,11 @@ class MavenArtifactResolver(
 
             return destinationFile.absolutePath
         } catch (e: MavenArtifactDownloadException) {
+            destinationFile.delete()
+            throw e
+        } catch (e: CancellationException) {
+            // A cancelled download is not a failed one: the caller must see the cancellation, not an
+            // error it might answer by trying the next candidate.
             destinationFile.delete()
             throw e
         } catch (e: Exception) {

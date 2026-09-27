@@ -76,10 +76,13 @@ public interface JwSnackbarData {
     /** How long the message stays. */
     public val duration: JwSnackbarDuration
 
+    /** The accessibility label of a close button that dismisses the message, or null for no close button. */
+    public val dismissLabel: String?
+
     /** Ends the message with [JwSnackbarResult.ActionPerformed]; the host wires it to the action button. */
     public fun performAction()
 
-    /** Ends the message with [JwSnackbarResult.Dismissed]; the host calls it when the duration is up. */
+    /** Ends the message with [JwSnackbarResult.Dismissed]; the host calls it when the duration is up or the close button is clicked. */
     public fun dismiss()
 }
 
@@ -112,16 +115,19 @@ public class JwSnackbarHostState {
      * @param message the text to show.
      * @param actionLabel the label of an action button, or null for none.
      * @param duration how long the message stays without being acted on.
+     * @param dismissLabel the accessibility label of a close button, in the UI's language, or null for
+     *   none. Give an [JwSnackbarDuration.Indefinite] message one unless its action also ends it.
      * @return whether the action was clicked.
      */
     public suspend fun showSnackbar(
         message: String,
         actionLabel: String? = null,
         duration: JwSnackbarDuration = JwSnackbarDuration.Short,
+        dismissLabel: String? = null,
     ): JwSnackbarResult = mutex.withLock {
         try {
             suspendCancellableCoroutine { continuation ->
-                currentSnackbarData = SnackbarDataImpl(message, actionLabel, duration, continuation)
+                currentSnackbarData = SnackbarDataImpl(message, actionLabel, duration, dismissLabel, continuation)
             }
         } finally {
             currentSnackbarData = null
@@ -132,6 +138,7 @@ public class JwSnackbarHostState {
         override val message: String,
         override val actionLabel: String?,
         override val duration: JwSnackbarDuration,
+        override val dismissLabel: String?,
         private val continuation: CancellableContinuation<JwSnackbarResult>,
     ) : JwSnackbarData {
         override fun performAction() {
@@ -182,7 +189,7 @@ public fun JwSnackbarHost(
     }
 }
 
-/** One message strip: the text, and the action button when the message has one. */
+/** One message strip: the text, then the action and close buttons the message asks for. */
 @Composable
 private fun JwSnackbar(data: JwSnackbarData) {
     val colors = JwTheme.colors
@@ -202,18 +209,35 @@ private fun JwSnackbar(data: JwSnackbarData) {
             color = colors.onTooltip,
             modifier = Modifier.weight(1f, fill = false),
         )
-        data.actionLabel?.let { label ->
-            SnackbarAction(label = label, onClick = data::performAction)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
+        ) {
+            data.actionLabel?.let { label ->
+                SnackbarButton(onClick = data::performAction) {
+                    JwText(
+                        text = label,
+                        style = JwTheme.textStyles.label,
+                        color = colors.onTooltip,
+                        maxLines = 1,
+                    )
+                }
+            }
+            data.dismissLabel?.let { label ->
+                SnackbarButton(onClick = data::dismiss) {
+                    JwIcon(imageVector = JwIcons.Close, contentDescription = label, tint = colors.onTooltip)
+                }
+            }
         }
     }
 }
 
 /**
- * The action of a snackbar: a text button in the strip's own colors, since a [JwButton]'s accent
- * would fight the dark background.
+ * A button on a snackbar, in the strip's own colors, since a [JwButton]'s accent would fight the dark
+ * background.
  */
 @Composable
-private fun SnackbarAction(label: String, onClick: () -> Unit) {
+private fun SnackbarButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     Box(
@@ -231,12 +255,7 @@ private fun SnackbarAction(label: String, onClick: () -> Unit) {
             .padding(horizontal = JwSpacing.medium),
         contentAlignment = Alignment.Center,
     ) {
-        JwText(
-            text = label,
-            style = JwTheme.textStyles.label,
-            color = JwTheme.colors.onTooltip,
-            maxLines = 1,
-        )
+        content()
     }
 }
 

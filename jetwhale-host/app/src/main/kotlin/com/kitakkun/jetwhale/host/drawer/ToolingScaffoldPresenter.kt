@@ -23,6 +23,7 @@ import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.SidebarWidth
@@ -46,6 +47,12 @@ sealed interface ToolingScaffoldScreenAction {
 
     /** Switches the follow mode from the AI indicator, without a trip to the settings. */
     data class SetFollowAiOperation(val enabled: Boolean) : ToolingScaffoldScreenAction
+
+    /** From a failed install's notice: the same install again. */
+    data class RetryPluginInstall(val request: PluginInstallRequest) : ToolingScaffoldScreenAction
+
+    /** A finished install's notice left; the install leaves the plugin settings' list with it. */
+    data class DismissPluginInstall(val jobId: String) : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -115,6 +122,8 @@ fun toolingScaffoldPresenter(
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
     val saveSidebarWidthMutation = rememberMutation(presenterContext.saveSidebarWidthMutationKey)
+    val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
+    val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)
     // Retained so a settings dialog over the window does not reset a width being dragged; seeded
     // from storage only until the user drags.
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
@@ -158,21 +167,7 @@ fun toolingScaffoldPresenter(
         }
     }
 
-    // Seeded from the sessions of the first composition so opening the window announces nothing:
-    // whoever was already connected is not an arrival. Read only inside the effect below, never
-    // during composition, so writing it back cannot drive a recomposition loop.
-    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
-    LaunchedEffect(debugSessions) {
-        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        connectedSessions = debugSessions.filter(DebugSession::isActive)
-        if (closedSessions.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
-        }
-        if (connectedSessionsToAnnounce.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
-        }
-    }
+    SessionArrivalEffect(debugSessions, screenChannel)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -200,6 +195,10 @@ fun toolingScaffoldPresenter(
                 val width = draggedSidebarWidth ?: return@ActionEffect
                 saveSidebarWidthMutation.mutateAsync(width.value)
             }
+
+            is ToolingScaffoldScreenAction.RetryPluginInstall -> startPluginInstallMutation.mutateAsync(action.request)
+
+            is ToolingScaffoldScreenAction.DismissPluginInstall -> dismissPluginInstallMutation.mutateAsync(action.jobId)
         }
     }
 
@@ -224,6 +223,29 @@ fun toolingScaffoldPresenter(
         ),
         sidebarWidth = sidebarWidth,
     )
+}
+
+@Composable
+context(presenterContext: ToolingScaffoldPresenterContext)
+private fun SessionArrivalEffect(
+    debugSessions: ImmutableList<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+) {
+    // Seeded from the sessions of the first composition so opening the window announces nothing:
+    // whoever was already connected is not an arrival. Read only inside the effect below, never
+    // during composition, so writing it back cannot drive a recomposition loop.
+    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
+    LaunchedEffect(debugSessions) {
+        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        connectedSessions = debugSessions.filter(DebugSession::isActive)
+        if (closedSessions.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
+        }
+        if (connectedSessionsToAnnounce.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
+        }
+    }
 }
 
 private fun McpServerStatus.toAvailability(): McpServerAvailability = when (this) {

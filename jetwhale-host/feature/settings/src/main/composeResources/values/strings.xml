@@ -124,6 +124,14 @@
     <string name="install_progress_loading_plugin">Loading plugin…</string>
     <string name="official_plugins">Official Plugins</string>
     <string name="official_plugin_installed">Installed</string>
+    <string name="install_status_queued">Waiting for the install before it…</string>
+    <string name="install_status_installing">Installing…</string>
+    <string name="install_status_installed">Installed</string>
+    <string name="install_status_failed">Couldn’t install: %1$s</string>
+    <string name="install_action_cancel">Cancel</string>
+    <string name="install_action_retry">Retry</string>
+    <string name="install_action_dismiss">Dismiss</string>
+    <string name="adding_plugin_from_file">Adding the plugin…</string>
     <string name="no_plugins_installed">No plugins installed yet. Install one from the official catalog below, from Maven, or from a local file.</string>
     <string name="maven_install_repository_label">Repository</string>
     <string name="maven_install_repository_custom">Custom URL</string>

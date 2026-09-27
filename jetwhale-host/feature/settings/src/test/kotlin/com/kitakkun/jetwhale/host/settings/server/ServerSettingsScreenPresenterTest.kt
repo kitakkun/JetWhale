@@ -8,12 +8,14 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
@@ -254,12 +256,13 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
         MutationKey<Unit, McpPluginPermissionParams> by noop("mcp_plugin_interact") {},
     mcpPluginToolPermissionMutationKey = noop("mcp_plugin_tool"),
     pluginInstallMutationKey = noop("plugin_install"),
-    pluginInstallFromMavenMutationKey = noop("plugin_install_maven"),
+    startPluginInstallMutationKey = noopReturning("start_plugin_install"),
+    cancelPluginInstallMutationKey = object : CancelPluginInstallMutationKey, MutationKey<Unit, String> by noop("cancel_plugin_install") {},
+    dismissPluginInstallMutationKey = object : DismissPluginInstallMutationKey, MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
     trustPluginMutationKey = noop("trust_plugin"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},
-    officialPluginInstallMutationKey = noop("official_plugin_install"),
     updateCheckMutationKey = noopReturning("update_check"),
     updateInstallMutationKey = noop("update_install"),
     checkForUpdatesOnStartupMutationKey = object :

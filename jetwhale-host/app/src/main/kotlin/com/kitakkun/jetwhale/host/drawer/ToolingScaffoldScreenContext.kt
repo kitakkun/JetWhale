@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.drawer
 import com.kitakkun.jetwhale.host.architecture.PresenterContext
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.DebugSessionsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
@@ -12,10 +13,12 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
+import com.kitakkun.jetwhale.host.model.PluginInstallJobsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SaveSidebarWidthMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SidebarWidthSubscriptionKey
+import com.kitakkun.jetwhale.host.model.StartPluginInstallMutationKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -26,6 +29,8 @@ class ToolingScaffoldPresenterContext(
     val setPluginEnabledMutationKey: SetPluginEnabledMutationKey,
     val followAiOperationMutationKey: FollowAiOperationMutationKey,
     val saveSidebarWidthMutationKey: SaveSidebarWidthMutationKey,
+    val startPluginInstallMutationKey: StartPluginInstallMutationKey,
+    val dismissPluginInstallMutationKey: DismissPluginInstallMutationKey,
 ) : PresenterContext
 
 /**
@@ -44,6 +49,7 @@ class ToolingScaffoldScreenContext(
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
     val sidebarWidthSubscriptionKey: SidebarWidthSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
+    val pluginInstallJobsSubscriptionKey: PluginInstallJobsSubscriptionKey,
     val hostNavigationService: HostNavigationService,
     val presenterContext: ToolingScaffoldPresenterContext,
 ) : ScreenContext

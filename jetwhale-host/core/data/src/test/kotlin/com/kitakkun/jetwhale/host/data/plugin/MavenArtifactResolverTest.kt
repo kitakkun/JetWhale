@@ -5,9 +5,17 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class MavenArtifactResolverTest {
     private val snapshotCoordinates = MavenCoordinates(
@@ -74,5 +82,33 @@ class MavenArtifactResolverTest {
             "https://repo1.maven.org/maven2/com/example/my-plugin/1.0.0/my-plugin-1.0.0.jar",
             resolver.resolveJarUrl(MavenCoordinates(groupId = "com.example", artifactId = "my-plugin", version = "1.0.0")),
         )
+    }
+
+    @Test
+    fun `a cancelled download ends as a cancellation, not as a failed download`() = runBlocking<Unit> {
+        val requested = CompletableDeferred<Unit>()
+        val resolver = MavenArtifactResolver(
+            MockEngine {
+                requested.complete(Unit)
+                awaitCancellation()
+            },
+        )
+        val destinationDir = createTempDirectory("jetwhale-download-").toFile()
+        val thrown = CompletableDeferred<Throwable>()
+        val download = launch(Dispatchers.IO) {
+            try {
+                resolver.downloadJar(MavenCoordinates(groupId = "com.example", artifactId = "my-plugin", version = "1.0.0"), destinationDir)
+            } catch (e: Throwable) {
+                thrown.complete(e)
+                throw e
+            }
+        }
+        requested.await()
+
+        download.cancelAndJoin()
+
+        assertIs<CancellationException>(thrown.await())
+        assertEquals(emptyList(), destinationDir.listFiles().orEmpty().toList())
+        destinationDir.deleteRecursively()
     }
 }
