@@ -36,11 +36,11 @@ import soil.query.compose.rememberSubscription
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reset by remember { mutableStateOf(false) }
-    // Bumped on every hot reload to trigger the transient "Hot reloaded" indicator.
+    // Bumped on every reload to trigger the transient "Reloaded" indicator.
     var reloadCount by remember { mutableIntStateOf(0) }
 
-    // On hot reload, toggling `reset` re-creates the query so a fresh compose scene is built from the
-    // freshly loaded plugin code. Inert in production (the flow never emits without a dev directory).
+    // On a reload (a dev hot reload, or an approved update of the plugin's jar), toggling `reset`
+    // re-creates the query so a fresh compose scene is built from the freshly loaded plugin code.
     LaunchedEffect(screenContext) {
         screenContext.pluginReloadedFlow.collect {
             reset = !reset
@@ -90,9 +90,8 @@ fun PluginScreenRoot() {
 private val HOT_RELOAD_BADGE_SHADOW = 4.dp
 
 /**
- * Shows a brief "Hot reloaded" badge each time [reloadCount] changes (i.e. on every hot reload),
- * fading out shortly after so it does not obscure the plugin UI. Never appears in production, where
- * hot reload is inert.
+ * Shows a brief "Reloaded" badge each time [reloadCount] changes (i.e. on every reload), fading
+ * out shortly after so it does not obscure the plugin UI.
  */
 @Composable
 private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) {
@@ -122,7 +121,7 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 JwText("⟳", style = JwTheme.textStyles.label)
-                JwText("Hot reloaded", style = JwTheme.textStyles.label)
+                JwText("Reloaded", style = JwTheme.textStyles.label)
             }
         }
     }

@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.data
 
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -68,5 +70,20 @@ class AppDataDirectoryProviderTest {
 
         assertEquals("~/.jetwhale", provider.getAppDataPath())
         assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
+    }
+
+    @Test
+    fun `a jar installed from a file lands whole and leaves nothing in staging`() {
+        val home = Files.createTempDirectory("jetwhale-home").toString()
+        System.setProperty("user.home", home)
+        val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
+        provider.createAppDataDirectoriesIfNeeded()
+        val source = Files.createTempFile("network", ".jar").toFile().apply { writeBytes(ByteArray(4096, Int::toByte)) }
+
+        val installed = File(provider.copyJarFileToAppDataDirectory(source.absolutePath))
+
+        assertContentEquals(source.readBytes(), installed.readBytes())
+        assertEquals(provider.getPluginDirectory().canonicalFile, installed.parentFile.canonicalFile)
+        assertEquals(emptyList(), provider.getPluginStagingDirectory().listFiles().orEmpty().toList())
     }
 }

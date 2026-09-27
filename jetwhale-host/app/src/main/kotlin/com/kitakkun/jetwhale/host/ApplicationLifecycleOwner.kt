@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.PluginDirectoryWatchService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
@@ -22,6 +23,7 @@ class ApplicationLifecycleOwner(
     private val mcpServerService: McpServerService,
     private val pluginTrustService: PluginTrustService,
     private val pluginHotReloadService: PluginHotReloadService,
+    private val pluginDirectoryWatchService: PluginDirectoryWatchService,
     private val settingsRepository: DebuggerSettingsRepository,
 ) {
     enum class ApplicationState {
@@ -63,6 +65,9 @@ class ApplicationLifecycleOwner(
             // after approval — is surfaced for review instead of being executed. This is what stops a
             // malicious jar dropped into ~/.jetwhale/plugins from auto-running in the host process.
             pluginTrustService.loadTrustedPlugins()
+            // From here on, jars dropped into the plugins directory are offered to the user instead of
+            // waiting for the next launch.
+            pluginDirectoryWatchService.start()
 
             // A no-op unless the jetwhale.devPluginsDir system property is set.
             pluginHotReloadService.start()
@@ -75,6 +80,7 @@ class ApplicationLifecycleOwner(
         mutableApplicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
             pluginHotReloadService.stop()
+            pluginDirectoryWatchService.stop()
             mcpServerService.stop()
             server.stop()
             mutableApplicationStateFlow.update { ApplicationState.STOPPED }
