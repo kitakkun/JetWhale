@@ -6,8 +6,10 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -22,6 +24,7 @@ class DefaultFollowAiOperationService(
     private val mcpActivityRepository: McpActivityRepository,
     private val debuggerSettingsRepository: DebuggerSettingsRepository,
     private val hostNavigationService: HostNavigationService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : FollowAiOperationService {
 
     override suspend fun followAiOperations() {
@@ -34,11 +37,20 @@ class DefaultFollowAiOperationService(
     private suspend fun follow(invocation: McpToolInvocation) {
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
         val pluginId = invocation.pluginId ?: return
-
         val currentView = hostNavigationService.currentView.value
-        if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
+        // A call that names no session goes where the window would open it: the host session for a
+        // plugin that needs no app, otherwise the app the drawer has selected. The request names that
+        // session explicitly, so the window opens exactly the one checked here rather than whatever
+        // the drawer selects by the time it runs.
+        val targetSessionId = invocation.sessionId
+            ?: HostSession.ID.takeIf { pluginInstanceService.getPluginInstanceForSession(pluginId, it) != null }
+            ?: currentView?.selectedSessionId
+            ?: return
+        if (pluginInstanceService.getPluginInstanceForSession(pluginId, targetSessionId) == null) return
 
-        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId, followsAgent = true))
+        if (currentView != null && currentView.destination.alreadyShows(pluginId, targetSessionId)) return
+
+        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, targetSessionId, followsAgent = true))
     }
 }
 
@@ -46,13 +58,9 @@ class DefaultFollowAiOperationService(
  * Whether the operated plugin is on screen already, either as the main window's destination or in a
  * window of its own. Following in that case would only take the main window off whatever else the
  * user had put there.
- *
- * A call that names no session is followed against whatever session the drawer has selected, so it
- * counts as shown wherever that plugin is shown.
  */
-private fun HostDestination.alreadyShows(invocation: McpToolInvocation, pluginId: String): Boolean {
-    val matchesSession = { sessionId: String? -> invocation.sessionId == null || invocation.sessionId == sessionId }
-    val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && matchesSession(it.sessionId) }
-    val onScreen = kind == HostDestinationKind.PLUGIN && this.pluginId == pluginId && matchesSession(this.sessionId)
+private fun HostDestination.alreadyShows(pluginId: String, sessionId: String): Boolean {
+    val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && it.sessionId == sessionId }
+    val onScreen = kind == HostDestinationKind.PLUGIN && this.pluginId == pluginId && this.sessionId == sessionId
     return poppedOut || onScreen
 }
