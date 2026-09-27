@@ -25,7 +25,14 @@ internal class DeviceDiscovery(
     private val looking = Mutex()
 
     suspend fun discover(): Discovery = looking.withLock {
-        val listings = listAndroid() + listSimulators() + listIosDevices()
+        val looks = listOf(
+            listAndroid() to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
+            listSimulators() to setOf(DeviceKind.IosSimulator),
+            listIosDevices() to setOf(DeviceKind.IosDevice),
+        )
+        // A tool that fails to list (adb's server starting, say) keeps the devices it listed before,
+        // so a passing failure neither drops the selected device nor forgets an iPhone's companion.
+        val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
         val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { companions?.forget(it.id) }
@@ -34,17 +41,17 @@ internal class DeviceDiscovery(
         Discovery(devices = devices, missingTools = missingTools())
     }
 
-    private suspend fun listAndroid(): List<DeviceListing> {
+    private suspend fun listAndroid(): List<DeviceListing>? {
         val adb = tools.adb ?: return emptyList()
         return tryList { parseAdbDevices(runCommandChecked(adb, "devices", "-l").stdoutText) }
     }
 
-    private suspend fun listSimulators(): List<DeviceListing> {
+    private suspend fun listSimulators(): List<DeviceListing>? {
         val xcrun = tools.xcrun ?: return emptyList()
         return tryList { parseBootedSimulators(runCommandChecked(xcrun, "simctl", "list", "devices", "booted", "-j").stdoutText) }
     }
 
-    private suspend fun listIosDevices(): List<DeviceListing> {
+    private suspend fun listIosDevices(): List<DeviceListing>? {
         val idb = tools.idb ?: return emptyList()
         if (companions == null) return emptyList()
         return tryList { parseIdbDevices(runCommandChecked(idb, "list-targets").stdoutText) }
@@ -62,10 +69,9 @@ internal class DeviceDiscovery(
         if (tools.idb != null && tools.idbCompanion == null) add("idb_companion was not found, so iOS devices are not listed: brew install idb-companion")
     }
 
-    // A tool that fails to list (adb's server starting, say) leaves its devices out of this look only.
-    private suspend fun tryList(list: suspend () -> List<DeviceListing>): List<DeviceListing> = try {
+    private suspend fun tryList(list: suspend () -> List<DeviceListing>): List<DeviceListing>? = try {
         list()
     } catch (_: DeviceControlException) {
-        emptyList()
+        null
     }
 }
