@@ -4,15 +4,12 @@ import com.kitakkun.jetwhale.host.ApplicationLifecycleOwner
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
-import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.McpServerStatus
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -32,11 +29,9 @@ private const val READINESS_PREFIX = "JetWhale headless:"
  * Runs the host with no window: the agent WebSocket server, the MCP server, plugin instances and
  * adb auto-wiring, but no composition.
  *
- * The servers themselves are started by [ApplicationLifecycleOwner] and need no window. This adds
- * back only what the composition would otherwise be responsible for in a windowed run:
- * - disposing plugin compose scenes as sessions and plugins go away (`JetWhaleApp` does this from
- *   the composition, which never runs here), and
- * - keeping the process alive until it is asked to stop.
+ * The servers themselves are started by [ApplicationLifecycleOwner] and need no window, and plugin
+ * compose scenes close with their instances. This adds back only keeping the process alive until
+ * it is asked to stop.
  *
  * It also reports the ports it actually bound, and fails the run if it could not bind them: a
  * second host on the same ports leaves the first one serving and the second one silently useless,
@@ -48,8 +43,6 @@ class HeadlessHostRunner(
     private val applicationLifecycleOwner: ApplicationLifecycleOwner,
     private val debugWebSocketServer: DebugWebSocketServer,
     private val mcpServerService: McpServerService,
-    private val enabledPluginsRepository: EnabledPluginsRepository,
-    private val pluginComposeSceneService: PluginComposeSceneService,
 ) {
     /**
      * Suspends until the host is asked to shut down, and returns the process exit code.
@@ -60,14 +53,11 @@ class HeadlessHostRunner(
     suspend fun run(): Int = coroutineScope {
         installShutdownHook()
 
-        val sceneHousekeepingJob = launch { disposeScenesForDepartedSessions() }
-
         val startup = withTimeoutOrNull(STARTUP_TIMEOUT_MILLIS) { awaitListeners() }
             ?: ListenerStartup.Failed("A listener did not report a bound port within $STARTUP_TIMEOUT_MILLIS ms.")
 
         if (startup is ListenerStartup.Failed) {
             System.err.println("$READINESS_PREFIX startup failed — ${startup.reason}")
-            sceneHousekeepingJob.cancel()
             shutdownAndAwait()
             return@coroutineScope EXIT_CODE_STARTUP_FAILED
         }
@@ -75,7 +65,6 @@ class HeadlessHostRunner(
         println("$READINESS_PREFIX ready")
 
         applicationLifecycleOwner.applicationStateFlow.first { it == ApplicationLifecycleOwner.ApplicationState.STOPPED }
-        sceneHousekeepingJob.cancel()
         0
     }
 
@@ -104,30 +93,6 @@ class HeadlessHostRunner(
         println("$READINESS_PREFIX mcp http://${running.host}:${running.port}/sse")
 
         return ListenerStartup.Ready
-    }
-
-    /**
-     * Closes plugin compose scenes whose session, server or plugin has gone away.
-     *
-     * Scenes are created on demand by the MCP tools even with no window, so without this a headless
-     * run keeps composing plugin code for sessions that have already disconnected.
-     */
-    private suspend fun disposeScenesForDepartedSessions(): Unit = coroutineScope {
-        launch {
-            debugWebSocketServer.sessionClosedFlow.collect { sessionId ->
-                pluginComposeSceneService.disposePluginSceneForSession(sessionId)
-            }
-        }
-        launch {
-            debugWebSocketServer.serverStoppedFlow.collect {
-                pluginComposeSceneService.disposeAppSessionPluginScenes()
-            }
-        }
-        launch {
-            enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
-                pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
-            }
-        }
     }
 
     /**

@@ -1,14 +1,18 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.compose.ui.InternalComposeUiApi
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
+import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginScreenState
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -26,17 +30,26 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -53,6 +66,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
  *   cannot outrace disposal. Null for a pure plugin.
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
+ * @property sceneSlot Null for a plugin that renders no UI. Replaced when an in-place reload
+ *   recreates the scene.
  */
 private class LoadedInstance(
     val factory: JetWhaleHostPluginFactory,
@@ -60,7 +75,37 @@ private class LoadedInstance(
     val peer: JetWhalePluginPeer?,
     val prepareJob: Job?,
     val instanceScope: CoroutineScope,
+    @Volatile var sceneSlot: PluginSceneSlot?,
 )
+
+/**
+ * The scene of one instance, created on first use and closed when the instance goes, so a scene
+ * never outlives the instance it composes. Used on the main thread only, where scenes live.
+ */
+@OptIn(InternalComposeUiApi::class)
+private class PluginSceneSlot(private val createScene: () -> PluginComposeScene) {
+    private var scene: PluginComposeScene? = null
+    private var closed = false
+
+    /** Null once closed: the instance is gone or reloaded, and its successor has a slot of its own. */
+    fun getOrCreate(): PluginComposeScene? {
+        if (closed) return null
+        return scene ?: createScene().also { scene = it }
+    }
+
+    fun close() {
+        closed = true
+        scene?.composeScene?.close()
+        scene = null
+    }
+}
+
+/** What is published for one instance key: the instance is running, or its creation failed. */
+private sealed interface PublishedInstance {
+    data class Running(val sceneSlot: PluginSceneSlot?) : PublishedInstance
+
+    data class Failed(val cause: Throwable) : PublishedInstance
+}
 
 @OptIn(InternalJetWhaleHostApi::class)
 @Inject
@@ -70,6 +115,7 @@ class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
     private val pluginDataStoreRepository: PluginDataStoreRepository,
+    private val pluginComposeSceneFactory: PluginComposeSceneFactory,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -86,11 +132,51 @@ class DefaultPluginInstanceService(
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
 
+    /** The last creation failure of each key that has no instance, until an attempt succeeds or it is unloaded. */
+    private val creationFailures: ConcurrentHashMap<PluginInstanceKey, Throwable> = ConcurrentHashMap()
+
+    /** A snapshot of [loadedPlugins] and [creationFailures], republished on every change so a screen can follow its instance. */
+    private val publishedInstances = MutableStateFlow<Map<PluginInstanceKey, PublishedInstance>>(emptyMap())
+    private val publicationLock = Any()
+
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
     }
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun pluginScreenStateFlow(pluginId: String, sessionId: String): Flow<PluginScreenState> = publishedInstances
+        .map { it[PluginInstanceKey(pluginId, sessionId)] }
+        .distinctUntilChanged()
+        .flatMapLatest { published ->
+            when (published) {
+                null -> flowOf(PluginScreenState.Starting)
+                is PublishedInstance.Failed -> flowOf(PluginScreenState.Failed(published.cause))
+                is PublishedInstance.Running -> published.sceneSlot?.let(::readyState) ?: flowOf(PluginScreenState.Headless)
+            }
+        }
+
+    // A slot that is closed by the time the main thread reaches it belongs to an instance that is
+    // already gone; the publication that removed it brings the state that follows. Content that
+    // throws while the scene is first composed fails the screen, not the flow, so a retry can run it again.
+    private fun readyState(sceneSlot: PluginSceneSlot): Flow<PluginScreenState> = flow<PluginScreenState> {
+        withContext(Dispatchers.Main) { sceneSlot.getOrCreate() }?.let { emit(PluginScreenState.Ready(it)) }
+    }.catch { cause -> emit(PluginScreenState.Failed(cause)) }
+
+    @OptIn(InternalComposeUiApi::class)
+    override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? {
+        val sceneSlot = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.sceneSlot ?: return null
+        return withContext(Dispatchers.Main) { sceneSlot.getOrCreate() }
+    }
+
+    override fun recreatePluginScenes(pluginId: String) {
+        val replacedSlots = loadedPlugins.filterKeys { it.pluginId == pluginId }.values.mapNotNull { instance ->
+            instance.sceneSlot?.also { instance.sceneSlot = sceneSlotFor(instance.plugin) }
+        }
+        publishInstances()
+        replacedSlots.forEach(::closeOnMainThread)
+    }
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
@@ -105,7 +191,7 @@ class DefaultPluginInstanceService(
             if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
         }
 
-        publishHeadlessPlugins()
+        publishInstances()
         newlyInitializedSessions.forEach { sessionId ->
             mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
@@ -126,10 +212,12 @@ class DefaultPluginInstanceService(
                 created = true
                 createInstance(pluginId, sessionId, loaded)
             }
+            creationFailures.remove(key)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
+            creationFailures[key] = e
             return false
         }
         return created
@@ -167,7 +255,12 @@ class DefaultPluginInstanceService(
         } else {
             null
         }
-        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope)
+        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope, sceneSlotFor(plugin))
+    }
+
+    private fun sceneSlotFor(plugin: JetWhaleHostPlugin): PluginSceneSlot? {
+        val ui = plugin as? JetWhaleHostPluginUi ?: return null
+        return PluginSceneSlot { pluginComposeSceneFactory.createScene(plugin) { ui.Content() } }
     }
 
     /**
@@ -228,19 +321,28 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
+        creationFailures.keys.removeIf { it.sessionId == sessionId }
         loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach(::disposeInstance)
+        publishInstances()
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
+        creationFailures.keys.removeIf { it.pluginId == pluginId }
         loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach(::disposeInstance)
+        publishInstances()
     }
 
     override fun clearAppSessionPluginInstances() {
+        creationFailures.keys.removeIf { !HostSession.isHost(it.sessionId) }
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
+        publishInstances()
     }
 
     private fun disposeInstance(key: PluginInstanceKey) {
         val removed = loadedPlugins.remove(key) ?: return
+        // Published before onDispose runs plugin code, so a screen stops showing the instance as soon
+        // as it is unreachable.
+        publishInstances()
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
@@ -249,6 +351,7 @@ class DefaultPluginInstanceService(
         } catch (e: Throwable) {
             logger.warning("onDispose for plugin '${key.pluginId}' in session '${key.sessionId}' failed: ${e.message}")
         } finally {
+            removed.sceneSlot?.let(::closeOnMainThread)
             removed.instanceScope.cancel()
             removed.peer?.let { peer ->
                 scope.launch {
@@ -257,21 +360,31 @@ class DefaultPluginInstanceService(
                 }
             }
         }
-        publishHeadlessPlugins()
         mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
+    private fun closeOnMainThread(sceneSlot: PluginSceneSlot) {
+        scope.launch(Dispatchers.Main) { sceneSlot.close() }
+    }
+
     /**
-     * Recomputes the headless set from the live instances. Republishing the whole set (rather than
-     * patching it) is what keeps it correct across a reload, where the same pluginId is replaced by
-     * an instance from a new classloader that may not answer the same way.
+     * Recomputes the published instances and the headless set from the live instances. Republishing
+     * the whole set (rather than patching it) is what keeps it correct across a reload, where the same
+     * pluginId is replaced by an instance from a new classloader that may not answer the same way.
+     *
+     * Both are derived from one read and published under [publicationLock]: two threads publishing
+     * at once would otherwise let the one that read the instances first overwrite the other's newer
+     * state, and the two flows could each end up describing a different moment.
      */
-    private fun publishHeadlessPlugins() {
+    private fun publishInstances() = synchronized(publicationLock) {
+        val instances = loadedPlugins.toMap()
         headlessPluginsFlow.value = HeadlessPlugins(
-            loadedPlugins.entries
+            instances.entries
                 .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
         )
+        publishedInstances.value = creationFailures.mapValues { (_, cause) -> PublishedInstance.Failed(cause) } +
+            instances.mapValues { (_, instance) -> PublishedInstance.Running(instance.sceneSlot) }
     }
 }

@@ -11,13 +11,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.FakeMcpActivityRepository
 import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import dev.mokkery.answering.returns
+import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.mock
 import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
@@ -25,6 +28,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequestParams
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -125,7 +129,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(instanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(
@@ -158,7 +162,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(instanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(
@@ -181,14 +185,36 @@ class ScrollToolTest {
         assertTrue(receivedDeltas.isEmpty(), "No scroll event should be dispatched, but got $receivedDeltas")
     }
 
-    private class FakePluginComposeSceneService(
-        private val scene: PluginComposeScene,
-    ) : PluginComposeSceneService {
-        override fun updateHostDensity(density: Density) = Unit
-        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene = scene
-        override fun disposePluginSceneForSession(sessionId: String) = Unit
-        override fun disposePluginScenesForPlugin(pluginId: String) = Unit
-        override fun disposeAppSessionPluginScenes() = Unit
+    @Test
+    fun `scroll on a plugin with no running instance answers with an error naming it`() = runBlocking {
+        val server = Server(
+            serverInfo = Implementation(name = "test", version = "1.0.0"),
+            options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
+        )
+        ScrollMcpTool(instanceServiceServing(scene = null)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        val handler = server.tools.getValue("jetwhale.scroll").handler
+        val request = CallToolRequest(
+            CallToolRequestParams(
+                name = "jetwhale.scroll",
+                arguments = buildJsonObject {
+                    put("pluginId", "plugin-off")
+                    put("sessionId", "session")
+                    put("x", 100)
+                    put("y", 100)
+                    put("deltaY", 50)
+                },
+            ),
+        )
+
+        val result = handler(noOpClientConnection(), request)
+
+        assertEquals(true, result.isError)
+        val text = (result.content.single() as TextContent).text
+        assertTrue("No running UI of 'plugin-off' in session 'session'" in text, "Unexpected error text: $text")
+    }
+
+    private fun instanceServiceServing(scene: PluginComposeScene?) = mock<PluginInstanceService> {
+        everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
     }
 
     private fun noOpClientConnection(): ClientConnection = Proxy.newProxyInstance(

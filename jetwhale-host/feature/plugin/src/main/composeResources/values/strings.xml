@@ -8,4 +8,5 @@
     <string name="headless_plugin_title">This plugin has no screen</string>
     <string name="headless_plugin_description">It is working in the background for this session — it can exchange data with your app and offer MCP tools to AI agents — but it has nothing to show here.</string>
     <string name="headless_plugin_plugin_id">Plugin ID: %1$s</string>
+    <string name="plugin_starting">Starting the plugin…</string>
 </resources>

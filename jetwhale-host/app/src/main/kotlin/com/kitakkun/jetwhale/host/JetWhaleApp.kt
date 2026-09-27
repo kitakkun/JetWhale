@@ -124,7 +124,7 @@ context(appGraph: JetWhaleAppGraph)
 private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     val density = LocalDensity.current
     LaunchedEffect(density) {
-        appGraph.pluginComposeSceneService.updateHostDensity(density)
+        appGraph.pluginComposeSceneFactory.updateHostDensity(density)
     }
 
     LaunchedEffect(backStack) {
@@ -140,7 +140,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     LaunchedEffect(Unit) {
         appGraph.debugWebSocketServer.serverStoppedFlow.collect {
             backStack.removeAppPluginEntries()
-            appGraph.pluginComposeSceneService.disposeAppSessionPluginScenes()
         }
     }
 
@@ -153,7 +152,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
-            appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
         }
     }
 
@@ -166,8 +164,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
-
-            appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
 }

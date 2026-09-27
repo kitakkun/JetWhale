@@ -16,6 +16,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.InternalComposeUiApi
@@ -24,11 +25,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.model.PluginScreenState
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
-import soil.query.compose.rememberQuery
+import kotlinx.coroutines.launch
+import soil.plant.compose.reacty.ErrorBoundaryContext
 import soil.query.compose.rememberSubscription
 
 @OptIn(InternalComposeUiApi::class)
@@ -47,27 +50,35 @@ fun PluginScreenRoot() {
 
     Box(Modifier.fillMaxSize()) {
         key(reset) {
+            val screenState = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
+            val coroutineScope = rememberCoroutineScope()
             SoilDataBoundary(
-                state = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
-            ) { headlessPlugins ->
-                if (headlessPlugins.isHeadless(screenContext.sessionId, screenContext.pluginId)) {
-                    HeadlessPluginScreen(pluginId = screenContext.pluginId)
-                    return@SoilDataBoundary
-                }
-                SoilDataBoundary(
-                    state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
-                    fallback = SoilFallbackDefaults.custom(
-                        suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
-                        errorFallback = {
-                            PluginScreenErrorFallback(
-                                pluginId = screenContext.pluginId,
-                                errorBoundaryContext = it,
-                                onClickReset = { reset = !reset },
-                            )
-                        },
-                    ),
-                ) { pluginComposeScene ->
-                    PluginScreen(pluginComposeScene = pluginComposeScene)
+                state = screenState,
+                fallback = SoilFallbackDefaults.custom(
+                    suspenseFallback = { PluginStartingScreen() },
+                    errorFallback = {
+                        PluginScreenErrorFallback(
+                            pluginId = screenContext.pluginId,
+                            errorBoundaryContext = it,
+                            onClickReset = { reset = !reset },
+                        )
+                    },
+                ),
+            ) { state ->
+                when (state) {
+                    PluginScreenState.Starting -> PluginStartingScreen()
+
+                    is PluginScreenState.Ready -> PluginScreen(pluginComposeScene = state.scene)
+
+                    PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
+
+                    is PluginScreenState.Failed -> PluginScreenErrorFallback(
+                        pluginId = screenContext.pluginId,
+                        errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
+                        // Restarting the subscription retries a scene whose content threw while it
+                        // was first composed; a failed instance stays failed until it is recreated.
+                        onClickReset = { coroutineScope.launch { screenState.reset() } },
+                    )
                 }
             }
         }
