@@ -167,21 +167,7 @@ fun toolingScaffoldPresenter(
         }
     }
 
-    // Seeded from the sessions of the first composition so opening the window announces nothing:
-    // whoever was already connected is not an arrival. Read only inside the effect below, never
-    // during composition, so writing it back cannot drive a recomposition loop.
-    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
-    LaunchedEffect(debugSessions) {
-        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        connectedSessions = debugSessions.filter(DebugSession::isActive)
-        if (closedSessions.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
-        }
-        if (connectedSessionsToAnnounce.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
-        }
-    }
+    SessionArrivalEffect(debugSessions, screenChannel)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -237,6 +223,29 @@ fun toolingScaffoldPresenter(
         ),
         sidebarWidth = sidebarWidth,
     )
+}
+
+@Composable
+context(presenterContext: ToolingScaffoldPresenterContext)
+private fun SessionArrivalEffect(
+    debugSessions: ImmutableList<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+) {
+    // Seeded from the sessions of the first composition so opening the window announces nothing:
+    // whoever was already connected is not an arrival. Read only inside the effect below, never
+    // during composition, so writing it back cannot drive a recomposition loop.
+    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
+    LaunchedEffect(debugSessions) {
+        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        connectedSessions = debugSessions.filter(DebugSession::isActive)
+        if (closedSessions.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
+        }
+        if (connectedSessionsToAnnounce.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
+        }
+    }
 }
 
 private fun McpServerStatus.toAvailability(): McpServerAvailability = when (this) {
