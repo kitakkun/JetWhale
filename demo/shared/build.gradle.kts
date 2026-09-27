@@ -59,6 +59,7 @@ kotlin {
             implementation(libs.navigation3Ui)
             implementation(projects.jetwhalePlugins.semantics.agent)
             implementation(projects.jetwhalePlugins.storage.agent)
+            implementation(projects.jetwhalePlugins.background.agent)
             implementation(libs.ktorClientCio)
         }
 
@@ -66,6 +67,9 @@ kotlin {
             // OkHttp demo tab: OkHttp only targets JVM/Android, so this is androidMain-only.
             implementation(projects.jetwhalePlugins.network.agentOkhttp)
             implementation(libs.okhttp)
+            // Background Work demo: WorkManager is Android-only.
+            implementation(projects.jetwhalePlugins.background.agentWorkmanager)
+            implementation(libs.androidxWorkRuntime)
         }
     }
 

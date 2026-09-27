@@ -67,4 +67,7 @@ jobs:
             :jetwhale-plugins:storage:protocol:checkKotlinAbi \
             :jetwhale-plugins:storage:agent:checkKotlinAbi \
             :jetwhale-plugins:storage:agent-datastore:checkKotlinAbi \
-            :jetwhale-plugins:storage:host:checkKotlinAbi
+            :jetwhale-plugins:storage:host:checkKotlinAbi \
+            :jetwhale-plugins:background:protocol:checkKotlinAbi \
+            :jetwhale-plugins:background:agent:checkKotlinAbi \
+            :jetwhale-plugins:background:host:checkKotlinAbi

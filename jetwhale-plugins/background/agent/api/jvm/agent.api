@@ -1,0 +1,26 @@
+public abstract interface class com/kitakkun/jetwhale/plugins/background/agent/BackgroundWorkSource {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/agent/BackgroundWorkSource$Companion;
+	public abstract fun cancel (Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getInfo ()Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;
+	public abstract fun observe ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun runNow (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/agent/BackgroundWorkSource$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/agent/JetWhaleBackgroundWorkAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/agent/JetWhaleBackgroundWorkAgentPlugin$Companion;
+	public fun <init> (Lkotlin/jvm/functions/Function0;)V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/agent/JetWhaleBackgroundWorkAgentPlugin$Companion {
+	public final fun platformDefaults ()Lcom/kitakkun/jetwhale/plugins/background/agent/JetWhaleBackgroundWorkAgentPlugin;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/agent/PlatformDefaults_jvmKt {
+	public static final fun platformDefaults (Lcom/kitakkun/jetwhale/plugins/background/agent/BackgroundWorkSource$Companion;)Ljava/util/List;
+}
+

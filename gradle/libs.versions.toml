@@ -27,6 +27,10 @@ lifecycle = "2.11.0"
 soil = "1.0.0-alpha15"
 
 androidxDatastore = "1.3.0-alpha10"
+androidxWork = "2.10.5"
+robolectric = "4.16"
+androidxTestCore = "1.7.0"
+junit = "4.13.2"
 metro = "1.4.0"
 mokkery = "3.4.2"
 ktor = "3.5.2"
@@ -67,6 +71,11 @@ kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serializati
 kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinxCoroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+androidxWorkRuntime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }
+androidxWorkTesting = { module = "androidx.work:work-testing", version.ref = "androidxWork" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidxTestCore = { module = "androidx.test:core", version.ref = "androidxTestCore" }
+junit = { module = "junit:junit", version.ref = "junit" }
 byteBuddyAgent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byteBuddy" }
 javaKeyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }

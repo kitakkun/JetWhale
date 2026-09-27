@@ -86,6 +86,8 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   back stack, and pushing or popping entries from the host
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Background Work](https://kitakkun.github.io/JetWhale/guide/background-work)** — the app's
+  WorkManager work, JobScheduler jobs and iOS background tasks, with cancel and run now
 
 ## Developing plugins
 
