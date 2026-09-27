@@ -127,6 +127,18 @@ class DefaultPluginInstallJobServiceTest {
     }
 
     @Test
+    fun `a request for another version or repository of the plugin gets an install of its own`() = runBlocking {
+        val first = service.enqueue(request)
+        val otherVersion = service.enqueue(PluginInstallRequest.Maven(coordinates.copy(version = "2.0.0")))
+        val otherRepository = service.enqueue(PluginInstallRequest.Maven(coordinates.copy(repositoryUrl = "https://example.com/mirror")))
+
+        assertEquals(3, setOf(first.id, otherVersion.id, otherRepository.id).size)
+        openAllGates()
+        listOf(first, otherVersion, otherRepository).forEach { job -> awaitStatus(job.id) { it == PluginInstallStatus.Succeeded } }
+        assertEquals(3, pluginDownloads.get())
+    }
+
+    @Test
     fun `an install reports each stage, while the next one waits its turn`() = runBlocking {
         val job = service.enqueue(request)
         val next = service.enqueue(PluginInstallRequest.Maven(coordinates.copy(artifactId = "storage")))

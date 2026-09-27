@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.host.model
 /**
  * A plugin the user or an agent asked the host to download and install.
  *
- * @property key identifies requests for the same plugin, so asking again while one is queued or
+ * @property key identifies requests for the same artifact, so asking again while one is queued or
  *   running joins it instead of starting a second download.
  * @property pluginId the plugin id the install is known to provide, when the request names it.
  */
@@ -19,7 +19,7 @@ sealed interface PluginInstallRequest {
     }
 
     data class Maven(val coordinates: MavenCoordinates) : PluginInstallRequest {
-        override val key: String get() = "maven:${coordinates.groupId}:${coordinates.artifactId}"
+        override val key: String get() = "maven:${coordinates.groupId}:${coordinates.artifactId}:${coordinates.version}@${coordinates.repositoryUrl}"
         override val displayName: String get() = coordinates.artifactId
         override val pluginId: String? get() = null
     }
