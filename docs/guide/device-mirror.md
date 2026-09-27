@@ -1,4 +1,4 @@
-# Device Mirror
+# Device Mirror <Badge type="warning" text="experimental" />
 
 The Device Mirror shows the live screen of an Android emulator or device, an iOS simulator, or a
 physical iPhone inside the host window. You can tap, swipe, type and press hardware buttons on
