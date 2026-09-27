@@ -10,6 +10,18 @@
 	<string>JetWhale connects to the debugger host running on your local network.</string>
 	<!-- Required so the agent can browse for the host over mDNS/Bonjour (endpoint = discovered(...)).
 	     Without this the OS silently blocks discovery of the _jetwhale._tcp service. -->
+	<!-- The demo's custom scheme, listed and opened by the Deep Links plugin. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.kitakkun.jetwhale.demo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>demo</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_jetwhale._tcp</string>

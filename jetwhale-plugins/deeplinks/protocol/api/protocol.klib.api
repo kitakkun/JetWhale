@@ -1,0 +1,272 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.deeplinks:protocol>
+final enum class com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind : kotlin/Enum<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind|null[0]
+    enum entry AdvancedPattern // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.AdvancedPattern|null[0]
+    enum entry Exact // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Exact|null[0]
+    enum entry Pattern // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Pattern|null[0]
+    enum entry Prefix // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Prefix|null[0]
+    enum entry Suffix // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Suffix|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher>, kotlin/Boolean, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatcher>;kotlin.Boolean;kotlin.Boolean){}[0]
+
+    final val autoVerify // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.autoVerify|{}autoVerify[0]
+        final fun <get-autoVerify>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.autoVerify.<get-autoVerify>|<get-autoVerify>(){}[0]
+    final val browsable // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.browsable|{}browsable[0]
+        final fun <get-browsable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.browsable.<get-browsable>|<get-browsable>(){}[0]
+    final val handler // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.handler|{}handler[0]
+        final fun <get-handler>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.handler.<get-handler>|<get-handler>(){}[0]
+    final val hosts // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.hosts|{}hosts[0]
+        final fun <get-hosts>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.hosts.<get-hosts>|<get-hosts>(){}[0]
+    final val paths // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.paths|{}paths[0]
+        final fun <get-paths>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.paths.<get-paths>|<get-paths>(){}[0]
+    final val schemes // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.schemes|{}schemes[0]
+        final fun <get-schemes>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.schemes.<get-schemes>|<get-schemes>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component2|component2(){}[0]
+    final fun component3(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component4|component4(){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component5|component5(){}[0]
+    final fun component6(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher> = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatcher>;kotlin.Boolean;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate>, kotlin/Boolean, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate>;kotlin.Boolean;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val canOpen // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.canOpen|{}canOpen[0]
+        final fun <get-canOpen>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.canOpen.<get-canOpen>|<get-canOpen>(){}[0]
+    final val declared // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.declared|{}declared[0]
+        final fun <get-declared>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.declared.<get-declared>|<get-declared>(){}[0]
+    final val notes // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.notes|{}notes[0]
+        final fun <get-notes>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.notes.<get-notes>|<get-notes>(){}[0]
+    final val templates // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.templates|{}templates[0]
+        final fun <get-templates>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.templates.<get-templates>|<get-templates>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.component2|component2(){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.component4|component4(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeclaredDeepLink> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate> = ..., kotlin/Boolean = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate>;kotlin.Boolean;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkCatalog){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost|null[0]
+    constructor <init>(kotlin/String, kotlin/String?, kotlin/String?) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.<init>|<init>(kotlin.String;kotlin.String?;kotlin.String?){}[0]
+
+    final val host // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.host|{}host[0]
+        final fun <get-host>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.host.<get-host>|<get-host>(){}[0]
+    final val port // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.port|{}port[0]
+        final fun <get-port>(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.port.<get-port>|<get-port>(){}[0]
+    final val verification // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.verification|{}verification[0]
+        final fun <get-verification>(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.verification.<get-verification>|<get-verification>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.copy|copy(kotlin.String;kotlin.String?;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkHost.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult|null[0]
+    constructor <init>(kotlin/Boolean, kotlin.collections/List<kotlin/String>, kotlin/String?) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.<init>|<init>(kotlin.Boolean;kotlin.collections.List<kotlin.String>;kotlin.String?){}[0]
+
+    final val error // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.error.<get-error>|<get-error>(){}[0]
+    final val handledBy // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.handledBy|{}handledBy[0]
+        final fun <get-handledBy>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.handledBy.<get-handledBy>|<get-handledBy>(){}[0]
+    final val opened // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.opened|{}opened[0]
+        final fun <get-opened>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.opened.<get-opened>|<get-opened>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.copy|copy(kotlin.Boolean;kotlin.collections.List<kotlin.String>;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkOpenResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String?) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.<init>|<init>(kotlin.String;kotlin.String;kotlin.String?){}[0]
+
+    final val description // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.description|{}description[0]
+        final fun <get-description>(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.description.<get-description>|<get-description>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.name.<get-name>|<get-name>(){}[0]
+    final val template // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.template|{}template[0]
+        final fun <get-template>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.template.<get-template>|<get-template>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.copy|copy(kotlin.String;kotlin.String;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.<init>|<init>(kotlin.String){}[0]
+
+    final val url // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.url|{}url[0]
+        final fun <get-url>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.url.<get-url>|<get-url>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.OpenDeepLink){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/OpenDeepLink.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind, kotlin/String) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.<init>|<init>(com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatchKind;kotlin.String){}[0]
+
+    final val kind // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.kind|{}kind[0]
+        final fun <get-kind>(): com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.kind.<get-kind>|<get-kind>(){}[0]
+    final val value // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.value|{}value[0]
+        final fun <get-value>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.value.<get-value>|<get-value>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.component2|component2(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatchKind = ..., kotlin/String = ...): com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.copy|copy(com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatchKind;kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher> { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher) // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatcher){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/PathMatcher.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkCatalog>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/GetDeepLinkCatalog.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.deeplinks.protocol/DEEP_LINKS_PLUGIN_ID // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DEEP_LINKS_PLUGIN_ID|{}DEEP_LINKS_PLUGIN_ID[0]
+    final fun <get-DEEP_LINKS_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.protocol/DEEP_LINKS_PLUGIN_ID.<get-DEEP_LINKS_PLUGIN_ID>|<get-DEEP_LINKS_PLUGIN_ID>(){}[0]
