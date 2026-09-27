@@ -30,6 +30,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
+import org.jetbrains.skia.Data
 import org.jetbrains.skia.EncodedImageFormat
 import java.util.Base64
 import org.jetbrains.skia.Image as SkiaImage
@@ -128,10 +129,9 @@ fun captureScreenshot(
         }
     }
 
-    return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap())
-        .encodeToData(EncodedImageFormat.PNG)
-        ?.bytes
-        ?: error("Failed to encode screenshot to PNG")
+    return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap()).use { image ->
+        image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes)
+    } ?: error("Failed to encode screenshot to PNG")
 }
 
 /**
