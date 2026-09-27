@@ -29,9 +29,8 @@ private const val READINESS_PREFIX = "JetWhale headless:"
  * Runs the host with no window: the agent WebSocket server, the MCP server, plugin instances and
  * adb auto-wiring, but no composition.
  *
- * The servers themselves are started by [ApplicationLifecycleOwner] and need no window, and plugin
- * compose scenes close with their instances. This adds back only keeping the process alive until
- * it is asked to stop.
+ * Everything that runs is started by [ApplicationLifecycleOwner] and needs no window; this keeps
+ * the process alive until it is asked to stop.
  *
  * It also reports the ports it actually bound, and fails the run if it could not bind them: a
  * second host on the same ports leaves the first one serving and the second one silently useless,
