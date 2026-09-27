@@ -23,8 +23,8 @@ import org.jetbrains.skia.SamplingMode
 /**
  * The device's screen, fitted to the space it is given. Only this element redraws for a new frame:
  * it reads [MirrorSurface.frameCounter] in its draw phase, so a frame costs a draw and never a
- * recomposition of what surrounds it. When [interactive], a click taps the device and a drag
- * swipes it.
+ * recomposition of what surrounds it. When [interactive], a click on a live frame taps the device
+ * and a drag swipes it.
  */
 @Composable
 internal fun MirrorVideo(
@@ -37,7 +37,10 @@ internal fun MirrorVideo(
 ) {
     // Where the last frame was drawn, for mapping the pointer to device pixels; set by drawing.
     val drawn = remember { DrawnFrame() }
-    val input = if (interactive) {
+    // A kept frame, or the previous device's while the surface switches, is laid out for another
+    // screen: a point on it would reach this device at the wrong place.
+    val live = surface.deviceId == deviceId && !surface.showingKeptFrame
+    val input = if (interactive && live) {
         Modifier.pointerInput(Unit) {
             awaitEachGesture {
                 val down = awaitFirstDown()
