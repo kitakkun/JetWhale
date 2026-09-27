@@ -25,6 +25,7 @@ import java.io.File
 import java.io.IOException
 import java.time.Instant
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicLong
 import javax.imageio.ImageIO
 import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
@@ -94,6 +95,8 @@ internal class MirrorCaptures(
         private set
 
     private var device: DeviceListing? = null
+
+    private val listings = AtomicLong()
 
     private val thumbnails = object : LinkedHashMap<File, ImageBitmap>(THUMBNAIL_CACHE_SIZE, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<File, ImageBitmap>): Boolean = size > THUMBNAIL_CACHE_SIZE
@@ -180,7 +183,8 @@ internal class MirrorCaptures(
         scope.launch(Dispatchers.IO) {
             library.delete(capture)
             synchronized(thumbnails) { thumbnails.remove(capture.file) }
-            captures = captures - capture
+            refresh()
+            synchronized(listings) { captures = captures - capture }
             if (selected == capture) selected = null
         }
     }
@@ -202,14 +206,21 @@ internal class MirrorCaptures(
         }
     }
 
+    // A listing that finishes after a newer one started, or after a capture was added or deleted,
+    // would publish what the folder held before: only the latest listing publishes.
     private fun refresh() {
         val deviceId = device?.id?.takeUnless { allDevices }
-        scope.launch(Dispatchers.IO) { captures = library.list(deviceId, kind, sinceEpochMillis = null) }
+        val listing = listings.incrementAndGet()
+        scope.launch(Dispatchers.IO) {
+            val listed = library.list(deviceId, kind, sinceEpochMillis = null)
+            synchronized(listings) { if (listings.get() == listing) captures = listed }
+        }
     }
 
     private fun added(capture: Capture) {
+        refresh()
         val shown = (allDevices || capture.info.deviceId == device?.id) && (kind == null || kind == capture.info.kind)
-        if (shown) captures = listOf(capture) + captures
+        if (shown) synchronized(listings) { captures = listOf(capture) + captures }
     }
 
     private fun desktop(action: (Desktop) -> Unit) {
