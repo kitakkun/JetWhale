@@ -49,6 +49,7 @@ import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
+import com.kitakkun.jetwhale.host.navigation.removeEntriesOfUninstalledPlugins
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -56,6 +57,7 @@ import com.kitakkun.jetwhale.host.theme.HostTheme
 import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
@@ -152,6 +154,17 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
+        }
+    }
+
+    LaunchedEffect(backStack) {
+        // Rerun on every back-stack change as well: an entry can be added for a plugin that is
+        // already gone, by an enable that completes after its jar was removed or a navigation that
+        // races the removal.
+        combine(appGraph.pluginFactoryRepository.loadedPluginsFlow, snapshotFlow { backStack.toList() }) { loadedPlugins, _ ->
+            loadedPlugins.keys
+        }.collect { installedPluginIds ->
+            backStack.removeEntriesOfUninstalledPlugins(installedPluginIds)
         }
     }
 
