@@ -79,8 +79,9 @@ class SemanticsOwnerNodeSource(
  * present in the unmerged one — so a lookup that missed in the merged tree still has somewhere to
  * look. The merged tree comes first because its config carries the actions a caller saw advertised.
  */
-private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? = getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
-    ?: getAllSemanticsNodes(mergingEnabled = false, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? =
+    getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+        ?: getAllSemanticsNodes(mergingEnabled = false, skipDeactivatedNodes = true).firstOrNull { it.id == id }
 
 /**
  * Registers a [SemanticsOwner] the caller already holds and keeps alive itself.

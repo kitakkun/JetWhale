@@ -20,11 +20,13 @@ actual fun FileRoot.Companion.platformDefaults(): List<FileRoot> = listOfNotNull
     FileRoot(name = "Temporary", path = NSTemporaryDirectory()),
 )
 
-private fun searchPath(directory: ULong): String? = NSSearchPathForDirectoriesInDomains(directory, NSUserDomainMask, true).firstOrNull() as? String
+private fun searchPath(directory: ULong): String? =
+    NSSearchPathForDirectoriesInDomains(directory, NSUserDomainMask, true).firstOrNull() as? String
 
 // A process without a bundle identifier (a command-line tool, a test binary) has no defaults
 // domain of its own; `standardUserDefaults` would then show only the global domains.
-actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> = listOfNotNull(NSBundle.mainBundle.bundleIdentifier?.let(::UserDefaultsStore))
+actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> =
+    listOfNotNull(NSBundle.mainBundle.bundleIdentifier?.let(::UserDefaultsStore))
 
 private class UserDefaultsStore(private val domain: String) : KeyValueStore {
     override val name: String get() = "NSUserDefaults"

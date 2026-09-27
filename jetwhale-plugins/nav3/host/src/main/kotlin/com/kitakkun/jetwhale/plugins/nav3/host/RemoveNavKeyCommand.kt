@@ -12,7 +12,8 @@ internal class RemoveNavKeyCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.removeNavKeyAt"
     override val description =
-        "Removes a single entry from the middle of the back stack, keeping the entries above it. Use it to rewrite where 'back' will land without leaving the current screen."
+        "Removes a single entry from the middle of the back stack, keeping the entries above it. Use it to rewrite where 'back' will " +
+            "land without leaving the current screen."
 
     private val index by int("Index of the entry to remove (0 is the root).")
     private val stackId by stringOrNull("Which back stack to edit. Defaults to the app's only one.")

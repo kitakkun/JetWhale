@@ -33,11 +33,13 @@ internal class PerformNodeActionCommand(
 
     private val nodeId by int("The node's id, as reported by findNodes or getNodeTree.")
     private val action by enum(
-        "The semantics action to invoke. Click is what a tap would do. SetText/InsertText require text; ScrollBy uses scrollX/scrollY; ScrollToIndex requires index; BringIntoView takes nothing.",
+        "The semantics action to invoke. Click is what a tap would do. SetText/InsertText require text; ScrollBy uses scrollX/scrollY; " +
+            "ScrollToIndex requires index; BringIntoView takes nothing.",
         NodeAction.entries,
     )
     private val rootId by stringOrNull(
-        "The root the node belongs to. Optional: without it the node is looked up in the most recent capture, and the topmost root wins if the id appears in more than one.",
+        "The root the node belongs to. Optional: without it the node is looked up in the most recent capture, and the topmost root wins " +
+            "if the id appears in more than one.",
     )
     private val text by stringOrNull("The text for SetText or InsertText.")
     private val scrollX by intOrNull("Horizontal scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
@@ -85,7 +87,8 @@ internal class PerformNodeActionCommand(
         val snapshot = capture(NodeTreeCaptureOptions(merged = true, includeInvisible = true, maxDepth = null))
         snapshot.findRootOf(nodeId)?.let { return it.rootId }
         throw JetWhaleMcpArgumentException(
-            "unknown nodeId: $nodeId (it is in none of the ${snapshot.roots.size} current roots; capture the tree again and use a fresh id)",
+            "unknown nodeId: $nodeId (it is in none of the ${snapshot.roots.size} current roots; " +
+                "capture the tree again and use a fresh id)",
         )
     }
 }

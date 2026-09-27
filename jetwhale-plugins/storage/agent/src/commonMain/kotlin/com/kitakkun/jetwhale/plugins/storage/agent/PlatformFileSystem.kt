@@ -27,7 +27,15 @@ internal fun measureDirectoryTree(path: String, entryLimit: Int): DirectoryMeasu
     var totalSizeBytes = 0L
     var fileCount = 0
     var directoryCount = 0
-    if (isSymbolicLink(path)) return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null)
+    if (isSymbolicLink(path)) {
+        return DirectoryMeasurement(
+            totalSizeBytes = 0,
+            fileCount = 1,
+            directoryCount = 0,
+            truncated = false,
+            error = null,
+        )
+    }
     val pending = ArrayDeque(listOf(path))
     while (pending.isNotEmpty()) {
         val directory = pending.removeFirst()

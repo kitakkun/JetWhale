@@ -19,14 +19,16 @@ internal class GetNodeTreeCommand(
         "Captures the running app's UI node tree right now — Compose semantics, plus Android Views on Android, " +
             "and on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose) — and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
-            "Each node carries id, text, contentDescription, \"actions\" — the action names performNodeAction accepts for it (BringIntoView works on any node and is not listed) — screen \"bounds\" in the node's \"unit\" " +
+            "Each node carries id, text, contentDescription, \"actions\" — the action names performNodeAction accepts for it " +
+            "(BringIntoView works on any node and is not listed) — screen \"bounds\" in the node's \"unit\" " +
             "(px, or pt on iOS), a \"tap\" point (the centre of the bounds), and per kind a role and testTag (Compose), " +
             "a viewClass and resourceId (Android View), or a className and accessibilityIdentifier (iOS). " +
             "A root is a window: on Android a dialog or popup is a window of its own, on iOS it stays inside the app's. " +
             "Prefer findNodes when you are looking for a specific element, and performNodeAction over tapping coordinates."
 
     private val merged by booleanOrNull(
-        "true (default) returns the merged tree an accessibility service sees, where a Button's label is folded into the clickable node. false keeps every semantics node separate.",
+        "true (default) returns the merged tree an accessibility service sees, where a Button's label is folded into the clickable " +
+            "node. false keeps every semantics node separate.",
     )
     private val includeInvisible by booleanOrNull(
         "Include nodes that are not laid out or fully clipped away. Defaults to false.",
@@ -35,7 +37,8 @@ internal class GetNodeTreeCommand(
         "Stop descending past this depth (each root's own node is depth 0). Returns the whole tree if omitted.",
     )
     private val interactiveOnly by booleanOrNull(
-        "Keep only nodes that expose an action, are editable, or scroll — plus their ancestors, so the structure is preserved. Defaults to false.",
+        "Keep only nodes that expose an action, are editable, or scroll — plus their ancestors, so the structure is preserved. " +
+            "Defaults to false.",
     )
     private val rootId by stringOrNull(
         "Return only this root. Use it to look at just the dialog on top, for example. Returns every root if omitted.",

@@ -93,7 +93,15 @@ public fun JwSplitPane(
             // A wider, invisible hit area over the divider, so it stays comfortable to grab.
             Box(
                 modifier = Modifier
-                    .then(if (horizontal) Modifier.width(JwSplitPaneDefaults.handleSize).fillMaxHeight() else Modifier.height(JwSplitPaneDefaults.handleSize).fillMaxWidth())
+                    .then(
+                        if (horizontal) {
+                            Modifier.width(
+                                JwSplitPaneDefaults.handleSize,
+                            ).fillMaxHeight()
+                        } else {
+                            Modifier.height(JwSplitPaneDefaults.handleSize).fillMaxWidth()
+                        },
+                    )
                     .pointerHoverIcon(PointerIcon(Cursor(cursor)))
                     .draggable(state = dragState, orientation = orientation),
             )

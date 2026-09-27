@@ -148,7 +148,8 @@ private fun View.viewActionNames(): List<String> = NodeAction.entries.mapNotNull
  * A view scrolls when it has somewhere to scroll to in any direction. Asking the view itself covers
  * every scrolling container — `ScrollView`, `RecyclerView`, a custom one — without naming any.
  */
-internal fun View.isScrollable(): Boolean = canScrollVertically(1) || canScrollVertically(-1) || canScrollHorizontally(1) || canScrollHorizontally(-1)
+internal fun View.isScrollable(): Boolean =
+    canScrollVertically(1) || canScrollVertically(-1) || canScrollHorizontally(1) || canScrollHorizontally(-1)
 
 /**
  * The entry name of the view's `android:id` (`submit` for `@id/submit`), or `null` when it has none.

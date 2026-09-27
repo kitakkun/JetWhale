@@ -29,7 +29,9 @@ internal object AppleNodePointerActions {
             // checked first: a control with only a valueChanged target would otherwise report a
             // click that reached nobody.
             if (!control.listensForTouchUp()) {
-                return NodeActionResult.notSupported("accessibilityActivate() returned false and the control has no target for touchUpInside")
+                return NodeActionResult.notSupported(
+                    "accessibilityActivate() returned false and the control has no target for touchUpInside",
+                )
             }
             control.sendActionsForControlEvents(UIControlEventTouchUpInside)
             return NodeActionResult(performed = true, message = "sent touchUpInside; accessibilityActivate() had returned false")

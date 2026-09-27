@@ -103,7 +103,8 @@ internal fun Nav3NavigatorScreen(
         if (selected == null) {
             JwEmptyState(
                 title = "No back stack registered",
-                description = "The app has not registered a Navigation 3 back stack yet. Add TrackNavBackStack(backStack) next to the NavDisplay that renders it, then reload.",
+                description = "The app has not registered a Navigation 3 back stack yet. " +
+                    "Add TrackNavBackStack(backStack) next to the NavDisplay that renders it, then reload.",
             )
         } else {
             JwSplitPane(
@@ -289,7 +290,8 @@ private fun PushPane(
 
         if (keyTypes.isEmpty()) {
             JwText(
-                "The app exposed no constructible key types. You can still copy an existing entry's key with \"Copy to editor\" and edit it.",
+                "The app exposed no constructible key types. You " +
+                    "can still copy an existing entry's key with \"Copy to editor\" and edit it.",
                 style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )

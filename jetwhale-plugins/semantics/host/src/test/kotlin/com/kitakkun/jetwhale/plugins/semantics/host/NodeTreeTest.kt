@@ -110,7 +110,14 @@ class NodeTreeTest {
 
     @Test
     fun `matches combines criteria with AND and compares case-insensitively by substring`() {
-        val target = node(id = 1, role = "Button", text = "Send message", testTag = "send-button", isClickable = true, actions = listOf("OnClick"))
+        val target = node(
+            id = 1,
+            role = "Button",
+            text = "Send message",
+            testTag = "send-button",
+            isClickable = true,
+            actions = listOf("OnClick"),
+        )
 
         assertTrue(target.matches(NodeQuery(text = "send", role = "button")))
         assertTrue(target.matches(NodeQuery(testTag = "SEND-BUTTON")))
@@ -148,7 +155,9 @@ class NodeTreeTest {
         // has to keep the Compose nodes above it just as it would a Compose match.
         val tree = node(
             id = 1,
-            children = listOf(node(id = 2, children = listOf(viewNode(id = -3, viewClass = "android.widget.Button", resourceId = "submit")))),
+            children = listOf(
+                node(id = 2, children = listOf(viewNode(id = -3, viewClass = "android.widget.Button", resourceId = "submit"))),
+            ),
         )
 
         val filtered = tree.filterTree { it is ViewNode && it.resourceId == "submit" }
@@ -187,7 +196,12 @@ class NodeTreeTest {
     fun `displayLabel names an iOS node by its class, identifier and label`() {
         assertEquals(
             "AccessibilityNode · swiftui-button · SwiftUI Button",
-            appleNode(id = -1, className = "SwiftUI.AccessibilityNode", accessibilityIdentifier = "swiftui-button", text = "SwiftUI Button").displayLabel(),
+            appleNode(
+                id = -1,
+                className = "SwiftUI.AccessibilityNode",
+                accessibilityIdentifier = "swiftui-button",
+                text = "SwiftUI Button",
+            ).displayLabel(),
         )
         assertEquals("UITextField", appleNode(id = -2, className = "UITextField").displayLabel())
     }
@@ -221,7 +235,8 @@ class NodeTreeTest {
 
     @Test
     fun `viewAttributeNode takes a selected View node`() {
-        val tree = snapshot(root("window-1", node = node(id = 1, children = listOf(viewNode(id = -4, viewClass = "android.widget.TextView")))))
+        val tree =
+            snapshot(root("window-1", node = node(id = 1, children = listOf(viewNode(id = -4, viewClass = "android.widget.TextView")))))
 
         assertEquals(NodeKey(rootId = "window-1", nodeId = -4), tree.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = -4)))
     }

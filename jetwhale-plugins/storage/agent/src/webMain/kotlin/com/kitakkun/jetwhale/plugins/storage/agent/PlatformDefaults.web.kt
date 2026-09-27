@@ -9,7 +9,8 @@ import kotlin.js.ExperimentalWasmJsInterop
 actual fun FileRoot.Companion.platformDefaults(): List<FileRoot> = emptyList()
 
 // Node has neither storage area, so each is offered only where it is defined.
-actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> = listOf("localStorage", "sessionStorage").filter(::isWebStorageDefined).map(::WebStorageStore)
+actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> =
+    listOf("localStorage", "sessionStorage").filter(::isWebStorageDefined).map(::WebStorageStore)
 
 private class WebStorageStore(override val name: String) : KeyValueStore {
     override suspend fun entries(): List<KeyValueEntry> = (0 until webStorageLength(name)).mapNotNull { index ->
@@ -34,7 +35,8 @@ private fun webStorageRemoveItem(area: String, key: String): Unit = js("globalTh
 
 internal actual fun listDirectoryEntries(path: String): List<FileEntry> = throw UnsupportedOperationException(NO_FILE_SYSTEM)
 
-internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): ByteArray = throw UnsupportedOperationException(NO_FILE_SYSTEM)
+internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): ByteArray =
+    throw UnsupportedOperationException(NO_FILE_SYSTEM)
 
 internal actual fun fileSize(path: String): Long = throw UnsupportedOperationException(NO_FILE_SYSTEM)
 

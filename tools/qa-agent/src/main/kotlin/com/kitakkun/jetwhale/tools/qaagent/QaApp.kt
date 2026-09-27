@@ -120,7 +120,8 @@ internal fun resolveAppName(requested: String?, known: Collection<String>): AppR
 }
 
 /** Why nothing addressed to an app that has been given up can arrive. */
-internal fun disconnectedAppHint(appName: String): String = "App '$appName' was disconnected via /disconnect, so it holds no session. Restart the agent to get it back."
+internal fun disconnectedAppHint(appName: String): String =
+    "App '$appName' was disconnected via /disconnect, so it holds no session. Restart the agent to get it back."
 
 /**
  * Why a send was dropped. Every case looks identical from the caller's side — `sent: false` — but

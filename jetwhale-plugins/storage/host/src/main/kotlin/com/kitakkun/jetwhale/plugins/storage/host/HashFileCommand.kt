@@ -13,7 +13,8 @@ internal class HashFileCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.hashFile"
     override val description =
-        "Computes the SHA-256 of a whole file in the app's storage, to tell whether two copies match or whether a file changed. The whole file is read from the app to compute it, so a large file takes a while."
+        "Computes the SHA-256 of a whole file in the app's storage, to tell whether two copies match or whether a file changed. The " +
+            "whole file is read from the app to compute it, so a large file takes a while."
 
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by string(PATH_ARGUMENT_DESCRIPTION)

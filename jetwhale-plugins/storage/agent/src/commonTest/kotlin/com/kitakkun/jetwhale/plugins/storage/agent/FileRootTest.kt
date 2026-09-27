@@ -9,7 +9,10 @@ class FileRootTest {
 
     @Test
     fun `segments are joined below the root`() {
-        assertEquals("/data/user/0/app/files/datastore/settings.preferences_pb", root.resolve(listOf("datastore", "settings.preferences_pb")))
+        assertEquals(
+            "/data/user/0/app/files/datastore/settings.preferences_pb",
+            root.resolve(listOf("datastore", "settings.preferences_pb")),
+        )
     }
 
     @Test

@@ -42,9 +42,19 @@ class NodeAtCommandTest {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun nodeAt(x: Int, y: Int, withDialog: Boolean = false): JsonObject {
-    val button = node(id = 7, isClickable = true, actions = listOf("OnClick"), bounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f))
+    val button = node(
+        id = 7,
+        isClickable = true,
+        actions = listOf("OnClick"),
+        bounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f),
+    )
     val roots = buildList {
-        add(root("window", node = node(id = 0, bounds = NodeBounds(left = 0f, top = 0f, right = 400f, bottom = 800f), children = listOf(button))))
+        add(
+            root(
+                "window",
+                node = node(id = 0, bounds = NodeBounds(left = 0f, top = 0f, right = 400f, bottom = 800f), children = listOf(button)),
+            ),
+        )
         if (withDialog) {
             add(
                 root(
@@ -52,7 +62,14 @@ private fun nodeAt(x: Int, y: Int, withDialog: Boolean = false): JsonObject {
                     node = node(
                         id = 8,
                         bounds = NodeBounds(left = 0f, top = 0f, right = 200f, bottom = 100f),
-                        children = listOf(node(id = 9, isClickable = true, actions = listOf("OnClick"), bounds = NodeBounds(left = 0f, top = 0f, right = 200f, bottom = 100f))),
+                        children = listOf(
+                            node(
+                                id = 9,
+                                isClickable = true,
+                                actions = listOf("OnClick"),
+                                bounds = NodeBounds(left = 0f, top = 0f, right = 200f, bottom = 100f),
+                            ),
+                        ),
                     ),
                 ),
             )

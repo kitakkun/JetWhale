@@ -43,12 +43,14 @@ class HostNavigationCommand(
     override val name: String = "jetwhale.navigate"
     override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
-        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show."
+        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, " +
+            "which is what jetwhale.screenshot of the same plugin will then show."
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
     private val sessionId by stringOrNull(
-        "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in \"${HostSession.ID}\".",
+        "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in " +
+            "\"${HostSession.ID}\".",
     )
     private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
 
@@ -65,7 +67,8 @@ class HostNavigationCommand(
             ?: return Json.encodeToString(
                 NavigateResult(
                     applied = false,
-                    reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. It may still be starting up.",
+                    reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. " +
+                        "It may still be starting up.",
                 ),
             )
 
@@ -105,24 +108,32 @@ class HostNavigationCommand(
             throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is not installed. See jetwhale.listInstalledPlugins.")
         }
         if (targetPluginId !in enabledPluginsRepository.enabledPluginIdsFlow.first()) {
-            throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is installed but disabled. Enable it with jetwhale.setPluginEnabled.")
+            throw JetWhaleMcpArgumentException(
+                "invalid pluginId: '$targetPluginId' is installed but disabled. Enable it with jetwhale.setPluginEnabled.",
+            )
         }
         if (targetSessionId == null) return
 
         // A plugin that needs no app opens in the host session whatever session was named.
         if (!reconciliationService.requiresAgent(targetPluginId)) return
         if (HostSession.isHost(targetSessionId)) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.",
+            )
         }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
             ?: throw JetWhaleMcpArgumentException("invalid sessionId: no session '$targetSessionId'. See jetwhale.listSessions.")
         // A disconnected session stays listed, but its plugin instances are already gone: the screen
         // would open on nothing, after the cleanup that closes such screens has run.
         if (!session.isActive) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.",
+            )
         }
         if (session.installedPlugins.none { it.pluginId == targetPluginId }) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.",
+            )
         }
     }
 }

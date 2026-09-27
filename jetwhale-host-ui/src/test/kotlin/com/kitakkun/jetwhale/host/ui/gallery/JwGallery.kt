@@ -136,7 +136,12 @@ private fun InputsSection() {
                 JwTextField(value = "com.example", onValueChange = {}, isError = true)
             }
             JwFormField(label = "Repository", modifier = Modifier.weight(1f)) {
-                JwDropdownButton(text = "Maven Central", expanded = false, onExpandedChange = {}, trailingIcon = { JwStatusDot(JwTone.Success) }) {}
+                JwDropdownButton(
+                    text = "Maven Central",
+                    expanded = false,
+                    onExpandedChange = {},
+                    trailingIcon = { JwStatusDot(JwTone.Success) },
+                ) {}
             }
         }
         JwSearchField(value = "api/users", onValueChange = {}, clearLabel = "Clear", placeholder = "Filter")
@@ -174,7 +179,13 @@ private fun RowsSection() {
     Section("Rows") {
         JwPanel(contentPadding = PaddingValues(0.dp)) {
             JwSectionHeader(title = "Enabled Plugins", count = 3, expanded = true, onToggleExpanded = {})
-            JwListItem(text = "Network Inspector", selected = true, onClick = {}, leadingContent = { JwIcon(JwIcons.Check, contentDescription = null) }, trailingContent = { JwTag(text = "MCP") })
+            JwListItem(
+                text = "Network Inspector",
+                selected = true,
+                onClick = {},
+                leadingContent = { JwIcon(JwIcons.Check, contentDescription = null) },
+                trailingContent = { JwTag(text = "MCP") },
+            )
             JwListItem(text = "Nav3 Navigator", selected = false, onClick = {}, supportingText = "com.kitakkun.jetwhale.nav3")
             JwListItem(text = "Muted item", selected = false, onClick = {}, muted = true)
             JwListItem(text = "Disabled item", selected = false, onClick = {}, enabled = false)
@@ -182,14 +193,45 @@ private fun RowsSection() {
         }
         JwPanel(title = "Tree", contentPadding = PaddingValues(0.dp)) {
             JwTreeRow(text = "Root", depth = 0, expandable = true, expanded = true, selected = false, onClick = {}, onToggleExpanded = {})
-            JwTreeRow(text = "Column", depth = 1, expandable = true, expanded = true, selected = true, onClick = {}, onToggleExpanded = {}, trailingContent = { JwTag(text = "clickable", tone = JwTone.Accent) })
-            JwTreeRow(text = "Text \"Hello\"", depth = 2, expandable = false, expanded = false, selected = false, onClick = {}, onToggleExpanded = {})
-            JwTreeRow(text = "Hidden", depth = 2, expandable = false, expanded = false, selected = false, onClick = {}, onToggleExpanded = {}, muted = true)
+            JwTreeRow(
+                text = "Column",
+                depth = 1,
+                expandable = true,
+                expanded = true,
+                selected = true,
+                onClick = {},
+                onToggleExpanded = {},
+                trailingContent = { JwTag(text = "clickable", tone = JwTone.Accent) },
+            )
+            JwTreeRow(
+                text = "Text \"Hello\"",
+                depth = 2,
+                expandable = false,
+                expanded = false,
+                selected = false,
+                onClick = {},
+                onToggleExpanded = {},
+            )
+            JwTreeRow(
+                text = "Hidden",
+                depth = 2,
+                expandable = false,
+                expanded = false,
+                selected = false,
+                onClick = {},
+                onToggleExpanded = {},
+                muted = true,
+            )
         }
         JwPanel(title = "Properties", headerActions = { JwButton(text = "Copy", onClick = {}, style = JwButtonStyle.Text) }) {
             JwKeyValueRow(key = "id", value = "42", monospace = true)
             JwKeyValueRow(key = "Content-Type", value = "application/json; charset=utf-8", monospace = true)
-            JwKeyValueRow(key = "url", value = "https://example.com/api/very/long/path/that/does/not/fit/in/the/row/at/all", monospace = true, wrap = false)
+            JwKeyValueRow(
+                key = "url",
+                value = "https://example.com/api/very/long/path/that/does/not/fit/in/the/row/at/all",
+                monospace = true,
+                wrap = false,
+            )
         }
         JwCodeBlock(text = "{\n  \"type\": \"ProductDetail\",\n  \"id\": \"42\"\n}", copyLabel = "Copy")
     }
@@ -237,8 +279,22 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 private data class SampleRow(val id: Int, val status: Int, val method: String, val url: String, val note: String, val ms: Long)
 
 private val SAMPLE_ROWS = listOf(
-    SampleRow(id = 1, status = 200, method = "GET", url = "https://example.com/api/users?page=1&sort=name&include=profile,settings", note = "Cached", ms = 42),
-    SampleRow(id = 2, status = 404, method = "GET", url = "https://example.com/api/missing", note = "The handler for this path was removed in the last deploy; the client still calls it", ms = 12),
+    SampleRow(
+        id = 1,
+        status = 200,
+        method = "GET",
+        url = "https://example.com/api/users?page=1&sort=name&include=profile,settings",
+        note = "Cached",
+        ms = 42,
+    ),
+    SampleRow(
+        id = 2,
+        status = 404,
+        method = "GET",
+        url = "https://example.com/api/missing",
+        note = "The handler for this path was removed in the last deploy; the client still calls it",
+        ms = 12,
+    ),
     SampleRow(id = 3, status = 201, method = "POST", url = "https://example.com/api/orders", note = "", ms = 310),
     SampleRow(id = 4, status = 302, method = "GET", url = "https://example.com/redirect", note = "Follows to /home", ms = 8),
 )
@@ -255,7 +311,9 @@ private val SAMPLE_COLUMNS = listOf(
     JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(56.dp)) { JwText(it.method, style = JwTheme.textStyles.label) },
     JwTableColumn.text(header = "URL", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Scroll, text = SampleRow::url),
     JwTableColumn.text(header = "Note", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Wrap, text = SampleRow::note),
-    JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(56.dp), alignment = Alignment.End) { JwText("${it.ms}ms", style = JwTheme.textStyles.labelSmall) },
+    JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(56.dp), alignment = Alignment.End) {
+        JwText("${it.ms}ms", style = JwTheme.textStyles.labelSmall)
+    },
 )
 
 /** Wide enough for the widest row (the button row) without wrapping. */

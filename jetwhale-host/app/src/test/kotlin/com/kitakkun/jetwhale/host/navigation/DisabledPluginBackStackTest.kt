@@ -6,7 +6,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class DisabledPluginBackStackTest {
-    private val disabled = DisabledPluginNavKey(pluginId = "com.example.network", pluginName = "Network", sessionId = "app-1", notInApp = false)
+    private val disabled = DisabledPluginNavKey(
+        pluginId = "com.example.network",
+        pluginName = "Network",
+        sessionId = "app-1",
+        notInApp = false,
+    )
 
     @Test
     fun `enabling a disabled plugin replaces its screen with the plugin`() {

@@ -194,7 +194,8 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.semantics"
 
-        private const val ROOT_WITHOUT_HIGHLIGHT: String = "this root cannot be highlighted (it is a composition read through its SemanticsOwner, which has no window to draw in)"
+        private const val ROOT_WITHOUT_HIGHLIGHT: String = "this root cannot be highlighted " +
+            "(it is a composition read through its SemanticsOwner, which has no window to draw in)"
 
         internal const val NO_PROBE_WARNING: String =
             "No root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +

@@ -10,7 +10,8 @@ internal class ListNavKeyTypesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listNavKeyTypes"
     override val description =
-        "Lists the NavKey types this app can be navigated to, each with its fields and a ready-to-fill JSON template. Fill a template in and pass it to pushNavKey."
+        "Lists the NavKey types this app can be navigated to, each with its fields and a ready-to-fill JSON template. Fill a template " +
+            "in and pass it to pushNavKey."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String = controller.keyTypes().toMcpJson().toString()
 }

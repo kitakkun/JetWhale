@@ -30,7 +30,8 @@ internal actual fun resolveDefaultAppName(): String? {
  * an `.icns` in the bundle and an asset-catalog icon, and works without an `NSApplication` — which a
  * plain executable does not have.
  */
-internal actual fun resolveDefaultAppIconPng(): ByteArray? = NSWorkspace.sharedWorkspace.iconForFile(NSBundle.mainBundle.bundlePath).pngBytesOrNull(APP_ICON_SIZE_PX)
+internal actual fun resolveDefaultAppIconPng(): ByteArray? =
+    NSWorkspace.sharedWorkspace.iconForFile(NSBundle.mainBundle.bundlePath).pngBytesOrNull(APP_ICON_SIZE_PX)
 
 private fun NSImage.pngBytesOrNull(size: Int): ByteArray? {
     val representation = NSBitmapImageRep(

@@ -13,7 +13,8 @@ internal class GetBackStackCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.getBackStack"
     override val description =
-        "Returns the app's current Navigation 3 back stack(s): every entry with its index, type name, display string and the JSON key that can be pushed again. Index 0 is the root; the last entry is what the app is showing."
+        "Returns the app's current Navigation 3 back stack(s): every entry with its index, type name, display string and the JSON key " +
+            "that can be pushed again. Index 0 is the root; the last entry is what the app is showing."
 
     private val stackId by stringOrNull("Which back stack to read. Returns every registered stack if omitted.")
 

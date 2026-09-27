@@ -10,31 +10,67 @@ class ScrollDeltaToRevealTest {
 
     @Test
     fun `a target inside the viewport needs no scroll`() {
-        assertEquals(Offset.Zero, ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 10f, top = 150f, right = 200f, bottom = 300f), viewport = viewport))
+        assertEquals(
+            Offset.Zero,
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 10f, top = 150f, right = 200f, bottom = 300f),
+                viewport = viewport,
+            ),
+        )
     }
 
     @Test
     fun `a target below the viewport scrolls down just enough to show its bottom edge`() {
-        assertEquals(Offset(0f, 200f), ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 10f, top = 600f, right = 200f, bottom = 700f), viewport = viewport))
+        assertEquals(
+            Offset(0f, 200f),
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 10f, top = 600f, right = 200f, bottom = 700f),
+                viewport = viewport,
+            ),
+        )
     }
 
     @Test
     fun `a target above the viewport scrolls up just enough to show its top edge`() {
-        assertEquals(Offset(0f, -80f), ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 10f, top = 20f, right = 200f, bottom = 120f), viewport = viewport))
+        assertEquals(
+            Offset(0f, -80f),
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 10f, top = 20f, right = 200f, bottom = 120f),
+                viewport = viewport,
+            ),
+        )
     }
 
     @Test
     fun `a target to the right scrolls sideways and not vertically`() {
-        assertEquals(Offset(150f, 0f), ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 450f, top = 150f, right = 550f, bottom = 300f), viewport = viewport))
+        assertEquals(
+            Offset(150f, 0f),
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 450f, top = 150f, right = 550f, bottom = 300f),
+                viewport = viewport,
+            ),
+        )
     }
 
     @Test
     fun `a target taller than the viewport that overlaps it is left where it is`() {
-        assertEquals(Offset.Zero, ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 10f, top = 50f, right = 200f, bottom = 800f), viewport = viewport))
+        assertEquals(
+            Offset.Zero,
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 10f, top = 50f, right = 200f, bottom = 800f),
+                viewport = viewport,
+            ),
+        )
     }
 
     @Test
     fun `a target partly past the bottom edge scrolls by the overhang only`() {
-        assertEquals(Offset(0f, 50f), ScrollActions.BringIntoView.scrollDeltaToReveal(target = Rect(left = 10f, top = 400f, right = 200f, bottom = 550f), viewport = viewport))
+        assertEquals(
+            Offset(0f, 50f),
+            ScrollActions.BringIntoView.scrollDeltaToReveal(
+                target = Rect(left = 10f, top = 400f, right = 200f, bottom = 550f),
+                viewport = viewport,
+            ),
+        )
     }
 }

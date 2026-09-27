@@ -385,14 +385,15 @@ private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
  * Resolves the app a call is addressed to, answering the caller itself when it cannot be resolved
  * and returning null so the handler stops without touching a session.
  */
-private suspend fun ApplicationCall.resolveApp(apps: Map<String, QaApp>, requested: String?): QaApp? = when (val resolution = resolveAppName(requested, apps.keys)) {
-    is AppResolution.Resolved -> apps.getValue(resolution.name)
+private suspend fun ApplicationCall.resolveApp(apps: Map<String, QaApp>, requested: String?): QaApp? =
+    when (val resolution = resolveAppName(requested, apps.keys)) {
+        is AppResolution.Resolved -> apps.getValue(resolution.name)
 
-    is AppResolution.Failed -> {
-        respond(HttpStatusCode.BadRequest, ErrorResponse(resolution.error))
-        null
+        is AppResolution.Failed -> {
+            respond(HttpStatusCode.BadRequest, ErrorResponse(resolution.error))
+            null
+        }
     }
-}
 
 private fun unknownPluginError(pluginId: String, known: Set<String>) = ErrorResponse(
     if (known.isEmpty()) {

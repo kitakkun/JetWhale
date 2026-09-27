@@ -99,27 +99,41 @@ public abstract class JetWhaleMcpCommand(
     // -- Scalar parameters (use with `by` on a property; the property name is the parameter
     // name unless overridden via the `name` argument) ---------------------------------------
 
-    protected fun string(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String> = requiredScalar(name, STRING_SCHEMA, description) { _, value -> value }
+    protected fun string(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String> =
+        requiredScalar(name, STRING_SCHEMA, description) { _, value -> value }
 
-    protected fun stringOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String?> = optionalScalar(name, STRING_SCHEMA, description) { _, value -> value }
+    protected fun stringOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String?> =
+        optionalScalar(name, STRING_SCHEMA, description) { _, value -> value }
 
-    protected fun int(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int> = requiredScalar(name, INTEGER_SCHEMA, description, ::parseInt)
+    protected fun int(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int> =
+        requiredScalar(name, INTEGER_SCHEMA, description, ::parseInt)
 
-    protected fun intOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int?> = optionalScalar(name, INTEGER_SCHEMA, description, ::parseInt)
+    protected fun intOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int?> =
+        optionalScalar(name, INTEGER_SCHEMA, description, ::parseInt)
 
-    protected fun long(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long> = requiredScalar(name, INTEGER_SCHEMA, description, ::parseLong)
+    protected fun long(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long> =
+        requiredScalar(name, INTEGER_SCHEMA, description, ::parseLong)
 
-    protected fun longOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long?> = optionalScalar(name, INTEGER_SCHEMA, description, ::parseLong)
+    protected fun longOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long?> =
+        optionalScalar(name, INTEGER_SCHEMA, description, ::parseLong)
 
-    protected fun boolean(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean> = requiredScalar(name, BOOLEAN_SCHEMA, description, ::parseBoolean)
+    protected fun boolean(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean> =
+        requiredScalar(name, BOOLEAN_SCHEMA, description, ::parseBoolean)
 
-    protected fun booleanOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean?> = optionalScalar(name, BOOLEAN_SCHEMA, description, ::parseBoolean)
+    protected fun booleanOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean?> =
+        optionalScalar(name, BOOLEAN_SCHEMA, description, ::parseBoolean)
 
     /** Matches [entries] by enum name, case-insensitively; the entry names are advertised as the schema's `enum`. */
-    protected fun <T : Enum<T>> enum(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredScalar(name, enumSchema(entries), description) { paramName, value -> parseEnum(paramName, value, entries) }
+    protected fun <T : Enum<T>> enum(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T> =
+        requiredScalar(name, enumSchema(entries), description) { paramName, value -> parseEnum(paramName, value, entries) }
 
     /** Matches [entries] by enum name, case-insensitively; the entry names are advertised as the schema's `enum`. */
-    protected fun <T : Enum<T>> enumOrNull(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalScalar(name, enumSchema(entries), description) { paramName, value -> parseEnum(paramName, value, entries) }
+    protected fun <T : Enum<T>> enumOrNull(
+        description: String,
+        entries: List<T>,
+        name: String? = null,
+    ): JetWhaleMcpParameterDeclaration<T?> =
+        optionalScalar(name, enumSchema(entries), description) { paramName, value -> parseEnum(paramName, value, entries) }
 
     // -- Structured parameters ----------------------------------------------------------------
 
@@ -132,58 +146,99 @@ public abstract class JetWhaleMcpCommand(
      * even if it carries annotations of its own. A payload that does not fit [T] raises a
      * [JetWhaleMcpArgumentException] naming the parameter.
      */
-    protected inline fun <reified T : Any> serializable(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = serializable(serializer<T>(), description, name)
+    protected inline fun <reified T : Any> serializable(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> =
+        serializable(serializer<T>(), description, name)
 
     /** @see serializable */
-    protected inline fun <reified T : Any> serializableOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = serializableOrNull(serializer<T>(), description, name)
+    protected inline fun <reified T : Any> serializableOrNull(
+        description: String,
+        name: String? = null,
+    ): JetWhaleMcpParameterDeclaration<T?> = serializableOrNull(serializer<T>(), description, name)
 
     /** Explicit-serializer form of [serializable], for types whose serializer cannot be resolved from the type argument. */
-    protected fun <T : Any> serializable(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializable(
+        serializer: KSerializer<T>,
+        description: String,
+        name: String? = null,
+    ): JetWhaleMcpParameterDeclaration<T> =
+        requiredStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element ->
+            decode(paramName, serializer, element)
+        }
 
     /** Explicit-serializer form of [serializableOrNull]. */
-    protected fun <T : Any> serializableOrNull(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializableOrNull(
+        serializer: KSerializer<T>,
+        description: String,
+        name: String? = null,
+    ): JetWhaleMcpParameterDeclaration<T?> =
+        optionalStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element ->
+            decode(paramName, serializer, element)
+        }
 
     /** A JSON array of strings, e.g. `["a", "b"]`. */
-    protected fun stringList(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>> = requiredStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
+    protected fun stringList(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>> =
+        requiredStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
 
     /** A JSON array of strings, e.g. `["a", "b"]`. */
-    protected fun stringListOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>?> = optionalStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
+    protected fun stringListOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>?> =
+        optionalStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
 
     /** A JSON object whose values are strings, e.g. `{"Content-Type":"application/json"}`. */
-    protected fun stringMap(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Map<String, String>> = requiredStructured(name, STRING_MAP_SCHEMA, description, parse = ::parseStringMap)
+    protected fun stringMap(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Map<String, String>> =
+        requiredStructured(name, STRING_MAP_SCHEMA, description, parse = ::parseStringMap)
 
     /** A JSON object whose values are strings, e.g. `{"Content-Type":"application/json"}`. */
-    protected fun stringMapOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Map<String, String>?> = optionalStructured(name, STRING_MAP_SCHEMA, description, parse = ::parseStringMap)
+    protected fun stringMapOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Map<String, String>?> =
+        optionalStructured(name, STRING_MAP_SCHEMA, description, parse = ::parseStringMap)
 
     /**
      * A raw JSON object, for payloads whose shape is not known ahead of time. The schema advertises
      * only `object`, so prefer [serializable] whenever the shape is known.
      */
-    protected fun jsonObject(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonObject> = requiredStructured(name, OBJECT_SCHEMA, description, parse = ::parseJsonObject)
+    protected fun jsonObject(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonObject> =
+        requiredStructured(name, OBJECT_SCHEMA, description, parse = ::parseJsonObject)
 
     /** @see jsonObject */
-    protected fun jsonObjectOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonObject?> = optionalStructured(name, OBJECT_SCHEMA, description, parse = ::parseJsonObject)
+    protected fun jsonObjectOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonObject?> =
+        optionalStructured(name, OBJECT_SCHEMA, description, parse = ::parseJsonObject)
 
     /**
      * A raw JSON array, for payloads whose shape is not known ahead of time. The schema advertises
      * only `array`, so prefer [serializable] whenever the shape is known.
      */
-    protected fun jsonArray(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray> = requiredStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
+    protected fun jsonArray(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray> =
+        requiredStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
 
     /** @see jsonArray */
-    protected fun jsonArrayOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray?> = optionalStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
+    protected fun jsonArrayOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray?> =
+        optionalStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
 
     // -- Declaration builders -----------------------------------------------------------------
 
-    private fun <T : Any> requiredScalar(name: String?, schema: JsonObject, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, schema, description) { paramName, element ->
+    private fun <T : Any> requiredScalar(
+        name: String?,
+        schema: JsonObject,
+        description: String,
+        parse: (String, String) -> T,
+    ): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, schema, description) { paramName, element ->
         parse(paramName, scalarContent(paramName, element))
     }
 
-    private fun <T : Any> optionalScalar(name: String?, schema: JsonObject, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, schema, description) { paramName, element ->
+    private fun <T : Any> optionalScalar(
+        name: String?,
+        schema: JsonObject,
+        description: String,
+        parse: (String, String) -> T,
+    ): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, schema, description) { paramName, element ->
         parse(paramName, scalarContent(paramName, element))
     }
 
-    private fun <T : Any> requiredStructured(name: String?, schema: JsonObject, description: String, parse: (String, JsonElement) -> T): JetWhaleMcpParameterDeclaration<T> = JetWhaleMcpParameterDeclaration(
+    private fun <T : Any> requiredStructured(
+        name: String?,
+        schema: JsonObject,
+        description: String,
+        parse: (String, JsonElement) -> T,
+    ): JetWhaleMcpParameterDeclaration<T> = JetWhaleMcpParameterDeclaration(
         command = this,
         explicitName = name,
         schema = schema,
@@ -195,7 +250,12 @@ public abstract class JetWhaleMcpCommand(
         parse(paramName, element)
     }
 
-    private fun <T : Any> optionalStructured(name: String?, schema: JsonObject, description: String, parse: (String, JsonElement) -> T): JetWhaleMcpParameterDeclaration<T?> = JetWhaleMcpParameterDeclaration(
+    private fun <T : Any> optionalStructured(
+        name: String?,
+        schema: JsonObject,
+        description: String,
+        parse: (String, JsonElement) -> T,
+    ): JetWhaleMcpParameterDeclaration<T?> = JetWhaleMcpParameterDeclaration(
         command = this,
         explicitName = name,
         schema = schema,
@@ -207,7 +267,8 @@ public abstract class JetWhaleMcpCommand(
 
     internal fun <T> declare(parameter: JetWhaleMcpParameter<T>) {
         check(!parametersSealed) {
-            "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only as property declarations on the command, never inside execute()."
+            "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only as " +
+                "property declarations on the command, never inside execute()."
         }
         check(declaredParameters.none { it.name == parameter.name }) {
             "Parameter '${parameter.name}' is declared twice on '$name'."
@@ -218,14 +279,18 @@ public abstract class JetWhaleMcpCommand(
     private fun scalarContent(name: String, element: JsonElement): String = (element as? JsonPrimitive)?.content
         ?: throw JetWhaleMcpArgumentException("invalid $name: expected a scalar value")
 
-    private fun parseInt(name: String, value: String): Int = value.toIntOrNull() ?: invalid(name = name, value = value, expected = "an integer")
+    private fun parseInt(name: String, value: String): Int =
+        value.toIntOrNull() ?: invalid(name = name, value = value, expected = "an integer")
 
-    private fun parseLong(name: String, value: String): Long = value.toLongOrNull() ?: invalid(name = name, value = value, expected = "an integer")
+    private fun parseLong(name: String, value: String): Long =
+        value.toLongOrNull() ?: invalid(name = name, value = value, expected = "an integer")
 
-    private fun parseBoolean(name: String, value: String): Boolean = value.toBooleanStrictOrNull() ?: invalid(name = name, value = value, expected = "true or false")
+    private fun parseBoolean(name: String, value: String): Boolean =
+        value.toBooleanStrictOrNull() ?: invalid(name = name, value = value, expected = "true or false")
 
-    private fun <T : Enum<T>> parseEnum(name: String, value: String, entries: List<T>): T = entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-        ?: invalid(name = name, value = value, expected = "one of ${entries.joinToString(", ") { it.name }}")
+    private fun <T : Enum<T>> parseEnum(name: String, value: String, entries: List<T>): T =
+        entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+            ?: invalid(name = name, value = value, expected = "one of ${entries.joinToString(", ") { it.name }}")
 
     private fun parseStringList(name: String, element: JsonElement): List<String> {
         val array = element as? JsonArray ?: throw JetWhaleMcpArgumentException("invalid $name: expected a JSON array")
@@ -255,7 +320,8 @@ public abstract class JetWhaleMcpCommand(
         throw JetWhaleMcpArgumentException("invalid $name: ${e.message}")
     }
 
-    private fun invalid(name: String, value: String, expected: String): Nothing = throw JetWhaleMcpArgumentException("invalid $name: $value (expected $expected)")
+    private fun invalid(name: String, value: String, expected: String): Nothing =
+        throw JetWhaleMcpArgumentException("invalid $name: $value (expected $expected)")
 
     private companion object {
         val STRING_SCHEMA = buildJsonObject { put("type", "string") }

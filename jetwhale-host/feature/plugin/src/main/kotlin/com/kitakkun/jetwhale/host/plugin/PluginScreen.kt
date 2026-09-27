@@ -97,7 +97,8 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             focusRequester.requestFocus()
                             event.changes.forEach(PointerInputChange::consume)
                         }
-                        // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error instead of taking the host down.
+                        // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error
+                        // instead of taking the host down.
                         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                         try {
                             val scrollDelta = event.changes.map(PointerInputChange::scrollDelta).reduce(Offset::plus)
@@ -127,7 +128,8 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 }
             }
             .onKeyEvent {
-                // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error instead of taking the host down.
+                // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error
+                // instead of taking the host down.
                 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                 try {
                     pluginComposeScene.composeScene.sendKeyEvent(it)

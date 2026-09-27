@@ -62,7 +62,9 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
+        val rows = command.run(
+            arguments("rootId" to "window-1", "nodeId" to -4),
+        ).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertEquals("layoutSize", rows[0]["type"]?.jsonPrimitive?.content)
         assertEquals("WRAP_CONTENT", rows[0]["value"]?.jsonPrimitive?.content)
@@ -78,7 +80,9 @@ class ViewAttributeCommandsTest {
     fun `setViewAttribute takes a plain string for a layout size, constant or number`() {
         val sent = mutableListOf<ViewAttributeValue>()
         val command = SetViewAttributeCommand(
-            getAttributes = { response(attribute("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), group = "Layout")) },
+            getAttributes = {
+                response(attribute("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), group = "Layout"))
+            },
             setAttribute = { request ->
                 sent += request.value
                 ViewAttributeResult(applied = true)
@@ -110,7 +114,9 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
+        val rows = command.run(
+            arguments("rootId" to "window-1", "nodeId" to -4),
+        ).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertNull(rows[0]["editable"])
         assertEquals(false, rows[1]["editable"]?.jsonPrimitive?.content?.toBoolean())
@@ -119,7 +125,9 @@ class ViewAttributeCommandsTest {
     @Test
     fun `getViewAttributes passes on the reason a node has none instead of failing`() {
         val command = GetViewAttributesCommand(
-            getAttributes = { ViewAttributeResponse(snapshot = null, message = "node 42 is a Compose semantics node, which has no View attributes") },
+            getAttributes = {
+                ViewAttributeResponse(snapshot = null, message = "node 42 is a Compose semantics node, which has no View attributes")
+            },
         )
 
         val result = command.run(arguments("rootId" to "window-1", "nodeId" to 42))
@@ -132,7 +140,9 @@ class ViewAttributeCommandsTest {
     fun `setViewAttribute reads the string as the type the attribute currently has`() {
         var sent: SetViewAttribute? = null
         val command = SetViewAttributeCommand(
-            getAttributes = { response(attribute("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")))) },
+            getAttributes = {
+                response(attribute("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE"))))
+            },
             setAttribute = { request ->
                 sent = request
                 ViewAttributeResult(
@@ -168,7 +178,9 @@ class ViewAttributeCommandsTest {
     fun `setViewAttribute refuses a read-only attribute before reaching the app`() {
         var reached = false
         val command = SetViewAttributeCommand(
-            getAttributes = { response(attribute("bounds", ViewAttributeValue.TextValue("0,0,10,10"), group = "Layout", editable = false)) },
+            getAttributes = {
+                response(attribute("bounds", ViewAttributeValue.TextValue("0,0,10,10"), group = "Layout", editable = false))
+            },
             setAttribute = {
                 reached = true
                 ViewAttributeResult(applied = true)
@@ -274,8 +286,14 @@ class ViewAttributeValueParsingTest {
         val fixed = layoutSize(constant = null, px = 100f, dp = 50f)
 
         // A constant, in whatever case it was typed, from either starting point…
-        assertEquals(layoutSize(constant = "MATCH_PARENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "match_parent"))
-        assertEquals(layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "wrap_content"))
+        assertEquals(
+            layoutSize(constant = "MATCH_PARENT", px = null, dp = null),
+            parseViewAttributeValue("layout.width", fixed, "match_parent"),
+        )
+        assertEquals(
+            layoutSize(constant = "WRAP_CONTENT", px = null, dp = null),
+            parseViewAttributeValue("layout.width", fixed, "wrap_content"),
+        )
         // …and a length, likewise.
         assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", wrapping, "500"))
         assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", fixed, "500"))
@@ -314,7 +332,11 @@ class ViewAttributeValueParsingTest {
     fun `matches an enum option whatever case it was typed in`() {
         assertEquals(
             ViewAttributeValue.EnumValue("INVISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")),
-            parseViewAttributeValue("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")), "invisible"),
+            parseViewAttributeValue(
+                "visibility",
+                ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")),
+                "invisible",
+            ),
         )
     }
 
@@ -358,4 +380,6 @@ class ViewAttributeValueParsingTest {
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private val JetWhaleMcpArgumentException.reason: String get() = requireNotNull(message) { "an argument error without a message says nothing about what was wrong" }
+private val JetWhaleMcpArgumentException.reason: String get() = requireNotNull(message) {
+    "an argument error without a message says nothing about what was wrong"
+}

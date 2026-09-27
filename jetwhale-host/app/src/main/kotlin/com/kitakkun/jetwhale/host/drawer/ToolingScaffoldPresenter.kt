@@ -143,7 +143,8 @@ fun toolingScaffoldPresenter(
                     },
                     // Attributed only when the operation targets the session this row opens in;
                     // highlighting a plugin for some other device would be misleading.
-                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+                    underAiControl = activeInvocation?.pluginId == metaData.id &&
+                        sessionId != null && activeInvocation.sessionId == sessionId,
                     exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
                     isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
                     needsApp = metaData.requiresAgent,
@@ -218,7 +219,7 @@ fun toolingScaffoldPresenter(
             operatingToolName = activeInvocation?.toolName,
             operatingToolShortName = activeInvocation?.shortToolName(),
             operatingPluginName = activeInvocation?.pluginId?.let { pluginId -> loadedPlugins.find { it.id == pluginId }?.name },
-            operatingAppName = activeInvocation?.sessionId?.let { sessionId -> debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName },
+            operatingAppName = activeInvocation?.sessionId?.let { id -> debugSessions.find { it.id == id }?.deviceAndAppDisplayName },
             isFollowModeOn = followAiOperationEnabled,
             mcpServer = mcpServerStatus.toAvailability(),
         ),

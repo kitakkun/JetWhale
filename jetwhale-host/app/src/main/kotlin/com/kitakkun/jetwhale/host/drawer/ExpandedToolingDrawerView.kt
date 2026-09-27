@@ -399,7 +399,11 @@ private fun PluginList(
         modifier = modifier,
         contentPadding = PaddingValues(JwSpacing.extraSmall),
     ) {
-        enabledPluginRows(plugins = byAvailability[PluginAvailability.Enabled].orEmpty(), selectedPluginId = selectedPluginId, actions = actions)
+        enabledPluginRows(
+            plugins = byAvailability[PluginAvailability.Enabled].orEmpty(),
+            selectedPluginId = selectedPluginId,
+            actions = actions,
+        )
         foldedPluginRows(
             key = "fold:disabled",
             label = disabledLabel,

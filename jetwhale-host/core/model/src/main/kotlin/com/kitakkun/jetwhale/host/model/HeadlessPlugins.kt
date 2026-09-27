@@ -11,7 +11,8 @@ package com.kitakkun.jetwhale.host.model
  */
 @JvmInline
 value class HeadlessPlugins(val pluginIdsBySession: Map<String, Set<String>>) {
-    fun isHeadless(sessionId: String?, pluginId: String): Boolean = sessionId != null && pluginIdsBySession[sessionId]?.contains(pluginId) == true
+    fun isHeadless(sessionId: String?, pluginId: String): Boolean =
+        sessionId != null && pluginIdsBySession[sessionId]?.contains(pluginId) == true
 
     companion object {
         val Empty = HeadlessPlugins(emptyMap())

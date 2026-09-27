@@ -32,7 +32,8 @@ class QaAgentOptionsTest {
 
     @Test
     fun `every app registers the same plugins`() {
-        val options = parseArgs(arrayOf("--app", "checkout", "--app", "catalog", "--plugin", "com.example.a", "--plugin", "com.example.b@2.0.0"))
+        val options =
+            parseArgs(arrayOf("--app", "checkout", "--app", "catalog", "--plugin", "com.example.a", "--plugin", "com.example.b@2.0.0"))
 
         assertEquals(mapOf("com.example.a" to DEFAULT_PLUGIN_VERSION, "com.example.b" to "2.0.0"), options.plugins)
     }

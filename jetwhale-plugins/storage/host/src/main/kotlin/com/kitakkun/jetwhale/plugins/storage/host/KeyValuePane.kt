@@ -52,7 +52,8 @@ internal fun KeyValuePane(
         if (stores.isEmpty()) {
             JwEmptyState(
                 title = "No key-value stores",
-                description = "The app has no store this plugin can read. On the JVM there is no platform store; pass your own KeyValueStore to JetWhaleStorageAgentPlugin.",
+                description = "The app has no store this plugin can read. " +
+                    "On the JVM there is no platform store; pass your own KeyValueStore to JetWhaleStorageAgentPlugin.",
             )
             return@Box
         }
@@ -124,9 +125,19 @@ internal fun KeyValueTable(
     JwTable(
         items = entries,
         columns = listOf(
-            JwTableColumn.text(header = "Key", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::key),
+            JwTableColumn.text(
+                header = "Key",
+                width = JwColumnWidth.Weight(1f),
+                overflow = JwColumnOverflow.Wrap,
+                text = KeyValueEntry::key,
+            ),
             JwTableColumn.text(header = "Type", width = JwColumnWidth.Fixed(TypeColumnWidth), text = KeyValueEntry::type),
-            JwTableColumn.text(header = "Value", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::value),
+            JwTableColumn.text(
+                header = "Value",
+                width = JwColumnWidth.Weight(2f),
+                overflow = JwColumnOverflow.Wrap,
+                text = KeyValueEntry::value,
+            ),
         ),
         key = KeyValueEntry::key,
         isSelected = { it.key == selectedKey },

@@ -13,5 +13,6 @@ internal class ClearTransactionsCommand(
     override val name = "$TOOL_PREFIX.clearTransactions"
     override val description = "Clears the captured HTTP transaction list."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = buildJsonObject { put("clearedCount", clearTransactions()) }.toString()
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String =
+        buildJsonObject { put("clearedCount", clearTransactions()) }.toString()
 }

@@ -16,7 +16,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-private const val SERVER_RESTART_NOTE = "Every agent session was dropped; call jetwhale.listSessions again before using any sessionId you were holding."
+private const val SERVER_RESTART_NOTE = "Every agent session was dropped; " +
+    "call jetwhale.listSessions again before using any sessionId you were holding."
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
@@ -27,16 +28,22 @@ class UpdateSettingsCommand(
     override val name: String = "jetwhale.updateSettings"
     override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String =
-        "Host-wide: changes the debug tool's settings. Only the arguments you supply are touched. Changing a ws/wss setting restarts the debug server, which drops every agent session — pass restartDebugServer=false to persist the change and apply it later instead."
+        "Host-wide: changes the debug tool's settings. Only the arguments you supply are touched. Changing a ws/wss setting restarts " +
+            "the debug server, which drops every agent session — " +
+            "pass restartDebugServer=false to persist the change and apply it later instead."
 
     private val serverPort by intOrNull("Port the debug WebSocket server listens on.")
     private val wssPort by intOrNull("Port the secure (wss) connector listens on.")
     private val wssEnabled by booleanOrNull("Whether the secure (wss) connector is exposed at all.")
     private val mcpServerPort by intOrNull("Port this MCP server listens on. Persisted only — see the note in the result.")
-    private val adbAutoPortMappingEnabled by booleanOrNull("Whether the host runs `adb reverse` automatically for connected Android devices.")
+    private val adbAutoPortMappingEnabled by booleanOrNull(
+        "Whether the host runs `adb reverse` automatically for connected Android devices.",
+    )
     private val checkForUpdatesOnStartup by booleanOrNull("Whether the host checks for a newer release when it starts.")
     private val persistData by booleanOrNull("Whether captured debug data survives a host restart.")
-    private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
+    private val restartDebugServer by booleanOrNull(
+        "Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.",
+    )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         // Validate every port before writing any of them, so a bad argument late in the list cannot
@@ -64,7 +71,8 @@ class UpdateSettingsCommand(
             settingsRepository.updateMcpServerPort(port)
             applied["mcpServerPort"] = port.toString()
             // Restarting the MCP server here would tear down the very connection carrying this call.
-            notes += "mcpServerPort was saved but this MCP server is still listening on its old port; the change takes effect the next time the host starts."
+            notes += "mcpServerPort was saved but this MCP server is still listening on its old port; " +
+                "the change takes effect the next time the host starts."
         }
         arguments[adbAutoPortMappingEnabled]?.let { enabled ->
             settingsRepository.updateAdbAutoPortMappingEnabled(enabled)
@@ -90,7 +98,8 @@ class UpdateSettingsCommand(
             notes += SERVER_RESTART_NOTE
         } else if (debugServerAffected) {
             // Both the ports and adbAutoPortMappingEnabled are only read when the server starts.
-            notes += "The debug server is still running with its previous configuration; restart it with jetwhale.restartDebugServer to apply the change."
+            notes += "The debug server is still running with its previous configuration; " +
+                "restart it with jetwhale.restartDebugServer to apply the change."
         }
 
         return Json.encodeToString(
@@ -121,7 +130,8 @@ class RestartDebugServerCommand(
     override val name: String = "jetwhale.restartDebugServer"
     override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String =
-        "Host-wide: stops and restarts the debug WebSocket server that agents connect to. This disconnects every session — every sessionId you hold becomes invalid and each app has to reconnect."
+        "Host-wide: stops and restarts the debug WebSocket server that agents connect to. This disconnects every session — every " +
+            "sessionId you hold becomes invalid and each app has to reconnect."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         restartDebugServer(settingsRepository, debugWebSocketServer)

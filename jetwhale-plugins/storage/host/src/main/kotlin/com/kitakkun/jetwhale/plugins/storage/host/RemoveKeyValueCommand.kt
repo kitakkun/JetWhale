@@ -11,10 +11,17 @@ internal class RemoveKeyValueCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.removeKeyValue"
     override val description =
-        "Removes one entry from one of the app's key-value stores, e.g. to reset a flag. Removing a key the store does not have is not an error."
+        "Removes one entry from one of the app's key-value stores, e.g. to reset a flag. " +
+            "Removing a key the store does not have is not an error."
 
     private val store by string("Name of the store, as listLocations reports it.")
     private val key by string("The key to remove.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(StorageOperationResult.serializer(), client.removeKeyValue(storeName = arguments[store], key = arguments[key]))
+    override suspend fun execute(
+        arguments: JetWhaleMcpArguments,
+    ): String =
+        McpJson.encodeToString(
+            StorageOperationResult.serializer(),
+            client.removeKeyValue(storeName = arguments[store], key = arguments[key]),
+        )
 }

@@ -101,7 +101,10 @@ fun ToolingScaffoldRoot(
                 // next navigation request must not wait for that.
                 onFollowAgent = { pluginName ->
                     scope.launch {
-                        snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
+                        snackbarHostState.showSnackbar(
+                            message = getString(Res.string.following_ai_toast, pluginName),
+                            duration = JwSnackbarDuration.Short,
+                        )
                     }
                 },
                 onClickPlugin = onClickPlugin,

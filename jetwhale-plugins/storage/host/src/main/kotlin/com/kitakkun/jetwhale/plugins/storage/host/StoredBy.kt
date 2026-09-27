@@ -19,4 +19,5 @@ private val STORED_BY: List<Pair<Regex, String>> = listOf(
 )
 
 /** What keeps the file or directory at [absolutePath], or null when the path matches nothing known. */
-internal fun storedByOf(absolutePath: String): String? = STORED_BY.firstOrNull { (pattern, _) -> pattern.containsMatchIn(absolutePath) }?.second
+internal fun storedByOf(absolutePath: String): String? =
+    STORED_BY.firstOrNull { (pattern, _) -> pattern.containsMatchIn(absolutePath) }?.second

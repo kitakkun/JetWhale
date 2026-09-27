@@ -18,22 +18,29 @@ internal class FindNodesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.findNodes"
     override val description =
-        "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) and returns the nodes matching the given criteria as a flat " +
+        "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) " +
+            "and returns the nodes matching the given criteria as a flat " +
             "list: {\"nodes\": [...], \"totalMatches\", \"truncated\"}. Each entry carries its \"rootId\" and " +
-            "\"id\", which together address the node in performNodeAction, \"actions\" with the action names performNodeAction accepts for it " +
+            "\"id\", which together address the node in performNodeAction, " +
+            "\"actions\" with the action names performNodeAction accepts for it " +
             "(BringIntoView works on any node and is not listed), plus screen \"bounds\" in the node's \"unit\" (px, or pt on iOS) and a " +
             "\"tap\" point. Criteria are combined with AND; matching is case-insensitive and by substring " +
             "unless exact is set. Omit every criterion to list all interactive nodes on screen."
 
     private val text by stringOrNull("Match the node's text (or a text field's current content).")
     private val contentDescription by stringOrNull("Match the node's contentDescription.")
-    private val testTag by stringOrNull("Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.")
+    private val testTag by stringOrNull(
+        "Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches " +
+            "accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.",
+    )
     private val resourceId by stringOrNull(
-        "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. Compared whole, not by substring.",
+        "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. " +
+            "Compared whole, not by substring.",
     )
     private val role by stringOrNull("Match the node's semantics role, e.g. Button, Checkbox, Tab, Image.")
     private val interactiveOnly by booleanOrNull(
-        "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
+        "Keep only nodes that expose an action, are editable, or scroll. " +
+            "Defaults to true when no other criterion is given, false otherwise.",
     )
     private val operableOnly by booleanOrNull(
         "Keep only nodes the user could operate right now: interactive, enabled, and reached by a gesture they accept — " +

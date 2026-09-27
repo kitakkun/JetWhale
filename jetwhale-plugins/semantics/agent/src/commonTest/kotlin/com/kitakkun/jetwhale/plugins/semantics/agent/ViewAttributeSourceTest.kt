@@ -15,7 +15,12 @@ class ViewAttributeSourceTest {
         val value = layoutSizeValue(constantName = "MATCH_PARENT", px = -1f, density = 2f)
 
         assertEquals(
-            ViewAttributeValue.LayoutSizeValue(constant = "MATCH_PARENT", px = null, dp = null, constants = listOf("MATCH_PARENT", "WRAP_CONTENT")),
+            ViewAttributeValue.LayoutSizeValue(
+                constant = "MATCH_PARENT",
+                px = null,
+                dp = null,
+                constants = listOf("MATCH_PARENT", "WRAP_CONTENT"),
+            ),
             value,
         )
     }
@@ -55,7 +60,12 @@ class ViewAttributeSourceTest {
             ViewAttributeValue.ColorValue(0) to "color",
             ViewAttributeValue.DimensionValue(px = 1f, dp = 1f) to "dimension",
             ViewAttributeValue.EnumValue("A", listOf("A")) to "enum",
-            ViewAttributeValue.LayoutSizeValue(constant = "WRAP_CONTENT", px = null, dp = null, constants = listOf("WRAP_CONTENT")) to "layoutSize",
+            ViewAttributeValue.LayoutSizeValue(
+                constant = "WRAP_CONTENT",
+                px = null,
+                dp = null,
+                constants = listOf("WRAP_CONTENT"),
+            ) to "layoutSize",
         )
 
         for ((value, name) in variants) {

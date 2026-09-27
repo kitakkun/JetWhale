@@ -178,4 +178,5 @@ class TypeToolTest {
     }
 }
 
-private fun editableNodes(node: SemanticsNode): List<SemanticsNode> = node.children.flatMap(::editableNodes) + listOfNotNull(node.takeIf { it.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null })
+private fun editableNodes(node: SemanticsNode): List<SemanticsNode> =
+    node.children.flatMap(::editableNodes) + listOfNotNull(node.takeIf { it.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null })

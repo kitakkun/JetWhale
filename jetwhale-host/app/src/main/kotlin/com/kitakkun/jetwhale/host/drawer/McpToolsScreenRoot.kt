@@ -132,7 +132,15 @@ private fun rememberMcpToolsUiState(
             .toImmutableList()
     }
 
-    val toolRows = remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginIds, selectedSessionIds, runningPluginId, runningToolName) {
+    val toolRows = remember(
+        mcpCapablePlugins,
+        callHistory,
+        pluginNamesById,
+        selectedPluginIds,
+        selectedSessionIds,
+        runningPluginId,
+        runningToolName,
+    ) {
         // The same plugin publishes the same tools in every session it is active in, so the scope can
         // yield duplicates that carry no extra information.
         val callCounts = callHistory.groupingBy { it.pluginId to it.toolName }.eachCount()
@@ -173,7 +181,11 @@ private fun rememberMcpToolsUiState(
  * the connected ones and say so: listed like the rest, a session that went away reads as one that is
  * still there.
  */
-internal fun sessionFilterOptions(sessions: List<DebugSession>, hostLabel: String, disconnectedLabel: String): ImmutableList<McpFilterOption> {
+internal fun sessionFilterOptions(
+    sessions: List<DebugSession>,
+    hostLabel: String,
+    disconnectedLabel: String,
+): ImmutableList<McpFilterOption> {
     val appOptions = sessions
         .sortedByDescending(DebugSession::isActive)
         .map { session ->

@@ -21,7 +21,8 @@ internal object ScrollActions {
     object ScrollBy : SemanticsActionHandler {
         override val runsOnDisabledNode = true
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
     }
 
     object ScrollToIndex : SemanticsActionHandler {
@@ -88,14 +89,16 @@ internal object ScrollActions {
 
                 containersScrolled > 0 || hostScrolled -> NodeActionResult(
                     performed = true,
-                    message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); the scroll lands on the next frame, so capture the tree again to see the new bounds",
+                    message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); " +
+                        "the scroll lands on the next frame, so capture the tree again to see the new bounds",
                 )
 
                 node.isWhollyUnclipped -> NodeActionResult(performed = true, message = "the node is already in view")
 
                 else -> NodeActionResult(
                     performed = false,
-                    message = "the node is clipped by something on its path that cannot scroll — a non-scrollable clip, or the edge of the composition",
+                    message = "the node is clipped by something on its path that cannot scroll " +
+                        "— a non-scrollable clip, or the edge of the composition",
                 )
             }
         }

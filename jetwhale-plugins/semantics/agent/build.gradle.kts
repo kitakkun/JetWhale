@@ -71,5 +71,6 @@ kotlin {
 jetwhalePublish {
     artifactId = "jetwhale-compose-semantics-inspector-agent"
     name = "JetWhale Compose Semantics Inspector Agent"
-    description = "Reads the node tree of a running app — Compose semantics, plus the Android Views around and inside it — for the JetWhale Compose Semantics Inspector."
+    description = "Reads the node tree of a running app — Compose semantics, plus the Android Views around and inside it — " +
+        "for the JetWhale Compose Semantics Inspector."
 }

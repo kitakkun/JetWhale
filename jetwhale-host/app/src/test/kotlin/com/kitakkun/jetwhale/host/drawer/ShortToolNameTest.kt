@@ -8,7 +8,10 @@ import kotlin.test.assertEquals
 class ShortToolNameTest {
     @Test
     fun `a plugin tool keeps the last segment of its plugin id`() {
-        assertEquals("mirror.tap", invocation("com.kitakkun.jetwhale.mirror.tap", pluginId = "com.kitakkun.jetwhale.mirror").shortToolName())
+        assertEquals(
+            "mirror.tap",
+            invocation("com.kitakkun.jetwhale.mirror.tap", pluginId = "com.kitakkun.jetwhale.mirror").shortToolName(),
+        )
     }
 
     @Test

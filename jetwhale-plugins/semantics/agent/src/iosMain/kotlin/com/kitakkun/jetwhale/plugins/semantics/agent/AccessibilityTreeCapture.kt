@@ -182,7 +182,8 @@ private fun NSObject.accessibilityIdentifierOrNull(): String? {
     return valueForKey("accessibilityIdentifier") as? String
 }
 
-internal fun NSObject.isEnabled(): Boolean = !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
+internal fun NSObject.isEnabled(): Boolean =
+    !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
 
 /**
  * A button, link or toggle by trait, or a `UIControl` with a target for its tap: a control that
@@ -204,7 +205,8 @@ internal fun UIControl.listensForTouchUp(): Boolean = allTargets.any { target ->
  * both set on theirs. That trait has no public constant; it is the one bit both toolkits' fields
  * carry and no other element does.
  */
-private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTraits): Boolean = this is UITextField || (this is UITextView && editable) || traits has TEXT_ENTRY_TRAIT
+private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTraits): Boolean =
+    this is UITextField || (this is UITextView && editable) || traits has TEXT_ENTRY_TRAIT
 
 private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
 

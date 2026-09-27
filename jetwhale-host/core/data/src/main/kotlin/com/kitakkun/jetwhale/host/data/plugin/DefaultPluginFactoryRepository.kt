@@ -109,7 +109,8 @@ class DefaultPluginFactoryRepository(
         // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
         // must not close it; until then it (and its temp copy) is ours to discard on any failure.
         var committed = false
-        // Loading runs the plugin's own code (class initializers, factory constructors): any failure, LinkageError included, marks this jar failed instead of aborting the load.
+        // Loading runs the plugin's own code (class initializers, factory constructors): any failure,
+        // LinkageError included, marks this jar failed instead of aborting the load.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)

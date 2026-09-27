@@ -103,7 +103,8 @@ internal fun List<NavKeyTypeDescriptor>.toMcpJson(): JsonObject = buildJsonObjec
     if (isEmpty()) {
         put(
             "note",
-            "The app exposed no constructible key types. Keys can still be pushed by copying the `key` object of an existing entry from getBackStack.",
+            "The app exposed no constructible key types. Keys can " +
+                "still be pushed by copying the `key` object of an existing entry from getBackStack.",
         )
     }
 }

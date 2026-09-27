@@ -61,5 +61,6 @@ internal class WireLevelQaPlugin(
 
     fun send(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean = messenger.sendRaw(messageType, payload, policy)
 
-    suspend fun request(messageType: String, payload: String, timeout: Duration?): String = messenger.requestRaw(messageType, payload, timeout)
+    suspend fun request(messageType: String, payload: String, timeout: Duration?): String =
+        messenger.requestRaw(messageType, payload, timeout)
 }

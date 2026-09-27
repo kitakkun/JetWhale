@@ -132,11 +132,16 @@ public class JetWhalePluginPeer(
         override fun sendRaw(messageType: String, payload: String): Boolean {
             val outcome = trySendRaw(messageType, payload)
             if (outcome == RawSendOutcome.SENT) return true
-            logger("JetWhale: dropped outbound notification '$messageType' for plugin '$pluginId' (${sendFailureReason(outcome == RawSendOutcome.CONNECTION_CLOSED)}).")
+            logger(
+                "JetWhale: dropped outbound notification '$messageType' for plugin '$pluginId' (${sendFailureReason(
+                    outcome == RawSendOutcome.CONNECTION_CLOSED,
+                )}).",
+            )
             return false
         }
 
-        override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = this@JetWhalePluginPeer.requestRaw(messageType, payload, timeout)
+        override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String =
+            this@JetWhalePluginPeer.requestRaw(messageType, payload, timeout)
     }
 
     /** Opens handler dispatch. Call once preparation has completed — or failed. Idempotent. */

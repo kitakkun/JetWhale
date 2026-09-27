@@ -93,7 +93,13 @@ private fun JetWhaleNetworkAgentPlugin.recordRequestAndFindMock(
     return findMock(method, url)
 }
 
-private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, limits: BodyCaptureLimits) {
+private fun JetWhaleNetworkAgentPlugin.recordRequest(
+    request: HttpRequestBuilder,
+    txId: String,
+    method: String,
+    url: String,
+    limits: BodyCaptureLimits,
+) {
     val body = captureRequestBodySafely(request.body, limits)
     recordRequest(
         CapturedHttpRequest(
@@ -237,7 +243,8 @@ private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: Body
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
+private fun HttpResponse.isWebSocketUpgrade(): Boolean =
+    status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
 
 /**
  * Captures the request headers visible at the send phase, enriched with the body's

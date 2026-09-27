@@ -31,9 +31,10 @@ import kotlin.test.assertTrue
 class NetworkMcpCommandsTest {
     private val transactions = listOf(tx("a", 100), tx("b", 200), tx("c", 300), tx("d", 400))
 
-    private fun tx(txId: String, timestampMs: Long, url: String = "https://api.example.com/$txId", method: String = "GET") = HttpTransaction(
-        request = CapturedHttpRequest(txId = txId, method = method, url = url, timestampMs = timestampMs),
-    )
+    private fun tx(txId: String, timestampMs: Long, url: String = "https://api.example.com/$txId", method: String = "GET") =
+        HttpTransaction(
+            request = CapturedHttpRequest(txId = txId, method = method, url = url, timestampMs = timestampMs),
+        )
 
     @Test
     fun `listTransactions without arguments returns all oldest first`() {
@@ -42,11 +43,14 @@ class NetworkMcpCommandsTest {
         assertNull(nextCursorOf(result))
     }
 
-    private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
+    private fun listCommand(data: List<HttpTransaction> = transactions) =
+        ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
 
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String =
+        executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
 
-    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String =
+        runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
     private fun txIdsOf(result: String): List<String> = Json.parseToJsonElement(result).jsonObject
         .getValue("transactions").jsonArray

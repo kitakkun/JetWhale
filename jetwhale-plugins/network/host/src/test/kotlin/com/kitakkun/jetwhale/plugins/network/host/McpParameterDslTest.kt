@@ -35,7 +35,8 @@ class McpParameterDslTest {
         override val name = "test.stringMap"
         override val description = "echoes a string map"
         val headers by stringMap("A string-to-string map.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String =
+            arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" }
     }
 
     private class OptionalStringMapCommand : JetWhaleMcpCommand() {
@@ -77,7 +78,8 @@ class McpParameterDslTest {
         override val name = "test.serializable"
         override val description = "echoes serializable mock rules"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String =
+            arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
     }
 
     // Both the advertised schema and the decoder come from this format, so they cannot disagree.
@@ -97,7 +99,8 @@ class McpParameterDslTest {
         override val name = "test.sealed"
         override val description = "echoes a plugin frame"
         val frame by serializable<PluginFrame>("A plugin frame.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String =
+            arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
     }
 
     @Test
@@ -112,7 +115,8 @@ class McpParameterDslTest {
         assertEquals("Content-Type=application/json,X-Trace=abc", result)
     }
 
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String =
+        runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
     @Test
     fun `optional stringMap is null when omitted`() {

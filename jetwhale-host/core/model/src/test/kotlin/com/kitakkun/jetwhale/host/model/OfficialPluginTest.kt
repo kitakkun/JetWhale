@@ -58,6 +58,9 @@ class OfficialPluginTest {
 
     @Test
     fun `the agent coordinates follow the host's version`() {
-        assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", plugin.agentCoordinates(HostVersionInfo("1.2.0-SNAPSHOT")))
+        assertEquals(
+            "com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT",
+            plugin.agentCoordinates(HostVersionInfo("1.2.0-SNAPSHOT")),
+        )
     }
 }

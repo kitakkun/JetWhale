@@ -24,7 +24,9 @@ internal object AndroidComposeUiThread : ComposeUiThread {
                 continuation.resumeWith(runCatching(block))
             }
             if (!posted) {
-                continuation.resumeWith(Result.failure(IllegalStateException("The main thread's message queue is no longer accepting work.")))
+                continuation.resumeWith(
+                    Result.failure(IllegalStateException("The main thread's message queue is no longer accepting work.")),
+                )
             }
         }
     }

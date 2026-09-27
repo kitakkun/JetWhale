@@ -28,7 +28,8 @@ object ComposeNodeSourceRegistry {
     internal fun sourceOf(rootId: String): ComposeNodeSource? = sources.firstOrNull { it.sourceId == rootId }
 
     /** The answer every request gets for a root that is not registered. */
-    internal fun unknownRootMessage(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
+    internal fun unknownRootMessage(rootId: String): String =
+        "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
 
     /**
      * Claims [source]'s root and returns a handle releasing that claim. When a source with the same

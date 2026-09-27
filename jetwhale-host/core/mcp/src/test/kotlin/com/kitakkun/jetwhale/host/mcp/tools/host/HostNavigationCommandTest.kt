@@ -220,7 +220,9 @@ class HostNavigationCommandTest {
 
         assertTrue(result.applied)
         assertEquals(HostSession.ID, result.sessionId)
-        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.hostonly", HostSession.ID, followsAgent = false)) }
+        verifySuspend {
+            hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.hostonly", HostSession.ID, followsAgent = false))
+        }
     }
 
     @Test

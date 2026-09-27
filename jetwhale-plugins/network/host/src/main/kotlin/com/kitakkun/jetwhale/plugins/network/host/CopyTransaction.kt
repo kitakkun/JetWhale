@@ -47,9 +47,13 @@ internal fun buildCurlCommand(request: CapturedHttpRequest): String {
     }
     val command = lines.joinToString(" \\\n  ")
     val note = when {
-        binary -> "# NOTE: request body was captured as binary (${request.headers.mediaType() ?: "unknown media type"}); the command omits it\n"
+        binary -> "# NOTE: request body was captured as binary (${request.headers.mediaType() ?: "unknown media type"})" +
+            "; the command omits it\n"
+
         body == null && request.body != null -> "# NOTE: request body was not captured (${request.body}); the command omits it\n"
+
         request.bodyTruncated -> "# NOTE: request body was truncated at capture time\n"
+
         else -> ""
     }
     return note + command

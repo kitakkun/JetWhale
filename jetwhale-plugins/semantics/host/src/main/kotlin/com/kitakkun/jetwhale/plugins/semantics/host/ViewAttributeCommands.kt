@@ -28,7 +28,9 @@ private val WRITTEN_AS_BY_TYPE = ViewAttributeType.entries.joinToString(", ") { 
 
 private val EXTRA_FIELDS_BY_TYPE = ViewAttributeType.entries
     .filter { it.extraFields.isNotEmpty() }
-    .joinToString("; ", prefix = "An entry also carries ") { "${it.extraFields.joinToString(" and ") { field -> "\"$field\"" }} for a ${it.wireName}" }
+    .joinToString("; ", prefix = "An entry also carries ") {
+        "${it.extraFields.joinToString(" and ") { field -> "\"$field\"" }} for a ${it.wireName}"
+    }
 
 private const val TEMPORARY_NOTICE =
     "Only Android View nodes (the ones findNodes marks \"kind\": \"View\", with a negative id) have attributes: a Compose " +
@@ -113,7 +115,9 @@ internal class SetViewAttributeCommand(
                 ?: return errorJson(response.message ?: "this node has no View attributes")
             val current = snapshot.attributes.firstOrNull { it.id == attributeId }
                 ?: throw JetWhaleMcpArgumentException(
-                    "unknown attributeId: $attributeId (this ${snapshot.viewClass} exposes ${snapshot.attributes.joinToString(transform = ViewAttribute::id)})",
+                    "unknown attributeId: $attributeId (this ${snapshot.viewClass} exposes ${snapshot.attributes.joinToString(
+                        transform = ViewAttribute::id,
+                    )})",
                 )
             if (!current.editable) throw JetWhaleMcpArgumentException("$attributeId is read-only on a ${snapshot.viewClass}")
 
@@ -229,8 +233,14 @@ internal fun parseViewAttributeValue(attributeId: String, current: ViewAttribute
         val px = text.trim().toFloatOrNull()
         when {
             constant != null -> current.copy(constant = constant, px = null, dp = null)
+
             px != null -> current.copy(constant = null, px = px, dp = px)
-            else -> invalidValue(attributeId = attributeId, text = text, expected = "one of ${current.constants.joinToString(", ")}, or a length in pixels")
+
+            else -> invalidValue(
+                attributeId = attributeId,
+                text = text,
+                expected = "one of ${current.constants.joinToString(", ")}, or a length in pixels",
+            )
         }
     }
 }
@@ -253,4 +263,5 @@ private const val OPAQUE_ALPHA = 0xFF shl 24
 private const val HEX_DIGITS = "0123456789abcdefABCDEF"
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun invalidValue(attributeId: String, text: String, expected: String): Nothing = throw JetWhaleMcpArgumentException("invalid value for $attributeId: \"$text\" (expected $expected)")
+private fun invalidValue(attributeId: String, text: String, expected: String): Nothing =
+    throw JetWhaleMcpArgumentException("invalid value for $attributeId: \"$text\" (expected $expected)")

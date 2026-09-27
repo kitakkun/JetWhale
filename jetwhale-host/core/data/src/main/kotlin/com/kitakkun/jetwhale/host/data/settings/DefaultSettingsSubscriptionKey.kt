@@ -28,7 +28,16 @@ class DefaultSettingsSubscriptionKey(
             defaultDebuggerSettingsRepository.wssPortFlow,
             defaultDebuggerSettingsRepository.wssEnabledFlow,
             defaultDebuggerSettingsRepository.followAiOperationEnabledFlow,
-        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, mcpServerPort, wssPort, wssEnabled, followAiOperationEnabled ->
+        ) {
+                adbAutoPortMappingEnabled,
+                checkForUpdatesOnStartup,
+                persistData,
+                serverPort,
+                mcpServerPort,
+                wssPort,
+                wssEnabled,
+                followAiOperationEnabled,
+            ->
             DebuggerBehaviorSettings(
                 adbAutoPortMappingEnabled = adbAutoPortMappingEnabled,
                 checkForUpdatesOnStartup = checkForUpdatesOnStartup,
