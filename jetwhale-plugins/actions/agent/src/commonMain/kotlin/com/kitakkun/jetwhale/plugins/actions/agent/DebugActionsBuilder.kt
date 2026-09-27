@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.actions.agent
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.serializer
@@ -32,6 +33,7 @@ annotation class DebugActionsDsl
  * An action's arguments are one `@Serializable` class: its properties become the fields of the
  * host's form and of the MCP tool's schema, and `@McpDescription` on a property documents it.
  */
+@ExperimentalJetWhaleApi
 @DebugActionsDsl
 class DebugActionsBuilder internal constructor(private val group: String?) {
     internal val definitions = mutableListOf<DebugActionDefinition<*>>()
@@ -74,6 +76,7 @@ class DebugActionsBuilder internal constructor(private val group: String?) {
  *   one the run fails and says so. Otherwise the action runs on a background dispatcher.
  * @property timeout How long a run may take before it is cancelled and reported as timed out.
  */
+@ExperimentalJetWhaleApi
 @DebugActionsDsl
 class DebugActionBuilder<A> internal constructor() {
     var description: String? = null

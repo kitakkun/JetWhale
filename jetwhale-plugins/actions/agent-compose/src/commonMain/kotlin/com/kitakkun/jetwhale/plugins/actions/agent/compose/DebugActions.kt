@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.actions.agent.compose
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder
 import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin
 
@@ -23,6 +24,7 @@ import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlug
  * the way `LaunchedEffect` restarts. Pass as keys whatever the actions capture that can be
  * replaced, or read changing values through a `State` inside `perform`.
  */
+@ExperimentalJetWhaleApi
 @Composable
 fun JetWhaleDebugActionsAgentPlugin.DebugActions(vararg keys: Any?, content: DebugActionsBuilder.() -> Unit) {
     DisposableEffect(this, *keys) {

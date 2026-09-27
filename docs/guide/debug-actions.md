@@ -1,4 +1,4 @@
-# Debug Actions
+# Debug Actions <Badge type="warning" text="experimental" />
 
 Debug Actions turns an app's debug menu into typed actions the JetWhale host and AI agents can
 run: sign in as a test user, reset onboarding, shift the clock, open a deep link. The app declares
@@ -18,6 +18,9 @@ dependencies {
     implementation("com.kitakkun.jetwhale:jetwhale-debug-actions-agent-compose:<version>")
 }
 ```
+
+The agent API is marked `@ExperimentalJetWhaleApi` and may change between releases; opt in with
+`@OptIn(ExperimentalJetWhaleApi::class)` where you use it.
 
 ```kotlin
 val actionsPlugin = JetWhaleDebugActionsAgentPlugin()

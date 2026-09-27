@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.demo.shared
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.annotations.McpDescription
 import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin
 import kotlinx.serialization.Serializable
@@ -11,6 +12,7 @@ import kotlin.time.Clock
  * The demo's app-wide debug actions, standing in for what a real app keeps in a debug menu: a
  * session to sign into, state to reset, a value to read back.
  */
+@OptIn(ExperimentalJetWhaleApi::class)
 internal fun registerDemoDebugActions(plugin: JetWhaleDebugActionsAgentPlugin) {
     plugin.register {
         group("Account") {

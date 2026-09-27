@@ -17,6 +17,11 @@ group = "com.kitakkun.jetwhale.plugins.actions"
 // The same targets as the storage agent: every platform an app built with Compose Multiplatform
 // runs on, plus macOS. Linux and mingw are left out with it.
 kotlin {
+    compilerOptions {
+        // The module declares the experimental API; its own code and tests use it freely.
+        optIn.add("com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi")
+    }
+
     abiValidation {
     }
 

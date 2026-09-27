@@ -16,6 +16,11 @@ group = "com.kitakkun.jetwhale.plugins.actions"
 // Kept apart from the agent so an app without Compose does not get the Compose runtime; the
 // targets are the agent's.
 kotlin {
+    compilerOptions {
+        // The module declares the experimental API; its own code and tests use it freely.
+        optIn.add("com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi")
+    }
+
     abiValidation {
     }
 

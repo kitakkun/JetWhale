@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.actions.agent
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.actions.protocol.ACTIONS_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionCatalog
@@ -48,7 +49,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * Actions can be registered at any time and from anywhere; a screen that has actions of its own
  * registers them while it is shown (see `DebugActions` in the Compose artifact) and the host sees
  * them come and go.
+ *
+ * Experimental: the Debug Actions API may change between releases.
  */
+@ExperimentalJetWhaleApi
 @OptIn(InternalJetWhaleApi::class)
 class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = ACTIONS_PLUGIN_ID
@@ -151,6 +155,7 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
 }
 
 /** Removes the actions one [JetWhaleDebugActionsAgentPlugin.register] call added. */
+@ExperimentalJetWhaleApi
 fun interface DebugActionsRegistration {
     fun unregister()
 }
