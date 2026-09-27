@@ -37,6 +37,11 @@ internal class GetNodeTreeCommand(
     private val interactiveOnly by booleanOrNull(
         "Keep only nodes that expose an action, are editable, or scroll — plus their ancestors, so the structure is preserved. Defaults to false.",
     )
+    private val format by serializableOrNull<NodeOutputFormat>(
+        "\"json\" (default) returns the JSON described above. \"text\" returns the same nodes as a compact outline for reading rather than parsing — " +
+            "one line per node, indented by depth: `- <role or class> #<id> \"<text>\" key=value… [flags] actions=… tap=x,y`, " +
+            "with each root on a `root <rootId> \"<label>\" unit=… density=…` line. It leaves out the bounds and takes a fraction of the tokens.",
+    )
     private val rootId by stringOrNull(
         "Return only this root. Use it to look at just the dialog on top, for example. Returns every root if omitted.",
     )
@@ -68,6 +73,10 @@ internal class GetNodeTreeCommand(
             roots
         }
 
-        return snapshot.copy(roots = pruned).toMcpJson().toString()
+        val result = snapshot.copy(roots = pruned)
+        return when (arguments[format] ?: NodeOutputFormat.Json) {
+            NodeOutputFormat.Json -> result.toMcpJson().toString()
+            NodeOutputFormat.Text -> result.toMcpText()
+        }
     }
 }
