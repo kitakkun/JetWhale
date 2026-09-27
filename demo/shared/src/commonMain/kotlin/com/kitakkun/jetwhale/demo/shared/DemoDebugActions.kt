@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.demo.shared
 
 import com.kitakkun.jetwhale.annotations.McpDescription
 import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin
-import com.kitakkun.jetwhale.plugins.actions.agent.platformBuiltInActions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -14,7 +13,6 @@ import kotlin.time.Clock
  */
 internal fun registerDemoDebugActions(plugin: JetWhaleDebugActionsAgentPlugin) {
     plugin.register {
-        platformBuiltInActions()
         group("Account") {
             action<SignIn>("Sign in as test user") {
                 description = "Replaces the demo session with a test account."

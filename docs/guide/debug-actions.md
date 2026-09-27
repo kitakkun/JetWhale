@@ -23,7 +23,6 @@ dependencies {
 val actionsPlugin = JetWhaleDebugActionsAgentPlugin()
 
 actionsPlugin.register {
-    platformBuiltInActions()
     action("Reset onboarding") {
         perform { onboarding.reset() }
     }
@@ -88,16 +87,6 @@ fun CheckoutScreen(form: CheckoutFormState) {
 
 The host marks them **Screen** and they appear and disappear as the user navigates. Pass what the
 actions capture as keys; they are declared again when a key changes.
-
-## Built-in actions
-
-`platformBuiltInActions()` adds, in a **Built-in** group, actions that need no app code:
-
-| Platform | Actions |
-|---|---|
-| Android | Restart app, Open deep link, Set dark mode (Android 12+), Set app language (Android 13+) |
-| iOS, macOS, JVM | Open URL |
-| Web | None — a page may open a URL only in response to a user gesture |
 
 ## In the host
 

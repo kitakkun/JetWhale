@@ -97,7 +97,7 @@ internal fun ActionsScreen(
         if (catalog?.actions.isNullOrEmpty()) {
             JwEmptyState(
                 title = "No debug actions",
-                description = "The app has registered none. Register actions with JetWhaleDebugActionsAgentPlugin.register { }, or add platformBuiltInActions() for the ones every app gets.",
+                description = "The app has registered none. Register actions with JetWhaleDebugActionsAgentPlugin.register { }.",
             )
             return@Column
         }

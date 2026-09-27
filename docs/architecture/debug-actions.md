@@ -64,22 +64,13 @@ every action with its argument schema and current suggested values, and `runActi
 one by id. A destructive action is refused unless the call passes `confirmDestructive: true`.
 Runs an agent makes appear in the host's history marked as the agent's.
 
-## Built-in actions
-
-`platformBuiltInActions()` adds actions that need no app code and are safe on any app of the
-platform: on Android, restart, deep link, per-app dark mode (12+) and language (13+); on iOS,
-macOS and the JVM, opening a URL. The web has none: a page may open a URL only in response to a
-user gesture.
-
-Considered and left out: clearing app data (it kills the process and the session with it, and the
-Storage Inspector already deletes what needs deleting), toggling animations or font scale
-(system-wide settings an app cannot change for itself without a permission it should not hold),
-and simulating push notifications (there is no generic way without the app's own handling code).
-
 ## Not in the first version
 
 - Sub-forms for nested classes and lists (JSON covers them).
 - Streaming progress from a long-running action.
 - Grouping of options per parameter beyond a flat list.
+- Actions built into the plugin (restart, open a deep link, dark mode, language). They need no
+  app code, but the Deep Links plugin and device tooling already cover them, and an app can declare
+  any of them as an ordinary action.
 - An annotation-driven declaration through the agent compiler plugin; the DSL is enough until
   registering by hand turns out to be a burden.

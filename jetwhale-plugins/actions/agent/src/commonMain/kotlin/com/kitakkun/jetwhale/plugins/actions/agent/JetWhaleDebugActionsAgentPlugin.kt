@@ -40,7 +40,6 @@ import kotlin.coroutines.cancellation.CancellationException
  * ```kotlin
  * val actionsPlugin = JetWhaleDebugActionsAgentPlugin()
  * actionsPlugin.register {
- *     platformBuiltInActions()
  *     action("Reset onboarding") { perform { onboarding.reset() } }
  * }
  * startJetWhale { plugins { register(actionsPlugin) } }

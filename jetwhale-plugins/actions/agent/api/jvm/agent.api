@@ -1,7 +1,3 @@
-public final class com/kitakkun/jetwhale/plugins/actions/agent/BuiltInDebugActions_jvmKt {
-	public static final fun platformBuiltInActions (Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsBuilder;)V
-}
-
 public final class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionBuilder {
 	public final fun getDescription ()Ljava/lang/String;
 	public final fun getDestructive ()Z

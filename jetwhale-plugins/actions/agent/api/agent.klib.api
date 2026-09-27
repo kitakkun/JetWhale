@@ -52,5 +52,3 @@ final class com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgen
     final fun registerScoped(kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder, kotlin/Unit>): com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.registerScoped|registerScoped(kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder,kotlin.Unit>){}[0]
     final suspend fun runAction(com.kitakkun.jetwhale.plugins.actions.protocol/RunAction): com.kitakkun.jetwhale.plugins.actions.protocol/ActionResult // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.runAction|runAction(com.kitakkun.jetwhale.plugins.actions.protocol.RunAction){}[0]
 }
-
-final fun (com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder).com.kitakkun.jetwhale.plugins.actions.agent/platformBuiltInActions() // com.kitakkun.jetwhale.plugins.actions.agent/platformBuiltInActions|platformBuiltInActions@com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder(){}[0]
