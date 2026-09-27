@@ -52,6 +52,7 @@
     <string name="remove_plugin_version">削除</string>
     <string name="remove_plugin_version_title">%1$s %2$s を削除しますか？</string>
     <string name="remove_plugin_version_description">JAR をアンロードして削除します。このバージョンを使っているアプリは、合う別のバージョンがインストールされていればそちらに切り替わります。保存データは残ります。</string>
+    <string name="remove_plugin_version_also_removes">この JAR は次のプラグインも含んでおり、あわせて削除されます:</string>
     <string name="failed_to_load_plugins">互換性のないプラグイン</string>
     <string name="failed_jar_path_hint">これらのjarは読み込めませんでした。別のJetWhaleバージョン向けにビルドされているか、依存関係が不足しているか、有効なプラグインjarではない可能性があります。</string>
     <string name="untrusted_plugins">未検証のプラグイン</string>

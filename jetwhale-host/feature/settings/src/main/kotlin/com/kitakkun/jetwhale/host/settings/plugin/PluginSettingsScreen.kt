@@ -67,6 +67,7 @@ import com.kitakkun.jetwhale.host.settings.official_plugin_installed
 import com.kitakkun.jetwhale.host.settings.official_plugins
 import com.kitakkun.jetwhale.host.settings.plugin_security
 import com.kitakkun.jetwhale.host.settings.remove_plugin_version
+import com.kitakkun.jetwhale.host.settings.remove_plugin_version_also_removes
 import com.kitakkun.jetwhale.host.settings.remove_plugin_version_description
 import com.kitakkun.jetwhale.host.settings.remove_plugin_version_title
 import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry
@@ -86,6 +87,7 @@ import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -105,11 +107,24 @@ fun PluginSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
+    var versionToRemove by remember { mutableStateOf<Pair<PluginInfoUiState, InstalledPluginVersion>?>(null) }
 
     if (showFailedJarsDialog) {
         FailedJarsDialog(
             failedJars = uiState.failedJars,
             onDismiss = { showFailedJarsDialog = false },
+        )
+    }
+    versionToRemove?.let { (plugin, version) ->
+        RemovePluginVersionDialog(
+            pluginName = plugin.name,
+            version = version.version,
+            alsoRemoved = uiState.versionsInJar(version.jarPath) - (plugin.name to version.version),
+            onConfirm = {
+                versionToRemove = null
+                onRemovePluginVersion(version.jarPath)
+            },
+            onDismiss = { versionToRemove = null },
         )
     }
 
@@ -119,12 +134,7 @@ fun PluginSettingsScreen(
         modifier = modifier.fillMaxSize(),
     ) {
         if (page == SettingsScreenPage.InstalledPlugins) {
-            item(key = "installed_header") {
-                JwText(
-                    text = stringResource(Res.string.installed_plugins),
-                    style = JwTheme.textStyles.title,
-                )
-            }
+            installedPluginItems(plugins = uiState.plugins, onRemoveVersion = { plugin, version -> versionToRemove = plugin to version })
         }
         if (page == SettingsScreenPage.AddPlugins) {
             item(key = "add_actions") {
@@ -140,26 +150,6 @@ fun PluginSettingsScreen(
                 onRetryInstall = onRetryInstall,
                 onDismissInstall = onDismissInstall,
             )
-        }
-        if (page == SettingsScreenPage.InstalledPlugins) {
-            items(
-                items = uiState.plugins,
-                key = { plugin -> "installed:${plugin.id}" },
-            ) { plugin ->
-                InstalledPluginRow(plugin = plugin, onRemoveVersion = onRemovePluginVersion)
-            }
-        }
-        if (page == SettingsScreenPage.InstalledPlugins && uiState.plugins.isEmpty()) {
-            item(key = "no_plugins") {
-                JwText(
-                    text = stringResource(Res.string.no_plugins_installed),
-                    style = JwTheme.textStyles.body,
-                    color = JwTheme.colors.textSecondary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                )
-            }
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
@@ -462,31 +452,47 @@ private fun TrustRegistrySigningSection(
     }
 }
 
+/** The Installed plugins page's list: a row per plugin, or a note that there are none. */
+private fun LazyListScope.installedPluginItems(
+    plugins: ImmutableList<PluginInfoUiState>,
+    onRemoveVersion: (PluginInfoUiState, InstalledPluginVersion) -> Unit,
+) {
+    item(key = "installed_header") {
+        JwText(
+            text = stringResource(Res.string.installed_plugins),
+            style = JwTheme.textStyles.title,
+        )
+    }
+    items(
+        items = plugins,
+        key = { plugin -> "installed:${plugin.id}" },
+    ) { plugin ->
+        InstalledPluginRow(plugin = plugin, onRemoveVersion = { version -> onRemoveVersion(plugin, version) })
+    }
+    if (plugins.isEmpty()) {
+        item(key = "no_plugins") {
+            JwText(
+                text = stringResource(Res.string.no_plugins_installed),
+                style = JwTheme.textStyles.body,
+                color = JwTheme.colors.textSecondary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+            )
+        }
+    }
+}
+
 /** Inset of an installed or official plugin row inside its panel. */
 private val PluginRowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
 
-/**
- * One plugin with each of its installed versions. A version is removed only after the user confirms,
- * since removing deletes its jar.
- */
+/** One plugin with each of its installed versions. */
 @Composable
 private fun InstalledPluginRow(
     plugin: PluginInfoUiState,
-    onRemoveVersion: (jarPath: String) -> Unit,
+    onRemoveVersion: (InstalledPluginVersion) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var versionToRemove by remember { mutableStateOf<InstalledPluginVersion?>(null) }
-    versionToRemove?.let { version ->
-        RemovePluginVersionDialog(
-            pluginName = plugin.name,
-            version = version.version,
-            onConfirm = {
-                versionToRemove = null
-                onRemoveVersion(version.jarPath)
-            },
-            onDismiss = { versionToRemove = null },
-        )
-    }
     JwPanel(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PluginRowPadding,
@@ -529,7 +535,7 @@ private fun InstalledPluginRow(
                         if (version.removable) {
                             JwButton(
                                 text = stringResource(Res.string.remove_plugin_version),
-                                onClick = { versionToRemove = version },
+                                onClick = { onRemoveVersion(version) },
                                 style = JwButtonStyle.Text,
                             )
                         }
@@ -540,10 +546,15 @@ private fun InstalledPluginRow(
     }
 }
 
+/**
+ * Confirms removing a version, which deletes its jar: [alsoRemoved] lists the other plugin versions
+ * that jar declares, as name and version, since they go with it.
+ */
 @Composable
 private fun RemovePluginVersionDialog(
     pluginName: String,
     version: String,
+    alsoRemoved: List<Pair<String, String>>,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -566,6 +577,16 @@ private fun RemovePluginVersionDialog(
             style = JwTheme.textStyles.bodySmall,
             color = JwTheme.colors.textSecondary,
         )
+        if (alsoRemoved.isNotEmpty()) {
+            JwText(
+                text = stringResource(Res.string.remove_plugin_version_also_removes),
+                style = JwTheme.textStyles.bodySmall,
+            )
+            JwText(
+                text = alsoRemoved.joinToString(separator = "\n") { (name, otherVersion) -> "$name v$otherVersion" },
+                style = JwTheme.textStyles.bodySmall,
+            )
+        }
     }
 }
 

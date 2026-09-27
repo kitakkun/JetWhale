@@ -15,7 +15,15 @@ data class PluginSettingsScreenUiState(
     val installJobs: ImmutableList<PluginInstallJob>,
     val isAddingFromFile: Boolean,
     val addFromFileError: String?,
-)
+) {
+    /**
+     * Every installed plugin version [jarPath] provides, as the plugin's name and the version. One jar
+     * can declare several plugins, and removing it removes all of them.
+     */
+    fun versionsInJar(jarPath: String): List<Pair<String, String>> = plugins.flatMap { plugin ->
+        plugin.versions.filter { it.jarPath == jarPath }.map { plugin.name to it.version }
+    }
+}
 
 /** @property installJob the install of this plugin that is queued, running or failed, if any. */
 data class OfficialPluginUiState(
