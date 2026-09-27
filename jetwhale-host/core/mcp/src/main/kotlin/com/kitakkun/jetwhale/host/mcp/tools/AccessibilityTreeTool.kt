@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
@@ -18,7 +19,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -34,7 +35,7 @@ import kotlinx.serialization.json.JsonObject
 @Inject
 @ContributesIntoSet(AppScope::class)
 class GetAccessibilityTreeMcpTool(
-    private val pluginComposeSceneService: PluginComposeSceneService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
@@ -57,7 +58,8 @@ class GetAccessibilityTreeMcpTool(
             val sessionId = request.arguments?.get("sessionId")?.jsonContent
                 ?: return@addTool errorResult("Missing required argument: sessionId")
 
-            val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+            val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             val json = withContext(Dispatchers.Main) { captureAccessibilityTree(scene) }
             CallToolResult(content = listOf(TextContent(json)))
         }

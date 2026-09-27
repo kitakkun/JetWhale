@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.model
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.unit.Density
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 
-interface PluginComposeSceneService {
+interface PluginComposeSceneFactory {
     /**
      * Records the density newly created scenes are seeded with.
      *
@@ -15,16 +17,10 @@ interface PluginComposeSceneService {
      */
     fun updateHostDensity(density: Density)
 
+    /**
+     * A new scene composing [content] with [plugin]'s storage in reach. Call it on the main thread,
+     * where the scene composes and is later rendered.
+     */
     @OptIn(InternalComposeUiApi::class)
-    suspend fun getOrCreatePluginScene(
-        pluginId: String,
-        sessionId: String,
-    ): PluginComposeScene
-
-    fun disposePluginSceneForSession(sessionId: String)
-
-    fun disposePluginScenesForPlugin(pluginId: String)
-
-    /** Disposes every connected app's scenes, keeping [HostSession]'s: the server stopping ends apps, not those. */
-    fun disposeAppSessionPluginScenes()
+    fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene
 }
