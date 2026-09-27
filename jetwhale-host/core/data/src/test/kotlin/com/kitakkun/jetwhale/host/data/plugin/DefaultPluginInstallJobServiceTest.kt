@@ -15,6 +15,7 @@ import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
@@ -243,6 +244,23 @@ class DefaultPluginInstallJobServiceTest {
         assertEquals(emptyList(), service.jobsFlow.value.filter { it.id == job.id || it.id == queued.id })
         assertEquals(emptyList(), provider.getPluginStagingDirectory().listFiles().orEmpty().toList())
         assertFalse(installedJar().exists())
+    }
+
+    @Test
+    fun `shutdown waits for an install that is already loading its plugin`() = runBlocking {
+        pluginDownloadGate.complete(Unit)
+        dependencyDownloadGate.complete(Unit)
+        val job = service.enqueue(request)
+        awaitStatus(job.id) { it == PluginInstallStatus.Running(PluginInstallProgress.LoadingPlugin) }
+
+        // Undispatched, so a shutdown that does not wait has already returned when launch does.
+        val shutdown = launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }
+        assertFalse(shutdown.isCompleted)
+        loadGate.complete(Unit)
+        withTimeout(TIMEOUT_MILLIS) { shutdown.join() }
+
+        assertEquals(PluginInstallStatus.Succeeded, statusOf(job.id))
+        assertTrue(installedJar().isFile)
     }
 
     private fun openAllGates() {

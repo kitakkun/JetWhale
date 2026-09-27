@@ -85,9 +85,9 @@ class DefaultPluginInstallJobService(
     }
 
     override suspend fun cancelAll() {
-        val cancellable = jobsFlow.value.filter { it.status.isCancellable }.mapNotNull { runningJobs[it.id] }
-        cancellable.forEach(Job::cancel)
-        cancellable.joinAll()
+        jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
+        // An install already loading its plugin is not cancelled, but shutdown still waits for it to finish.
+        runningJobs.values.toList().joinAll()
     }
 
     private suspend fun run(job: PluginInstallJob) {
