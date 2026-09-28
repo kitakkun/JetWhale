@@ -23,6 +23,13 @@
 - `.editorconfig` sets `insert_final_newline = true` and disables max line length checks for `*.kt`/`*.kts`.
 - Follow Kotlin idioms and keep naming consistent with surrounding code. Modules and packages use `com.kitakkun.jetwhale.*`.
 
+## Rules
+Read these before editing; they apply to every change.
+- `agents/rules/comments.md` — comment only what the code cannot say.
+- `agents/rules/function-placement.md` — put a helper next to its use, with no more visibility than it needs.
+- `agents/rules/jetwhale-host-architecture.md` — what belongs in a Repository and what in a Service.
+- `agents/rules/pr-descriptions.md` — a PR description states the goal and where a reviewer should look.
+
 ## Testing Guidelines
 - Tests use `kotlin.test` (see module dependencies).
 - Place JVM tests under `src/test/kotlin` and multiplatform tests under `src/commonTest/kotlin`.
@@ -30,7 +37,7 @@
 
 ## Commit & Pull Request Guidelines
 - Commit messages follow a Conventional Commits style (e.g., `feat:`, `fix:`, `chore:`, `refactor:`) with optional scopes like `fix(demo):`.
-- Keep PRs focused, include a short description of changes, and note how they were tested. See `.claude/rules/pr-descriptions.md` for the shape.
+- Keep PRs focused, include a short description of changes, and note how they were tested. See `agents/rules/pr-descriptions.md` for the shape.
 - For UI changes in the host or demo apps, include screenshots or a short recording.
 - Record third-party assets (icons, fonts) with their source and license in `THIRD_PARTY_NOTICES.md`.
 - Open work-in-progress PRs as drafts: PR workflows skip drafts and run once the PR is marked *Ready for review*.
