@@ -2,6 +2,7 @@
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -66,6 +67,15 @@ kotlin {
             implementation(libs.kotlinTest)
         }
     }
+}
+
+// Compose Multiplatform 1.11 depends on both its org.jetbrains.* artifacts and the androidx.* KMP
+// artifacts they build on, and both carry a commonMain klib under the same unique name (runtime,
+// lifecycle, savedstate, collection, annotation). The iOS shared-source metadata compilation
+// therefore loads each of them twice and the KLIB loader warns; which copy it keeps is not up to
+// this module, so the warning cannot be acted on here and must not fail the publish build.
+tasks.withType<KotlinCompilationTask<*>>().matching { it.name == "compileIosMainKotlinMetadata" }.configureEach {
+    compilerOptions.allWarningsAsErrors = false
 }
 
 jetwhalePublish {
