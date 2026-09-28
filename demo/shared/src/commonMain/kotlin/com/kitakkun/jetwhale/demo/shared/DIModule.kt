@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.demo.shared
 
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin
 import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
@@ -15,6 +17,9 @@ import io.ktor.client.request.header
 
 object DIModule {
     val exampleAgentPlugin: ExampleAgentPlugin by lazy { ExampleAgentPlugin() }
+
+    @OptIn(ExperimentalJetWhaleApi::class)
+    val debugActionsAgentPlugin: JetWhaleDebugActionsAgentPlugin by lazy { JetWhaleDebugActionsAgentPlugin().also(::registerDemoDebugActions) }
 
     val networkAgentPlugin: JetWhaleNetworkAgentPlugin by lazy { JetWhaleNetworkAgentPlugin() }
 

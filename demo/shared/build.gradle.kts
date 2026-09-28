@@ -59,6 +59,7 @@ kotlin {
             implementation(libs.navigation3Ui)
             implementation(projects.jetwhalePlugins.semantics.agent)
             implementation(projects.jetwhalePlugins.storage.agent)
+            implementation(projects.jetwhalePlugins.actions.agentCompose)
             implementation(libs.ktorClientCio)
         }
 
