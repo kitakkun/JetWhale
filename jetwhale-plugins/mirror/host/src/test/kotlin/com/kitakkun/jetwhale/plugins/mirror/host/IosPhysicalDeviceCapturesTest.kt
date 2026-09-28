@@ -12,8 +12,11 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -23,6 +26,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 class IosPhysicalDeviceCapturesTest {
@@ -102,6 +106,34 @@ class IosPhysicalDeviceCapturesTest {
     }
 
     @Test
+    fun `a recording started without a live view holds the companion no longer than the recording`() = runBlocking {
+        val ffmpegPath = installedFfmpegPath()
+        val idbPath = fakeIdbPath(h264Sample(ffmpegPath))
+        val companionProcesses = mutableListOf<ReadyCompanionProcess>()
+        val companions = IdbCompanions(
+            idbCompanionPath = "idb_companion",
+            idbPath = idbPath,
+            launcher = { ReadyCompanionProcess().also(companionProcesses::add) },
+            commands = { },
+            ports = { 10_000 },
+            idleTimeout = Duration.ZERO,
+            scope = companionScope,
+        )
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath)
+
+        // What the mirror does for a recording started from the grid: record, stop, then ask the size.
+        // The stand-in stream can be stopped before ffmpeg has read any of it, which fails the file;
+        // the companion must be let go either way, and that is what this checks.
+        try {
+            iphone.startRecording(File(folder, "clip.mp4")).stop()
+        } catch (_: DeviceControlException) {
+        }
+        iphone.screenSize()
+
+        assertTrue(companionProcesses.last().stopped.await(COMPANION_STOP_WAIT_SECONDS, TimeUnit.SECONDS), "the companion was still held after the recording")
+    }
+
+    @Test
     fun `the streaming device's newest frame is encoded as a PNG at the size it was decoded`() {
         MirrorSurface().use { surface ->
             surface.switchTo("iphone")
@@ -135,6 +167,24 @@ class IosPhysicalDeviceCapturesTest {
         ffmpegPath = ffmpegPath,
     )
 
+    /** An idb stand-in that describes a 360x640 screen and streams [h264] once. */
+    private fun fakeIdbPath(h264: ByteArray): String {
+        val sample = File(folder, "stream.h264").apply { writeBytes(h264) }
+        val script = File(folder, "idb").apply {
+            writeText(
+                """
+                #!/bin/sh
+                case "${'$'}1" in
+                  describe) echo '{"screen_dimensions":{"width":$SAMPLE_WIDTH,"height":$SAMPLE_HEIGHT,"density":3}}' ;;
+                  video-stream) exec cat '${sample.path}' ;;
+                esac
+                """.trimIndent() + "\n",
+            )
+            setExecutable(true)
+        }
+        return script.path
+    }
+
     private fun installedFfmpegPath(): String {
         val ffmpegPath = findToolPath("ffmpeg", toolDirectories(System.getenv("PATH")))
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
@@ -159,6 +209,43 @@ private const val SAMPLE_WIDTH = 360
 private const val SAMPLE_HEIGHT = 640
 
 private const val SAMPLE_FRAMES = 10
+
+private const val COMPANION_STOP_WAIT_SECONDS = 5L
+
+/** An idb companion that reports its port at once and ends when destroyed. */
+private class ReadyCompanionProcess : Process() {
+    private val pipe = PipedOutputStream()
+    private val output = PipedInputStream(pipe)
+    private var destroyed = false
+
+    /** Counts down once the companion is stopped, which happens when nothing holds it any more. */
+    val stopped = CountDownLatch(1)
+
+    init {
+        pipe.write("{\"grpc_port\":10000}\n".toByteArray())
+        pipe.flush()
+    }
+
+    override fun getInputStream(): InputStream = output
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun waitFor(): Int = 0
+
+    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = destroyed
+
+    override fun exitValue(): Int = 0
+
+    override fun destroy() {
+        destroyed = true
+        pipe.close()
+        stopped.countDown()
+    }
+
+    override fun destroyForcibly(): Process = apply { destroy() }
+}
 
 /** Hands out [bytes] in [chunks] pieces, pausing between them the way a live stream arrives. */
 private class PacedInputStream(bytes: ByteArray, chunks: Int, private val pauseMillis: Long) : InputStream() {

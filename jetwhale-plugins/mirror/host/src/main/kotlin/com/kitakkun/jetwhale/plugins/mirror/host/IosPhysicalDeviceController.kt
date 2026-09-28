@@ -25,6 +25,9 @@ internal class IosPhysicalDeviceController(
 
     private var streaming = false
 
+    @Volatile
+    private var screen: IntSize? = null
+
     override suspend fun captureScreenshot(): ByteArray {
         val ffmpegPath = requireFfmpegPath("a screenshot of a physical iOS device")
         companions.acquire(udid)
@@ -40,11 +43,17 @@ internal class IosPhysicalDeviceController(
         }
     }
 
-    // The companion that answers this stays up with the stream that follows.
+    // The screen's size never changes, so idb is asked once. The companion is held only for the
+    // question: this runs before a stream and after a recording alike, and only a stream keeps it.
     override suspend fun screenSize(): IntSize {
-        holdCompanion()
-        val description = runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
-        return parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")
+        screen?.let { return it }
+        companions.acquire(udid)
+        val description = try {
+            runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
+        } finally {
+            companions.release(udid)
+        }
+        return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 
     override suspend fun tap(x: Int, y: Int) = throw deviceControlError(VIEW_ONLY)
