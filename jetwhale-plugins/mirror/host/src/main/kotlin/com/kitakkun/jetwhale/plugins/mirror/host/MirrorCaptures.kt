@@ -123,9 +123,12 @@ internal class MirrorCaptures(
     /** A new, empty file for a recording of [device] that starts now. */
     fun recordingFile(device: DeviceListing): File = library.newFile(device, CaptureKind.Recording, Instant.now())
 
-    /** Completes a recording [file] of [device] that ran from [startedAt] until now. */
+    /**
+     * Completes a recording [file] of [device] that ran from [startedAt] until now. Its length is the
+     * video's own, falling back to the time since [startedAt] when the file does not say.
+     */
     suspend fun addRecording(device: DeviceListing, file: File, startedAt: Instant, size: IntSize?): Capture = withContext(Dispatchers.IO) {
-        val duration = Instant.now().toEpochMilli() - startedAt.toEpochMilli()
+        val duration = mp4DurationMillis(file) ?: (Instant.now().toEpochMilli() - startedAt.toEpochMilli())
         library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::added)
     }
 
