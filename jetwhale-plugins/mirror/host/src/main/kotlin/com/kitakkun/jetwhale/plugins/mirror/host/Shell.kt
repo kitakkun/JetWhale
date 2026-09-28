@@ -57,11 +57,13 @@ internal class MirrorTools(
     val idb: String?,
     val idbCompanion: String?,
     val xcrun: String?,
+    val ffmpeg: String?,
 ) {
     companion object {
         fun locate(): MirrorTools {
             val home = System.getProperty("user.home")
-            val adb = if (System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
+            val windows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
+            val adb = if (windows) "adb.exe" else "adb"
             val sdkDirectories = listOfNotNull(
                 System.getenv("ANDROID_HOME"),
                 System.getenv("ANDROID_SDK_ROOT"),
@@ -69,21 +71,26 @@ internal class MirrorTools(
                 "$home/Android/Sdk",
                 System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
             )
+            val searched = toolDirectories(System.getenv("PATH"))
             return MirrorTools(
-                adb = sdkDirectories.map { "$it/platform-tools/$adb" }.firstOrNull(::isExecutable) ?: onPath(adb),
-                idb = onPath("idb"),
-                idbCompanion = onPath("idb_companion"),
+                adb = findTool(adb, sdkDirectories.map { "$it/platform-tools" }) ?: findTool(adb, searched),
+                idb = findTool("idb", searched),
+                idbCompanion = findTool("idb_companion", searched),
                 xcrun = "/usr/bin/xcrun".takeIf(::isExecutable),
+                ffmpeg = findTool(if (windows) "ffmpeg.exe" else "ffmpeg", searched),
             )
         }
     }
 }
 
-// A GUI app on macOS does not inherit the login shell's PATH, so Homebrew's directories are
-// searched even when PATH lacks them.
-private fun onPath(name: String): String? {
-    val directories = System.getenv("PATH").orEmpty().split(File.pathSeparator) + listOf("/opt/homebrew/bin", "/usr/local/bin")
-    return directories.map { "$it/$name" }.firstOrNull(::isExecutable)
-}
+/**
+ * The directories searched for a tool: those on [path], then Homebrew's. A GUI app on macOS does
+ * not inherit the login shell's PATH, so Homebrew's directories are searched even when PATH lacks
+ * them.
+ */
+internal fun toolDirectories(path: String?): List<String> = path.orEmpty().split(File.pathSeparator).filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
+
+/** The first executable file named [name] in [directories], or null. */
+internal fun findTool(name: String, directories: List<String>): String? = directories.map { "$it/$name" }.firstOrNull(::isExecutable)
 
 private fun isExecutable(path: String): Boolean = File(path).let { it.isFile && it.canExecute() }

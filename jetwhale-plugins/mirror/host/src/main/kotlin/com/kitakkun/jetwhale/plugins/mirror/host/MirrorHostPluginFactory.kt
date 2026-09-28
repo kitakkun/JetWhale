@@ -68,7 +68,7 @@ private class MirrorHostPlugin :
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
             discovery = DeviceDiscovery(tools, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, tools.ffmpeg),
             notices = notices,
             scope = pluginScope,
         )

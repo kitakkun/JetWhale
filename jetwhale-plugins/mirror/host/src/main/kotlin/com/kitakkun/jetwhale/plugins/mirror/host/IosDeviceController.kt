@@ -16,6 +16,7 @@ internal class IosDeviceController(
     private val udid: String,
     private val idb: String,
     private val companions: IdbCompanions,
+    private val ffmpeg: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false)
 
@@ -58,9 +59,10 @@ internal class IosDeviceController(
 
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        val ffmpeg = ffmpeg ?: throw deviceControlError("mirroring a physical iOS device needs ffmpeg to decode its video. $FFMPEG_INSTALL")
         holdCompanion()
         return withContext(Dispatchers.IO) {
-            VideoStream.H264(SystemProcessLauncher.start(listOf(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30")))
+            VideoStream.H264(SystemProcessLauncher.start(listOf(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30")), ffmpeg)
         }
     }
 

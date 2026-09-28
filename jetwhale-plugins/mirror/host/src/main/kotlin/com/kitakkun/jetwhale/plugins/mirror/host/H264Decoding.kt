@@ -1,97 +1,129 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
-import org.bytedeco.ffmpeg.global.avutil
-import org.bytedeco.ffmpeg.global.swscale
-import org.bytedeco.javacpp.BytePointer
-import org.bytedeco.javacpp.Pointer
-import org.bytedeco.javacv.FFmpegFrameGrabber
-import org.bytedeco.javacv.Frame
-import org.bytedeco.javacv.FrameGrabber
-import org.jetbrains.skia.ColorType
+import java.io.IOException
 import java.io.InputStream
-import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 /**
- * Decodes the raw H.264 that adb and idb write, frame by frame, into [surface]. [onFrame] is
- * called after each frame so the caller can watch the stream's health. Returns when the stream
- * ends; blocks the calling thread, so run it off the UI.
+ * Decodes the raw H.264 of [stream] into [surface] through the `ffmpeg` command it names, frame by
+ * frame. [onFrame] is called after each frame so the caller can watch the stream's health. Returns
+ * when the stream ends; blocks the calling thread, so run it off the UI.
  *
- * ffmpeg decodes in software here: javacv's grabber has no hook for a hardware device context,
- * and the measured decode time of a phone-sized frame stays in single milliseconds.
+ * The device's bytes go to ffmpeg's stdin and BGRA frames come back on its stdout. ffmpeg shrinks
+ * the frames to [outputSize] with area averaging, which keeps text crisp on every renderer and
+ * leaves a fraction of the pixels to copy; without a size they keep the first frame's. Closing
+ * [stream] ends the device's output, which ends ffmpeg's input and then this.
  */
-internal fun decodeH264Into(surface: MirrorSurface, stream: InputStream, outputSize: IntSize?, onFrame: () -> Unit) {
-    val timedStream = WaitTimingInputStream(stream)
-    val grabber = FFmpegFrameGrabber(timedStream, 0)
-    // Shrinking here, with area averaging, keeps text crisp on every renderer and leaves a
-    // fraction of the pixels to copy and upload; drawing a full-size frame small would sample it.
-    outputSize?.let {
-        grabber.imageWidth = it.width
-        grabber.imageHeight = it.height
-        grabber.imageScalingFlags = swscale.SWS_AREA
-    }
-    grabber.format = "h264"
-    // ffmpeg's defaults probe for seconds before the first frame, which a live mirror shows as
-    // lag. A raw H.264 stream needs almost no probing. `fflags=nobuffer` is left out on purpose:
-    // with it, adb's screenrecord stream decodes to nothing at all.
-    grabber.setOption("flags", "low_delay")
-    grabber.setOption("probesize", "65536")
-    grabber.setOption("analyzeduration", "500000")
-    // BGRA is Skia's native layout on a little-endian host, so a frame is copied, never converted.
-    grabber.pixelFormat = avutil.AV_PIX_FMT_BGRA
-    try {
-        grabber.start()
-        while (true) {
-            val frame = timedStream.timingWork(surface::recordDecode, grabber::grabImage) ?: break
-            if (surface.writeFrame(frame)) onFrame()
-        }
-    } catch (e: FrameGrabber.Exception) {
-        throw DeviceControlException("the video stream could not be decoded: ${e.message}", e)
+internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onFrame: () -> Unit) {
+    val ffmpeg = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpeg, outputSize))
+    val log = FfmpegLog(ffmpeg.errorStream)
+    val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpeg) }
+    val frames = try {
+        val frameSize = outputSize ?: log.outputSize.get() ?: return
+        copyFrames(WaitTimingInputStream(ffmpeg.inputStream), frameSize, surface, onFrame)
     } finally {
-        grabber.close()
+        ffmpeg.destroyForcibly()
+        ffmpeg.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+        feeding.join(FFMPEG_EXIT_WAIT_MILLIS)
+    }
+    // A stream that showed frames ends like any other, and the mirror opens the next; one that
+    // decoded nothing says why when ffmpeg did.
+    val failure = log.errors()
+    if (frames == 0 && failure.isNotEmpty()) throw deviceControlError("the video stream could not be decoded: $failure")
+}
+
+/** Copies BGRA frames of [frameSize] from [output] into [surface] until it ends; returns how many. */
+private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, surface: MirrorSurface, onFrame: () -> Unit): Int {
+    val frame = ByteArray(frameSize.width * frameSize.height * BYTES_PER_PIXEL)
+    var frames = 0
+    while (output.timingWork(surface::recordDecode) { output.readNBytes(frame, 0, frame.size) } == frame.size) {
+        surface.writeBgraFrame(frame, frameSize, rowBytes = frameSize.width * BYTES_PER_PIXEL)
+        frames++
+        onFrame()
+    }
+    return frames
+}
+
+/**
+ * The ffmpeg command that turns raw H.264 on stdin into BGRA frames on stdout. BGRA is Skia's
+ * native layout on a little-endian host, so a frame is copied, never converted.
+ *
+ * Probing is kept short: its defaults spend seconds before the first frame, which a live mirror
+ * shows as lag. `low_delay` also turns off frame threading, which holds frames back.
+ * `-fflags nobuffer` is left out on purpose: with it, adb's screenrecord stream decodes to nothing.
+ * Every decoded frame is passed on as it is, without ffmpeg duplicating or dropping frames to hold
+ * a frame rate the device never promised.
+ */
+internal fun ffmpegDecodeCommand(ffmpeg: String, outputSize: IntSize?): List<String> = buildList {
+    addAll(listOf(ffmpeg, "-hide_banner", "-nostats", "-loglevel", "info"))
+    addAll(listOf("-flags", "low_delay", "-probesize", "65536", "-analyzeduration", "500000"))
+    addAll(listOf("-f", "h264", "-i", "pipe:0"))
+    outputSize?.let { addAll(listOf("-vf", "scale=${it.width}:${it.height}:flags=area")) }
+    addAll(listOf("-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "bgra", "pipe:1"))
+}
+
+/** Copies the device's bytes into ffmpeg until either side ends, then lets ffmpeg finish. */
+private fun feed(source: InputStream, ffmpeg: Process) {
+    try {
+        ffmpeg.outputStream.use(source::transferTo)
+    } catch (_: IOException) {
+        // ffmpeg exited, or the device's stream was closed: either way the input is over.
     }
 }
 
-/** Copies [frame]'s BGRA pixels into [this] surface; false when the frame carried none. */
-private fun MirrorSurface.writeFrame(frame: Frame): Boolean {
-    val pixels = frame.image?.firstOrNull() as? ByteBuffer ?: return false
-    writeFrame(frame.imageWidth, frame.imageHeight, ColorType.BGRA_8888) { target ->
-        val pixmap = target.peekPixels() ?: return@writeFrame false
-        copyRows(pixels, sourceRowBytes = frame.imageStride, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frame.imageHeight)
-        true
-    }
-    return true
-}
+/**
+ * Reads ffmpeg's log, which must be drained or ffmpeg stalls on a full pipe. It says the size of the
+ * frames ffmpeg writes, needed when they were not asked for at a size, and its errors explain a
+ * stream that decoded nothing.
+ */
+private class FfmpegLog(log: InputStream) {
+    /** The size of the frames on stdout, or null when ffmpeg ended before saying. */
+    val outputSize = CompletableFuture<IntSize?>()
 
-private fun copyRows(pixels: ByteBuffer, sourceRowBytes: Int, target: Long, targetRowBytes: Int, height: Int) {
-    val source = BytePointer(pixels)
-    val destination = NativeAddress(target)
-    if (sourceRowBytes == targetRowBytes) {
-        Pointer.memcpy(destination, source, sourceRowBytes.toLong() * height)
-        return
-    }
-    val rowBytes = minOf(sourceRowBytes, targetRowBytes).toLong()
-    for (row in 0 until height) {
-        Pointer.memcpy(destination.position(row.toLong() * targetRowBytes), source.position(row.toLong() * sourceRowBytes), rowBytes)
-    }
-}
+    private val errorLines = ArrayDeque<String>()
 
-/** Copies [pixels], rows of [sourceRowBytes], into the native memory at [target], rows of [targetRowBytes]. */
-internal fun copyRows(pixels: ByteArray, sourceRowBytes: Int, target: Long, targetRowBytes: Int, height: Int) {
-    val destination = NativeAddress(target)
-    if (sourceRowBytes == targetRowBytes) {
-        destination.put(pixels, 0, sourceRowBytes * height)
-        return
-    }
-    val rowBytes = minOf(sourceRowBytes, targetRowBytes)
-    for (row in 0 until height) {
-        destination.position(row.toLong() * targetRowBytes).put(pixels, row * sourceRowBytes, rowBytes)
-    }
-}
-
-/** A JavaCPP view of memory Skia owns, so a frame can be copied into it directly. */
-private class NativeAddress(address: Long) : BytePointer() {
     init {
-        this.address = address
+        thread(isDaemon = true, name = "mirror-ffmpeg-log") {
+            var describingOutput = false
+            try {
+                log.bufferedReader().forEachLine { line ->
+                    if (line.startsWith("Output #")) describingOutput = true
+                    if (describingOutput && !outputSize.isDone) parseRawvideoSize(line)?.let(outputSize::complete)
+                    if (line.contains("error", ignoreCase = true) || line.contains("invalid", ignoreCase = true)) {
+                        synchronized(errorLines) {
+                            errorLines.addLast(line.trim())
+                            if (errorLines.size > MAX_ERROR_LINES) errorLines.removeFirst()
+                        }
+                    }
+                }
+            } catch (_: IOException) {
+                // The process was destroyed while its log was being read.
+            } finally {
+                outputSize.complete(null)
+            }
+        }
     }
+
+    fun errors(): String = synchronized(errorLines) { errorLines.joinToString(" ") }.take(MAX_ERROR_CHARS)
 }
+
+/** The frame size in ffmpeg's description of a rawvideo output stream, as in `rawvideo (BGRA …), 1080x2400 [SAR …]`. */
+internal fun parseRawvideoSize(line: String): IntSize? {
+    if (!line.contains("Video: rawvideo")) return null
+    val match = Regex("""[ ,](\d{2,5})x(\d{2,5})[ ,\[]""").find(line) ?: return null
+    return IntSize(match.groupValues[1].toInt(), match.groupValues[2].toInt())
+}
+
+/** How to install ffmpeg, appended to every message about it missing. */
+internal const val FFMPEG_INSTALL = "Install ffmpeg: brew install ffmpeg (macOS), winget install ffmpeg (Windows) or apt install ffmpeg (Linux)."
+
+private const val BYTES_PER_PIXEL = 4
+
+private const val FFMPEG_EXIT_WAIT_MILLIS = 2_000L
+
+private const val MAX_ERROR_LINES = 5
+
+private const val MAX_ERROR_CHARS = 500

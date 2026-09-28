@@ -59,16 +59,17 @@ internal class DeviceDiscovery(
     }
 
     private fun controllerFor(listing: DeviceListing): DeviceController = when (listing.kind) {
-        DeviceKind.AndroidEmulator -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = emulatorScreens)
-        DeviceKind.AndroidDevice -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = null)
+        DeviceKind.AndroidEmulator -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = emulatorScreens, ffmpeg = tools.ffmpeg)
+        DeviceKind.AndroidDevice -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = null, ffmpeg = tools.ffmpeg)
         DeviceKind.IosSimulator -> IosSimulatorController(udid = listing.id, xcrun = checkNotNull(tools.xcrun), idb = tools.idb)
-        DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idb = checkNotNull(tools.idb), companions = checkNotNull(companions))
+        DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idb = checkNotNull(tools.idb), companions = checkNotNull(companions), ffmpeg = tools.ffmpeg)
     }
 
     private fun missingTools(): List<String> = buildList {
         if (tools.adb == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
         if (tools.xcrun != null && tools.idb == null) add("idb was not found, so iOS simulators are shown without live video or input, and iOS devices are not listed. $IDB_MISSING")
         if (tools.idb != null && tools.idbCompanion == null) add("idb_companion was not found, so iOS devices are not listed: brew install idb-companion")
+        if (tools.ffmpeg == null && (tools.adb != null || tools.idbCompanion != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 
     private suspend fun tryList(list: suspend () -> List<DeviceListing>): List<DeviceListing>? = try {

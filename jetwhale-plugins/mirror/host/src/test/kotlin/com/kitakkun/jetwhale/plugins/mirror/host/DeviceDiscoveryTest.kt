@@ -8,8 +8,10 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class DeviceDiscoveryTest {
     private val folder: File = Files.createTempDirectory("mirror-discovery").toFile()
@@ -27,7 +29,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null, ffmpeg = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
 
@@ -36,7 +38,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that fails keeps the devices it listed before with their controllers`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null, ffmpeg = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         val before = discovery.discover().devices.single()
         adb.writeText("#!/bin/sh\necho 'daemon not running' >&2\nexit 1\n")
 
@@ -47,11 +49,28 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that succeeds without a device drops it`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null, ffmpeg = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         discovery.discover()
         adb.writeText("#!/bin/sh\nprintf 'List of devices attached\\n'\n")
 
         assertEquals(emptyList(), discovery.discover().devices)
+    }
+
+    @Test
+    fun `a machine without ffmpeg is told that Android devices fall back to screenshots and how to install it`() = runBlocking {
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null, ffmpeg = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+
+        val notice = discovery.discover().missingTools.single { "ffmpeg" in it }
+
+        assertContains(notice, "screenshots")
+        assertContains(notice, "brew install ffmpeg")
+    }
+
+    @Test
+    fun `a machine with ffmpeg is not told about it`() = runBlocking {
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null, ffmpeg = "/usr/bin/true"), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+
+        assertTrue(discovery.discover().missingTools.none { "ffmpeg" in it })
     }
 }
 

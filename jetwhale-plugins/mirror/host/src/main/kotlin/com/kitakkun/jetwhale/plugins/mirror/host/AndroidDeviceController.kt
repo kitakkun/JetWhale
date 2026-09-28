@@ -9,12 +9,14 @@ import java.util.concurrent.TimeUnit
 
 /**
  * An Android emulator or device, driven through adb. An emulator's screen comes from its own gRPC
- * stream through [emulatorScreens] when it has one, and from screenrecord otherwise.
+ * stream through [emulatorScreens] when it has one, and from screenrecord otherwise, which [ffmpeg]
+ * decodes; without ffmpeg there is no stream, and the mirror shows screenshots instead.
  */
 internal class AndroidDeviceController(
     private val adb: String,
     private val serial: String,
     private val emulatorScreens: EmulatorScreens?,
+    private val ffmpeg: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = true,
@@ -65,8 +67,10 @@ internal class AndroidDeviceController(
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
-        emulatorScreens?.open(serial, wanted)
-            ?: VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")))
+        emulatorScreens?.open(serial, wanted) ?: run {
+            val ffmpeg = ffmpeg ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
+            VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")), ffmpeg)
+        }
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {

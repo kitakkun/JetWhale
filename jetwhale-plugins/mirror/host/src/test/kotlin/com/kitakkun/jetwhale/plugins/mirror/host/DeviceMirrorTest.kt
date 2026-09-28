@@ -34,8 +34,8 @@ class DeviceMirrorTest {
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(MirrorTools(adb = null, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices),
+        discovery = DeviceDiscovery(MirrorTools(adb = null, idb = null, idbCompanion = null, xcrun = null, ffmpeg = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpeg = null),
         notices = notices,
         scope = scope,
     )
@@ -285,7 +285,7 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         firstWanted.complete(wanted)
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
-        return VideoStream.H264(EmptyProcess())
+        return VideoStream.RawBgra(EmptyProcess(), frameSize = IntSize(1, 1), rowBytes = 64, fps = 30, onFellBehind = { false })
     }
 
     override suspend fun release() = Unit
