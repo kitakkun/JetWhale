@@ -87,8 +87,11 @@ private class MirrorHostPlugin :
 
     override fun onDispose() {
         runBlocking {
-            mirror.dispose()
-            if (liveInstances.decrementAndGet() == 0) companions?.releaseAll()
+            try {
+                mirror.dispose()
+            } finally {
+                if (liveInstances.decrementAndGet() == 0) companions?.releaseAll()
+            }
         }
     }
 
