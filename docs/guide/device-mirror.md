@@ -5,6 +5,19 @@ physical iPhone inside the host window. You can tap, swipe, type and press hardw
 the mirrored screen, and take screenshots and recordings. Captures are kept per device, so the
 ones from a test run are easy to find again. An AI agent can do the same over MCP.
 
+::: warning Not distributed yet
+Device Mirror isn't published yet, so it can't be installed from the host's plugin catalog. Build
+and install it from a checkout of this repository:
+
+```shell
+./gradlew :jetwhale-plugins:mirror:host:installPlugin
+```
+
+This copies the plugin jar into `~/.jetwhale/plugins`; restart the host, or approve the jar from
+the banner, to load it. The jar carries the H.264 decoder's native libraries for the machine it
+was built on, so build it on the OS you run the host on.
+:::
+
 It is a host-only plugin: the app you debug needs no agent for it, and it appears for every
 session once one is selected.
 
