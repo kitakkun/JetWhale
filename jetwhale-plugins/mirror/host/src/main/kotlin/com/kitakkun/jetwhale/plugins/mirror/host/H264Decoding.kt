@@ -8,6 +8,7 @@ import org.bytedeco.javacpp.Pointer
 import org.bytedeco.javacv.FFmpegFrameGrabber
 import org.bytedeco.javacv.Frame
 import org.bytedeco.javacv.FrameGrabber
+import org.jetbrains.skia.ColorType
 import java.io.InputStream
 import java.nio.ByteBuffer
 
@@ -54,7 +55,7 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: InputStream, outputS
 /** Copies [frame]'s BGRA pixels into [this] surface; false when the frame carried none. */
 private fun MirrorSurface.writeFrame(frame: Frame): Boolean {
     val pixels = frame.image?.firstOrNull() as? ByteBuffer ?: return false
-    writeFrame(frame.imageWidth, frame.imageHeight) { target ->
+    writeFrame(frame.imageWidth, frame.imageHeight, ColorType.BGRA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
         copyRows(pixels, sourceRowBytes = frame.imageStride, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frame.imageHeight)
         true

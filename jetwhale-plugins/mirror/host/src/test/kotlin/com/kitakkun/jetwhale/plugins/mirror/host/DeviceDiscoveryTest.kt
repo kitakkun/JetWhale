@@ -27,7 +27,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null)
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
 
@@ -36,7 +36,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that fails keeps the devices it listed before with their controllers`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null)
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         val before = discovery.discover().devices.single()
         adb.writeText("#!/bin/sh\necho 'daemon not running' >&2\nexit 1\n")
 
@@ -47,7 +47,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that succeeds without a device drops it`() = runBlocking {
-        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null)
+        val discovery = DeviceDiscovery(MirrorTools(adb = adb.absolutePath, idb = null, idbCompanion = null, xcrun = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         discovery.discover()
         adb.writeText("#!/bin/sh\nprintf 'List of devices attached\\n'\n")
 

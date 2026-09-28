@@ -81,17 +81,17 @@ internal class MirrorSurface : AutoCloseable {
     private val window = StatsWindow()
 
     /**
-     * Stores one frame of [width] by [height] BGRA pixels, which [write] puts into the bitmap it is
-     * given; [write] returns false when it could not, and the frame is dropped. Called from the
-     * decoding thread.
+     * Stores one frame of [width] by [height] pixels laid out as [colorType], which [write] puts into
+     * the bitmap it is given; [write] returns false when it could not, and the frame is dropped.
+     * Called from the decoding thread.
      */
-    fun writeFrame(width: Int, height: Int, write: (target: Bitmap) -> Boolean) {
+    fun writeFrame(width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
         val started = System.nanoTime()
         // The write happens under the lock too, so [clear] can never close the bitmap being written.
         synchronized(lock) {
             if (closed) return
-            val reusable = back?.takeIf { it.width == width && it.height == height }
-            val target = reusable ?: newBitmap(width, height).also {
+            val reusable = back?.takeIf { it.width == width && it.height == height && it.imageInfo.colorType == colorType }
+            val target = reusable ?: newBitmap(width, height, colorType).also {
                 back?.close()
                 back = it
             }
@@ -264,8 +264,8 @@ internal class MirrorSurface : AutoCloseable {
         window.takeIfDue(STATS_WINDOW_NANOS)?.let { stats = it }
     }
 
-    private fun newBitmap(width: Int, height: Int): Bitmap = Bitmap().apply {
-        allocPixels(ImageInfo(width, height, ColorType.BGRA_8888, ColorAlphaType.OPAQUE))
+    private fun newBitmap(width: Int, height: Int, colorType: ColorType): Bitmap = Bitmap().apply {
+        allocPixels(ImageInfo(width, height, colorType, ColorAlphaType.OPAQUE))
     }
 }
 
