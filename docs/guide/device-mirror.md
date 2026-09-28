@@ -48,8 +48,9 @@ from the Dock does not inherit your shell's `PATH`.
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes by running the
 `ffmpeg` command. Without it an Android device is shown through screenshots, a few times a second,
-and an iPhone cannot be mirrored. Android emulators and iOS simulators stream their screen without
-ffmpeg.
+and an iPhone cannot be mirrored. iOS simulators, and Android emulators that expose their own gRPC
+screen stream, send their screen without ffmpeg; an emulator without that stream is decoded like a
+device.
 
 When a tool is missing, the device list says which one and what it would enable.
 
