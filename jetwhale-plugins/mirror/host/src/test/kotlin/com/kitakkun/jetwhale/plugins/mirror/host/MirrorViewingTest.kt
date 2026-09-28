@@ -55,6 +55,16 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a point on a capped simulator frame enlarged to its view maps to the screen's own pixels`() {
+        // A 600x1301 frame of a 1179x2556 simulator, enlarged to 800x1734: the frame's size never
+        // enters the mapping, only its share of the view.
+        val fitted = FittedFrame(frameWidth = 600, frameHeight = 1301, viewWidth = 800f, viewHeight = 1734f)
+
+        assertEquals(IntOffset(589, 1278), fitted.toDevicePixel(Offset(400f, 867f), IntSize(1179, 2556)))
+        assertEquals(IntOffset(1178, 2555), fitted.toDevicePixel(Offset(799.8f, 1733.9f), IntSize(1179, 2556)))
+    }
+
+    @Test
     fun `a screen is decoded at the size it is shown and whole when the view is larger`() {
         assertEquals(IntSize(588, 1282), decodingSize(source = IntSize(1206, 2622), view = IntSize(1400, 1282)))
         assertNull(decodingSize(source = IntSize(1080, 2400), view = IntSize(2000, 3000)))
