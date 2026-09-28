@@ -129,10 +129,10 @@ internal class DeviceThumbnails(
     private suspend fun refresh(device: MirrorDevice, heightPx: Int) {
         val state = try {
             // A screenshot of a sleeping device is black; a locked one still shows its lock screen.
-            if (device.controller.capabilities.screenPower && !device.controller.screenPower().awake) {
+            if (device.controller.power?.screenPower()?.awake == false) {
                 ThumbnailState.ScreenOff
             } else {
-                val png = device.controller.captureScreenshot()
+                val png = device.controller.screen.captureScreenshot()
                 val image = shrink(png, heightPx)
                 if (image == null) {
                     ThumbnailState.Failed("the screenshot could not be read as an image")

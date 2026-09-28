@@ -22,7 +22,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -41,22 +40,14 @@ class IosPhysicalDeviceCapturesTest {
     }
 
     @Test
-    fun `a physical iOS device can record only when ffmpeg is installed`() {
-        assertFalse(iosDevice(ffmpegPath = null).capabilities.recording)
-        assertTrue(iosDevice(ffmpegPath = "/usr/local/bin/ffmpeg").capabilities.recording)
+    fun `a physical iOS device has a recorder only when ffmpeg is installed`() {
+        assertNull(iosDevice(ffmpegPath = null).recorder)
+        assertNotNull(iosDevice(ffmpegPath = "/usr/local/bin/ffmpeg").recorder)
     }
 
     @Test
     fun `without ffmpeg a physical iOS device's screenshot says how to install it and starts no companion`() = runBlocking {
         val failure = assertFailsWith<DeviceControlException> { iosDevice(ffmpegPath = null).captureScreenshot() }
-
-        assertContains(failure.message.orEmpty(), "brew install ffmpeg")
-        assertTrue(launched.isEmpty())
-    }
-
-    @Test
-    fun `without ffmpeg a physical iOS device's recording says how to install it and starts no companion`() = runBlocking {
-        val failure = assertFailsWith<DeviceControlException> { iosDevice(ffmpegPath = null).startRecording(File(folder, "clip.mp4")) }
 
         assertContains(failure.message.orEmpty(), "brew install ffmpeg")
         assertTrue(launched.isEmpty())
@@ -125,7 +116,7 @@ class IosPhysicalDeviceCapturesTest {
         // The stand-in stream can be stopped before ffmpeg has read any of it, which fails the file;
         // the companion must be let go either way, and that is what this checks.
         try {
-            iphone.startRecording(File(folder, "clip.mp4")).stop()
+            assertNotNull(iphone.recorder).startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {
         }
         iphone.screenSize()

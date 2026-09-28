@@ -25,8 +25,8 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class MirrorMcpCommandsTest {
-    private val emulator = FakeController(DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true))
-    private val iphone = FakeController(DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false), refusal = VIEW_ONLY)
+    private val emulator = FakeController(buttons = listOf(DeviceButton.Home, DeviceButton.Back), recordable = true, switchable = true)
+    private val iphone = FakeController(buttons = null, recordable = false, switchable = false)
     private val mirror = FakeMirrorDevices(
         listOf(
             MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
@@ -46,7 +46,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `listDevices reports whether an Android screen is on and says nothing of an iPhone's`() {
-        emulator.power = ScreenPower(awake = false, locked = true)
+        emulator.screenState = ScreenPower(awake = false, locked = true)
 
         val devices = ListDevicesCommand(mirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
 
@@ -285,56 +285,80 @@ private val recording = Capture(
     ),
 )
 
+/**
+ * A device with the parts asked for: input with [buttons] unless that is null, a recorder when
+ * [recordable], and screen power when [switchable].
+ */
 private class FakeController(
-    override val capabilities: DeviceCapabilities,
-    private val refusal: String? = null,
-) : DeviceController {
+    buttons: List<DeviceButton>?,
+    recordable: Boolean,
+    switchable: Boolean,
+) : DeviceController,
+    DeviceScreen {
     val calls = mutableListOf<String>()
 
-    override suspend fun captureScreenshot(): ByteArray = ByteArray(0)
-
     var screenSizeQueries = 0
+
+    var screenState = ScreenPower(awake = true, locked = false)
+
+    override val screen: DeviceScreen get() = this
+
+    override val input: DeviceInput? = buttons?.let { offered ->
+        object : DeviceInput {
+            override val buttons = offered
+
+            override suspend fun tap(x: Int, y: Int) {
+                calls += "tap $x,$y"
+            }
+
+            override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
+                calls += "swipe $fromX,$fromY -> $toX,$toY in $durationMillis"
+            }
+
+            override suspend fun pressButton(button: DeviceButton) {
+                calls += "press $button"
+            }
+
+            override suspend fun inputText(text: String) {
+                calls += "type $text"
+            }
+        }
+    }
+
+    override val power: DevicePower? = if (switchable) {
+        object : DevicePower {
+            override suspend fun screenPower(): ScreenPower = screenState
+
+            override suspend fun wake() {
+                calls += "wake"
+                screenState = ScreenPower(awake = true, locked = false)
+            }
+
+            override suspend fun sleep() {
+                calls += "sleep"
+                screenState = ScreenPower(awake = false, locked = true)
+            }
+        }
+    } else {
+        null
+    }
+
+    override val recorder: DeviceRecorder? = if (recordable) {
+        object : DeviceRecorder {
+            override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("not recording in tests")
+        }
+    } else {
+        null
+    }
+
+    override suspend fun captureScreenshot(): ByteArray = ByteArray(0)
 
     override suspend fun screenSize(): IntSize {
         screenSizeQueries++
         return IntSize(1080, 2400)
     }
 
-    override suspend fun tap(x: Int, y: Int) = record("tap $x,$y")
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = record("swipe $fromX,$fromY -> $toX,$toY in $durationMillis")
-
-    override suspend fun pressButton(button: DeviceButton) = record("press $button")
-
-    override suspend fun inputText(text: String) = record("type $text")
-
-    var power = ScreenPower(awake = true, locked = false)
-
-    override suspend fun screenPower(): ScreenPower {
-        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
-        return power
-    }
-
-    override suspend fun wake() {
-        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
-        record("wake")
-        power = ScreenPower(awake = true, locked = false)
-    }
-
-    override suspend fun sleep() {
-        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
-        record("sleep")
-        power = ScreenPower(awake = false, locked = true)
-    }
-
-    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("not recording in tests")
-
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
-
-    private fun record(call: String) {
-        refusal?.let { throw deviceControlError(it) }
-        calls += call
-    }
 }

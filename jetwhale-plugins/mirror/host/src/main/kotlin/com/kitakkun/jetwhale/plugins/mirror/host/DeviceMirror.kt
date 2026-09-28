@@ -172,7 +172,7 @@ internal class DeviceMirror(
         surface.switchTo(device.id)
         try {
             coroutineScope {
-                if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }
+                device.controller.power?.let { power -> launch { watchScreenPower(power) } }
                 streamUntilCancelled(device)
             }
         } finally {
@@ -207,11 +207,11 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun watchScreenPower(device: MirrorDevice) {
+    private suspend fun watchScreenPower(power: DevicePower) {
         while (coroutineContext.isActive) {
             // An unreadable state hides the screen-off notice rather than showing a stale one.
             screenPower = try {
-                device.controller.screenPower()
+                power.screenPower()
             } catch (_: DeviceControlException) {
                 null
             }
@@ -232,7 +232,7 @@ internal class DeviceMirror(
     private suspend fun streamOnce(device: MirrorDevice): StreamOutcome {
         // Without the screen's size the frames stay whole and taps map through them instead.
         val screen = try {
-            device.controller.screenSize()
+            device.controller.screen.screenSize()
         } catch (_: DeviceControlException) {
             null
         }
@@ -244,7 +244,7 @@ internal class DeviceMirror(
         }
         val outputSize = screen?.let { decodingSize(it, surface.viewSize) }
         val stream = try {
-            device.controller.openVideoStream(outputSize)
+            device.controller.screen.openVideoStream(outputSize)
         } catch (e: DeviceControlException) {
             return StreamOutcome.Unavailable(e.message.orEmpty())
         }
@@ -357,7 +357,7 @@ internal class DeviceMirror(
     }
 
     private suspend fun showScreenshot(device: MirrorDevice) {
-        val png = device.controller.captureScreenshot()
+        val png = device.controller.screen.captureScreenshot()
         withContext(Dispatchers.IO) {
             Image.makeFromEncoded(png).use { image ->
                 surface.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
@@ -369,13 +369,13 @@ internal class DeviceMirror(
         selectedId = deviceId
     }
 
-    override fun tap(x: Int, y: Int) = control { it.tap(x, y) }
+    override fun tap(x: Int, y: Int) = control { it.requireInput().tap(x, y) }
 
-    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) = control { it.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = 250) }
+    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) = control { it.requireInput().swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = 250) }
 
-    override fun pressButton(button: DeviceButton) = control { it.pressButton(button) }
+    override fun pressButton(button: DeviceButton) = control { it.requireInput().pressButton(button) }
 
-    override fun inputText(text: String) = control { it.inputText(text) }
+    override fun inputText(text: String) = control { it.requireInput().inputText(text) }
 
     override fun saveScreenshot() {
         val device = selectedDevice ?: return
@@ -435,16 +435,18 @@ internal class DeviceMirror(
         }
     }
 
-    override fun wake() = control { controller ->
-        controller.wake()
-        val power = controller.screenPower()
-        screenPower = power
-        if (power.locked) notices.show(MirrorNotice.info("The device is still locked. Unlock it to continue."))
+    override fun wake() = control { device ->
+        val power = device.requirePower()
+        power.wake()
+        val state = power.screenPower()
+        screenPower = state
+        if (state.locked) notices.show(MirrorNotice.info("The device is still locked. Unlock it to continue."))
     }
 
-    override fun sleep() = control { controller ->
-        controller.sleep()
-        screenPower = controller.screenPower()
+    override fun sleep() = control { device ->
+        val power = device.requirePower()
+        power.sleep()
+        screenPower = power.screenPower()
     }
 
     override fun resolve(deviceId: String?): MirrorDevice {
@@ -462,7 +464,7 @@ internal class DeviceMirror(
         if (device.kind == DeviceKind.IosDevice && state == MirrorState.Streaming) {
             withContext(Dispatchers.IO) { surface.newestFramePng(device.id) }?.let { return it }
         }
-        return device.controller.captureScreenshot()
+        return device.controller.screen.captureScreenshot()
     }
 
     override suspend fun startRecording(device: MirrorDevice) = recordings.withLock { startRecordingOf(device) }
@@ -471,7 +473,9 @@ internal class DeviceMirror(
         if (recording != null) throw deviceControlError("a recording is already running; stop it first")
         val file = captures.recordingFile(device.listing)
         val handle = try {
-            device.controller.startRecording(file)
+            // Only a physical iOS device goes without a recorder, and only for want of ffmpeg.
+            val recorder = device.controller.recorder ?: throw deviceControlError("recording a physical iOS device needs ffmpeg to decode its video. $FFMPEG_INSTALL")
+            recorder.startRecording(file)
         } catch (e: DeviceControlException) {
             file.delete()
             throw e
@@ -498,7 +502,7 @@ internal class DeviceMirror(
             throw e
         }
         val size = try {
-            running.device.controller.screenSize()
+            running.device.controller.screen.screenSize()
         } catch (_: DeviceControlException) {
             null
         }
@@ -516,11 +520,11 @@ internal class DeviceMirror(
     }
 
     // Runs [action] on the selected device, reporting a failure as a notice instead of throwing.
-    private fun control(action: suspend (DeviceController) -> Unit) {
+    private fun control(action: suspend (MirrorDevice) -> Unit) {
         val device = selectedDevice ?: return
         scope.launch {
             try {
-                action(device.controller)
+                action(device)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: DeviceControlException) {

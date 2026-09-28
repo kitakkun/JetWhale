@@ -23,7 +23,9 @@ import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -52,6 +54,16 @@ class DeviceMirrorTest {
 
         assertTrue(notice.isError)
         assertEquals(listOf<NoticeAction>(NoticeAction.RetryScreenshots(listOf("emulator-5554"))), notice.actions)
+    }
+
+    @Test
+    fun `recording a device without a recorder says how to install ffmpeg and leaves no file`() = runBlocking {
+        val iphone = MirrorDevice(DeviceListing("00008110", "iPhone", DeviceKind.IosDevice, osVersion = null), StillEmulator())
+
+        val failure = assertFailsWith<DeviceControlException> { mirror.startRecording(iphone) }
+
+        assertContains(failure.message.orEmpty(), "brew install ffmpeg")
+        assertTrue(root.walk().none(File::isFile))
     }
 
     @Test
@@ -110,7 +122,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a stream that ends without a resize lets the mirror move on`() = runBlocking {
-        val controller = EndingStream(power = null)
+        val controller = EndingStream(screenState = null)
         val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
         val session = scope.launch { mirror.mirror(streaming) }
 
@@ -120,7 +132,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a stream opened before its view is laid out waits for the view instead of asking for the full screen`() = runBlocking {
-        val controller = EndingStream(power = null)
+        val controller = EndingStream(screenState = null)
         val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
         val session = scope.launch { mirror.mirror(streaming) }
         // The mirror reads the screen's size just before it would open the stream.
@@ -148,7 +160,7 @@ class DeviceMirrorTest {
     @Test
     fun `a mirrored Android device whose screen is off says so until mirroring stops`() = runBlocking {
         val asleep = ScreenPower(awake = false, locked = true)
-        val controller = EndingStream(power = asleep)
+        val controller = EndingStream(screenState = asleep)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
 
         // By the second read the first one's answer has been shown.
@@ -163,7 +175,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a device without screen power is never asked for it`() = runBlocking {
-        val controller = EndingStream(power = null)
+        val controller = EndingStream(screenState = null)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5558", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
 
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
@@ -184,7 +196,10 @@ private const val STILL_SCREEN_PATCH_WINDOW_MILLIS = 1_500L
 /** Long enough that every concurrent call reaches the recorder while the first is still inside it. */
 private const val RECORDER_LATENCY_MILLIS = 100L
 
-private class SlowRecorder : DeviceController {
+private class SlowRecorder :
+    DeviceController,
+    DeviceScreen,
+    DeviceRecorder {
     val started = AtomicInteger()
     val stopped = AtomicInteger()
 
@@ -194,7 +209,10 @@ private class SlowRecorder : DeviceController {
     /** Thrown by the next stop, as a pull that fails would. */
     var stopFailure: DeviceControlException? = null
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true, screenPower = false)
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? get() = null
+    override val power: DevicePower? get() = null
+    override val recorder: DeviceRecorder get() = this
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         delay(RECORDER_LATENCY_MILLIS)
@@ -214,20 +232,6 @@ private class SlowRecorder : DeviceController {
 
     override suspend fun captureScreenshot(): ByteArray = throw deviceControlError("no screenshots in tests")
 
-    override suspend fun tap(x: Int, y: Int) = Unit
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
-
-    override suspend fun pressButton(button: DeviceButton) = Unit
-
-    override suspend fun inputText(text: String) = Unit
-
-    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun wake() = Unit
-
-    override suspend fun sleep() = Unit
-
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
@@ -237,7 +241,9 @@ private class SlowRecorder : DeviceController {
  * A device whose video stream ends at once, as screenrecord's does at its time limit. With a
  * [power], its screen state can be read, and stays that.
  */
-private class EndingStream(private val power: ScreenPower?) : DeviceController {
+private class EndingStream(private val screenState: ScreenPower?) :
+    DeviceController,
+    DeviceScreen {
     private val opened = AtomicInteger()
 
     val screenPowerReads = AtomicInteger()
@@ -251,21 +257,24 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     /** Completes when the mirror first reads the screen's size. */
     val screenSizeRead = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = power != null)
-
     /** Completes when the screen state is read a second time. */
     val readTwice = CompletableDeferred<Unit>()
 
-    override suspend fun screenPower(): ScreenPower {
-        if (screenPowerReads.incrementAndGet() == 2) readTwice.complete(Unit)
-        return power ?: throw deviceControlError(NO_SCREEN_POWER)
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? get() = null
+    override val recorder: DeviceRecorder? get() = null
+    override val power: DevicePower? = screenState?.let { state ->
+        object : DevicePower {
+            override suspend fun screenPower(): ScreenPower {
+                if (screenPowerReads.incrementAndGet() == 2) readTwice.complete(Unit)
+                return state
+            }
+
+            override suspend fun wake() = Unit
+
+            override suspend fun sleep() = Unit
+        }
     }
-
-    override suspend fun wake() = Unit
-
-    override suspend fun sleep() = Unit
-
-    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
 
     override suspend fun screenSize(): IntSize {
         screenSizeRead.complete(Unit)
@@ -273,14 +282,6 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     }
 
     override suspend fun captureScreenshot(): ByteArray = throw deviceControlError("no screenshots in tests")
-
-    override suspend fun tap(x: Int, y: Int) = Unit
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
-
-    override suspend fun pressButton(button: DeviceButton) = Unit
-
-    override suspend fun inputText(text: String) = Unit
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         firstWanted.complete(wanted)
@@ -292,19 +293,16 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
 }
 
 /** An emulator whose gRPC stream sends one frame and then nothing, as a still screen does. */
-private class StillEmulator : DeviceController {
+private class StillEmulator :
+    DeviceController,
+    DeviceScreen {
     /** Completes if the mirror asks for a screenshot. */
     val screenshotTaken = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
-
-    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun wake() = Unit
-
-    override suspend fun sleep() = Unit
-
-    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? get() = null
+    override val power: DevicePower? get() = null
+    override val recorder: DeviceRecorder? get() = null
 
     override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
 
@@ -312,14 +310,6 @@ private class StillEmulator : DeviceController {
         screenshotTaken.complete(Unit)
         throw deviceControlError("no screenshots in tests")
     }
-
-    override suspend fun tap(x: Int, y: Int) = Unit
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
-
-    override suspend fun pressButton(button: DeviceButton) = Unit
-
-    override suspend fun inputText(text: String) = Unit
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         val writer = PipedOutputStream()

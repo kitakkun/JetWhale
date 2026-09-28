@@ -21,8 +21,9 @@ internal class SetScreenCommand(
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         val power = deviceOperation {
-            if (arguments[on]) device.controller.wake() else device.controller.sleep()
-            device.controller.screenPower()
+            val power = device.requirePower()
+            if (arguments[on]) power.wake() else power.sleep()
+            power.screenPower()
         }
         return buildJsonObject {
             put("screenOn", power.awake)

@@ -48,9 +48,9 @@ internal class ListDevicesCommand(
 
 /** The screen state of a device that has one to read; an unreadable state is left out rather than guessed. */
 private suspend fun readableScreenPower(controller: DeviceController): ScreenPower? {
-    if (!controller.capabilities.screenPower) return null
+    val power = controller.power ?: return null
     return try {
-        controller.screenPower()
+        power.screenPower()
     } catch (_: DeviceControlException) {
         null
     }

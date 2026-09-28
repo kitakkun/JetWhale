@@ -89,3 +89,9 @@ internal fun parseIdbScreen(json: String): IdbScreen? {
     val density = screen["density"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
     return IdbScreen(IntSize(width, height), density)
 }
+
+/** Asks the idb at [idbPath] for the screen of the device or simulator [udid]. */
+internal suspend fun describeIdbScreen(idbPath: String, udid: String): IdbScreen {
+    val description = runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
+    return parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")
+}

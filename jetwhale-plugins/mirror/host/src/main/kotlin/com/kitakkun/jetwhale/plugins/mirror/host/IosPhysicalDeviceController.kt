@@ -20,13 +20,17 @@ internal class IosPhysicalDeviceController(
     private val idbPath: String,
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
-) : DeviceController {
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = ffmpegPath != null, screenPower = false)
+) : DeviceController,
+    DeviceScreen {
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? get() = null
+    override val power: DevicePower? get() = null
+    override val recorder: DeviceRecorder? = ffmpegPath?.let(::PhysicalRecorder)
 
     private var streaming = false
 
     @Volatile
-    private var screen: IntSize? = null
+    private var knownScreenSize: IntSize? = null
 
     override suspend fun captureScreenshot(): ByteArray {
         val ffmpegPath = requireFfmpegPath("a screenshot of a physical iOS device")
@@ -46,52 +50,14 @@ internal class IosPhysicalDeviceController(
     // The screen's size never changes, so idb is asked once. The companion is held only for the
     // question: this runs before a stream and after a recording alike, and only a stream keeps it.
     override suspend fun screenSize(): IntSize {
-        screen?.let { return it }
+        knownScreenSize?.let { return it }
         companions.acquire(udid)
-        val description = try {
-            runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
+        val described = try {
+            describeIdbScreen(idbPath, udid)
         } finally {
             companions.release(udid)
         }
-        return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
-    }
-
-    override suspend fun tap(x: Int, y: Int) = throw deviceControlError(VIEW_ONLY)
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = throw deviceControlError(VIEW_ONLY)
-
-    override suspend fun pressButton(button: DeviceButton) = throw deviceControlError(VIEW_ONLY)
-
-    override suspend fun inputText(text: String) = throw deviceControlError(VIEW_ONLY)
-
-    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun wake() = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun startRecording(outputFile: File): DeviceRecording {
-        val ffmpegPath = requireFfmpegPath("recording a physical iOS device")
-        companions.acquire(udid)
-        val recorder = try {
-            val stream = startVideoStream()
-            try {
-                withContext(Dispatchers.IO) { H264FileRecorder(stream, ffmpegPath, outputFile) }
-            } catch (e: DeviceControlException) {
-                stream.destroyForcibly()
-                throw e
-            }
-        } catch (e: DeviceControlException) {
-            companions.release(udid)
-            throw e
-        }
-        return object : DeviceRecording {
-            override suspend fun stop(): File = try {
-                withContext(Dispatchers.IO) { recorder.stop() }
-            } finally {
-                companions.release(udid)
-            }
-        }
+        return described.size.also { knownScreenSize = it }
     }
 
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
@@ -122,6 +88,31 @@ internal class IosPhysicalDeviceController(
         if (!streaming) return
         streaming = false
         companions.release(udid)
+    }
+
+    private inner class PhysicalRecorder(private val ffmpegPath: String) : DeviceRecorder {
+        override suspend fun startRecording(outputFile: File): DeviceRecording {
+            companions.acquire(udid)
+            val recorder = try {
+                val stream = startVideoStream()
+                try {
+                    withContext(Dispatchers.IO) { H264FileRecorder(stream, ffmpegPath, outputFile) }
+                } catch (e: DeviceControlException) {
+                    stream.destroyForcibly()
+                    throw e
+                }
+            } catch (e: DeviceControlException) {
+                companions.release(udid)
+                throw e
+            }
+            return object : DeviceRecording {
+                override suspend fun stop(): File = try {
+                    withContext(Dispatchers.IO) { recorder.stop() }
+                } finally {
+                    companions.release(udid)
+                }
+            }
+        }
     }
 }
 

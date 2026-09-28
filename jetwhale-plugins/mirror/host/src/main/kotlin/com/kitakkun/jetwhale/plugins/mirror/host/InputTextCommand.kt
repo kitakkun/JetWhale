@@ -16,7 +16,7 @@ internal class InputTextCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        deviceOperation { device.controller.inputText(arguments[text]) }
+        deviceOperation { device.requireInput().inputText(arguments[text]) }
         return okJson()
     }
 }

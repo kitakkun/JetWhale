@@ -212,7 +212,10 @@ class DeviceThumbnailsTest {
 private fun device(id: String, controller: DeviceController) = MirrorDevice(DeviceListing(id, id, DeviceKind.AndroidEmulator, osVersion = null), controller)
 
 /** A 100x200 screen whose screenshots can be held back by [gate], counting what was asked of it. */
-private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : DeviceController {
+private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) :
+    DeviceController,
+    DeviceScreen,
+    DevicePower {
     val captures = AtomicInteger()
     val inFlight = AtomicInteger()
 
@@ -225,7 +228,10 @@ private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : 
     @Volatile
     var png: ByteArray = SCREEN_PNG
 
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = true)
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? get() = null
+    override val power: DevicePower get() = this
+    override val recorder: DeviceRecorder? get() = null
 
     override suspend fun captureScreenshot(): ByteArray {
         failure?.let { throw deviceControlError(it) }
@@ -243,19 +249,9 @@ private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : 
 
     override suspend fun screenSize(): IntSize = IntSize(100, 200)
 
-    override suspend fun tap(x: Int, y: Int) = Unit
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
-
-    override suspend fun pressButton(button: DeviceButton) = Unit
-
-    override suspend fun inputText(text: String) = Unit
-
     override suspend fun wake() = Unit
 
     override suspend fun sleep() = Unit
-
-    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 

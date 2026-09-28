@@ -11,21 +11,22 @@ import kotlin.io.path.readBytes
 
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl`; the live stream and all
- * input need idb, since simctl can neither stream nor send touches.
+ * input need idb, since simctl can neither stream nor send touches, so without idb it has no
+ * [input].
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
     private val xcrunPath: String,
     private val idbPath: String?,
-) : DeviceController {
-    override val capabilities = DeviceCapabilities(
-        input = idbPath != null,
-        buttons = if (idbPath != null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
-        recording = true,
-        screenPower = false,
-    )
+) : DeviceController,
+    DeviceScreen,
+    DeviceRecorder {
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput? = idbPath?.let(::SimulatorInput)
+    override val power: DevicePower? get() = null
+    override val recorder: DeviceRecorder get() = this
 
-    private var screen: IdbScreen? = null
+    private var describedScreen: IdbScreen? = null
 
     // Lowered each time a stream falls behind, for instance while another tool streams this
     // simulator too; they stay lowered for as long as the simulator is listed.
@@ -44,34 +45,6 @@ internal class IosSimulatorDeviceController(
             file.deleteIfExists()
         }
     }
-
-    override suspend fun tap(x: Int, y: Int) {
-        val scale = pixelsPerPoint()
-        runCommandChecked(requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
-    }
-
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        val scale = pixelsPerPoint()
-        runCommandChecked(
-            requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
-            "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
-        )
-    }
-
-    override suspend fun pressButton(button: DeviceButton) {
-        val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
-        presses.forEach { idbButton -> runCommandChecked(requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
-    }
-
-    override suspend fun inputText(text: String) {
-        runCommandChecked(requireIdbPath(), "ui", "text", "--udid", udid, text)
-    }
-
-    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun wake() = throw deviceControlError(NO_SCREEN_POWER)
-
-    override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
     // A simulator's H.264 stream sends a frame only when the framebuffer reports damage, which a
     // current CoreSimulator does so rarely that the picture freezes for seconds. Its raw stream is
@@ -114,13 +87,35 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun screenSize(): IntSize = describe().size
 
-    // idb takes points; the mirror works in pixels, so the screen's density converts between them.
-    private suspend fun pixelsPerPoint(): Double = describe().pixelsPerPoint
+    private suspend fun describe(): IdbScreen = describedScreen ?: describeIdbScreen(requireIdbPath(), udid).also { describedScreen = it }
 
-    private suspend fun describe(): IdbScreen {
-        screen?.let { return it }
-        val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
-        return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
+    private inner class SimulatorInput(private val idbPath: String) : DeviceInput {
+        override val buttons = listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power)
+
+        override suspend fun tap(x: Int, y: Int) {
+            val scale = pixelsPerPoint()
+            runCommandChecked(idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        }
+
+        override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
+            val scale = pixelsPerPoint()
+            runCommandChecked(
+                idbPath, "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+                "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
+            )
+        }
+
+        override suspend fun pressButton(button: DeviceButton) {
+            val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
+            presses.forEach { idbButton -> runCommandChecked(idbPath, "ui", "button", "--udid", udid, idbButton) }
+        }
+
+        override suspend fun inputText(text: String) {
+            runCommandChecked(idbPath, "ui", "text", "--udid", udid, text)
+        }
+
+        // idb takes points; the mirror works in pixels, so the screen's density converts between them.
+        private suspend fun pixelsPerPoint(): Double = describe().pixelsPerPoint
     }
 }
 

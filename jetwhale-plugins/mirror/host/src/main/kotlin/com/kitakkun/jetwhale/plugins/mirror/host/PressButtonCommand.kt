@@ -16,7 +16,7 @@ internal class PressButtonCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        deviceOperation { device.controller.pressButton(arguments[button]) }
+        deviceOperation { device.requireInput().pressButton(arguments[button]) }
         return okJson()
     }
 }

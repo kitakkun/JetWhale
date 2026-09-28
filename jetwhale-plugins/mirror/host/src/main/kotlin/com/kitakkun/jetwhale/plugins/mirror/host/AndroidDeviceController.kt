@@ -8,23 +8,27 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
- * An Android emulator or device, driven through the adb at [adbPath]. An emulator's screen comes
- * from its own gRPC stream through [emulatorScreens] when it has one, and from screenrecord
- * otherwise, which the ffmpeg at [ffmpegPath] decodes; without ffmpeg there is no stream, and the
- * mirror shows screenshots instead.
+ * An Android emulator or device, driven through the adb at [adbPath]; it has every part. An
+ * emulator's screen comes from its own gRPC stream through [emulatorScreens] when it has one, and
+ * from screenrecord otherwise, which the ffmpeg at [ffmpegPath] decodes; without ffmpeg there is
+ * no stream, and the mirror shows screenshots instead.
  */
 internal class AndroidDeviceController(
     private val adbPath: String,
     private val serial: String,
     private val emulatorScreens: EmulatorScreens?,
     private val ffmpegPath: String?,
-) : DeviceController {
-    override val capabilities = DeviceCapabilities(
-        input = true,
-        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
-        recording = true,
-        screenPower = true,
-    )
+) : DeviceController,
+    DeviceScreen,
+    DeviceInput,
+    DevicePower,
+    DeviceRecorder {
+    override val screen: DeviceScreen get() = this
+    override val input: DeviceInput get() = this
+    override val power: DevicePower get() = this
+    override val recorder: DeviceRecorder get() = this
+
+    override val buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown)
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
     override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adbPath, "-s", serial, "exec-out", "screencap", "-p").stdout
