@@ -147,14 +147,14 @@ private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMilli
     when {
         otherRecordingDeviceName != null -> JwButton(
             text = "Stop recording on $otherRecordingDeviceName",
-            onClick = actions::toggleRecording,
+            onClick = actions::finishRecording,
             tone = JwTone.Error,
             leadingIcon = { RecordingDot() },
         )
 
-        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::toggleRecording)
+        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::finishRecording)
 
-        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::toggleRecording) {
+        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::recordSelectedDevice) {
             JwIcon(imageVector = RecordIcon, contentDescription = null)
         }
 

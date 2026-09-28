@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.minutes
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -46,6 +47,12 @@ private val companions: IdbCompanions? by lazy {
     }
 }
 
+// The instances of this plugin's classloader that are alive. When the last one goes, the companions
+// it shares go with it: a jar reload closes this classloader right after disposing its instances,
+// and nothing loaded from it could stop them afterwards, so the next jar would start a second
+// companion beside the first for the same iPhone.
+private val liveInstances = AtomicInteger()
+
 // Shared like the companions: its HTTP/2 connections to an emulator serve every instance.
 private val emulatorScreens: EmulatorScreens by lazy {
     EmulatorScreens(
@@ -64,6 +71,10 @@ private class MirrorHostPlugin :
     JetWhaleHostPluginUi,
     JetWhaleMcpCapablePlugin {
 
+    init {
+        liveInstances.incrementAndGet()
+    }
+
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
@@ -75,7 +86,10 @@ private class MirrorHostPlugin :
     }
 
     override fun onDispose() {
-        runBlocking { mirror.dispose() }
+        runBlocking {
+            mirror.dispose()
+            if (liveInstances.decrementAndGet() == 0) companions?.releaseAll()
+        }
     }
 
     @Composable

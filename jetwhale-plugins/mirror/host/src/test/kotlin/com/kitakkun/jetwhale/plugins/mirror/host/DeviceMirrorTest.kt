@@ -87,6 +87,32 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
+        // Unconfined, a click's coroutine reaches the recordings lock before the click returns, so
+        // the queue order below is the order of the calls.
+        val clicks = CoroutineScope(Dispatchers.Unconfined)
+        val clicked = DeviceMirror(
+            discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null),
+            notices = notices,
+            scope = clicks,
+        )
+        clicked.startRecording(device)
+
+        withTimeout(QUEUED_CLICKS_TIMEOUT_MILLIS) {
+            clicked.finishRecording()
+            clicked.finishRecording()
+            // Queued behind both clicks: it fails if the second click started a recording.
+            clicked.startRecording(device)
+            clicked.stopRecording()
+        }
+        clicks.cancel()
+
+        assertEquals(2, recorder.started.get())
+        assertEquals(2, recorder.stopped.get())
+    }
+
+    @Test
     fun `a recording running when the mirror is disposed is kept in the library`() = runBlocking {
         mirror.startRecording(device)
 
@@ -180,6 +206,9 @@ private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
 
 /** Longer than the mirror waits before patching a still screenrecord stream with a screenshot. */
 private const val STILL_SCREEN_PATCH_WINDOW_MILLIS = 1_500L
+
+/** Bounds a sequence of queued Record and Stop clicks, so a hang fails the test instead of stalling it. */
+private const val QUEUED_CLICKS_TIMEOUT_MILLIS = 5_000L
 
 /** Long enough that every concurrent call reaches the recorder while the first is still inside it. */
 private const val RECORDER_LATENCY_MILLIS = 100L

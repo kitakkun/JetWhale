@@ -91,7 +91,9 @@ internal interface MirrorActions {
 
     fun saveScreenshot()
 
-    fun toggleRecording()
+    fun recordSelectedDevice()
+
+    fun finishRecording()
 
     fun wake()
 
@@ -397,11 +399,21 @@ internal class DeviceMirror(
         return ScreenshotResult.Failed(deviceId = device.id, deviceName = device.listing.name, reason = reason)
     }
 
-    override fun toggleRecording() {
+    // Record and Stop each do only what they say: a click queued behind a slow stop, or made after
+    // switching devices, must not turn into a recording nobody asked for.
+    override fun recordSelectedDevice() {
         val device = selectedDevice ?: return
         scope.launch {
             recordings.withLock {
-                if (recording != null) stopRecordingFromUi() else startRecordingFromUi(device)
+                if (recording == null) startRecordingFromUi(device)
+            }
+        }
+    }
+
+    override fun finishRecording() {
+        scope.launch {
+            recordings.withLock {
+                if (recording != null) stopRecordingFromUi()
             }
         }
     }
