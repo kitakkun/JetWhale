@@ -37,6 +37,9 @@ public object JetWhaleCoroutineHooks {
     public fun onLaunched(job: Job, callSite: String)
     public fun dispatcher(dispatcher: CoroutineDispatcher, name: String): CoroutineDispatcher
     public fun <T> flow(flow: Flow<T>, callSite: String): Flow<T>
+
+    /** [context] plus a `CoroutineName(callSite)`, unless [context] or [scope] already names one. */
+    public fun named(scope: CoroutineScope, context: CoroutineContext, callSite: String): CoroutineContext
 }
 
 public interface CoroutineHookSink {
@@ -66,7 +69,7 @@ public interface CoroutineHookSink {
 
 | Source | Emitted |
 |--------|---------|
-| `scope.launch(ctx) { … }` / `async` | `scope.launch(ctx + CoroutineName("HomeViewModel.kt:42")) { … }.also { JetWhaleCoroutineHooks.onLaunched(it, "HomeViewModel.kt:42") }`; an explicit `CoroutineName` in `ctx` wins over the call site |
+| `scope.launch(ctx) { … }` / `async` | `scope.launch(JetWhaleCoroutineHooks.named(scope, ctx, "HomeViewModel.kt:42")) { … }.also { JetWhaleCoroutineHooks.onLaunched(it, "HomeViewModel.kt:42") }`. `named` adds the call-site name only when neither `ctx` nor the scope carries a `CoroutineName`, because `ctx + CoroutineName(…)` would replace an explicit or inherited one |
 | `Dispatchers.Default`, `Dispatchers.IO` (property reads) | `JetWhaleCoroutineHooks.dispatcher(Dispatchers.IO, "IO")` |
 | `flow { … }`, `x.stateIn(…)`, `x.shareIn(…)` | `JetWhaleCoroutineHooks.flow(<original>, "Repo.kt:18")`; for `stateIn`/`shareIn`, the hot flow's upstream is wrapped, so the result keeps its `StateFlow`/`SharedFlow` type |
 
