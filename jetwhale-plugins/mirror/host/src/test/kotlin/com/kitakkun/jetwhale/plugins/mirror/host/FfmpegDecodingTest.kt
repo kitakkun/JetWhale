@@ -33,26 +33,26 @@ class FfmpegDecodingTest {
             setExecutable(true)
         }
 
-        assertEquals(found.path, findTool("ffmpeg", listOf(first.path, second.path)))
+        assertEquals(found.path, findToolPath("ffmpeg", listOf(first.path, second.path)))
     }
 
     @Test
     fun `a file that is not executable is not taken for the tool`() {
         File(folder, "ffmpeg").writeText("not a program")
 
-        assertNull(findTool("ffmpeg", listOf(folder.path)))
+        assertNull(findToolPath("ffmpeg", listOf(folder.path)))
     }
 
     @Test
     fun `Homebrew's directories are searched even when PATH lacks them`() {
-        val directories = toolDirectories(path = null)
+        val directories = toolDirectories(pathVariable = null)
 
         assertTrue("/opt/homebrew/bin" in directories && "/usr/local/bin" in directories)
     }
 
     @Test
     fun `an Android device without ffmpeg opens no stream and says how to install it`() = runBlocking {
-        val controller = AndroidDeviceController(adb = File(folder, "adb").path, serial = "device-1", emulatorScreens = null, ffmpeg = null)
+        val controller = AndroidDeviceController(adbPath = File(folder, "adb").path, serial = "device-1", emulatorScreens = null, ffmpegPath = null)
 
         val failure = assertFailsWith<DeviceControlException> { controller.openVideoStream(wanted = null) }
 
@@ -75,9 +75,9 @@ class FfmpegDecodingTest {
 
     @Test
     fun `an H264 stream decoded through ffmpeg arrives as BGRA frames of the size asked for`() {
-        val ffmpeg = installedFfmpeg()
+        val ffmpegPath = installedFfmpegPath()
 
-        val sizes = decode(ffmpeg, h264Sample(ffmpeg), outputSize = IntSize(180, 320))
+        val sizes = decode(ffmpegPath, h264Sample(ffmpegPath), outputSize = IntSize(180, 320))
 
         assertEquals(SAMPLE_FRAMES, sizes.size)
         assertEquals(setOf(IntSize(180, 320)), sizes.toSet())
@@ -85,34 +85,34 @@ class FfmpegDecodingTest {
 
     @Test
     fun `an H264 stream decoded through ffmpeg keeps its own size when none is asked for`() {
-        val ffmpeg = installedFfmpeg()
+        val ffmpegPath = installedFfmpegPath()
 
-        val sizes = decode(ffmpeg, h264Sample(ffmpeg), outputSize = null)
+        val sizes = decode(ffmpegPath, h264Sample(ffmpegPath), outputSize = null)
 
         assertEquals(setOf(IntSize(360, 640)), sizes.toSet())
     }
 
     @Test
     fun `a stream ffmpeg cannot decode fails with ffmpeg's reason when no size is asked for`() {
-        val ffmpeg = installedFfmpeg()
+        val ffmpegPath = installedFfmpegPath()
         val notH264 = "not an H.264 stream ".repeat(500).encodeToByteArray()
 
-        val failure = assertFailsWith<DeviceControlException> { decode(ffmpeg, notH264, outputSize = null) }
+        val failure = assertFailsWith<DeviceControlException> { decode(ffmpegPath, notH264, outputSize = null) }
 
         assertContains(failure.message.orEmpty(), "could not be decoded")
     }
 
-    private fun installedFfmpeg(): String {
-        val ffmpeg = findTool("ffmpeg", toolDirectories(System.getenv("PATH")))
-        assumeTrue("ffmpeg is not installed", ffmpeg != null)
-        return checkNotNull(ffmpeg)
+    private fun installedFfmpegPath(): String {
+        val ffmpegPath = findToolPath("ffmpeg", toolDirectories(System.getenv("PATH")))
+        assumeTrue("ffmpeg is not installed", ffmpegPath != null)
+        return checkNotNull(ffmpegPath)
     }
 
     /** A short test pattern encoded as raw H.264 by ffmpeg itself. */
-    private fun h264Sample(ffmpeg: String): ByteArray {
+    private fun h264Sample(ffmpegPath: String): ByteArray {
         val file = File(folder, "sample.h264")
         val encode = ProcessBuilder(
-            ffmpeg, "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=360x640:rate=30",
+            ffmpegPath, "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=360x640:rate=30",
             "-frames:v", "$SAMPLE_FRAMES", "-pix_fmt", "yuv420p", "-f", "h264", file.path,
         ).redirectErrorStream(true).start()
         val log = encode.inputStream.use(InputStream::readAllBytes).decodeToString()
@@ -121,9 +121,9 @@ class FfmpegDecodingTest {
     }
 
     /** Decodes [h264] and returns the size of every frame that reached the surface. */
-    private fun decode(ffmpeg: String, h264: ByteArray, outputSize: IntSize?): List<IntSize> = MirrorSurface().use { surface ->
+    private fun decode(ffmpegPath: String, h264: ByteArray, outputSize: IntSize?): List<IntSize> = MirrorSurface().use { surface ->
         val sizes = mutableListOf<IntSize>()
-        decodeH264Into(surface, VideoStream.H264(ByteProcess(h264), ffmpeg), outputSize) {
+        decodeH264Into(surface, VideoStream.H264(ByteProcess(h264), ffmpegPath), outputSize) {
             surface.drawFrame { sizes += IntSize(it.width, it.height) }
         }
         sizes

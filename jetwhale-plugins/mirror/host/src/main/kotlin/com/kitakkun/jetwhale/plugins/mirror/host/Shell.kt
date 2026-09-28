@@ -51,19 +51,19 @@ internal suspend fun runCommandChecked(vararg command: String): CommandResult {
     return result
 }
 
-/** The external tools this plugin drives, located once; a missing one is null. */
-internal class MirrorTools(
-    val adb: String?,
-    val idb: String?,
-    val idbCompanion: String?,
-    val xcrun: String?,
-    val ffmpeg: String?,
+/** The paths of the external tools this plugin drives, located once; a missing tool is null. */
+internal class MirrorToolPaths(
+    val adbPath: String?,
+    val idbPath: String?,
+    val idbCompanionPath: String?,
+    val xcrunPath: String?,
+    val ffmpegPath: String?,
 ) {
     companion object {
-        fun locate(): MirrorTools {
+        fun locate(): MirrorToolPaths {
             val home = System.getProperty("user.home")
             val windows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
-            val adb = if (windows) "adb.exe" else "adb"
+            val adbFileName = if (windows) "adb.exe" else "adb"
             val sdkDirectories = listOfNotNull(
                 System.getenv("ANDROID_HOME"),
                 System.getenv("ANDROID_SDK_ROOT"),
@@ -71,26 +71,26 @@ internal class MirrorTools(
                 "$home/Android/Sdk",
                 System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
             )
-            val searched = toolDirectories(System.getenv("PATH"))
-            return MirrorTools(
-                adb = findTool(adb, sdkDirectories.map { "$it/platform-tools" }) ?: findTool(adb, searched),
-                idb = findTool("idb", searched),
-                idbCompanion = findTool("idb_companion", searched),
-                xcrun = "/usr/bin/xcrun".takeIf(::isExecutable),
-                ffmpeg = findTool(if (windows) "ffmpeg.exe" else "ffmpeg", searched),
+            val searchDirectories = toolDirectories(System.getenv("PATH"))
+            return MirrorToolPaths(
+                adbPath = findToolPath(adbFileName, sdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, searchDirectories),
+                idbPath = findToolPath("idb", searchDirectories),
+                idbCompanionPath = findToolPath("idb_companion", searchDirectories),
+                xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
+                ffmpegPath = findToolPath(if (windows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
             )
         }
     }
 }
 
 /**
- * The directories searched for a tool: those on [path], then Homebrew's. A GUI app on macOS does
- * not inherit the login shell's PATH, so Homebrew's directories are searched even when PATH lacks
- * them.
+ * The directories searched for a tool: those on [pathVariable] (the PATH environment variable),
+ * then Homebrew's. A GUI app on macOS does not inherit the login shell's PATH, so Homebrew's
+ * directories are searched even when PATH lacks them.
  */
-internal fun toolDirectories(path: String?): List<String> = path.orEmpty().split(File.pathSeparator).filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
+internal fun toolDirectories(pathVariable: String?): List<String> = pathVariable.orEmpty().split(File.pathSeparator).filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
 
-/** The first executable file named [name] in [directories], or null. */
-internal fun findTool(name: String, directories: List<String>): String? = directories.map { "$it/$name" }.firstOrNull(::isExecutable)
+/** The path of the first executable file named [name] in [directories], or null. */
+internal fun findToolPath(name: String, directories: List<String>): String? = directories.map { "$it/$name" }.firstOrNull(::isExecutable)
 
 private fun isExecutable(path: String): Boolean = File(path).let { it.isFile && it.canExecute() }

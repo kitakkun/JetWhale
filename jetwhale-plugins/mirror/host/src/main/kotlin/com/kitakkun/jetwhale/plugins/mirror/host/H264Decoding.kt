@@ -18,16 +18,16 @@ import kotlin.concurrent.thread
  * [stream] ends the device's output, which ends ffmpeg's input and then this.
  */
 internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onFrame: () -> Unit) {
-    val ffmpeg = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpeg, outputSize))
-    val log = FfmpegLog(ffmpeg.errorStream)
-    val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpeg) }
+    val ffmpegProcess = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpegPath, outputSize))
+    val log = FfmpegLog(ffmpegProcess.errorStream)
+    val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpegProcess) }
     val frames = try {
         // No size means ffmpeg ended before describing its output; the error check below says why.
         val frameSize = outputSize ?: log.outputSize.get()
-        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpeg.inputStream), it, surface, onFrame) } ?: 0
+        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, surface, onFrame) } ?: 0
     } finally {
-        ffmpeg.destroyForcibly()
-        ffmpeg.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+        ffmpegProcess.destroyForcibly()
+        ffmpegProcess.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
         feeding.join(FFMPEG_EXIT_WAIT_MILLIS)
     }
     // A stream that showed frames ends like any other, and the mirror opens the next; one that
@@ -58,8 +58,8 @@ private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, surfac
  * Every decoded frame is passed on as it is, without ffmpeg duplicating or dropping frames to hold
  * a frame rate the device never promised.
  */
-internal fun ffmpegDecodeCommand(ffmpeg: String, outputSize: IntSize?): List<String> = buildList {
-    addAll(listOf(ffmpeg, "-hide_banner", "-nostats", "-loglevel", "info"))
+internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List<String> = buildList {
+    addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info"))
     addAll(listOf("-flags", "low_delay", "-probesize", "65536", "-analyzeduration", "500000"))
     addAll(listOf("-f", "h264", "-i", "pipe:0"))
     outputSize?.let { addAll(listOf("-vf", "scale=${it.width}:${it.height}:flags=area")) }
@@ -67,9 +67,9 @@ internal fun ffmpegDecodeCommand(ffmpeg: String, outputSize: IntSize?): List<Str
 }
 
 /** Copies the device's bytes into ffmpeg until either side ends, then lets ffmpeg finish. */
-private fun feed(source: InputStream, ffmpeg: Process) {
+private fun feed(source: InputStream, ffmpegProcess: Process) {
     try {
-        ffmpeg.outputStream.use(source::transferTo)
+        ffmpegProcess.outputStream.use(source::transferTo)
     } catch (_: IOException) {
         // ffmpeg exited, or the device's stream was closed: either way the input is over.
     }

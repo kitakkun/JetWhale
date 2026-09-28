@@ -109,7 +109,7 @@ class CaptureLibraryTest {
     @Test
     fun `deleting a capture removes the file, its sidecar and its thumbnail`() {
         val capture = save(pixel, CaptureKind.Screenshot, noon, content = smallPng())
-        val thumbnail = thumbnailOf(library, capture, ffmpeg = null)
+        val thumbnail = thumbnailOf(library, capture, ffmpegPath = null)
 
         library.delete(capture)
 
@@ -122,9 +122,9 @@ class CaptureLibraryTest {
     fun `a thumbnail is made once at thumbnail height and read from its cache after that`() {
         val capture = save(pixel, CaptureKind.Screenshot, noon, content = smallPng())
 
-        val first = thumbnailOf(library, capture, ffmpeg = null)
+        val first = thumbnailOf(library, capture, ffmpegPath = null)
         val madeAt = first?.lastModified()
-        val second = thumbnailOf(library, capture, ffmpeg = null)
+        val second = thumbnailOf(library, capture, ffmpegPath = null)
 
         assertEquals(first, second)
         assertEquals(madeAt, second?.lastModified())

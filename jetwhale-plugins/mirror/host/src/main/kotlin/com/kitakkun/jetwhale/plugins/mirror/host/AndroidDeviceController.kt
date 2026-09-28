@@ -8,15 +8,16 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
- * An Android emulator or device, driven through adb. An emulator's screen comes from its own gRPC
- * stream through [emulatorScreens] when it has one, and from screenrecord otherwise, which [ffmpeg]
- * decodes; without ffmpeg there is no stream, and the mirror shows screenshots instead.
+ * An Android emulator or device, driven through the adb at [adbPath]. An emulator's screen comes
+ * from its own gRPC stream through [emulatorScreens] when it has one, and from screenrecord
+ * otherwise, which the ffmpeg at [ffmpegPath] decodes; without ffmpeg there is no stream, and the
+ * mirror shows screenshots instead.
  */
 internal class AndroidDeviceController(
-    private val adb: String,
+    private val adbPath: String,
     private val serial: String,
     private val emulatorScreens: EmulatorScreens?,
-    private val ffmpeg: String?,
+    private val ffmpegPath: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = true,
@@ -26,71 +27,71 @@ internal class AndroidDeviceController(
     )
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
-    override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adb, "-s", serial, "exec-out", "screencap", "-p").stdout
+    override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adbPath, "-s", serial, "exec-out", "screencap", "-p").stdout
 
-    override suspend fun screenSize(): IntSize = parseWmSize(runCommandChecked(adb, "-s", serial, "shell", "wm", "size").stdoutText)
+    override suspend fun screenSize(): IntSize = parseWmSize(runCommandChecked(adbPath, "-s", serial, "shell", "wm", "size").stdoutText)
         ?: throw deviceControlError("'adb shell wm size' reported no screen size")
 
     override suspend fun tap(x: Int, y: Int) {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "tap", "$x", "$y")
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "tap", "$x", "$y")
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "swipe", "$fromX", "$fromY", "$toX", "$toY", "$durationMillis")
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "swipe", "$fromX", "$fromY", "$toX", "$toY", "$durationMillis")
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", androidKeycodeOf(button))
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", androidKeycodeOf(button))
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "text", escapeForAdbInputText(text))
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "text", escapeForAdbInputText(text))
     }
 
     override suspend fun screenPower(): ScreenPower {
         // One round trip for both; `dumpsys window` is large, so the device filters it. A grep that
         // matches nothing exits non-zero, which is why the exit code is not checked.
-        val result = runCommand(adb, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
+        val result = runCommand(adbPath, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
         return parseScreenPower(result.stdoutText)
             ?: throw deviceControlError("could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}")
     }
 
     override suspend fun wake() {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP")
         // Dismisses only a lock screen without a PIN, pattern or password; one with them stays.
-        runCommandChecked(adb, "-s", serial, "shell", "wm", "dismiss-keyguard")
+        runCommandChecked(adbPath, "-s", serial, "shell", "wm", "dismiss-keyguard")
     }
 
     override suspend fun sleep() {
-        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", "KEYCODE_SLEEP")
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_SLEEP")
     }
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
         emulatorScreens?.open(serial, wanted) ?: run {
-            val ffmpeg = ffmpeg ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
-            VideoStream.H264(SystemProcessLauncher.start(listOf(adb, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")), ffmpeg)
+            val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
+            VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-")), ffmpegPath)
         }
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         val remotePath = "/sdcard/${outputFile.name}"
         val process = withContext(Dispatchers.IO) {
-            SystemProcessLauncher.start(listOf(adb, "-s", serial, "shell", "screenrecord", "--time-limit", "180", remotePath))
+            SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "shell", "screenrecord", "--time-limit", "180", remotePath))
         }
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
                 // SIGINT lets screenrecord finish the mp4; killing the local adb client would leave
                 // it unplayable. The path pattern spares the screenrecord that feeds the mirror, and
                 // pkill's exit code is ignored because the recorder may already have hit its limit.
-                runCommand(adb, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
+                runCommand(adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
                 process.waitFor(10, TimeUnit.SECONDS)
                 // The device writes the file out after the process exits.
                 delay(500)
                 try {
-                    runCommandChecked(adb, "-s", serial, "pull", remotePath, outputFile.absolutePath)
+                    runCommandChecked(adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
                 } finally {
-                    runCommand(adb, "-s", serial, "shell", "rm", "-f", remotePath)
+                    runCommand(adbPath, "-s", serial, "shell", "rm", "-f", remotePath)
                 }
                 outputFile
             }

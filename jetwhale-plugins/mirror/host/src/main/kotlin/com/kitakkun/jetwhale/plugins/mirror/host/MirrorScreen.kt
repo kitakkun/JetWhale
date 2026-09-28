@@ -162,7 +162,7 @@ private fun SingleMirrorRoot(
         screenPower = mirror.screenPower,
         recordingSinceMillis = mirror.recordingStartedAtMillis.takeIf { mirror.recordingDeviceId == mirror.selectedId },
         // One recording runs at a time, and Record stops it wherever it runs.
-        recordingElsewhere = mirror.devices.firstOrNull { it.id == mirror.recordingDeviceId && it.id != mirror.selectedId }?.listing?.name,
+        otherRecordingDeviceName = mirror.devices.firstOrNull { it.id == mirror.recordingDeviceId && it.id != mirror.selectedId }?.listing?.name,
         surface = mirror.surface,
         actions = mirror,
         showCaptures = showCaptures,
@@ -214,7 +214,7 @@ internal fun MirrorScreen(
     notices: MirrorNoticeActions,
     screenPower: ScreenPower?,
     recordingSinceMillis: Long?,
-    recordingElsewhere: String?,
+    otherRecordingDeviceName: String?,
     surface: MirrorSurface,
     actions: MirrorActions,
     showCaptures: Boolean,
@@ -235,7 +235,7 @@ internal fun MirrorScreen(
         } else {
             // While switching, the screen state still describes the previous device.
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis, recordingElsewhere)
+            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis, otherRecordingDeviceName)
             DevicePane(pane, surface, actions, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
@@ -253,7 +253,7 @@ internal class DevicePaneState(
     val state: MirrorState,
     val screenPower: ScreenPower?,
     val recordingSinceMillis: Long?,
-    val recordingElsewhere: String?,
+    val otherRecordingDeviceName: String?,
 )
 
 @Composable
@@ -371,7 +371,7 @@ private fun TextInput(onSend: (String) -> Unit) {
 /** The mirror's frame rates and per-stage costs, for when it feels slow; hidden until asked for. */
 @Composable
 private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
-    val source = when (state) {
+    val sourceLabel = when (state) {
         is MirrorState.Streaming -> "Live"
         is MirrorState.Polling -> "Screenshots"
         else -> return
@@ -383,7 +383,7 @@ private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         JwText(
-            text = if (shown) statsText(source, surface.stats) else "",
+            text = if (shown) statsText(sourceLabel, surface.stats) else "",
             style = JwTheme.textStyles.labelSmall,
             color = JwTheme.colors.textSecondary,
             maxLines = 1,
@@ -394,9 +394,9 @@ private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
     }
 }
 
-private fun statsText(source: String, stats: MirrorStats): String {
+private fun statsText(sourceLabel: String, stats: MirrorStats): String {
     // A still screen sends nothing; that is not a stall.
-    if (stats.receivedFps == 0) return "$source · the screen is not changing, so the device sends no frames"
-    return "$source · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
+    if (stats.receivedFps == 0) return "$sourceLabel · the screen is not changing, so the device sends no frames"
+    return "$sourceLabel · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
         "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"
 }

@@ -14,9 +14,9 @@ import kotlin.io.path.readBytes
  */
 internal class IosDeviceController(
     private val udid: String,
-    private val idb: String,
+    private val idbPath: String,
     private val companions: IdbCompanions,
-    private val ffmpeg: String?,
+    private val ffmpegPath: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false)
 
@@ -26,7 +26,7 @@ internal class IosDeviceController(
         companions.acquire(udid)
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
         try {
-            runCommandChecked(idb, "screenshot", "--udid", udid, file.toString())
+            runCommandChecked(idbPath, "screenshot", "--udid", udid, file.toString())
             return file.readBytes()
         } finally {
             file.deleteIfExists()
@@ -37,7 +37,7 @@ internal class IosDeviceController(
     // The companion that answers this stays up with the stream that follows.
     override suspend fun screenSize(): IntSize {
         holdCompanion()
-        val description = runCommandChecked(idb, "describe", "--udid", udid, "--json").stdoutText
+        val description = runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
         return parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")
     }
 
@@ -59,10 +59,10 @@ internal class IosDeviceController(
 
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        val ffmpeg = ffmpeg ?: throw deviceControlError("mirroring a physical iOS device needs ffmpeg to decode its video. $FFMPEG_INSTALL")
+        val ffmpegPath = ffmpegPath ?: throw deviceControlError("mirroring a physical iOS device needs ffmpeg to decode its video. $FFMPEG_INSTALL")
         holdCompanion()
         return withContext(Dispatchers.IO) {
-            VideoStream.H264(SystemProcessLauncher.start(listOf(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30")), ffmpeg)
+            VideoStream.H264(SystemProcessLauncher.start(listOf(idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30")), ffmpegPath)
         }
     }
 

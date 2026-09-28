@@ -111,8 +111,8 @@ class IdbCompanionsTest {
     }
 
     private fun TestScope.companions() = IdbCompanions(
-        idbCompanion = "idb_companion",
-        idb = "idb",
+        idbCompanionPath = "idb_companion",
+        idbPath = "idb",
         launcher = { command ->
             FakeProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
         },

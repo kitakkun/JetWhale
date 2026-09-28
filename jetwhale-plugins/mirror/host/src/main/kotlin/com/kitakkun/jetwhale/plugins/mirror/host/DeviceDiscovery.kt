@@ -15,7 +15,7 @@ internal class Discovery(
  * that is streaming keeps what its stream holds, such as an idb companion.
  */
 internal class DeviceDiscovery(
-    private val tools: MirrorTools,
+    private val toolPaths: MirrorToolPaths,
     private val companions: IdbCompanions?,
     private val emulatorScreens: EmulatorScreens,
 ) {
@@ -43,33 +43,33 @@ internal class DeviceDiscovery(
     }
 
     private suspend fun listAndroid(): List<DeviceListing>? {
-        val adb = tools.adb ?: return emptyList()
-        return tryList { parseAdbDevices(runCommandChecked(adb, "devices", "-l").stdoutText) }
+        val adbPath = toolPaths.adbPath ?: return emptyList()
+        return tryList { parseAdbDevices(runCommandChecked(adbPath, "devices", "-l").stdoutText) }
     }
 
     private suspend fun listSimulators(): List<DeviceListing>? {
-        val xcrun = tools.xcrun ?: return emptyList()
-        return tryList { parseBootedSimulators(runCommandChecked(xcrun, "simctl", "list", "devices", "booted", "-j").stdoutText) }
+        val xcrunPath = toolPaths.xcrunPath ?: return emptyList()
+        return tryList { parseBootedSimulators(runCommandChecked(xcrunPath, "simctl", "list", "devices", "booted", "-j").stdoutText) }
     }
 
     private suspend fun listIosDevices(): List<DeviceListing>? {
-        val idb = tools.idb ?: return emptyList()
+        val idbPath = toolPaths.idbPath ?: return emptyList()
         if (companions == null) return emptyList()
-        return tryList { parseIdbDevices(runCommandChecked(idb, "list-targets").stdoutText) }
+        return tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
     }
 
     private fun controllerFor(listing: DeviceListing): DeviceController = when (listing.kind) {
-        DeviceKind.AndroidEmulator -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = emulatorScreens, ffmpeg = tools.ffmpeg)
-        DeviceKind.AndroidDevice -> AndroidDeviceController(adb = checkNotNull(tools.adb), serial = listing.id, emulatorScreens = null, ffmpeg = tools.ffmpeg)
-        DeviceKind.IosSimulator -> IosSimulatorController(udid = listing.id, xcrun = checkNotNull(tools.xcrun), idb = tools.idb)
-        DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idb = checkNotNull(tools.idb), companions = checkNotNull(companions), ffmpeg = tools.ffmpeg)
+        DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(toolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = toolPaths.ffmpegPath)
+        DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(toolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = toolPaths.ffmpegPath)
+        DeviceKind.IosSimulator -> IosSimulatorController(udid = listing.id, xcrunPath = checkNotNull(toolPaths.xcrunPath), idbPath = toolPaths.idbPath)
+        DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idbPath = checkNotNull(toolPaths.idbPath), companions = checkNotNull(companions), ffmpegPath = toolPaths.ffmpegPath)
     }
 
     private fun missingTools(): List<String> = buildList {
-        if (tools.adb == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
-        if (tools.xcrun != null && tools.idb == null) add("idb was not found, so iOS simulators are shown without live video or input, and iOS devices are not listed. $IDB_MISSING")
-        if (tools.idb != null && tools.idbCompanion == null) add("idb_companion was not found, so iOS devices are not listed: brew install idb-companion")
-        if (tools.ffmpeg == null && (tools.adb != null || tools.idbCompanion != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
+        if (toolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
+        if (toolPaths.xcrunPath != null && toolPaths.idbPath == null) add("idb was not found, so iOS simulators are shown without live video or input, and iOS devices are not listed. $IDB_MISSING")
+        if (toolPaths.idbPath != null && toolPaths.idbCompanionPath == null) add("idb_companion was not found, so iOS devices are not listed: brew install idb-companion")
+        if (toolPaths.ffmpegPath == null && (toolPaths.adbPath != null || toolPaths.idbCompanionPath != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 
     private suspend fun tryList(list: suspend () -> List<DeviceListing>): List<DeviceListing>? = try {

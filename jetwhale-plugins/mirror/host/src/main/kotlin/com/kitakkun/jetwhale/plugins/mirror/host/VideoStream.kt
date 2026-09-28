@@ -13,8 +13,8 @@ internal sealed interface VideoStream {
     /** Stops the stream. Safe to call more than once. */
     fun close()
 
-    /** Raw H.264, decoded on the host by the [ffmpeg] command. */
-    class H264(override val process: Process, val ffmpeg: String) : ProcessVideoStream
+    /** Raw H.264, decoded on the host by the ffmpeg at [ffmpegPath]. */
+    class H264(override val process: Process, val ffmpegPath: String) : ProcessVideoStream
 
     /**
      * Uncompressed BGRA frames of [frameSize], back to back with no header, each row [rowBytes]

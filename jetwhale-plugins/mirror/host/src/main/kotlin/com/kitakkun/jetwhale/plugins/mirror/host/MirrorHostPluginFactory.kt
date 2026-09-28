@@ -21,7 +21,7 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = MirrorHostPlugin()
 }
 
-private val tools: MirrorTools by lazy(MirrorTools::locate)
+private val toolPaths: MirrorToolPaths by lazy(MirrorToolPaths::locate)
 
 /** How long a device's idb companion outlives its last user, so switching back to it is instant. */
 private val COMPANION_IDLE_TIMEOUT = 3.minutes
@@ -29,11 +29,11 @@ private val COMPANION_IDLE_TIMEOUT = 3.minutes
 // A host-only plugin gets an instance per debug session, but a device has one screen: the
 // instances share the companions, so two of them watching one iPhone start one companion.
 private val companions: IdbCompanions? by lazy {
-    val idb = tools.idb ?: return@lazy null
-    val idbCompanion = tools.idbCompanion ?: return@lazy null
+    val idbPath = toolPaths.idbPath ?: return@lazy null
+    val idbCompanionPath = toolPaths.idbCompanionPath ?: return@lazy null
     IdbCompanions(
-        idbCompanion = idbCompanion,
-        idb = idb,
+        idbCompanionPath = idbCompanionPath,
+        idbPath = idbPath,
         launcher = SystemProcessLauncher,
         commands = { command -> runCommandChecked(*command.toTypedArray()) },
         ports = LocalPorts,
@@ -67,8 +67,8 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(tools, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, tools.ffmpeg),
+            discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, toolPaths.ffmpegPath),
             notices = notices,
             scope = pluginScope,
         )

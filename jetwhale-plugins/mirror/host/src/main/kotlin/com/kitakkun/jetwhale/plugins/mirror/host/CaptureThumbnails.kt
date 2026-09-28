@@ -16,18 +16,18 @@ internal const val THUMBNAIL_HEIGHT = 240
 
 /**
  * The thumbnail of [capture], made on first request and read from its cache file after that; null
- * when the capture cannot be read, or is a recording and there is no [ffmpeg] to read it with.
+ * when the capture cannot be read, or is a recording and [ffmpegPath] is null.
  * Blocks while it decodes, so call it off the UI thread.
  *
  * Only one full-size image is ever decoded at a time, and every native object is closed before
  * this returns: a list of captures must not hold their pixels.
  */
-internal fun thumbnailOf(library: CaptureLibrary, capture: Capture, ffmpeg: String?): File? {
+internal fun thumbnailOf(library: CaptureLibrary, capture: Capture, ffmpegPath: String?): File? {
     val cached = library.thumbnailFileOf(capture.file)
     if (cached.isFile) return cached
     val png = when (capture.info.kind) {
         CaptureKind.Screenshot -> shrinkScreenshot(capture.file)
-        CaptureKind.Recording -> ffmpeg?.let { posterFrame(it, capture.file) }
+        CaptureKind.Recording -> ffmpegPath?.let { posterFrame(it, capture.file) }
     } ?: return null
     cached.parentFile.mkdirs()
     cached.writeBytes(png)
@@ -59,9 +59,9 @@ private fun encodeShrunk(image: Image): ByteArray? {
 }
 
 /** The first frame of a video, shrunk by ffmpeg to the thumbnail height and encoded as PNG. */
-private fun posterFrame(ffmpeg: String, file: File): ByteArray? {
+private fun posterFrame(ffmpegPath: String, file: File): ByteArray? {
     val command = listOf(
-        ffmpeg, "-hide_banner", "-loglevel", "error", "-i", file.absolutePath,
+        ffmpegPath, "-hide_banner", "-loglevel", "error", "-i", file.absolutePath,
         "-frames:v", "1", "-vf", "scale=-2:$THUMBNAIL_HEIGHT:flags=area", "-f", "image2pipe", "-c:v", "png", "pipe:1",
     )
     val process = try {
