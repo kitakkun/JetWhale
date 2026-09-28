@@ -64,6 +64,10 @@ jobs:
     # Only cut a release for real tag pushes; manual (workflow_dispatch) runs are build-only tests.
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Take the release notes from the changelog
+        run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME}" > release-notes.md
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -72,6 +76,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          # The changelog section comes first; the generated list of merged PRs follows it.
+          body_path: release-notes.md
           generate_release_notes: true
           files: dist/**/*
           fail_on_unmatched_files: true
