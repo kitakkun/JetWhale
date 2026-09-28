@@ -54,8 +54,9 @@ internal sealed interface ProcessVideoStream : VideoStream {
  *
  * idb writes frames `floor(screen * scale)` pixels in size with each row padded to a multiple of
  * 64 bytes, and says neither in the stream, so the scale is aimed a quarter pixel past the wanted
- * width, where rounding cannot land on a neighbor. The frames are the size they are shown, since
- * drawing a frame even slightly larger than it is blurs its text.
+ * width, where rounding cannot land on a neighbor. Up to [maxWidth] the frames are the size they are
+ * shown, since drawing a frame even slightly larger than it is blurs its text; past it the view
+ * enlarges them.
  *
  * A scale of exactly 1 is never asked for: idb then passes on the simulator's own buffer, whose
  * size is rounded up to a whole memory page, so every frame carries a few kilobytes more than its
@@ -98,8 +99,8 @@ internal fun lighterThan(layout: RawBgraLayout, arrivedFps: Int): RawBgraCaps? {
 
 private const val RAW_ROW_ALIGNMENT = 64
 
-/** What idb's client keeps up with alone, measured at 85–110 MB/s, with room to spare. */
-private const val RAW_BYTES_PER_SECOND = 64_000_000L
+/** What idb's client keeps up with alone, measured at 90–134 MB/s, with room to spare. */
+private const val RAW_BYTES_PER_SECOND = 90_000_000L
 
 internal const val MIN_RAW_FPS = 5
 
@@ -107,6 +108,13 @@ internal const val MAX_RAW_FPS = 60
 
 /** Narrower than this, a phone's screen is too small to read. */
 internal const val MIN_RAW_WIDTH = 240
+
+/**
+ * The widest a simulator is streamed, however large its view. Past about 600 pixels the frames
+ * outgrow what idb's client passes on and the rate falls to 20 frames a second and below; at 600
+ * it stays near 30, and small text enlarged from there to 800 still reads.
+ */
+internal const val MAX_SIMULATOR_STREAM_WIDTH = 600
 
 /**
  * Copies BGRA frames of [frameSize] from [stream] into [surface] until the stream ends. Blocks the

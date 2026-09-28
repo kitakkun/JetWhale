@@ -61,6 +61,31 @@ class VideoStreamTest {
     }
 
     @Test
+    fun `a simulator view wider than the cap streams at the cap and stays near 30 frames a second`() {
+        val layout = rawBgraLayout(simulator, IntSize(800, 1734), maxFps = MAX_RAW_FPS, maxWidth = MAX_SIMULATOR_STREAM_WIDTH)
+
+        assertEquals(MAX_SIMULATOR_STREAM_WIDTH, layout.frameSize.width)
+        assertTrue(layout.scale < 1.0, "scale ${layout.scale}")
+        assertTrue(layout.fps >= 25, "fps ${layout.fps}")
+    }
+
+    @Test
+    fun `a simulator view narrower than the cap streams at its own width`() {
+        val layout = rawBgraLayout(simulator, IntSize(400, 868), maxFps = MAX_RAW_FPS, maxWidth = MAX_SIMULATOR_STREAM_WIDTH)
+
+        assertEquals(400, layout.frameSize.width)
+    }
+
+    @Test
+    fun `a stream at the cap that fell behind at its lowest rate is narrowed below the cap`() {
+        val layout = rawBgraLayout(simulator, IntSize(800, 1734), maxFps = MIN_RAW_FPS, maxWidth = MAX_SIMULATOR_STREAM_WIDTH)
+
+        val caps = lighterThan(layout, arrivedFps = 3)
+
+        assertEquals(RawBgraCaps(maxFps = MIN_RAW_FPS, maxWidth = MAX_SIMULATOR_STREAM_WIDTH * 3 / 4), caps)
+    }
+
+    @Test
     fun `a stream that fell behind is lowered in rate first`() {
         val layout = rawBgraLayout(simulator, IntSize(800, 1734), maxFps = MAX_RAW_FPS, maxWidth = Int.MAX_VALUE)
 

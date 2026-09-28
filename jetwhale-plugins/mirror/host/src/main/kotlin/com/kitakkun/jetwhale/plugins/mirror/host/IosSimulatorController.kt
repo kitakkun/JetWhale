@@ -33,7 +33,7 @@ internal class IosSimulatorController(
     private var fpsCap = MAX_RAW_FPS
 
     @Volatile
-    private var widthCap = Int.MAX_VALUE
+    private var widthCap = MAX_SIMULATOR_STREAM_WIDTH
 
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
