@@ -74,6 +74,7 @@ jobs:
           compileKotlinIosArm64
           compileKotlinIosSimulatorArm64
           compileKotlinMacosArm64
+          allMetadataJar
 
       - name: Run Apple tests
         run: ./gradlew macosArm64Test iosSimulatorArm64Test
