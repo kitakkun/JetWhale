@@ -29,8 +29,8 @@ private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
  * common case. A device that disappears has its companion stopped at once.
  */
 internal class IdbCompanions(
-    private val idbCompanion: String,
-    private val idb: String,
+    private val idbCompanionPath: String,
+    private val idbPath: String,
     private val launcher: ProcessLauncher,
     private val commands: CommandRunner,
     private val ports: PortSource,
@@ -53,10 +53,10 @@ internal class IdbCompanions(
             return@withLock
         }
         val port = ports.freePort()
-        val process = launcher.start(listOf(idbCompanion, "--udid", udid, "--grpc-port", "$port"))
+        val process = launcher.start(listOf(idbCompanionPath, "--udid", udid, "--grpc-port", "$port"))
         try {
             awaitReady(process)
-            commands.runChecked(listOf(idb, "connect", "localhost", "$port"))
+            commands.runChecked(listOf(idbPath, "connect", "localhost", "$port"))
         } catch (e: DeviceControlException) {
             process.destroyForcibly()
             throw e
@@ -106,7 +106,7 @@ internal class IdbCompanions(
         if (!companion.process.waitFor(3, TimeUnit.SECONDS)) companion.process.destroyForcibly()
         // Best effort: a failed disconnect leaves a stale entry in idb's target list and nothing more.
         try {
-            commands.runChecked(listOf(idb, "disconnect", "localhost", "${companion.port}"))
+            commands.runChecked(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
         } catch (_: DeviceControlException) {
         }
     }

@@ -10,6 +10,8 @@ import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.ImageInfo
+import org.jetbrains.skia.Pixmap
+import org.jetbrains.skia.impl.BufferUtil
 
 /** Devices whose last frame is kept for switching back; a frame is the size of the view. */
 private const val MAX_KEPT_FRAMES = 4
@@ -347,5 +349,22 @@ internal class StatsWindow {
         drawNanos = 0
         longestGapNanos = 0
         return stats
+    }
+}
+
+/**
+ * Copies [pixels], [height] rows of [sourceRowBytes], into this pixmap's memory, whose rows may be
+ * padded longer. The pixmap's memory is written in place through a direct buffer over it, so a
+ * frame is copied once on its way to the screen.
+ */
+internal fun Pixmap.writeRows(pixels: ByteArray, sourceRowBytes: Int, height: Int) {
+    val target = BufferUtil.getByteBufferFromPointer(addr, rowBytes * height)
+    if (sourceRowBytes == rowBytes) {
+        target.put(pixels, 0, sourceRowBytes * height)
+        return
+    }
+    val copied = minOf(sourceRowBytes, rowBytes)
+    for (row in 0 until height) {
+        target.put(row * rowBytes, pixels, row * sourceRowBytes, copied)
     }
 }

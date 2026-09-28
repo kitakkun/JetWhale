@@ -13,8 +13,8 @@ internal sealed interface VideoStream {
     /** Stops the stream. Safe to call more than once. */
     fun close()
 
-    /** Raw H.264, decoded on the host. */
-    class H264(override val process: Process) : ProcessVideoStream
+    /** Raw H.264, decoded on the host by the ffmpeg at [ffmpegPath]. */
+    class H264(override val process: Process, val ffmpegPath: String) : ProcessVideoStream
 
     /**
      * Uncompressed BGRA frames of [frameSize], back to back with no header, each row [rowBytes]
@@ -155,10 +155,11 @@ internal class ArrivalPace(private val requestedFps: Int, private val windowNano
 
 private const val KEPT_PACE_SHARE = 0.85
 
-private fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
+/** Stores [frame], BGRA rows of [rowBytes], as the next frame of this surface. */
+internal fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
     writeFrame(frameSize.width, frameSize.height, ColorType.BGRA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
-        copyRows(frame, sourceRowBytes = rowBytes, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frameSize.height)
+        pixmap.writeRows(frame, sourceRowBytes = rowBytes, height = frameSize.height)
         true
     }
 }

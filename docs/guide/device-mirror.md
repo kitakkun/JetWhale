@@ -14,8 +14,7 @@ and install it from a checkout of this repository:
 ```
 
 This copies the plugin jar into `~/.jetwhale/plugins`; restart the host, or approve the jar from
-the banner, to load it. The jar carries the H.264 decoder's native libraries for the machine it
-was built on, so build it on the OS you run the host on.
+the banner, to load it.
 :::
 
 It is a host-only plugin: the app you debug needs no agent for it, and it appears for every
@@ -25,9 +24,8 @@ session once one is selected.
 
 ### Install the host plugin
 
-The Device Mirror decodes video with ffmpeg, whose native libraries are built for one operating
-system at a time. It is therefore not in the official catalog. Build it from a checkout of this
-repository on the machine that runs the host:
+The Device Mirror is not in the official catalog yet. Build it from a checkout of this
+repository:
 
 ```shell
 ./gradlew :jetwhale-plugins:mirror:host:installPlugin
@@ -46,6 +44,13 @@ from the Dock does not inherit your shell's `PATH`.
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
 | iOS simulators (macOS) | Xcode's `xcrun simctl`, plus [idb](https://fbidb.io): `brew install facebook/fb/idb-companion` and `pip3 install fb-idb` |
 | iPhones connected by USB (macOS) | idb as above |
+| Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
+
+Android devices and iPhones send their screen as H.264, which the plugin decodes by running the
+`ffmpeg` command. Without it an Android device is shown through screenshots, a few times a second,
+and an iPhone cannot be mirrored. iOS simulators, and Android emulators that expose their own gRPC
+screen stream, send their screen without ffmpeg; an emulator without that stream is decoded like a
+device.
 
 When a tool is missing, the device list says which one and what it would enable.
 

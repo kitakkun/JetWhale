@@ -15,12 +15,12 @@ import kotlin.io.path.readBytes
  */
 internal class IosSimulatorController(
     private val udid: String,
-    private val xcrun: String,
-    private val idb: String?,
+    private val xcrunPath: String,
+    private val idbPath: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
-        input = idb != null,
-        buttons = if (idb != null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
+        input = idbPath != null,
+        buttons = if (idbPath != null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
         recording = true,
         screenPower = false,
     )
@@ -38,7 +38,7 @@ internal class IosSimulatorController(
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
         try {
-            runCommandChecked(xcrun, "simctl", "io", udid, "screenshot", file.toString())
+            runCommandChecked(xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
             return file.readBytes()
         } finally {
             file.deleteIfExists()
@@ -47,24 +47,24 @@ internal class IosSimulatorController(
 
     override suspend fun tap(x: Int, y: Int) {
         val scale = pixelsPerPoint()
-        runCommandChecked(requireIdb(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        runCommandChecked(requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
         val scale = pixelsPerPoint()
         runCommandChecked(
-            requireIdb(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+            requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
             "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
         )
     }
 
     override suspend fun pressButton(button: DeviceButton) {
         val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
-        presses.forEach { idbButton -> runCommandChecked(requireIdb(), "ui", "button", "--udid", udid, idbButton) }
+        presses.forEach { idbButton -> runCommandChecked(requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(requireIdb(), "ui", "text", "--udid", udid, text)
+        runCommandChecked(requireIdbPath(), "ui", "text", "--udid", udid, text)
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -81,7 +81,7 @@ internal class IosSimulatorController(
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
-                listOf(requireIdb(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
+                listOf(requireIdbPath(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
             )
         }
         return VideoStream.RawBgra(process, layout.frameSize, layout.rowBytes, layout.fps) { arrivedFps ->
@@ -94,7 +94,7 @@ internal class IosSimulatorController(
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         val process = withContext(Dispatchers.IO) {
-            SystemProcessLauncher.start(listOf(xcrun, "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", outputFile.absolutePath))
+            SystemProcessLauncher.start(listOf(xcrunPath, "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", outputFile.absolutePath))
         }
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
@@ -110,7 +110,7 @@ internal class IosSimulatorController(
 
     override suspend fun release() = Unit
 
-    private fun requireIdb(): String = idb ?: throw deviceControlError(IDB_MISSING)
+    private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
     override suspend fun screenSize(): IntSize = describe().size
 
@@ -119,7 +119,7 @@ internal class IosSimulatorController(
 
     private suspend fun describe(): IdbScreen {
         screen?.let { return it }
-        val description = runCommandChecked(requireIdb(), "describe", "--udid", udid, "--json").stdoutText
+        val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }

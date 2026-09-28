@@ -118,7 +118,7 @@ internal fun readEmulatorFramesInto(surface: MirrorSurface, frames: InputStream,
 private fun MirrorSurface.writeRgbaFrame(pixels: ByteArray, image: EmulatorImage) {
     writeFrame(image.width, image.height, ColorType.RGBA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
-        copyRows(pixels, sourceRowBytes = image.width * 4, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = image.height)
+        pixmap.writeRows(pixels, sourceRowBytes = image.width * 4, height = image.height)
         true
     }
 }

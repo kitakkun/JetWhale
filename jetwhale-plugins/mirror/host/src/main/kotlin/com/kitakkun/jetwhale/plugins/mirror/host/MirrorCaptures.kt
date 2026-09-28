@@ -72,6 +72,7 @@ internal class MirrorCaptures(
     private val scope: CoroutineScope,
     private val zone: ZoneId,
     private val notices: MirrorNotices,
+    private val ffmpegPath: String?,
 ) : CapturesActions,
     ThumbnailSource {
     var library: CaptureLibrary by mutableStateOf(CaptureLibrary(defaultRoot, zone))
@@ -136,7 +137,7 @@ internal class MirrorCaptures(
     override fun cachedThumbnail(capture: Capture): ImageBitmap? = synchronized(thumbnails) { thumbnails[capture.file] }
 
     override suspend fun loadThumbnail(capture: Capture): ImageBitmap? = withContext(Dispatchers.IO) {
-        val file = thumbnailOf(library, capture) ?: return@withContext null
+        val file = thumbnailOf(library, capture, ffmpegPath) ?: return@withContext null
         val bitmap = Image.makeFromEncoded(file.readBytes()).use(Image::toComposeImageBitmap)
         synchronized(thumbnails) { thumbnails[capture.file] = bitmap }
         bitmap

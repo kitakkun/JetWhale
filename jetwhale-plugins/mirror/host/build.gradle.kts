@@ -11,9 +11,6 @@ plugins {
     alias(libs.plugins.jetwhaleHostLaunch)
 }
 
-// Not published: the H.264 decoder ships ffmpeg natives for one OS (see below), and the host's
-// "Install from Maven" route has no way yet to pick the natives for the machine it runs on.
-
 kotlin {
     // A compilation of its own for the previews, so that they are compiled and rule-checked on
     // every build without reaching the plugin jar. Associating it with `main` also lets a preview
@@ -40,18 +37,10 @@ dependencies {
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
-    // H.264 decoding of the adb screenrecord / idb video-stream output. Only the ffmpeg bindings
-    // of javacv are used, so its other presets stay out; the natives are the build machine's own.
     // The emulator's gRPC screen stream is plain HTTP/2 with prior knowledge; okhttp speaks it,
-    // and the two messages it needs are encoded by hand rather than pulling in grpc-java.
+    // and the two messages it needs are encoded by hand rather than pulling in grpc-java. H.264
+    // from adb screenrecord and idb is decoded by the ffmpeg command installed on the machine.
     implementation(libs.okhttp)
-    implementation(libs.javacv) {
-        isTransitive = false
-    }
-    implementation(libs.javacpp)
-    implementation(variantOf(libs.javacpp) { classifier(nativeClassifier()) })
-    implementation(libs.bytedecoFfmpeg)
-    implementation(variantOf(libs.bytedecoFfmpeg) { classifier(nativeClassifier()) })
     "previewImplementation"(projects.jetwhaleHostUi)
     "previewImplementation"(compose.desktop.currentOs)
     "previewImplementation"(libs.jetbrainsComposePreview)
@@ -73,16 +62,4 @@ tasks.named("check") {
 configure<KotrailExtension> {
     compilation("main") { configFile = file("kotrail-main.yaml") }
     compilation("preview") { configFile = file("kotrail-preview.yaml") }
-}
-
-fun nativeClassifier(): String {
-    val osName = System.getProperty("os.name").lowercase()
-    val arch = System.getProperty("os.arch").lowercase()
-    return when {
-        osName.contains("mac") && arch == "aarch64" -> "macosx-arm64"
-        osName.contains("mac") -> "macosx-x86_64"
-        osName.contains("windows") -> "windows-x86_64"
-        arch == "aarch64" -> "linux-arm64"
-        else -> "linux-x86_64"
-    }
 }
