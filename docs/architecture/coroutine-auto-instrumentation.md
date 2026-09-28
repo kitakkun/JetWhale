@@ -69,9 +69,9 @@ public interface CoroutineHookSink {
 
 | Source | Emitted |
 |--------|---------|
-| `scope.launch(ctx) { … }` / `async` | `scope.launch(JetWhaleCoroutineHooks.named(scope, ctx, "HomeViewModel.kt:42")) { … }.also { JetWhaleCoroutineHooks.onLaunched(it, "HomeViewModel.kt:42") }`. `named` adds the call-site name only when neither `ctx` nor the scope carries a `CoroutineName`, because `ctx + CoroutineName(…)` would replace an explicit or inherited one |
+| `scope.launch(ctx) { … }` / `async` | `scope.launch(JetWhaleCoroutineHooks.named(scope, ctx, "HomeViewModel.load (HomeViewModel.kt:42)")) { … }.also { JetWhaleCoroutineHooks.onLaunched(it, "HomeViewModel.load (HomeViewModel.kt:42)") }`. `named` adds the call-site name only when neither `ctx` nor the scope carries a `CoroutineName`, because `ctx + CoroutineName(…)` would replace an explicit or inherited one |
 | `Dispatchers.Default`, `Dispatchers.IO` (property reads) | `JetWhaleCoroutineHooks.dispatcher(Dispatchers.IO, "IO")` |
-| `flow { … }`, `x.stateIn(…)`, `x.shareIn(…)` | `JetWhaleCoroutineHooks.flow(<original>, "Repo.kt:18")`; for `stateIn`/`shareIn`, the hot flow's upstream is wrapped, so the result keeps its `StateFlow`/`SharedFlow` type |
+| `flow { … }`, `x.stateIn(…)`, `x.shareIn(…)` | `JetWhaleCoroutineHooks.flow(<original>, "Repo.observe (Repo.kt:18)")`; for `stateIn`/`shareIn`, the hot flow's upstream is wrapped, so the result keeps its `StateFlow`/`SharedFlow` type |
 
 The call-site string is `<file name>:<line>`, plus the enclosing function's name when there is one
 (`HomeViewModel.load (HomeViewModel.kt:42)`). It is computed at compile time and costs a constant
