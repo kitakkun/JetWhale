@@ -268,6 +268,12 @@ internal class DeviceMirror(
                         StreamOutcome.Ended
                     } catch (e: DeviceControlException) {
                         StreamOutcome.Unavailable(e.message.orEmpty())
+                    } catch (e: IOException) {
+                        // Closing the stream under a blocked read (a device switch, a resize, the
+                        // tool quitting) can surface as "Stream closed" rather than as its end. It
+                        // must not leave this coroutine: the mirror runs in the plugin's composition,
+                        // and an exception escaping it stops the whole screen from updating.
+                        StreamOutcome.Unavailable(e.message.orEmpty())
                     }
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
