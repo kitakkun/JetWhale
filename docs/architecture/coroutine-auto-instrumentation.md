@@ -53,6 +53,11 @@ public interface CoroutineHookSink {
   `flow` become the `track` wrappers. A dispatcher wrapper is cached per name, since every read of
   `Dispatchers.IO` names the same dispatcher. A flow is wrapped per instance and only its recorder is
   shared per call site: `flow { … }` is cold, so each evaluation must stay a flow of its own.
+- **Only what starts after activation is seen.** The empty slot keeps nothing, so a coroutine
+  launched or a flow created before the inspector activates (or while it is disabled) is never
+  listed; re-enabling the plugin lists only what starts afterward. Dispatchers are read at each use
+  site, so they are wrapped from activation on. Keeping a weak registry of earlier launches is an
+  open question below.
 - **The inspector depends on the hooks artifact, not the reverse.** The hooks artifact knows nothing
   of messaging or the host. An app can ship the instrumented code without the inspector plugin
   installed.
@@ -153,6 +158,9 @@ must not:
 - Should `onLaunched` also carry the enclosing class instance's identity (for "which ViewModel
   instance started this"), at the cost of holding it? Probably not: it conflicts with the weak
   reference policy.
+- Whether the hooks should keep a weak registry of launches made before the inspector activates,
+  so enabling the plugin later still lists coroutines already running. It costs a registration on
+  every launch in builds that never activate the inspector.
 - Per-module opt-out (`@JetWhaleNoInstrument` on a file or class) for hot paths.
 - Whether `Dispatchers.Default` wrapping should be on by default. Measuring every dispatch adds a
   clock read and a few atomics per task, which is fine for development, but worth a switch.
