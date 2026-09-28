@@ -27,7 +27,7 @@ are experimental.
 - The host notices plugin jars dropped into the plugins directory while it runs and offers to load them, or to approve an update, from a banner (#303).
 - Plugin installs keep running after the settings screen closes, one at a time, with progress in settings and a notice when each finishes (#319).
 - The sidebar header always shows the AI agent's state: how to connect one when none is connected, and the tool being run while an agent works (#310, #318).
-- The host can run inside IntelliJ IDEA as a tool window (#273).
+- The host can run inside IntelliJ IDEA as a tool window. Not published yet; build it from source with `./gradlew :jetwhale-host:idea-plugin:buildPlugin` (#273).
 - The app icon is resolved automatically on Android, iOS and macOS, so the app picker shows each app's own icon (#254).
 - `jetwhale-host-ui`, a published module with the host's theme and components, so plugins share one look (#247).
 
