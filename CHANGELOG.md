@@ -15,7 +15,7 @@ are experimental.
 
 - **Storage Inspector** plugin: browse an app's files, caches and key-value stores (SharedPreferences, `NSUserDefaults`, `localStorage`) with no app-side setup, see what each entry is and what stores it, and show live Preferences DataStores through the optional `jetwhale-storage-inspector-agent-datastore` artifact (#276, #277, #278).
 - **Debug Actions** plugin (experimental): the app registers its debug menu as typed actions that a person runs from the host and an AI agent runs over MCP, with suggested argument values, a run history and confirmation for destructive actions. Its agent API requires `@OptIn(ExperimentalJetWhaleApi::class)` (#289).
-- **Device Mirror** plugin (experimental): view and drive Android emulators and devices and iOS simulators inside the host, see USB iPhones view-only, take screenshots and recordings, and use them from MCP tools. Not published yet; build it from source (#292).
+- **Device Mirror** plugin (experimental): view and drive Android emulators and devices and iOS simulators inside the host (emulators stream over their own gRPC endpoint), see every device at once in a grid, see USB iPhones view-only, take screenshots and recordings, and use them from MCP tools. Not published yet; build it from source (#292, #311, #313).
 - Plugins that need no app now run in an always-present host session, listed above the app picker, so they work before any app connects (#309).
 - Compose Semantics Inspector on Android shows the `View` hierarchy around and inside Compose content, and reads and edits a `View`'s attributes live, also over MCP (#243, #248).
 - Compose Semantics Inspector on iOS reads and drives UIKit, SwiftUI and Compose Multiplatform content through the accessibility tree (#271).
