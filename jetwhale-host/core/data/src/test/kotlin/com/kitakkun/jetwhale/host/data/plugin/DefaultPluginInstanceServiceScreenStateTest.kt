@@ -60,7 +60,7 @@ class DefaultPluginInstanceServiceScreenStateTest {
         every { storageFor(any()) } returns storage
     }
     private val frameSender = mock<HostPluginFrameSender>()
-    private val sceneFactory = RecordingSceneFactory()
+    private val sceneFactory = RecordingPluginComposeSceneFactory()
 
     @Test
     fun `a screen opened before its instance exists shows starting and then the scene`() = runBlocking<Unit> {
@@ -275,42 +275,6 @@ class DefaultPluginInstanceServiceScreenStateTest {
         JetWhaleHostPluginUi {
         @Composable
         override fun Content() = Unit
-    }
-
-    private class RecordingSceneFactory : PluginComposeSceneFactory {
-        val created: MutableList<PluginComposeScene> = CopyOnWriteArrayList()
-
-        /** Scenes whose composition was disposed, which is what closing a scene does. */
-        val closed = MutableStateFlow<Set<PluginComposeScene>>(emptySet())
-
-        /** Thrown by the next scene creation, as content that throws while it is first composed would be. */
-        @Volatile
-        var failNext: Throwable? = null
-
-        override fun updateHostDensity(density: Density) = Unit
-
-        override fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene {
-            failNext?.let { failure ->
-                failNext = null
-                throw failure
-            }
-            lateinit var scene: PluginComposeScene
-            val composeScene = CanvasLayersComposeScene()
-            composeScene.setContent {
-                DisposableEffect(Unit) {
-                    onDispose { closed.update { it + scene } }
-                }
-            }
-            scene = PluginComposeScene(
-                composeScene = composeScene,
-                windowInfoUpdater = mock(),
-                semanticsOwners = emptySet(),
-                isMcpCapture = mutableStateOf(false),
-                pointerIcon = mutableStateOf(PointerIcon.Default),
-            )
-            created += scene
-            return scene
-        }
     }
 
     private class FakePluginFactoryRepository(var loaded: LoadedHostPlugin) : PluginFactoryRepository {
