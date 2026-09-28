@@ -107,7 +107,7 @@ private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         buttons.forEach { button ->
             JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
-                JwIcon(imageVector = button.icon, contentDescription = button.label)
+                JwIcon(imageVector = button.icon, contentDescription = null)
             }
         }
     }
@@ -123,7 +123,7 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
         kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
             volume.forEach { button ->
                 JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
-                    JwIcon(imageVector = button.icon, contentDescription = button.label)
+                    JwIcon(imageVector = button.icon, contentDescription = null)
                 }
             }
         }
@@ -136,8 +136,8 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
 @Composable
 private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
     when (screenPower?.awake) {
-        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = "Screen off") }
-        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = "Wake") }
+        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = null) }
+        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = null) }
         null -> Unit
     }
 }
