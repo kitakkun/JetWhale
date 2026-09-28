@@ -13,7 +13,7 @@ import kotlin.io.path.readBytes
  * A booted iOS simulator. Screenshots and recordings go through `simctl`; the live stream and all
  * input need idb, since simctl can neither stream nor send touches.
  */
-internal class IosSimulatorController(
+internal class IosSimulatorDeviceController(
     private val udid: String,
     private val xcrunPath: String,
     private val idbPath: String?,
