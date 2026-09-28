@@ -42,7 +42,7 @@ are experimental.
 - **Breaking:** `findNodes`' `hittableOnly` is replaced by `operableOnly` (#263).
 - **Breaking:** a node's `actions` in MCP output lists the names `performNodeAction` accepts (`Click`), not platform names (`OnClick`) (#283).
 - **Breaking:** the network redaction rule `bodyJsonField(...)` is renamed `bodyField(...)`, and it now also redacts form-urlencoded bodies (#249).
-- Network body captures carry a `BodyEncoding` so image bodies arrive intact. Update the host and the agent together (#255).
+- **Breaking:** network body captures carry a `BodyEncoding` so image bodies arrive intact. Update the host and the agent together: an older host shows a new agent's image bodies as Base64 text (#255).
 
 ### Fixed
 
