@@ -92,6 +92,16 @@ class FfmpegDecodingTest {
         assertEquals(setOf(IntSize(360, 640)), sizes.toSet())
     }
 
+    @Test
+    fun `a stream ffmpeg cannot decode fails with ffmpeg's reason when no size is asked for`() {
+        val ffmpeg = installedFfmpeg()
+        val notH264 = "not an H.264 stream ".repeat(500).encodeToByteArray()
+
+        val failure = assertFailsWith<DeviceControlException> { decode(ffmpeg, notH264, outputSize = null) }
+
+        assertContains(failure.message.orEmpty(), "could not be decoded")
+    }
+
     private fun installedFfmpeg(): String {
         val ffmpeg = findTool("ffmpeg", toolDirectories(System.getenv("PATH")))
         assumeTrue("ffmpeg is not installed", ffmpeg != null)

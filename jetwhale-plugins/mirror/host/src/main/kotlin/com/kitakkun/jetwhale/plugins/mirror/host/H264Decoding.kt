@@ -22,8 +22,9 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, ou
     val log = FfmpegLog(ffmpeg.errorStream)
     val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpeg) }
     val frames = try {
-        val frameSize = outputSize ?: log.outputSize.get() ?: return
-        copyFrames(WaitTimingInputStream(ffmpeg.inputStream), frameSize, surface, onFrame)
+        // No size means ffmpeg ended before describing its output; the error check below says why.
+        val frameSize = outputSize ?: log.outputSize.get()
+        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpeg.inputStream), it, surface, onFrame) } ?: 0
     } finally {
         ffmpeg.destroyForcibly()
         ffmpeg.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
