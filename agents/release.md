@@ -5,14 +5,25 @@ only when preparing a release.
 
 ## Finding what goes in
 
-List the pull requests merged since the previous tag and read each one:
+The previous tag is the newest release tag, not a `<version>-SNAPSHOT` tag (the Publish Snapshot
+workflow creates those):
 
 ```shell
-git log --merges --format='%s' <prev-tag>..origin/main
-gh pr view <N>
+git tag --sort=-creatordate | grep -v -- '-SNAPSHOT$' | head -1
 ```
 
-Judge each PR by its description and diff, not its title alone.
+List what reached `main` since then, and read each pull request with its diff:
+
+```shell
+gh pr list --state merged --base main --search "merged:>=<prev-tag date>" --limit 200
+git log --first-parent --format='%h %s' <prev-tag>..origin/main
+gh pr view <N>
+gh pr diff <N>
+```
+
+The repository allows merge, squash and rebase merges, so the pull request list is the inventory;
+the first-parent log shows what the tag actually contains and catches commits pushed without a pull
+request. Judge each change by its description and diff, not its title alone.
 
 ## What belongs in the changelog
 
