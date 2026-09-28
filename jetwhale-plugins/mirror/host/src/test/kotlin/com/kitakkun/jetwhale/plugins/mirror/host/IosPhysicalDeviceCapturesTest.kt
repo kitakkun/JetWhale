@@ -25,7 +25,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
-class IosDeviceCapturesTest {
+class IosPhysicalDeviceCapturesTest {
     private val folder: File = Files.createTempDirectory("mirror-iphone-captures").toFile()
     private val companionScope = CoroutineScope(Job())
     private val launched = mutableListOf<List<String>>()
@@ -117,7 +117,7 @@ class IosDeviceCapturesTest {
         }
     }
 
-    private fun iosDevice(ffmpegPath: String?) = IosDeviceController(
+    private fun iosDevice(ffmpegPath: String?) = IosPhysicalDeviceController(
         udid = "udid-1",
         idbPath = "idb",
         companions = IdbCompanions(

@@ -61,8 +61,8 @@ internal class DeviceDiscovery(
     private fun controllerFor(listing: DeviceListing): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(toolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = toolPaths.ffmpegPath)
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(toolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = toolPaths.ffmpegPath)
-        DeviceKind.IosSimulator -> IosSimulatorController(udid = listing.id, xcrunPath = checkNotNull(toolPaths.xcrunPath), idbPath = toolPaths.idbPath)
-        DeviceKind.IosDevice -> IosDeviceController(udid = listing.id, idbPath = checkNotNull(toolPaths.idbPath), companions = checkNotNull(companions), ffmpegPath = toolPaths.ffmpegPath)
+        DeviceKind.IosSimulator -> IosSimulatorDeviceController(udid = listing.id, xcrunPath = checkNotNull(toolPaths.xcrunPath), idbPath = toolPaths.idbPath)
+        DeviceKind.IosDevice -> IosPhysicalDeviceController(udid = listing.id, idbPath = checkNotNull(toolPaths.idbPath), companions = checkNotNull(companions), ffmpegPath = toolPaths.ffmpegPath)
     }
 
     private fun missingTools(): List<String> = buildList {

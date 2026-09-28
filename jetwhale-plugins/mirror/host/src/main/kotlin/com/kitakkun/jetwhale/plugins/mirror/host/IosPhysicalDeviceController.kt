@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
  * not reach a device running iOS 17 or later. The companion outlives each use by
  * [IdbCompanions]' idle timeout, so repeated screenshots do not restart it.
  */
-internal class IosDeviceController(
+internal class IosPhysicalDeviceController(
     private val udid: String,
     private val idbPath: String,
     private val companions: IdbCompanions,
