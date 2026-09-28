@@ -50,7 +50,9 @@ public interface CoroutineHookSink {
   each hook reads one atomic reference and returns its input unchanged.
 - **Filled slot**: the inspector routes the hooks to what exists today. `onLaunched` becomes a
   registration held weakly (see [References](coroutine-inspector.md#references)); `dispatcher` and
-  `flow` become the `track` wrappers, cached per name so repeated reads return one wrapper.
+  `flow` become the `track` wrappers. A dispatcher wrapper is cached per name, since every read of
+  `Dispatchers.IO` names the same dispatcher. A flow is wrapped per instance and only its recorder is
+  shared per call site: `flow { … }` is cold, so each evaluation must stay a flow of its own.
 - **The inspector depends on the hooks artifact, not the reverse.** The hooks artifact knows nothing
   of messaging or the host. An app can ship the instrumented code without the inspector plugin
   installed.
