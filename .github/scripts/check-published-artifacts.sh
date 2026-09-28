@@ -38,7 +38,7 @@ for dir in "$repository"/*/"$version"; do
     [ -f "$aar" ] || continue
     unzip -q -o "$aar" classes.jar proguard.txt -d "$work/$artifact" 2>/dev/null || true
     if [ -f "$work/$artifact/classes.jar" ] && references_kotrail "$work/$artifact/classes.jar"; then
-      if grep -q -- "-dontwarn com.kitakkun.kotrail" "$work/$artifact/proguard.txt" 2>/dev/null; then
+      if grep -qxE -- '[[:space:]]*-dontwarn[[:space:]]+com\.kitakkun\.kotrail\.\*\*[[:space:]]*' "$work/$artifact/proguard.txt" 2>/dev/null; then
         echo "$artifact: references Kotrail annotations, covered by its consumer rule"
       else
         echo "::error::$artifact: references Kotrail annotations without the consumer rule; R8 in an app will fail"
