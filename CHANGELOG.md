@@ -9,6 +9,10 @@ are experimental.
 
 ## [Unreleased]
 
+### Changed
+
+- **Device Mirror** (experimental) decodes the H.264 video of Android devices and iPhones with the `ffmpeg` command installed on your machine instead of bundling ffmpeg's native libraries, so one plugin jar now works on every OS. Install ffmpeg for live video from those devices; without it an Android device is shown through screenshots. Emulators and iOS simulators don't need it (#332).
+
 ## [1.0.0-alpha12] - 2026-09-28
 
 ### Added
