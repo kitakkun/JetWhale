@@ -9,7 +9,7 @@ are experimental.
 
 ## [Unreleased]
 
-## [1.0.0-alpha12] - Unreleased
+## [1.0.0-alpha12] - 2026-09-28
 
 ### Added
 
@@ -62,6 +62,6 @@ are experimental.
 
 See the [GitHub releases](https://github.com/kitakkun/JetWhale/releases).
 
-[Unreleased]: https://github.com/kitakkun/JetWhale/compare/1.0.0-alpha11...HEAD
-[1.0.0-alpha12]: https://github.com/kitakkun/JetWhale/compare/1.0.0-alpha11...HEAD
+[Unreleased]: https://github.com/kitakkun/JetWhale/compare/1.0.0-alpha12...HEAD
+[1.0.0-alpha12]: https://github.com/kitakkun/JetWhale/compare/1.0.0-alpha11...1.0.0-alpha12
 [1.0.0-alpha11]: https://github.com/kitakkun/JetWhale/releases/tag/1.0.0-alpha11
