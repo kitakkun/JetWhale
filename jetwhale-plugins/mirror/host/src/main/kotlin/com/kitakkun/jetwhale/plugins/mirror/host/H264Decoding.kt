@@ -67,7 +67,7 @@ internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List
 }
 
 /** Copies the device's bytes into ffmpeg until either side ends, then lets ffmpeg finish. */
-private fun feed(source: InputStream, ffmpegProcess: Process) {
+internal fun feed(source: InputStream, ffmpegProcess: Process) {
     try {
         ffmpegProcess.outputStream.use(source::transferTo)
     } catch (_: IOException) {

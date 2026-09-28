@@ -9,6 +9,9 @@ import androidx.compose.ui.unit.IntSize
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ColorType
+import org.jetbrains.skia.Data
+import org.jetbrains.skia.EncodedImageFormat
+import org.jetbrains.skia.Image
 import org.jetbrains.skia.ImageInfo
 import org.jetbrains.skia.Pixmap
 import org.jetbrains.skia.impl.BufferUtil
@@ -168,6 +171,16 @@ internal class MirrorSurface : AutoCloseable {
     }
 
     fun hasKeptFrame(keptDeviceId: String): Boolean = synchronized(lock) { keptDeviceId in lastFrames }
+
+    /**
+     * The newest frame streamed from [streamingDeviceId], encoded as PNG at the size it was decoded,
+     * or null when the surface shows another device or only a frame kept from an earlier visit.
+     */
+    fun newestFramePng(streamingDeviceId: String): ByteArray? = synchronized(lock) {
+        if (closed || deviceId != streamingDeviceId || showingKeptFrame) return null
+        val newest = (if (readyIsNewer) ready else front) ?: return null
+        Image.makeFromBitmap(newest).use { image -> image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes) }
+    }
 
     fun recordDraw(nanos: Long) = window.recordDraw(nanos)
 
