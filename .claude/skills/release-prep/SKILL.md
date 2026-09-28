@@ -8,7 +8,9 @@ description: Prepare a JetWhale release — draft the changelog entry and open t
 Follow `agents/release.md`. It holds the procedure and the changelog criteria; this skill only adds
 how to run it.
 
-1. Take the version from the request, and the previous tag from `git tag --sort=-creatordate`.
+1. Take the version from the request, and the previous release tag from
+   `git tag --sort=-creatordate | grep -v -- '-SNAPSHOT$' | head -1`; the Publish Snapshot workflow
+   creates `<version>-SNAPSHOT` tags, which are not releases.
 2. Read every PR merged since the previous tag and draft the `CHANGELOG.md` section by the criteria
    in `agents/release.md`. List the PRs you left out, and any entry whose Breaking status you were
    unsure of.
