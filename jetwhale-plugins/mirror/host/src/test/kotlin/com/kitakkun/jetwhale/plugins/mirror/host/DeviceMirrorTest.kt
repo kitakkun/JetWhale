@@ -68,7 +68,7 @@ class DeviceMirrorTest {
     fun `stops sent at once finish the one recording once and refuse the rest`() = runBlocking {
         mirror.startRecording(device)
 
-        val outcomes = List(SIMULTANEOUS_CALLS) { async(Dispatchers.Default) { runCatching { mirror.stopRecording() } } }.awaitAll()
+        val outcomes = List(SIMULTANEOUS_CALLS) { async(Dispatchers.Default) { runCatching { mirror.stopRecording(deviceId = null) } } }.awaitAll()
 
         assertEquals(1, outcomes.count { it.isSuccess })
         assertEquals(1, recorder.stopped.get())
@@ -78,11 +78,11 @@ class DeviceMirrorTest {
     fun `a recording started while another stops waits for the stop and then runs`() = runBlocking {
         mirror.startRecording(device)
 
-        val stop = async(Dispatchers.Default) { mirror.stopRecording() }
+        val stop = async(Dispatchers.Default) { mirror.stopRecording(deviceId = null) }
         recorder.stopping.await()
         mirror.startRecording(device)
         stop.await()
-        mirror.stopRecording()
+        mirror.stopRecording(deviceId = null)
 
         assertEquals(2, recorder.started.get())
         assertEquals(2, recorder.stopped.get())
@@ -99,6 +99,7 @@ class DeviceMirrorTest {
             notices = notices,
             scope = clicks,
         )
+        clicked.select(device.id)
         clicked.startRecording(device)
 
         withTimeout(QUEUED_CLICKS_TIMEOUT_MILLIS) {
@@ -106,12 +107,59 @@ class DeviceMirrorTest {
             clicked.finishRecording()
             // Queued behind both clicks: it fails if the second click started a recording.
             clicked.startRecording(device)
-            clicked.stopRecording()
+            clicked.stopRecording(deviceId = null)
         }
         clicks.cancel()
 
         assertEquals(2, recorder.started.get())
         assertEquals(2, recorder.stopped.get())
+    }
+
+    @Test
+    fun `two devices record at once and stopping them all keeps each in its device's captures`() = runBlocking {
+        val otherRecorder = SlowRecorder()
+        val other = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), otherRecorder)
+
+        val started = mirror.startRecordingsOf(listOf(device, other))
+        val saved = mirror.stopRecordings(deviceIds = null)
+
+        assertEquals(2, started.filterIsInstance<RecordingResult.Started>().size)
+        assertEquals(1, recorder.started.get())
+        assertEquals(1, otherRecorder.started.get())
+        assertEquals(setOf(device.id, other.id), saved.filterIsInstance<RecordingResult.Saved>().map(RecordingResult.Saved::deviceId).toSet())
+        assertEquals(2, mirror.listCaptures(deviceId = null, kind = CaptureKind.Recording, sinceEpochMillis = null).size)
+    }
+
+    @Test
+    fun `a device that fails to start leaves the others recording`() = runBlocking {
+        val failing = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))
+
+        val results = mirror.startRecordingsOf(listOf(device, failing))
+
+        assertEquals(listOf(device.id), results.filterIsInstance<RecordingResult.Started>().map(RecordingResult.Started::deviceId))
+        assertEquals(listOf(failing.id), results.filterIsInstance<RecordingResult.Failed>().map(RecordingResult.Failed::deviceId))
+        assertEquals(setOf(device.id), mirror.recordingsStartedAtMillis.keys)
+    }
+
+    @Test
+    fun `with several recordings running, a stop that names no device is refused and names them`() = runBlocking {
+        val other = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
+        mirror.startRecordingsOf(listOf(device, other))
+
+        val failure = runCatching { mirror.stopRecording(deviceId = null) }.exceptionOrNull()
+
+        assertTrue(failure is DeviceControlException && "iPhone 16" in failure.message.orEmpty(), "failed with $failure")
+        assertEquals(2, mirror.recordingsStartedAtMillis.size)
+    }
+
+    @Test
+    fun `Record all targets only the devices that can record and are not recording yet`() {
+        val idle = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
+        val cannotRecord = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))
+
+        val targets = recordAllTargets(listOf(device, idle, cannotRecord), recordingDeviceIds = setOf(device.id))
+
+        assertEquals(listOf(idle.id), targets.map(MirrorDevice::id))
     }
 
     @Test
@@ -128,10 +176,10 @@ class DeviceMirrorTest {
         mirror.startRecording(device)
         recorder.stopFailure = deviceControlError("pull failed")
 
-        runCatching { mirror.stopRecording() }
+        runCatching { mirror.stopRecording(deviceId = null) }
         recorder.stopFailure = null
         mirror.startRecording(device)
-        mirror.stopRecording()
+        mirror.stopRecording(deviceId = null)
 
         assertEquals(1, root.walk().count { it.isFile && it.extension == CaptureKind.Recording.extension })
     }

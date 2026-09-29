@@ -35,6 +35,11 @@ internal sealed interface NoticeAction {
     data class RetryRecording(val deviceId: String) : NoticeAction {
         override val label: String get() = "Retry"
     }
+
+    /** Starts recording each of [deviceIds] again. */
+    data class RetryRecordings(val deviceIds: List<String>) : NoticeAction {
+        override val label: String get() = "Retry"
+    }
 }
 
 /**
@@ -68,6 +73,36 @@ internal class MirrorNotice(
                 results.size == 1 -> failure("Could not save a screenshot of ${failed.single().deviceName}: ${failed.single().reason}", retry)
                 saved.isEmpty() -> MirrorNotice("Could not save the screenshots", isError = true, actions = listOf(retry), details = reasons)
                 else -> MirrorNotice("Saved ${saved.size} of ${results.size} screenshots", isError = true, actions = listOf(NoticeAction.OpenCaptures, retry), details = reasons)
+            }
+        }
+
+        /** How starting each device's recording went; Retry starts the failed ones again. */
+        fun recordingsStarted(results: List<RecordingResult>): MirrorNotice {
+            val started = results.filterIsInstance<RecordingResult.Started>()
+            val failed = results.filterIsInstance<RecordingResult.Failed>()
+            val retry = NoticeAction.RetryRecordings(failed.map(RecordingResult.Failed::deviceId))
+            val reasons = failed.map { "${it.deviceName}: ${it.reason}" }
+            return when {
+                results.isEmpty() -> info("No device can be recorded right now")
+                failed.isEmpty() -> info("Recording ${started.size} ${if (started.size == 1) "device" else "devices"}")
+                results.size == 1 -> failure("Could not start recording ${failed.single().deviceName}: ${failed.single().reason}", retry)
+                started.isEmpty() -> MirrorNotice("Could not start the recordings", isError = true, actions = listOf(retry), details = reasons)
+                else -> MirrorNotice("Recording ${started.size} of ${results.size} devices", isError = true, actions = listOf(retry), details = reasons)
+            }
+        }
+
+        /** How stopping each running recording went. */
+        fun recordingsSaved(results: List<RecordingResult>): MirrorNotice {
+            val saved = results.filterIsInstance<RecordingResult.Saved>()
+            val failed = results.filterIsInstance<RecordingResult.Failed>()
+            val reasons = failed.map(RecordingResult.Failed::reason)
+            return when {
+                results.isEmpty() -> info("No recording is running")
+                failed.isEmpty() && saved.size == 1 -> saved(saved.single().capture)
+                failed.isEmpty() -> MirrorNotice("Saved ${saved.size} recordings", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())
+                results.size == 1 -> failure(failed.single().reason, retry = null)
+                saved.isEmpty() -> MirrorNotice("Could not save the recordings", isError = true, actions = emptyList(), details = reasons)
+                else -> MirrorNotice("Saved ${saved.size} of ${results.size} recordings", isError = true, actions = listOf(NoticeAction.OpenCaptures), details = reasons)
             }
         }
     }

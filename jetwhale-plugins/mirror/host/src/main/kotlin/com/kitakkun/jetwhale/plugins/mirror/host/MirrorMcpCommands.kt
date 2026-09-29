@@ -25,8 +25,20 @@ internal interface MirrorDevices {
 
     suspend fun startRecording(device: MirrorDevice)
 
-    /** Stops the running recording and adds it to the captures. */
-    suspend fun stopRecording(): Capture
+    /**
+     * Starts recording each of [deviceIds] at once, or, when it is null, every device that can record
+     * and is not recording yet. A device that fails to start leaves the others recording.
+     */
+    suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult>
+
+    /**
+     * Stops [deviceId]'s recording and adds it to the captures. Null stops the one recording running,
+     * and is refused while several run.
+     */
+    suspend fun stopRecording(deviceId: String?): Capture
+
+    /** Stops each of [deviceIds]' recordings at once, or every running one when it is null. */
+    suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult>
 
     fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture>
 }

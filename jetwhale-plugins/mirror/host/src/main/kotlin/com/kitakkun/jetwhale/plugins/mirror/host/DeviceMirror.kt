@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -24,6 +25,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
@@ -125,18 +127,17 @@ internal class DeviceMirror(
     var state: MirrorState by mutableStateOf(MirrorState.Idle)
         private set
 
-    var recordingDeviceId: String? by mutableStateOf(null)
-        private set
-
-    /** When the running recording started, in epoch milliseconds; null while none runs. */
-    var recordingStartedAtMillis: Long? by mutableStateOf(null)
+    /** When each running recording started, in epoch milliseconds, by device id. */
+    var recordingsStartedAtMillis: Map<String, Long> by mutableStateOf(emptyMap())
         private set
 
     /** The mirrored device's screen state, for a device whose [DeviceCapabilities.screenPower] is true. */
     var screenPower: ScreenPower? by mutableStateOf(null)
         private set
 
-    private var recording: ActiveRecording? = null
+    // Written only under the device's recording lock, read from anywhere; [recordingsStartedAtMillis]
+    // is republished from it on every change.
+    private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
     private class ActiveRecording(val device: MirrorDevice, val handle: DeviceRecording, val file: File, val startedAt: Instant)
 
@@ -146,9 +147,10 @@ internal class DeviceMirror(
     // keeps the old decoder from writing into the surface the new one has cleared.
     private val sessions = Mutex()
 
-    // The UI and MCP start and stop recordings concurrently; each start, stop or disposal runs to
-    // completion before the next looks at [recording].
-    private val recordings = Mutex()
+    // The UI and MCP start and stop recordings concurrently. Each device's start, stop or disposal
+    // runs to completion before the next one for that device looks at its recording, while other
+    // devices record independently.
+    private val recordingLocks = ConcurrentHashMap<String, Mutex>()
 
     val selectedDevice: MirrorDevice? get() = devices.firstOrNull { it.id == selectedId }
 
@@ -405,52 +407,57 @@ internal class DeviceMirror(
         return ScreenshotResult.Failed(deviceId = device.id, deviceName = device.listing.name, reason = reason)
     }
 
-    // Record and Stop each do only what they say: a click queued behind a slow stop, or made after
-    // switching devices, must not turn into a recording nobody asked for.
+    // Record and Stop each do only what they say, on the device selected when they were clicked: a
+    // click queued behind a slow stop, or made after switching devices, must not turn into a
+    // recording nobody asked for.
     override fun recordSelectedDevice() {
         val device = selectedDevice ?: return
-        scope.launch {
-            recordings.withLock {
-                if (recording == null) startRecordingFromUi(device)
-            }
-        }
+        scope.launch { recordFromUi(device) }
     }
 
     override fun finishRecording() {
-        scope.launch {
-            recordings.withLock {
-                if (recording != null) stopRecordingFromUi()
-            }
-        }
+        val deviceId = selectedId ?: return
+        scope.launch { finishFromUi(deviceId) }
     }
 
-    /** Starts recording [deviceId] again after a failed start, unless a recording has started since. */
+    /** Starts recording [deviceId] again after a failed start, unless a recording of it has started since. */
     fun retryRecording(deviceId: String) {
         val device = devices.firstOrNull { it.id == deviceId } ?: return
-        scope.launch {
-            recordings.withLock {
-                if (recording == null) startRecordingFromUi(device)
-            }
-        }
+        scope.launch { recordFromUi(device) }
     }
 
-    private suspend fun stopRecordingFromUi() {
-        val notice = try {
-            MirrorNotice.saved(stopRunningRecording())
-        } catch (e: DeviceControlException) {
-            MirrorNotice.failure("Could not stop the recording: ${e.message}", retry = null)
-        } catch (e: IOException) {
-            MirrorNotice.failure("The recording stopped, but could not be saved: ${e.message}", retry = null)
-        }
-        notices.show(notice)
+    /** Starts recording every device that can record and is not recording yet, and says how that went. */
+    fun recordAll() {
+        scope.launch { notices.show(MirrorNotice.recordingsStarted(startRecordings(deviceIds = null))) }
     }
 
-    private suspend fun startRecordingFromUi(device: MirrorDevice) {
+    /** Starts recording each of [deviceIds] again after a failed Record all. */
+    fun retryRecordings(deviceIds: List<String>) {
+        scope.launch { notices.show(MirrorNotice.recordingsStarted(startRecordings(deviceIds))) }
+    }
+
+    /** Stops every running recording, keeping each in its device's captures, and says how that went. */
+    fun stopAllRecordings() {
+        scope.launch { notices.show(MirrorNotice.recordingsSaved(stopRecordings(deviceIds = null))) }
+    }
+
+    private suspend fun recordFromUi(device: MirrorDevice) = recordingLockOf(device.id).withLock {
+        if (activeRecordings.containsKey(device.id)) return@withLock
         try {
-            startRecordingOf(device)
+            startRecordingLocked(device)
         } catch (e: DeviceControlException) {
             notices.show(MirrorNotice.failure("Could not start recording ${device.listing.name}: ${e.message}", retry = NoticeAction.RetryRecording(device.id)))
         }
+    }
+
+    private suspend fun finishFromUi(deviceId: String) = recordingLockOf(deviceId).withLock {
+        if (!activeRecordings.containsKey(deviceId)) return@withLock
+        val notice = when (val result = stopResultLocked(deviceId)) {
+            is RecordingResult.Saved -> MirrorNotice.saved(result.capture)
+            is RecordingResult.Failed -> MirrorNotice.failure(result.reason, retry = null)
+            is RecordingResult.Started -> error("a stop never reports a start")
+        }
+        notices.show(notice)
     }
 
     override fun wake() = control { controller ->
@@ -483,10 +490,33 @@ internal class DeviceMirror(
         return device.controller.captureScreenshot()
     }
 
-    override suspend fun startRecording(device: MirrorDevice) = recordings.withLock { startRecordingOf(device) }
+    override suspend fun startRecording(device: MirrorDevice) = recordingLockOf(device.id).withLock { startRecordingLocked(device) }
 
-    private suspend fun startRecordingOf(device: MirrorDevice) {
-        if (recording != null) throw deviceControlError("a recording is already running; stop it first")
+    override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> {
+        if (deviceIds == null) return startRecordingsOf(recordAllTargets(devices, activeRecordings.keys))
+        val resolved = deviceIds.map { id -> id to devices.firstOrNull { it.id == id } }
+        val unknown = resolved.filter { it.second == null }.map { (id, _) ->
+            RecordingResult.Failed(deviceId = id, deviceName = id, reason = "no device has the id '$id'; call $TOOL_PREFIX.listDevices")
+        }
+        return startRecordingsOf(resolved.mapNotNull { it.second }) + unknown
+    }
+
+    /** Starts recording each of [targets] at once; one that fails to start leaves the others recording. */
+    suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
+        targets.map { device ->
+            async {
+                try {
+                    startRecording(device)
+                    RecordingResult.Started(deviceId = device.id, deviceName = device.listing.name)
+                } catch (e: DeviceControlException) {
+                    RecordingResult.Failed(deviceId = device.id, deviceName = device.listing.name, reason = e.message.orEmpty())
+                }
+            }
+        }.awaitAll()
+    }
+
+    private suspend fun startRecordingLocked(device: MirrorDevice) {
+        if (activeRecordings.containsKey(device.id)) throw deviceControlError("${device.listing.name} is already recording; stop it first")
         val file = captures.recordingFile(device.listing)
         val handle = try {
             device.controller.startRecording(file)
@@ -494,19 +524,45 @@ internal class DeviceMirror(
             file.delete()
             throw e
         }
-        val startedAt = Instant.now()
-        recording = ActiveRecording(device, handle, file, startedAt)
-        recordingDeviceId = device.id
-        recordingStartedAtMillis = startedAt.toEpochMilli()
+        activeRecordings[device.id] = ActiveRecording(device, handle, file, Instant.now())
+        publishRecordings()
     }
 
-    override suspend fun stopRecording(): Capture = recordings.withLock { stopRunningRecording() }
+    override suspend fun stopRecording(deviceId: String?): Capture {
+        val id = deviceId ?: soleRecordingDeviceId()
+        return recordingLockOf(id).withLock { stopRecordingLocked(id) }
+    }
 
-    private suspend fun stopRunningRecording(): Capture {
-        val running = recording ?: throw deviceControlError("no recording is running")
-        recording = null
-        recordingDeviceId = null
-        recordingStartedAtMillis = null
+    override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = coroutineScope {
+        (deviceIds ?: activeRecordings.keys.toList()).map { id ->
+            async { recordingLockOf(id).withLock { stopResultLocked(id) } }
+        }.awaitAll()
+    }
+
+    // With one recording running, a stop that names no device stops it, as when only one could run.
+    private fun soleRecordingDeviceId(): String {
+        val running = activeRecordings.values.toList()
+        return when (running.size) {
+            0 -> throw deviceControlError("no recording is running")
+            1 -> running.single().device.id
+            else -> throw deviceControlError("${running.size} recordings are running (${running.joinToString { it.device.listing.name }}); name the device to stop, or stop them all")
+        }
+    }
+
+    private suspend fun stopResultLocked(deviceId: String): RecordingResult {
+        val name = activeRecordings[deviceId]?.device?.listing?.name ?: devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId
+        return try {
+            RecordingResult.Saved(stopRecordingLocked(deviceId))
+        } catch (e: DeviceControlException) {
+            RecordingResult.Failed(deviceId = deviceId, deviceName = name, reason = "Could not stop the recording of $name: ${e.message}")
+        } catch (e: IOException) {
+            RecordingResult.Failed(deviceId = deviceId, deviceName = name, reason = "The recording of $name stopped, but could not be saved: ${e.message}")
+        }
+    }
+
+    private suspend fun stopRecordingLocked(deviceId: String): Capture {
+        val running = activeRecordings.remove(deviceId) ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
+        publishRecordings()
         // The recorder has been told to stop either way, so a failed stop cannot be retried; the
         // reserved file would otherwise stay in the folder, unlisted because it has no sidecar.
         val file = try {
@@ -523,14 +579,24 @@ internal class DeviceMirror(
         return captures.addRecording(running.device.listing, file, running.startedAt, size)
     }
 
+    private fun recordingLockOf(deviceId: String): Mutex = recordingLocks.getOrPut(deviceId, ::Mutex)
+
+    // Rebuilt from the map rather than edited, so concurrent changes on two devices cannot overwrite
+    // each other's entry.
+    private fun publishRecordings() {
+        recordingsStartedAtMillis = activeRecordings.mapValues { it.value.startedAt.toEpochMilli() }
+    }
+
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = captures.library.list(deviceId, kind, sinceEpochMillis)
 
-    /** Stops what outlives the UI: a recording in progress, which is kept in the library. */
+    /**
+     * Stops what outlives the UI: the recordings in progress, each kept in the library. Every one is
+     * stopped even when another fails; a failure is reported once all have been tried.
+     */
     suspend fun dispose() {
-        recordings.withLock {
-            if (recording != null) stopRunningRecording()
-        }
+        val failures = stopRecordings(deviceIds = null).filterIsInstance<RecordingResult.Failed>()
         surface.close()
+        failures.firstOrNull()?.let { throw deviceControlError(it.reason) }
     }
 
     // Runs [action] on the selected device, reporting a failure as a notice instead of throwing.
@@ -547,3 +613,6 @@ internal class DeviceMirror(
         }
     }
 }
+
+/** The devices Record all starts: those that can record and are not recording already. */
+internal fun recordAllTargets(devices: List<MirrorDevice>, recordingDeviceIds: Set<String>): List<MirrorDevice> = devices.filter { it.controller.capabilities.recording && it.id !in recordingDeviceIds }

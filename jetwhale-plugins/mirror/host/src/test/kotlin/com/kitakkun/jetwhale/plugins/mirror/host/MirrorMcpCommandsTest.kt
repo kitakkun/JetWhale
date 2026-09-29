@@ -9,7 +9,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -207,6 +209,43 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `startRecording with all starts every device at once and reports each device's result`() {
+        val results = StartRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.map(JsonElement::jsonObject)
+
+        assertEquals(listOf<List<String>?>(null), mirror.recordingRequests)
+        assertEquals(listOf("started", "failed"), results.map { it.getValue("status").jsonPrimitive.content })
+        assertEquals("cannot record", results[1].getValue("error").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `startRecording with deviceIds starts just those`() {
+        StartRecordingCommand(mirror).run(buildJsonObject { put("deviceIds", buildJsonArray { add("emulator-5554") }) })
+
+        assertEquals(listOf<List<String>?>(listOf("emulator-5554")), mirror.recordingRequests)
+    }
+
+    @Test
+    fun `startRecording refuses a device together with all`() {
+        assertFailsWith<JetWhaleMcpArgumentException> {
+            StartRecordingCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "emulator-5554")
+                    put("all", true)
+                },
+            )
+        }
+        assertEquals(emptyList(), mirror.recordingRequests)
+    }
+
+    @Test
+    fun `stopRecording with all reports each saved file`() {
+        val result = StopRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.single().jsonObject
+
+        assertEquals("stopped", result.getValue("status").jsonPrimitive.content)
+        assertEquals(recording.file.absolutePath, result.getValue("path").jsonPrimitive.content)
+    }
+
+    @Test
     fun `listCaptures passes its filters on and reports each capture's file, device and length`() {
         val captures = ListCapturesCommand(mirror).run(
             buildJsonObject {
@@ -259,7 +298,18 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
 
     override suspend fun startRecording(device: MirrorDevice) = Unit
 
-    override suspend fun stopRecording(): Capture = throw deviceControlError("no recording is running")
+    val recordingRequests = mutableListOf<List<String>?>()
+
+    override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> {
+        recordingRequests += deviceIds
+        return (deviceIds ?: devices.map(MirrorDevice::id)).map { id ->
+            if (id == devices.first().id) RecordingResult.Started(deviceId = id, deviceName = "Pixel 9") else RecordingResult.Failed(deviceId = id, deviceName = id, reason = "cannot record")
+        }
+    }
+
+    override suspend fun stopRecording(deviceId: String?): Capture = throw deviceControlError("no recording is running")
+
+    override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = listOf(RecordingResult.Saved(recording))
 
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> {
         captureQueries += CaptureQuery(deviceId, kind, sinceEpochMillis)
