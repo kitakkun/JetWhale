@@ -1,8 +1,9 @@
 # Device Mirror <Badge type="warning" text="experimental" />
 
 The Device Mirror shows the live screen of an Android emulator or device, an iOS simulator, or a
-physical iPhone inside the host window. You can tap, swipe, type and press hardware buttons on
-the mirrored screen, and take screenshots and recordings. Captures are kept per device, so the
+physical iPhone inside the host window. On Android devices and simulators you can tap, swipe,
+type and press hardware buttons on the mirrored screen; an iPhone is view-only. Every device can
+take screenshots and recordings. Captures are kept per device, so the
 ones from a test run are easy to find again. An AI agent can do the same over MCP.
 
 It is a host-only plugin: the app you debug needs no agent for it, and it appears for every
@@ -74,17 +75,17 @@ When a tool is missing, the device list says which one and what it would enable.
   says so and offers **Wake**, which turns the screen on and lifts a lock screen that has no PIN,
   pattern or password. The toolbar has **Screen off** or **Wake** after the hardware buttons.
   iOS devices have neither.
-- **Screenshot and Record.** Both save into the device's captures (below). Only one recording
-  runs at a time. Android stops recording on its own after 180 seconds.
+- **Screenshot and Record.** Both save into the device's captures (below). Each device records
+  on its own, so several can record at once. Android stops recording on its own after 180 seconds.
 - **Stats.** **Stats** under the screen shows frames received and shown per second, the longest
   gap between two shown frames, and how long decoding, copying and drawing each take. Time spent
   waiting for a still screen, which sends nothing, is not counted as decoding.
 
 ### A physical iPhone is view-only
 
-idb can show an iPhone's screen and take screenshots of it, but it cannot send touches, buttons
-or text to a real device. For an iPhone the mirror therefore shows **View only**: screenshots
-work, while input and recording do not.
+idb can show an iPhone's screen, but it cannot send touches, buttons or text to a real device.
+For an iPhone the mirror therefore shows **View only**: input does not work, while screenshots and
+recordings, both taken from its video stream, do (recording needs ffmpeg).
 
 If an iPhone stays black:
 
@@ -159,5 +160,5 @@ can be left out to use the device selected in the mirror.
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops it; returns the video's path and length |
 | `com.kitakkun.jetwhale.mirror.listCaptures` | Saved captures, newest first, optionally only one `deviceId`, one `kind` (`Screenshot` or `Recording`), or those taken at or after `since` (epoch milliseconds) |
 
-An agent can read a returned path to look at the capture. On a physical iPhone, input and
-recording are refused with the reason.
+An agent can read a returned path to look at the capture. On a physical iPhone, input is
+refused with the reason.
