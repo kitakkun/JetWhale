@@ -259,10 +259,36 @@ class DefaultMcpServerServiceTest {
             awaitCapableFor(testSessionId) { testPluginId in it }
             assertTrue("com.example.test.greet" in servedToolNames())
 
+            every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns null
             eventFlow.emit(PluginInstanceEvent.Disposed(testPluginId, testSessionId))
 
             awaitCapableFor(testSessionId) { testPluginId !in it }
             assertFalse("com.example.test.greet" in servedToolNames())
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
+    fun `a re-enabled instance keeps its tools when the previous instance's disposal is reported after it is ready`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
+        val pluginId = "com.example.test"
+        val sessionId = "host"
+        every { pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) } returns FakeMcpCapablePlugin()
+
+        service.start(host, port)
+        try {
+            eventFlow.emit(PluginInstanceEvent.Ready(pluginId, sessionId))
+            eventFlow.emit(PluginInstanceEvent.Disposed(pluginId, sessionId))
+            // Drain: a third, unrelated plugin's Ready proves both events above were handled.
+            every { pluginInstanceService.getPluginInstanceForSession("com.example.marker", sessionId) } returns
+                FakeMcpCapablePlugin(toolName = "com.example.marker.greet")
+            eventFlow.emit(PluginInstanceEvent.Ready("com.example.marker", sessionId))
+            awaitCapableFor(sessionId) { "com.example.marker" in it }
+
+            assertTrue(pluginId in service.mcpCapablePluginsFlow.value.pluginIdsFor(sessionId))
+            assertTrue("com.example.test.greet" in servedToolNames())
         } finally {
             service.stop()
         }

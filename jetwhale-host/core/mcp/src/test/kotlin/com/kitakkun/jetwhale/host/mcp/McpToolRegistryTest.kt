@@ -62,11 +62,11 @@ class McpToolRegistryTest {
     }
 
     @Test
-    fun `unregistering a plugin drops it from the capable set`() {
+    fun `replacing a plugin with nothing drops it from the capable set`() {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
         registry.register("com.example.b", "session-1", FakeTooledPlugin("b.greet"))
 
-        registry.unregister("com.example.a", "session-1")
+        registry.replace("com.example.a", "session-1", plugin = null)
 
         assertEquals(setOf("com.example.b"), registry.mcpCapablePluginsFlow.value.pluginIdsFor("session-1"))
     }

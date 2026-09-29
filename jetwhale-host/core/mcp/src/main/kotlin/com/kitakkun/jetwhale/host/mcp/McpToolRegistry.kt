@@ -56,15 +56,21 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     }
 
     /**
-     * Removes the given session from every tool entry.
-     * Tool entries with no remaining sessions are cleaned up.
+     * Makes [plugin]'s tools the ones registered for [pluginId] in [sessionId], dropping any it had
+     * before; null removes them. Tool entries left with no session are cleaned up.
      */
-    fun unregister(pluginId: String, sessionId: String) = synchronized(publishLock) {
+    fun replace(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin?) = synchronized(publishLock) {
         registrations.entries.removeIf { (_, entry) ->
             if (entry.sessionToPlugin[sessionId] == pluginId) {
                 entry.sessionToPlugin.remove(sessionId)
             }
             entry.sessionToPlugin.isEmpty()
+        }
+        plugin?.mcpCommands?.forEach { command ->
+            val entry = registrations.getOrPut(command.name) {
+                PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
+            }
+            entry.sessionToPlugin[sessionId] = pluginId
         }
         publishCapablePlugins()
     }
