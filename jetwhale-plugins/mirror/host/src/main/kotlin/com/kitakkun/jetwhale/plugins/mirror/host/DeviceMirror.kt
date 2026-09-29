@@ -135,8 +135,8 @@ internal class DeviceMirror(
     var screenPower: ScreenPower? by mutableStateOf(null)
         private set
 
-    // Written only under the device's recording lock, read from anywhere; [recordingsStartedAtMillis]
-    // is republished from it on every change.
+    // Changed only under the device's recording lock, through [changeRecordings], which republishes
+    // [recordingsStartedAtMillis]; read from anywhere.
     private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
     private class ActiveRecording(val device: MirrorDevice, val handle: DeviceRecording, val file: File, val startedAt: Instant)
@@ -528,8 +528,7 @@ internal class DeviceMirror(
             file.delete()
             throw e
         }
-        activeRecordings[device.id] = ActiveRecording(device, handle, file, Instant.now())
-        publishRecordings()
+        changeRecordings { it[device.id] = ActiveRecording(device, handle, file, Instant.now()) }
     }
 
     override suspend fun stopRecording(deviceId: String?): Capture {
@@ -565,8 +564,7 @@ internal class DeviceMirror(
     }
 
     private suspend fun stopRecordingLocked(deviceId: String): Capture {
-        val running = activeRecordings.remove(deviceId) ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
-        publishRecordings()
+        val running = changeRecordings { it.remove(deviceId) } ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
         // The recorder has been told to stop either way, so a failed stop cannot be retried; the
         // reserved file would otherwise stay in the folder, unlisted because it has no sidecar.
         val file = try {
@@ -585,10 +583,12 @@ internal class DeviceMirror(
 
     private fun recordingLockOf(deviceId: String): Mutex = recordingLocks.getOrPut(deviceId, ::Mutex)
 
-    // Rebuilt from the map rather than edited, so concurrent changes on two devices cannot overwrite
-    // each other's entry.
-    private fun publishRecordings() {
-        recordingsStartedAtMillis = activeRecordings.mapValues { it.value.startedAt.toEpochMilli() }
+    // Each change and the state it publishes happen together, so two devices changing at once cannot
+    // publish out of order and leave the other's change unseen.
+    private fun <T> changeRecordings(change: (MutableMap<String, ActiveRecording>) -> T): T = synchronized(activeRecordings) {
+        change(activeRecordings).also {
+            recordingsStartedAtMillis = activeRecordings.mapValues { entry -> entry.value.startedAt.toEpochMilli() }
+        }
     }
 
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = captures.library.list(deviceId, kind, sinceEpochMillis)
