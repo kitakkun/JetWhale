@@ -117,10 +117,13 @@ class DeviceMirrorTest {
 
     @Test
     fun `two devices record at once and stopping them all keeps each in its device's captures`() = runBlocking {
-        val otherRecorder = SlowRecorder()
+        // Each start waits until the other has begun too, so starting one after the other never ends.
+        val bothStarting = StartBarrier(parties = 2)
+        recorder.startGate = bothStarting
+        val otherRecorder = SlowRecorder().apply { startGate = bothStarting }
         val other = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), otherRecorder)
 
-        val started = mirror.startRecordingsOf(listOf(device, other))
+        val started = withTimeout(PARALLEL_START_TIMEOUT_MILLIS) { mirror.startRecordingsOf(listOf(device, other)) }
         val saved = mirror.stopRecordings(deviceIds = null)
 
         assertEquals(2, started.filterIsInstance<RecordingResult.Started>().size)
