@@ -111,7 +111,7 @@ object OfficialPluginCatalog {
         OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.mirror",
             displayName = "Device Mirror",
-            description = "Mirror and drive Android devices, iOS simulators and iPhones, and record their screens.",
+            description = "Mirror Android devices, iOS simulators and iPhones, drive Android devices and simulators, and record their screens.",
             artifactId = "jetwhale-device-mirror",
             agentArtifactId = null,
             agentRegistration = null,
