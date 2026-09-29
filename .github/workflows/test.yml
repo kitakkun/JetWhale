@@ -78,3 +78,32 @@ jobs:
 
       - name: Run Apple tests
         run: ./gradlew macosArm64Test iosSimulatorArm64Test
+
+  # Publishes the JVM and Android variants (and the root module files) to Maven Local, unsigned, and
+  # checks them for the lint plugin leaking into what apps and host plugins consume: a Kotrail
+  # dependency in a POM or module file, or Kotrail annotations in an Android artifact that lacks the
+  # consumer rule R8 needs. Apple variants are left to the release build; their klibs only warn.
+  published-artifacts:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Publish to Maven Local
+        run: >
+          ./gradlew
+          --init-script .github/scripts/no-signing.init.gradle.kts
+          -PjetwhaleSnapshot
+          publishAndroidPublicationToMavenLocal
+          publishJvmPublicationToMavenLocal
+          publishKotlinMultiplatformPublicationToMavenLocal
+          publishMavenPublicationToMavenLocal
+
+      - name: Check the published artifacts
+        run: |
+          version="$(sed -n 's/^jetwhale = "\(.*\)"$/\1/p' gradle/libs.versions.toml)-SNAPSHOT"
+          .github/scripts/check-published-artifacts.sh "$version"

@@ -1,4 +1,6 @@
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryExtension
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import util.JetWhalePublishExtension
 
 plugins {
@@ -17,6 +19,17 @@ val legalFiles = generateSequence(rootDir, File::getParentFile)
 
 tasks.withType<Jar>().configureEach {
     from(legalFiles) { into("META-INF") }
+}
+
+// Classes compiled here can carry the lint plugin's inferred-fact annotations, whose classes are
+// never published; an app shrinking the Android artifact with R8 would otherwise stop on them.
+pluginManager.withPlugin("com.android.kotlin.multiplatform.library") {
+    extensions.getByType<KotlinMultiplatformExtension>().extensions.configure<KotlinMultiplatformAndroidLibraryExtension> {
+        optimization {
+            consumerKeepRules.publish = true
+            consumerKeepRules.file(rootProject.file("gradle/consumer-rules/kotrail.pro"))
+        }
+    }
 }
 
 afterEvaluate {

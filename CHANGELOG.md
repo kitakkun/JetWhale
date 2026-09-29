@@ -13,6 +13,10 @@ are experimental.
 
 - **Device Mirror** (experimental) decodes the H.264 video of Android devices and iPhones with the `ffmpeg` command installed on your machine instead of bundling ffmpeg's native libraries, so one plugin jar now works on every OS. Install ffmpeg for live video from those devices; without it an Android device is shown through screenshots. iOS simulators and emulators that expose their gRPC screen stream don't need it (#332).
 
+### Fixed
+
+- Android apps using R8 no longer fail with a missing `com.kitakkun.kotrail` class; the libraries ship a consumer rule for it (#333).
+
 ## [1.0.0-alpha12] - 2026-09-28
 
 ### Added
