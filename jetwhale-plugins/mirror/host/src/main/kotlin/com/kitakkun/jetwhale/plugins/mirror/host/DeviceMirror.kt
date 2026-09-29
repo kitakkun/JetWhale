@@ -139,6 +139,9 @@ internal class DeviceMirror(
     // [recordingsStartedAtMillis]; read from anywhere.
     private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
+    @Volatile
+    private var disposed = false
+
     private class ActiveRecording(val device: MirrorDevice, val handle: DeviceRecording, val file: File, val startedAt: Instant)
 
     val surface = MirrorSurface()
@@ -516,6 +519,7 @@ internal class DeviceMirror(
     }
 
     private suspend fun startRecordingLocked(device: MirrorDevice) {
+        if (disposed) throw deviceControlError("the mirror is closing; no recording can start")
         if (activeRecordings.containsKey(device.id)) throw deviceControlError("${device.listing.name} is already recording; stop it first")
         val file = try {
             captures.recordingFile(device.listing)
@@ -598,7 +602,14 @@ internal class DeviceMirror(
      * stopped even when another fails; a failure is reported once all have been tried.
      */
     suspend fun dispose() {
-        val failures = stopRecordings(deviceIds = null).filterIsInstance<RecordingResult.Failed>()
+        // No start begins after this. One already under way holds its device's lock until its
+        // recorder is running, so taking every lock waits for it, and its recording is stopped too.
+        disposed = true
+        val failures = coroutineScope {
+            recordingLocks.keys.toList().map { id ->
+                async { recordingLockOf(id).withLock { if (activeRecordings.containsKey(id)) stopResultLocked(id) else null } }
+            }.awaitAll()
+        }.filterIsInstance<RecordingResult.Failed>()
         surface.close()
         failures.firstOrNull()?.let { throw deviceControlError(it.reason) }
     }

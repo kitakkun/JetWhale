@@ -170,6 +170,23 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a recording still starting when the mirror is disposed is stopped with the others`() = runBlocking {
+        val gate = StartBarrier(parties = 2)
+        recorder.startGate = gate
+        val starting = scope.async { mirror.startRecording(device) }
+        withTimeout(PARALLEL_START_TIMEOUT_MILLIS) { recorder.entered.await() }
+
+        val disposing = scope.async { mirror.dispose() }
+        gate.arrive()
+        starting.await()
+        withTimeout(PARALLEL_START_TIMEOUT_MILLIS) { disposing.await() }
+
+        assertEquals(1, recorder.stopped.get())
+        assertTrue(mirror.recordingsStartedAtMillis.isEmpty())
+        assertTrue(runCatching { mirror.startRecording(device) }.exceptionOrNull() is DeviceControlException)
+    }
+
+    @Test
     fun `Record all targets only the devices that can record and are not recording yet`() {
         val idle = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
         val cannotRecord = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))
@@ -295,6 +312,20 @@ private const val QUEUED_CLICKS_TIMEOUT_MILLIS = 5_000L
 /** Long enough that every concurrent call reaches the recorder while the first is still inside it. */
 private const val RECORDER_LATENCY_MILLIS = 100L
 
+/** Long enough for two recorders that start together, far shorter than one waiting for the other forever. */
+private const val PARALLEL_START_TIMEOUT_MILLIS = 5_000L
+
+/** Holds each caller of [arrive] until [parties] callers have arrived. */
+private class StartBarrier(private val parties: Int) {
+    private val arrived = AtomicInteger()
+    private val open = CompletableDeferred<Unit>()
+
+    suspend fun arrive() {
+        if (arrived.incrementAndGet() >= parties) open.complete(Unit)
+        open.await()
+    }
+}
+
 private class SlowRecorder : DeviceController {
     val started = AtomicInteger()
     val stopped = AtomicInteger()
@@ -307,7 +338,15 @@ private class SlowRecorder : DeviceController {
 
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true, screenPower = false)
 
+    /** Completes when a start has begun. */
+    val entered = CompletableDeferred<Unit>()
+
+    /** When set, a start waits at it until every party has arrived. */
+    var startGate: StartBarrier? = null
+
     override suspend fun startRecording(outputFile: File): DeviceRecording {
+        entered.complete(Unit)
+        startGate?.arrive()
         delay(RECORDER_LATENCY_MILLIS)
         started.incrementAndGet()
         return object : DeviceRecording {
