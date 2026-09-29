@@ -33,6 +33,7 @@ class PluginInstallNoticesTest {
     private val opened = mutableListOf<PluginInstallJob>()
     private val retried = mutableListOf<PluginInstallRequest>()
     private val dismissed = mutableListOf<String>()
+    private var dismissCalls = 0
     private var installedPluginsShown = 0
     private var installsReviewed = 0
 
@@ -173,13 +174,14 @@ class PluginInstallNoticesTest {
     }
 
     @Test
-    fun `closing a batch notice dismisses every install in it`() = runComposeUiTest {
+    fun `closing a batch notice dismisses every install in it at once`() = runComposeUiTest {
         showNotices(persistentListOf(failed, failed.copy(id = "job-2", request = mavenRequest("storage"))))
 
         onNodeWithContentDescription("Dismiss").performClick()
         waitForIdle()
 
         assertEquals(listOf("job-1", "job-2"), dismissed)
+        assertEquals(1, dismissCalls)
         assertEquals(0, installsReviewed)
     }
 
@@ -193,7 +195,10 @@ class PluginInstallNoticesTest {
                     snackbarHostState = hostState,
                     onOpen = { opened += it },
                     onRetry = { retried += it },
-                    onDismiss = { dismissed += it },
+                    onDismiss = { jobIds ->
+                        dismissCalls += 1
+                        dismissed += jobIds
+                    },
                     onShowInstalledPlugins = { installedPluginsShown++ },
                     onReviewInstalls = { installsReviewed++ },
                 )

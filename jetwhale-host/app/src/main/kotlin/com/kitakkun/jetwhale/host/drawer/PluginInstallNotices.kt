@@ -41,8 +41,8 @@ import org.jetbrains.compose.resources.getString
  * where each failure shows its reason and a retry. Successes also leave on their own; a failure stays
  * until the user acts on it.
  *
- * A notice and its installs' entries in the plugin settings go together: [onDismiss] is called for
- * every install a notice leaves with, except the failures the user went to review, and an install
+ * A notice and its installs' entries in the plugin settings go together: [onDismiss] is called once,
+ * with every install a notice leaves with except the failures the user went to review, and an install
  * dismissed elsewhere leaves the notice.
  */
 @Composable
@@ -51,7 +51,7 @@ internal fun PluginInstallNotices(
     snackbarHostState: JwSnackbarHostState,
     onOpen: (PluginInstallJob) -> Unit,
     onRetry: (PluginInstallRequest) -> Unit,
-    onDismiss: (jobId: String) -> Unit,
+    onDismiss: (jobIds: List<String>) -> Unit,
     onShowInstalledPlugins: () -> Unit,
     onReviewInstalls: () -> Unit,
 ) {
@@ -90,29 +90,29 @@ internal fun PluginInstallNotices(
                 when (notice.action) {
                     is NoticeAction.Open -> {
                         if (result == JwSnackbarResult.ActionPerformed) currentOnOpen(notice.action.job)
-                        currentOnDismiss(notice.action.job.id)
+                        currentOnDismiss(listOf(notice.action.job.id))
                     }
 
                     is NoticeAction.Retry -> when (result) {
                         // The retry replaces this install in the list, so there is nothing to dismiss.
                         JwSnackbarResult.ActionPerformed -> currentOnRetry(notice.action.job.request)
 
-                        JwSnackbarResult.Dismissed -> currentOnDismiss(notice.action.job.id)
+                        JwSnackbarResult.Dismissed -> currentOnDismiss(listOf(notice.action.job.id))
                     }
 
                     is NoticeAction.ShowInstalledPlugins -> {
                         if (result == JwSnackbarResult.ActionPerformed) currentOnShowInstalledPlugins()
-                        finished.forEach { currentOnDismiss(it.id) }
+                        currentOnDismiss(finished.map(PluginInstallJob::id))
                     }
 
                     is NoticeAction.ReviewInstalls -> when (result) {
                         // The failures stay listed on the page the user goes to, with their retries.
                         JwSnackbarResult.ActionPerformed -> {
-                            finished.filter { it.status == PluginInstallStatus.Succeeded }.forEach { currentOnDismiss(it.id) }
+                            currentOnDismiss(finished.filter { it.status == PluginInstallStatus.Succeeded }.map(PluginInstallJob::id))
                             currentOnReviewInstalls()
                         }
 
-                        JwSnackbarResult.Dismissed -> finished.forEach { currentOnDismiss(it.id) }
+                        JwSnackbarResult.Dismissed -> currentOnDismiss(finished.map(PluginInstallJob::id))
                     }
                 }
             }

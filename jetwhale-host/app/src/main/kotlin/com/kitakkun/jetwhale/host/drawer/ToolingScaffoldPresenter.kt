@@ -51,8 +51,12 @@ sealed interface ToolingScaffoldScreenAction {
     /** From a failed install's notice: the same install again. */
     data class RetryPluginInstall(val request: PluginInstallRequest) : ToolingScaffoldScreenAction
 
-    /** A finished install's notice left; the install leaves the plugin settings' list with it. */
-    data class DismissPluginInstall(val jobId: String) : ToolingScaffoldScreenAction
+    /**
+     * A finished installs' notice left; the installs leave the plugin settings' list with it. One
+     * action for the whole notice, since a UI callback's send is not suspending and a large batch sent
+     * one install at a time could overrun the action buffer.
+     */
+    data class DismissPluginInstalls(val jobIds: List<String>) : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -198,7 +202,7 @@ fun toolingScaffoldPresenter(
 
             is ToolingScaffoldScreenAction.RetryPluginInstall -> startPluginInstallMutation.mutateAsync(action.request)
 
-            is ToolingScaffoldScreenAction.DismissPluginInstall -> dismissPluginInstallMutation.mutateAsync(action.jobId)
+            is ToolingScaffoldScreenAction.DismissPluginInstalls -> action.jobIds.forEach { dismissPluginInstallMutation.mutateAsync(it) }
         }
     }
 
