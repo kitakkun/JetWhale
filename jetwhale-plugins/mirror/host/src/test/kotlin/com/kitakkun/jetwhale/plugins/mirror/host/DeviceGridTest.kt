@@ -33,6 +33,8 @@ class DeviceGridTest {
                     selectedId = null,
                     missingTools = emptyList(),
                     notices = IgnoredNotices,
+                    recording = NotRecording,
+                    recordingActions = IgnoredRecordingActions,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { id, _ ->
                         polling += id
@@ -68,6 +70,8 @@ class DeviceGridTest {
                     selectedId = null,
                     missingTools = emptyList(),
                     notices = IgnoredNotices,
+                    recording = NotRecording,
+                    recordingActions = IgnoredRecordingActions,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -134,6 +138,8 @@ class DeviceGridTest {
                     selectedId = null,
                     missingTools = emptyList(),
                     notices = IgnoredNotices,
+                    recording = NotRecording,
+                    recordingActions = IgnoredRecordingActions,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -170,6 +176,8 @@ class DeviceGridTest {
                     selectedId = null,
                     missingTools = emptyList(),
                     notices = IgnoredNotices,
+                    recording = NotRecording,
+                    recordingActions = IgnoredRecordingActions,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -197,6 +205,8 @@ class DeviceGridTest {
                     selectedId = null,
                     missingTools = emptyList(),
                     notices = IgnoredNotices,
+                    recording = NotRecording,
+                    recordingActions = IgnoredRecordingActions,
                     thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
                     poll = { _, _ -> awaitCancellation() },
                     livenessOf = { DeviceLiveness.Unknown },
@@ -223,4 +233,14 @@ private object IgnoredNotices : MirrorNoticeActions {
     override fun dismiss() = Unit
 
     override fun hold(held: Boolean) = Unit
+}
+
+private val NotRecording = GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = emptyList(), warningSuppressed = false)
+
+private object IgnoredRecordingActions : GridRecordingActions {
+    override fun recordAll() = Unit
+
+    override fun stopAll() = Unit
+
+    override fun suppressWarning() = Unit
 }

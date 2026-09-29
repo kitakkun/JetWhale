@@ -104,6 +104,8 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
                 is NoticeAction.RetryScreenshots -> saveScreenshots(mirror.devices.filter { it.id in action.deviceIds }, mirror, thumbnails, scope)
 
                 is NoticeAction.RetryRecording -> mirror.retryRecording(action.deviceId)
+
+                is NoticeAction.RetryRecordings -> mirror.retryRecordings(action.deviceIds)
             }
         }
 
@@ -160,9 +162,7 @@ private fun SingleMirrorRoot(
         state = mirror.state,
         notices = notices,
         screenPower = mirror.screenPower,
-        recordingSinceMillis = mirror.recordingStartedAtMillis.takeIf { mirror.recordingDeviceId == mirror.selectedId },
-        // One recording runs at a time, and Record stops it wherever it runs.
-        otherRecordingDeviceName = mirror.devices.firstOrNull { it.id == mirror.recordingDeviceId && it.id != mirror.selectedId }?.listing?.name,
+        recordingSinceMillis = mirror.selectedId?.let(mirror.recordingsStartedAtMillis::get),
         surface = mirror.surface,
         actions = mirror,
         showCaptures = showCaptures,
@@ -214,7 +214,6 @@ internal fun MirrorScreen(
     notices: MirrorNoticeActions,
     screenPower: ScreenPower?,
     recordingSinceMillis: Long?,
-    otherRecordingDeviceName: String?,
     surface: MirrorSurface,
     actions: MirrorActions,
     showCaptures: Boolean,
@@ -235,7 +234,7 @@ internal fun MirrorScreen(
         } else {
             // While switching, the screen state still describes the previous device.
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis, otherRecordingDeviceName)
+            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis)
             DevicePane(pane, surface, actions, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
@@ -253,7 +252,6 @@ internal class DevicePaneState(
     val state: MirrorState,
     val screenPower: ScreenPower?,
     val recordingSinceMillis: Long?,
-    val otherRecordingDeviceName: String?,
 )
 
 @Composable

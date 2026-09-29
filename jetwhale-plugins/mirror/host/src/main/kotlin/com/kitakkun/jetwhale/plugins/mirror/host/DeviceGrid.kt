@@ -119,6 +119,8 @@ internal fun DeviceGrid(
     selectedId: String?,
     missingTools: List<String>,
     notices: MirrorNoticeActions,
+    recording: GridRecordingState,
+    recordingActions: GridRecordingActions,
     thumbnailOf: (String) -> DeviceThumbnail,
     poll: suspend (deviceId: String, heightPx: Int) -> Unit,
     livenessOf: (String) -> DeviceLiveness,
@@ -133,6 +135,7 @@ internal fun DeviceGrid(
                 DevicePicker(devices = devices, selected = null, livenessOf = livenessOf, onSelect = onOpen, onShowAll = {}, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
             },
             actions = {
+                RecordAllButton(recording, recordingActions)
                 JwIconButton(tooltip = "Screenshot of every device", onClick = onScreenshotAll, enabled = devices.isNotEmpty()) {
                     JwIcon(imageVector = ScreenshotIcon, contentDescription = null)
                 }
@@ -144,7 +147,7 @@ internal fun DeviceGrid(
             if (devices.isEmpty()) {
                 NoDevices()
             } else {
-                TileGroup(devices, selectedId, thumbnailOf, poll, livenessOf, onOpen, onScreenshot)
+                TileGroup(devices, selectedId, recording.recordingDeviceIds, thumbnailOf, poll, livenessOf, onOpen, onScreenshot)
             }
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
@@ -155,6 +158,7 @@ internal fun DeviceGrid(
 private fun TileGroup(
     devices: List<DeviceListing>,
     selectedId: String?,
+    recordingDeviceIds: Set<String>,
     thumbnailOf: (String) -> DeviceThumbnail,
     poll: suspend (deviceId: String, heightPx: Int) -> Unit,
     livenessOf: (String) -> DeviceLiveness,
@@ -187,6 +191,7 @@ private fun TileGroup(
                             thumbnail = thumbnailOf(device.id),
                             liveness = livenessOf(device.id),
                             selected = device.id == selectedId,
+                            recording = device.id in recordingDeviceIds,
                             screenWidth = screenHeight * aspectRatios[index],
                             screenHeight = screenHeight,
                             nowMillis = nowMillis,
@@ -210,6 +215,7 @@ private fun DeviceTile(
     thumbnail: DeviceThumbnail,
     liveness: DeviceLiveness,
     selected: Boolean,
+    recording: Boolean,
     screenWidth: Dp,
     screenHeight: Dp,
     nowMillis: Long,
@@ -236,6 +242,7 @@ private fun DeviceTile(
     ) {
         Box(Modifier.size(screenWidth, screenHeight)) {
             TileScreen(device, thumbnail, selected, cornerRadius = screenWidth * SCREEN_CORNER_FRACTION)
+            if (recording) RecordingBadge(Modifier.align(Alignment.TopStart).padding(JwSpacing.small))
             if (hovered || focused) {
                 TileActions(device, Modifier.align(Alignment.TopEnd).padding(JwSpacing.small), onOpen, onScreenshot)
             }
@@ -269,6 +276,22 @@ private fun TileScreen(device: DeviceListing, thumbnail: DeviceThumbnail, select
             is ThumbnailState.Loading -> if (thumbnail.image == null) JwText(text = "Capturing…", color = JwTheme.colors.textSecondary)
             is ThumbnailState.ScreenOff -> JwTag(text = "Screen off")
             is ThumbnailState.Failed -> JwTag(text = "Unavailable", tone = JwTone.Error)
+        }
+    }
+}
+
+/** Marks a tile whose device is recording, where it stays in view over any screen. */
+@Composable
+private fun RecordingBadge(modifier: Modifier) {
+    JwSurface(
+        color = JwTheme.colors.elevatedBackground,
+        shape = JwShapes.medium,
+        border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
+        modifier = modifier.semantics { contentDescription = "Recording" },
+    ) {
+        Row(Modifier.padding(horizontal = JwSpacing.small, vertical = JwSpacing.tiny), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny)) {
+            RecordingDot()
+            JwText(text = "REC", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.error)
         }
     }
 }
@@ -361,6 +384,9 @@ private val EMPTY_STATE_COMMANDS_WIDTH = 360.dp
 internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, notices: MirrorNoticeActions, onShowSingle: () -> Unit) {
     val devices = mirror.devices
     val scope = rememberCoroutineScope()
+    val recordingDeviceIds = mirror.recordingsStartedAtMillis.keys
+    // Once the user asks not to be warned, Record all starts right away from then on.
+    var recordAllWarningSuppressed by rememberPersistent("recordAllWarningSuppressed", default = false)
     DeviceGrid(
         devices = devices.map(MirrorDevice::listing),
         selectedId = mirror.selectedId,
@@ -378,6 +404,20 @@ internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, 
             saveScreenshots(listOf(device), mirror, thumbnails, scope)
         },
         onScreenshotAll = { saveScreenshots(mirror.devices, mirror, thumbnails, scope) },
+        recording = GridRecordingState(
+            recordingDeviceIds = recordingDeviceIds,
+            recordableDevices = recordAllTargets(devices, recordingDeviceIds).map(MirrorDevice::listing),
+            warningSuppressed = recordAllWarningSuppressed,
+        ),
+        recordingActions = object : GridRecordingActions {
+            override fun recordAll() = mirror.recordAll()
+
+            override fun stopAll() = mirror.stopAllRecordings()
+
+            override fun suppressWarning() {
+                recordAllWarningSuppressed = true
+            }
+        },
     )
 }
 

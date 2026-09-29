@@ -29,6 +29,8 @@ private fun DeviceGridPreview() {
             selectedId = "emulator-5554",
             missingTools = emptyList(),
             notices = PreviewNotices(notice = null),
+            recording = previewGridRecording,
+            recordingActions = PreviewGridRecordingActions,
             thumbnailOf = { id -> DeviceThumbnail(image = null, updatedAtMillis = null, state = gridStates.getValue(id)) },
             poll = { _, _ -> awaitCancellation() },
             livenessOf = { DeviceLiveness.Unknown },
@@ -48,6 +50,8 @@ private fun DeviceGridEmptyPreview() {
             selectedId = null,
             missingTools = listOf("adb was not found; install the Android SDK platform tools to mirror Android devices."),
             notices = PreviewNotices(notice = MirrorNotice("Saved 3 screenshots", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())),
+            recording = previewGridRecording,
+            recordingActions = PreviewGridRecordingActions,
             thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
             poll = { _, _ -> awaitCancellation() },
             livenessOf = { DeviceLiveness.Unknown },
@@ -78,6 +82,36 @@ private fun LivenessDotPreview() {
     JwTheme(darkTheme = true) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DeviceLiveness.entries.forEach { LivenessDot(it) }
+        }
+    }
+}
+
+private val previewGridRecording = GridRecordingState(recordingDeviceIds = setOf("emulator-5554"), recordableDevices = emptyList(), warningSuppressed = false)
+
+private object PreviewGridRecordingActions : GridRecordingActions {
+    override fun recordAll() = Unit
+
+    override fun stopAll() = Unit
+
+    override fun suppressWarning() = Unit
+}
+
+@Preview
+@Composable
+private fun RecordAllWarningDialogPreview() {
+    JwTheme(darkTheme = true) {
+        RecordAllWarningDialog(targets = gridDevices, onRecord = {}, onCancel = {})
+    }
+}
+
+@Preview
+@Composable
+private fun RecordAllButtonPreview() {
+    JwTheme(darkTheme = true) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecordAllButton(GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = gridDevices, warningSuppressed = false), PreviewGridRecordingActions)
+            RecordAllButton(previewGridRecording, PreviewGridRecordingActions)
+            RecordingDot()
         }
     }
 }

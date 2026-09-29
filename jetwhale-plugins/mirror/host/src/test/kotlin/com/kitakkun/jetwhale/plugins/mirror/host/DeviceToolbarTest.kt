@@ -56,7 +56,6 @@ private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, scr
             state = MirrorState.Streaming,
             screenPower = screenPower,
             recordingSinceMillis = null,
-            otherRecordingDeviceName = null,
         ),
         actions = NoMirrorActions,
         showCaptures = false,

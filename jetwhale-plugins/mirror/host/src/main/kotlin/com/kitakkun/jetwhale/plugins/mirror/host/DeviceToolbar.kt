@@ -89,7 +89,7 @@ internal fun DeviceToolbar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 JwVerticalDivider(Modifier.height(CAPTURE_DIVIDER_HEIGHT).padding(end = JwSpacing.extraSmall))
-                CaptureActions(pane.capabilities, pane.recordingSinceMillis, pane.otherRecordingDeviceName, actions)
+                CaptureActions(pane.capabilities, pane.recordingSinceMillis, actions)
                 JwIconButton(tooltip = if (showCaptures) "Hide captures" else "Captures", onClick = onToggleCaptures, selected = showCaptures) {
                     JwIcon(imageVector = CapturesIcon, contentDescription = null)
                 }
@@ -143,15 +143,8 @@ private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions)
 }
 
 @Composable
-private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, otherRecordingDeviceName: String?, actions: MirrorActions) {
+private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, actions: MirrorActions) {
     when {
-        otherRecordingDeviceName != null -> JwButton(
-            text = "Stop recording on $otherRecordingDeviceName",
-            onClick = actions::finishRecording,
-            tone = JwTone.Error,
-            leadingIcon = { RecordingDot() },
-        )
-
         recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::finishRecording)
 
         capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::recordSelectedDevice) {
@@ -186,7 +179,7 @@ private fun RecordingButton(sinceMillis: Long, onStop: () -> Unit) {
 }
 
 @Composable
-private fun RecordingDot() {
+internal fun RecordingDot() {
     Box(Modifier.size(RECORDING_DOT_SIZE).background(JwTheme.colors.error, CircleShape))
 }
 
