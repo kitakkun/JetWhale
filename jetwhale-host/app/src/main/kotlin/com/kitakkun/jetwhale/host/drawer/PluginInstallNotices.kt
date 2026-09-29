@@ -3,8 +3,10 @@ package com.kitakkun.jetwhale.host.drawer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.PluginInstallJob
 import com.kitakkun.jetwhale.host.model.PluginInstallRequest
@@ -12,22 +14,36 @@ import com.kitakkun.jetwhale.host.model.PluginInstallStatus
 import com.kitakkun.jetwhale.host.model.isActive
 import com.kitakkun.jetwhale.host.notice_dismiss
 import com.kitakkun.jetwhale.host.plugin_install_failed_message
+import com.kitakkun.jetwhale.host.plugin_install_failed_several_message
+import com.kitakkun.jetwhale.host.plugin_install_mixed_message
+import com.kitakkun.jetwhale.host.plugin_install_more
 import com.kitakkun.jetwhale.host.plugin_install_open
 import com.kitakkun.jetwhale.host.plugin_install_retry
+import com.kitakkun.jetwhale.host.plugin_install_review
+import com.kitakkun.jetwhale.host.plugin_install_view
 import com.kitakkun.jetwhale.host.plugin_installed_message
+import com.kitakkun.jetwhale.host.plugin_installed_several_message
 import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwSnackbarResult
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.getString
 
 /**
- * One notice per finished install, wherever the user is: an install outlives the settings page that
- * started it. A failure stays until the user acts on it; a success also leaves on its own.
+ * One notice for all the installs that finished, wherever the user is: an install outlives the
+ * settings page that started it. Installs finishing close together, or while the notice is up, join
+ * it instead of queueing a notice each; the notice is then shown again with all of them.
  *
- * A notice and the install's entry in the plugin settings go together: [onDismiss] is called when a
- * notice leaves without a retry, and an install dismissed elsewhere takes its notice off the screen,
- * or out of the queue.
+ * A single install keeps its own actions: open the plugin, or retry. Several are summed up with an
+ * action to the page that lists them: the installed plugins, or, when any failed, the install list,
+ * where each failure shows its reason and a retry. Successes also leave on their own; a failure stays
+ * until the user acts on it.
+ *
+ * A notice and its installs' entries in the plugin settings go together: [onDismiss] is called once,
+ * with every install a notice leaves with except the failures the user went to review, and an install
+ * dismissed elsewhere leaves the notice.
  */
 @Composable
 internal fun PluginInstallNotices(
@@ -35,47 +51,136 @@ internal fun PluginInstallNotices(
     snackbarHostState: JwSnackbarHostState,
     onOpen: (PluginInstallJob) -> Unit,
     onRetry: (PluginInstallRequest) -> Unit,
-    onDismiss: (jobId: String) -> Unit,
+    onDismiss: (jobIds: List<String>) -> Unit,
+    onShowInstalledPlugins: () -> Unit,
+    onReviewInstalls: () -> Unit,
 ) {
+    val currentInstallJobs by rememberUpdatedState(installJobs)
     // A notice can wait in the snackbar queue for a while, so it acts through the callbacks of the
     // latest composition, not those of the one that queued it.
     val currentOnOpen by rememberUpdatedState(onOpen)
     val currentOnRetry by rememberUpdatedState(onRetry)
     val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentOnShowInstalledPlugins by rememberUpdatedState(onShowInstalledPlugins)
+    val currentOnReviewInstalls by rememberUpdatedState(onReviewInstalls)
 
-    installJobs.filterNot { it.status.isActive }.forEach { job ->
-        key(job.id) {
-            LaunchedEffect(Unit) {
-                when (val status = job.status) {
-                    PluginInstallStatus.Succeeded -> {
-                        val result = snackbarHostState.showSnackbar(
-                            message = getString(Res.string.plugin_installed_message, job.request.displayName),
-                            actionLabel = getString(Res.string.plugin_install_open),
-                            duration = JwSnackbarDuration.Long,
-                            dismissLabel = getString(Res.string.notice_dismiss),
-                        )
-                        if (result == JwSnackbarResult.ActionPerformed) currentOnOpen(job)
-                        currentOnDismiss(job.id)
+    // Installs whose notice has ended. They stay in the list until the presenter drops them, or for
+    // good when the user went to review them, and must not be announced again meanwhile.
+    val settledJobIds = remember { mutableStateSetOf<String>() }
+    LaunchedEffect(installJobs) {
+        val listedIds = installJobs.map(PluginInstallJob::id).toSet()
+        settledJobIds.retainAll(listedIds)
+    }
+
+    LaunchedEffect(snackbarHostState) {
+        snapshotFlow { currentInstallJobs.filter { !it.status.isActive && it.id !in settledJobIds } }
+            // A newer set of finished installs cancels the wait, or the notice on screen, which takes
+            // it off, and shows one for the whole set instead.
+            .collectLatest { finished ->
+                if (finished.isEmpty()) return@collectLatest
+                delay(BATCH_WINDOW_MILLIS)
+                val notice = noticeFor(finished)
+                val result = snackbarHostState.showSnackbar(
+                    message = notice.message,
+                    actionLabel = notice.actionLabel,
+                    duration = notice.duration,
+                    dismissLabel = getString(Res.string.notice_dismiss),
+                )
+                settledJobIds += finished.map(PluginInstallJob::id)
+                when (notice.action) {
+                    is NoticeAction.Open -> {
+                        if (result == JwSnackbarResult.ActionPerformed) currentOnOpen(notice.action.job)
+                        currentOnDismiss(listOf(notice.action.job.id))
                     }
 
-                    is PluginInstallStatus.Failed -> {
-                        val result = snackbarHostState.showSnackbar(
-                            message = getString(Res.string.plugin_install_failed_message, job.request.displayName, status.reason),
-                            actionLabel = getString(Res.string.plugin_install_retry),
-                            duration = JwSnackbarDuration.Indefinite,
-                            dismissLabel = getString(Res.string.notice_dismiss),
-                        )
-                        when (result) {
-                            // The retry replaces this install in the list, so there is nothing to dismiss.
-                            JwSnackbarResult.ActionPerformed -> currentOnRetry(job.request)
+                    is NoticeAction.Retry -> when (result) {
+                        // The retry replaces this install in the list, so there is nothing to dismiss.
+                        JwSnackbarResult.ActionPerformed -> currentOnRetry(notice.action.job.request)
 
-                            JwSnackbarResult.Dismissed -> currentOnDismiss(job.id)
+                        JwSnackbarResult.Dismissed -> currentOnDismiss(listOf(notice.action.job.id))
+                    }
+
+                    is NoticeAction.ShowInstalledPlugins -> {
+                        if (result == JwSnackbarResult.ActionPerformed) currentOnShowInstalledPlugins()
+                        currentOnDismiss(finished.map(PluginInstallJob::id))
+                    }
+
+                    is NoticeAction.ReviewInstalls -> when (result) {
+                        // The failures stay listed on the page the user goes to, with their retries.
+                        JwSnackbarResult.ActionPerformed -> {
+                            currentOnDismiss(finished.filter { it.status == PluginInstallStatus.Succeeded }.map(PluginInstallJob::id))
+                            currentOnReviewInstalls()
                         }
-                    }
 
-                    PluginInstallStatus.Queued, is PluginInstallStatus.Running -> Unit
+                        JwSnackbarResult.Dismissed -> currentOnDismiss(finished.map(PluginInstallJob::id))
+                    }
                 }
             }
-        }
     }
 }
+
+private class InstallNotice(
+    val message: String,
+    val actionLabel: String,
+    val duration: JwSnackbarDuration,
+    val action: NoticeAction,
+)
+
+private sealed interface NoticeAction {
+    class Open(val job: PluginInstallJob) : NoticeAction
+    class Retry(val job: PluginInstallJob) : NoticeAction
+    data object ShowInstalledPlugins : NoticeAction
+    data object ReviewInstalls : NoticeAction
+}
+
+private suspend fun noticeFor(finished: List<PluginInstallJob>): InstallNotice {
+    val successes = finished.filter { it.status == PluginInstallStatus.Succeeded }
+    val failures = finished.filter { it.status is PluginInstallStatus.Failed }
+    val single = finished.singleOrNull()
+    val singleFailure = single?.status as? PluginInstallStatus.Failed
+    return when {
+        single != null && single.status == PluginInstallStatus.Succeeded -> InstallNotice(
+            message = getString(Res.string.plugin_installed_message, single.request.displayName),
+            actionLabel = getString(Res.string.plugin_install_open),
+            duration = JwSnackbarDuration.Long,
+            action = NoticeAction.Open(single),
+        )
+
+        single != null && singleFailure != null -> InstallNotice(
+            message = getString(Res.string.plugin_install_failed_message, single.request.displayName, singleFailure.reason),
+            actionLabel = getString(Res.string.plugin_install_retry),
+            duration = JwSnackbarDuration.Indefinite,
+            action = NoticeAction.Retry(single),
+        )
+
+        failures.isEmpty() -> InstallNotice(
+            message = getString(Res.string.plugin_installed_several_message, namesOf(successes)),
+            actionLabel = getString(Res.string.plugin_install_view),
+            duration = JwSnackbarDuration.Long,
+            action = NoticeAction.ShowInstalledPlugins,
+        )
+
+        else -> InstallNotice(
+            message = if (successes.isEmpty()) {
+                getString(Res.string.plugin_install_failed_several_message, namesOf(failures))
+            } else {
+                getString(Res.string.plugin_install_mixed_message, namesOf(successes), namesOf(failures))
+            },
+            actionLabel = getString(Res.string.plugin_install_review),
+            duration = JwSnackbarDuration.Indefinite,
+            action = NoticeAction.ReviewInstalls,
+        )
+    }
+}
+
+/** The first few plugin names, then how many more, so a long batch still fits the snackbar. */
+private suspend fun namesOf(jobs: List<PluginInstallJob>): String {
+    val names = jobs.take(MAX_NAMED_PLUGINS).joinToString(", ") { it.request.displayName }
+    val unnamed = jobs.size - MAX_NAMED_PLUGINS
+    return if (unnamed > 0) "$names, ${getString(Res.string.plugin_install_more, unnamed)}" else names
+}
+
+/** How long finishing installs are gathered into one notice before it shows. */
+private const val BATCH_WINDOW_MILLIS = 1_000L
+
+private const val MAX_NAMED_PLUGINS = 3

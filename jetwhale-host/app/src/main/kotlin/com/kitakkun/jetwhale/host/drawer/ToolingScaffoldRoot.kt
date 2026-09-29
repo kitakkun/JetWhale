@@ -103,7 +103,10 @@ fun ToolingScaffoldRoot(
                 snackbarHostState = snackbarHostState,
                 onOpen = { job -> openInstalledPlugin(job, uiState, screenChannel, onClickPlugin, onClickInactivePlugin, onNavigateSettings) },
                 onRetry = { request -> screenChannel.send(ToolingScaffoldScreenAction.RetryPluginInstall(request)) },
-                onDismiss = { jobId -> screenChannel.send(ToolingScaffoldScreenAction.DismissPluginInstall(jobId)) },
+                onDismiss = { jobIds -> screenChannel.send(ToolingScaffoldScreenAction.DismissPluginInstalls(jobIds)) },
+                onShowInstalledPlugins = { onNavigateSettings(SettingsScreenPage.InstalledPlugins) },
+                // The install list, with each failure's reason and retry, is on the page that adds plugins.
+                onReviewInstalls = { onNavigateSettings(SettingsScreenPage.AddPlugins) },
             )
 
             val scope = rememberCoroutineScope()
