@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class OfficialPluginTest {
     private val plugin = OfficialPlugin(
@@ -59,5 +60,10 @@ class OfficialPluginTest {
     @Test
     fun `the agent coordinates follow the host's version`() {
         assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", plugin.agentCoordinates(HostVersionInfo("1.2.0-SNAPSHOT")))
+    }
+
+    @Test
+    fun `a host-only plugin has no agent coordinates`() {
+        assertNull(plugin.copy(agentArtifactId = null).agentCoordinates(HostVersionInfo("1.2.0")))
     }
 }

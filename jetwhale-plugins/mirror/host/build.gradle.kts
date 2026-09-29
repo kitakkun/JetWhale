@@ -1,4 +1,7 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
 import com.kitakkun.kotrail.gradle.KotrailExtension
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     alias(libs.plugins.jvm)
@@ -9,12 +12,16 @@ plugins {
     alias(libs.plugins.jetwhalePlugin)
     // In-repo only: adds runJetWhaleLocal, which launches the local :jetwhale-host:app project.
     alias(libs.plugins.jetwhaleHostLaunch)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
+    abiValidation {
+    }
+
     // A compilation of its own for the previews, so that they are compiled and rule-checked on
-    // every build without reaching the plugin jar. Associating it with `main` also lets a preview
-    // call an internal declaration.
+    // every build without reaching the plugin jar, the publication or the ABI dump. Associating it
+    // with `main` also lets a preview call an internal declaration.
     target.compilations.create("preview") {
         associateWith(target.compilations.getByName("main"))
     }
@@ -62,4 +69,13 @@ tasks.named("check") {
 configure<KotrailExtension> {
     compilation("main") { configFile = file("kotrail-main.yaml") }
     compilation("preview") { configFile = file("kotrail-preview.yaml") }
+}
+
+// The jetwhalePlugin convention publishes the `packageMavenPlugin` jar (the module's classes plus a
+// manifest of its runtime dependencies) as the main artifact; the host's "Install from Maven"
+// feature downloads it and fetches the listed dependencies itself.
+jetwhalePublish {
+    artifactId = "jetwhale-device-mirror"
+    name = "JetWhale Device Mirror"
+    description = "JetWhale host plugin that mirrors and drives Android devices, iOS simulators and iPhones."
 }

@@ -91,8 +91,7 @@ from its plugin catalog, add the matching artifact to your app, and register it 
 
 The **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* shows the live
 screen of an Android device or emulator, an iOS simulator or an iPhone, with input and per-device
-captures. It needs no agent in your app; build it from this repository, since its video decoder is
-native to one operating system.
+captures. It needs no agent in your app; install it from the host's official plugins.
 
 ## Developing plugins
 
