@@ -124,7 +124,13 @@ internal class IosSimulatorDeviceController(
     }
 }
 
-internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): brew install idb-companion && pipx install fb-idb"
+internal const val IDB_COMPANION_INSTALL = "brew install facebook/fb/idb-companion"
+
+// Homebrew's own Python refuses a plain `pip3 install` (PEP 668, "externally-managed-environment"),
+// so pipx is named as the way around it rather than as a requirement.
+internal const val IDB_INSTALL = "$IDB_COMPANION_INSTALL, then pip3 install fb-idb (or pipx install fb-idb if pip refuses with \"externally-managed-environment\")"
+
+internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): $IDB_INSTALL"
 
 /**
  * The idb buttons pressed, in order, for [button] on a simulator, or null for a button it lacks.
