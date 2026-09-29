@@ -67,6 +67,26 @@ class DeviceDiscoveryTest {
     }
 
     @Test
+    fun `a machine without idb is told to install the companion from its tap and the client with pip or pipx`() = runBlocking {
+        val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = "/usr/bin/true", ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+
+        val notice = discovery.discover().missingTools.single { it.startsWith("idb was not found") }
+
+        assertContains(notice, "brew install facebook/fb/idb-companion")
+        assertContains(notice, "pip3 install fb-idb")
+        assertContains(notice, "pipx install fb-idb if pip refuses with \"externally-managed-environment\"")
+    }
+
+    @Test
+    fun `a machine with idb but without its companion is told to install the companion from its tap`() = runBlocking {
+        val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = "/usr/bin/true", idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+
+        val notice = discovery.discover().missingTools.single { it.startsWith("idb_companion was not found") }
+
+        assertContains(notice, "brew install facebook/fb/idb-companion")
+    }
+
+    @Test
     fun `a machine with ffmpeg is not told about it`() = runBlocking {
         val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = "/usr/bin/true"), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
