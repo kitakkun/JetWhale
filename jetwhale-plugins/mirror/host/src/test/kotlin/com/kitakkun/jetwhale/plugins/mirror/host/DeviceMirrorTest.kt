@@ -153,6 +153,23 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a device whose recording file cannot be reserved fails alone and the others still record`() = runBlocking {
+        mirror.startRecording(device)
+        mirror.stopRecording(deviceId = null)
+        val other = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
+        // The first device's day folder exists already; the other's cannot be made.
+        root.setWritable(false)
+        try {
+            val results = mirror.startRecordingsOf(listOf(device, other))
+
+            assertEquals(listOf(device.id), results.filterIsInstance<RecordingResult.Started>().map(RecordingResult.Started::deviceId))
+            assertEquals(listOf(other.id), results.filterIsInstance<RecordingResult.Failed>().map(RecordingResult.Failed::deviceId))
+        } finally {
+            root.setWritable(true)
+        }
+    }
+
+    @Test
     fun `Record all targets only the devices that can record and are not recording yet`() {
         val idle = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
         val cannotRecord = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))

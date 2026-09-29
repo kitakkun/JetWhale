@@ -517,7 +517,11 @@ internal class DeviceMirror(
 
     private suspend fun startRecordingLocked(device: MirrorDevice) {
         if (activeRecordings.containsKey(device.id)) throw deviceControlError("${device.listing.name} is already recording; stop it first")
-        val file = captures.recordingFile(device.listing)
+        val file = try {
+            captures.recordingFile(device.listing)
+        } catch (e: IOException) {
+            throw deviceControlError("could not reserve a file for the recording of ${device.listing.name}: ${e.message}")
+        }
         val handle = try {
             device.controller.startRecording(file)
         } catch (e: DeviceControlException) {
