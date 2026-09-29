@@ -9,7 +9,7 @@ package com.kitakkun.jetwhale.host.model
  * @property pluginId The `pluginId` the plugin declares in its manifest; used to mark it as already
  * installed.
  * @property agentArtifactId The app-side library an app adds for this plugin, released under the
- * same version as the host plugin.
+ * same version as the host plugin; null for a host-only plugin, which needs nothing in the app.
  * @property agentRegistration What the app passes to `register(...)` in `startJetWhale`, when one
  * expression does it; null when the plugin's guide has to explain the choice.
  * @property guidePath The plugin's page under the documentation site's `guide/`.
@@ -19,14 +19,14 @@ data class OfficialPlugin(
     val displayName: String,
     val description: String,
     val artifactId: String,
-    val agentArtifactId: String,
+    val agentArtifactId: String?,
     val agentRegistration: String?,
     val guidePath: String,
 ) {
     val guideUrl: String get() = "$DOCUMENTATION_URL/guide/$guidePath"
 
-    /** The Gradle coordinates of [agentArtifactId] for a host of [hostVersion]. */
-    fun agentCoordinates(hostVersion: HostVersionInfo): String = "$OFFICIAL_PLUGIN_GROUP_ID:$agentArtifactId:${hostVersion.version}"
+    /** The Gradle coordinates of [agentArtifactId] for a host of [hostVersion], or null for a host-only plugin. */
+    fun agentCoordinates(hostVersion: HostVersionInfo): String? = agentArtifactId?.let { "$OFFICIAL_PLUGIN_GROUP_ID:$it:${hostVersion.version}" }
 
     /**
      * Install candidates in the order to attempt them. A snapshot host installs the matching
@@ -107,6 +107,15 @@ object OfficialPluginCatalog {
             agentArtifactId = "jetwhale-debug-actions-agent",
             agentRegistration = null,
             guidePath = "debug-actions",
+        ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.mirror",
+            displayName = "Device Mirror",
+            description = "Mirror Android devices, iOS simulators and iPhones, drive Android devices and simulators, and record their screens.",
+            artifactId = "jetwhale-device-mirror",
+            agentArtifactId = null,
+            agentRegistration = null,
+            guidePath = "device-mirror",
         ),
     )
 }

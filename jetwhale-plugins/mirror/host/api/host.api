@@ -1,0 +1,46 @@
+public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$CapturesPanelKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$CapturesPanelKt;
+	public fun <init> ()V
+	public final fun getLambda$1428858605$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DeviceGridKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DeviceGridKt;
+	public fun <init> ()V
+	public final fun getLambda$-1242686455$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1415925332$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1519462993$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1791270260$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$17989664$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DevicePickerKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DevicePickerKt;
+	public fun <init> ()V
+	public final fun getLambda$947230503$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DeviceToolbarKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DeviceToolbarKt;
+	public fun <init> ()V
+	public final fun getLambda$-1881768358$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1549553069$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1654128249$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$187619354$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$299312758$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$860103188$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$RecordAllControlKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$RecordAllControlKt;
+	public fun <init> ()V
+	public final fun getLambda$-591741196$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$175501270$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mirror/host/MirrorHostPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
+}
+

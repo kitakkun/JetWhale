@@ -572,9 +572,11 @@ version as the host release they belong to.
 | `jetwhale-compose-semantics-inspector`, `-agent`, `-protocol` | [Compose Semantics Inspector](/guide/compose-semantics-inspector). |
 | `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 | `jetwhale-debug-actions`, `-agent`, `-agent-compose`, `-protocol` | [Debug Actions](/guide/debug-actions). |
+| `jetwhale-device-mirror` | [Device Mirror](/guide/device-mirror); host-only, no app artifact. |
 
-The `-navigator` / `-inspector` artifacts (no suffix) are the **host** plugin jars — you install
-those into the host rather than into your app; see [Host Settings → Plugins](/guide/host-settings#plugins).
+In each plugin row, the first artifact (the one without an `-agent` or `-protocol` suffix) is the
+**host** plugin jar — you install it into the host rather than into your app; see
+[Host Settings → Plugins](/guide/host-settings#plugins).
 
 ::: warning Published Kotlin Multiplatform targets
 The multiplatform artifacts ship `jvm`, `android`, `js(IR)`, `wasmJs`, `iosArm64`,
