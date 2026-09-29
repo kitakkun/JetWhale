@@ -32,6 +32,12 @@
     <string name="plugin_install_failed_message">%1$s をインストールできませんでした: %2$s</string>
     <string name="plugin_install_open">開く</string>
     <string name="plugin_install_retry">再試行</string>
+    <string name="plugin_installed_several_message">インストールしました: %1$s</string>
+    <string name="plugin_install_failed_several_message">インストールできませんでした: %1$s</string>
+    <string name="plugin_install_mixed_message">インストールしました: %1$s。インストールできませんでした: %2$s</string>
+    <string name="plugin_install_more">ほか %1$d 件</string>
+    <string name="plugin_install_view">表示</string>
+    <string name="plugin_install_review">確認</string>
     <string name="notice_dismiss">閉じる</string>
     <string name="initializing">初期化中...</string>
     <string name="unlocking_trust_registry">信頼済みプラグインレジストリを検証中…</string>
