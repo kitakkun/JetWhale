@@ -68,7 +68,7 @@ internal class DeviceDiscovery(
     private fun missingTools(): List<String> = buildList {
         if (toolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
         if (toolPaths.xcrunPath != null && toolPaths.idbPath == null) add("idb was not found, so iOS simulators are shown without live video or input, and iOS devices are not listed. $IDB_MISSING")
-        if (toolPaths.idbPath != null && toolPaths.idbCompanionPath == null) add("idb_companion was not found, so iOS devices are not listed: brew install idb-companion")
+        if (toolPaths.idbPath != null && toolPaths.idbCompanionPath == null) add("idb_companion was not found, so iOS devices are not listed: $IDB_INSTALL")
         if (toolPaths.ffmpegPath == null && (toolPaths.adbPath != null || toolPaths.idbCompanionPath != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 

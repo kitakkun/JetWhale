@@ -124,7 +124,10 @@ internal class IosSimulatorDeviceController(
     }
 }
 
-internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): brew install idb-companion && pipx install fb-idb"
+// The formula installs the command-line client and the companion together, at matching versions.
+internal const val IDB_INSTALL = "brew install facebook/fb/idb"
+
+internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): $IDB_INSTALL"
 
 /**
  * The idb buttons pressed, in order, for [button] on a simulator, or null for a button it lacks.
