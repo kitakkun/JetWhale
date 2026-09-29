@@ -26,6 +26,15 @@ class Mp4DurationTest {
     }
 
     @Test
+    fun `a simulator recording that holds its last frame is as long as its movie, not its frames`() {
+        // The layout simctl recordVideo writes: 5.41 s of movie over 2.82 s of frames at a 600 timescale.
+        val track = box("trak", box("mdia", box("mdhd", mvhdV0(timescale = 600, duration = 1693))))
+        val file = mp4(box("mdat", ByteArray(64)), box("moov", box("mvhd", mvhdV0(timescale = 600, duration = 3246)) + track))
+
+        assertEquals(5410L, mp4DurationMillis(file))
+    }
+
+    @Test
     fun `a file whose recording never wrote a movie header has no length`() {
         val file = mp4(box("ftyp", ByteArray(8)), box("mdat", ByteArray(64)))
 
