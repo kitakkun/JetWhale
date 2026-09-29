@@ -79,7 +79,9 @@ private object NoMirrorActions : MirrorActions {
 
     override fun saveScreenshot() = Unit
 
-    override fun toggleRecording() = Unit
+    override fun recordSelectedDevice() = Unit
+
+    override fun finishRecording() = Unit
 
     override fun wake() = Unit
 

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
@@ -87,6 +89,32 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
+        // Unconfined, a click's coroutine reaches the recordings lock before the click returns, so
+        // the queue order below is the order of the calls.
+        val clicks = CoroutineScope(Dispatchers.Unconfined)
+        val clicked = DeviceMirror(
+            discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null),
+            notices = notices,
+            scope = clicks,
+        )
+        clicked.startRecording(device)
+
+        withTimeout(QUEUED_CLICKS_TIMEOUT_MILLIS) {
+            clicked.finishRecording()
+            clicked.finishRecording()
+            // Queued behind both clicks: it fails if the second click started a recording.
+            clicked.startRecording(device)
+            clicked.stopRecording()
+        }
+        clicks.cancel()
+
+        assertEquals(2, recorder.started.get())
+        assertEquals(2, recorder.stopped.get())
+    }
+
+    @Test
     fun `a recording running when the mirror is disposed is kept in the library`() = runBlocking {
         mirror.startRecording(device)
 
@@ -106,6 +134,21 @@ class DeviceMirrorTest {
         mirror.stopRecording()
 
         assertEquals(1, root.walk().count { it.isFile && it.extension == CaptureKind.Recording.extension })
+    }
+
+    @Test
+    fun `switching away from a device whose stream fails to read as it closes ends its session quietly`() = runBlocking {
+        val controller = ClosingStream()
+        val streaming = MirrorDevice(DeviceListing("sim-1", "iPhone 15 Pro", DeviceKind.IosSimulator, osVersion = null), controller)
+        val ended = CompletableDeferred<Throwable?>()
+        val session = scope.launch { mirror.mirror(streaming) }
+        session.invokeOnCompletion(ended::complete)
+
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reading.await() }
+        session.cancel()
+
+        val cause = withTimeout(STREAM_END_TIMEOUT_MILLIS) { ended.await() }
+        assertTrue(cause is CancellationException, "the session ended with $cause")
     }
 
     @Test
@@ -180,6 +223,9 @@ private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
 
 /** Longer than the mirror waits before patching a still screenrecord stream with a screenshot. */
 private const val STILL_SCREEN_PATCH_WINDOW_MILLIS = 1_500L
+
+/** Bounds a sequence of queued Record and Stop clicks, so a hang fails the test instead of stalling it. */
+private const val QUEUED_CLICKS_TIMEOUT_MILLIS = 5_000L
 
 /** Long enough that every concurrent call reaches the recorder while the first is still inside it. */
 private const val RECORDER_LATENCY_MILLIS = 100L
@@ -291,6 +337,41 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     override suspend fun release() = Unit
 }
 
+/**
+ * A simulator whose raw stream blocks in its read until the mirror closes it, and then throws
+ * "Stream closed", as a process pipe closed under a blocked read does.
+ */
+private class ClosingStream : DeviceController {
+    /** Completes once the mirror is blocked reading the stream. */
+    val reading = CompletableDeferred<Unit>()
+
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.RawBgra(ClosedUnderReadProcess(reading), frameSize = IntSize(1, 1), rowBytes = 64, fps = 30, onFellBehind = { false })
+
+    override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+
+    override suspend fun captureScreenshot(): ByteArray = throw deviceControlError("no screenshots in tests")
+
+    override suspend fun tap(x: Int, y: Int) = Unit
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
+
+    override suspend fun pressButton(button: DeviceButton) = Unit
+
+    override suspend fun inputText(text: String) = Unit
+
+    override suspend fun release() = Unit
+}
+
 /** An emulator whose gRPC stream sends one frame and then nothing, as a still screen does. */
 private class StillEmulator : DeviceController {
     /** Completes if the mirror asks for a screenshot. */
@@ -334,6 +415,31 @@ private class StillEmulator : DeviceController {
 
 /** A gRPC `Image` message of one 1x1 RGBA frame. */
 private val ONE_FRAME_MESSAGE = grpcMessage(byteArrayOf(0x0a, 0x04, 0x18, 0x01, 0x20, 0x01, 0x22, 0x04, 1, 2, 3, 4))
+
+/** A process whose output blocks until it is destroyed, and then fails the blocked read. */
+private class ClosedUnderReadProcess(private val reading: CompletableDeferred<Unit>) : Process() {
+    private val destroyed = CompletableDeferred<Unit>()
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun getInputStream(): InputStream = object : InputStream() {
+        override fun read(): Int {
+            reading.complete(Unit)
+            runBlocking { destroyed.await() }
+            throw IOException("Stream closed")
+        }
+    }
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun waitFor(): Int = 0
+
+    override fun exitValue(): Int = 0
+
+    override fun destroy() {
+        destroyed.complete(Unit)
+    }
+}
 
 private class EmptyProcess : Process() {
     override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
