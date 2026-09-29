@@ -174,6 +174,27 @@ class PluginInstallNoticesTest {
     }
 
     @Test
+    fun `an install finishing during the wait restarts it, and both share the notice`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        setNoticesContent(persistentListOf(failed))
+
+        mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS / 2)
+        jobs = persistentListOf(failed, failed.copy(id = "job-2", request = mavenRequest("storage")))
+        // Past the first install's deadline, but not yet a full wait after the second one finished.
+        mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS * 3 / 4)
+        onNodeWithText(failureMessage).assertDoesNotExist()
+        onNodeWithText("Couldn’t install: network, storage").assertDoesNotExist()
+
+        mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS / 2)
+        onNodeWithText("Couldn’t install: network, storage").assertExists()
+        onNodeWithContentDescription("Dismiss").performClick()
+        mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS)
+
+        assertEquals(listOf("job-1", "job-2"), dismissed)
+        assertEquals(1, dismissCalls)
+    }
+
+    @Test
     fun `closing a batch notice dismisses every install in it at once`() = runComposeUiTest {
         showNotices(persistentListOf(failed, failed.copy(id = "job-2", request = mavenRequest("storage"))))
 
@@ -186,6 +207,11 @@ class PluginInstallNoticesTest {
     }
 
     private fun ComposeUiTest.showNotices(initialJobs: ImmutableList<PluginInstallJob>) {
+        setNoticesContent(initialJobs)
+        waitOutBatchWindow()
+    }
+
+    private fun ComposeUiTest.setNoticesContent(initialJobs: ImmutableList<PluginInstallJob>) {
         jobs = initialJobs
         setContent {
             JwTheme(darkTheme = false) {
@@ -205,12 +231,11 @@ class PluginInstallNoticesTest {
                 JwSnackbarHost(hostState = hostState)
             }
         }
-        waitOutBatchWindow()
     }
 
     // Finishing installs are gathered for a moment before their notice shows.
     private fun ComposeUiTest.waitOutBatchWindow() {
-        mainClock.advanceTimeBy(BATCH_WINDOW_WITH_MARGIN_MILLIS)
+        mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS + BATCH_WINDOW_MILLIS / 2)
         waitForIdle()
     }
 
@@ -221,4 +246,5 @@ class PluginInstallNoticesTest {
     )
 }
 
-private const val BATCH_WINDOW_WITH_MARGIN_MILLIS = 1_500L
+// The notices' own batching window, which the tests step through on the test clock.
+private const val BATCH_WINDOW_MILLIS = 1_000L
