@@ -26,7 +26,7 @@ from the Dock does not inherit your shell's `PATH`.
 | To mirror | You need |
 |-----------|----------|
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
-| iOS simulators (macOS) | Xcode's `xcrun simctl`, plus [idb](https://fbidb.io): `brew install facebook/fb/idb-companion` and `pip3 install fb-idb` (with Homebrew's Python, which refuses `pip3 install` as "externally-managed-environment", use `pipx install fb-idb`) |
+| iOS simulators (macOS) | Xcode's `xcrun simctl`, plus [idb](https://fbidb.io): `brew install facebook/fb/idb`, which installs the command-line client and its companion |
 | iPhones connected by USB (macOS) | idb as above |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
 
