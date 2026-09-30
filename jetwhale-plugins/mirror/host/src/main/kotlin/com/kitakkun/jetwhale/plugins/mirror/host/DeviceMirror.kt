@@ -259,40 +259,31 @@ internal class DeviceMirror(
         if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
         val lastFrameAt = AtomicLong(System.nanoTime())
+        val android = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
-                // The decoder's failure comes back as a value, so a stream this side closed on
-                // purpose is not mistaken for one that broke.
+                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream) } }
                 val decoding = async(Dispatchers.IO) {
-                    try {
-                        decode(stream, outputSize) {
-                            lastFrameAt.set(System.nanoTime())
-                            watchdog.frameArrived()
-                            state = MirrorState.Streaming
-                        }
-                        StreamOutcome.Ended
-                    } catch (e: DeviceControlException) {
-                        StreamOutcome.Unavailable(e.message.orEmpty())
-                    } catch (e: IOException) {
-                        // Closing the stream under a blocked read (a device switch, a resize, the
-                        // tool quitting) can surface as "Stream closed" rather than as its end. It
-                        // must not leave this coroutine: the mirror runs in the plugin's composition,
-                        // and an exception escaping it stops the whole screen from updating.
-                        StreamOutcome.Unavailable(e.message.orEmpty())
+                    // screenrecord's bytes are its sign of life: a still screen's only frame
+                    // decodes once the next one starts, which may be never.
+                    decode(stream, outputSize, onInput = if (android) watchdog::frameArrived else ({})) {
+                        lastFrameAt.set(System.nanoTime())
+                        watchdog.frameArrived()
+                        state = MirrorState.Streaming
                     }
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
                 // lets it return, and this scope waits for it, so the stream is closed here the
                 // moment the body ends or is cancelled. The resize watch only ends on a resize, so
                 // it is cancelled there too, or this scope would wait for it after the stream ended.
-                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream) } }
                 try {
-                    if (device.kind.platform == DevicePlatform.Android) {
+                    if (android) {
                         state = MirrorState.Streaming
                         // Only screenrecord holds a still screen's last frame back; the emulator's
                         // own stream sends every change as it happens.
                         val settling = if (stream is VideoStream.H264) launch { settleStillScreen(device, lastFrameAt) } else null
-                        decoding.await().also { settling?.cancel() }
+                        val silent = stream is VideoStream.H264 && !watchdog.awaitFirstFrame()
+                        (if (silent) StreamOutcome.Silent else decoding.await()).also { settling?.cancel() }
                     } else if (!watchdog.awaitFirstFrame()) {
                         StreamOutcome.Silent
                     } else {
@@ -310,10 +301,25 @@ internal class DeviceMirror(
         }
     }
 
-    private fun decode(stream: VideoStream, outputSize: IntSize?, onFrame: () -> Unit) = when (stream) {
-        is VideoStream.H264 -> decodeH264Into(surface, stream, outputSize, onFrame)
-        is VideoStream.RawBgra -> readRawBgraInto(surface, stream, onFrame)
-        is VideoStream.EmulatorRgba -> readEmulatorFramesInto(surface, stream.frames, onFrame)
+    /**
+     * Shows [stream] until it ends. A failure comes back as a value, so a stream this side closed on
+     * purpose is not mistaken for one that broke.
+     */
+    private fun decode(stream: VideoStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
+        when (stream) {
+            is VideoStream.H264 -> decodeH264Into(surface, stream, outputSize, onInput, onFrame)
+            is VideoStream.RawBgra -> readRawBgraInto(surface, stream, onFrame)
+            is VideoStream.EmulatorRgba -> readEmulatorFramesInto(surface, stream.frames, onFrame)
+        }
+        StreamOutcome.Ended
+    } catch (e: DeviceControlException) {
+        StreamOutcome.Unavailable(e.message.orEmpty())
+    } catch (e: IOException) {
+        // Closing the stream under a blocked read (a device switch, a resize, the tool quitting)
+        // can surface as "Stream closed" rather than as its end. It must not leave the decoding
+        // coroutine: the mirror runs in the plugin's composition, and an exception escaping it stops
+        // the whole screen from updating.
+        StreamOutcome.Unavailable(e.message.orEmpty())
     }
 
     /**

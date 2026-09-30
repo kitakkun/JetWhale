@@ -98,7 +98,7 @@ class FfmpegDecodingTest {
         val stream = SequenceInputStream(ByteArrayInputStream(resized), PipedInputStream(held))
 
         val decoding = CompletableFuture.runAsync {
-            MirrorSurface().use { surface -> decodeH264Into(surface, VideoStream.H264(DeviceToolProcess(stream), ffmpegPath), IntSize(180, 320)) {} }
+            MirrorSurface().use { surface -> decodeH264Into(surface, VideoStream.H264(DeviceToolProcess(stream), ffmpegPath), IntSize(180, 320), onInput = {}) {} }
         }
 
         val ended = try {
@@ -165,7 +165,7 @@ class FfmpegDecodingTest {
     /** Decodes [h264] and returns the size of every frame that reached the surface. */
     private fun decode(ffmpegPath: String, h264: ByteArray, outputSize: IntSize?): List<IntSize> = MirrorSurface().use { surface ->
         val sizes = mutableListOf<IntSize>()
-        decodeH264Into(surface, VideoStream.H264(DeviceToolProcess(ByteArrayInputStream(h264)), ffmpegPath), outputSize) {
+        decodeH264Into(surface, VideoStream.H264(DeviceToolProcess(ByteArrayInputStream(h264)), ffmpegPath), outputSize, onInput = {}) {
             surface.drawFrame { sizes += IntSize(it.width, it.height) }
         }
         sizes

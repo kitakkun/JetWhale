@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.util.concurrent.CompletableFuture
@@ -9,8 +10,10 @@ import kotlin.concurrent.thread
 
 /**
  * Decodes the raw H.264 of [stream] into [surface] through the `ffmpeg` command it names, frame by
- * frame. [onFrame] is called after each frame so the caller can watch the stream's health. Returns
- * when the stream ends; blocks the calling thread, so run it off the UI.
+ * frame. [onInput] is called as the device's bytes arrive and [onFrame] after each frame, so the
+ * caller can watch the stream's health: the decoder holds a frame back until the next one starts,
+ * so a still screen sends bytes but decodes nothing. Returns when the stream ends; blocks the
+ * calling thread, so run it off the UI.
  *
  * The device's bytes go to ffmpeg's stdin and BGRA frames come back on its stdout. ffmpeg shrinks
  * the frames to [outputSize] with area averaging, which keeps text crisp on every renderer and
@@ -21,12 +24,15 @@ import kotlin.concurrent.thread
  * stream at the new size: ffmpeg keeps writing frames of the first size and squeezes the new
  * picture into them.
  */
-internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onFrame: () -> Unit) {
+internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit) {
     val ffmpegProcess = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpegPath, outputSize))
     // ffmpeg ends at the end of its input, which ends the copy without the error that killing it
     // mid-read would raise.
     val log = FfmpegLog(ffmpegProcess.errorStream, onInputResized = ffmpegProcess.outputStream::close)
-    val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpegProcess) }
+    val input = object : FilterInputStream(stream.frames) {
+        override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { if (it > 0) onInput() }
+    }
+    val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(input, ffmpegProcess) }
     val frames = try {
         // No size means ffmpeg ended before describing its output; the error check below says why.
         val frameSize = outputSize ?: log.outputSize.get()

@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
@@ -22,6 +23,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.io.SequenceInputStream
 import java.nio.file.Files
 import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
@@ -44,11 +46,19 @@ class DeviceMirrorTest {
         scope = scope,
     )
 
+    // An ffmpeg that takes whatever it is given and decodes nothing from it.
+    private val tools: File = Files.createTempDirectory("mirror-tools").toFile()
+    private val fakeFfmpeg = File(tools, "ffmpeg").apply {
+        writeText("#!/bin/sh\ncat > /dev/null\n")
+        setExecutable(true)
+    }
+
     @AfterTest
     fun cleanUp() {
         // Cancelling does not stop a capture listing that is already reading the folder.
         runBlocking { scope.coroutineContext.job.cancelAndJoin() }
         root.deleteRecursively()
+        tools.deleteRecursively()
     }
 
     @Test
@@ -293,6 +303,34 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a screenrecord stream that sends nothing falls back to screenshots and says so`() = runBlocking {
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0))
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+
+        withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
+        val state = mirror.state
+        session.cancel()
+
+        assertEquals(MirrorState.Polling("the video stream sent no picture"), state)
+    }
+
+    @Test
+    fun `a screenrecord stream that sends bytes but no finished frame keeps streaming`() = runBlocking {
+        // One frame of a still screen: the decoder holds it back until a next one starts.
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096))
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+
+        val polled = withTimeoutOrNull(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
+        val state = mirror.state
+        session.cancel()
+
+        assertNull(polled)
+        assertEquals(MirrorState.Streaming, state)
+    }
+
+    @Test
     fun `a device without screen power is never asked for it`() = runBlocking {
         val controller = EndingStream(power = null)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5558", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
@@ -308,6 +346,11 @@ class DeviceMirrorTest {
 private const val SIMULTANEOUS_CALLS = 8
 
 private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
+
+/** Longer than the mirror waits for a first sign of life from a stream. */
+private const val SILENT_STREAM_TIMEOUT_MILLIS = 9_000L
+
+private val FOLDED_SCREEN = IntSize(1080, 2092)
 
 /** Longer than the mirror waits before patching a still screenrecord stream with a screenshot. */
 private const val STILL_SCREEN_PATCH_WINDOW_MILLIS = 1_500L
@@ -521,6 +564,78 @@ private class StillEmulator : DeviceController {
     }
 
     override suspend fun release() = Unit
+}
+
+/**
+ * A device whose screenrecord stream sends [sent] and then stays open until closed, decoded by the
+ * ffmpeg at [ffmpegPath]. Its screenshots never finish, so the mirror's state stays as it set it.
+ */
+private class ScreenrecordDevice(private val ffmpegPath: String, private val sent: ByteArray) : DeviceController {
+    private val screenshots = AtomicInteger()
+
+    /**
+     * Completes when the mirror asks for a second screenshot. The first fills in a still screen and
+     * never finishes; another comes only from falling back to screenshots.
+     */
+    val polled = CompletableDeferred<Unit>()
+
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.H264(HeldOpenProcess(sent), ffmpegPath)
+
+    override suspend fun screenSize(): IntSize = FOLDED_SCREEN
+
+    override suspend fun captureScreenshot(): ByteArray {
+        if (screenshots.incrementAndGet() == 2) polled.complete(Unit)
+        awaitCancellation()
+    }
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+
+    override suspend fun tap(x: Int, y: Int) = Unit
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
+
+    override suspend fun pressButton(button: DeviceButton) = Unit
+
+    override suspend fun inputText(text: String) = Unit
+
+    override suspend fun release() = Unit
+}
+
+/** A process that writes [output] and then keeps its stdout open until it is destroyed. */
+private class HeldOpenProcess(output: ByteArray) : Process() {
+    private val destroyed = CompletableDeferred<Unit>()
+
+    private val stdout = SequenceInputStream(
+        ByteArrayInputStream(output),
+        object : InputStream() {
+            override fun read(): Int {
+                runBlocking { destroyed.await() }
+                return -1
+            }
+        },
+    )
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun getInputStream(): InputStream = stdout
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun waitFor(): Int = 0
+
+    override fun exitValue(): Int = 0
+
+    override fun destroy() {
+        destroyed.complete(Unit)
+    }
 }
 
 /** A gRPC `Image` message of one 1x1 RGBA frame. */
