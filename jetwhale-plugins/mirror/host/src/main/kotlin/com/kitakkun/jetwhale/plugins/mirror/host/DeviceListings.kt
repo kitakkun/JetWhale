@@ -78,6 +78,7 @@ internal fun parseWmSize(output: String): IntSize? {
 /** A screen as `idb describe --json` reports it: pixels, and pixels per point. */
 internal data class IdbScreen(val size: IntSize, val pixelsPerPoint: Double)
 
+/** The screen `idb describe --json` reports, or null when it gives none: a physical device reports its sides as 0. */
 internal fun parseIdbScreen(json: String): IdbScreen? {
     val screen = try {
         (Json.parseToJsonElement(json) as? JsonObject)?.get("screen_dimensions") as? JsonObject
@@ -87,5 +88,6 @@ internal fun parseIdbScreen(json: String): IdbScreen? {
     val width = screen["width"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
     val height = screen["height"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
     val density = screen["density"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
+    if (width <= 0 || height <= 0) return null
     return IdbScreen(IntSize(width, height), density)
 }

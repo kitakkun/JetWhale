@@ -101,7 +101,10 @@ internal class IosPhysicalDeviceController(
         return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand()), ffmpegPath) }
     }
 
-    private fun videoStreamCommand(): List<String> = listOf(idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30")
+    private fun videoStreamCommand(): List<String> = listOf(
+        idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30",
+        "--compression-quality", "$DEVICE_STREAM_COMPRESSION_QUALITY",
+    )
 
     /** An idb stream of the device's screen as H.264 on stdout, its log drained so it never stalls on a full pipe. */
     private suspend fun startVideoStream(): Process = withContext(Dispatchers.IO) {
@@ -124,6 +127,13 @@ internal class IosPhysicalDeviceController(
         companions.release(udid)
     }
 }
+
+/**
+ * The VideoToolbox quality idb asks the device's H.264 encoder for. idb's own default of 0.2 leaves
+ * a moving screen at about 1 Mbps, where edges break into blocks until the screen settles; at 0.8
+ * a scrolling screen stays close to the source for about 10 Mbps, well within USB.
+ */
+private const val DEVICE_STREAM_COMPRESSION_QUALITY = 0.8
 
 /** How long a screenshot waits for the device's stream to send its first frame. */
 private const val STILL_FRAME_TIMEOUT_MILLIS = 10_000L

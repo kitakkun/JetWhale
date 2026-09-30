@@ -134,6 +134,27 @@ class IosPhysicalDeviceCapturesTest {
     }
 
     @Test
+    fun `the device's stream asks the encoder for a quality that holds up while the screen moves`() = runBlocking {
+        val ffmpegPath = installedFfmpegPath()
+        val idbPath = fakeIdbPath(h264Sample(ffmpegPath))
+        val companions = IdbCompanions(
+            idbCompanionPath = "idb_companion",
+            idbPath = idbPath,
+            launcher = { ReadyCompanionProcess() },
+            commands = { },
+            ports = { 10_000 },
+            idleTimeout = Duration.ZERO,
+            scope = companionScope,
+        )
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath)
+
+        iphone.captureScreenshot()
+
+        val streamCall = File(folder, IDB_CALLS).readLines().single { it.startsWith("video-stream") }
+        assertContains(streamCall, "--compression-quality 0.8")
+    }
+
+    @Test
     fun `the streaming device's newest frame is encoded as a PNG at the size it was decoded`() {
         MirrorSurface().use { surface ->
             surface.switchTo("iphone")
@@ -167,13 +188,15 @@ class IosPhysicalDeviceCapturesTest {
         ffmpegPath = ffmpegPath,
     )
 
-    /** An idb stand-in that describes a 360x640 screen and streams [h264] once. */
+    /** An idb stand-in that describes a 360x640 screen, streams [h264] once, and notes each call in [IDB_CALLS]. */
     private fun fakeIdbPath(h264: ByteArray): String {
         val sample = File(folder, "stream.h264").apply { writeBytes(h264) }
+        val calls = File(folder, IDB_CALLS)
         val script = File(folder, "idb").apply {
             writeText(
                 """
                 #!/bin/sh
+                echo "${'$'}*" >> '${calls.path}'
                 case "${'$'}1" in
                   describe) echo '{"screen_dimensions":{"width":$SAMPLE_WIDTH,"height":$SAMPLE_HEIGHT,"density":3}}' ;;
                   video-stream) exec cat '${sample.path}' ;;
@@ -211,6 +234,8 @@ private const val SAMPLE_HEIGHT = 640
 private const val SAMPLE_FRAMES = 10
 
 private const val COMPANION_STOP_WAIT_SECONDS = 5L
+
+private const val IDB_CALLS = "idb-calls.txt"
 
 /** An idb companion that reports its port at once and ends when destroyed. */
 private class ReadyCompanionProcess : Process() {
