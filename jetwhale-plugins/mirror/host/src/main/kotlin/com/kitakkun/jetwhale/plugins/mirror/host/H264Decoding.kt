@@ -16,15 +16,21 @@ import kotlin.concurrent.thread
  * the frames to [outputSize] with area averaging, which keeps text crisp on every renderer and
  * leaves a fraction of the pixels to copy; without a size they keep the first frame's. Closing
  * [stream] ends the device's output, which ends ffmpeg's input and then this.
+ *
+ * A picture that changes size partway ends the decoding too, so the caller can open the next
+ * stream at the new size: ffmpeg keeps writing frames of the first size and squeezes the new
+ * picture into them.
  */
 internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onFrame: () -> Unit) {
     val ffmpegProcess = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpegPath, outputSize))
-    val log = FfmpegLog(ffmpegProcess.errorStream)
+    // ffmpeg ends at the end of its input, which ends the copy without the error that killing it
+    // mid-read would raise.
+    val log = FfmpegLog(ffmpegProcess.errorStream, onInputResized = ffmpegProcess.outputStream::close)
     val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(stream.frames, ffmpegProcess) }
     val frames = try {
         // No size means ffmpeg ended before describing its output; the error check below says why.
         val frameSize = outputSize ?: log.outputSize.get()
-        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, surface, onFrame) } ?: 0
+        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, surface, log::inputResized, onFrame) } ?: 0
     } finally {
         ffmpegProcess.destroyForcibly()
         ffmpegProcess.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
@@ -36,11 +42,15 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, ou
     if (frames == 0 && failure.isNotEmpty()) throw deviceControlError("the video stream could not be decoded: $failure")
 }
 
-/** Copies BGRA frames of [frameSize] from [output] into [surface] until it ends; returns how many. */
-private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, surface: MirrorSurface, onFrame: () -> Unit): Int {
+/**
+ * Copies BGRA frames of [frameSize] from [output] into [surface] until it ends; returns how many.
+ * Once [isResized], the frames left hold a squeezed picture and are dropped.
+ */
+private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, surface: MirrorSurface, isResized: () -> Boolean, onFrame: () -> Unit): Int {
     val frame = ByteArray(frameSize.width * frameSize.height * BYTES_PER_PIXEL)
     var frames = 0
     while (output.timingWork(surface::recordDecode) { output.readNBytes(frame, 0, frame.size) } == frame.size) {
+        if (isResized()) continue
         surface.writeBgraFrame(frame, frameSize, rowBytes = frameSize.width * BYTES_PER_PIXEL)
         frames++
         onFrame()
@@ -66,10 +76,22 @@ internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List
     addAll(listOf("-fps_mode", "passthrough", "-f", "rawvideo", "-pix_fmt", "bgra", "pipe:1"))
 }
 
-/** Copies the device's bytes into ffmpeg until either side ends, then lets ffmpeg finish. */
+/**
+ * Copies the device's bytes into ffmpeg until either side ends, then lets ffmpeg finish. Each read
+ * is flushed: the process's stdin is buffered, and would hold the end of a small frame back until
+ * the next one arrived.
+ */
 internal fun feed(source: InputStream, ffmpegProcess: Process) {
     try {
-        ffmpegProcess.outputStream.use(source::transferTo)
+        ffmpegProcess.outputStream.use { ffmpegInput ->
+            val buffer = ByteArray(FEED_BUFFER_BYTES)
+            while (true) {
+                val read = source.read(buffer)
+                if (read < 0) break
+                ffmpegInput.write(buffer, 0, read)
+                ffmpegInput.flush()
+            }
+        }
     } catch (_: IOException) {
         // ffmpeg exited, or the device's stream was closed: either way the input is over.
     }
@@ -78,21 +100,33 @@ internal fun feed(source: InputStream, ffmpegProcess: Process) {
 /**
  * Reads ffmpeg's log, which must be drained or ffmpeg stalls on a full pipe. It says the size of the
  * frames ffmpeg writes, needed when they were not asked for at a size, and its errors explain a
- * stream that decoded nothing.
+ * stream that decoded nothing. [onInputResized] is called when the picture changes size partway.
  */
-private class FfmpegLog(log: InputStream) {
+private class FfmpegLog(log: InputStream, onInputResized: () -> Unit) {
     /** The size of the frames on stdout, or null when ffmpeg ended before saying. */
     val outputSize = CompletableFuture<IntSize?>()
+
+    /** Whether the picture has changed size partway, which leaves the frames after it squeezed. */
+    @Volatile
+    var inputResized = false
+        private set
 
     private val errorLines = ArrayDeque<String>()
 
     init {
         thread(isDaemon = true, name = "mirror-ffmpeg-log") {
             var describingOutput = false
+            var inputSize: IntSize? = null
             try {
                 log.bufferedReader().forEachLine { line ->
                     if (line.startsWith("Output #")) describingOutput = true
-                    if (describingOutput && !outputSize.isDone) parseRawvideoSize(line)?.let(outputSize::complete)
+                    if (!describingOutput && inputSize == null) inputSize = parseStreamSize(line, codec = "h264")
+                    if (describingOutput && !outputSize.isDone) parseStreamSize(line, codec = "rawvideo")?.let(outputSize::complete)
+                    val resizedTo = parseChangedSize(line)
+                    if (resizedTo != null && inputSize != null && resizedTo != inputSize) {
+                        inputResized = true
+                        onInputResized()
+                    }
                     if (line.contains("error", ignoreCase = true) || line.contains("invalid", ignoreCase = true)) {
                         synchronized(errorLines) {
                             errorLines.addLast(line.trim())
@@ -111,10 +145,24 @@ private class FfmpegLog(log: InputStream) {
     fun errors(): String = synchronized(errorLines) { errorLines.joinToString(" ") }.take(MAX_ERROR_CHARS)
 }
 
-/** The frame size in ffmpeg's description of a rawvideo output stream, as in `rawvideo (BGRA …), 1080x2400 [SAR …]`. */
-internal fun parseRawvideoSize(line: String): IntSize? {
-    if (!line.contains("Video: rawvideo")) return null
+/**
+ * The frame size in ffmpeg's description of a [codec] stream, as in
+ * `Video: rawvideo (BGRA …), 1080x2400 [SAR …]` for its output or `Video: h264 (High), …, 1080x2400, 30 fps` for its input.
+ */
+internal fun parseStreamSize(line: String, codec: String): IntSize? {
+    if (!line.contains("Video: $codec")) return null
     val match = Regex("""[ ,](\d{2,5})x(\d{2,5})[ ,\[]""").find(line) ?: return null
+    return IntSize(match.groupValues[1].toInt(), match.groupValues[2].toInt())
+}
+
+/**
+ * The new picture size in ffmpeg's note that the decoded frames changed partway, or null for any
+ * other line. ffmpeg 7 and later write `Reconfiguring filter graph because video parameters changed
+ * to yuv420p(…), 240x320, …`; earlier versions `… frame changed from size:320x240 fmt:yuv420p to
+ * size:240x320 fmt:yuv420p`.
+ */
+internal fun parseChangedSize(line: String): IntSize? {
+    val match = Regex("""changed.* to .*?(\d{2,5})x(\d{2,5})""").find(line) ?: return null
     return IntSize(match.groupValues[1].toInt(), match.groupValues[2].toInt())
 }
 
@@ -122,6 +170,8 @@ internal fun parseRawvideoSize(line: String): IntSize? {
 internal const val FFMPEG_INSTALL = "Install ffmpeg: brew install ffmpeg (macOS), winget install ffmpeg (Windows) or apt install ffmpeg (Linux)."
 
 private const val BYTES_PER_PIXEL = 4
+
+private const val FEED_BUFFER_BYTES = 64 * 1024
 
 private const val FFMPEG_EXIT_WAIT_MILLIS = 2_000L
 
