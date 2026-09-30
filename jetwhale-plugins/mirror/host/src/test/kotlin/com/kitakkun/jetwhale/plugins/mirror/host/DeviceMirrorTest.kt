@@ -317,7 +317,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a screenrecord stream that sends nothing falls back to screenshots and says so`() = runBlocking {
-        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0))
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
 
@@ -331,7 +331,7 @@ class DeviceMirrorTest {
     @Test
     fun `a screenrecord stream that sends bytes but no finished frame keeps streaming`() = runBlocking {
         // One frame of a still screen: the decoder holds it back until a next one starts.
-        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096))
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
 
@@ -341,6 +341,23 @@ class DeviceMirrorTest {
 
         assertNull(polled)
         assertEquals(MirrorState.Streaming, state)
+    }
+
+    @Test
+    fun `a screenshot that is not an image fails as a notice and leaves the mirror running`() = runBlocking {
+        // What screencap printed on a foldable when it was not told which panel to read.
+        val warning = "[Warning] Multiple displays were found, but no display id was specified!".encodeToByteArray()
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = warning)
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+
+        withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polledAgain.await() }
+        val state = mirror.state
+        val running = session.isActive
+        session.cancel()
+
+        assertEquals(MirrorState.Failed("the screenshot could not be read as an image"), state)
+        assertTrue(running)
     }
 
     @Test
@@ -624,16 +641,20 @@ private class FoldingEmulator : DeviceController {
 
 /**
  * A device whose screenrecord stream sends [sent] and then stays open until closed, decoded by the
- * ffmpeg at [ffmpegPath]. Its screenshots never finish, so the mirror's state stays as it set it.
+ * ffmpeg at [ffmpegPath]. Its screenshots are [screenshot], or never finish when it is null, so the
+ * mirror's state stays as it set it.
  */
-private class ScreenrecordDevice(private val ffmpegPath: String, private val sent: ByteArray) : DeviceController {
+private class ScreenrecordDevice(private val ffmpegPath: String, private val sent: ByteArray, private val screenshot: ByteArray?) : DeviceController {
     private val screenshots = AtomicInteger()
 
     /**
-     * Completes when the mirror asks for a second screenshot. The first fills in a still screen and
-     * never finishes; another comes only from falling back to screenshots.
+     * Completes when the mirror asks for a second screenshot. The first fills in a still screen;
+     * another comes only from falling back to screenshots.
      */
     val polled = CompletableDeferred<Unit>()
+
+    /** Completes when the mirror asks for a third screenshot, once the second one's outcome is shown. */
+    val polledAgain = CompletableDeferred<Unit>()
 
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
 
@@ -642,8 +663,11 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
     override suspend fun screenSize(): IntSize = FOLDED_SCREEN
 
     override suspend fun captureScreenshot(): ByteArray {
-        if (screenshots.incrementAndGet() == 2) polled.complete(Unit)
-        awaitCancellation()
+        when (screenshots.incrementAndGet()) {
+            2 -> polled.complete(Unit)
+            3 -> polledAgain.complete(Unit)
+        }
+        return screenshot ?: awaitCancellation()
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)

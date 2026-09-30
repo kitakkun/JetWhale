@@ -404,7 +404,14 @@ internal class DeviceMirror(
     private suspend fun showScreenshot(device: MirrorDevice) {
         val png = device.controller.captureScreenshot()
         withContext(Dispatchers.IO) {
-            Image.makeFromEncoded(png).use { image ->
+            // Skia refuses bytes that are not an image with an IllegalArgumentException, which would
+            // end the mirror; as a failed screenshot it only costs this one.
+            val decoded = try {
+                Image.makeFromEncoded(png)
+            } catch (_: IllegalArgumentException) {
+                throw deviceControlError("the screenshot could not be read as an image")
+            }
+            decoded.use { image ->
                 surface.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
             }
         }
