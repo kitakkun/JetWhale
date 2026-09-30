@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.IOException
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneId
@@ -106,6 +107,8 @@ internal class CaptureLibrary(val root: File, private val zone: ZoneId) {
         } catch (_: SerializationException) {
             null
         } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: IOException) {
             null
         }
     }

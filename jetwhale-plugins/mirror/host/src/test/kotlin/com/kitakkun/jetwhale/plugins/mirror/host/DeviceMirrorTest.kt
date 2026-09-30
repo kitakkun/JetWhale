@@ -7,8 +7,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -44,7 +45,8 @@ class DeviceMirrorTest {
 
     @AfterTest
     fun cleanUp() {
-        scope.cancel()
+        // Cancelling does not stop a capture listing that is already reading the folder.
+        runBlocking { scope.coroutineContext.job.cancelAndJoin() }
         root.deleteRecursively()
     }
 
@@ -109,7 +111,7 @@ class DeviceMirrorTest {
             clicked.startRecording(device)
             clicked.stopRecording(deviceId = null)
         }
-        clicks.cancel()
+        clicks.coroutineContext.job.cancelAndJoin()
 
         assertEquals(2, recorder.started.get())
         assertEquals(2, recorder.stopped.get())
