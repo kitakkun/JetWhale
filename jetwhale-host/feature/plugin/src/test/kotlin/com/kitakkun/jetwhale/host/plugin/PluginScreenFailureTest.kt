@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.host.plugin
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.PlatformContext
@@ -23,14 +25,7 @@ class PluginScreenFailureTest {
         // The screen keeps asking for frames to drive the plugin's animations, so the test clock
         // never goes idle on its own; frames are stepped by hand instead.
         mainClock.autoAdvance = false
-        val scene = PluginComposeScene(
-            composeScene = CanvasLayersComposeScene(platformContext = PlatformContext.Empty()),
-            windowInfoUpdater = NoWindow,
-            semanticsOwners = emptySet(),
-            isMcpCapture = mutableStateOf(false),
-            pointerIcon = mutableStateOf(PointerIcon.Default),
-            failure = mutableStateOf(null),
-        )
+        val scene = pluginScene()
         setContent {
             JwTheme(darkTheme = false) {
                 ErrorBoundary(fallback = { PluginScreenErrorFallback(pluginId = "com.example.plugin", errorBoundaryContext = it, onClickReset = {}) }) {
@@ -46,7 +41,38 @@ class PluginScreenFailureTest {
 
         onNodeWithText("Reload").assertExists()
     }
+
+    @Test
+    fun `a scene that had already failed when it arrives waits for its replacement instead of reopening the fallback`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        val stale = pluginScene().apply { failure.value = IllegalStateException("effect boom") }
+        val fresh = pluginScene()
+        var shown by mutableStateOf(stale)
+        setContent {
+            JwTheme(darkTheme = false) {
+                ErrorBoundary(fallback = { PluginScreenErrorFallback(pluginId = "com.example.plugin", errorBoundaryContext = it, onClickReset = {}) }) {
+                    PluginScreen(shown)
+                }
+            }
+        }
+        repeat(FRAMES) { mainClock.advanceTimeByFrame() }
+
+        shown = fresh
+        repeat(FRAMES) { mainClock.advanceTimeByFrame() }
+
+        onNodeWithText("Reload").assertDoesNotExist()
+    }
 }
+
+@OptIn(InternalComposeUiApi::class)
+private fun pluginScene() = PluginComposeScene(
+    composeScene = CanvasLayersComposeScene(platformContext = PlatformContext.Empty()),
+    windowInfoUpdater = NoWindow,
+    semanticsOwners = emptySet(),
+    isMcpCapture = mutableStateOf(false),
+    pointerIcon = mutableStateOf(PointerIcon.Default),
+    failure = mutableStateOf(null),
+)
 
 private const val FRAMES = 3
 

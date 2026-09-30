@@ -50,12 +50,16 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         }
     }
 
-    val catchThrowHost = LocalCatchThrowHost.current
     // A plugin UI that threw while composing, laying out or drawing hands its exception to the
     // error boundary, which replaces this screen with the crash fallback and its Reload button.
+    // A scene that had already failed when it arrived is not reported again: it is the one the scene
+    // query still holds from before a Reload or a return to this screen, and the refetch that follows
+    // brings a fresh scene. Reporting it would put the fallback straight back up.
+    val failedOnArrival = remember(pluginComposeScene) { pluginComposeScene.failure.value != null }
     val failure = pluginComposeScene.failure.value
+    val catchThrowHost = LocalCatchThrowHost.current
     LaunchedEffect(failure) {
-        if (failure != null) catchThrowHost[uuid()] = failure
+        if (failure != null && !failedOnArrival) catchThrowHost[uuid()] = failure
     }
 
     val density = LocalDensity.current
