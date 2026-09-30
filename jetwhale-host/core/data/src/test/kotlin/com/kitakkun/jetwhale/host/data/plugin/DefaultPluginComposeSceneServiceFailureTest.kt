@@ -3,9 +3,11 @@ package com.kitakkun.jetwhale.host.data.plugin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -24,6 +26,7 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.test.Test
@@ -70,6 +73,22 @@ class DefaultPluginComposeSceneServiceFailureTest {
         runCatching { render(scene) }
 
         assertEquals("composition boom", scene.failure.value?.message)
+    }
+
+    @Test
+    fun `an effect that throws after the first frame marks the scene failed instead of freezing it`() = runBlocking {
+        val armed = mutableStateOf(false)
+        val scene = sceneFor(EffectThrowingUiPlugin(armed))
+        render(scene)
+        assertNull(scene.failure.value)
+
+        withContext(Dispatchers.Main) {
+            armed.value = true
+            Snapshot.sendApplyNotifications()
+        }
+        runCatching { render(scene) }
+
+        assertEquals("effect boom", scene.failure.value?.message)
     }
 
     @Test
@@ -121,6 +140,22 @@ class DefaultPluginComposeSceneServiceFailureTest {
             val isArmed by armed
             if (!inDraw && isArmed) error("composition boom")
             Box(Modifier.fillMaxSize().drawBehind { if (inDraw && armed.value) error("draw boom") })
+        }
+    }
+
+    // Like a plugin whose LaunchedEffect decodes something it was sent and throws on bad input: the
+    // effect is already running when it throws, so no composition or draw is on the stack.
+    private class EffectThrowingUiPlugin(
+        private val armed: MutableState<Boolean>,
+    ) : JetWhaleHostPlugin(),
+        JetWhaleHostPluginUi {
+        @Composable
+        override fun Content() {
+            LaunchedEffect(Unit) {
+                snapshotFlow { armed.value }.first { it }
+                error("effect boom")
+            }
+            Box(Modifier.fillMaxSize())
         }
     }
 
