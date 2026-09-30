@@ -13,10 +13,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistryTest {
@@ -122,6 +124,24 @@ class McpToolRegistryTest {
         assertContains(error, "'a.greet' is not available in session 'session-9'")
         assertContains(error, "session-1")
     }
+
+    @Test
+    fun `readers keep seeing a plugin's tools while it is being replaced`() {
+        registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
+        val replacementRead = CountDownLatch(1)
+        val replacementReleased = CountDownLatch(1)
+        val replacement = GatedTooledPlugin(replacementRead, replacementReleased, "a.greet")
+
+        val replacing = thread { registry.replace("com.example.a", "session-1", replacement) }
+        assertTrue(replacementRead.await(GATE_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+        val toolsWhileReplacing = registry.allRegistrations().map { it.first }
+        val ownerWhileReplacing = registry.pluginIdFor("a.greet", "session-1")
+        replacementReleased.countDown()
+        replacing.join()
+
+        assertEquals(listOf("a.greet"), toolsWhileReplacing)
+        assertEquals("com.example.a", ownerWhileReplacing)
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -129,14 +149,33 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
 
-    override val mcpCommands: List<JetWhaleMcpCommand> = toolNames.map { toolName ->
-        object : JetWhaleMcpCommand() {
-            override val name = toolName
-            override val description = "Fake tool for testing"
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String = "ok"
-        }
-    }
+    override val mcpCommands: List<JetWhaleMcpCommand> = toolNames.map(::fakeCommand)
 }
+
+/** Holds whoever reads [mcpCommands] until [released], after telling [read] that it got there. */
+@OptIn(ExperimentalJetWhaleApi::class)
+private class GatedTooledPlugin(
+    private val read: CountDownLatch,
+    private val released: CountDownLatch,
+    private vararg val toolNames: String,
+) : JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand>
+        get() {
+            read.countDown()
+            released.await(GATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            return toolNames.map(::fakeCommand)
+        }
+}
+
+private fun fakeCommand(toolName: String): JetWhaleMcpCommand = object : JetWhaleMcpCommand() {
+    override val name = toolName
+    override val description = "Fake tool for testing"
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = "ok"
+}
+
+private const val GATE_TIMEOUT_SECONDS = 5L
 
 private const val ROUNDS = 200
 private const val THREADS = 8
