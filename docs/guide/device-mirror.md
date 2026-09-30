@@ -88,7 +88,7 @@ When a tool is missing, the device list says which one and what it would enable.
 
 idb can show an iPhone's screen, but it cannot send touches, buttons or text to a real device.
 For an iPhone the mirror therefore shows **View only**: input does not work, while screenshots and
-recordings, both taken from its video stream, do (recording needs ffmpeg).
+recordings, both taken from its video stream, do. Like the live view, both need ffmpeg.
 
 If an iPhone stays black:
 
