@@ -73,8 +73,14 @@ class DefaultCrashRecoveryService(
     @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
     override fun onStartup() {
         // A marker whose process is still running belongs to another host sharing this data
-        // directory; it is that host's to remove.
-        val abandoned = runMarkerRepository.readAll().filterNot(::isStillRunning)
+        // directory; it is that host's to remove. A process that started after the marker was
+        // written only reuses the pid; the run that wrote the marker is gone.
+        val abandoned = runMarkerRepository.readAll().filterNot { marker ->
+            ProcessHandle.of(marker.pid)
+                .filter(ProcessHandle::isAlive)
+                .map { process -> process.info().startInstant().map { it.toEpochMilli() <= marker.startedAtMillis }.orElse(true) }
+                .orElse(false)
+        }
         abandoned.maxByOrNull(RunMarker::startedAtMillis)?.let(::reportUncleanExit)
         abandoned.forEach { runMarkerRepository.delete(it.runId) }
 
@@ -112,7 +118,14 @@ class DefaultCrashRecoveryService(
     private fun reportUncleanExit(previous: RunMarker) {
         val duringStartup = !previous.startupCompleted
         consecutiveStartupCrashes = if (duringStartup) previous.consecutiveStartupCrashes + 1 else 0
-        val crashLog = findJvmCrashLog(previous.pid, crashLogDirectories(previous))?.let { file ->
+        val crashLogDirectories = listOfNotNull(
+            appDataDirectoryProvider.getLogsDirectory(),
+            previous.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
+            System.getProperty("java.io.tmpdir")?.let(::File),
+            File("/tmp"),
+            System.getProperty("user.home")?.let(::File),
+        )
+        val crashLog = findJvmCrashLog(previous.pid, crashLogDirectories)?.let { file ->
             try {
                 parseJvmCrashLog(file.path, file.readText())
             } catch (e: IOException) {
@@ -141,21 +154,4 @@ class DefaultCrashRecoveryService(
             }
         }
     }
-
-    private fun crashLogDirectories(previous: RunMarker): List<File> = listOfNotNull(
-        appDataDirectoryProvider.getLogsDirectory(),
-        previous.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
-        System.getProperty("java.io.tmpdir")?.let(::File),
-        File("/tmp"),
-        System.getProperty("user.home")?.let(::File),
-    )
 }
-
-/**
- * A process that started after the marker was written only reuses the pid; the run that wrote the
- * marker is gone.
- */
-private fun isStillRunning(marker: RunMarker): Boolean = ProcessHandle.of(marker.pid)
-    .filter(ProcessHandle::isAlive)
-    .map { process -> process.info().startInstant().map { it.toEpochMilli() <= marker.startedAtMillis }.orElse(true) }
-    .orElse(false)
