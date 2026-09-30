@@ -54,6 +54,9 @@ private const val RESIZE_THRESHOLD = 0.15f
 /** How often a mirrored Android device's screen state is read; a screen turned off shows as black. */
 private const val SCREEN_POWER_POLL_MILLIS = 2_000L
 
+/** How often a mirrored Android device's screen size is read, to follow a foldable folding. */
+private const val SCREEN_CHANGE_POLL_MILLIS = 2_000L
+
 /** How fast the still-image fallback polls, for a device whose stream never started. */
 private const val SCREENSHOT_POLL_MILLIS = 250L
 
@@ -262,7 +265,10 @@ internal class DeviceMirror(
         val android = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
-                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, stream) } }
+                val watches = listOfNotNull(
+                    screen?.let { launch { reopenWhenResized(it, outputSize, stream) } },
+                    screen?.takeIf { android }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
+                )
                 val decoding = async(Dispatchers.IO) {
                     // screenrecord's bytes are its sign of life: a still screen's only frame
                     // decodes once the next one starts, which may be never.
@@ -274,8 +280,8 @@ internal class DeviceMirror(
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
                 // lets it return, and this scope waits for it, so the stream is closed here the
-                // moment the body ends or is cancelled. The resize watch only ends on a resize, so
-                // it is cancelled there too, or this scope would wait for it after the stream ended.
+                // moment the body ends or is cancelled. The watches only end on a change, so they
+                // are cancelled there too, or this scope would wait for them after the stream ended.
                 try {
                     if (android) {
                         state = MirrorState.Streaming
@@ -290,7 +296,7 @@ internal class DeviceMirror(
                         decoding.await()
                     }
                 } finally {
-                    resizing?.cancel()
+                    watches.forEach { it.cancel() }
                     stream.close()
                 }
             }
@@ -338,6 +344,26 @@ internal class DeviceMirror(
                 return
             }
             candidate = if (changed) wanted else null
+        }
+    }
+
+    /**
+     * Ends an Android stream once the device's screen changes size, as a foldable's does when it
+     * folds and its picture moves to the other panel, so the next stream shows the panel that is on.
+     * The size read is the screen's natural one, which rotating leaves alone.
+     */
+    private suspend fun reopenWhenScreenChanges(device: MirrorDevice, screen: IntSize, stream: VideoStream) {
+        while (coroutineContext.isActive) {
+            delay(SCREEN_CHANGE_POLL_MILLIS)
+            val current = try {
+                device.controller.screenSize()
+            } catch (_: DeviceControlException) {
+                continue
+            }
+            if (current != screen) {
+                stream.close()
+                return
+            }
         }
     }
 

@@ -303,6 +303,19 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a foldable that folds while mirrored is streamed again at its new screen size`() = runBlocking {
+        val controller = FoldingEmulator()
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopened.await() }
+        val deviceSize = mirror.surface.deviceSize
+        session.cancel()
+
+        assertEquals(FOLDED_SCREEN, deviceSize)
+    }
+
+    @Test
     fun `a screenrecord stream that sends nothing falls back to screenshots and says so`() = runBlocking {
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0))
         mirror.surface.viewSize = IntSize(540, 1200)
@@ -347,8 +360,13 @@ private const val SIMULTANEOUS_CALLS = 8
 
 private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
 
+/** Longer than the mirror takes to read a mirrored Android device's screen size again. */
+private const val SCREEN_CHANGE_TIMEOUT_MILLIS = 5_000L
+
 /** Longer than the mirror waits for a first sign of life from a stream. */
 private const val SILENT_STREAM_TIMEOUT_MILLIS = 9_000L
+
+private val UNFOLDED_SCREEN = IntSize(2208, 1840)
 
 private val FOLDED_SCREEN = IntSize(1080, 2092)
 
@@ -562,6 +580,44 @@ private class StillEmulator : DeviceController {
         writer.flush()
         return VideoStream.EmulatorRgba(frames = frames, cancel = writer::close)
     }
+
+    override suspend fun release() = Unit
+}
+
+/** An emulator that folds once its first stream is open, whose streams send nothing until closed. */
+private class FoldingEmulator : DeviceController {
+    private val opened = AtomicInteger()
+
+    /** Completes once the mirror opens a second stream. */
+    val reopened = CompletableDeferred<Unit>()
+
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+
+    override suspend fun screenSize(): IntSize = if (opened.get() == 0) UNFOLDED_SCREEN else FOLDED_SCREEN
+
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        if (opened.incrementAndGet() == 2) reopened.complete(Unit)
+        val writer = PipedOutputStream()
+        return VideoStream.EmulatorRgba(frames = PipedInputStream(writer), cancel = writer::close)
+    }
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+
+    override suspend fun captureScreenshot(): ByteArray = throw deviceControlError("no screenshots in tests")
+
+    override suspend fun tap(x: Int, y: Int) = Unit
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
+
+    override suspend fun pressButton(button: DeviceButton) = Unit
+
+    override suspend fun inputText(text: String) = Unit
 
     override suspend fun release() = Unit
 }
