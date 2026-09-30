@@ -139,19 +139,12 @@ fun ShrunkToolingDrawerView(
                             contentDescription = null,
                         )
                     }
-                    if (it.failureMessage != null) {
-                        RailBadge(
-                            tone = JwTone.Error,
-                            filled = true,
-                            modifier = Modifier.align(Alignment.BottomEnd),
-                        )
-                    } else if (it.underAiControl || it.exposesMcpTools) {
-                        RailBadge(
-                            tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
-                            filled = it.underAiControl,
-                            modifier = Modifier.align(Alignment.BottomEnd),
-                        )
-                    }
+                    RailPluginBadge(
+                        failed = it.failureMessage != null,
+                        underAiControl = it.underAiControl,
+                        exposesMcpTools = it.exposesMcpTools,
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                    )
                 }
             }
         }
@@ -222,6 +215,25 @@ private val BadgeOffset = 1.dp
 
 /** The rail-colored ring that separates the badge from what it overlaps. */
 private val BadgeRingWidth = 1.5f.dp
+
+/**
+ * No room for the "MCP" or error tags in the rail, so they collapse to a dot: a filled error dot
+ * once the plugin has failed, a filled one while an agent is operating it, a ring when it merely
+ * exposes tools.
+ */
+@Composable
+private fun RailPluginBadge(
+    failed: Boolean,
+    underAiControl: Boolean,
+    exposesMcpTools: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        failed -> RailBadge(tone = JwTone.Error, filled = true, modifier = modifier)
+        underAiControl -> RailBadge(tone = JwTone.Warning, filled = true, modifier = modifier)
+        exposesMcpTools -> RailBadge(tone = JwTone.Neutral, filled = false, modifier = modifier)
+    }
+}
 
 /**
  * A status dot pinned to a rail button's corner. It sits just outside the 16dp glyph, and a ring in
