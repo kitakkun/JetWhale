@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Registry that tracks MCP tools contributed by plugin instances that implement
@@ -30,8 +30,13 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     /**
      * Maps a tool name to its descriptor and the set of (sessionId → pluginId) pairs
      * that currently have the tool active.
+     *
+     * Readers take no lock: every change builds a new map and swaps it in with one write, so a
+     * reader sees the tools from before a change or after it, never a plugin halfway through being
+     * replaced.
      */
-    private val registrations: ConcurrentHashMap<String, PluginToolEntry> = ConcurrentHashMap()
+    @Volatile
+    private var registrations: Map<String, PluginToolEntry> = emptyMap()
 
     private val publishLock = Any()
 
@@ -46,12 +51,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Only called if the plugin implements [JetWhaleMcpCapablePlugin].
      */
     fun register(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin) = synchronized(publishLock) {
-        plugin.mcpCommands.forEach { command ->
-            val entry = registrations.getOrPut(command.name) {
-                PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
-            }
-            entry.sessionToPlugin[sessionId] = pluginId
-        }
+        registrations = registrations.withTools(pluginId, sessionId, plugin.mcpCommands)
         publishCapablePlugins()
     }
 
@@ -60,18 +60,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * before; null removes them. Tool entries left with no session are cleaned up.
      */
     fun replace(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin?) = synchronized(publishLock) {
-        registrations.entries.removeIf { (_, entry) ->
-            if (entry.sessionToPlugin[sessionId] == pluginId) {
-                entry.sessionToPlugin.remove(sessionId)
-            }
-            entry.sessionToPlugin.isEmpty()
-        }
-        plugin?.mcpCommands?.forEach { command ->
-            val entry = registrations.getOrPut(command.name) {
-                PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
-            }
-            entry.sessionToPlugin[sessionId] = pluginId
-        }
+        registrations = registrations
+            .withoutTools(pluginId, sessionId)
+            .withTools(pluginId, sessionId, plugin?.mcpCommands.orEmpty())
         publishCapablePlugins()
     }
 
@@ -107,7 +98,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() = synchronized(publishLock) {
-        registrations.clear()
+        registrations = emptyMap()
         publishCapablePlugins()
     }
 
@@ -141,12 +132,25 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     }
 
     /** Returns all tools that have at least one active session, with their descriptors. */
-    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries
-        .filter { it.value.sessionToPlugin.isNotEmpty() }
-        .map { (name, entry) -> name to entry.descriptor }
+    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.map { (name, entry) -> name to entry.descriptor }
+
+    private fun Map<String, PluginToolEntry>.withTools(
+        pluginId: String,
+        sessionId: String,
+        commands: List<JetWhaleMcpCommand>,
+    ): Map<String, PluginToolEntry> = toMutableMap().apply {
+        commands.forEach { command ->
+            val entry = get(command.name) ?: PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = emptyMap())
+            put(command.name, entry.copy(sessionToPlugin = entry.sessionToPlugin + (sessionId to pluginId)))
+        }
+    }
+
+    private fun Map<String, PluginToolEntry>.withoutTools(pluginId: String, sessionId: String): Map<String, PluginToolEntry> = mapValues { (_, entry) ->
+        if (entry.sessionToPlugin[sessionId] == pluginId) entry.copy(sessionToPlugin = entry.sessionToPlugin - sessionId) else entry
+    }.filterValues { it.sessionToPlugin.isNotEmpty() }
 }
 
 data class PluginToolEntry(
     val descriptor: JetWhaleMcpToolDescriptor,
-    val sessionToPlugin: ConcurrentHashMap<String, String>,
+    val sessionToPlugin: Map<String, String>,
 )
