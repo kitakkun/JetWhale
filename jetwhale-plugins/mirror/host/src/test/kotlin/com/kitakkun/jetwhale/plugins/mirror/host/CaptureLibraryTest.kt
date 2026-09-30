@@ -132,6 +132,15 @@ class CaptureLibraryTest {
         assertEquals(THUMBNAIL_HEIGHT, height)
     }
 
+    @Test
+    fun `a sidecar that cannot be read is left out of the list instead of failing it`() {
+        val kept = save(pixel, CaptureKind.Screenshot, noon)
+        val unreadable = save(pixel, CaptureKind.Screenshot, noon.plusSeconds(60))
+        File("${unreadable.file.path}.json").setReadable(false)
+
+        assertEquals(listOf(kept), library.list(deviceId = null, kind = null, sinceEpochMillis = null))
+    }
+
     private fun save(device: DeviceListing, kind: CaptureKind, at: Instant, content: ByteArray = byteArrayOf(1)): Capture {
         val file = library.newFile(device, kind, at).apply { writeBytes(content) }
         return library.record(file, infoOf(device, kind, at, durationMillis = null))

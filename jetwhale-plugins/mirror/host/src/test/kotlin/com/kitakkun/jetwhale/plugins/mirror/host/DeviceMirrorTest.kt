@@ -5,10 +5,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -44,7 +46,8 @@ class DeviceMirrorTest {
 
     @AfterTest
     fun cleanUp() {
-        scope.cancel()
+        // Cancelling does not stop a capture listing that is already reading the folder.
+        runBlocking { scope.coroutineContext.job.cancelAndJoin() }
         root.deleteRecursively()
     }
 
@@ -91,8 +94,9 @@ class DeviceMirrorTest {
     @Test
     fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
         // Unconfined, a click's coroutine reaches the recordings lock before the click returns, so
-        // the queue order below is the order of the calls.
-        val clicks = CoroutineScope(Dispatchers.Unconfined)
+        // the queue order below is the order of the calls. A child of the fixture's scope, so
+        // cleanUp joins its work even when the test fails before reaching the end.
+        val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
             discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
             captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null),
@@ -109,7 +113,6 @@ class DeviceMirrorTest {
             clicked.startRecording(device)
             clicked.stopRecording(deviceId = null)
         }
-        clicks.cancel()
 
         assertEquals(2, recorder.started.get())
         assertEquals(2, recorder.stopped.get())
