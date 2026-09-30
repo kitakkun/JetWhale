@@ -94,6 +94,8 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
                     showCaptures = true
                 }
 
+                is NoticeAction.CopyCapture -> mirror.captures.copy(action.capture)
+
                 is NoticeAction.OpenCaptures -> {
                     mirror.captures.showAllDevices(true)
                     if (mirror.selectedDevice == null) mirror.devices.firstOrNull()?.let { mirror.select(it.id) }

@@ -79,7 +79,7 @@ private class MirrorHostPlugin :
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
             discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, toolPaths.ffmpegPath),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, toolPaths.ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
             scope = pluginScope,
         )
