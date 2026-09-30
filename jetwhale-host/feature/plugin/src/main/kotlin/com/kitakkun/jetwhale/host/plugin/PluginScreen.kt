@@ -141,6 +141,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         frameNanoTime
         if (pluginComposeScene.failure.value != null) return@Canvas
         this.drawIntoCanvas { canvas ->
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 pluginComposeScene.render(canvas)
             } catch (e: CancellationException) {

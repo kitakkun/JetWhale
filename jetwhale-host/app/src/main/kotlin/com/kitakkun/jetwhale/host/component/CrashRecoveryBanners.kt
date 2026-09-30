@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.host.safe_mode_banner_startup_crashes
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.unclean_exit_banner_copy_crash_log_path
 import com.kitakkun.jetwhale.host.unclean_exit_banner_copy_logs_path
@@ -107,34 +108,38 @@ fun SafeModeBanner(
 @Preview
 @Composable
 private fun UncleanExitBannerPreview() {
-    UncleanExitBanner(
-        report = UncleanExitReport(
-            pid = 65669,
-            startedAtMillis = 0,
-            duringStartup = false,
-            crashLog = JvmCrashLog(
-                path = "/Users/me/.jetwhale/logs/hs_err_pid65669.log",
-                errorLine = "SIGSEGV (0xb) at pc=0x000000014957d3d0, pid=65669, tid=130819",
-                problematicFrame = "C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0",
-                crashingThread = null,
-                javaFrames = emptyList(),
+    JwTheme(darkTheme = false) {
+        UncleanExitBanner(
+            report = UncleanExitReport(
+                pid = 65669,
+                startedAtMillis = 0,
+                duringStartup = false,
+                crashLog = JvmCrashLog(
+                    path = "/Users/me/.jetwhale/logs/hs_err_pid65669.log",
+                    errorLine = "SIGSEGV (0xb) at pc=0x000000014957d3d0, pid=65669, tid=130819",
+                    problematicFrame = "C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0",
+                    crashingThread = null,
+                    javaFrames = emptyList(),
+                ),
+                suspectedPlugin = SuspectedPlugin(pluginId = "com.example.mirror", pluginName = "Device Mirror"),
+                logsDirectory = "/Users/me/.jetwhale/logs",
             ),
-            suspectedPlugin = SuspectedPlugin(pluginId = "com.example.mirror", pluginName = "Device Mirror"),
-            logsDirectory = "/Users/me/.jetwhale/logs",
-        ),
-        canOpenFiles = true,
-        onClickCrashLog = {},
-        onClickLogs = {},
-        onClickDisablePlugin = {},
-        onDismiss = {},
-    )
+            canOpenFiles = true,
+            onClickCrashLog = {},
+            onClickLogs = {},
+            onClickDisablePlugin = {},
+            onDismiss = {},
+        )
+    }
 }
 
 @Preview
 @Composable
 private fun SafeModeBannerPreview() {
-    SafeModeBanner(
-        safeMode = SafeMode(SafeModeReason.RepeatedStartupCrashes),
-        onClickLoadPlugins = {},
-    )
+    JwTheme(darkTheme = false) {
+        SafeModeBanner(
+            safeMode = SafeMode(SafeModeReason.RepeatedStartupCrashes),
+            onClickLoadPlugins = {},
+        )
+    }
 }

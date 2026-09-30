@@ -37,8 +37,8 @@ import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarRequest
-import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
+import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey

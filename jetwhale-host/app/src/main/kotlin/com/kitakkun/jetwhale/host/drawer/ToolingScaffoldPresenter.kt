@@ -23,8 +23,8 @@ import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
-import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginFailures
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.SidebarWidth
