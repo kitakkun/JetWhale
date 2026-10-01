@@ -469,6 +469,7 @@ private fun LazyListScope.enabledPluginRows(
             selected = plugin.id == selectedPluginId,
             underAiControl = plugin.underAiControl,
             exposesMcpTools = plugin.exposesMcpTools,
+            versionBadge = plugin.versionBadge,
             onClickMcpBadge = { actions.onOpenMcpTools(plugin.id) },
             onClick = { actions.onClickPlugin(plugin) },
             popupMenuContent = { dismiss ->
@@ -532,6 +533,7 @@ private fun LazyListScope.inactivePluginRows(
                 selected = plugin.id == selectedPluginId,
                 underAiControl = plugin.underAiControl,
                 exposesMcpTools = plugin.exposesMcpTools,
+                versionBadge = plugin.versionBadge,
                 onClickMcpBadge = { actions.onOpenMcpTools(plugin.id) },
                 onClick = { actions.onClickInactivePlugin(plugin) },
                 popupMenuContent = if (notInApp) {
@@ -604,6 +606,7 @@ private fun ExpandedToolingDrawerViewPreview() {
                     exposesMcpTools = false,
                     isHeadless = false,
                     needsApp = false,
+                    versionBadge = null,
                 ),
                 DrawerPluginItemUiState(
                     name = "Inspector",
@@ -615,6 +618,7 @@ private fun ExpandedToolingDrawerViewPreview() {
                     exposesMcpTools = true,
                     isHeadless = false,
                     needsApp = true,
+                    versionBadge = null,
                 ),
                 DrawerPluginItemUiState(
                     name = "Recorder",
@@ -626,6 +630,7 @@ private fun ExpandedToolingDrawerViewPreview() {
                     exposesMcpTools = false,
                     isHeadless = false,
                     needsApp = true,
+                    versionBadge = null,
                 ),
             ),
             hasFailedJars = false,

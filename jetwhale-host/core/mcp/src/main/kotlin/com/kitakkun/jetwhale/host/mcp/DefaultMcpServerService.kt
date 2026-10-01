@@ -72,16 +72,16 @@ class DefaultMcpServerService(
         if (!running.compareAndSet(false, true)) return
 
         // Register plugin instances that were already created before the MCP server started.
-        pluginInstanceService.getLoadedPluginInstances().forEach { (pluginId, sessionId, plugin) ->
+        pluginInstanceService.getLoadedPluginInstances().forEach { (pluginId, sessionId, plugin, version) ->
             if (plugin is JetWhaleMcpCapablePlugin) {
-                toolRegistry.register(pluginId, sessionId, plugin)
+                toolRegistry.register(pluginId = pluginId, sessionId = sessionId, version = version, plugin = plugin)
             }
         }
 
         lifecycleObserverJob = coroutineScope.launch {
             pluginInstanceService.pluginInstanceEventFlow.collect { event ->
                 when (event) {
-                    is PluginInstanceEvent.Ready -> onPluginInstanceReady(event.pluginId, event.sessionId)
+                    is PluginInstanceEvent.Ready -> onPluginInstanceReady(event)
                     is PluginInstanceEvent.Disposed -> onPluginInstanceDisposed(event.pluginId, event.sessionId)
                 }
             }
@@ -184,10 +184,14 @@ class DefaultMcpServerService(
         statusHolder.update(McpServerStatus.Stopped)
     }
 
-    private fun onPluginInstanceReady(pluginId: String, sessionId: String) {
-        val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+    private fun onPluginInstanceReady(event: PluginInstanceEvent.Ready) {
+        // By the time a Ready is handled its instance may have been replaced by another version, whose
+        // own Ready follows; registering now would file the new instance's tools under the old version.
+        val plugin = pluginInstanceService.getLoadedPluginInstances()
+            .firstOrNull { it.pluginId == event.pluginId && it.sessionId == event.sessionId && it.version == event.version }
+            ?.plugin
         if (plugin is JetWhaleMcpCapablePlugin) {
-            toolRegistry.register(pluginId, sessionId, plugin)
+            toolRegistry.register(pluginId = event.pluginId, sessionId = event.sessionId, version = event.version, plugin = plugin)
         }
     }
 

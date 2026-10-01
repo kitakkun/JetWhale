@@ -52,6 +52,7 @@ class ListInstalledPluginsCommand(
                 pluginId = plugin.manifest.pluginId,
                 name = plugin.manifest.pluginName,
                 version = plugin.manifest.version,
+                installedVersions = pluginFactoryRepository.loadedPluginVersions[plugin.manifest.pluginId].orEmpty().map { it.manifest.version },
                 requiresAgent = plugin.manifest.requiresAgent,
                 enabled = plugin.manifest.pluginId in enabledPluginIds,
             )
@@ -208,6 +209,7 @@ data class InstalledPluginJson(
     val pluginId: String,
     val name: String,
     val version: String,
+    val installedVersions: List<String>,
     val requiresAgent: Boolean,
     val enabled: Boolean,
 )
