@@ -78,6 +78,8 @@ class AndroidDeviceControllerTest {
         controller.captureScreenshot()
         controller.tap(10, 20)
         controller.swipe(fromX = 1, fromY = 2, toX = 3, toY = 4, durationMillis = 250)
+        controller.pressButton(DeviceButton.Home)
+        controller.inputText("hello")
         (controller.openVideoStream(wanted = null) as VideoStream.H264).process.waitFor()
 
         val given = commands.readLines().filterNot { "dumpsys" in it }
@@ -87,6 +89,8 @@ class AndroidDeviceControllerTest {
                 "-s device-1 exec-out screencap -p -d $COVER_PANEL",
                 "-s device-1 shell input -d 0 tap 10 20",
                 "-s device-1 shell input -d 0 swipe 1 2 3 4 250",
+                "-s device-1 shell input -d 0 keyevent KEYCODE_HOME",
+                "-s device-1 shell input -d 0 text hello",
                 "-s device-1 exec-out screenrecord --output-format=h264 --display-id $COVER_PANEL --time-limit 180 -",
             ),
             given,

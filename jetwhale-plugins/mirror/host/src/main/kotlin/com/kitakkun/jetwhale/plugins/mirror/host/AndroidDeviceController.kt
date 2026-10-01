@@ -50,11 +50,11 @@ internal class AndroidDeviceController(
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", androidKeycodeOf(button))
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "keyevent", androidKeycodeOf(button))
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", "text", escapeForAdbInputText(text))
+        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "text", escapeForAdbInputText(text))
     }
 
     override suspend fun screenPower(): ScreenPower {
