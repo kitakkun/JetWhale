@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import java.awt.HeadlessException
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
@@ -36,6 +37,8 @@ internal class CaptureClipboard(private val osascriptPath: String?) {
             Toolkit.getDefaultToolkit().systemClipboard.setContents(contents, null)
         } catch (e: IllegalStateException) {
             throw IOException("the clipboard is in use by another app", e)
+        } catch (e: HeadlessException) {
+            throw IOException("a host without a window has no clipboard", e)
         }
     }
 }
