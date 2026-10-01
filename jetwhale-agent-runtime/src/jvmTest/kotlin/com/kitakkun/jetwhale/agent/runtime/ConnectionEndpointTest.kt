@@ -177,7 +177,7 @@ class ConnectionEndpointTest {
     }
 
     @Test
-    fun `the same address declared twice is dialled once`() {
+    fun `the same address declared twice is dialed once`() {
         val resolved = literalAddresses {
             endpoints {
                 ws("localhost", 5080)

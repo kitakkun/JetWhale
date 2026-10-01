@@ -22,14 +22,14 @@ internal class DefaultJetWhaleMessagingService(
     private val pluginService: JetWhaleAgentPluginService,
 ) : JetWhaleMessagingService {
     private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
-    private var keepAwakeJob: Job? = null
+    private var connectionLoopJob: Job? = null
     private var retryCount = 0
     private var lastReportedFailure: String? = null
 
     override fun startService(resolver: EndpointResolver) {
         JetWhaleLogger.i("Starting JetWhale Messaging Service")
-        keepAwakeJob?.cancel()
-        keepAwakeJob = coroutineScope.launch {
+        connectionLoopJob?.cancel()
+        connectionLoopJob = coroutineScope.launch {
             while (isActive) {
                 val outcome = runRound(resolver)
                 if (outcome is RoundResult.Served) continue
@@ -44,8 +44,8 @@ internal class DefaultJetWhaleMessagingService(
 
     override fun stopService() {
         JetWhaleLogger.i("Stopping JetWhale Messaging Service")
-        val connectionJob = keepAwakeJob ?: return
-        keepAwakeJob = null
+        val connectionJob = connectionLoopJob ?: return
+        connectionLoopJob = null
         coroutineScope.launch {
             connectionJob.cancelAndJoin()
             withContext(NonCancellable) {
@@ -124,7 +124,7 @@ internal class DefaultJetWhaleMessagingService(
 
     /** Runs an established connection until it ends. */
     private suspend fun serveConnection(connection: JetWhaleConnection) {
-        pluginService.startConnection(
+        pluginService.bindConnection(
             scope = coroutineScope,
             sendFrame = { frame ->
                 socketClient.sendDebuggeeEvent(JetWhaleDebuggeeEvent.PluginFrameMessage(frame))

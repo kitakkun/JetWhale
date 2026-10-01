@@ -36,7 +36,7 @@ internal class JetWhaleAgentPluginService(
         val plugin: JetWhaleAgentPlugin,
         val messenger: BufferedMessenger,
         var peer: JetWhalePluginPeer? = null,
-        var connectJob: Job? = null,
+        var preparationJob: Job? = null,
         var active: Boolean = false,
     )
 
@@ -57,7 +57,7 @@ internal class JetWhaleAgentPluginService(
     }
 
     /** Binds the service to a freshly opened connection. Call before [syncActivePlugins]. */
-    fun startConnection(scope: CoroutineScope, sendFrame: suspend (PluginFrame) -> Unit) {
+    fun bindConnection(scope: CoroutineScope, sendFrame: suspend (PluginFrame) -> Unit) {
         this.connectionScope = scope
         this.sendFrame = sendFrame
     }
@@ -129,7 +129,7 @@ internal class JetWhaleAgentPluginService(
         }
         runtime.peer = peer
         runtime.messenger.bind(peer.messenger)
-        runtime.connectJob = scope.launchPeerPreparation(
+        runtime.preparationJob = scope.launchPeerPreparation(
             peer = peer,
             descriptor = descriptor,
             prepareTimeoutMillis = runtime.plugin.prepareTimeoutMillis(),
@@ -141,8 +141,8 @@ internal class JetWhaleAgentPluginService(
 
     private suspend fun dropPeer(runtime: PluginRuntime, notifyDisconnected: Boolean) {
         val peer = runtime.peer ?: return
-        runtime.connectJob?.cancelAndJoin()
-        runtime.connectJob = null
+        runtime.preparationJob?.cancelAndJoin()
+        runtime.preparationJob = null
         runtime.messenger.unbind()
         runtime.peer = null
         try {
