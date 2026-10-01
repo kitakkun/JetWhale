@@ -11,7 +11,6 @@ plugins {
 
 group = "com.kitakkun.jetwhale.plugins.storage"
 
-// Empty on purpose: configuring the extension is what turns ABI validation on for this module.
 kotlin {
     abiValidation {
     }

@@ -16,7 +16,6 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.nav3"
 
 kotlin {
-    // Calling the block is what turns ABI validation on; it is empty on purpose.
     abiValidation {
     }
 
