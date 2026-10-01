@@ -1,13 +1,23 @@
 package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,16 +32,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import java.awt.Cursor
 
 /** Sizes of a [JwTable]. */
 public object JwTableDefaults {
@@ -40,6 +63,12 @@ public object JwTableDefaults {
 
     /** Height of a body row, the same as any other compact row. */
     public val rowHeight: Dp = JwMetrics.controlHeight
+
+    /** The narrowest a column is dragged down to, unless the column sets its own. */
+    public val minColumnWidth: Dp = 40.dp
+
+    /** Width of the grab area at the trailing edge of each header cell. */
+    public val resizeHandleWidth: Dp = 8.dp
 }
 
 /** How wide a [JwTableColumn] is. */
@@ -75,6 +104,7 @@ public enum class JwColumnOverflow {
  * @param width how wide the column is; see [JwColumnWidth].
  * @param alignment where content sits inside a cell wider than it.
  * @param overflow how content wider than the column is handled; see [JwColumnOverflow].
+ * @param minWidth the narrowest the user can drag the column to.
  * @param cell how an item renders in this column.
  */
 @Immutable
@@ -83,6 +113,7 @@ public class JwTableColumn<T>(
     public val width: JwColumnWidth,
     public val alignment: Alignment.Horizontal = Alignment.Start,
     public val overflow: JwColumnOverflow = JwColumnOverflow.Ellipsis,
+    public val minWidth: Dp = JwTableDefaults.minColumnWidth,
     public val cell: @Composable (item: T) -> Unit,
 ) {
     public companion object {
@@ -94,6 +125,7 @@ public class JwTableColumn<T>(
          * @param width how wide the column is.
          * @param alignment where the text sits inside a wider cell.
          * @param overflow what happens to text wider than the column.
+         * @param minWidth the narrowest the user can drag the column to.
          * @param style the text style; null for the body style.
          * @param text the string to show for an item.
          */
@@ -102,9 +134,10 @@ public class JwTableColumn<T>(
             width: JwColumnWidth,
             alignment: Alignment.Horizontal = Alignment.Start,
             overflow: JwColumnOverflow = JwColumnOverflow.Ellipsis,
+            minWidth: Dp = JwTableDefaults.minColumnWidth,
             style: TextStyle? = null,
             text: (item: T) -> String,
-        ): JwTableColumn<T> = JwTableColumn(header = header, width = width, alignment = alignment, overflow = overflow) { item ->
+        ): JwTableColumn<T> = JwTableColumn(header = header, width = width, alignment = alignment, overflow = overflow, minWidth = minWidth) { item ->
             JwTableCellText(text = text(item), style = style)
         }
     }
@@ -150,6 +183,12 @@ public fun JwTableCellText(
  * declared once as [JwTableColumn]s and applied to every item; a [Weight] column absorbs the width
  * the [Fixed] ones leave.
  *
+ * The user resizes a column by dragging the trailing edge of its header, and fits it to its content
+ * by double-clicking that edge. A resized column keeps the width it was given, even if it was a
+ * [Weight] column, and the remaining [Weight] columns share what is left; a drag stops where they
+ * would go below their [JwTableColumn.minWidth]. [columnState] holds those widths — hoist it to
+ * persist them.
+ *
  * Rows are one compact control tall unless a column wraps ([JwColumnOverflow.Wrap]), in which
  * case a row grows to its tallest cell.
  *
@@ -160,6 +199,7 @@ public fun JwTableCellText(
  * @param onClick what selecting a row does; null for a read-only table.
  * @param state the list's scroll state; hoist it to scroll programmatically.
  * @param contentPadding padding around the rows, inside the scrolling area.
+ * @param columnState the widths the user dragged; hoist it to persist them.
  * @param emptyContent what to show instead of rows while [items] is empty — a [JwEmptyState].
  */
 @Composable
@@ -172,9 +212,42 @@ public fun <T> JwTable(
     onClick: ((item: T) -> Unit)? = null,
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    columnState: JwTableColumnState = rememberJwTableColumnState(),
     emptyContent: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    FitColumnEffect(columns, columnState)
+    val density = LocalDensity.current
+    // The row's width is read from the constraints, in the same composition that sizes the cells:
+    // one recorded after layout would lag a resize by a frame, and header and rows would disagree.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val columnLayout = TableColumnLayout(columns = columns, state = columnState, rowWidth = maxWidth - JwSpacing.medium * 2)
+        TableContent(
+            items = items,
+            columnLayout = columnLayout,
+            key = key,
+            isSelected = isSelected,
+            onClick = onClick,
+            state = state,
+            contentPadding = contentPadding,
+            emptyContent = emptyContent,
+            onHeaderCellSized = { header, width -> columnState.laidOutWidths[header] = with(density) { width.toDp() } },
+        )
+    }
+}
+
+@Composable
+private fun <T> TableContent(
+    items: List<T>,
+    columnLayout: TableColumnLayout<T>,
+    state: LazyListState,
+    contentPadding: PaddingValues,
+    key: ((item: T) -> Any)?,
+    isSelected: (item: T) -> Boolean,
+    onClick: ((item: T) -> Unit)?,
+    emptyContent: (@Composable () -> Unit)?,
+    onHeaderCellSized: (header: String, widthPx: Int) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -184,15 +257,24 @@ public fun <T> JwTable(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            columns.forEach { column ->
-                Cell(column) {
-                    JwText(
-                        text = column.header,
-                        style = JwTheme.textStyles.labelSmall,
-                        color = JwTheme.colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            columnLayout.columns.forEach { column ->
+                Cell(
+                    column = column,
+                    columnLayout = columnLayout,
+                    modifier = Modifier.onSizeChanged { onHeaderCellSized(column.header, it.width) },
+                ) {
+                    // The handle overlaps the header's end rather than taking width from it: it is
+                    // invisible until hovered, and a narrow column needs every dp for its name.
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = column.contentAlignment()) {
+                        JwText(
+                            text = column.header,
+                            style = JwTheme.textStyles.labelSmall,
+                            color = JwTheme.colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        ResizeHandle(column = column, columnLayout = columnLayout, modifier = Modifier.align(Alignment.CenterEnd))
+                    }
                 }
             }
         }
@@ -208,8 +290,8 @@ public fun <T> JwTable(
         ) {
             items(items = items, key = key) { item ->
                 val cells: @Composable RowScope.() -> Unit = {
-                    columns.forEach { column ->
-                        Cell(column) { column.cell(item) }
+                    columnLayout.columns.forEach { column ->
+                        Cell(column = column, columnLayout = columnLayout) { column.cell(item) }
                     }
                 }
                 if (onClick == null) {
@@ -243,11 +325,122 @@ private fun ReadOnlyRow(selected: Boolean, content: @Composable RowScope.() -> U
     }
 }
 
+/**
+ * The grab area at the trailing edge of a header cell: dragging it resizes the column, and a
+ * double-click fits the column to its widest laid-out content. A hairline shows while it is hovered
+ * or dragged.
+ */
 @Composable
-private fun <T> RowScope.Cell(column: JwTableColumn<T>, content: @Composable () -> Unit) {
-    val sizing = when (val width = column.width) {
+private fun <T> ResizeHandle(
+    column: JwTableColumn<T>,
+    columnLayout: TableColumnLayout<T>,
+    modifier: Modifier,
+) {
+    val columnState = columnLayout.state
+    val density = LocalDensity.current
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val dragged by interactionSource.collectIsDraggedAsState()
+    val dragState = rememberDraggableState(
+        onDelta = onDelta@{ deltaPx ->
+            val current = columnLayout.shownWidth(column) ?: columnState.laidOutWidths[column.header] ?: return@onDelta
+            val growth = with(density) { deltaPx.toDp() }
+            val widest = columnLayout.widest(column).coerceAtLeast(column.minWidth)
+            columnState.widths += column.header to (current + growth).coerceIn(column.minWidth, widest)
+        },
+    )
+    Box(
+        modifier = modifier
+            .width(JwTableDefaults.resizeHandleWidth)
+            .fillMaxHeight()
+            .hoverable(interactionSource)
+            .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
+            .draggable(state = dragState, orientation = Orientation.Horizontal, interactionSource = interactionSource)
+            .semantics { contentDescription = "Resize ${column.header}" }
+            .pointerInput(column.header) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        columnState.fittedContentWidth = 0.dp
+                        columnState.fitting = column.header
+                    },
+                )
+            },
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        if (hovered || dragged) JwVerticalDivider(modifier = Modifier.fillMaxHeight())
+    }
+}
+
+/**
+ * The columns of one [JwTable] in a row [rowWidth] wide, with the widths the user set in [state]:
+ * what the cells, the header and the resize handles all size themselves from.
+ */
+private class TableColumnLayout<T>(
+    val columns: List<JwTableColumn<T>>,
+    val state: JwTableColumnState,
+    private val rowWidth: Dp,
+) {
+    /**
+     * The widest [column] can be: the row, less the gaps and what every other column keeps. A
+     * column the user sized or declared fixed keeps its width; one still sharing by weight keeps
+     * only its minimum. Computed from declarations rather than the last layout, which lags a fast
+     * drag.
+     */
+    fun widest(column: JwTableColumn<T>): Dp {
+        val gaps = JwSpacing.medium * (columns.size - 1).coerceAtLeast(0)
+        val kept = columns.filter { it !== column }.fold(0.dp) { sum, other ->
+            sum + (state.widths[other.header] ?: (other.width as? JwColumnWidth.Fixed)?.width ?: other.minWidth)
+        }
+        return rowWidth - gaps - kept
+    }
+
+    /**
+     * The width a user-sized [column] is laid out at: what the user set, but no wider than the row
+     * now allows, so a width dragged in a wide window does not push the other columns out of a
+     * narrow one. Null for a column the user has not sized.
+     */
+    fun shownWidth(column: JwTableColumn<T>): Dp? = state.widths[column.header]?.coerceAtMost(widest(column).coerceAtLeast(column.minWidth))
+}
+
+/**
+ * Finishes a double-click fit: gives the rows a frame to report their content widths for the column
+ * being fitted, then sets the column to the widest of them.
+ */
+@Composable
+private fun <T> FitColumnEffect(columns: List<JwTableColumn<T>>, columnState: JwTableColumnState) {
+    val header = columnState.fitting ?: return
+    LaunchedEffect(header) {
+        withFrameNanos { }
+        withFrameNanos { }
+        val column = columns.firstOrNull { it.header == header }
+        if (column != null && columnState.fittedContentWidth > 0.dp) {
+            columnState.widths += header to columnState.fittedContentWidth.coerceAtLeast(column.minWidth)
+        }
+        columnState.fitting = null
+    }
+}
+
+@Composable
+private fun <T> RowScope.Cell(
+    column: JwTableColumn<T>,
+    columnLayout: TableColumnLayout<T>,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val sizing = when (val width = columnLayout.shownWidth(column)?.let(JwColumnWidth::Fixed) ?: column.width) {
         is JwColumnWidth.Fixed -> Modifier.width(width.width)
         is JwColumnWidth.Weight -> Modifier.weight(width.weight)
+    }
+    // Reads the content's natural width only while this column is being fitted, so ordinary layout
+    // pays nothing for it.
+    val columnState = columnLayout.state
+    val fitProbe = Modifier.layout { measurable, constraints ->
+        if (columnState.fitting == column.header) {
+            val natural = measurable.maxIntrinsicWidth(constraints.maxHeight).toDp()
+            if (natural > columnState.fittedContentWidth) columnState.fittedContentWidth = natural
+        }
+        val placeable = measurable.measure(constraints)
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
     // Scrolling gives the content unbounded width; the other two keep it inside the cell, and
     // clipping catches a custom cell that ignores the setting.
@@ -256,13 +449,16 @@ private fun <T> RowScope.Cell(column: JwTableColumn<T>, content: @Composable () 
         JwColumnOverflow.Ellipsis, JwColumnOverflow.Wrap -> Modifier.clipToBounds()
     }
     Box(
-        modifier = sizing.then(overflow),
-        contentAlignment = when (column.alignment) {
-            Alignment.End -> Alignment.CenterEnd
-            Alignment.CenterHorizontally -> Alignment.Center
-            else -> Alignment.CenterStart
-        },
+        modifier = modifier.then(sizing).then(overflow).then(fitProbe),
+        contentAlignment = column.contentAlignment(),
     ) {
         CompositionLocalProvider(LocalJwColumnOverflow provides column.overflow, content = content)
     }
+}
+
+/** Where content sits in a cell of this column, vertically centered in the row. */
+private fun JwTableColumn<*>.contentAlignment(): Alignment = when (alignment) {
+    Alignment.End -> Alignment.CenterEnd
+    Alignment.CenterHorizontally -> Alignment.Center
+    else -> Alignment.CenterStart
 }

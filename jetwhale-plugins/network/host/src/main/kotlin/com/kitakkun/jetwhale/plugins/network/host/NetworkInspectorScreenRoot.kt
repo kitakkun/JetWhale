@@ -11,12 +11,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.host.ui.rememberJwTableColumnState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -41,12 +44,14 @@ fun NetworkInspectorScreenRoot(
     modifier: Modifier = Modifier,
 ) {
     val trafficSplitPaneState = rememberPersistedSplitPaneState()
+    val trafficColumnState = rememberPersistedTrafficColumnState()
 
     NetworkInspectorScreen(
         transactions = transactions,
         mockRules = mockRules,
         mockingEnabled = mockingEnabled,
         trafficSplitPaneState = trafficSplitPaneState,
+        trafficColumnState = trafficColumnState,
         onClearTransactions = onClearTransactions,
         onToggleMocking = onToggleMocking,
         onMockRulesChanged = onMockRulesChanged,
@@ -77,6 +82,27 @@ private fun rememberPersistedSplitPaneState(): JwSplitPaneState {
     return splitPaneState
 }
 
+/**
+ * The traffic table's column widths the user dragged, kept across host restarts, mirrored both ways
+ * for the same reason as [rememberPersistedSplitPaneState]. Stored as plain numbers of dp.
+ */
+@Composable
+private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
+    var storedWidths by rememberPersistent(COLUMN_WIDTHS_KEY, emptyMap<String, Float>())
+    val columnState = rememberJwTableColumnState()
+    LaunchedEffect(columnState) {
+        launch {
+            snapshotFlow { storedWidths }
+                .collect { stored -> columnState.widths = stored.mapValues { (_, width) -> width.dp } }
+        }
+        snapshotFlow { columnState.widths }
+            .collect { widths -> storedWidths = widths.mapValues { (_, width) -> width.value } }
+    }
+    return columnState
+}
+
 private const val SPLIT_POSITION_KEY = "traffic.splitPosition"
+
+private const val COLUMN_WIDTHS_KEY = "traffic.columnWidths"
 
 private const val DEFAULT_SPLIT_POSITION = 0.42f

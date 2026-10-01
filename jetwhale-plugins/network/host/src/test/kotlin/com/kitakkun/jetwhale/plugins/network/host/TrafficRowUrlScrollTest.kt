@@ -17,6 +17,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.host.ui.rememberJwTableColumnState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import kotlin.test.Test
@@ -124,6 +125,7 @@ private fun runTrafficTab(
                     transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
                     selectedTxId = null,
                     splitPaneState = rememberJwSplitPaneState(SPLIT_POSITION),
+                    columnState = rememberJwTableColumnState(),
                     onSelectTx = { selected = it },
                     onClear = {},
                     onCreateMock = {},
