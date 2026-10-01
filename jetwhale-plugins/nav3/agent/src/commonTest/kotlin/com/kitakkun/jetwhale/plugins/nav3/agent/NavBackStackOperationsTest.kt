@@ -24,12 +24,12 @@ class NavBackStackOperationsTest {
     fun `push appends to the top of the stack`() {
         val stack = mutableListOf("home")
 
-        apply(stack, NavBackStackOperation.Push(key("detail"), index = null))
+        applyOperations(stack, NavBackStackOperation.Push(key("detail"), index = null))
 
         assertContentEquals(listOf("home", "detail"), stack)
     }
 
-    private fun apply(stack: MutableList<String>, vararg operations: NavBackStackOperation) {
+    private fun applyOperations(stack: MutableList<String>, vararg operations: NavBackStackOperation) {
         applyNavOperations(stack, operations.toList(), ::decodeKey)
     }
 
@@ -37,7 +37,7 @@ class NavBackStackOperationsTest {
     fun `push with an index inserts below the top`() {
         val stack = mutableListOf("home", "detail")
 
-        apply(stack, NavBackStackOperation.Push(key("list"), index = 1))
+        applyOperations(stack, NavBackStackOperation.Push(key("list"), index = 1))
 
         assertContentEquals(listOf("home", "list", "detail"), stack)
     }
@@ -46,7 +46,7 @@ class NavBackStackOperationsTest {
     fun `pop removes the requested number of entries`() {
         val stack = mutableListOf("home", "list", "detail")
 
-        apply(stack, NavBackStackOperation.Pop(count = 2))
+        applyOperations(stack, NavBackStackOperation.Pop(count = 2))
 
         assertContentEquals(listOf("home"), stack)
     }
@@ -54,11 +54,11 @@ class NavBackStackOperationsTest {
     @Test
     fun `popTo keeps the target entry unless it is inclusive`() {
         val exclusive = mutableListOf("home", "list", "detail")
-        apply(exclusive, NavBackStackOperation.PopTo(index = 1, inclusive = false))
+        applyOperations(exclusive, NavBackStackOperation.PopTo(index = 1, inclusive = false))
         assertContentEquals(listOf("home", "list"), exclusive)
 
         val inclusive = mutableListOf("home", "list", "detail")
-        apply(inclusive, NavBackStackOperation.PopTo(index = 1, inclusive = true))
+        applyOperations(inclusive, NavBackStackOperation.PopTo(index = 1, inclusive = true))
         assertContentEquals(listOf("home"), inclusive)
     }
 
@@ -66,7 +66,7 @@ class NavBackStackOperationsTest {
     fun `removeAt drops one entry and keeps the ones above it`() {
         val stack = mutableListOf("home", "list", "detail")
 
-        apply(stack, NavBackStackOperation.RemoveAt(index = 1))
+        applyOperations(stack, NavBackStackOperation.RemoveAt(index = 1))
 
         assertContentEquals(listOf("home", "detail"), stack)
     }
@@ -75,7 +75,7 @@ class NavBackStackOperationsTest {
     fun `moveToTop reorders without dropping anything`() {
         val stack = mutableListOf("home", "list", "detail")
 
-        apply(stack, NavBackStackOperation.MoveToTop(index = 0))
+        applyOperations(stack, NavBackStackOperation.MoveToTop(index = 0))
 
         assertContentEquals(listOf("list", "detail", "home"), stack)
     }
@@ -84,7 +84,7 @@ class NavBackStackOperationsTest {
     fun `replaceAll swaps the whole stack`() {
         val stack = mutableListOf("home", "list")
 
-        apply(stack, NavBackStackOperation.ReplaceAll(listOf(key("settings"), key("about"))))
+        applyOperations(stack, NavBackStackOperation.ReplaceAll(listOf(key("settings"), key("about"))))
 
         assertContentEquals(listOf("settings", "about"), stack)
     }
@@ -93,7 +93,7 @@ class NavBackStackOperationsTest {
     fun `operations are applied in order against the stack as it stands`() {
         val stack = mutableListOf("home", "list", "detail")
 
-        apply(
+        applyOperations(
             stack,
             NavBackStackOperation.PopTo(index = 0, inclusive = false),
             NavBackStackOperation.Push(key("settings"), index = null),
@@ -108,7 +108,7 @@ class NavBackStackOperationsTest {
         val stack = mutableListOf("home", "list")
 
         val failure = assertFailsWith<IllegalArgumentException> {
-            apply(
+            applyOperations(
                 stack,
                 NavBackStackOperation.Push(key("detail"), index = null),
                 NavBackStackOperation.RemoveAt(index = 9),
@@ -124,7 +124,7 @@ class NavBackStackOperationsTest {
         val stack = mutableListOf("home")
 
         assertFailsWith<IllegalArgumentException> {
-            apply(stack, NavBackStackOperation.Push(key(""), index = null))
+            applyOperations(stack, NavBackStackOperation.Push(key(""), index = null))
         }
 
         assertContentEquals(listOf("home"), stack)
@@ -135,7 +135,7 @@ class NavBackStackOperationsTest {
         val stack = mutableListOf("home", "list")
 
         val failure = assertFailsWith<IllegalArgumentException> {
-            apply(stack, NavBackStackOperation.Pop(count = 2))
+            applyOperations(stack, NavBackStackOperation.Pop(count = 2))
         }
 
         assertEquals(
@@ -150,7 +150,7 @@ class NavBackStackOperationsTest {
         val stack = mutableListOf("home")
 
         val failure = assertFailsWith<IllegalArgumentException> {
-            apply(stack, NavBackStackOperation.Pop(count = 3))
+            applyOperations(stack, NavBackStackOperation.Pop(count = 3))
         }
 
         assertEquals("cannot pop 3 entries off a stack of 1", failure.message)
@@ -160,7 +160,7 @@ class NavBackStackOperationsTest {
     fun `pushing does not disturb the entries already on the stack`() {
         val stack = CountingList(mutableListOf("home", "list"))
 
-        apply(stack, NavBackStackOperation.Push(key("detail"), index = null))
+        applyOperations(stack, NavBackStackOperation.Push(key("detail"), index = null))
 
         assertContentEquals(listOf("home", "list", "detail"), stack)
         assertEquals(0, stack.removals)
@@ -170,7 +170,7 @@ class NavBackStackOperationsTest {
     fun `a change deep in the stack only rewrites the entries above it`() {
         val stack = CountingList(mutableListOf("home", "list", "detail"))
 
-        apply(stack, NavBackStackOperation.RemoveAt(index = 1))
+        applyOperations(stack, NavBackStackOperation.RemoveAt(index = 1))
 
         assertContentEquals(listOf("home", "detail"), stack)
         assertEquals(2, stack.removals)

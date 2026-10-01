@@ -26,7 +26,7 @@ class Nav3McpCommandsTest {
     fun `getBackStack numbers the entries and marks the current one`() {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home", "Detail")))
 
-        val result = GetBackStackCommand(controller).run()
+        val result = GetBackStackCommand(controller).runCommand()
 
         val entries = result.getValue("stacks").jsonArray.single().jsonObject.getValue("entries").jsonArray
         assertEquals(listOf(0, 1), entries.map { it.jsonObject.getValue("index").jsonPrimitive.content.toInt() })
@@ -35,7 +35,7 @@ class Nav3McpCommandsTest {
 
     @Test
     fun `getBackStack explains itself when the app registered nothing`() {
-        val result = GetBackStackCommand(FakeNav3BackStackController(emptyList())).run()
+        val result = GetBackStackCommand(FakeNav3BackStackController(emptyList())).runCommand()
 
         assertTrue(result.getValue("stacks").jsonArray.isEmpty())
         assertTrue(result.containsKey("note"))
@@ -45,7 +45,7 @@ class Nav3McpCommandsTest {
     fun `pushNavKey targets the app's only stack without being told`() {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home")))
 
-        PushNavKeyCommand(controller).run(buildJsonObject { put("key", navKey("Detail", id = "42")) })
+        PushNavKeyCommand(controller).runCommand(buildJsonObject { put("key", navKey("Detail", id = "42")) })
 
         val (stackId, operations) = controller.requests.single()
         assertEquals("main", stackId)
@@ -57,7 +57,7 @@ class Nav3McpCommandsTest {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home"), snapshot("sheet", "Filters")))
 
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            PushNavKeyCommand(controller).run(buildJsonObject { put("key", navKey("Detail")) })
+            PushNavKeyCommand(controller).runCommand(buildJsonObject { put("key", navKey("Detail")) })
         }
 
         assertEquals("the app has 2 back stack(s): main, sheet; pass stackId to say which one", failure.message)
@@ -69,7 +69,7 @@ class Nav3McpCommandsTest {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home")))
 
         assertFailsWith<JetWhaleMcpArgumentException> {
-            PushNavKeyCommand(controller).run(
+            PushNavKeyCommand(controller).runCommand(
                 buildJsonObject {
                     put("key", navKey("Detail"))
                     put("stackId", "sheet")
@@ -84,16 +84,16 @@ class Nav3McpCommandsTest {
     fun `popBackStack pops one entry by default`() {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home", "Detail")))
 
-        PopBackStackCommand(controller).run()
+        PopBackStackCommand(controller).runCommand()
 
         assertEquals(listOf(NavBackStackOperation.Pop(count = 1)), controller.requests.single().second)
     }
 
     @Test
-    fun `popBackStack pops to an index when one is given`() {
+    fun `popBackStack pops to toIndex and ignores count when both are given`() {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home", "List", "Detail")))
 
-        PopBackStackCommand(controller).run(
+        PopBackStackCommand(controller).runCommand(
             buildJsonObject {
                 put("toIndex", 1)
                 put("inclusive", true)
@@ -112,7 +112,7 @@ class Nav3McpCommandsTest {
         val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home")))
 
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            ReplaceBackStackCommand(controller).run(buildJsonObject { put("keys", buildJsonArray { }) })
+            ReplaceBackStackCommand(controller).runCommand(buildJsonObject { put("keys", buildJsonArray { }) })
         }
 
         assertEquals("keys must not be empty: Navigation 3 cannot render an empty back stack", failure.message)
@@ -126,7 +126,7 @@ class Nav3McpCommandsTest {
             result = MutationResult(error = "removeAt index 9 is out of range (0..0)", snapshot = snapshot("main", "Home")),
         )
 
-        val result = RemoveNavKeyCommand(controller).run(buildJsonObject { put("index", 9) })
+        val result = RemoveNavKeyCommand(controller).runCommand(buildJsonObject { put("index", 9) })
 
         assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
         assertEquals("removeAt index 9 is out of range (0..0)", result.getValue("error").jsonPrimitive.content)
@@ -135,7 +135,7 @@ class Nav3McpCommandsTest {
 
     @Test
     fun `listNavKeyTypes says so when the app exposed no key types`() {
-        val result = ListNavKeyTypesCommand(FakeNav3BackStackController(listOf(snapshot("main", "Home")))).run()
+        val result = ListNavKeyTypesCommand(FakeNav3BackStackController(listOf(snapshot("main", "Home")))).runCommand()
 
         assertTrue(result.getValue("keyTypes").jsonArray.isEmpty())
         assertTrue(result.containsKey("note"))
@@ -143,6 +143,6 @@ class Nav3McpCommandsTest {
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
+private fun JetWhaleMcpCommand.runCommand(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
     Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
 }
