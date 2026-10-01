@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image
@@ -93,6 +94,22 @@ internal class MirrorCaptures(
 
     private val listings = AtomicLong()
 
+    // One copy at a time, in the order they were asked for, so a slow copy cannot land on the
+    // clipboard after a later one.
+    private val clipboardRequests = Channel<ClipboardRequest>(Channel.UNLIMITED).also { requests ->
+        scope.launch(Dispatchers.IO) {
+            for ((capture, pathOnly) in requests) {
+                val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
+                try {
+                    if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
+                    notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: IOException) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                }
+            }
+        }
+    }
+
     private val thumbnails = object : LinkedHashMap<File, ImageBitmap>(THUMBNAIL_CACHE_SIZE, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<File, ImageBitmap>): Boolean = size > THUMBNAIL_CACHE_SIZE
     }
@@ -164,9 +181,13 @@ internal class MirrorCaptures(
         if (desktop.isSupported(Desktop.Action.BROWSE_FILE_DIR)) desktop.browseFileDirectory(capture.file) else desktop.open(capture.file.parentFile)
     }
 
-    override fun copy(capture: Capture) = putOnClipboard(capture.file.name) { clipboard.putCapture(capture) }
+    override fun copy(capture: Capture) {
+        clipboardRequests.trySend(ClipboardRequest(capture, pathOnly = false))
+    }
 
-    override fun copyPath(capture: Capture) = putOnClipboard("the path of ${capture.file.name}") { clipboard.putText(capture.file.absolutePath) }
+    override fun copyPath(capture: Capture) {
+        clipboardRequests.trySend(ClipboardRequest(capture, pathOnly = true))
+    }
 
     override fun delete(capture: Capture) {
         scope.launch(Dispatchers.IO) {
@@ -212,17 +233,6 @@ internal class MirrorCaptures(
         if (shown) synchronized(listings) { captures = listOf(capture) + captures }
     }
 
-    private fun putOnClipboard(what: String, put: () -> Unit) {
-        scope.launch(Dispatchers.IO) {
-            try {
-                put()
-                notices.show(MirrorNotice.info("Copied $what"))
-            } catch (e: IOException) {
-                notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
-            }
-        }
-    }
-
     private fun desktop(action: (Desktop) -> Unit) {
         try {
             action(Desktop.getDesktop())
@@ -232,6 +242,8 @@ internal class MirrorCaptures(
             notices.show(MirrorNotice.failure("This desktop cannot open files from here: ${e.message}", retry = null))
         }
     }
+
+    private data class ClipboardRequest(val capture: Capture, val pathOnly: Boolean)
 }
 
 private fun captureInfo(device: DeviceListing, kind: CaptureKind, size: IntSize?, at: Instant, durationMillis: Long?) = CaptureInfo(
