@@ -71,10 +71,10 @@ internal class StorageBrowser(
         private set
 
     private val children = mutableStateMapOf<FileLocation, List<FileEntry>>()
-    private var expanded: Set<FileLocation> by mutableStateOf(emptySet())
+    private var expandedDirectories: Set<FileLocation> by mutableStateOf(emptySet())
 
     val treeRows: List<FileTreeRow>
-        get() = flattenFileTree(locations?.fileRoots.orEmpty(), children, expanded)
+        get() = flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
 
     private var selectedLocation: FileLocation? by mutableStateOf(null)
 
@@ -109,9 +109,9 @@ internal class StorageBrowser(
         fileSha256 = null
         locations = loaded
         val rootNames = loaded.fileRoots.map(FileRootInfo::name).toSet()
-        expanded = expanded.filterTo(mutableSetOf()) { it.rootName in rootNames }
-        children.keys.retainAll(expanded)
-        expanded.forEach { loadDirectory(it) }
+        expandedDirectories = expandedDirectories.filterTo(mutableSetOf()) { it.rootName in rootNames }
+        children.keys.retainAll(expandedDirectories)
+        expandedDirectories.forEach { loadDirectory(it) }
         val selected = selectedRow
         if (selected == null) {
             selectedLocation = null
@@ -134,17 +134,17 @@ internal class StorageBrowser(
     }
 
     override fun toggleDirectory(location: FileLocation) {
-        if (location in expanded) {
-            expanded = expanded - location
+        if (location in expandedDirectories) {
+            expandedDirectories = expandedDirectories - location
             return
         }
-        expanded = expanded + location
+        expandedDirectories = expandedDirectories + location
         launchReporting { loadDirectory(location) }
     }
 
     override fun toggleSubtree(location: FileLocation) {
-        if (location in expanded) {
-            expanded = expanded.filterNot(location::contains).toSet()
+        if (location in expandedDirectories) {
+            expandedDirectories = expandedDirectories.filterNot(location::contains).toSet()
             return
         }
         launchReporting { expandSubtree(location) }
@@ -160,7 +160,7 @@ internal class StorageBrowser(
                 return
             }
             val directory = pending.removeFirst()
-            expanded = expanded + directory
+            expandedDirectories = expandedDirectories + directory
             loadDirectory(directory)
             val entries = children[directory].orEmpty()
             listed += entries.size
@@ -189,7 +189,7 @@ internal class StorageBrowser(
             selectedLocation = null
             loadedFile = null
         }
-        expanded = expanded.filterNot(location::contains).toSet()
+        expandedDirectories = expandedDirectories.filterNot(location::contains).toSet()
         loadDirectory(FileLocation(location.rootName, location.path.dropLast(1)))
         status = StorageStatus(message = "Deleted ${location.name}.", isError = false)
     }

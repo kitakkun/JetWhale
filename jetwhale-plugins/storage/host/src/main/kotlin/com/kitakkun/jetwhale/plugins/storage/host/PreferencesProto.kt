@@ -76,7 +76,7 @@ private class ProtoReader(
      */
     fun forEachField(onField: (field: Int, reader: ProtoReader) -> Unit) {
         while (position < end) {
-            val tag = varintAt()
+            val tag = readRawVarint()
             pendingWireType = (tag and 0x7).toInt()
             val before = position
             onField((tag ushr 3).toInt(), this)
@@ -87,7 +87,7 @@ private class ProtoReader(
 
     fun varint(): Long {
         expect(WIRE_VARINT)
-        return varintAt()
+        return readRawVarint()
     }
 
     fun fixed32(): Int {
@@ -102,7 +102,7 @@ private class ProtoReader(
 
     fun lengthDelimited(): ProtoReader {
         expect(WIRE_LENGTH_DELIMITED)
-        val length = varintAt()
+        val length = readRawVarint()
         require(length in 0..(end - position).toLong()) { "a length-delimited field runs past the end of its message" }
         return ProtoReader(bytes, position, position + length.toInt()).also { position += length.toInt() }
     }
@@ -113,9 +113,9 @@ private class ProtoReader(
 
     private fun skip() {
         when (pendingWireType) {
-            WIRE_VARINT -> varintAt()
+            WIRE_VARINT -> readRawVarint()
             WIRE_FIXED64 -> advance(8)
-            WIRE_LENGTH_DELIMITED -> advance(varintAt())
+            WIRE_LENGTH_DELIMITED -> advance(readRawVarint())
             WIRE_FIXED32 -> advance(4)
             else -> throw IllegalArgumentException("wire type $pendingWireType is not supported")
         }
@@ -130,7 +130,7 @@ private class ProtoReader(
         require(pendingWireType == wireType) { "expected wire type $wireType, found $pendingWireType" }
     }
 
-    private fun varintAt(): Long {
+    private fun readRawVarint(): Long {
         var result = 0L
         var shift = 0
         while (true) {
