@@ -200,10 +200,12 @@ internal class DeviceMirror(
     }
 
     private suspend fun streamUntilCancelled(device: MirrorDevice) {
+        // Only the first stream shows a Connecting screen. The next keeps up what the last one left:
+        // its last picture when it ended (the screen turned, folded, or the view was resized), the
+        // screenshots when it is tried again from behind them.
+        state = MirrorState.Connecting
         var fallbacks = 0
         while (coroutineContext.isActive) {
-            // A stream tried again from behind screenshots keeps them up instead of a Connecting screen.
-            if (fallbacks == 0) state = MirrorState.Connecting
             val fallbackMillis = SCREENSHOT_FALLBACK_MILLIS[fallbacks.coerceAtMost(SCREENSHOT_FALLBACK_MILLIS.lastIndex)]
             when (val outcome = streamOnce(device)) {
                 is StreamOutcome.Ended -> fallbacks = 0
@@ -282,7 +284,7 @@ internal class DeviceMirror(
                     screen?.takeIf { android }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
                     // Only screenrecord holds a still screen's last frame back; the emulator's own
                     // stream sends every change as it happens.
-                    stream.takeIf { android && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, lastFrameAt) } },
+                    stream.takeIf { android && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, screen, it, lastFrameAt) } },
                 )
                 val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
                 val decoding = async(Dispatchers.IO) {
@@ -365,9 +367,10 @@ internal class DeviceMirror(
     }
 
     /**
-     * Ends an Android stream once the device's screen changes size, as a foldable's does when it
-     * folds and its picture moves to the other panel, so the next stream shows the panel that is on.
-     * The size read is the screen's natural one, which rotating leaves alone.
+     * Ends an Android stream once the device's screen changes size: a foldable's moves to the other
+     * panel when it folds, and any screen turns its size around when it rotates. The next stream
+     * then shows the panel that is on, in the shape it has now; screenrecord keeps the shape it
+     * started with and would letterbox a turned screen inside it.
      */
     private suspend fun reopenWhenScreenChanges(device: MirrorDevice, screen: IntSize, stream: VideoStream) {
         while (coroutineContext.isActive) {
@@ -390,7 +393,7 @@ internal class DeviceMirror(
      * still screen would show nothing at first and, after motion, the frame before the last.
      * A screenshot fills in at the start and again whenever the stream has gone quiet.
      */
-    private suspend fun settleStillScreen(device: MirrorDevice, frames: MirrorSurface.FrameStream, lastFrameAt: AtomicLong) {
+    private suspend fun settleStillScreen(device: MirrorDevice, frames: MirrorSurface.FrameStream, screen: IntSize?, stream: VideoStream, lastFrameAt: AtomicLong) {
         var settledAt = 0L
         while (coroutineContext.isActive) {
             val last = lastFrameAt.get()
@@ -398,7 +401,12 @@ internal class DeviceMirror(
                 settledAt = System.nanoTime()
                 // A missed screenshot only leaves the stream's own picture up until the next one.
                 try {
-                    showScreenshot(device, frames)
+                    // A turned screenshot means the screen turned since the stream opened, and the
+                    // size check has not seen it yet: the next stream opens now instead.
+                    if (!showScreenshot(device, frames, streamShape = screen)) {
+                        stream.close()
+                        return
+                    }
                 } catch (_: DeviceControlException) {
                 }
             }
@@ -415,7 +423,7 @@ internal class DeviceMirror(
         withTimeoutOrNull(forMillis) {
             while (true) {
                 try {
-                    showScreenshot(device, frames)
+                    showScreenshot(device, frames, streamShape = null)
                 } catch (e: DeviceControlException) {
                     state = MirrorState.Failed(e.message.orEmpty())
                 }
@@ -424,9 +432,15 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun showScreenshot(device: MirrorDevice, frames: MirrorSurface.FrameStream) {
+    /**
+     * Shows a screenshot of [device] through [frames], unless it is turned the other way than
+     * [streamShape], the shape of the stream it would show between; returns whether it was shown.
+     * The stream's frames keep the shape it opened with, so a turned screenshot among them would
+     * flip the view between two shapes.
+     */
+    private suspend fun showScreenshot(device: MirrorDevice, frames: MirrorSurface.FrameStream, streamShape: IntSize?): Boolean {
         val png = device.controller.captureScreenshot()
-        withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             // Skia refuses bytes that are not an image with an IllegalArgumentException, which would
             // end the mirror; as a failed screenshot it only costs this one.
             val decoded = try {
@@ -435,7 +449,9 @@ internal class DeviceMirror(
                 throw deviceControlError("the screenshot could not be read as an image")
             }
             decoded.use { image ->
-                frames.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
+                val turned = streamShape != null && (image.width > image.height) != (streamShape.width > streamShape.height)
+                if (!turned) frames.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
+                !turned
             }
         }
     }

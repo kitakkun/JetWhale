@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.skia.EncodedImageFormat
+import org.jetbrains.skia.Surface
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
@@ -305,7 +307,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a foldable that folds while mirrored is streamed again at its new screen size`() = runBlocking {
-        val controller = FoldingEmulator()
+        val controller = FoldingEmulator(stateNow = { mirror.state })
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
 
@@ -314,6 +316,33 @@ class DeviceMirrorTest {
         session.cancel()
 
         assertEquals(FOLDED_SCREEN, deviceSize)
+    }
+
+    @Test
+    fun `a stream that ends is followed by the next without a connecting screen`() = runBlocking<Unit> {
+        val controller = FoldingEmulator(stateNow = { mirror.state })
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        val stateWhenReopened = withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopened.await() }
+        session.cancel()
+
+        assertEquals(MirrorState.Streaming, stateWhenReopened)
+    }
+
+    @Test
+    fun `a screenshot of a screen turned since the stream opened opens a new stream instead of showing among its frames`() = runBlocking {
+        // A wide picture of the portrait FOLDED_SCREEN the stream opened with.
+        val turned = Surface.makeRasterN32Premul(20, 10).use { surface -> surface.makeImageSnapshot().use { checkNotNull(it.encodeToData(EncodedImageFormat.PNG)).bytes } }
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = turned)
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
+        val shown = mirror.surface.newestFramePng("device-1")
+        session.cancel()
+
+        assertNull(shown)
     }
 
     @Test
@@ -631,18 +660,18 @@ private class StillEmulator : DeviceController {
 }
 
 /** An emulator that folds once its first stream is open, whose streams send nothing until closed. */
-private class FoldingEmulator : DeviceController {
+private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceController {
     private val opened = AtomicInteger()
 
-    /** Completes once the mirror opens a second stream. */
-    val reopened = CompletableDeferred<Unit>()
+    /** Completes with the mirror's state once it opens a second stream. */
+    val reopened = CompletableDeferred<MirrorState>()
 
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun screenSize(): IntSize = if (opened.get() == 0) UNFOLDED_SCREEN else FOLDED_SCREEN
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        if (opened.incrementAndGet() == 2) reopened.complete(Unit)
+        if (opened.incrementAndGet() == 2) reopened.complete(stateNow())
         val writer = PipedOutputStream()
         return VideoStream.EmulatorRgba(frames = PipedInputStream(writer), cancel = writer::close)
     }
@@ -675,6 +704,10 @@ private class FoldingEmulator : DeviceController {
  */
 private class ScreenrecordDevice(private val ffmpegPath: String, private val sent: ByteArray, private val screenshot: ByteArray?) : DeviceController {
     private val screenshots = AtomicInteger()
+    private val opened = AtomicInteger()
+
+    /** Completes once the mirror opens a second stream. */
+    val reopened = CompletableDeferred<Unit>()
 
     /**
      * Completes when the mirror asks for a second screenshot. The first fills in a still screen;
@@ -687,7 +720,10 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
 
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
 
-    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.H264(HeldOpenProcess(sent), ffmpegPath)
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        if (opened.incrementAndGet() == 2) reopened.complete(Unit)
+        return VideoStream.H264(HeldOpenProcess(sent), ffmpegPath)
+    }
 
     override suspend fun screenSize(): IntSize = FOLDED_SCREEN
 
