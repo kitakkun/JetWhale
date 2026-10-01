@@ -50,7 +50,7 @@ private data class Explode(val reason: String) : JetWhaleRequest<Pong>
 
 private const val PLUGIN_ID = "com.kitakkun.jetwhale.poc"
 
-class SymmetricMessagingPoCTest {
+class JetWhalePluginPeerTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val wireJson = Json
 
