@@ -35,7 +35,7 @@ class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = NetworkHostPlugin()
 }
 
-private const val MAX_TRANSACTIONS = 500
+private const val MAX_RETAINED_TRANSACTIONS = 500
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class NetworkHostPlugin :
@@ -52,7 +52,7 @@ private class NetworkHostPlugin :
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: RequestSent ->
             transactions.add(HttpTransaction(request = event.request))
-            while (transactions.size > MAX_TRANSACTIONS) transactions.removeAt(0)
+            while (transactions.size > MAX_RETAINED_TRANSACTIONS) transactions.removeAt(0)
         }
         onEvent { event: ResponseReceived ->
             updateTransaction(event.response.txId) { it.copy(response = event.response) }
@@ -87,9 +87,9 @@ private class NetworkHostPlugin :
 
     @Composable
     override fun Content() {
-        val redactForCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
+        val shouldRedactForMcpCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
         NetworkInspectorScreenRoot(
-            transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
+            transactions = if (shouldRedactForMcpCapture) transactions.map { it.redactedForMcp() } else transactions,
             mockRules = mockRules,
             mockingEnabled = mockingEnabled,
             onClearTransactions = transactions::clear,
