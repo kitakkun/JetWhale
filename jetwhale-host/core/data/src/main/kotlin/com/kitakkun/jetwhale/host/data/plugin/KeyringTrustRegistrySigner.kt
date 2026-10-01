@@ -61,11 +61,12 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun readKeyState(): KeyState = try {
         Keyring.create().use { keyring ->
+            // getPassword reports a missing item with PasswordAccessException; that not-found path
+            // never prompts.
             val stored = try {
                 keyring.getPassword(KEYRING_SERVICE, KEYRING_ACCOUNT)
             } catch (_: PasswordAccessException) {
-                // No key stored: java-keyring reports the missing item as not-found WITHOUT prompting,
-                // which is what keeps the prompt-free-by-default property.
+                // java-keyring reports a missing item as not-found without prompting.
                 return KeyState.Absent
             }
             val decoded = try {
@@ -74,9 +75,6 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
                 null
             }
             if (decoded == null) {
-                // An item exists but is not a valid key. Do NOT provision over it during a read; treat
-                // it as present-but-unusable so verification fails safe (INVALID) instead of silently
-                // downgrading to unsigned.
                 logger.warning("Stored plugin trust registry key is corrupted; the registry will not verify.")
                 KeyState.Corrupt
             } else {
@@ -102,8 +100,6 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
 
         is KeyState.Present -> {
             if (signature == null) {
-                // A key exists, so every registry this app writes is signed. A missing signature means
-                // the file was replaced by something that could not sign it: reject.
                 TrustRegistrySigner.Verification.INVALID
             } else {
                 val expected = hmac(state.key, payload)
@@ -112,6 +108,8 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
                 } catch (_: IllegalArgumentException) {
                     return TrustRegistrySigner.Verification.INVALID
                 }
+                // Constant-time comparison; contentEquals would leak through timing how much of a
+                // forged signature matches.
                 if (MessageDigest.isEqual(expected, actual)) {
                     TrustRegistrySigner.Verification.VALID
                 } else {
@@ -122,8 +120,6 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
     }
 
     override fun provisionKey() {
-        // Idempotent: keep an existing valid key so its previous signatures stay valid. A corrupt or
-        // absent item is replaced with a fresh key; an unreachable store surfaces the failure.
         if (keyState() is KeyState.Present) return
         val newKey = ByteArray(KEY_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
         Keyring.create().use { keyring ->

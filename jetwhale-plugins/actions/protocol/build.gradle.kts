@@ -21,7 +21,6 @@ kotlin {
 
 dependencies {
     commonMainApi(projects.jetwhaleProtocol.core)
-    // Arguments and results are JSON in the message types themselves, so this is api.
     commonMainApi(libs.kotlinxSerializationJson)
 }
 

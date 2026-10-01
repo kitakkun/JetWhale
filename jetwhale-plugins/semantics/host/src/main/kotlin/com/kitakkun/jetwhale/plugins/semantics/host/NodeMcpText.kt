@@ -39,7 +39,6 @@ internal enum class NodeOutputFormat {
 internal fun NodeTreeSnapshot.toMcpText(): String = buildString {
     warnings.forEach { appendLine("! $it") }
     roots.forEach { root ->
-        // The unit is known only from the root's node, and a root without one has no coordinates to qualify.
         append("root ${root.rootId} ${quoted(root.label)}")
         root.node?.let { append(" unit=${if (it is AppleNode) "pt" else "px"}") }
         append(" density=${root.density}")

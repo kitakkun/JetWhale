@@ -34,7 +34,6 @@ internal class SwipeCommand(
         if (minOf(fromX, fromY, toX, toY) < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got $fromX,$fromY -> $toX,$toY)")
         if (duration !in 0..MAX_SWIPE_MILLIS) throw JetWhaleMcpArgumentException("durationMillis must be from 0 to $MAX_SWIPE_MILLIS (got $duration)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        // Refused before screenSize(), which holds an iPhone's idb companion that nothing here releases.
         if (!device.controller.capabilities.input) throw JetWhaleMcpArgumentException(VIEW_ONLY)
         val screen = deviceOperation { device.controller.screenSize() }
         if (maxOf(fromX, toX) >= screen.width || maxOf(fromY, toY) >= screen.height) {

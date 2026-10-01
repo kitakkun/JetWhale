@@ -61,7 +61,6 @@ internal class NodeHighlightController(
     fun setTarget(target: NodeKey?) {
         holding?.cancel()
         holding = scope.launch {
-            // Only a target waits: taking the box down is an answer the user already committed to.
             if (target != null) delay(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
             var result = show(target)
             while (result.shown || result.retryLater) {
@@ -97,13 +96,8 @@ internal class NodeHighlightController(
             try {
                 send(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
             } catch (e: JetWhaleMessagingException) {
-                // The window that was showing the box is unreachable, which is also how it stops
-                // showing one: the overlay went away with it, and the agent's own TTL covers the rest.
                 statusMessage = "Clearing the highlight failed: ${e.message}"
             }
-            // Forgotten only once the clear has been sent, never before. A call cancelled while it
-            // was still waiting its turn leaves the root recorded, so the target that replaced it
-            // clears that box rather than reading "nothing to clear" and stranding it until the TTL.
             rootShowingBox = null
         }
         if (target == null) {
@@ -117,8 +111,6 @@ internal class NodeHighlightController(
         val result = try {
             send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
-            // rootShowingBox stays: a timeout is a failure too, and the app may have drawn the box
-            // before the reply was lost. An extra clear costs nothing; a box left up costs the user.
             val failure = "Highlight failed: ${e.message}"
             statusMessage = failure
             return HighlightResult(shown = false, message = failure)

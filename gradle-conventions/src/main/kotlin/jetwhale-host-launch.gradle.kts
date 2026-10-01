@@ -13,11 +13,8 @@ import org.gradle.process.CommandLineArgumentProvider
  * dev plugins directory.
  */
 
-// Must match the dev directory used by the `com.kitakkun.jetwhale.host` plugin's `stageDevPlugin` task.
 val devPluginsDir = layout.buildDirectory.dir("jetwhale/devPlugins")
 
-// Resolve the host application (classes + runtime dependencies) so we can launch its main class
-// directly with the dev system property set.
 val jetwhaleHostRuntime = configurations.create("jetwhaleHostRuntime") {
     isCanBeConsumed = false
     isCanBeResolved = true
@@ -28,8 +25,7 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
     group = "jetwhale"
     description = "Launches the local JetWhale host project with this plugin loaded for development (hot reload)."
 
-    // `stageDevPlugin` is contributed by the `com.kitakkun.jetwhale.host` plugin applied to the same module.
-    // Referenced by name (not tasks.named) so plugin application order doesn't matter.
+    // Referenced by name, not tasks.named, so the order the plugins are applied in does not matter.
     dependsOn("stageDevPlugin")
 
     classpath = jetwhaleHostRuntime
@@ -43,11 +39,7 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
         },
     )
 
-    // Point the host at the dev plugins directory; this enables dev-mode loading + hot reload.
-    // Supplied lazily via a CommandLineArgumentProvider so the task stays configuration-cache safe.
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
-    // Isolated, disposable app-data root for this plugin project so the host does not run against the
-    // developer's real `~/.jetwhale`. Lives under `build/`, so it survives re-launches but `clean` wipes it.
     val sandboxDirProvider = layout.buildDirectory.dir("jetwhale-sandbox").map { it.asFile.absolutePath }
     val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
@@ -66,8 +58,6 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
     )
 }
 
-// Resolve the QA agent from this build rather than from Maven, so a plugin can be driven against an
-// agent built from the working tree — the published `runJetWhaleQaAgent` can only run released ones.
 val jetwhaleQaAgentRuntime = configurations.create("jetwhaleQaAgentRuntime") {
     isCanBeConsumed = false
     isCanBeResolved = true
@@ -81,8 +71,6 @@ tasks.register<JavaExec>("runJetWhaleQaAgentLocal") {
     classpath = jetwhaleQaAgentRuntime
     mainClass.set("com.kitakkun.jetwhale.tools.qaagent.MainKt")
 
-    // Same property the published `runJetWhaleQaAgent` reads, so a command line moves between them
-    // unchanged: `-PjetwhaleQaAgentArgs="--plugin com.example.myplugin"`. See the agent's `--help`.
     val extraArgs = providers.gradleProperty("jetwhaleQaAgentArgs")
     argumentProviders.add(
         CommandLineArgumentProvider {

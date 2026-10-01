@@ -195,8 +195,6 @@ fun main(args: Array<String>) {
 /** What a caller polls before it trusts a send: is a session held, and is the plugin up on it. */
 private fun Route.statusRoutes(apps: Map<String, QaApp>, plugins: Map<String, String>) {
     get("/health") {
-        // `ready` is what a caller must poll before sending: the control API answers long
-        // before the debug sessions are up, and a send in that window is silently dropped.
         val connected = apps.values.filter(QaApp::isConnected)
         call.respond(
             HealthResponse(
@@ -209,8 +207,6 @@ private fun Route.statusRoutes(apps: Map<String, QaApp>, plugins: Map<String, St
 
     get("/plugins") {
         call.respond(
-            // Every app registers the same plugin ids, so the plugin stays the top-level key
-            // and a single-app run reads exactly as it did before there were several.
             plugins.mapValues { (pluginId, version) ->
                 val perApp = apps.mapValues { (_, app) -> app.pluginStatus(pluginId) }
                 val connected = perApp.filterKeys { apps.getValue(it).isConnected }.values
@@ -234,9 +230,6 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
             return@post
         }
-        // Refuse before touching the messenger: stop() returns once teardown is scheduled, so
-        // a send here can still succeed for a moment and report an app as reachable after it
-        // was given up. Timing-dependent answers are the last thing a QA run needs.
         if (!app.isConnected) {
             call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
             return@post
@@ -290,8 +283,6 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // A host handler that fails, times out or is not registered is a legitimate QA
-            // finding, so report it as data rather than a control-API error.
             call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
         }
     }
@@ -303,8 +294,6 @@ private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
         val spec = call.receiveOrBadRequest<FireRequest>() ?: return@post
         val app = call.resolveApp(apps, spec.app) ?: return@post
         if (!app.isConnected) {
-            // The client is instrumented per app, so traffic fired here would be captured for
-            // a session that no longer exists — silently invisible in the inspector.
             call.respond(
                 HttpStatusCode.BadRequest,
                 ErrorResponse("App '${app.name}' was disconnected, so its traffic is no longer recorded."),
@@ -329,8 +318,6 @@ private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // A failed request is a legitimate QA scenario (the inspector should show it as
-            // a failure), so report it as data rather than a control-API error.
             call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
         }
     }
@@ -347,6 +334,7 @@ private fun Route.sessionRoutes(apps: Map<String, QaApp>) {
     post("/shutdown") {
         call.respond(mapOf("status" to "stopping"))
         thread {
+            // Lets the response above reach the caller before the process exits.
             Thread.sleep(200)
             exitProcess(0)
         }

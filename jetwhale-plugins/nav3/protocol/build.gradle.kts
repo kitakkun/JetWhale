@@ -9,9 +9,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the `example` / `network`
-// plugin modules (which also have leaf names protocol/agent/host) and get substituted during
-// resolution.
+// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
+// (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.nav3"
 
 kotlin {
@@ -23,8 +22,6 @@ kotlin {
 
 dependencies {
     commonMainApi(projects.jetwhaleProtocol.core)
-    // JsonElement appears in the message types themselves (a NavKey's shape is app-defined), so
-    // this is api, not implementation.
     commonMainApi(libs.kotlinxSerializationJson)
 }
 

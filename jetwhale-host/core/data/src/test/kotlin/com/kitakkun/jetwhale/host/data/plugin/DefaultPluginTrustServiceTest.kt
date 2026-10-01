@@ -106,8 +106,6 @@ class DefaultPluginTrustServiceTest {
         service.trustAndLoad(readable.absolutePath, approvedSha256 = null)
         factoryRepository.loadedJarPaths.clear()
 
-        // A directory named *.jar is enumerated as a plugin jar but cannot be opened as a stream,
-        // so hashing it fails — the failure must skip this entry, not abort the whole load.
         val unhashable = File(pluginsDir, "broken.jar").apply { mkdirs() }
         trustRepository.entries[unhashable.absolutePath] = TrustedPluginEntry(unhashable.absolutePath, "irrelevant", 0L)
 
@@ -154,8 +152,6 @@ class DefaultPluginTrustServiceTest {
 
     @Test
     fun `enabling signing re-signs a previously unsigned registry so it still loads`() = runBlocking {
-        // End-to-end migration over a real disk-backed registry: approve while signing is off (no
-        // key), turn signing on, then confirm a fresh signing-on startup still trusts and loads it.
         val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val diskSigner = FakeTrustRegistrySigner(keyPresent = false)
 
@@ -166,8 +162,6 @@ class DefaultPluginTrustServiceTest {
         diskService.trustAndLoad(jar.absolutePath, approvedSha256 = null)
         diskService.setSigningEnabled(true)
 
-        // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
-        // verify INVALID and drop every plugin; re-signing lets it verify and load.
         val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val reloadedFactory = FakePluginFactoryRepository()
         val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, FakePluginJarSwapService(), diskSigner)
@@ -396,7 +390,6 @@ class DefaultPluginTrustServiceTest {
 
         override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = entries[jarPath]
 
-        // The in-memory map is already the source of truth, so there is nothing to read from disk.
         override suspend fun load() = Unit
 
         override suspend fun trust(jarPath: String, sha256: String) {

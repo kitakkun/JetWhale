@@ -43,17 +43,14 @@ class JetWhaleNetworkAgentPlugin(
     override val pluginId: String get() = PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    // Captured traffic must survive a disconnect: buffer it while the host is away and flush on
-    // reconnect (oldest dropped past this bound). recordRequest/Response/Failure use sendOrQueue.
+    // The host's plugin-manifest.json accepts only the agent versions inside its agentVersionRange,
+    // so bump that range together with this.
     override val offlineEventBufferCapacity: Int get() = OFFLINE_CAPTURE_BUFFER_CAPACITY
 
-    // StateFlow gives thread-safe reads (adapter thread) / writes (messaging thread) without
-    // a platform-specific lock.
     private val mockingEnabled = MutableStateFlow(true)
     private val mockRules = MutableStateFlow(emptyList<MockRule>())
 
     override fun JetWhaleMessageHandlers.configure() {
-        // We are the config's source of truth (it survives host restarts); the host fetches it in onPrepare.
         onRequest { _: GetMockConfig ->
             reply(MockConfig(enabled = mockingEnabled.value, rules = mockRules.value))
         }
@@ -65,7 +62,6 @@ class JetWhaleNetworkAgentPlugin(
             mockingEnabled.value = request.enabled
             reply(Ack)
         }
-        // MCP_ONLY rules are enforced host-side, so the host fetches them in onPrepare.
         onRequest { _: GetRedactionConfig ->
             reply(RedactionConfig(mcpOnlyRules = redaction.mcpOnlyRules))
         }

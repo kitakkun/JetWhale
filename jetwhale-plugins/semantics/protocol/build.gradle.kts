@@ -13,6 +13,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.semantics"
 
 kotlin {
+    // Empty on purpose: configuring the extension is what turns ABI validation on for this module.
     abiValidation {
     }
 

@@ -15,12 +15,12 @@ kotlin {
 
     explicitApi()
 
+    // Empty on purpose: configuring the extension is what turns ABI validation on for this module.
     abiValidation {
     }
 
     sourceSets.commonMain.dependencies {
         api(projects.jetwhaleAnnotations)
-        // The symmetric messaging peer exposes CoroutineScope on JetWhaleMessenger.
         api(libs.kotlinxCoroutinesCore)
     }
 

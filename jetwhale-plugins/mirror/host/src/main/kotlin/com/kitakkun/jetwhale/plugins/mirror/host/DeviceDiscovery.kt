@@ -21,8 +21,6 @@ internal class DeviceDiscovery(
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
 
-    // The mirror's refresh loop and the listDevices tool look at the same time; one look at a time
-    // keeps a device from getting two controllers.
     private val looking = Mutex()
 
     suspend fun discover(): Discovery = looking.withLock {

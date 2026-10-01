@@ -112,8 +112,6 @@ internal fun ComposeSemanticsInspectorScreen(
         snapshot?.roots?.firstOrNull { it.rootId == key.rootId }?.findNode(key.nodeId)
     }
 
-    // The host hands the plugin an unpainted scene, so the screen paints its own background;
-    // without it the areas no child covers fall back to white and fight a dark theme.
     Column(modifier.fillMaxSize().background(JwTheme.colors.surface)) {
         Toolbar(
             capturing = capturing,
@@ -255,8 +253,6 @@ private fun StatusLine(
         snapshot?.warnings?.forEach { warning -> JwStatusLine(text = warning, tone = JwTone.Warning) }
         errorMessage?.let { JwStatusLine(text = it, tone = JwTone.Error) }
         actionStatus?.let { JwStatusLine(text = it, tone = JwTone.Accent) }
-        // Only ever set when the app refused to show the highlight; a highlight that is up says so
-        // by being on the device.
         highlightStatus?.let { JwStatusLine(text = "Highlight: $it", tone = JwTone.Warning) }
     }
 }
@@ -323,8 +319,6 @@ private fun NodeRow(
     modifier: Modifier = Modifier,
 ) {
     val label = row.node.displayLabel()
-    // JwTreeRow tracks hover for its own tint through an interaction source it keeps to itself, so
-    // the row is made hoverable a second time here rather than the component growing a callback.
     val hoverInteractionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by hoverInteractionSource.collectIsHoveredAsState()
     LaunchedEffect(hovered) { onHoverChange(hovered) }
@@ -341,13 +335,10 @@ private fun NodeRow(
         expandable = row.expandable,
         expanded = row.expanded,
         selected = selected,
-        // An invisible node is still selectable and expandable; it is only drawn muted.
         muted = !row.node.isVisible,
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailingContent = {
-            // The node types interleave in one tree, and which one a row is decides how to read it —
-            // so the non-Compose nodes are tagged rather than left to be inferred from the label.
             when (row.node) {
                 is ViewNode -> JwTag(text = "View", tone = JwTone.Info)
                 is AppleNode -> JwTag(text = "iOS", tone = JwTone.Info)
@@ -356,13 +347,9 @@ private fun NodeRow(
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }
-            // A node that offers something to do but cannot be operated is the one worth spotting
-            // from the tree, without opening it.
             if (row.node.isInteractive && !row.node.isOperable) {
                 JwTag(text = "not operable", tone = JwTone.Warning)
             }
-            // A node with no semantics of its own is already labelled by its id; repeating it here
-            // would render "#12 #12".
             if (!label.startsWith("#")) {
                 JwText(
                     text = "#${row.node.id}",
@@ -397,7 +384,6 @@ private fun NodeDetail(
     }
 
     val scope = rememberCoroutineScope()
-    // Ids are per root, so the same id in another root is another node.
     var textInput by remember(rootId, node.id) { mutableStateOf(node.editableText ?: "") }
     var indexInput by remember(rootId, node.id) { mutableStateOf("") }
 
@@ -475,8 +461,7 @@ private fun NodeDetail(
             }
         }
 
-        // The command-line tap for the node's platform: adb on Android, idb (iOS Development Bridge)
-        // on iOS, whose `ui tap` takes the same points the node reports.
+        // idb's `ui tap` takes the same points the node reports, so no conversion is needed.
         val tapTool = if (node is AppleNode) "idb ui tap" else "adb shell input tap"
         JwButton(
             text = "Copy `$tapTool` for these bounds",
@@ -488,8 +473,6 @@ private fun NodeDetail(
             style = JwButtonStyle.Text,
         )
 
-        // Only an Android View has platform attributes to show. A Compose node's semantics are a
-        // projection of composition state, so there is nothing here that could be edited to last.
         if (node is ViewNode) {
             JwHorizontalDivider()
             ViewAttributesPanel(state = viewAttributes, onCommit = onCommitViewAttribute)
@@ -585,8 +568,6 @@ private fun ActionButton(
     onPerformAction: (PerformNodeAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Only offer what the node actually advertises: a button for an action the node does not expose
-    // would always come back "not exposed", which is noise rather than feedback.
     val exposed = action.advertisedAs?.let(node.actions::contains) ?: true
     if (!exposed) return
     JwButton(

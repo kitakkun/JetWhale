@@ -20,8 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-// Unit tests for the SerialDescriptor -> JSON Schema rules, over purpose-built types. The schema
-// the Network Inspector actually advertises is guarded separately by McpParameterDslTest.
 @Serializable
 private data class Primitives(val text: String, val letter: Char, val count: Int, val size: Long, val ratio: Double, val flag: Boolean)
 
@@ -96,7 +94,6 @@ class McpJsonSchemaTest {
     fun `maps and nested lists keep their element schemas`() {
         val schema = schemaOf<Nested>()
         assertEquals("integer", schema.property("counts").obj("additionalProperties").string("type"))
-        // The recursion guard covers classes only, so List<List<String>> is not cut short.
         assertEquals("string", schema.property("rows").obj("items").obj("items").string("type"))
     }
 

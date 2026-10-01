@@ -24,7 +24,6 @@ class JetWhaleNetworkKtorSendInterceptorTest {
     @Test
     fun `records a round trip on a client that was built without installing the plugin`() = runBlocking {
         val (agent, events) = agentWithEvents()
-        // Built first, instrumented after — this is the whole point of the interceptor entry point.
         val client = HttpClient(
             MockEngine {
                 respond(
@@ -59,15 +58,12 @@ class JetWhaleNetworkKtorSendInterceptorTest {
             ),
         )
         val client = HttpClient(
-            // The real engine must never be hit — the mock is served before execute().
             MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
         )
         client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client))
 
         val response = client.get("http://example/todos/1")
 
-        // The mocked call is synthesized from the HttpClient handed to ktorSendInterceptor, since
-        // HttpSend's Sender doesn't expose the client it sends through.
         assertEquals(200, response.status.value)
         assertEquals("{\"ok\":true}", response.bodyAsText())
         assertEquals(true, (events.last() as ResponseReceived).response.fromMock)
@@ -77,8 +73,8 @@ class JetWhaleNetworkKtorSendInterceptorTest {
     fun `registering the interceptor twice records the transaction twice`() = runBlocking {
         val (agent, events) = agentWithEvents()
         val client = HttpClient(MockEngine { respond(content = "hello", status = HttpStatusCode.OK) })
-        // HttpSend rejects neither duplicates nor offers removal, so a double registration double
-        // records. Pinning the documented consequence of calling this more than once per client.
+        // HttpSend neither rejects duplicates nor offers removal, so a double registration records
+        // twice by design.
         client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client))
         client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client))
 

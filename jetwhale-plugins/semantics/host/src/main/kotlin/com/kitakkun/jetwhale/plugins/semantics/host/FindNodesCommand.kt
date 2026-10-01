@@ -63,8 +63,6 @@ internal class FindNodesCommand(
             operableOnly = arguments[operableOnly] ?: false,
             exact = arguments[exact] ?: false,
         )
-        // With no criterion at all, "every node on screen" is never the useful answer; the caller is
-        // asking what there is to operate. An explicit interactiveOnly still wins.
         val query = criteria.copy(interactiveOnly = arguments[interactiveOnly] ?: criteria.isEmpty)
 
         val snapshot = try {

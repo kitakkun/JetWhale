@@ -24,7 +24,6 @@ class ActionsBrowserTest {
         result = succeeded,
     )
 
-    // The fake answers without suspending, so every launched call has finished when launch returns.
     private val browser = ActionsBrowser(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

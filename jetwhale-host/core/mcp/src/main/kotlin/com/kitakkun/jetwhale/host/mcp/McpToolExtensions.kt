@@ -20,7 +20,6 @@ import kotlinx.serialization.json.put
 fun JetWhaleMcpToolDescriptor.toToolSchema(
     leadingProperties: Map<String, JsonObject> = emptyMap(),
 ): ToolSchema = ToolSchema(
-    // The parameter's schema describes its type; only the description has to be merged in.
     properties = JsonObject(
         leadingProperties + parameters.mapValues { (_, parameter) ->
             JsonObject(parameter.schema + ("description" to JsonPrimitive(parameter.description)))

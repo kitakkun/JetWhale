@@ -156,7 +156,6 @@ class MirrorNoticeTest {
         val recorded = RecordingNotices(MirrorNotice.failure("Could not start recording", retry = null))
         setContent { JwTheme(darkTheme = true) { MirrorNoticeHost(recorded) } }
 
-        // Key events reach the strip from whichever of its parts has focus.
         onNodeWithContentDescription("Dismiss").requestFocus()
         onNodeWithContentDescription("Dismiss").performKeyInput { pressKey(Key.Escape) }
 

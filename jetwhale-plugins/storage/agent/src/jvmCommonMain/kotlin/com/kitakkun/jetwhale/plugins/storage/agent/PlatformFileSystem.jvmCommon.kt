@@ -68,6 +68,8 @@ private fun deleteWithoutFollowingLinks(file: File) {
 
 /** True when the last component of this path is a symbolic link, whether or not its target exists. */
 private fun File.isSymbolicLink(): Boolean {
+    // Not Files.isSymbolicLink: java.nio.file arrives on Android only at API 26, and this code runs
+    // down to API 23.
     val parent = absoluteFile.parentFile?.canonicalFile ?: return false
     val inCanonicalParent = File(parent, name)
     return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile

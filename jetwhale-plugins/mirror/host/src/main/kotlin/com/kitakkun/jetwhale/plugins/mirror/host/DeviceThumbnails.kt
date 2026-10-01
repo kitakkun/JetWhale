@@ -69,16 +69,11 @@ internal class DeviceThumbnails(
 ) : AutoCloseable {
     private val permits = Semaphore(maxConcurrentCaptures)
 
-    // One capture per device at a time, whoever asks: a tile and Screenshot all never overlap on it.
-    // Kept for as long as the grid is: a removed lock that a capture still held would let the next
-    // capture of a rediscovered device take a fresh one and overlap it, and a lock per device ever
-    // seen costs next to nothing.
     private val deviceLocks = ConcurrentHashMap<String, Mutex>()
     private val lock = Any()
     private val previous = HashMap<String, ImageBitmap>()
     private var closed = false
 
-    // The devices still listed; a capture that finishes for one removed meanwhile is dropped.
     private var retained: Set<String>? = null
 
     private val thumbnails = mutableStateMapOf<String, DeviceThumbnail>()
@@ -103,6 +98,8 @@ internal class DeviceThumbnails(
      * at a time, and no more captures across devices than the global limit. Any other screenshot
      * taken while the grid is shown goes through here too.
      */
+    // The device's lock is taken first, so a capture queued behind another of the same device holds
+    // no global permit while it waits.
     suspend fun <T> withCapturePermit(deviceId: String, capture: suspend () -> T): T = deviceLocks.getOrPut(deviceId, ::Mutex).withLock { permits.withPermit { capture() } }
 
     /** Drops the images of devices that are gone. */
@@ -163,7 +160,6 @@ internal class DeviceThumbnails(
         dropped?.let(::closeImage)
     }
 
-    // Called with [lock] held.
     private fun accepts(deviceId: String): Boolean = !closed && retained?.contains(deviceId) != false
 
     private suspend fun shrink(png: ByteArray, heightPx: Int): ImageBitmap? = withContext(decodeDispatcher) {

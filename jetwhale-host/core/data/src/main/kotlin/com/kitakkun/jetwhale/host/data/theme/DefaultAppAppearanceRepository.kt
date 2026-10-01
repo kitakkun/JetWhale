@@ -137,12 +137,10 @@ class DefaultAppAppearanceRepository(
         }
     }
 
-    // TODO: Expose as public API if needed
     private suspend fun saveCustomColorScheme(id: String, colorScheme: JetWhaleColorScheme.Static.Custom) {
         saveCustomTheme(JetWhaleColorSchemeId.custom(id), colorScheme)
     }
 
-    // TODO: Expose as public API if needed
     private suspend fun saveDynamicColorScheme(id: String, lightColorSchemeId: String, darkColorSchemeId: String) {
         saveDynamicTheme(
             id = JetWhaleColorSchemeId.custom(id),

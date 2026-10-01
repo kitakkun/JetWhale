@@ -4,11 +4,6 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Reading and writing the platform attributes of one `ViewNode` — what an Android `View` exposes
-// beyond the semantics every `UiNode` reports. Attributes travel on their own request rather than
-// inside a `NodeTreeSnapshot`: a tree of two hundred nodes must not carry thirty attributes each,
-// and a host only ever shows the attributes of the one node a user selected.
-
 /** One attribute's current value; the variant also says how a host should edit it. */
 @Serializable
 sealed interface ViewAttributeValue {

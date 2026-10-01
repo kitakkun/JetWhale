@@ -136,29 +136,28 @@ private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMock(
     }
 }
 
-@OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
+@OptIn(InternalAPI::class)
 private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, mock: MockResponseSpec): HttpClientCall {
     if (mock.delayMs > 0) delay(mock.delayMs.milliseconds)
     // Ktor completes the call context's Job when the response is done, so it must be a
-    // CompletableJob. The Send-pipeline coroutine's own Job is a StandaloneCoroutine, and handing
-    // that over crashes with "StandaloneCoroutine cannot be cast to CompletableJob" the moment the
-    // caller reads the mocked response — so give the call its own Job(parent), exactly as a real
-    // client engine builds its call context.
+    // CompletableJob; the Send pipeline's own StandaloneCoroutine fails that cast once the caller
+    // reads the mocked response. A real client engine builds its call context the same way.
     val parentContext = currentCoroutineContext()
     val responseData = HttpResponseData(
         statusCode = HttpStatusCode.fromValue(mock.statusCode),
         requestTime = GMTDate(),
         headers = HeadersBuilder().apply {
             mock.headers.forEach { (key, value) -> append(key, value) }
-            // A mock without a Content-Type synthesizes a response whose header is null, which makes
-            // a client using ContentNegotiation reject the body. Default it so headerless JSON mocks
-            // stay usable, without overriding a Content-Type the mock already sets.
+            // A mock without a Content-Type synthesizes a null header, which makes a
+            // ContentNegotiation client reject the body.
             if (mock.headers.keys.none { it.equals(HttpHeaders.ContentType, ignoreCase = true) }) {
                 append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             }
         }.build(),
         version = HttpProtocolVersion.HTTP_1_1,
         body = ByteReadChannel(mock.bodyBytes()),
+        // Ktor completes a response by casting callContext[Job] to CompletableJob, which the
+        // request coroutine's own Job is not; a child Job of our own satisfies it.
         callContext = parentContext + Job(parentContext[Job]),
     )
     return HttpClientCall(client, request.build(), responseData)
@@ -210,9 +209,9 @@ private fun ContentType.mediaType(): String = "$contentType/$contentSubtype".low
 private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: BodyCaptureLimits): Pair<HttpClientCall, BodyCapture> {
     val response = call.response
 
-    // A WebSocket upgrade response (101) has no conventional body — by the time this runs, the
-    // connection has already switched to the raw frame stream, so save()/bodyAsText() would read
-    // live WebSocket frames as if they were an HTTP body, corrupting the frame stream for the caller.
+    // By the time this runs, a 101 response's connection has switched to the raw frame stream, so
+    // save() or bodyAsText() would read live WebSocket frames as a body and corrupt the stream for
+    // the caller.
     if (response.isWebSocketUpgrade()) {
         return call to BodyCapture("<websocket upgrade>", false)
     }
@@ -224,8 +223,6 @@ private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: Body
         return call to BodyCapture("<streaming response body>", false)
     }
 
-    // save() buffers the body so we can read it for inspection and still hand a fresh, readable
-    // response to the caller.
     val saved = call.save()
     val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
     if (isPreviewableImageMediaType(mediaType)) {

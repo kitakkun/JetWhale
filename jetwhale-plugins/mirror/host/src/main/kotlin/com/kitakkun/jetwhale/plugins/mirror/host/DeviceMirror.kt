@@ -145,8 +145,6 @@ internal class DeviceMirror(
     var screenPower: ScreenPower? by mutableStateOf(null)
         private set
 
-    // Changed only under the device's recording lock, through [changeRecordings], which republishes
-    // [recordingsStartedAtMillis]; read from anywhere.
     private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
     @Volatile
@@ -156,13 +154,8 @@ internal class DeviceMirror(
 
     val surface = MirrorSurface()
 
-    // Switching devices starts the new session while the old one is still stopping; one at a time
-    // keeps the old decoder from writing into the surface the new one has cleared.
     private val sessions = Mutex()
 
-    // The UI and MCP start and stop recordings concurrently. Each device's start, stop or disposal
-    // runs to completion before the next one for that device looks at its recording, while other
-    // devices record independently.
     private val recordingLocks = ConcurrentHashMap<String, Mutex>()
 
     val selectedDevice: MirrorDevice? get() = devices.firstOrNull { it.id == selectedId }
@@ -200,9 +193,6 @@ internal class DeviceMirror(
     }
 
     private suspend fun streamUntilCancelled(device: MirrorDevice) {
-        // Only the first stream shows a Connecting screen. The next keeps up what the last one left:
-        // its last picture when it ended (the screen turned, folded, or the view was resized), the
-        // screenshots when it is tried again from behind them.
         state = MirrorState.Connecting
         var fallbacks = 0
         while (coroutineContext.isActive) {
@@ -233,7 +223,6 @@ internal class DeviceMirror(
 
     private suspend fun watchScreenPower(device: MirrorDevice) {
         while (coroutineContext.isActive) {
-            // An unreadable state hides the screen-off notice rather than showing a stale one.
             screenPower = try {
                 device.controller.screenPower()
             } catch (_: DeviceControlException) {
@@ -255,15 +244,12 @@ internal class DeviceMirror(
 
     private suspend fun streamOnce(device: MirrorDevice): StreamOutcome {
         val frames = surface.startStream()
-        // Without the screen's size the frames stay whole and taps map through them instead.
         val screen = try {
             device.controller.screenSize()
         } catch (_: DeviceControlException) {
             null
         }
         surface.deviceSize = screen
-        // Frames are sized to the view, so a stream opened before the view has a size would come at
-        // the device's full size. A mirror no view shows opens anyway, once the wait is over.
         withTimeoutOrNull(VIEW_SIZE_WAIT_MILLIS) {
             while (surface.viewSize == IntSize.Zero) delay(VIEW_SIZE_POLL_MILLIS)
         }
@@ -296,11 +282,10 @@ internal class DeviceMirror(
                         state = MirrorState.Streaming
                     }
                 }
-                // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
-                // lets it return, and this scope waits for it, so the stream is closed here the
-                // moment the body ends or is cancelled. The watches only end on a change, and the
-                // screenshots filling in a still screen never, so they are cancelled there too, or
-                // this scope would wait for them after the stream ended.
+                // Decoding blocks inside ffmpeg and ignores cancellation; only the stream closing
+                // lets it return, and this scope waits for it, so the stream is closed here once
+                // the body ends or is cancelled. The watches may never end on their own, so they
+                // are cancelled here too.
                 try {
                     if (android) {
                         // A first stream shows as live at once, with screenshots filling in a still
@@ -315,6 +300,9 @@ internal class DeviceMirror(
                         decoding.await()
                     }
                 } finally {
+                    // Both end here, inside the scope, which waits for its children: decoding
+                    // blocks on the stream until it is closed, and the watches may never end on
+                    // their own.
                     watches.forEach { it.cancel() }
                     stream.close()
                 }
@@ -399,15 +387,14 @@ internal class DeviceMirror(
             val last = lastFrameAt.get()
             if (last > settledAt && System.nanoTime() - last >= SETTLE_AFTER_NANOS) {
                 settledAt = System.nanoTime()
-                // A missed screenshot only leaves the stream's own picture up until the next one.
                 try {
-                    // A turned screenshot means the screen turned since the stream opened, and the
-                    // size check has not seen it yet: the next stream opens now instead.
                     if (!showScreenshot(device, frames, streamShape = screen)) {
                         stream.close()
                         return
                     }
                 } catch (_: DeviceControlException) {
+                    // A failed screenshot only leaves the stream's own frame in view until the next
+                    // one.
                 }
             }
             delay(SETTLE_CHECK_MILLIS)
@@ -416,8 +403,6 @@ internal class DeviceMirror(
 
     private suspend fun pollScreenshots(device: MirrorDevice, reason: String, forMillis: Long) {
         state = MirrorState.Polling(reason)
-        // A screenshot is the whole screen at its own size, so taps map through it and follow a
-        // fold; the size read when the stream opened would keep them on the panel shown then.
         surface.deviceSize = null
         val frames = surface.startStream()
         withTimeoutOrNull(forMillis) {
@@ -480,7 +465,6 @@ internal class DeviceMirror(
         } catch (e: DeviceControlException) {
             e.message.orEmpty()
         } catch (e: IllegalArgumentException) {
-            // The capture library decodes the screenshot to learn its size.
             e.message ?: "the screenshot could not be read as an image"
         } catch (e: IOException) {
             e.message ?: "the screenshot could not be saved"
@@ -488,9 +472,6 @@ internal class DeviceMirror(
         return ScreenshotResult.Failed(deviceId = device.id, deviceName = device.listing.name, reason = reason)
     }
 
-    // Record and Stop each do only what they say, on the device selected when they were clicked: a
-    // click queued behind a slow stop, or made after switching devices, must not turn into a
-    // recording nobody asked for.
     override fun recordSelectedDevice() {
         val device = selectedDevice ?: return
         scope.launch { recordFromUi(device) }
@@ -624,7 +605,6 @@ internal class DeviceMirror(
         }.awaitAll()
     }
 
-    // With one recording running, a stop that names no device stops it, as when only one could run.
     private fun soleRecordingDeviceId(): String {
         val running = activeRecordings.values.toList()
         return when (running.size) {
@@ -647,8 +627,6 @@ internal class DeviceMirror(
 
     private suspend fun stopRecordingLocked(deviceId: String): Capture {
         val running = changeRecordings { it.remove(deviceId) } ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
-        // The recorder has been told to stop either way, so a failed stop cannot be retried; the
-        // reserved file would otherwise stay in the folder, unlisted because it has no sidecar.
         val file = try {
             running.handle.stop()
         } catch (e: DeviceControlException) {
@@ -665,8 +643,6 @@ internal class DeviceMirror(
 
     private fun recordingLockOf(deviceId: String): Mutex = recordingLocks.getOrPut(deviceId, ::Mutex)
 
-    // Each change and the state it publishes happen together, so two devices changing at once cannot
-    // publish out of order and leave the other's change unseen.
     private fun <T> changeRecordings(change: (MutableMap<String, ActiveRecording>) -> T): T = synchronized(activeRecordings) {
         change(activeRecordings).also {
             recordingsStartedAtMillis = activeRecordings.mapValues { entry -> entry.value.startedAt.toEpochMilli() }
@@ -692,7 +668,6 @@ internal class DeviceMirror(
         failures.firstOrNull()?.let { throw deviceControlError(it.reason) }
     }
 
-    // Runs [action] on the selected device, reporting a failure as a notice instead of throwing.
     private fun control(action: suspend (DeviceController) -> Unit) {
         val device = selectedDevice ?: return
         scope.launch {

@@ -18,7 +18,6 @@ class DeviceTileLayoutTest {
         val layout = layoutDeviceTiles(listOf(PHONE, PHONE), width = 960f, height = 600f, metrics = METRICS)
 
         assertEquals(listOf(listOf(0, 1)), layout.rows)
-        // The height is what limits them: the pane minus the caption.
         assertEquals(600f - 56f, layout.screenHeight)
         assertFits(layout, width = 960f, height = 600f)
     }
@@ -45,7 +44,6 @@ class DeviceTileLayoutTest {
 
         assertTrue(layout.scrolls)
         assertEquals(220f, layout.screenHeight)
-        // Each scrolling row still fits the width.
         assertTrue(layout.groupWidth <= 600f, "a row is ${layout.groupWidth} wide")
         assertEquals((0 until 20).toList(), layout.rows.flatten())
     }

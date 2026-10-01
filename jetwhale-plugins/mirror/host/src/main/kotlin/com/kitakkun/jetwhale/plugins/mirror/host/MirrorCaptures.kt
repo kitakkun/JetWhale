@@ -154,6 +154,8 @@ internal class MirrorCaptures(
     }
 
     override fun filterDay(day: String?) {
+        // No refresh: the panel narrows the list to the day itself, and needs every day's captures
+        // to offer the other dates.
         this.day = day
     }
 
@@ -163,7 +165,6 @@ internal class MirrorCaptures(
 
     override fun open(capture: Capture) = desktop { it.open(capture.file) }
 
-    // Finder and Explorer can select the file in its folder; elsewhere the folder opens.
     override fun reveal(capture: Capture) = desktop { desktop ->
         if (desktop.isSupported(Desktop.Action.BROWSE_FILE_DIR)) desktop.browseFileDirectory(capture.file) else desktop.open(capture.file.parentFile)
     }
@@ -208,8 +209,6 @@ internal class MirrorCaptures(
         }
     }
 
-    // A listing that finishes after a newer one started, or after a capture was added or deleted,
-    // would publish what the folder held before: only the latest listing publishes.
     private fun refresh() {
         val deviceId = device?.id?.takeUnless { allDevices }
         val listing = listings.incrementAndGet()

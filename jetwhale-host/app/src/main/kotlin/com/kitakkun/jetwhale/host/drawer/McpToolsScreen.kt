@@ -174,8 +174,6 @@ fun McpToolsScreen(
                     ),
                     style = JwTheme.textStyles.label,
                     color = JwTheme.colors.textSecondary,
-                    // Held against the first chip row instead of the middle of a block whose height
-                    // grows as chips wrap.
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
@@ -188,8 +186,6 @@ fun McpToolsScreen(
                     selected = selectedTab == McpToolsTab.Tools,
                     onClick = { selectedTab = McpToolsTab.Tools },
                 )
-                // How many calls the current scope holds, so the count is visible without opening
-                // the tab.
                 JwTab(
                     text = stringResource(Res.string.mcp_tools_tab_history),
                     count = uiState.callHistory.size.takeIf { it > 0 },
@@ -199,8 +195,6 @@ fun McpToolsScreen(
             }
             Spacer(Modifier.size(12.dp))
 
-            // Hoisted out of the pane so switching tabs and coming back keeps the search and the
-            // selected tool where the user left them.
             var query by remember { mutableStateOf("") }
             var selectedToolKey by remember { mutableStateOf<String?>(null) }
 
@@ -242,8 +236,6 @@ private fun McpFilterChipGroup(
     val allLabel = stringResource(Res.string.mcp_tools_filter_all)
     val addLabel = stringResource(Res.string.mcp_tools_filter_add)
     val removeLabel = stringResource(Res.string.mcp_tools_filter_remove)
-    // A picked value outlives the option that named it once a session goes away, so the raw id
-    // stands in rather than dropping a filter that is still narrowing the screen.
     val selectedChips = remember(options, selectedIds) {
         val labelsById = options.associate { it.id to it.label }
         selectedIds
@@ -261,21 +253,16 @@ private fun McpFilterChipGroup(
             color = JwTheme.colors.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            // Fixed width and held against the first chip row so both groups' labels line up even
-            // when one of them wraps onto several rows.
             modifier = Modifier
                 .width(76.dp)
                 .padding(top = 8.dp),
         )
-        // Wraps so a long list of plugins or sessions grows downwards instead of widening a dialog
-        // that is already bounded.
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f),
         ) {
             selectedChips.forEach { option ->
-                // Clicking the tag removes the value; the close glyph names what the click does.
                 JwTag(
                     text = option.label,
                     tone = JwTone.Accent,
@@ -286,8 +273,6 @@ private fun McpFilterChipGroup(
                 )
             }
             val filtering = selectedChips.isNotEmpty()
-            // The menu survives every pick so several values can be added in one go, and a check
-            // marks what is already picked while it is open.
             JwDropdownButton(
                 text = if (filtering) addLabel else allLabel,
                 expanded = expanded,
@@ -395,8 +380,6 @@ private fun McpToolsPane(
                                 overflow = TextOverflow.Ellipsis,
                                 color = JwTheme.colors.onSurface,
                             )
-                            // The short name alone is ambiguous once plugins are mixed, so every row
-                            // names the plugin that publishes the tool.
                             JwText(
                                 text = row.pluginName,
                                 style = JwTheme.textStyles.labelSmall,
@@ -477,7 +460,6 @@ private fun McpCallHistoryPane(
         }
         return
     }
-    // Selection lives above the lazy list so it survives the row scrolling out of view.
     var selectedCallId by remember { mutableStateOf(callHistory.first().id) }
     val selected = callHistory.firstOrNull { it.id == selectedCallId } ?: callHistory.first()
 
@@ -685,8 +667,6 @@ private fun ColumnScope.McpCallResponse(response: String) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                // Bounded and scrolled on its own so a long response stays readable instead of
-                // pushing the copy action out of the pane.
                 .heightIn(max = 240.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(JwTheme.colors.neutralContainer)
@@ -835,8 +815,6 @@ private fun buildCallDetails(
         append(renderedArguments)
     }
     if (response.isNotEmpty()) {
-        // A blank line keeps the response apart from the arguments above it, which are otherwise
-        // laid out the same way.
         appendLine()
         appendLine()
         append(response)

@@ -9,9 +9,6 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-// Drawn here rather than taken from Material icons, which the host bundles for itself and does not
-// offer plugins. Each is a 24-unit outline, tinted by JwIcon.
-
 internal val DeviceButton.icon: ImageVector
     get() = when (this) {
         DeviceButton.Home -> HomeIcon
@@ -23,7 +20,6 @@ internal val DeviceButton.icon: ImageVector
     }
 
 internal val ScreenOffIcon: ImageVector = outlineIcon("ScreenOff") {
-    // A phone with a line through it.
     moveTo(7f, 3f)
     lineTo(17f, 3f)
     lineTo(17f, 21f)
@@ -34,7 +30,6 @@ internal val ScreenOffIcon: ImageVector = outlineIcon("ScreenOff") {
 }
 
 internal val WakeIcon: ImageVector = outlineIcon("Wake") {
-    // A phone with a lit screen.
     moveTo(7f, 3f)
     lineTo(17f, 3f)
     lineTo(17f, 21f)
@@ -133,7 +128,6 @@ private val BackIcon: ImageVector = outlineIcon("Back") {
 }
 
 private val RecentsIcon: ImageVector = outlineIcon("Recents") {
-    // Two stacked screens: the one in front and the one behind it.
     moveTo(7f, 7f)
     lineTo(17f, 7f)
     lineTo(17f, 20f)

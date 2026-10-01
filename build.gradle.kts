@@ -26,9 +26,6 @@ plugins {
 spotless {
     kotlin {
         target("**/*.kt")
-        // Compiler-plugin fixtures are compiled by the test framework and compared against IR dumps
-        // that record source offsets, so reformatting them would invalidate the golden files rather
-        // than tidy anything. Their shape is part of what they assert.
         targetExclude("**/build/**", "**/testData/**")
         ktlint()
     }
@@ -41,8 +38,6 @@ spotless {
 
 allprojects {
     group = "com.kitakkun.jetwhale"
-    // Pass -PjetwhaleSnapshot to publish a SNAPSHOT of the current version (overwritable, goes to the
-    // Central snapshots repo) instead of a release.
     version = rootProject.libs.versions.jetwhale.get() +
         if (rootProject.hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 }

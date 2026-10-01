@@ -33,9 +33,7 @@ import kotlinx.coroutines.CancellationException
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
 
-// This draws a live plugin's nested ComposeScene, which a @Preview has no way to build.
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
-// Draws a live plugin scene; there is nothing a preview could show.
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 fun PluginScreen(pluginComposeScene: PluginComposeScene) {
@@ -55,21 +53,14 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     Canvas(
         modifier = Modifier.fillMaxSize()
-            // The plugin's scene is nested and windowless, so its Modifier.pointerHoverIcon requests
-            // surface here instead; this Canvas is the innermost node that sits in a real window.
             .pointerHoverIcon(pluginComposeScene.pointerIcon.value)
             .onSizeChanged {
                 try {
-                    // The scene was seeded with a density when it was created, but only the window
-                    // actually showing it knows the right one: a popped-out plugin gets its own
-                    // Window, which can sit on a display with a different scale factor.
                     pluginComposeScene.composeScene.density = density
                     pluginComposeScene.composeScene.size = it
                 } catch (_: IllegalStateException) {
-                    // ignore: may happen during dispose
-                    // without this try-catch, sometimes crashes with:
-                    // java.lang.IllegalStateException: size/density set after ComposeScene is closed
-                    // See: [androidx.compose.ui.scene.CanvasLayersComposeScene] implementation of size and density setter
+                    // The setters throw once the ComposeScene is closed, which can happen during
+                    // dispose.
                 }
                 pluginComposeScene.windowInfoUpdater.updateWindowSize(
                     intSize = it,
@@ -78,13 +69,9 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             }
             .focusRequester(focusRequester)
             .focusable()
-            // Re-acquire focus once the node is actually placed: on a session switch the swapped-in
-            // Canvas is not yet placed when composition runs, so a single-shot requestFocus is a
-            // silently-dropped no-op. Driving it from placement makes the request survive the swap.
+            // On a session switch the swapped-in Canvas is not yet placed when composition runs,
+            // and a requestFocus before placement is silently dropped.
             .onPlaced { focusRequester.requestFocus() }
-            // Key on the scene (not Unit): on hot reload the scene instance is replaced, and a
-            // Unit-keyed pointerInput would keep dispatching to the old, now-closed scene — leaving
-            // the freshly reloaded UI unresponsive to clicks.
             .pointerInput(pluginComposeScene) {
                 awaitPointerEventScope {
                     do {
@@ -97,7 +84,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             focusRequester.requestFocus()
                             event.changes.forEach(PointerInputChange::consume)
                         }
-                        // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error instead of taking the host down.
                         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                         try {
                             val scrollDelta = event.changes.map(PointerInputChange::scrollDelta).reduce(Offset::plus)
@@ -115,10 +101,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             // Caught ahead of IllegalStateException, which it extends on the JVM.
                             throw e
                         } catch (e: IllegalStateException) {
-                            // The plugin scene can be closed mid-dispatch (navigation, session
-                            // switch, hot reload). A late event then hits the closed scene and
-                            // throws "... after ComposeScene is closed"; that is a benign teardown
-                            // race, so ignore it instead of surfacing it as a plugin error.
                             if (!e.isComposeSceneClosed()) catchThrowHost[uuid()] = e
                         } catch (e: Throwable) {
                             catchThrowHost[uuid()] = e
@@ -127,7 +109,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 }
             }
             .onKeyEvent {
-                // Plugin UI code runs inside this dispatch; whatever it throws is shown as the plugin's error instead of taking the host down.
                 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                 try {
                     pluginComposeScene.composeScene.sendKeyEvent(it)

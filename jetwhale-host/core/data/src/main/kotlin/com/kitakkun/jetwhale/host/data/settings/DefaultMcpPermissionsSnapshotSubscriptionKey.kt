@@ -32,9 +32,6 @@ class DefaultMcpPermissionsSnapshotSubscriptionKey(
         ) { permissions, loadedPlugins, capablePlugins ->
             McpPermissionsSnapshot(
                 permissions = permissions,
-                // Every installed plugin is listed, whether or not it currently publishes tools:
-                // Inspect and Interact apply to any plugin's UI, so a plugin with no live instance
-                // still has something to decide about.
                 plugins = loadedPlugins.values
                     .map { plugin ->
                         McpPermissionPlugin(

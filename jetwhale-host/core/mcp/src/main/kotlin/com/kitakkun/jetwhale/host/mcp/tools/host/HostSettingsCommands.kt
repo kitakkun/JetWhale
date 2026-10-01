@@ -39,8 +39,6 @@ class UpdateSettingsCommand(
     private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        // Validate every port before writing any of them, so a bad argument late in the list cannot
-        // leave the settings half-applied.
         val newServerPort = arguments[serverPort]?.also { it.requireValidPort("serverPort") }
         val newWssPort = arguments[wssPort]?.also { it.requireValidPort("wssPort") }
         val newMcpServerPort = arguments[mcpServerPort]?.also { it.requireValidPort("mcpServerPort") }
@@ -63,7 +61,6 @@ class UpdateSettingsCommand(
         newMcpServerPort?.let { port ->
             settingsRepository.updateMcpServerPort(port)
             applied["mcpServerPort"] = port.toString()
-            // Restarting the MCP server here would tear down the very connection carrying this call.
             notes += "mcpServerPort was saved but this MCP server is still listening on its old port; the change takes effect the next time the host starts."
         }
         arguments[adbAutoPortMappingEnabled]?.let { enabled ->
@@ -89,7 +86,6 @@ class UpdateSettingsCommand(
             restartDebugServer(settingsRepository, debugWebSocketServer)
             notes += SERVER_RESTART_NOTE
         } else if (debugServerAffected) {
-            // Both the ports and adbAutoPortMappingEnabled are only read when the server starts.
             notes += "The debug server is still running with its previous configuration; restart it with jetwhale.restartDebugServer to apply the change."
         }
 
@@ -108,6 +104,8 @@ class UpdateSettingsCommand(
     }
 
     private companion object {
+        // adbAutoPortMappingEnabled is read only when the debug server starts, so it takes a
+        // restart like the ports do.
         val DEBUG_SERVER_SETTINGS = setOf("serverPort", "wssPort", "wssEnabled", "adbAutoPortMappingEnabled")
     }
 }

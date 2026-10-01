@@ -97,7 +97,6 @@ class Nav3McpCommandsTest {
             buildJsonObject {
                 put("toIndex", 1)
                 put("inclusive", true)
-                // count is ignored once toIndex is given.
                 put("count", 5)
             },
         )
@@ -131,7 +130,6 @@ class Nav3McpCommandsTest {
 
         assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
         assertEquals("removeAt index 9 is out of range (0..0)", result.getValue("error").jsonPrimitive.content)
-        // The caller still sees where the stack stands, so it can decide what to do next.
         assertEquals(1, result.getValue("stack").jsonObject.getValue("size").jsonPrimitive.content.toInt())
     }
 

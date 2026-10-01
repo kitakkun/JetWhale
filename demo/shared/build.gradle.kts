@@ -10,11 +10,7 @@ plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.composeCompiler)
-    // The demo's NavKeys are @Serializable: that is what Navigation 3 saved state — and the Nav3
-    // plugin's key catalog — are both built on.
     alias(libs.plugins.kotlinxSerialization)
-    // Bakes this machine's LAN address into the demo's buildMachineWss(5443) candidate, so a
-    // physical device reaches the host without waiting out an mDNS browse.
     alias(libs.plugins.jetwhaleAgent)
 }
 
@@ -64,7 +60,6 @@ kotlin {
         }
 
         androidMain.dependencies {
-            // OkHttp demo tab: OkHttp only targets JVM/Android, so this is androidMain-only.
             implementation(projects.jetwhalePlugins.network.agentOkhttp)
             implementation(libs.okhttp)
         }

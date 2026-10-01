@@ -21,7 +21,6 @@ internal class TapCommand(
         val y = arguments[y]
         if (x < 0 || y < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got x=$x, y=$y)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        // Refused before screenSize(), which holds an iPhone's idb companion that nothing here releases.
         if (!device.controller.capabilities.input) throw JetWhaleMcpArgumentException(VIEW_ONLY)
         val screen = deviceOperation { device.controller.screenSize() }
         if (x >= screen.width || y >= screen.height) {

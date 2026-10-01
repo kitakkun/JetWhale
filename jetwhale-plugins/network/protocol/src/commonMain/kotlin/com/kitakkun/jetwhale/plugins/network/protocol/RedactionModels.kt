@@ -83,8 +83,6 @@ private fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: Strin
 
 private fun RedactionStrategy.render(original: String): String = when (this) {
     RedactionStrategy.PLACEHOLDER -> REDACTED_PLACEHOLDER
-
-    // Count code points, not UTF-16 units, so surrogate-pair characters mask as one asterisk.
     RedactionStrategy.MASK -> "*".repeat(original.count { !it.isLowSurrogate() })
 }
 
@@ -110,13 +108,8 @@ private fun List<RedactionRule>.redactUrl(url: String): String {
 
 private const val FORM_URLENCODED_MEDIA_TYPE = "application/x-www-form-urlencoded"
 
-// A form body is redacted parameter by parameter, so truncation by maxBodyChars only costs the
-// parameters that were cut off. Any other body that does not parse as structured JSON (other content
-// type, bare literal, or JSON truncated mid-value) is forwarded unchanged; only header and query
-// rules can protect it.
 private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, List<String>>, encoding: BodyEncoding): String {
     if (none { it.target == RedactionTarget.BODY_FIELD }) return body
-    // A Base64 body carries opaque bytes with no fields to match, and it can be megabytes long.
     if (encoding == BodyEncoding.BASE64) return body
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
@@ -127,9 +120,6 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     return Json.encodeToString(JsonElement.serializer(), redactFields(element))
 }
 
-// Names and values are form-decoded before matching and rendering, so a percent-encoded name still
-// matches its rule and a MASK still spans the value's real length rather than its encoded length.
-// The rendered replacement is written back verbatim, as URL query redaction does.
 private fun List<RedactionRule>.redactFormBody(body: String): String = body
     .split('&')
     .joinToString("&") { param ->
@@ -145,7 +135,6 @@ private fun List<RedactionRule>.redactFormBody(body: String): String = body
 private fun String.formUrlDecode(): String {
     if ('%' !in this && '+' !in this) return this
     val decoded = StringBuilder(length)
-    // Percent-escapes are collected as bytes so a multi-byte UTF-8 sequence decodes as one character.
     val bytes = mutableListOf<Byte>()
     fun flushBytes() {
         if (bytes.isEmpty()) return
@@ -189,6 +178,4 @@ private fun List<RedactionRule>.redactFields(element: JsonElement): JsonElement 
     else -> element
 }
 
-// MASK preserves the length of string values; non-string values (numbers, objects, arrays)
-// are collapsed to a fixed-width mask so their shape is not leaked.
 private fun JsonElement.stringContentOrPlaceholder(): String = if (this is JsonPrimitive && isString) content else "***"

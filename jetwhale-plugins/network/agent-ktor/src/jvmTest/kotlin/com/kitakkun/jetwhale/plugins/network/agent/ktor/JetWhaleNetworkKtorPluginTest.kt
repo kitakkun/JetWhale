@@ -59,7 +59,6 @@ class JetWhaleNetworkKtorPluginTest {
         val (agent, events) = agentWithEvents()
         val client = HttpClient(MockEngine { respondImage(IMAGE_BYTES) }) { install(agent.ktorClientPlugin()) }
 
-        // The caller still receives the untouched bytes, not the capture's copy.
         assertContentEquals(IMAGE_BYTES, client.get("http://example/logo.png").readRawBytes())
 
         val received = events.last() as ResponseReceived
@@ -77,7 +76,6 @@ class JetWhaleNetworkKtorPluginTest {
         client.get("http://example/logo.png")
 
         val received = events.last() as ResponseReceived
-        // A partial image cannot be decoded, so the capture says so rather than shipping half of it.
         assertEquals(BodyEncoding.TEXT, received.response.bodyEncoding)
         assertEquals("<image/png body over the ${IMAGE_BYTES.size - 1}-byte maxImageBytes limit>", received.response.body)
     }
@@ -135,7 +133,6 @@ class JetWhaleNetworkKtorPluginTest {
             ),
         )
         val client = HttpClient(
-            // The real engine must never be hit — the mock is served before proceed().
             MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
         ) {
             install(agent.ktorClientPlugin())
@@ -143,8 +140,6 @@ class JetWhaleNetworkKtorPluginTest {
 
         val response = client.get("http://example/todos/1")
 
-        // Reading a mocked body needs the synthesized call's context Job to be a CompletableJob,
-        // which the Send pipeline's own StandaloneCoroutine is not.
         assertEquals(200, response.status.value)
         assertEquals("{\"ok\":true}", response.bodyAsText())
     }
@@ -169,8 +164,6 @@ class JetWhaleNetworkKtorPluginTest {
 
         val response = client.get("http://example/todos/1")
 
-        // Without the default, a headerless mock synthesizes Content-Type: null and a
-        // ContentNegotiation client rejects the body with NoTransformationFoundException.
         assertEquals("application/json", response.headers[HttpHeaders.ContentType])
     }
 
@@ -198,14 +191,12 @@ class JetWhaleNetworkKtorPluginTest {
 
         val response = client.get("http://example/plain")
 
-        // A Content-Type the mock already sets (even lower-cased) is never overridden by the default.
         assertEquals("text/plain", response.headers[HttpHeaders.ContentType])
     }
 
     @Test
     fun `returns an SSE response without buffering its body`() = runBlocking {
         val (agent, events) = agentWithEvents()
-        // A channel that receives data but is never closed — save() would suspend on it forever.
         val stream = ByteChannel(autoFlush = true)
         stream.writeStringUtf8("data: hello\n\n")
         val client = HttpClient(
@@ -220,8 +211,8 @@ class JetWhaleNetworkKtorPluginTest {
             install(agent.ktorClientPlugin())
         }
 
-        // Streaming execution (as the SSE plugin does) skips Ktor's own SaveBody plugin; without
-        // the guard, the JetWhale plugin's save() would suspend on the endless channel forever.
+        // Streaming execution, as the SSE plugin uses, skips Ktor's SaveBody plugin, so only the
+        // guard keeps save() from suspending on the endless channel.
         val statusCode = withTimeout(5_000.milliseconds) {
             client.prepareGet("http://example/sse").execute { response -> response.status.value }
         }
@@ -276,8 +267,6 @@ class JetWhaleNetworkKtorPluginTest {
         }
 
         try {
-            // Without the upgrade guard, save() would read live WebSocket frames as the HTTP
-            // body, so the echo below would never arrive.
             val echoed = withTimeout(5_000) {
                 client.webSocketSession("ws://127.0.0.1:$port/ws").run {
                     send(Frame.Text("hello"))
@@ -309,8 +298,6 @@ class JetWhaleNetworkKtorPluginTest {
             setBody(TracedContent("hi"))
         }
 
-        // Header names are case-insensitive, so a body-level header must not be added again under
-        // the request's spelling — the inspector would show the same header twice.
         val headers = (events.first() as RequestSent).request.headers
         assertEquals(
             listOf("X-Trace" to listOf("from-request")),
@@ -329,9 +316,6 @@ class JetWhaleNetworkKtorPluginTest {
 
         client.get("http://example/plain").bodyAsText()
 
-        // HttpSend wraps interceptors in reverse registration order, so the plugin installed first
-        // is the outermost one: nothing is recorded when it starts, and by the time it regains
-        // control the monitor has already recorded both the request and the response.
         assertEquals(listOf("enter@0", "exit@2"), trace)
     }
 
@@ -346,8 +330,6 @@ class JetWhaleNetworkKtorPluginTest {
 
         client.get("http://example/plain").bodyAsText()
 
-        // Installed second means innermost: the monitor has already recorded the request when the
-        // tracer starts, and records the response only after the tracer returns.
         assertEquals(listOf("enter@1", "exit@1"), trace)
     }
 
@@ -372,8 +354,8 @@ class JetWhaleNetworkKtorPluginTest {
 
         assertEquals("arrived", client.get("http://example/from").bodyAsText())
 
-        // HttpRedirect is installed before any user plugin, so the monitor always sits inside it
-        // and sees every hop separately — install order in the config block can't change this.
+        // HttpRedirect is installed before any user plugin, so the monitor sits inside it and sees
+        // every hop whatever the install order.
         assertEquals(
             listOf("http://example/from", "http://example/to"),
             events.filterIsInstance<RequestSent>().map { it.request.url },

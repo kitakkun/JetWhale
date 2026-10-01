@@ -1,7 +1,6 @@
 rootProject.name = "jetwhale-gradle-plugin"
 
 pluginManagement {
-    // Reuse the internal `publish` convention (jetwhalePublish { ... }) that simplifies maven-publish.
     includeBuild("../gradle-conventions")
     repositories {
         mavenCentral()

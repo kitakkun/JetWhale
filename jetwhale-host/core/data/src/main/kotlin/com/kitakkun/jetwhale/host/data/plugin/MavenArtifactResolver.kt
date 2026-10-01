@@ -57,8 +57,6 @@ class MavenArtifactResolver(
             destinationFile.delete()
             throw e
         } catch (e: CancellationException) {
-            // A cancelled download is not a failed one: the caller must see the cancellation, not an
-            // error it might answer by trying the next candidate.
             destinationFile.delete()
             throw e
         } catch (e: Exception) {

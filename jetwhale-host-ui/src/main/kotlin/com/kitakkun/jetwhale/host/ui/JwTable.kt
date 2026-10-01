@@ -249,8 +249,6 @@ private fun <T> RowScope.Cell(column: JwTableColumn<T>, content: @Composable () 
         is JwColumnWidth.Fixed -> Modifier.width(width.width)
         is JwColumnWidth.Weight -> Modifier.weight(width.weight)
     }
-    // Scrolling gives the content unbounded width; the other two keep it inside the cell, and
-    // clipping catches a custom cell that ignores the setting.
     val overflow = when (column.overflow) {
         JwColumnOverflow.Scroll -> Modifier.horizontalScroll(rememberScrollState())
         JwColumnOverflow.Ellipsis, JwColumnOverflow.Wrap -> Modifier.clipToBounds()

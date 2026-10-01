@@ -135,7 +135,6 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports which permissions the agent has`() = runBlocking {
-        // Without this an agent could only discover a denial by calling a tool and being refused.
         val permissions = command.execute(arguments()).decode().permissions
 
         assertEquals(McpHostToolGroup.entries.map(McpHostToolGroup::name).sorted(), permissions.allowedHostGroups)
@@ -158,8 +157,6 @@ class HostStatusCommandTest {
         assertFalse(McpHostToolGroup.SETTINGS_AND_SERVERS.name in reported.allowedHostGroups)
         assertEquals(listOf("com.example.secret"), reported.pluginsWithInspectDenied)
         assertEquals(listOf("com.example.secret.wipe"), reported.deniedPluginTools)
-        // Denying inspection says nothing about input; they are reported apart because they are
-        // decided apart.
         assertTrue(reported.pluginsWithInteractDenied.isEmpty())
     }
 }

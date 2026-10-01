@@ -19,8 +19,6 @@ class ClosedSessionsTest {
 
     @Test
     fun `a session already disconnected before this update is not reported again`() {
-        // The disconnected session stays in the list, so only the previous snapshot can tell the
-        // difference between "just went" and "went a while ago".
         val current = listOf(session("a"), session("b", isActive = false))
 
         val closed = closedSessions(previouslyConnected = listOf(session("a")), current = current)

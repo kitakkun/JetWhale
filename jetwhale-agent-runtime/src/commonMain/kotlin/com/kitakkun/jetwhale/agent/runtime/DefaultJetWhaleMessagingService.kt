@@ -31,8 +31,6 @@ internal class DefaultJetWhaleMessagingService(
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
             while (isActive) {
-                // A round that served a session costs no delay, however many candidates were refused
-                // before the one that worked: backoff is owed by a round where nothing accepted.
                 val outcome = runRound(resolver)
                 if (outcome is RoundResult.Served) continue
 
@@ -49,11 +47,7 @@ internal class DefaultJetWhaleMessagingService(
         val connectionJob = keepAwakeJob ?: return
         keepAwakeJob = null
         coroutineScope.launch {
-            // Join, don't just cancel: the loop must be fully wound down before the teardown below,
-            // or the connection's own `finally` would interleave with it and drop the peers twice.
             connectionJob.cancelAndJoin()
-            // A cancelled connection cannot run its own suspending teardown, so close the socket and
-            // drop the peers here, out of reach of the cancellation.
             withContext(NonCancellable) {
                 socketClient.closeConnection()
                 pluginService.disconnectAll()
@@ -71,13 +65,9 @@ internal class DefaultJetWhaleMessagingService(
      */
     private suspend fun runRound(resolver: EndpointResolver): RoundResult {
         val candidates = try {
-            // Resolved per round rather than once up front: an address that only becomes correct
-            // later is reached without restarting the session.
             resolver.resolve()
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
-            // Resolution is not supposed to throw — discovery reports its own failures and falls back
-            // — but letting one escape would end the loop and the session with it.
             JetWhaleLogger.d("Working out where to connect failed", e)
             return RoundResult.Failed("Could not work out where to connect: $e")
         }
@@ -86,11 +76,10 @@ internal class DefaultJetWhaleMessagingService(
         val failures = mutableListOf<CandidateFailure>()
         for (candidate in candidates) {
             try {
-                // The cap covers establishment only — never the session that follows, which is meant
-                // to last. CA fetch, TLS handshake, upgrade and negotiation together have been
-                // measured at 13s on a physical device over Wi-Fi, so the cap is deliberately
-                // generous: its job is to bound a candidate that swallows packets — a firewall that
-                // drops rather than refuses — not to be tight.
+                // Covers establishment only, never the session. CA fetch, TLS handshake, upgrade
+                // and negotiation have been measured at 13s on a physical device over Wi-Fi, so the
+                // cap is generous: it bounds a candidate that drops packets rather than refusing
+                // them.
                 val connection = withTimeoutOrNull(CANDIDATE_TIMEOUT_MILLIS) {
                     socketClient.openConnection(candidate)
                 }
@@ -98,14 +87,9 @@ internal class DefaultJetWhaleMessagingService(
                     failures += CandidateFailure(candidate, "timed out after ${CANDIDATE_TIMEOUT_MILLIS}ms")
                     JetWhaleLogger.d("Gave up on $candidate after ${CANDIDATE_TIMEOUT_MILLIS}ms")
                 } else {
-                    // Suspends for as long as the connection lasts. Once it ends, the next round starts
-                    // from the top of the list so a preferred candidate gets its turn back.
                     val startedAt = TimeSource.Monotonic.markNow()
                     serveConnection(connection)
                     val lasted = startedAt.elapsedNow()
-                    // A session that ends the moment it starts has not really worked — a host that
-                    // accepts the upgrade and then drops it has been seen — and reconnecting with no
-                    // delay would spin. Only a session that held counts as a round that was served.
                     if (lasted >= MIN_SESSION_TO_COUNT) {
                         retryCount = 0
                         lastReportedFailure = null
@@ -158,8 +142,6 @@ internal class DefaultJetWhaleMessagingService(
                 }
             }
         } finally {
-            // The connection ended (closed or errored); drop this connection's peers so the next
-            // connection re-establishes them against a fresh socket. Plugins stay activated.
             pluginService.disconnectAll()
         }
     }

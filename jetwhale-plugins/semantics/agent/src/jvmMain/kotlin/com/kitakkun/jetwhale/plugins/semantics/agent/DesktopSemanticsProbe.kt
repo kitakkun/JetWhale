@@ -49,8 +49,6 @@ private fun SemanticsOwner.toNodeSource(window: ComposeWindow, density: Float, i
     return SemanticsOwnerNodeSource(
         sourceId = "compose-root-${System.identityHashCode(this).toString(16)}",
         owner = { this },
-        // The collection carries no names, so the extra roots — a dialog or popup layer — are
-        // distinguished by position rather than guessed at.
         label = { if (index == 0) title else "$title / layer $index" },
         density = { density },
         windowOffset = window::composeSurfaceOffsetOnScreen,

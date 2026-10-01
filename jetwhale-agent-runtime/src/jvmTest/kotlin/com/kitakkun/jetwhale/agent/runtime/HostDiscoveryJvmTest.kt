@@ -44,7 +44,6 @@ class HostDiscoveryJvmTest {
                 ?.firstOrNull { it.instanceName.contains(instanceName) }
 
             if (match == null) {
-                // CI machines sometimes block multicast; skip gracefully rather than failing.
                 println("Skipping round-trip assertion: no mDNS response (multicast likely unavailable)")
                 return@runBlocking
             }
@@ -55,7 +54,6 @@ class HostDiscoveryJvmTest {
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
-            // Environment lacks a usable multicast stack; treat as a skipped test.
             println("Skipping mDNS round-trip test: ${e.message}")
         } finally {
             jmdns?.unregisterAllServices()

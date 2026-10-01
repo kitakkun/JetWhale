@@ -26,8 +26,6 @@ fun pluginSettingsScreenPresenter(
     signPluginTrustRegistry: Boolean,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
-    // These three only queue work in the install service and return: the install itself outlives
-    // this screen, which a mutation torn down with it could not.
     val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
     val cancelPluginInstallMutation = rememberMutation(presenterContext.cancelPluginInstallMutationKey)
     val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)

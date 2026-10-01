@@ -46,7 +46,6 @@ class DebugActionsBuilder internal constructor(private val group: String?) {
     }
 
     /** Declares an action that takes no arguments. */
-    // Erases to the same JVM signature as the reified overload below.
     @JvmName("actionWithoutArguments")
     fun action(title: String, configure: DebugActionBuilder<Unit>.() -> Unit) {
         action(title, Unit.serializer(), configure)

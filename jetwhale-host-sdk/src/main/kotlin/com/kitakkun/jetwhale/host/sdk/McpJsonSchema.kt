@@ -123,7 +123,6 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * discriminator pinned to a constant.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    // A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
     val discriminator = annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator
         ?: context.classDiscriminator
     val subclasses = getElementDescriptor(1)
@@ -147,8 +146,6 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
     val schema = buildSchema(context, enclosingTypes)
     val properties = schema["properties"] as? JsonObject ?: JsonObject(emptyMap())
     val required = (schema["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
-    // ClassDiscriminatorMode.NONE writes no discriminator, so advertising one would describe input
-    // this format cannot produce; the variant shapes are still worth showing.
     if (discriminator == null) return schema
     val discriminatorSchema = buildJsonObject {
         put("type", "string")
@@ -164,7 +161,6 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
 
 private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = getElementDescriptor(index).buildSchema(context, enclosingTypes)
-    // The property's own annotation wins over one inherited from the property type's class.
     val description = getElementAnnotations(index).mcpDescription() ?: return schema
     return schema.withDescription(description)
 }

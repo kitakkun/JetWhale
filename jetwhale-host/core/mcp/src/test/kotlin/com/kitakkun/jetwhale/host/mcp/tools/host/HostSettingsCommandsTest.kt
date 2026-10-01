@@ -63,6 +63,8 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings restarts the debug server when the ws port changed`() = runBlocking {
+        // The mock repository does not feed writes back into its flows, and the restart reads the
+        // port from them.
         serverPortFlow.value = 5090
         val result = updateSettings.execute(arguments("serverPort" to JsonPrimitive(5090))).decodeSettings()
 
@@ -73,7 +75,6 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings restarts the debug server when adb auto port mapping changed`() = runBlocking {
-        // The setting is read when the server starts, so it is inert until the server restarts.
         val result = updateSettings.execute(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
 
         assertTrue(result.debugServerRestarted)

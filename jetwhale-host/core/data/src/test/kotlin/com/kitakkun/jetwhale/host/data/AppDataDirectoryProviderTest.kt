@@ -48,7 +48,6 @@ class AppDataDirectoryProviderTest {
 
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
-        // Nothing resolves under the real home; everything flows from the sandbox root.
         assertEquals(sandbox, provider.getAppDataPath())
         assertTrue(provider.getPluginDirectory().path.startsWith(sandbox))
         assertTrue(provider.getPluginLibsDirectory().path.startsWith(sandbox))

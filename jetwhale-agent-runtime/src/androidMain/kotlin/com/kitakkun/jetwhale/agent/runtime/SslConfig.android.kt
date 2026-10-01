@@ -28,16 +28,11 @@ private object TrustAllX509TrustManager : X509TrustManager {
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
-    // The engine is not user-configurable: it always comes from defaultKtorEngineFactory(), which
-    // returns CIO on this platform. If the default engine ever changes, fail fast here instead of
-    // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is CIOEngineConfig) { "Expected CIOEngineConfig but got ${this::class.simpleName}" }
 
     val trustManager = try {
         createTrustManager(sslConfiguration.trustedCertificates)
     } catch (e: GeneralSecurityException) {
-        // An invalid PEM must not take the whole connection down in a non-obvious way; fall back to
-        // system trust evaluation with an explicit warning instead.
         JetWhaleLogger.w("Failed to build a trust manager from the configured certificates; falling back to system trust evaluation.", e)
         return
     } catch (e: IOException) {

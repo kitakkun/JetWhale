@@ -16,10 +16,8 @@ plugins {
 // (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.semantics"
 
-// Targets follow Compose Multiplatform's own rather than the `multiplatform` convention's: reading
-// a composition needs `androidx.compose.ui`, which is not published for linux or mingw — and a
-// target Compose does not run on has no node tree to read in the first place. macOS is left out
-// too: Compose rejects it unless the whole build opts into its experimental macOS support.
+// Not the `multiplatform` convention's targets: `androidx.compose.ui` is not published for linux or
+// mingw, and Compose rejects macOS unless the whole build opts into its experimental macOS support.
 kotlin {
     abiValidation {
     }
@@ -32,8 +30,8 @@ kotlin {
         nodejs()
     }
 
-    // Browser only: the test bundle now carries Compose, whose wasm runtime does not load under
-    // Node, so a wasmJs Node test fails before it reaches any assertion.
+    // Browser only: Compose's wasm runtime does not load under Node, so a wasmJs Node test fails
+    // before reaching any assertion.
     wasmJs {
         browser()
     }
@@ -51,16 +49,10 @@ kotlin {
         commonMain.dependencies {
             api(projects.jetwhalePlugins.semantics.protocol)
             api(projects.jetwhaleAgentSdk)
-            // SemanticsOwner is part of this module's public API: `registerSemanticsOwner` takes one,
-            // and `SemanticsOwnerNodeSource` is constructed with one. A consumer calling either needs
-            // compose-ui on its compile classpath from this artifact's POM.
             api(libs.jetbrainsComposeUi)
             implementation(libs.kotlinxCoroutinesCore)
         }
         androidMain.dependencies {
-            // `ScrollToIndex` on a View node drives a RecyclerView when the app has one. Compile-only:
-            // the agent must not pull the library into an app that does not use it, and the code
-            // checks for the class before touching it.
             compileOnly(libs.androidxRecyclerView)
         }
         commonTest.dependencies {
@@ -69,11 +61,9 @@ kotlin {
     }
 }
 
-// Compose Multiplatform 1.11 depends on both its org.jetbrains.* artifacts and the androidx.* KMP
-// artifacts they build on, and both carry a commonMain klib under the same unique name (runtime,
-// lifecycle, savedstate, collection, annotation). The iOS shared-source metadata compilation
-// therefore loads each of them twice and the KLIB loader warns; which copy it keeps is not up to
-// this module, so the warning cannot be acted on here and must not fail the publish build.
+// Compose Multiplatform 1.11 ships org.jetbrains.* and androidx.* klibs under the same unique
+// names, so the iOS metadata compilation loads each twice and the KLIB loader warns. Which copy
+// wins is not up to this module, so the warning must not fail the build.
 tasks.withType<KotlinCompilationTask<*>>().matching { it.name == "compileIosMainKotlinMetadata" }.configureEach {
     compilerOptions.allWarningsAsErrors = false
 }

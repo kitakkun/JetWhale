@@ -141,16 +141,11 @@ private data class BodyCapture(val text: String?, val truncated: Boolean, val en
  */
 private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImageBytes: Int): BodyCapture {
     if (body == null) return BodyCapture(null, false)
-    // One-shot bodies can't be read twice; duplex bodies can't be materialized up front.
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
     val mediaType = body.contentType()?.let { "${it.type}/${it.subtype}" }
     val isImage = isPreviewableImageMediaType(mediaType)
-    // RequestBody.writeTo is the app's code; a capture that fails in any way drops the capture, never the request.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
-        // Keep at most maxChars * 4 bytes (the widest UTF encoding of one char) so large uploads
-        // (files, multipart) are streamed through instead of fully materialized in memory. An image
-        // is kept whole up to its own cap instead, since a partial one cannot be decoded.
         val sink = TruncatingSink(maxBytes = if (isImage) maxImageBytes + 1L else maxChars * 4L)
         sink.buffer().use(body::writeTo)
         if (isImage) return encodeImage(sink.captured.readByteArray(), mediaType, maxImageBytes)
@@ -202,10 +197,8 @@ private class TruncatingSink(private val maxBytes: Long) : Sink {
  */
 private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImageBytes: Int): BodyCapture {
     if (response.isWebSocketUpgrade()) {
-        // A WebSocket upgrade response (101) has no conventional body — the connection has
-        // already switched to the raw frame stream by the time this interceptor sees it, so
-        // peekBody would read live WebSocket frames as if they were an HTTP body, corrupting the
-        // frame stream for the caller.
+        // The connection has already switched to the raw frame stream, so peekBody would read live
+        // WebSocket frames as an HTTP body and corrupt the stream for the caller.
         return BodyCapture("<websocket upgrade>", false)
     }
     val encoding = response.header("Content-Encoding")
@@ -233,8 +226,6 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
     return try {
         val peeked = response.peekBody(maxChars + 1L)
         val capture = peeked.string().truncate(maxChars)
-        // The peek limit is in bytes but truncate() counts chars, so a multi-byte body can hit the
-        // byte cap while still decoding to fewer than maxChars chars — flag it truncated anyway.
         if (peeked.contentLength() > maxChars && !capture.truncated) capture.copy(truncated = true) else capture
     } catch (_: IOException) {
         BodyCapture(null, false)

@@ -17,7 +17,6 @@ class DefaultServerSessionNegotiationStrategy(
 ) : ServerSessionNegotiationStrategy {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
-        // A failure in any negotiation step fails this session, and is reported as its result.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             with(protocolNegotiationStrategy) { negotiate() }
@@ -33,7 +32,6 @@ class DefaultServerSessionNegotiationStrategy(
                 plugin = plugin,
             )
         } catch (e: CancellationException) {
-            // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
             throw e
         } catch (e: Throwable) {
             return ServerSessionNegotiationResult.Failure(e)

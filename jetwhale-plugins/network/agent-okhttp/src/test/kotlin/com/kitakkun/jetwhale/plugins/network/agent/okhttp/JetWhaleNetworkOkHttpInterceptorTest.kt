@@ -188,7 +188,6 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
             assertTrue(serverMessageSent.await(5, TimeUnit.SECONDS), "server never opened the socket")
             assertTrue(clientReceived.await(5, TimeUnit.SECONDS), "client never received the WebSocket message")
-            // The real regression check: the interceptor must not have stolen bytes from the frame stream.
             assertEquals("hello from server", receivedText)
 
             val received = events.last() as ResponseReceived
@@ -202,8 +201,6 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
     @Test
     fun `flags a multi-byte response body hitting the byte cap as truncated`() {
-        // 200 chars × 3 bytes (UTF-8) = 600 bytes. The 100-byte peek cap yields ~33 decoded chars,
-        // under the 100-char limit — a char-only check would report this cut body as not truncated.
         val longBody = "あ".repeat(200)
         server.enqueue(MockResponse().setResponseCode(200).setBody(longBody))
         val request = Request.Builder().url(server.url("/jp")).build()
@@ -233,7 +230,6 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         client.newCall(request).execute().close()
 
         val received = events.last() as ResponseReceived
-        // A partial image cannot be decoded, so the capture says so rather than shipping half of it.
         assertEquals(BodyEncoding.TEXT, received.response.bodyEncoding)
         assertEquals("<image/png body over the ${IMAGE_BYTES.size - 1}-byte maxImageBytes limit>", received.response.body)
     }

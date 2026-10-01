@@ -102,10 +102,6 @@ class DefaultSslCertificateManager(
         val createdAt = System.currentTimeMillis()
         val certName = name ?: generateDefaultName(createdAt)
 
-        // Build a self-contained local PKI: a root CA that signs a server certificate valid for
-        // localhost / 127.0.0.1 plus this machine's current LAN addresses, so physical devices on
-        // the same network pass hostname verification. LAN addresses are captured at generation
-        // time — when the machine's IP changes (e.g. DHCP), generate a new certificate.
         val ca = caCertificateGenerator.createRootCA(commonName = "JetWhale Local CA")
         val serverKeyPair = keyPairFactory.generate()
         val serverCertificate = serverCertificateIssuer.issue(
@@ -116,7 +112,6 @@ class DefaultSslCertificateManager(
             ipSans = listOf("127.0.0.1") + collectLocalIpAddresses(),
         )
 
-        // Persist the server material as a PKCS#12 keystore consumed by the wss server.
         val keyStore = KeyStore.getInstance("PKCS12").apply {
             load(null, null)
             setKeyEntry(
@@ -130,10 +125,8 @@ class DefaultSslCertificateManager(
         FileOutputStream(keyStoreFile).use { output ->
             keyStore.store(output, KEYSTORE_PASSWORD.toCharArray())
         }
-        // The keystore holds the CA private key: restrict it to owner read/write only (0600).
         FilePermissionsWriter.restrictToOwnerFile(keyStoreFile)
 
-        // Persist the CA certificate as the trust anchor distributed to target apps.
         val pemFile = caCertPemFile(id)
         with(pemConverter) {
             pemFile.writeText(ca.cert.toPem())
@@ -189,8 +182,6 @@ class DefaultSslCertificateManager(
         caCertPemFile(id).delete()
 
         val remaining = store.certificates.filter { it.id != id }
-        // When the active certificate is removed, promote the first remaining one so the server can
-        // still find an active certificate after a restart.
         val updatedCertificates = if (toDelete.isActive && remaining.isNotEmpty()) {
             remaining.mapIndexed { index, cert -> cert.copy(isActive = index == 0) }
         } else {

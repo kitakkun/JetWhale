@@ -77,7 +77,6 @@ private object IosSemanticsProbe {
 
         private fun untrack(window: UIWindow) {
             tracked.remove(window.objcPtr().toLong())?.registration?.close()
-            // No capture will run for this window again, so what the last one retained is released here.
             AppleNodeIds.release(window)
         }
 

@@ -7,12 +7,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.cancellation.CancellationException
 
-// Shared peer-lifecycle orchestration: both runtimes create a [JetWhalePluginPeer] with
-// awaitReady = true, register handlers, then run preparation behind a timeout before opening the
-// ready gate. Hoisting that choreography here keeps the agent runtime and the host from drifting.
-// Each helper's `descriptor` names the plugin in log messages ("plugin 'x'" on the agent,
-// "plugin 'x' in session 'y'" on the host).
-
 /**
  * Registers handlers on [peer] via [registerHandlers], isolating a throwing registration (e.g. a
  * duplicate handler). Returns `true` on success. On failure it reports via [warn] and returns

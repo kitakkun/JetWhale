@@ -30,7 +30,6 @@ class StorageBrowserTest {
         ),
     )
 
-    // The fake answers without suspending, so every launched call has finished by the time launch returns.
     private val browser = StorageBrowser(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test
@@ -134,7 +133,6 @@ class StorageBrowserTest {
 
     @Test
     fun `expanding a very large subtree stops at the entry limit`() {
-        // 30 directories of 30 directories each: 930 entries, well past the limit.
         val directories = mutableMapOf(location("Cache") to (0 until 30).map { directoryEntry("d$it") })
         (0 until 30).forEach { outer -> directories[location("Cache", "d$outer")] = (0 until 30).map { directoryEntry("e$it") } }
         val wideApp = FakeStorageClient(directories = directories, files = emptyMap(), stores = mutableMapOf())

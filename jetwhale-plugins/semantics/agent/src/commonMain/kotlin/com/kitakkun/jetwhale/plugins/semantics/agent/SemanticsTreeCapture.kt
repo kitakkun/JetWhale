@@ -45,13 +45,12 @@ internal fun SemanticsNode.toComposeNode(
             interopChildren(this, depth)
     }
 
-    // Visibility is decided on the sanitized bounds, not the raw ones: a NaN coordinate makes
-    // every comparison false, so a raw-bounds check would call the node visible while the bounds
-    // it reports are the zeroed fallback.
     val bounds = boundsInRoot.toNodeBounds(offsetX = rootOffset.x, offsetY = rootOffset.y)
     val visible = layoutInfo.isPlaced && !bounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
+    // For a node that merges its descendants, SemanticsNode.config rebuilds the merged
+    // configuration on every read; read it once.
     val config = config
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
 

@@ -91,7 +91,6 @@ internal fun CapturesPanel(
 
 @Composable
 private fun CaptureFilters(allDevices: Boolean, kind: CaptureKind?, day: String?, days: List<String>, actions: CapturesActions) {
-    // Chips wrap onto another line in a narrow panel, where segmented buttons would cut their labels.
     Column(Modifier.padding(JwSpacing.medium), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
             FilterChip(text = "This device", selected = !allDevices, onClick = { actions.showAllDevices(false) })
@@ -218,8 +217,6 @@ private fun CaptureDetail(capture: Capture, thumbnails: ThumbnailSource, actions
     }
 }
 
-// Each label sits above its value: beside it, the labels take the width of a narrow panel and the
-// values wrap a few characters to a line.
 @Composable
 private fun CaptureFacts(capture: Capture) {
     val info = capture.info
@@ -227,7 +224,6 @@ private fun CaptureFacts(capture: Capture) {
     Fact(label = "Taken", value = "${DayFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))} ${TimeFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))}", overflow = TextOverflow.Ellipsis)
     if (info.widthPx != null && info.heightPx != null) Fact(label = "Size", value = "${info.widthPx}×${info.heightPx}", overflow = TextOverflow.Ellipsis)
     info.durationMillis?.let { Fact(label = "Length", value = "%.1f s".format(it / 1000.0), overflow = TextOverflow.Ellipsis) }
-    // A path is cut in the middle, where it matters least; the tooltip shows it whole.
     JwTooltip(text = capture.file.absolutePath) {
         Fact(label = "File", value = capture.file.absolutePath, overflow = TextOverflow.MiddleEllipsis)
     }

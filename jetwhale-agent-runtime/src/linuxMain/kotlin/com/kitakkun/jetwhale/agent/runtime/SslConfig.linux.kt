@@ -19,8 +19,6 @@ import platform.posix.write
 
 internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
     check(this is CurlClientEngineConfig) { "Expected CurlClientEngineConfig but got ${this::class.simpleName}" }
-    // Curl validates the peer against the CA bundle by default; disabling it lets the CA fetch
-    // succeed over the wss port (trust-on-first-use). The fetched CA still pins the wss session.
     sslVerify = false
 }
 
@@ -28,9 +26,6 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
-    // The engine is not user-configurable: it always comes from defaultKtorEngineFactory(), which
-    // returns Curl on this platform. If the default engine ever changes, fail fast here instead of
-    // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is CurlClientEngineConfig) { "Expected CurlClientEngineConfig but got ${this::class.simpleName}" }
 
     // Curl only accepts CA material as a file (CURLOPT_CAINFO), so the configured PEMs are written
@@ -41,6 +36,8 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
         return
     }
 
+    // The bundle file is deliberately not deleted: curl reads it at every TLS handshake, not when
+    // this option is set.
     caInfo = bundlePath
 }
 

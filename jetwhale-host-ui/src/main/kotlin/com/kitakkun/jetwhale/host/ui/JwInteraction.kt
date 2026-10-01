@@ -62,8 +62,6 @@ public fun Modifier.jwFocusRing(
         drawContent()
         val stroke = JwMetrics.focusStrokeWidth.toPx()
         val gap = FocusRingGap.toPx()
-        // Never past the center of a control smaller than the ring's own offset, which would ask
-        // for an outline of negative size.
         val offset = (stroke / 2f + gap).coerceAtMost(minOf(size.width, size.height) / 2f)
         val ringSize = when (style) {
             JwFocusRingStyle.Inset -> Size(size.width - offset * 2f, size.height - offset * 2f)

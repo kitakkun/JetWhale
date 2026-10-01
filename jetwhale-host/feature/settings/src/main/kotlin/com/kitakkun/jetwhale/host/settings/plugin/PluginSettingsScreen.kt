@@ -113,8 +113,6 @@ fun PluginSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxSize(),
     ) {
-        // One list serving three pages of the Plugins section: each block declares which page it
-        // belongs to, so the section's Root keeps a single set of subscriptions.
         if (page == SettingsScreenPage.InstalledPlugins) {
             item(key = "installed_header") {
                 JwText(
@@ -123,8 +121,6 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        // The install actions sit with the official catalog rather than on the installed list: they
-        // are two more ways in, and splitting them across pages hid that they are the same choice.
         if (page == SettingsScreenPage.AddPlugins) {
             item(key = "add_actions") {
                 AddPluginActionsRow(
@@ -143,8 +139,6 @@ fun PluginSettingsScreen(
         if (page == SettingsScreenPage.InstalledPlugins) {
             items(
                 items = uiState.plugins,
-                // Prefixed so an official catalog entry for the same plugin id cannot collide with it
-                // in this single LazyColumn.
                 key = { plugin -> "installed:${plugin.id}" },
             ) { plugin ->
                 InstalledPluginRow(plugin = plugin)
@@ -450,8 +444,6 @@ private fun TrustRegistrySigningSection(
             isChecked = signPluginTrustRegistry,
             onCheckedChange = onChangeSignPluginTrustRegistry,
         )
-        // Append only the current OS's credential-store behavior — the prompt story differs
-        // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
         val osHint = when (HostOs.current) {
             HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
             HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows

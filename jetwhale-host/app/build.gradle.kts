@@ -51,11 +51,13 @@ compose.desktop {
         nativeDistributions {
             packageName = "JetWhale Debugger"
             copyright = "© 2026 kitakkun"
-            // Remove pre-release suffix for package version
+            // The DMG and MSI formats take only a numeric MAJOR.MINOR.PATCH, so the pre-release
+            // suffix is dropped; the four-part Conveyor version above would not pass either.
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
 
-            // Fix runtime NoClassDefFoundError which occurs only on packaged application
+            // The packaged app's runtime image lacks these modules unless they are listed, which
+            // shows up only there as a NoClassDefFoundError.
             modules("jdk.unsupported")
             modules("java.naming")
             modules("java.sql")
@@ -96,9 +98,6 @@ compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
 }
 
-// Headless launch, for CI and agent-driven QA: the same entry point and the same DI graph as the
-// windowed `run` task, minus the window. Host options go through `--args`, e.g.
-// `--args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"`.
 tasks.register<JavaExec>("runHeadless") {
     group = "application"
     description = "Runs the JetWhale host with no GUI window — agent WebSocket server, MCP server, plugins and adb auto-wiring only."
@@ -106,11 +105,10 @@ tasks.register<JavaExec>("runHeadless") {
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
     classpath = sourceSets.main.get().runtimeClasspath
 
-    // Prepended, so a caller's `--args` cannot end up before the flag that selects this mode.
+    // An argument provider rather than `args`, because `--args` on the command line replaces `args`
+    // and would drop the flag that selects this mode.
     argumentProviders.add(CommandLineArgumentProvider { listOf("--headless") })
 
-    // A CI run must not share the developer's `~/.jetwhale`: `-PjetwhaleAppDataDir=<path>` gives it
-    // its own settings, plugin jars and trust registry.
     val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
@@ -152,8 +150,6 @@ dependencies {
     implementation(projects.jetwhaleHostUi)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.data)
-    // main() applies --log-level to the root logger; logback is on the runtime classpath through
-    // core:data either way, but configuring it needs it visible at compile time here.
     implementation(libs.logbackClassic)
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
@@ -171,10 +167,9 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 
-    // Machine-specific Compose runtime dependencies resolved by Conveyor when cross-building packages
-    // for each target platform. Written out rather than taken from `compose.desktop.<platform>`,
-    // which the Compose plugin deprecated in favour of naming the dependency — these coordinates are
-    // exactly what those accessors resolved to.
+    // Resolved by Conveyor when cross-building packages for each platform. Written out because the
+    // Compose plugin deprecated the `compose.desktop.<platform>` accessors; these are the
+    // coordinates they resolved to.
     val composeDesktop = "org.jetbrains.compose.desktop:desktop-jvm"
     val composeVersion = libs.versions.jetbrainsCompose.get()
     linuxAmd64("$composeDesktop-linux-x64:$composeVersion")
@@ -192,7 +187,8 @@ aboutLibraries {
     }
 }
 
-// Ensure that library definitions are up to date before packaging resources
+// The export writes into a resource directory registered above as a plain path, so Gradle cannot
+// tell the export has to run first; without this, the packaged licenses.json is missing or stale.
 tasks.named("copyNonXmlValueResourcesForMain") {
     dependsOn("exportLibraryDefinitions")
 }

@@ -58,12 +58,12 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = ACTIONS_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
+    // An argument the action does not declare fails the run rather than being dropped, so a
+    // misspelled field reaches the caller as an error.
     private val json = Json { ignoreUnknownKeys = false }
     private val registered = MutableStateFlow<List<RegisteredAction>>(emptyList())
     private val runs = MutableStateFlow<Map<String, Deferred<ActionResult>>>(emptyMap())
 
-    // Non-null exactly while the host has this plugin activated: changes are pushed then, and runs
-    // live in it so that deactivating the plugin cancels whatever is still running.
     private var activeScope: CoroutineScope? = null
 
     /** Registers the actions [content] declares, until the returned registration is removed. */

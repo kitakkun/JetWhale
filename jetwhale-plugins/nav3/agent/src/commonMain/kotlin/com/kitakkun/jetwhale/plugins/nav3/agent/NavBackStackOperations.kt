@@ -62,8 +62,6 @@ internal fun <K> applyNavOperations(
         }
     }
 
-    // NavDisplay renders the last entry, so an empty stack crashes the app being debugged. Refusing
-    // is the friendlier failure: the caller gets a message, the app keeps running.
     require(working.isNotEmpty()) { "the operations would leave the back stack empty, which Navigation 3 cannot render" }
 
     writeBack(stack, working)

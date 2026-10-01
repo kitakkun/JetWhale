@@ -43,10 +43,6 @@ internal class ViewAttributeStore(
     var state: ViewAttributesUiState by mutableStateOf(ViewAttributesUiState.Empty)
         private set
 
-    // Writes run one at a time. Each is its own coroutine, so two edits made in quick succession —
-    // a switch toggled twice, a field committed and then a dropdown picked, a user and an agent
-    // writing at once — would otherwise race, and the row and the status line would settle on
-    // whichever answer happened to arrive last rather than on the last edit made.
     private val writeLock = Mutex()
 
     /**
@@ -64,8 +60,6 @@ internal class ViewAttributeStore(
             val response = try {
                 read(GetViewAttributes(rootId = rootId, nodeId = nodeId))
             } catch (e: JetWhaleMessagingException) {
-                // A read that comes back after the selection moved on describes a node nobody is
-                // looking at any more, so it is dropped rather than shown against the new one.
                 if (node == key) {
                     state = state.copy(attributes = null, message = "The app did not answer: ${e.message}")
                 }
@@ -121,8 +115,6 @@ internal class ViewAttributeStore(
     /** The write itself, already serialised by [writeLock]. */
     private suspend fun apply(request: SetViewAttribute): ViewAttributeResult {
         val result = write(request)
-        // Only the node the panel is holding: an agent may write to one the user is not looking at,
-        // and the panel must go on showing the node it is showing.
         if (node == NodeKey(rootId = request.rootId, nodeId = request.nodeId)) {
             record(attributeId = request.attributeId, result = result)
         }
@@ -130,8 +122,6 @@ internal class ViewAttributeStore(
     }
 
     private fun record(attributeId: String, result: ViewAttributeResult) {
-        // The row shows what came back, not what was asked for: an app may clamp a value or ignore
-        // it, and the difference is exactly what the panel is for.
         val attributes = when (val written = result.attribute) {
             null -> state.attributes
             else -> state.attributes?.map { if (it.id == written.id) written else it }

@@ -45,7 +45,6 @@ internal fun ensureSceneRendered(scene: PluginComposeScene) {
 
 @OptIn(InternalComposeUiApi::class)
 internal fun applyViewport(scene: PluginComposeScene, viewport: McpViewport) {
-    // Keep ComposeScene and WindowInfo in sync; pointer/semantics coordinates depend on both.
     try {
         scene.composeScene.density = viewport.density
         scene.composeScene.size = viewport.size
@@ -114,11 +113,9 @@ private fun restoreSceneViewportState(scene: PluginComposeScene, state: SceneVie
         scene.composeScene.density = state.density
         scene.composeScene.size = state.composeSceneSize
     } catch (_: IllegalStateException) {
-        // May happen during dispose/close; ignore to avoid crashing MCP calls.
     }
     scene.windowInfoUpdater.updateWindowSize(intSize = state.windowIntSize, dpSize = state.windowDpSize)
-    // The scene density and the window info override are snapshot state. Flush the restore so the
-    // next interactive render observes the original viewport immediately rather than lagging a
-    // frame behind on the capture's one.
+    // The scene density and the window info override are snapshot state; flush so the next
+    // interactive render sees the restored viewport.
     Snapshot.sendApplyNotifications()
 }

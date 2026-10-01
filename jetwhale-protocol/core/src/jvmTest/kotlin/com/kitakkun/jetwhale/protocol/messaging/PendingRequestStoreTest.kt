@@ -59,7 +59,6 @@ class PendingRequestStoreTest {
 
         assertFailsWith<JetWhaleConnectionClosedException> { a.await() }
         assertFailsWith<JetWhaleConnectionClosedException> { b.await() }
-        // After failAll the store is empty, so a late reply matches nothing.
         assertFalse(store.complete(PluginFrame.Reply.Success(pluginId = "p", inReplyTo = "a", payload = "ok")))
     }
 }

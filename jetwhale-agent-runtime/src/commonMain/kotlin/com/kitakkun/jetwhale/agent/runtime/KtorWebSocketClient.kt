@@ -81,12 +81,8 @@ internal class KtorWebSocketClient(
     }
 
     override suspend fun openConnection(endpoint: ResolvedEndpoint): JetWhaleConnection {
-        // A connection that ended on its own (host disconnect, error) never reached closeConnection,
-        // so its client is still held here. Release it before this attempt allocates another.
         releaseHttpClient()
 
-        // A plain endpoint has no certificate to fetch or pin, so none of the trust machinery runs for
-        // it — including the CA fetch, which on a browser is two failed requests before every attempt.
         val resolvedConfiguration = if (endpoint.useWss) {
             resolveSslConfiguration(endpoint.host, endpoint.port)
         } else {
@@ -101,17 +97,12 @@ internal class KtorWebSocketClient(
                 port = endpoint.port,
             ) {
                 url {
-                    // From the endpoint, not from whether trust material was obtained: a wss endpoint
-                    // whose CA could not be fetched must fail visibly on trust, not quietly dial plain
-                    // text at a TLS port and fail there instead.
                     protocol = if (endpoint.useWss) URLProtocol.WSS else URLProtocol.WS
                 }
             }
             this.session = session
             return session.configureSession()
         } catch (e: Throwable) {
-            // A refused host and a failed negotiation both land here, and the reconnect loop will
-            // try again; without this every attempt would strand an engine's thread pool.
             releaseHttpClient()
             throw e
         }

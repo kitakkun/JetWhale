@@ -56,8 +56,6 @@ private class TestPlatformContext(
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
 
-    // Like the host's own platform context, the window a scene reports is the size it was last given:
-    // a Dialog or Popup positions itself against it.
     override val windowInfo: WindowInfo = object : WindowInfo by base.windowInfo {
         override val containerSize: IntSize get() = currentIntSize
         override val containerDpSize: DpSize get() = currentDpSize
@@ -79,7 +77,6 @@ private class TestPlatformContext(
         override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) = Unit
     }
 
-    // Recorded rather than fixed, so a test can tell whether a tool put the window info back.
     override var currentIntSize: IntSize by mutableStateOf(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT))
         private set
     override var currentDpSize: DpSize by mutableStateOf(DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp))

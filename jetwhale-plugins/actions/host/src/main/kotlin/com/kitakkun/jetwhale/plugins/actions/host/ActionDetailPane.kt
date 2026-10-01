@@ -45,8 +45,6 @@ internal fun ActionDetailPane(
     onCancel: (runId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // rememberPersistent loads the stored arguments after the first frame; keying on them lets the
-    // form pick them up when they arrive instead of keeping the blank start.
     var values by remember(action.id, rememberedArguments) { mutableStateOf(initialFormValues(action.parameters, rememberedArguments)) }
     var errors by remember(action.id) { mutableStateOf(emptyMap<String, String>()) }
     var confirming by remember(action.id) { mutableStateOf<JsonObject?>(null) }

@@ -22,7 +22,6 @@ import kotlin.test.assertTrue
 class MirrorViewingTest {
     @Test
     fun `a tall frame in a wide view is letterboxed at the sides and maps back to device pixels`() {
-        // 100x200 fitted into 400x200: scaled by 1, drawn from x=150 to x=250.
         val fitted = FittedFrame(frameWidth = 100, frameHeight = 200, viewWidth = 400f, viewHeight = 200f)
 
         assertEquals(150f, fitted.bounds.left)
@@ -32,13 +31,11 @@ class MirrorViewingTest {
 
     @Test
     fun `a phone in a narrow view is fitted inside it and taps map to the right device pixels`() {
-        // 1080x2424 into 760x1200: the height limits it, about 535 wide, centered.
         val fitted = FittedFrame(frameWidth = 1080, frameHeight = 2424, viewWidth = 760f, viewHeight = 1200f)
         assertTrue(fitted.bounds.right <= 760f)
         assertEquals(1200f, fitted.bounds.bottom)
         assertEquals(fitted.bounds.left, 760f - fitted.bounds.right, absoluteTolerance = 0.01f)
 
-        // Narrower than the phone's own shape: the width limits it, edge to edge.
         val narrow = FittedFrame(frameWidth = 1080, frameHeight = 2424, viewWidth = 300f, viewHeight = 1200f)
         assertEquals(0f, narrow.bounds.left)
         assertEquals(300f, narrow.bounds.right)
@@ -48,7 +45,6 @@ class MirrorViewingTest {
 
     @Test
     fun `a point on a frame decoded smaller than the screen maps to the screen's own pixels`() {
-        // A 540x1200 frame of a 1080x2400 screen, drawn at 540x1200: each view pixel is two device pixels.
         val fitted = FittedFrame(frameWidth = 540, frameHeight = 1200, viewWidth = 540f, viewHeight = 1200f)
 
         assertEquals(IntOffset(1000, 2000), fitted.toDevicePixel(Offset(500f, 1000f), IntSize(1080, 2400)))
@@ -56,8 +52,6 @@ class MirrorViewingTest {
 
     @Test
     fun `a point on a capped simulator frame enlarged to its view maps to the screen's own pixels`() {
-        // A 600x1301 frame of a 1179x2556 simulator, enlarged to 800x1734: the frame's size never
-        // enters the mapping, only its share of the view.
         val fitted = FittedFrame(frameWidth = 600, frameHeight = 1301, viewWidth = 800f, viewHeight = 1734f)
 
         assertEquals(IntOffset(589, 1278), fitted.toDevicePixel(Offset(400f, 867f), IntSize(1179, 2556)))
@@ -164,7 +158,6 @@ class MirrorViewingTest {
         val frames = surface.startStream()
         repeat(2) { frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = record) }
 
-        // A new size replaces the bitmaps of the old one.
         repeat(2) { frames.writeFrame(width = 8, height = 8, colorType = ColorType.BGRA_8888, write = record) }
         surface.close()
 
@@ -252,7 +245,6 @@ class MirrorViewingTest {
             val frames = surface.startStream()
             val decoder = thread {
                 repeat(FRAMES_PER_ROUND) { frame ->
-                    // Alternating sizes allocates a new bitmap on most frames.
                     val side = if (frame % 2 == 0) 4 else 8
                     frames.writeFrame(width = side, height = side, ColorType.BGRA_8888) { bitmap ->
                         written += bitmap
@@ -379,7 +371,6 @@ class MirrorViewingTest {
     }
 }
 
-// The bitmap a draw was given; it stays open after the draw as long as the surface does.
 private fun MirrorSurface.drawnFrame(): Bitmap? {
     var drawn: Bitmap? = null
     drawFrame { drawn = it }

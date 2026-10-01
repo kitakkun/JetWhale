@@ -22,9 +22,7 @@ fun findAdbPath(): String {
         System.getenv("ANDROID_HOME"),
         System.getenv("ANDROID_SDK_ROOT"),
         homeDir?.let { "$it/Android/Sdk" },
-        // macOS
         homeDir?.let { "$it/Library/Android/sdk" },
-        // Windows
         localAppData?.let { "$it/Android/Sdk" },
     )
 

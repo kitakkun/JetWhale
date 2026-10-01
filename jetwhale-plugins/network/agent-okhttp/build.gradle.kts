@@ -12,12 +12,11 @@ kotlin {
     }
 }
 
-// Distinct group so this module doesn't collide with other leaf-name-sharing modules.
 group = "com.kitakkun.jetwhale.plugins.network"
 
 dependencies {
     api(projects.jetwhalePlugins.network.agent)
-    api(libs.okhttp) // Interceptor appears in the public API surface
+    api(libs.okhttp)
 
     testImplementation(libs.kotlinTest)
     testImplementation(libs.okhttpMockwebserver)

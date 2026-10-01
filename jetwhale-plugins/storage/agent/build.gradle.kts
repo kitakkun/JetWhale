@@ -15,9 +15,8 @@ plugins {
 // (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.storage"
 
-// Targets are the ones with an app sandbox worth browsing or a key-value store to read. Linux and
-// mingw are left out: an app there has neither a sandbox nor a platform preferences store, so the
-// plugin would have nothing to show by default.
+// Linux and mingw are left out: an app there has neither a sandbox nor a platform preferences
+// store, so the plugin would have nothing to show by default.
 kotlin {
     abiValidation {
     }
@@ -44,8 +43,8 @@ kotlin {
         minSdk = 23
     }
 
-    // JVM and Android both reach files through java.io.File. The Android library target is not
-    // matched by withAndroidTarget(), so it is picked by platform type instead.
+    // The Android library target is not matched by withAndroidTarget(), so it is picked by platform
+    // type instead.
     applyDefaultHierarchyTemplate {
         common {
             group("jvmCommon") {

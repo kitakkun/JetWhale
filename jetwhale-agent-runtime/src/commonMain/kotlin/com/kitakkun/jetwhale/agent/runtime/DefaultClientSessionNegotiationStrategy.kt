@@ -20,8 +20,8 @@ internal class DefaultClientSessionNegotiationStrategy(
         negotiateProtocolVersion()
         sessionId = negotiateSessionId(sessionId)
 
-        // Currently, we are not using the capabilities response for anything,
-        // Just for future extensibility.
+        // The capabilities response is unused; the exchange stays as a wire-visible step for
+        // forward compatibility.
         negotiateCapabilities()
 
         val response = negotiatePlugins(plugins)
@@ -30,7 +30,6 @@ internal class DefaultClientSessionNegotiationStrategy(
             availablePluginIds = response.availablePlugins.map(JetWhalePluginInfo::pluginId),
         )
     } catch (e: Throwable) {
-        // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
         if (e is CancellationException) throw e
         ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
     }

@@ -18,8 +18,8 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalForeignApi::class)
 class AccessibilityTreeCaptureTest {
-    // A window that is not on a screen is hidden and answers accessibilityFrame with an empty
-    // rectangle, so both are set outright — the walk's visibility rule is what is under test.
+    // A window not on a screen is hidden and reports an empty accessibilityFrame, so both are set
+    // outright.
     private val window = UIWindow(frame = CGRectMake(x = 0.0, y = 0.0, width = 400.0, height = 800.0)).apply {
         hidden = false
         accessibilityFrame = frame

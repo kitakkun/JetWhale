@@ -106,8 +106,6 @@ internal fun ComposeSemanticsInspectorScreenRoot(
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
     var includeInvisible by rememberPersistent("include-invisible", default = false)
     var autoRefresh by rememberPersistent("auto-refresh", default = false)
-    // Off by default, deliberately: the box is drawn into the app itself, so it would otherwise turn
-    // up in any `screencap` taken while the inspector is open — a QA run's screenshots included.
     var highlightOnDevice by rememberPersistent("highlight-on-device", default = false)
     var selectedKey by remember { mutableStateOf<NodeKey?>(null) }
     var hoveredKey by remember { mutableStateOf<NodeKey?>(null) }
@@ -115,8 +113,6 @@ internal fun ComposeSemanticsInspectorScreenRoot(
 
     val options = NodeTreeCaptureOptions(merged = merged, includeInvisible = includeInvisible, maxDepth = null)
 
-    // Capture once when the screen opens, and again whenever an option changes what would be
-    // captured — an option the user toggled should show its effect without a second click.
     LaunchedEffect(options) {
         onCapture(options)
     }
@@ -125,9 +121,6 @@ internal fun ComposeSemanticsInspectorScreenRoot(
         if (!autoRefresh) return@LaunchedEffect
         while (true) {
             delay(AUTO_REFRESH_INTERVAL_MILLIS)
-            // Awaited, not fired and forgotten: captures are serialised on the app's main thread,
-            // so a fixed-interval loop against a slow app would queue requests faster than they
-            // drain and leave the view showing an ever-older tree.
             currentOnCapture(options)
         }
     }
@@ -135,11 +128,7 @@ internal fun ComposeSemanticsInspectorScreenRoot(
         onSelectedNodeChange(selectedKey)
     }
 
-    // Hover wins over selection while the pointer is on a row — "which one is this?" is the question
-    // being asked at that moment — and the selection is still there when the pointer leaves.
     val highlighted = if (highlightOnDevice) hoveredKey ?: selectedKey else null
-    // Sending the target, holding it against the app's timeout and taking it down again all outlive
-    // this composition, so they are the plugin's; which node to point at is the view's answer.
     LaunchedEffect(highlighted) { onHighlightTargetChange(highlighted) }
     val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
     DisposableEffect(Unit) {

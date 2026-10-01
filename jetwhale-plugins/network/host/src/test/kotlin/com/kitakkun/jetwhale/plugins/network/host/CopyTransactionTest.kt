@@ -50,8 +50,6 @@ class CopyTransactionTest {
                 bodyEncoding = BodyEncoding.BASE64,
             ),
         )
-        // The Base64 capture must never reach the command line: it is neither the original bytes
-        // nor something a shell can send.
         assertFalse("iVBORw0KGgo=" in command)
         assertFalse("--data-raw" in command)
         assertTrue(command.startsWith("# NOTE: request body was captured as binary (image/png)"))

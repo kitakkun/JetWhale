@@ -35,8 +35,6 @@ class TreeRowTest {
 
     @Test
     fun `a root whose nodes are all filtered out still gets its header`() {
-        // "This window has nothing matching" is information; dropping the root would read as the
-        // window having gone away.
         val rows = buildTreeRows(
             roots = listOf(root("window", node = node(id = 1, text = "hello"))),
             collapsedKeys = emptySet(),

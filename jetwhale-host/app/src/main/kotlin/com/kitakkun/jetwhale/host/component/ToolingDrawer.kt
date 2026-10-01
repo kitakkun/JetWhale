@@ -45,8 +45,6 @@ fun ToolingDrawer(
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Retained rather than remembered: a settings dialog opening over the window must not reset a
-    // sidebar the user just collapsed.
     var expandMenu by retain { mutableStateOf(true) }
 
     AnimatedSwappableContent(

@@ -24,6 +24,7 @@ import platform.darwin.dispatch_get_main_queue
 import platform.posix.AF_INET
 import kotlin.concurrent.AtomicReference
 
+// NSNetServiceBrowser expects a fully qualified service type, trailing dot included.
 private const val SERVICE_TYPE_DOT = "$JETWHALE_SERVICE_TYPE."
 private const val SEARCH_DOMAIN = "local."
 private const val RESOLVE_TIMEOUT_SECONDS = 5.0
@@ -43,11 +44,6 @@ private const val IPV4_SOCKADDR_LENGTH = SIN_ADDR_OFFSET + IPV4_OCTETS
  * the browse.
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
-    // Atomic because this list crosses threads: the delegate appends from the main run loop, while
-    // the read at the end happens on whatever thread the coroutine resumed on once the timeout
-    // expired — and the browser is still live then, since cancellation only *dispatches* the stop
-    // to the main queue. Appends are single-writer (the main queue alone), so read-then-store needs
-    // no CAS loop — only the visibility the atomic provides.
     val results = AtomicReference(emptyList<DiscoveredService>())
     // Strong references kept for the whole browse so the delegates and services outlive the enclosing
     // frame; their callbacks fire asynchronously on the run loop.
@@ -55,11 +51,6 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 
     withTimeoutOrNull(timeoutMillis) {
         suspendCancellableCoroutine<Unit> { continuation ->
-            // browser is created asynchronously on the main queue, and cancellation also stops it on
-            // the main queue. Both mutate these fields only from that single serial queue, so creation
-            // and stop can never race: whichever runs first wins, and the other observes the result
-            // (a browser created after cancellation is stopped immediately; a cancellation before
-            // creation flips [cancelled] so no browser is ever started).
             var browser: NSNetServiceBrowser? = null
             var cancelled = false
 
@@ -88,7 +79,6 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
             }
 
             dispatch_async(dispatch_get_main_queue()) {
-                // Already cancelled before we got scheduled: do not start a browser that would leak.
                 if (cancelled) return@dispatch_async
                 browser = NSNetServiceBrowser().apply {
                     delegate = browserDelegate
@@ -99,7 +89,6 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
             continuation.invokeOnCancellation {
                 dispatch_async(dispatch_get_main_queue()) {
                     cancelled = true
-                    // No-op when the browser was never created (cancelled before init).
                     browser?.stop()
                     browser = null
                 }
@@ -111,11 +100,11 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 }
 
 private fun NSNetService.toDiscoveredService(): DiscoveredService? {
-    // The resolved IPv4 address, not [hostName]. The host's certificate carries its addresses as IP
-    // SANs, and the mDNS host name is whatever the advertising stack synthesised — jmDNS names its
-    // host record after the address, e.g. "192-168-3-9.local." — which no certificate covers, so
-    // dialling it fails hostname verification. Using the address also makes `allowAddress` mean what
-    // it says on this platform.
+    // The resolved IPv4 address, not [hostName]: the host's certificate carries its addresses as IP
+    // SANs, while the mDNS host name is whatever the advertising stack synthesized (jmDNS names its
+    // record after the address, e.g. "192-168-3-9.local."), which no certificate covers, so dialing
+    // it fails hostname verification. The address also makes `allowAddress` mean what it says on
+    // this platform.
     val address = resolvedIpv4Address() ?: return null
     val txt = TXTRecordData()?.let(NSNetService::dictionaryFromTXTRecordData)
     return DiscoveredService(

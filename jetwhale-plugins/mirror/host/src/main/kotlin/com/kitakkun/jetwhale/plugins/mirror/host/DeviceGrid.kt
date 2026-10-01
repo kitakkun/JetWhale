@@ -142,7 +142,6 @@ internal fun DeviceGrid(
             },
         )
         missingTools.forEach { JwBanner(text = it, tone = JwTone.Warning) }
-        // Notices float over the tiles instead of pushing them down.
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (devices.isEmpty()) {
                 NoDevices()
@@ -322,7 +321,6 @@ private fun TileCaption(device: DeviceListing, thumbnail: DeviceThumbnail, liven
     Column(Modifier.fillMaxWidth().height(TILE_CAPTION_HEIGHT).padding(top = JwSpacing.small)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
             LivenessDot(liveness)
-            // The name is measured first and keeps its room; the kind gives way when space runs out.
             JwText(text = device.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
             JwText(
                 text = listOfNotNull(device.kind.label, device.osVersion).joinToString(" · "),
@@ -385,7 +383,6 @@ internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, 
     val devices = mirror.devices
     val scope = rememberCoroutineScope()
     val recordingDeviceIds = mirror.recordingsStartedAtMillis.keys
-    // Once the user asks not to be warned, Record all starts right away from then on.
     var recordAllWarningSuppressed by rememberPersistent("recordAllWarningSuppressed", default = false)
     DeviceGrid(
         devices = devices.map(MirrorDevice::listing),

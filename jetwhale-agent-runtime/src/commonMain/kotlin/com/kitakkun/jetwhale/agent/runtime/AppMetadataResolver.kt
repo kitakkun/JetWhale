@@ -27,8 +27,6 @@ internal fun resolveAppMetadata(config: ResolvedAppConfiguration): JetWhaleAppMe
 
 @OptIn(ExperimentalEncodingApi::class)
 internal fun encodeAppIconOrNull(png: ByteArray?): String? {
-    // An encoder that produced nothing is a failure, not an icon: send no icon rather than an
-    // empty string the host would only fail to decode.
     if (png == null || png.isEmpty()) return null
     val encoded = Base64.encode(png)
     if (encoded.length > MAX_APP_ICON_BASE64_LENGTH) {

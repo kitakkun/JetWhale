@@ -40,23 +40,14 @@ internal class InboundFrameDispatcher(
     awaitReady: Boolean,
     private val logger: (String) -> Unit,
 ) {
-    // Notifications and requests share one queue so they are dispatched in arrival order. Replies are
-    // never put here: the peer completes them directly to avoid blocking a handler that is itself
-    // awaiting a reply behind a slow notification.
     private val inboundQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
     private val readyGate: CompletableDeferred<Unit> =
         if (awaitReady) CompletableDeferred() else CompletableDeferred(Unit)
 
-    // Bounds the number of in-flight inbound request handlers. tryAcquire is non-blocking, so a flood
-    // of requests (a buggy plugin, or a misbehaving peer) is rejected fast instead of spawning
-    // unbounded handler coroutines — and never stalls the notification lane.
     private val requestSlots = Semaphore(maxConcurrentRequests)
 
     init {
-        // Single consumer: notifications and requests are dispatched in arrival order. A notification
-        // is handled to completion before the next frame is dispatched; a request is launched on its
-        // own coroutine so it runs concurrently (and may request() back) without blocking this loop.
         scope.launch {
             for (frame in inboundQueue) {
                 readyGate.await()
@@ -65,7 +56,6 @@ internal class InboundFrameDispatcher(
 
                     is PluginFrame.Request -> dispatchRequest(frame)
 
-                    // Replies never enter this queue (see enqueue).
                     is PluginFrame.Reply ->
                         logger("JetWhale: unexpected ${frame::class.simpleName} in the inbound queue for plugin '$pluginId'; ignoring.")
                 }
@@ -104,7 +94,6 @@ internal class InboundFrameDispatcher(
             is PluginFrame.Notification ->
                 logger("JetWhale: dropped inbound notification '${frame.messageType}' for plugin '$pluginId' (${sendFailureReason(result.isClosed)}).")
 
-            // Only notifications and requests reach this path (see JetWhalePluginPeer.onFrame).
             is PluginFrame.Reply -> Unit
         }
     }
@@ -170,7 +159,6 @@ internal class InboundFrameDispatcher(
     private suspend fun dispatchNotification(frame: PluginFrame.Notification) {
         val entry = handlers.eventEntryFor(frame.messageType)
         if (entry == null) {
-            // Forward-compatibility: an unknown event (e.g. version skew) is skipped, not fatal.
             logger("JetWhale: no event handler registered for '${frame.messageType}' (plugin '$pluginId'); skipping.")
             return
         }

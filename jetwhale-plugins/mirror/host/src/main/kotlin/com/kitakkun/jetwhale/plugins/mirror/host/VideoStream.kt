@@ -69,7 +69,6 @@ internal sealed interface ProcessVideoStream : VideoStream {
  * [maxWidth]. A stream that fell behind lowers both, see [lighterThan].
  */
 internal fun rawBgraLayout(screen: IntSize, wanted: IntSize?, maxFps: Int, maxWidth: Int): RawBgraLayout {
-    // One pixel narrower than the screen at most: see above.
     val widest = minOf(screen.width - 1, maxWidth)
     val width = minOf(wanted?.width ?: screen.width, widest).coerceAtLeast(1)
     val scale = (width + 0.25) / screen.width

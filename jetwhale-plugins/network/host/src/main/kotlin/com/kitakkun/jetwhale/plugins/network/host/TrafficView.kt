@@ -188,7 +188,6 @@ private fun TrafficList(
 
 @Composable
 private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
-    // Read outside remember: the column list is built once, and a theme read is a composable call.
     val urlStyle = JwTheme.textStyles.bodySmall
     return remember(urlStyle) {
         listOf(
@@ -196,8 +195,6 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
                 JwText(text = it.request.method, style = JwTheme.textStyles.label)
             },
-            // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
-            // than by selecting the row.
             JwTableColumn.text(
                 header = "URL",
                 width = JwColumnWidth.Weight(1f),
@@ -235,8 +232,6 @@ private fun TrafficDetailPane(
         if (transaction == null) {
             JwEmptyState(title = "Select a request to see details")
         } else {
-            // Detail pane values (URL, headers, bodies) are read-only reference data developers
-            // frequently copy, so make the whole pane text-selectable.
             SelectionContainer {
                 TransactionDetail(tx = transaction, onCreateMock = { onCreateMock(transaction) })
             }
@@ -272,8 +267,6 @@ private enum class DetailTab(val title: String) {
 private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, modifier: Modifier = Modifier) {
     val queryParams = remember(tx.request.url) { parseQueryParams(tx.request.url) }
     val hasResponseBody = !tx.response?.body.isNullOrEmpty()
-    // Key on hasResponseBody too: the body often arrives after the row is first selected (same
-    // txId), and the default should follow it to Body once it exists.
     var selectedTab by remember(tx.txId, hasResponseBody) {
         mutableStateOf(if (hasResponseBody) DetailTab.Body else DetailTab.Headers)
     }
@@ -315,9 +308,6 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
             else -> EmptyHint("Pending…")
         }
 
-        // Only surface the Query tab when the URL actually has query params — a permanently
-        // disabled tab reads as broken. selectedTab only ever becomes Query while it is visible,
-        // and it resets to Body/Headers per transaction, so it can't get stuck on a hidden tab.
         val tabs = remember(queryParams) {
             buildList {
                 add(DetailTab.Body)
@@ -345,12 +335,10 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
 
 @Composable
 private fun BodyTab(tx: HttpTransaction) {
-    // Bound to locals so the null checks below smart-cast: both bodies come from another module.
     val responseBody = tx.response?.body
     val requestBody = tx.request.body
     Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         when {
-            // The failure detail itself is shown above the tabs; here just note there is no body.
             tx.failure != null -> EmptyHint("Request failed — no response body")
 
             tx.response == null -> EmptyHint("Pending…")

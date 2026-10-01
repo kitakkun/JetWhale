@@ -159,8 +159,6 @@ public fun JwDropdownMenu(
     ) {
         Column(
             modifier = modifier
-                // Sized by the widest item, not by the window: the items fill the menu's width, so
-                // the menu must not take its width from them in turn.
                 .width(IntrinsicSize.Max)
                 .widthIn(min = JwMenuDefaults.minWidth)
                 .heightIn(max = JwDropdownMenuDefaults.maxHeight)

@@ -52,7 +52,6 @@ internal fun NetworkTestScreen() {
             val line = try {
                 "$label → ${block(target)}"
             } catch (e: Throwable) {
-                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
                 if (e is CancellationException) throw e
                 "$label → error: ${e.message}"
             }

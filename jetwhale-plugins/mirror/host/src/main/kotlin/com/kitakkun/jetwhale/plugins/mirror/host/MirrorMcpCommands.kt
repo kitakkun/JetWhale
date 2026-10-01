@@ -5,8 +5,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-// Shared by the mirror's MCP command classes (one class per file in this package).
-
 internal const val TOOL_PREFIX = "com.kitakkun.jetwhale.mirror"
 
 internal const val DEVICE_ID_DESCRIPTION = "Device id from $TOOL_PREFIX.listDevices. Omit it to use the device selected in the mirror."

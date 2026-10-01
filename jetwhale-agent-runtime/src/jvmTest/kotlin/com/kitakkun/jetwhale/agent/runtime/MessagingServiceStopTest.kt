@@ -41,8 +41,6 @@ private class FakeSocketClient : JetWhaleSocketClient {
     }
 
     override suspend fun closeConnection() {
-        // Ending the event flow is what a real close does to the collector: a reconnect loop that is
-        // still running would immediately open the next connection.
         debuggerEvents.close()
         closed.complete(Unit)
     }

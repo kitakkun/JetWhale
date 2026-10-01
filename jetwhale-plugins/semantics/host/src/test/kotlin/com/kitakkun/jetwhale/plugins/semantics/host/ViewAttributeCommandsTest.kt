@@ -68,7 +68,6 @@ class ViewAttributeCommandsTest {
         assertEquals("WRAP_CONTENT", rows[0]["value"]?.jsonPrimitive?.content)
         assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[0].getValue("constants").jsonArray.map { it.jsonPrimitive.content })
         assertNull(rows[0]["dp"])
-        // …and the same constants are offered while it reads as a length.
         assertEquals("500.0", rows[1]["value"]?.jsonPrimitive?.content)
         assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[1].getValue("constants").jsonArray.map { it.jsonPrimitive.content })
         assertEquals(250f, rows[1]["dp"]?.jsonPrimitive?.content?.toFloat())
@@ -273,10 +272,8 @@ class ViewAttributeValueParsingTest {
         val wrapping = layoutSize(constant = "WRAP_CONTENT", px = null, dp = null)
         val fixed = layoutSize(constant = null, px = 100f, dp = 50f)
 
-        // A constant, in whatever case it was typed, from either starting point…
         assertEquals(layoutSize(constant = "MATCH_PARENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "match_parent"))
         assertEquals(layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "wrap_content"))
-        // …and a length, likewise.
         assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", wrapping, "500"))
         assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", fixed, "500"))
     }

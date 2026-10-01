@@ -61,7 +61,6 @@ fun SessionSelectorView(
             devices = devices,
             selectedDeviceId = selectedDeviceId,
             onSelectDevice = { deviceSessions ->
-                // Selecting a device selects its first app so a session is always active.
                 deviceSessions.firstOrNull()?.let(onSelectSession)
             },
         )
@@ -173,8 +172,6 @@ internal fun AppIcon(session: DebugSession?) {
             modifier = Modifier.size(JwMetrics.iconSize),
         )
     } else {
-        // An app sends no icon from a platform the agent cannot read one on (desktop, web), so the
-        // fallback must not name a platform.
         JwIcon(imageVector = Icons.Default.Apps, contentDescription = null)
     }
 }

@@ -50,8 +50,6 @@ class DefaultPluginComposeSceneService(
 
     private val pluginScenes = mutableMapOf<SceneKey, CachedScene>()
 
-    // Written from the host's composition and read when a scene is created; both happen on the main
-    // thread. Falls back to the ComposeScene default until the window has reported its density.
     private var hostDensity: Density = Density(1f)
 
     override fun updateHostDensity(density: Density) {
@@ -72,8 +70,6 @@ class DefaultPluginComposeSceneService(
             val sceneKey = SceneKey(pluginId, sessionId)
             val cached = pluginScenes[sceneKey]
             if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
-            // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
-            // scene still composing the previous one would keep rendering discarded code.
             cached?.scene?.composeScene?.close()
 
             val windowUpdatableContext = DynamicWindowInfoPlatformContext()
@@ -84,13 +80,11 @@ class DefaultPluginComposeSceneService(
             val isMcpCapture = mutableStateOf(false)
 
             composeScene.setContent {
-                // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
                 CompositionLocalProvider(
                     LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
                     LocalIsMcpCapture provides isMcpCapture.value,
                 ) {
                     pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
                         val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
                         ui.Content()
                     }

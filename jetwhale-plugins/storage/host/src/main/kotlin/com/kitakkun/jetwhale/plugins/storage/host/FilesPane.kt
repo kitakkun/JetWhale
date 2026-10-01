@@ -106,8 +106,6 @@ private fun FileTreeSplit(
         first = {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(treeRows, key = FileTreeRow::location) { row ->
-                    // JwTreeRow reports a click without the keys held for it, so Alt is read from
-                    // the press that starts the click: Alt-click opens or closes the whole subtree.
                     var altPressed by remember { mutableStateOf(false) }
                     JwTreeRow(
                         text = row.location.name,
@@ -117,6 +115,8 @@ private fun FileTreeSplit(
                         selected = row.location == selectedRow?.location,
                         onClick = { if (altPressed && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
                         onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
+                        // The row's click callbacks carry no keyboard modifiers, so whether Alt is
+                        // held is read from the press that starts the click.
                         modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
                             altPressed = it.keyboardModifiers.isAltPressed
                         },
@@ -169,7 +169,6 @@ private fun EntryDetail(
                 JwButton(text = "Compute SHA-256", onClick = { actions.computeSha256(row.location) })
                 JwButton(text = "Save…", onClick = { chooseSaveTarget(row.location.name) { actions.saveFile(row.location, it) } })
             }
-            // A root is where the app keeps things, not a thing it keeps: there is nothing to delete.
             if (row.location.path.isNotEmpty()) {
                 JwButton(text = "Delete…", onClick = { confirmingDelete = true }, tone = JwTone.Error)
             }
@@ -242,7 +241,6 @@ private fun PreferencesPreview(bytes: ByteArray) {
 @Composable
 private fun ImagePreview(bytes: ByteArray) {
     val bitmap: ImageBitmap? = remember(bytes) {
-        // Skia throws for a format it cannot read, including an image cut short by the preview size.
         try {
             SkiaImage.makeFromEncoded(bytes).use { it.toComposeImageBitmap() }
         } catch (_: IllegalArgumentException) {
@@ -260,8 +258,6 @@ private fun ImagePreview(bytes: ByteArray) {
             JwText(text = "${bitmap.width}×${bitmap.height}", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
         }
         when (scale) {
-            // Nearest-neighbour keeps a small icon's pixels sharp when Fit enlarges it; a photo shrunk
-            // to fit still reads well without smoothing.
             ImageScale.Fit -> Image(
                 bitmap = bitmap,
                 contentDescription = "Image preview",

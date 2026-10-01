@@ -36,11 +36,8 @@ import soil.query.compose.rememberSubscription
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reset by remember { mutableStateOf(false) }
-    // Bumped on every reload to trigger the transient "Reloaded" indicator.
     var reloadCount by remember { mutableIntStateOf(0) }
 
-    // On a reload (a dev hot reload, or an approved update of the plugin's jar), toggling `reset`
-    // re-creates the query so a fresh compose scene is built from the freshly loaded plugin code.
     LaunchedEffect(screenContext) {
         screenContext.pluginReloadedFlow.collect {
             reset = !reset
@@ -53,8 +50,6 @@ fun PluginScreenRoot() {
             SoilDataBoundary(
                 state = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
             ) { headlessPlugins ->
-                // Branch before the scene query so a headless plugin never gets a ComposeScene
-                // built for it: there is no content to put in one, and it would render blank.
                 if (headlessPlugins.isHeadless(screenContext.sessionId, screenContext.pluginId)) {
                     HeadlessPluginScreen(pluginId = screenContext.pluginId)
                     return@SoilDataBoundary

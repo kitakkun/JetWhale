@@ -33,9 +33,6 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      */
     private val registrations: ConcurrentHashMap<String, PluginToolEntry> = ConcurrentHashMap()
 
-    // Instances register from several threads at once. Each change rebuilds the capable set from
-    // [registrations]; without one lock around the change and the rebuild, a rebuild that started
-    // earlier can publish last and drop a plugin that is registered.
     private val publishLock = Any()
 
     /**
@@ -92,8 +89,6 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         return try {
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
         } catch (e: JetWhaleMcpArgumentException) {
-            // A caller mistake becomes a payload the AI agent can read and correct, instead of
-            // an MCP-level failure.
             buildJsonObject { put("error", e.message.orEmpty()) }.toString()
         }
     }

@@ -41,8 +41,6 @@ class DefaultPluginInstallJobService(
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
     private val hostVersionInfo: HostVersionInfo,
 ) : PluginInstallJobService {
-    // Lives as long as the host, not a screen: this is what keeps an install going after the screen
-    // that started it closes.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // Installs share the staging directory and the single progress slot, so they run one at a time.
@@ -86,7 +84,6 @@ class DefaultPluginInstallJobService(
 
     override suspend fun cancelAll() {
         jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
-        // An install already loading its plugin is not cancelled, but shutdown still waits for it to finish.
         runningJobs.values.toList().joinAll()
     }
 
@@ -108,10 +105,8 @@ class DefaultPluginInstallJobService(
         } finally {
             runningJobs.remove(job.id)
             synchronized(this) {
-                // Still tracked here only when cancelled: nothing to report, so the job goes.
                 outcomes.remove(job.id)?.let { outcome ->
                     jobsFlow.update { jobs -> jobs.filterNot { it.id == job.id }.toPersistentList() }
-                    // A caller waiting in install() gets an answer, not a cancellation of its own.
                     outcome.complete(PluginInstallStatus.Failed(reason = "the install was cancelled"))
                 }
             }

@@ -62,9 +62,6 @@ public class BufferedMessenger(
         if (bufferCapacity > 0) Channel(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.DROP_OLDEST) else null
 
     init {
-        // Single consumer: forward each queued event to the live transport, but only once one is bound
-        // and flushing has been opened. While disconnected (or before init opens the gate) this loop
-        // parks, so the buffer fills (drop-oldest) and drains in FIFO order once flushing opens.
         offlineBuffer?.let { buffer ->
             scope.launch {
                 for (event in buffer) {
@@ -83,11 +80,8 @@ public class BufferedMessenger(
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
         val transport = live.value
         return when (policy) {
-            // Queue always goes through the buffer so queued events keep one FIFO order, whether or
-            // not a transport is currently bound (the consumer forwards them as soon as one is).
             OfflineSendPolicy.QUEUE -> {
                 if (offlineBuffer == null) {
-                    // No capacity: degrade to a best-effort live send.
                     if (transport != null) transport.sendRaw(messageType, payload) else false
                 } else {
                     offlineBuffer.trySend(BufferedEvent(messageType, payload)) // drop-oldest never fails while open
@@ -110,7 +104,6 @@ public class BufferedMessenger(
     }
 
     override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String {
-        // Requests are never buffered: a reply has nowhere to go while offline.
         val transport = live.value ?: throw JetWhaleConnectionClosedException()
         return transport.requestRaw(messageType, payload, timeout)
     }
@@ -125,7 +118,6 @@ public class BufferedMessenger(
 
     /** Opens flushing of buffered events. Call after connection-time initialization has finished. */
     public fun startFlush() {
-        // Only meaningful while bound; a late call after unbind (e.g. init cancelled) is ignored.
         if (live.value != null) flushOpen.value = true
     }
 

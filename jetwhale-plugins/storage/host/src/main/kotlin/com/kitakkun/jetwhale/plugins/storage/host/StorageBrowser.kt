@@ -105,7 +105,6 @@ internal class StorageBrowser(
     /** Loads the locations, then everything the user had open, so a reconnect restores the view. */
     suspend fun load() {
         val loaded = client.locations()
-        // Sizes and contents may have changed since they were computed.
         directoryMeasurement = null
         fileSha256 = null
         locations = loaded
@@ -216,8 +215,6 @@ internal class StorageBrowser(
 
     override fun measureDirectory(location: FileLocation) = launchReporting {
         val measurement = client.measureDirectory(location)
-        // The user may have picked another entry while the walk was running; its outcome, failure
-        // included, no longer belongs on screen.
         if (selectedLocation != location) return@launchReporting
         when (val error = measurement.error) {
             null -> directoryMeasurement = measurement
@@ -251,7 +248,6 @@ internal class StorageBrowser(
 
     private suspend fun loadStore(storeName: String) {
         val content = client.readKeyValueStore(storeName)
-        // The user may have picked another store while this one was in flight.
         if (selectedStore == storeName) storeContent = content
     }
 
@@ -263,7 +259,6 @@ internal class StorageBrowser(
 
     private suspend fun loadFile(location: FileLocation) {
         val content = client.readFile(location, offset = 0, maxBytes = PREVIEW_BYTES)
-        // The user may have picked another file while this one was in flight.
         if (selectedLocation != location) return
         val error = content.error
         if (error != null) {

@@ -52,7 +52,6 @@ internal class JetWhaleAgentPluginService(
             payloadFormat = DefaultJetWhaleMessagingFormat,
             bufferCapacity = plugin.offlineEventBufferCapacity(),
         )
-        // Bind the connection-independent messenger once, up front.
         plugin.bindMessenger(messenger)
         plugin.pluginId to PluginRuntime(plugin, messenger)
     }
@@ -89,8 +88,6 @@ internal class JetWhaleAgentPluginService(
         val runtime = runtimes[id] ?: return
         if (!runtime.active) {
             runtime.active = true
-            // A plugin whose onActivate throws must not take down the connection (and with it every
-            // other plugin): isolate the failure and keep the plugin activated so its peer still works.
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 runtime.plugin.dispatchActivate()
@@ -104,7 +101,6 @@ internal class JetWhaleAgentPluginService(
     private suspend fun deactivate(runtime: PluginRuntime?) {
         runtime ?: return
         if (!runtime.active) return
-        // Not a transient disconnect, so no onDisconnected; the plugin gets onDeactivate to stop its work.
         dropPeer(runtime, notifyDisconnected = false)
         runtime.active = false
         try {
@@ -132,8 +128,6 @@ internal class JetWhaleAgentPluginService(
             return
         }
         runtime.peer = peer
-        // Bind before prepare so the plugin's own onPrepare requests can flow; the ready gate that
-        // holds inbound frames opens only once launchPeerPreparation finishes (or times out).
         runtime.messenger.bind(peer.messenger)
         runtime.connectJob = scope.launchPeerPreparation(
             peer = peer,
@@ -147,20 +141,14 @@ internal class JetWhaleAgentPluginService(
 
     private suspend fun dropPeer(runtime: PluginRuntime, notifyDisconnected: Boolean) {
         val peer = runtime.peer ?: return
-        // Join, don't just cancel: the job's finally opens the flush gate (markReady/startFlush), and
-        // if it ran after the next connection's bind() it would open that connection's gate before its
-        // prepare completed.
         runtime.connectJob?.cancelAndJoin()
         runtime.connectJob = null
-        // Detach the transport (closing the flush gate) but keep the messenger alive so it keeps buffering.
         runtime.messenger.unbind()
         runtime.peer = null
         try {
             if (notifyDisconnected) runtime.plugin.dispatchDisconnected()
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
-            // Isolate per plugin: one throwing onDisconnected must not skip dropPeer for the others,
-            // or they would stay bound to the dead peer across the reconnect.
             JetWhaleLogger.w("JetWhale: onDisconnected for plugin '${runtime.plugin.pluginId}' failed.", e)
         } finally {
             peer.close()
@@ -173,8 +161,6 @@ internal class JetWhaleAgentPluginService(
             peer.onFrame(frame)
             return
         }
-        // No active peer for this frame (e.g. a host request that races ahead of this plugin's
-        // activation): fast-fail a request so the requester does not wait out the timeout.
         val sendFrame = sendFrame ?: return
         replyPeerUnavailable(
             scope = serviceScope,

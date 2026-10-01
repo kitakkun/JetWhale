@@ -53,6 +53,9 @@ import kotlin.time.TimeSource
  */
 class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID
+
+    // The host's plugin-manifest.json accepts only the agent versions inside its agentVersionRange,
+    // so bump that range together with this.
     override val pluginVersion: String get() = "1.1.0"
 
     override fun JetWhaleMessageHandlers.configure() {
@@ -69,34 +72,23 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             reply(writeViewAttribute(request))
         }
         onRequest { request: HighlightNode ->
-            // A plugin disabled and re-enabled in quick succession would otherwise race its own
-            // teardown: the clear it started on deactivation could land after this request and wipe
-            // the box just drawn. Waiting for it keeps the two in the order they were asked in.
+            // A clear started by a quick disable and re-enable could otherwise land after this
+            // request and wipe the box just drawn.
             teardown?.join()
-            // Requests are dispatched concurrently, and each one hops to the app's main thread, so
-            // two in flight could finish in either order and leave the box on the node the host asked
-            // for first. The lock hands them to the overlay in the order they arrived.
             reply(highlightMutex.withLock { highlight(request) })
         }
     }
 
-    // A highlight is drawn into the app's own window, so it must not outlive the host that asked for
-    // it: a dropped connection and a disabled plugin both take it down. The agent-side TTL stays as
-    // the net for a host that dies without either happening.
     override suspend fun onDisconnected() {
         highlightMutex.withLock { clearAllHighlights() }
     }
 
     override fun onDeactivate() {
-        // Deactivation is not a suspending hook and clearing hops to the app's UI thread, so it runs
-        // on a scope of its own rather than blocking the runtime's teardown. Only the next highlight
-        // request waits on it.
         teardown = teardownScope.launch { highlightMutex.withLock { clearAllHighlights() } }
     }
 
     private val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // Written by onDeactivate, read by request handlers on whatever thread dispatches them.
     @Volatile
     private var teardown: Job? = null
     private val highlightMutex = Mutex()
@@ -114,14 +106,10 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
                 source.capture(options)?.let(roots::add)
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
-                // One unreadable root (a view detached mid-capture, a toolkit-specific failure)
-                // must not cost the caller the roots that did read cleanly.
                 warnings += "${source.sourceId}: failed to capture (${e.describeFailure()})"
             }
         }
 
-        // Only here are all the windows in hand, and a tap is dispatched across the whole stack of
-        // them: a dialog decides what can be touched in the window underneath it.
         val hitTested = NodeHitTesting.resolve(roots)
 
         return NodeTreeSnapshot(
@@ -139,12 +127,9 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             ?: return HighlightResult(shown = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
         val highlightSource = source as? NodeHighlightSource
             ?: return HighlightResult(shown = false, message = ROOT_WITHOUT_HIGHLIGHT)
-        // A box that is shown has to be able to expire: the TTL is what stops a host that dies without
-        // saying so from leaving one on the app's screen. A clear needs none, so only a show is checked.
         if (request.nodeId != null && request.ttlMs <= 0) {
             return HighlightResult(shown = false, message = "ttlMs must be positive to show a highlight, but was ${request.ttlMs}")
         }
-        // Highlighting reaches into the app's UI toolkit; any failure there is this request's answer, not the plugin's end.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
@@ -167,15 +152,10 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             val highlightSource = source as? NodeHighlightSource ?: continue
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
-                // Nothing is left up by a clear, so the TTL it carries is only there to satisfy the
-                // signature.
                 highlightSource.highlight(nodeId = null, ttl = Duration.ZERO)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Throwable) {
-                // A root that cannot be reached has nothing left to clear: its window is gone, and
-                // with it the overlay. One unreachable root must not stop the others from being
-                // cleared.
             }
         }
     }

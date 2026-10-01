@@ -62,7 +62,6 @@ class DefaultMcpActivityRepository : McpActivityRepository {
     }
 
     override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
-        // Sampled once outside the update block, which may re-run under contention.
         val finishedAtEpochMillis = System.currentTimeMillis()
         val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
@@ -72,7 +71,6 @@ class DefaultMcpActivityRepository : McpActivityRepository {
                     .filterNot { it.id == invocationId }
                     .toImmutableList(),
                 recentCalls = if (finished == null) {
-                    // The invocation is unknown here, so there is nothing to describe in history.
                     activity.recentCalls
                 } else {
                     val record = McpCallRecord(

@@ -98,7 +98,6 @@ internal class CaptureLibrary(val root: File, private val zone: ZoneId) {
     /** Where the thumbnail of [file] is cached, in a hidden folder beside the day's captures. */
     fun thumbnailFileOf(file: File): File = File(File(file.parentFile, THUMBNAILS), "${file.name}.png")
 
-    // A sidecar whose capture was deleted by hand, or that cannot be read, is not a capture.
     private fun readCapture(sidecar: File): Capture? {
         val file = File(sidecar.path.removeSuffix(SIDECAR_SUFFIX))
         if (!file.isFile) return null
@@ -130,7 +129,6 @@ private fun shortId(id: String): String = MessageDigest.getInstance("SHA-256")
     .joinToString("") { "%02x".format(it) }
     .take(SHORT_ID_LENGTH)
 
-// Letters, digits, dots, dashes and underscores survive on every file system; the rest become '-'.
 private fun safeName(name: String): String = name.replace(Regex("[^A-Za-z0-9._-]+"), "-").trim('-').ifEmpty { "device" }
 
 /**

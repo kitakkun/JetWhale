@@ -19,7 +19,6 @@ class ActionDetailPaneTest {
 
     @Test
     fun `last arguments that load after the first frame fill the form`() = runComposeUiTest {
-        // rememberPersistent starts from its default and delivers the stored value a moment later.
         var remembered by mutableStateOf<JsonObject?>(null)
         setContent {
             JwTheme(darkTheme = false) {

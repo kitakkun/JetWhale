@@ -13,8 +13,6 @@ class JetWhaleAgentCommandLineProcessor : CommandLineProcessor {
         optionName = JetWhaleAgentPluginNames.ADDRESS_OPTION,
         valueDescription = "<ip-or-hostname>",
         description = "Address that buildMachineWss(port) is rewritten to dial.",
-        // Optional: with no address the plugin leaves every call alone, and the runtime says why.
-        // That is a better failure than refusing to compile a machine that has no LAN address.
         required = false,
         allowMultipleOccurrences = false,
     )

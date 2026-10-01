@@ -65,8 +65,6 @@ class BufferedMessengerTest {
 
     private fun messenger(capacity: Int) = BufferedMessenger(scope, Json, bufferCapacity = capacity)
 
-    // The claim is that nothing flushes while the gate is shut, and the messenger offers no signal
-    // for "the flusher has had its turn and stayed parked" — only elapsed time can establish it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `buffered events are held until startFlush opens the gate`() = runBlocking {
@@ -75,7 +73,7 @@ class BufferedMessengerTest {
 
         val live = Recorder()
         bm.bind(live)
-        delay(100) // bound, but flushing not opened yet
+        delay(100)
         assertTrue(live.arrivals.tryReceive().isFailure, "must not flush before startFlush (init phase)")
 
         bm.startFlush()
@@ -87,7 +85,6 @@ class BufferedMessengerTest {
         val bm = messenger(capacity = 16)
         assertFalse(bm.sendRaw("t", "p", OfflineSendPolicy.DROP), "DROP should report false while offline")
 
-        // It must not have been buffered: binding flushes nothing.
         val live = Recorder()
         bm.bind(live)
         assertTrue(live.arrivals.tryReceive().isFailure)
@@ -123,9 +120,6 @@ class BufferedMessengerTest {
         bm.bind(live)
         bm.startFlush()
 
-        // Once the bound's worth has arrived the buffer has room again, so a sentinel queued now
-        // cannot evict anything and — the buffer being FIFO with a single consumer — arrives last.
-        // Its arrival is what marks the flush complete, with no straggler left to come.
         val received = buildList {
             addAll(live.awaitPayloads(4))
             bm.sendRaw("t", "end", OfflineSendPolicy.QUEUE)
@@ -136,9 +130,7 @@ class BufferedMessengerTest {
             }
         }
 
-        // Bounded: never the full 20 (one event may be held by the consumer beyond the buffer bound).
         assertTrue(received.size <= 5, "retained too many: $received")
-        // Newest preserved and in FIFO order.
         assertEquals("p19", received.last())
         val indices = received.map { it.removePrefix("p").toInt() }
         assertEquals(indices.sorted(), indices, "not in FIFO order: $received")
@@ -147,13 +139,12 @@ class BufferedMessengerTest {
     @Test
     fun `capacity zero degrades queue to drop`() = runBlocking {
         val bm = messenger(capacity = 0)
-        bm.sendRaw("t", "lost", OfflineSendPolicy.QUEUE) // no buffer: dropped
+        bm.sendRaw("t", "lost", OfflineSendPolicy.QUEUE)
 
         val live = Recorder()
         bm.bind(live)
-        bm.sendRaw("t", "kept", OfflineSendPolicy.DROP) // bound now: forwarded
+        bm.sendRaw("t", "kept", OfflineSendPolicy.DROP)
 
-        // With no buffer there is nothing "lost" could be held in, so nothing can follow "kept".
         assertEquals(listOf("kept"), live.awaitPayloads(1))
         assertTrue(live.arrivals.tryReceive().isFailure)
     }

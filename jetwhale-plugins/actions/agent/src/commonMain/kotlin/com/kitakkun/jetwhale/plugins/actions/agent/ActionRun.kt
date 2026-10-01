@@ -40,7 +40,6 @@ internal suspend fun <A> DebugActionDefinition<A>.runWith(arguments: JsonObject,
     } catch (_: TimeoutCancellationException) {
         ActionResult(ActionOutcome.TIMEOUT, text = null, json = null, error = "the action did not finish within $timeout", stackTrace = null, durationMillis = started.elapsedNow().inWholeMilliseconds)
     } catch (e: Exception) {
-        // A cancellation of this coroutine is not the action failing; let it reach the caller.
         if (e is CancellationException) throw e
         failedResult(e.message ?: e::class.simpleName ?: "the action failed", e.stackTraceToString(), started.elapsedNow().inWholeMilliseconds)
     }

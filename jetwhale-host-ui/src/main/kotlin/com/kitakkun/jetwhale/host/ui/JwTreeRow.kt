@@ -133,8 +133,6 @@ public fun JwTreeRow(
                                 role = Role.Button,
                                 onClick = onToggleExpanded,
                             )
-                            // Language-neutral: the matching action tells screen readers and the
-                            // host's MCP tools what the chevron does without a label.
                             .semantics {
                                 if (expanded) {
                                     collapse {

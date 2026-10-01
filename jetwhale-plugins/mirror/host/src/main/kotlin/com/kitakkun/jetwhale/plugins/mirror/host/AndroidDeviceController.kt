@@ -30,16 +30,15 @@ internal class AndroidDeviceController(
         screenPower = true,
     )
 
-    // Trusted for DISPLAY_READING_MAX_AGE_NANOS, so a fold is followed without a dumpsys before every tap.
     @Volatile
     private var displayReading: DisplayReading? = null
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
     override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adbPath, "-s", serial, "exec-out", "screencap", "-p", *panelArguments(option = "-d", display = display())).stdout
 
-    // Reads the display afresh: the mirror asks for the size to notice a foldable folding or a
-    // screen turning. `wm size` gives the size the screen has upright, which taps on a turned
-    // screen do not use, so it is only asked when the display's own reading has no size.
+    // Reads the display afresh, since the mirror polls the size to notice a fold or a rotation. `wm
+    // size` reports the upright size, which taps on a turned screen do not use, so it is only a
+    // fallback.
     override suspend fun screenSize(): IntSize {
         val reading = readDisplay()
         return reading.size
@@ -64,8 +63,7 @@ internal class AndroidDeviceController(
     }
 
     override suspend fun screenPower(): ScreenPower {
-        // One round trip for both; `dumpsys window` is large, so the device filters it. A grep that
-        // matches nothing exits non-zero, which is why the exit code is not checked.
+        // A grep that matches nothing exits non-zero, so the exit code is not checked.
         val result = runCommand(adbPath, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
         return parseScreenPower(result.stdoutText)
             ?: throw deviceControlError("could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}")

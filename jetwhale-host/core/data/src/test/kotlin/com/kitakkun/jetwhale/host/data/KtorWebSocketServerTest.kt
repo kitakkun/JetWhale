@@ -92,13 +92,9 @@ class KtorWebSocketServerTest {
         }
     }
 
-    // The hot-swap is observable only on the wire: the server exposes no signal for "the TLS
-    // listener is back up with the new certificate", so the handshake has to be retried for it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `swapping the active certificate restarts the tls listener with the new certificate`() {
-        // A real certificate manager backed by a temp home so activating a new certificate emits on
-        // certificatesFlow, which the server observes to hot-swap the TLS listener.
         val tempHome = createTempDirectory().toFile()
         val originalHome = System.getProperty("user.home")
         System.setProperty("user.home", tempHome.absolutePath)
@@ -119,12 +115,8 @@ class KtorWebSocketServerTest {
                     server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
                 }
 
-                // Started is only reported once both listeners have bound, so the first handshake
-                // needs no retry; only the swap below does.
                 val serialBefore = fetchLeafSerial(wssPort)
 
-                // Generating a new certificate marks it active, which the server hot-swaps onto the
-                // wss listener without touching the plain server.
                 sslCertificateManager.generateAndAddCertificate("second")
 
                 val serialAfter = withTimeout(10_000) {
@@ -186,8 +178,6 @@ class KtorWebSocketServerTest {
 
     @Test
     fun `serves the active CA certificate over the tls channel`() {
-        // A real certificate manager backed by a temp home so the TLS server starts with a usable
-        // keystore and getActiveCertificate() returns the matching CA PEM.
         val tempHome = createTempDirectory().toFile()
         val originalHome = System.getProperty("user.home")
         System.setProperty("user.home", tempHome.absolutePath)

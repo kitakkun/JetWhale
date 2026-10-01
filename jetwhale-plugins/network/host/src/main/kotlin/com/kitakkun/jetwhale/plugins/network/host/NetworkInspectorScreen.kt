@@ -30,8 +30,6 @@ fun NetworkInspectorScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    // Hoisted out of TrafficTab so the selection survives a round trip through the Mocks tab, which
-    // swaps the tab content composable out of the composition entirely.
     var selectedTxId by remember { mutableStateOf<String?>(null) }
     Column(modifier.fillMaxSize()) {
         JwTabRow {
@@ -81,8 +79,6 @@ private fun mockRuleFrom(tx: HttpTransaction, response: CapturedHttpResponse): M
     return MockRule(
         id = UUID.randomUUID().toString(),
         name = "${tx.request.method} ${tx.request.url.substringBefore('?').takeLast(40)}",
-        // Use the full URL (including any query) so an EXACT rule matches the very request it was
-        // created from; the user can loosen it to CONTAINS/REGEX afterwards.
         matcher = MockMatcher(
             method = tx.request.method,
             urlPattern = tx.request.url,

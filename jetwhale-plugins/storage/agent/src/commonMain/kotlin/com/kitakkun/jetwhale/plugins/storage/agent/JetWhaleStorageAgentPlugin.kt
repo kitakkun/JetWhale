@@ -75,9 +75,6 @@ class JetWhaleStorageAgentPlugin(
         keyValueStores = keyValueStores().map { KeyValueStoreInfo(name = it.name) },
     )
 
-    // Each operation below turns any failure into the reply's error, so the host sees why instead
-    // of a request that fails without a reason.
-
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun listDirectory(request: ListDirectory): DirectoryListing = try {
         val entries = listDirectoryEntries(resolve(request.rootName, request.path))

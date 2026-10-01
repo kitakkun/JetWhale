@@ -66,8 +66,6 @@ class TrafficRowUrlScrollTest {
 
     @Test
     fun `a vertical wheel does not scroll the url sideways`() = runTrafficTab(rows = SHORT_LIST) { _ ->
-        // A list short enough to need no vertical scrolling keeps the row in place, so the same URL
-        // node can be re-read after the wheel regardless of how far a notch would have travelled.
         val url = urlNode(TOP_ROW)
         url.performMouseInput {
             moveTo(center)
@@ -117,8 +115,6 @@ private fun runTrafficTab(
     var selected: String? = null
     setContent {
         JwTheme(darkTheme = false) {
-            // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
-            // overflows the viewport while SHORT_LIST does not.
             Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
                 TrafficTab(
                     transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
