@@ -15,8 +15,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.nav3"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.nav3.protocol"
 }

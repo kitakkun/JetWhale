@@ -8,8 +8,7 @@ plugins {
 }
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 }
 
 // Distinct group so this module doesn't collide with other leaf-name-sharing modules.

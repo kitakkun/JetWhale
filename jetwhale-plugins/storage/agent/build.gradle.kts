@@ -19,8 +19,7 @@ group = "com.kitakkun.jetwhale.plugins.storage"
 // mingw are left out: an app there has neither a sandbox nor a platform preferences store, so the
 // plugin would have nothing to show by default.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)

@@ -15,8 +15,7 @@ kotlin {
 
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 
     sourceSets.commonMain.dependencies {
         api(projects.jetwhaleAnnotations)

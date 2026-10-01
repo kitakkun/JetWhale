@@ -15,8 +15,7 @@ kotlin {
     jvmToolchain(17)
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 
     // A compilation of its own for the previews, so that they are compiled and rule-checked on
     // every build without reaching the JAR, the sources JAR, the publication or the ABI dump.

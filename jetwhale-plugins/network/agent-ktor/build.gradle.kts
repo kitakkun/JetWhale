@@ -11,8 +11,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.network"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.network.agent.ktor"
 }
