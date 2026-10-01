@@ -4,18 +4,18 @@ import com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
 
 /** Records what a scope was asked to dial, so a test can assert on it. */
 class RecordingScope : JetWhaleEndpointScope {
-    val dialled: MutableList<String> = mutableListOf()
+    val dialed: MutableList<String> = mutableListOf()
 
     override fun ws(host: String, port: Int) {
-        dialled += "ws://$host:$port"
+        dialed += "ws://$host:$port"
     }
 
     override fun wss(host: String, port: Int) {
-        dialled += "wss://$host:$port"
+        dialed += "wss://$host:$port"
     }
 
     override fun buildMachineWss(port: Int) {
-        dialled += "unrewritten:$port"
+        dialed += "unrewritten:$port"
     }
 }
 

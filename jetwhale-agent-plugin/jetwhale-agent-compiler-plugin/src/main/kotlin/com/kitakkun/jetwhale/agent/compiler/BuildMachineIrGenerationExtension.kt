@@ -29,10 +29,10 @@ internal class BuildMachineIrGenerationExtension(
 
         // Worth one line per module that uses it: this bakes a machine-specific address into the
         // output, which is not something to discover only by decompiling it later.
-        if (transformer.rewritten > 0) {
+        if (transformer.rewrittenCallCount > 0) {
             messageCollector.report(
                 CompilerMessageSeverity.WARNING,
-                "JetWhale: baked the build machine address $address into ${transformer.rewritten} " +
+                "JetWhale: baked the build machine address $address into ${transformer.rewrittenCallCount} " +
                     "$BUILD_MACHINE_WSS_NAME call(s) in '${moduleFragment.name}'.",
             )
         }
@@ -44,7 +44,7 @@ private class BuildMachineCallTransformer(
     private val pluginContext: IrPluginContext,
     private val messageCollector: MessageCollector,
 ) : IrElementTransformerVoidWithContext() {
-    var rewritten: Int = 0
+    var rewrittenCallCount: Int = 0
         private set
 
     override fun visitCall(expression: IrCall): IrExpression {
@@ -80,7 +80,7 @@ private class BuildMachineCallTransformer(
             startOffset = call.startOffset,
             endOffset = call.endOffset,
         )
-        rewritten++
+        rewrittenCallCount++
         return builder.buildWssCall(original = call, wss = wss, address = address)
     }
 }
