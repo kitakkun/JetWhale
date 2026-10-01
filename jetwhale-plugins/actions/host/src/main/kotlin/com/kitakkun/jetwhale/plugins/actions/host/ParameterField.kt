@@ -127,14 +127,14 @@ private fun SuggestionTextField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var narrowing by remember { mutableStateOf(false) }
-    var highlighted by remember { mutableIntStateOf(-1) }
+    var highlightedIndex by remember { mutableIntStateOf(-1) }
     var fieldWidth by remember { mutableIntStateOf(0) }
     val fieldFocus = remember { FocusRequester() }
     val shown = if (narrowing) suggestions.filter { it.contains(value, ignoreCase = true) } else suggestions
     val open = { narrowingNow: Boolean ->
         expanded = true
         narrowing = narrowingNow
-        highlighted = -1
+        highlightedIndex = -1
     }
     val choose = { suggestion: String ->
         onValueChange(suggestion)
@@ -169,9 +169,9 @@ private fun SuggestionTextField(
                     if (event.type != KeyEventType.KeyDown || suggestions.isEmpty()) return@onPreviewKeyEvent false
                     when {
                         event.key == Key.DirectionDown && !expanded -> open(false)
-                        event.key == Key.DirectionDown -> highlighted = (highlighted + 1).coerceAtMost(shown.lastIndex)
-                        event.key == Key.DirectionUp && expanded -> highlighted = (highlighted - 1).coerceAtLeast(0)
-                        event.key == Key.Enter && expanded && highlighted in shown.indices -> choose(shown[highlighted])
+                        event.key == Key.DirectionDown -> highlightedIndex = (highlightedIndex + 1).coerceAtMost(shown.lastIndex)
+                        event.key == Key.DirectionUp && expanded -> highlightedIndex = (highlightedIndex - 1).coerceAtLeast(0)
+                        event.key == Key.Enter && expanded && highlightedIndex in shown.indices -> choose(shown[highlightedIndex])
                         event.key == Key.Escape && expanded -> expanded = false
                         else -> return@onPreviewKeyEvent false
                     }
@@ -200,7 +200,7 @@ private fun SuggestionTextField(
                             text = suggestion,
                             selected = suggestion == value,
                             onClick = { choose(suggestion) },
-                            modifier = if (index == highlighted) Modifier.background(JwTheme.colors.hover, JwShapes.extraSmall) else Modifier,
+                            modifier = if (index == highlightedIndex) Modifier.background(JwTheme.colors.hover, JwShapes.extraSmall) else Modifier,
                         )
                     }
                 }

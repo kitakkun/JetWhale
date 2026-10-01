@@ -186,12 +186,12 @@ internal class ActionsBrowser(
      * overlap — a reselection, a catalog change — so only the latest one per action is kept.
      */
     suspend fun loadOptions(action: ActionDescriptor): Map<String, List<String>> {
-        val request = Any()
-        latestOptionsRequest[action.id] = request
+        val requestToken = Any()
+        latestOptionsRequest[action.id] = requestToken
         val choices = action.parameters.filter(ActionParameter::hasOptions).associate { parameter ->
             parameter.name to client.options(action.id, parameter.name).values
         }
-        if (choices.isNotEmpty() && latestOptionsRequest[action.id] === request) loadedOptions[action.id] = choices
+        if (choices.isNotEmpty() && latestOptionsRequest[action.id] === requestToken) loadedOptions[action.id] = choices
         return choices
     }
 
