@@ -10,8 +10,7 @@ plugins {
 kotlin {
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.annotations"
 

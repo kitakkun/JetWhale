@@ -16,8 +16,7 @@ plugins {
 }
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     // A compilation of its own for the previews, so that they are compiled and rule-checked on
     // every build without reaching the plugin jar, the publication or the ABI dump. Associating it

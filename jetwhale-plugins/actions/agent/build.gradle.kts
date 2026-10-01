@@ -22,8 +22,7 @@ kotlin {
         optIn.add("com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi")
     }
 
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)

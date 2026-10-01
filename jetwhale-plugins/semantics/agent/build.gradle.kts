@@ -21,8 +21,7 @@ group = "com.kitakkun.jetwhale.plugins.semantics"
 // target Compose does not run on has no node tree to read in the first place. macOS is left out
 // too: Compose rejects it unless the whole build opts into its experimental macOS support.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)

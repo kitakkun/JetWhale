@@ -14,8 +14,7 @@ kotlin {
     jvmToolchain(17)
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 }
 
 dependencies {
