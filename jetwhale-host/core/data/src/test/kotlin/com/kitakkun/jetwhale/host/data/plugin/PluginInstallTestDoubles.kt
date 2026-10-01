@@ -76,6 +76,19 @@ internal class FakeFactoryRepository : PluginFactoryRepository {
     override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
 }
 
+/** Serves one loaded plugin, for tests that create instances of it. */
+internal class SinglePluginFactoryRepository(plugin: LoadedHostPlugin) : PluginFactoryRepository {
+    override val loadedPlugins: Map<String, LoadedHostPlugin> = mapOf(plugin.manifest.pluginId to plugin)
+    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
+    override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
+
+    override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
+    override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
+    override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
+    override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+}
+
 internal object NoProgress : PluginInstallProgressRepository {
     override val progressFlow: Flow<PluginInstallProgress?> = MutableStateFlow(null)
     override fun update(progress: PluginInstallProgress?) = Unit
