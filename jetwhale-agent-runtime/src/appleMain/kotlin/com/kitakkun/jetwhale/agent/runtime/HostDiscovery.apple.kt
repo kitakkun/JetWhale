@@ -45,58 +45,84 @@ private const val IPV4_SOCKADDR_LENGTH = SIN_ADDR_OFFSET + IPV4_OCTETS
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
     val results = AtomicReference(emptyList<DiscoveredService>())
-    // Strong references kept for the whole browse so the delegates and services outlive the enclosing
-    // frame; their callbacks fire asynchronously on the run loop.
-    val resolvingServices = mutableListOf<NSNetService>()
+    val browse = MainQueueBrowse(onResolved = { results.value = results.value + it })
 
     withTimeoutOrNull(timeoutMillis) {
         suspendCancellableCoroutine<Unit> { continuation ->
-            var browser: NSNetServiceBrowser? = null
-            var cancelled = false
-
-            val serviceDelegate = object : NSObject(), NSNetServiceDelegateProtocol {
-                override fun netServiceDidResolveAddress(sender: NSNetService) {
-                    sender.toDiscoveredService()?.let { results.value = results.value + it }
-                }
-
-                override fun netService(sender: NSNetService, didNotResolve: Map<Any?, *>) {
-                    JetWhaleLogger.d("mDNS resolve failed for ${sender.name}")
-                }
-            }
-
-            val browserDelegate = object : NSObject(), NSNetServiceBrowserDelegateProtocol {
-                override fun netServiceBrowser(
-                    browser: NSNetServiceBrowser,
-                    didFindService: NSNetService,
-                    moreComing: Boolean,
-                ) {
-                    didFindService.delegate = serviceDelegate
-                    resolvingServices.add(didFindService)
-                    didFindService.resolveWithTimeout(RESOLVE_TIMEOUT_SECONDS)
-                }
-
-                override fun netServiceBrowserDidStopSearch(browser: NSNetServiceBrowser) = Unit
-            }
-
-            dispatch_async(dispatch_get_main_queue()) {
-                if (cancelled) return@dispatch_async
-                browser = NSNetServiceBrowser().apply {
-                    delegate = browserDelegate
-                    searchForServicesOfType(SERVICE_TYPE_DOT, inDomain = SEARCH_DOMAIN)
-                }
-            }
-
+            dispatch_async(dispatch_get_main_queue(), browse::start)
             continuation.invokeOnCancellation {
-                dispatch_async(dispatch_get_main_queue()) {
-                    cancelled = true
-                    browser?.stop()
-                    browser = null
-                }
+                dispatch_async(dispatch_get_main_queue(), browse::stop)
             }
         }
     }
 
     return DiscoveryResult.Browsed(results.value)
+}
+
+/**
+ * One browse for JetWhale hosts, from [start] until [stop].
+ *
+ * [NSNetServiceBrowser] and [NSNetService] keep their delegates unretained (`assign`), so the browse
+ * holds the delegates, and the services it resolves, itself. Otherwise the garbage collector could
+ * free a delegate mid-browse and leave the browser calling freed memory. [stop] clears those
+ * pointers before letting go of them.
+ *
+ * Both run on the main queue only. Being serial, it orders them, so a [stop] that arrives before
+ * [start] keeps the browse from ever starting.
+ */
+internal class MainQueueBrowse(private val onResolved: (DiscoveredService) -> Unit) {
+    internal var browser: NSNetServiceBrowser? = null
+        private set
+
+    private var stopped = false
+
+    private val resolvingServices = mutableListOf<NSNetService>()
+
+    private val serviceDelegate = object : NSObject(), NSNetServiceDelegateProtocol {
+        override fun netServiceDidResolveAddress(sender: NSNetService) {
+            sender.toDiscoveredService()?.let(onResolved)
+        }
+
+        override fun netService(sender: NSNetService, didNotResolve: Map<Any?, *>) {
+            JetWhaleLogger.d("mDNS resolve failed for ${sender.name}")
+        }
+    }
+
+    private val browserDelegate = object : NSObject(), NSNetServiceBrowserDelegateProtocol {
+        override fun netServiceBrowser(
+            browser: NSNetServiceBrowser,
+            didFindService: NSNetService,
+            moreComing: Boolean,
+        ) {
+            didFindService.delegate = serviceDelegate
+            resolvingServices.add(didFindService)
+            didFindService.resolveWithTimeout(RESOLVE_TIMEOUT_SECONDS)
+        }
+
+        override fun netServiceBrowserDidStopSearch(browser: NSNetServiceBrowser) = Unit
+    }
+
+    fun start() {
+        if (stopped) return
+        browser = NSNetServiceBrowser().apply {
+            delegate = browserDelegate
+            searchForServicesOfType(SERVICE_TYPE_DOT, inDomain = SEARCH_DOMAIN)
+        }
+    }
+
+    fun stop() {
+        stopped = true
+        browser?.let {
+            it.stop()
+            it.delegate = null
+        }
+        browser = null
+        resolvingServices.forEach {
+            it.stop()
+            it.delegate = null
+        }
+        resolvingServices.clear()
+    }
 }
 
 private fun NSNetService.toDiscoveredService(): DiscoveredService? {
