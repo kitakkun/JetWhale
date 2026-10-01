@@ -43,9 +43,6 @@ fun GeneralSettingsScreenRoot(
             page = page,
             uiState = uiState,
             modifier = modifier,
-            onCheckedChangePersistData = {
-                screenChannel.send(GeneralSettingsScreenAction.ChangePersistData(it))
-            },
             onAutomaticallyWireADBTransportChange = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangeAutomaticallyWireADBTransport(it))
             },

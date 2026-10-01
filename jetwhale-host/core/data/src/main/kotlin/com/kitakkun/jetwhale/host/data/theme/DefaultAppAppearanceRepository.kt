@@ -137,22 +137,6 @@ class DefaultAppAppearanceRepository(
         }
     }
 
-    private suspend fun saveCustomColorScheme(id: String, colorScheme: JetWhaleColorScheme.Static.Custom) {
-        saveCustomTheme(JetWhaleColorSchemeId.custom(id), colorScheme)
-    }
-
-    private suspend fun saveDynamicColorScheme(id: String, lightColorSchemeId: String, darkColorSchemeId: String) {
-        saveDynamicTheme(
-            id = JetWhaleColorSchemeId.custom(id),
-            lightThemeId = JetWhaleColorSchemeId.BuiltIns.firstOrNull {
-                it.id == lightColorSchemeId
-            } ?: JetWhaleColorSchemeId.custom(lightColorSchemeId),
-            darkThemeId = JetWhaleColorSchemeId.BuiltIns.firstOrNull {
-                it.id == darkColorSchemeId
-            } ?: JetWhaleColorSchemeId.custom(darkColorSchemeId),
-        )
-    }
-
     companion object Companion {
         private val customThemesPreferencesKey = stringPreferencesKey("custom_themes")
         private val dynamicThemesPreferencesKey = stringPreferencesKey("dynamic_themes")

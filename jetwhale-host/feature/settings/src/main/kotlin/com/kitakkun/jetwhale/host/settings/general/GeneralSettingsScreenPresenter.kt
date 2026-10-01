@@ -28,9 +28,6 @@ fun generalSettingsScreenPresenter(
 
     ActionEffect(screenChannel) { action ->
         when (action) {
-            is GeneralSettingsScreenAction.ChangePersistData -> {
-            }
-
             is GeneralSettingsScreenAction.ChangeAutomaticallyWireADBTransport -> {
                 adbAutoPortMappingMutation.mutateAsync(action.shouldAutomaticallyWire)
             }

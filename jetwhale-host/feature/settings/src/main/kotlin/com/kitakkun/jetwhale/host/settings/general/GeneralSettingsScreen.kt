@@ -74,7 +74,6 @@ import org.jetbrains.compose.resources.stringResource
 fun GeneralSettingsScreen(
     page: SettingsScreenPage,
     uiState: GeneralSettingsScreenUiState,
-    onCheckedChangePersistData: (Boolean) -> Unit,
     onAutomaticallyWireADBTransportChange: (Boolean) -> Unit,
     onSelectLanguage: (AppLanguage) -> Unit,
     onSelectColorScheme: (JetWhaleColorSchemeId) -> Unit,
@@ -431,7 +430,6 @@ private fun GeneralSettingsScreenPreview() {
                 updateCheckResult = null,
                 updateCheckError = null,
             ),
-            onCheckedChangePersistData = {},
             onAutomaticallyWireADBTransportChange = {},
             onSelectLanguage = {},
             onSelectColorScheme = {},
