@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -111,16 +110,7 @@ fun captureScreenshot(
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
     val composeCanvas = Canvas(imageBitmap)
     withScopedViewport(scene, viewport) {
-        scene.isMcpCapture.value = true
-        try {
-            // render() flushes snapshot apply notifications only at its end, so flush here or the
-            // frame is drawn before the flag flip is observed.
-            Snapshot.sendApplyNotifications()
-            scene.render(composeCanvas)
-        } finally {
-            scene.isMcpCapture.value = false
-            Snapshot.sendApplyNotifications()
-        }
+        scene.whileCapturingForMcp { scene.render(composeCanvas) }
     }
 
     return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap()).use { image ->
