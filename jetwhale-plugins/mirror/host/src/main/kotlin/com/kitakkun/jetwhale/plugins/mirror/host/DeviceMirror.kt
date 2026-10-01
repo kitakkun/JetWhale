@@ -252,6 +252,7 @@ internal class DeviceMirror(
     }
 
     private suspend fun streamOnce(device: MirrorDevice): StreamOutcome {
+        val frames = surface.startStream()
         // Without the screen's size the frames stay whole and taps map through them instead.
         val screen = try {
             device.controller.screenSize()
@@ -272,19 +273,22 @@ internal class DeviceMirror(
         }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
         if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
-        val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
-        val lastFrameAt = AtomicLong(System.nanoTime())
         val android = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
+                val lastFrameAt = AtomicLong(System.nanoTime())
                 val watches = listOfNotNull(
                     screen?.let { launch { reopenWhenResized(it, outputSize, stream) } },
                     screen?.takeIf { android }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
+                    // Only screenrecord holds a still screen's last frame back; the emulator's own
+                    // stream sends every change as it happens.
+                    stream.takeIf { android && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, lastFrameAt) } },
                 )
+                val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
                 val decoding = async(Dispatchers.IO) {
                     // screenrecord's bytes are its sign of life: a still screen's only frame
                     // decodes once the next one starts, which may be never.
-                    decode(stream, outputSize, onInput = if (android) watchdog::frameArrived else ({})) {
+                    decode(stream, frames, outputSize, onInput = if (android) watchdog::frameArrived else ({})) {
                         lastFrameAt.set(System.nanoTime())
                         watchdog.frameArrived()
                         state = MirrorState.Streaming
@@ -292,19 +296,17 @@ internal class DeviceMirror(
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
                 // lets it return, and this scope waits for it, so the stream is closed here the
-                // moment the body ends or is cancelled. The watches only end on a change, so they
-                // are cancelled there too, or this scope would wait for them after the stream ended.
+                // moment the body ends or is cancelled. The watches only end on a change, and the
+                // screenshots filling in a still screen never, so they are cancelled there too, or
+                // this scope would wait for them after the stream ended.
                 try {
                     if (android) {
                         // A first stream shows as live at once, with screenshots filling in a still
                         // screen; one tried again from behind screenshots keeps them up until it is heard from.
                         if (state == MirrorState.Connecting) state = MirrorState.Streaming
-                        // Only screenrecord holds a still screen's last frame back; the emulator's
-                        // own stream sends every change as it happens.
-                        val settling = if (stream is VideoStream.H264) launch { settleStillScreen(device, lastFrameAt) } else null
                         val silent = stream is VideoStream.H264 && !watchdog.awaitFirstFrame()
                         if (!silent) state = MirrorState.Streaming
-                        (if (silent) StreamOutcome.Silent else decoding.await()).also { settling?.cancel() }
+                        if (silent) StreamOutcome.Silent else decoding.await()
                     } else if (!watchdog.awaitFirstFrame()) {
                         StreamOutcome.Silent
                     } else {
@@ -326,11 +328,11 @@ internal class DeviceMirror(
      * Shows [stream] until it ends. A failure comes back as a value, so a stream this side closed on
      * purpose is not mistaken for one that broke.
      */
-    private fun decode(stream: VideoStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
+    private fun decode(stream: VideoStream, frames: MirrorSurface.FrameStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
         when (stream) {
-            is VideoStream.H264 -> decodeH264Into(surface, stream, outputSize, onInput, onFrame)
-            is VideoStream.RawBgra -> readRawBgraInto(surface, stream, onFrame)
-            is VideoStream.EmulatorRgba -> readEmulatorFramesInto(surface, stream.frames, onFrame)
+            is VideoStream.H264 -> decodeH264Into(frames, stream, outputSize, onInput, onFrame)
+            is VideoStream.RawBgra -> readRawBgraInto(frames, stream, onFrame)
+            is VideoStream.EmulatorRgba -> readEmulatorFramesInto(frames, stream.frames, onFrame)
         }
         StreamOutcome.Ended
     } catch (e: DeviceControlException) {
@@ -388,7 +390,7 @@ internal class DeviceMirror(
      * still screen would show nothing at first and, after motion, the frame before the last.
      * A screenshot fills in at the start and again whenever the stream has gone quiet.
      */
-    private suspend fun settleStillScreen(device: MirrorDevice, lastFrameAt: AtomicLong) {
+    private suspend fun settleStillScreen(device: MirrorDevice, frames: MirrorSurface.FrameStream, lastFrameAt: AtomicLong) {
         var settledAt = 0L
         while (coroutineContext.isActive) {
             val last = lastFrameAt.get()
@@ -396,7 +398,7 @@ internal class DeviceMirror(
                 settledAt = System.nanoTime()
                 // A missed screenshot only leaves the stream's own picture up until the next one.
                 try {
-                    showScreenshot(device)
+                    showScreenshot(device, frames)
                 } catch (_: DeviceControlException) {
                 }
             }
@@ -409,10 +411,11 @@ internal class DeviceMirror(
         // A screenshot is the whole screen at its own size, so taps map through it and follow a
         // fold; the size read when the stream opened would keep them on the panel shown then.
         surface.deviceSize = null
+        val frames = surface.startStream()
         withTimeoutOrNull(forMillis) {
             while (true) {
                 try {
-                    showScreenshot(device)
+                    showScreenshot(device, frames)
                 } catch (e: DeviceControlException) {
                     state = MirrorState.Failed(e.message.orEmpty())
                 }
@@ -421,7 +424,7 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun showScreenshot(device: MirrorDevice) {
+    private suspend fun showScreenshot(device: MirrorDevice, frames: MirrorSurface.FrameStream) {
         val png = device.controller.captureScreenshot()
         withContext(Dispatchers.IO) {
             // Skia refuses bytes that are not an image with an IllegalArgumentException, which would
@@ -432,7 +435,7 @@ internal class DeviceMirror(
                 throw deviceControlError("the screenshot could not be read as an image")
             }
             decoded.use { image ->
-                surface.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
+                frames.writeFrame(image.width, image.height, ColorType.BGRA_8888) { image.readPixels(it, 0, 0) }
             }
         }
     }

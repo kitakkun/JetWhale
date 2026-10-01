@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
- * Decodes the raw H.264 of [stream] into [surface] through the `ffmpeg` command it names, frame by
+ * Decodes the raw H.264 of [stream] into [target] through the `ffmpeg` command it names, frame by
  * frame. [onInput] is called as the device's bytes arrive and [onFrame] after each frame, so the
  * caller can watch the stream's health: the decoder holds a frame back until the next one starts,
  * so a still screen sends bytes but decodes nothing. Returns when the stream ends; blocks the
@@ -24,7 +24,7 @@ import kotlin.concurrent.thread
  * stream at the new size: ffmpeg keeps writing frames of the first size and squeezes the new
  * picture into them.
  */
-internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit) {
+internal fun decodeH264Into(target: MirrorSurface.FrameStream, stream: VideoStream.H264, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit) {
     val ffmpegProcess = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpegPath, outputSize))
     // ffmpeg ends at the end of its input, which ends the copy without the error that killing it
     // mid-read would raise.
@@ -36,7 +36,7 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, ou
     val frames = try {
         // No size means ffmpeg ended before describing its output; the error check below says why.
         val frameSize = outputSize ?: log.outputSize.get()
-        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, surface, log::inputResized, onFrame) } ?: 0
+        frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, target, log::inputResized, onFrame) } ?: 0
     } finally {
         ffmpegProcess.destroyForcibly()
         ffmpegProcess.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
@@ -49,15 +49,15 @@ internal fun decodeH264Into(surface: MirrorSurface, stream: VideoStream.H264, ou
 }
 
 /**
- * Copies BGRA frames of [frameSize] from [output] into [surface] until it ends; returns how many.
+ * Copies BGRA frames of [frameSize] from [output] into [target] until it ends; returns how many.
  * Once [isResized], the frames left hold a squeezed picture and are dropped.
  */
-private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, surface: MirrorSurface, isResized: () -> Boolean, onFrame: () -> Unit): Int {
+private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, target: MirrorSurface.FrameStream, isResized: () -> Boolean, onFrame: () -> Unit): Int {
     val frame = ByteArray(frameSize.width * frameSize.height * BYTES_PER_PIXEL)
     var frames = 0
-    while (output.timingWork(surface::recordDecode) { output.readNBytes(frame, 0, frame.size) } == frame.size) {
+    while (output.timingWork(target::recordDecode) { output.readNBytes(frame, 0, frame.size) } == frame.size) {
         if (isResized()) continue
-        surface.writeBgraFrame(frame, frameSize, rowBytes = frameSize.width * BYTES_PER_PIXEL)
+        target.writeBgraFrame(frame, frameSize, rowBytes = frameSize.width * BYTES_PER_PIXEL)
         frames++
         onFrame()
     }

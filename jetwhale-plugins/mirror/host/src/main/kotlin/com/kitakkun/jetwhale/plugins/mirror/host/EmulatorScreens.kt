@@ -96,17 +96,17 @@ internal fun parseEmulatorDiscovery(text: String): Pair<Int, EmulatorEndpoint>? 
 }
 
 /**
- * Reads the `Image` messages of a `streamScreenshot` response from [frames] into [surface] until the
+ * Reads the `Image` messages of a `streamScreenshot` response from [frames] into [target] until the
  * stream ends. The pixels of each frame are read straight into one buffer kept for the whole
  * stream; it grows only when a frame is larger than any before it.
  */
-internal fun readEmulatorFramesInto(surface: MirrorSurface, frames: InputStream, onFrame: () -> Unit) {
+internal fun readEmulatorFramesInto(target: MirrorSurface.FrameStream, frames: InputStream, onFrame: () -> Unit) {
     val timed = WaitTimingInputStream(frames)
     val reader = EmulatorImageReader(timed)
     try {
         while (true) {
-            val image = timed.timingWork(surface::recordDecode, reader::next) ?: return
-            surface.writeRgbaFrame(reader.pixels, image)
+            val image = timed.timingWork(target::recordDecode, reader::next) ?: return
+            target.writeRgbaFrame(reader.pixels, image)
             onFrame()
         }
     } catch (_: IOException) {
@@ -115,7 +115,7 @@ internal fun readEmulatorFramesInto(surface: MirrorSurface, frames: InputStream,
     }
 }
 
-private fun MirrorSurface.writeRgbaFrame(pixels: ByteArray, image: EmulatorImage) {
+private fun MirrorSurface.FrameStream.writeRgbaFrame(pixels: ByteArray, image: EmulatorImage) {
     writeFrame(image.width, image.height, ColorType.RGBA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
         pixmap.writeRows(pixels, sourceRowBytes = image.width * 4, height = image.height)

@@ -128,7 +128,7 @@ class VideoStreamTest {
         MirrorSurface().use { surface ->
             var frames = 0
 
-            readRawBgraInto(surface, rawStream(stream, size, rowBytes = size.width * 4)) { frames++ }
+            readRawBgraInto(surface.startStream(), rawStream(stream, size, rowBytes = size.width * 4)) { frames++ }
 
             assertEquals(3, frames)
             surface.drawFrame { bitmap -> assertEquals(2.toByte(), bitmap.readPixels()?.first()) }
@@ -141,7 +141,7 @@ class VideoStreamTest {
         // Rows of 16 bytes: 8 of pixels, then 8 of padding filled with a marker.
         val stream = ByteArrayInputStream(ByteArray(32) { if (it % 16 < 8) 1 else 9 })
         MirrorSurface().use { surface ->
-            readRawBgraInto(surface, rawStream(stream, size, rowBytes = 16)) {}
+            readRawBgraInto(surface.startStream(), rawStream(stream, size, rowBytes = 16)) {}
 
             surface.drawFrame { bitmap -> assertTrue(bitmap.readPixels()?.all { it == 1.toByte() } ?: false) }
         }
@@ -156,7 +156,7 @@ class VideoStreamTest {
         MirrorSurface().use { surface ->
             var frames = 0
 
-            readRawBgraInto(surface, rawStream(stream, size, rowBytes = 64)) { frames++ }
+            readRawBgraInto(surface.startStream(), rawStream(stream, size, rowBytes = 64)) { frames++ }
 
             assertEquals(4, frames)
             surface.drawFrame { bitmap -> assertTrue(bitmap.readPixels()?.all { it == 3.toByte() } ?: false) }
@@ -170,7 +170,7 @@ class VideoStreamTest {
         MirrorSurface().use { surface ->
             var frames = 0
 
-            readRawBgraInto(surface, rawStream(ByteArrayInputStream(ByteArray(frameBytes + frameBytes / 2)), size, rowBytes = size.width * 4)) { frames++ }
+            readRawBgraInto(surface.startStream(), rawStream(ByteArrayInputStream(ByteArray(frameBytes + frameBytes / 2)), size, rowBytes = size.width * 4)) { frames++ }
 
             assertEquals(1, frames)
         }
