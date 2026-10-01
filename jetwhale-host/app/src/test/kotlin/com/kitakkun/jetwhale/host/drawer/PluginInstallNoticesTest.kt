@@ -243,5 +243,3 @@ class PluginInstallNoticesTest {
         MavenCoordinates(groupId = "com.example", artifactId = artifactId, version = "1.3.0", repositoryUrl = "https://example.com/releases"),
     )
 }
-
-private const val BATCH_WINDOW_MILLIS = 1_000L

@@ -175,6 +175,6 @@ private suspend fun namesOf(jobs: List<PluginInstallJob>): String {
 }
 
 /** How long finishing installs are gathered into one notice before it shows. */
-private const val BATCH_WINDOW_MILLIS = 1_000L
+internal const val BATCH_WINDOW_MILLIS = 1_000L
 
 private const val MAX_NAMED_PLUGINS = 3

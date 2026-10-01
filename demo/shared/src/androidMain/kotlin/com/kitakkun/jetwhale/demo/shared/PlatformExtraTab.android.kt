@@ -34,11 +34,6 @@ import kotlin.coroutines.cancellation.CancellationException
 
 actual val platformExtraTabLabel: String? = "Network (OkHttp)"
 
-/**
- * OkHttp-based mirror of [NetworkTestScreen] — shares the same [DIModule.networkAgentPlugin], so
- * both tabs' traffic shows up side by side in the same Network Inspector session. Android-only
- * since OkHttp only targets JVM/Android.
- */
 private val okHttpClient: OkHttpClient by lazy {
     OkHttpClient.Builder()
         .callTimeout(10, TimeUnit.SECONDS)
@@ -46,6 +41,11 @@ private val okHttpClient: OkHttpClient by lazy {
         .build()
 }
 
+/**
+ * OkHttp-based mirror of [NetworkTestScreen] — shares the same [DIModule.networkAgentPlugin], so
+ * both tabs' traffic shows up side by side in the same Network Inspector session. Android-only
+ * since OkHttp only targets JVM/Android.
+ */
 @Composable
 actual fun PlatformExtraTabScreen() {
     val scope = rememberCoroutineScope()
