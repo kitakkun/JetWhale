@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -32,6 +33,7 @@ internal fun HttpTransaction.toSummaryJson(): JsonObject = buildJsonObject {
         put("failureMessage", it.message)
     }
     if (response == null && failure == null) put("pending", true)
+    condition?.let { putJsonObject("networkCondition") { putCondition(it) } }
 }
 
 /** Full transaction view for getTransaction, including headers and bodies. */
@@ -40,6 +42,17 @@ internal fun HttpTransaction.toDetailJson(): JsonObject = buildJsonObject {
     putJsonObject("request") { putRequest(request) }
     response?.let { putJsonObject("response") { putResponse(it) } }
     failure?.let { putJsonObject("failure") { putFailure(it) } }
+    condition?.let { putJsonObject("networkCondition") { putCondition(it) } }
+}
+
+private fun JsonObjectBuilder.putCondition(condition: AppliedNetworkCondition) {
+    put("ruleId", condition.ruleId)
+    put("ruleName", condition.ruleName)
+    put("addedLatencyMs", condition.addedLatencyMs)
+    condition.downloadBytesPerSecond?.let { put("downloadBytesPerSecond", it) }
+    condition.uploadBytesPerSecond?.let { put("uploadBytesPerSecond", it) }
+    condition.injectedFailure?.let { put("injectedFailure", it.name) }
+    if (condition.offline) put("offline", true)
 }
 
 private fun JsonObjectBuilder.putRequest(request: CapturedHttpRequest) {

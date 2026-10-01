@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
@@ -11,4 +12,7 @@ data class HttpTransaction(
     val failure: HttpRequestFailure? = null,
 ) {
     val txId: String get() = request.txId
+
+    /** The network condition that shaped this exchange, once its outcome is known. */
+    val condition: AppliedNetworkCondition? get() = response?.condition ?: failure?.condition
 }

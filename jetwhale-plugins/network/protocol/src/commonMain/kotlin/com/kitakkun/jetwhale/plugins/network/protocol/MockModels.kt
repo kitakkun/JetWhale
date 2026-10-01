@@ -80,7 +80,7 @@ fun List<MockRule>.findMatching(method: String, url: String, enabled: Boolean): 
     }?.response
 }
 
-private fun MockMatcher.matches(method: String, url: String): Boolean {
+internal fun MockMatcher.matches(method: String, url: String): Boolean {
     val methodMatches = this.method.isNullOrBlank() || this.method.equals(method, ignoreCase = true)
     if (!methodMatches) return false
     return when (matchType) {

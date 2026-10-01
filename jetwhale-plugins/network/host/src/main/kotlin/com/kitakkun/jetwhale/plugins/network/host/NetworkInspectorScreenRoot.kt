@@ -22,6 +22,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -35,9 +36,11 @@ fun NetworkInspectorScreenRoot(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
+    conditionRules: List<NetworkConditionRule>,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
+    onConditionRulesChanged: (List<NetworkConditionRule>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val trafficSplitPaneState = rememberPersistedSplitPaneState()
@@ -46,10 +49,12 @@ fun NetworkInspectorScreenRoot(
         transactions = transactions,
         mockRules = mockRules,
         mockingEnabled = mockingEnabled,
+        conditionRules = conditionRules,
         trafficSplitPaneState = trafficSplitPaneState,
         onClearTransactions = onClearTransactions,
         onToggleMocking = onToggleMocking,
         onMockRulesChanged = onMockRulesChanged,
+        onConditionRulesChanged = onConditionRulesChanged,
         modifier = modifier,
     )
 }

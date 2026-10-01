@@ -1,3 +1,9 @@
+public final class com/kitakkun/jetwhale/plugins/network/agent/BandwidthPacer {
+	public fun <init> (JLkotlin/time/TimeSource;)V
+	public final fun delayBefore-5sfh64U (I)J
+	public final fun getChunkSize ()I
+}
+
 public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin$Companion;
 	public static final field PLUGIN_ID Ljava/lang/String;
@@ -8,12 +14,25 @@ public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAg
 	public fun getPluginId ()Ljava/lang/String;
 	public fun getPluginVersion ()Ljava/lang/String;
 	public final fun newTransactionId ()Ljava/lang/String;
+	public final fun planNetworkCondition (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkConditionPlan;
 	public final fun recordFailure (Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)V
 	public final fun recordRequest (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)V
 	public final fun recordResponse (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)V
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkConditionPlan {
+	public final fun applied ()Lcom/kitakkun/jetwhale/plugins/network/protocol/AppliedNetworkCondition;
+	public final fun getDownloadBytesPerSecond ()Ljava/lang/Long;
+	public final fun getFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/InjectedFailure;
+	public final fun getFailureAfter-UwyO8pc ()J
+	public final fun getLatency-UwyO8pc ()J
+	public final fun getOffline ()Z
+	public final fun getRuleId ()Ljava/lang/String;
+	public final fun getRuleName ()Ljava/lang/String;
+	public final fun getUploadBytesPerSecond ()Ljava/lang/Long;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules {
