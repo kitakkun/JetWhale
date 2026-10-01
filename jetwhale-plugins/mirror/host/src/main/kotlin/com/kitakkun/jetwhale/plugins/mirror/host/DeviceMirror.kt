@@ -60,6 +60,13 @@ private const val SCREEN_CHANGE_POLL_MILLIS = 2_000L
 /** How fast the still-image fallback polls, for a device whose stream never started. */
 private const val SCREENSHOT_POLL_MILLIS = 250L
 
+/**
+ * How long screenshots stand in before the stream is tried again, after one, two, and three or more
+ * failures in a row. A failure that passes (adb restarting, a fold in progress) costs a few seconds;
+ * one that lasts (no ffmpeg) costs one attempt a minute.
+ */
+private val SCREENSHOT_FALLBACK_MILLIS = listOf(5_000L, 15_000L, 60_000L)
+
 /** How long a stream waits for its view to be laid out; a first layout takes a frame or two. */
 private const val VIEW_SIZE_WAIT_MILLIS = 1_500L
 
@@ -193,10 +200,13 @@ internal class DeviceMirror(
     }
 
     private suspend fun streamUntilCancelled(device: MirrorDevice) {
+        var fallbacks = 0
         while (coroutineContext.isActive) {
-            state = MirrorState.Connecting
+            // A stream tried again from behind screenshots keeps them up instead of a Connecting screen.
+            if (fallbacks == 0) state = MirrorState.Connecting
+            val fallbackMillis = SCREENSHOT_FALLBACK_MILLIS[fallbacks.coerceAtMost(SCREENSHOT_FALLBACK_MILLIS.lastIndex)]
             when (val outcome = streamOnce(device)) {
-                is StreamOutcome.Ended -> Unit
+                is StreamOutcome.Ended -> fallbacks = 0
 
                 // A physical iOS device has nothing to fall back on, so the mirror says why it
                 // is blank and tries again; the others still show something through screenshots.
@@ -204,14 +214,16 @@ internal class DeviceMirror(
                     state = MirrorState.NoFrames(noFramesHints(device.kind))
                     delay(STREAM_RETRY_MILLIS)
                 } else {
-                    pollScreenshots(device, reason = "the video stream sent no picture")
+                    pollScreenshots(device, reason = "the video stream sent no picture", forMillis = fallbackMillis)
+                    fallbacks++
                 }
 
                 is StreamOutcome.Unavailable -> if (device.kind == DeviceKind.IosDevice) {
                     state = MirrorState.Failed(outcome.message)
                     delay(STREAM_RETRY_MILLIS)
                 } else {
-                    pollScreenshots(device, reason = outcome.message)
+                    pollScreenshots(device, reason = outcome.message, forMillis = fallbackMillis)
+                    fallbacks++
                 }
             }
         }
@@ -284,11 +296,14 @@ internal class DeviceMirror(
                 // are cancelled there too, or this scope would wait for them after the stream ended.
                 try {
                     if (android) {
-                        state = MirrorState.Streaming
+                        // A first stream shows as live at once, with screenshots filling in a still
+                        // screen; one tried again from behind screenshots keeps them up until it is heard from.
+                        if (state == MirrorState.Connecting) state = MirrorState.Streaming
                         // Only screenrecord holds a still screen's last frame back; the emulator's
                         // own stream sends every change as it happens.
                         val settling = if (stream is VideoStream.H264) launch { settleStillScreen(device, lastFrameAt) } else null
                         val silent = stream is VideoStream.H264 && !watchdog.awaitFirstFrame()
+                        if (!silent) state = MirrorState.Streaming
                         (if (silent) StreamOutcome.Silent else decoding.await()).also { settling?.cancel() }
                     } else if (!watchdog.awaitFirstFrame()) {
                         StreamOutcome.Silent
@@ -389,18 +404,20 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun pollScreenshots(device: MirrorDevice, reason: String) {
+    private suspend fun pollScreenshots(device: MirrorDevice, reason: String, forMillis: Long) {
         state = MirrorState.Polling(reason)
         // A screenshot is the whole screen at its own size, so taps map through it and follow a
         // fold; the size read when the stream opened would keep them on the panel shown then.
         surface.deviceSize = null
-        while (coroutineContext.isActive) {
-            try {
-                showScreenshot(device)
-            } catch (e: DeviceControlException) {
-                state = MirrorState.Failed(e.message.orEmpty())
+        withTimeoutOrNull(forMillis) {
+            while (true) {
+                try {
+                    showScreenshot(device)
+                } catch (e: DeviceControlException) {
+                    state = MirrorState.Failed(e.message.orEmpty())
+                }
+                delay(SCREENSHOT_POLL_MILLIS)
             }
-            delay(SCREENSHOT_POLL_MILLIS)
         }
     }
 

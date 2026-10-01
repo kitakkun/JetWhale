@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -342,6 +343,18 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a device on screenshots tries its stream again without leaving them for a connecting screen`() = runBlocking<Unit> {
+        val controller = FlakyStreamDevice(stateNow = { mirror.state })
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        val stateWhenTriedAgain = withTimeout(STREAM_RETRY_TIMEOUT_MILLIS) { controller.triedAgain.await() }
+        session.cancel()
+
+        assertIs<MirrorState.Polling>(stateWhenTriedAgain)
+    }
+
+    @Test
     fun `a screenrecord stream that sends bytes but no finished frame keeps streaming`() = runBlocking {
         // One frame of a still screen: the decoder holds it back until a next one starts.
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = null)
@@ -395,6 +408,9 @@ private const val SCREEN_CHANGE_TIMEOUT_MILLIS = 5_000L
 
 /** Longer than the mirror waits for a first sign of life from a stream. */
 private const val SILENT_STREAM_TIMEOUT_MILLIS = 9_000L
+
+/** Longer than screenshots stand in after a first failed stream before it is tried again. */
+private const val STREAM_RETRY_TIMEOUT_MILLIS = 8_000L
 
 private val UNFOLDED_SCREEN = IntSize(2208, 1840)
 
@@ -682,6 +698,51 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
         }
         return screenshot ?: awaitCancellation()
     }
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
+
+    override suspend fun tap(x: Int, y: Int) = Unit
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = Unit
+
+    override suspend fun pressButton(button: DeviceButton) = Unit
+
+    override suspend fun inputText(text: String) = Unit
+
+    override suspend fun release() = Unit
+}
+
+/**
+ * An emulator whose first stream fails to open and whose next one sends a frame. Its screenshots
+ * never finish, so the mirror's state stays as it set it.
+ */
+private class FlakyStreamDevice(private val stateNow: () -> MirrorState) : DeviceController {
+    private val opened = AtomicInteger()
+
+    /** Completes with the mirror's state when it opens a second stream. */
+    val triedAgain = CompletableDeferred<MirrorState>()
+
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+
+    override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
+
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        if (opened.incrementAndGet() == 1) throw deviceControlError("adb is restarting")
+        triedAgain.complete(stateNow())
+        val writer = PipedOutputStream()
+        val frames = PipedInputStream(writer, ONE_FRAME_MESSAGE.size)
+        writer.write(ONE_FRAME_MESSAGE)
+        writer.flush()
+        return VideoStream.EmulatorRgba(frames = frames, cancel = writer::close)
+    }
+
+    override suspend fun captureScreenshot(): ByteArray = awaitCancellation()
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 
