@@ -329,6 +329,19 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `screenshots shown in place of a stream map taps through their own size`() = runBlocking {
+        val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+
+        withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
+        val deviceSize = mirror.surface.deviceSize
+        session.cancel()
+
+        assertNull(deviceSize)
+    }
+
+    @Test
     fun `a screenrecord stream that sends bytes but no finished frame keeps streaming`() = runBlocking {
         // One frame of a still screen: the decoder holds it back until a next one starts.
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = null)

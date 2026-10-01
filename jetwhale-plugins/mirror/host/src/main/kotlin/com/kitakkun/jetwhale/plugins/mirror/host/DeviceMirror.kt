@@ -391,6 +391,9 @@ internal class DeviceMirror(
 
     private suspend fun pollScreenshots(device: MirrorDevice, reason: String) {
         state = MirrorState.Polling(reason)
+        // A screenshot is the whole screen at its own size, so taps map through it and follow a
+        // fold; the size read when the stream opened would keep them on the panel shown then.
+        surface.deviceSize = null
         while (coroutineContext.isActive) {
             try {
                 showScreenshot(device)
