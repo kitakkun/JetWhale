@@ -104,8 +104,9 @@ class MirrorViewingTest {
     @Test
     fun `the newest frame is drawn and frames the screen had no time for are skipped`() {
         MirrorSurface().use { surface ->
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.BLUE))
+            val frames = surface.startStream()
+            frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+            frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.BLUE))
 
             val drawn = surface.drawnFrame()
 
@@ -114,9 +115,37 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a stream that keeps writing after the next one started never reaches the screen`() {
+        MirrorSurface().use { surface ->
+            val earlier = surface.startStream()
+            val later = surface.startStream()
+            later.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.BLUE))
+
+            earlier.writeFrame(width = 8, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+            val drawn = surface.drawnFrame()
+
+            assertEquals(Color.BLUE, drawn?.getColor(0, 0))
+            assertEquals(4, drawn?.width)
+        }
+    }
+
+    @Test
+    fun `a stream of the device shown before a switch never reaches the screen after it`() {
+        MirrorSurface().use { surface ->
+            surface.switchTo("pixel")
+            val pixel = surface.startStream()
+            surface.switchTo("iphone")
+
+            pixel.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+
+            assertNull(surface.drawnFrame())
+        }
+    }
+
+    @Test
     fun `drawing again without a new frame keeps the frame on screen`() {
         MirrorSurface().use { surface ->
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
 
             val first = surface.drawnFrame()
 
@@ -132,10 +161,11 @@ class MirrorViewingTest {
             written += bitmap
             true
         }
-        repeat(2) { surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = record) }
+        val frames = surface.startStream()
+        repeat(2) { frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = record) }
 
         // A new size replaces the bitmaps of the old one.
-        repeat(2) { surface.writeFrame(width = 8, height = 8, colorType = ColorType.BGRA_8888, write = record) }
+        repeat(2) { frames.writeFrame(width = 8, height = 8, colorType = ColorType.BGRA_8888, write = record) }
         surface.close()
 
         assertTrue(written.all(Bitmap::isClosed))
@@ -148,7 +178,7 @@ class MirrorViewingTest {
             val cleared = CountDownLatch(1)
             var closedDuringWrite = true
             var clearedDuringWrite = true
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { target ->
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { target ->
                 thread {
                     clearStarted.countDown()
                     surface.switchTo("device-2")
@@ -171,7 +201,7 @@ class MirrorViewingTest {
         val surface = MirrorSurface()
         surface.close()
 
-        surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.BLUE))
+        surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.BLUE))
 
         assertNull(surface.drawnFrame())
     }
@@ -179,7 +209,7 @@ class MirrorViewingTest {
     @Test
     fun `closing during a draw leaves the drawn frame open until the draw ends`() {
         val surface = MirrorSurface()
-        surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+        surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
         var openAfterClose = false
         var drawn: Bitmap? = null
 
@@ -196,7 +226,7 @@ class MirrorViewingTest {
     @Test
     fun `a device switch and a close during a draw leave the drawn frame open until the draw ends`() {
         val surface = MirrorSurface()
-        surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+        surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
         var openAfterClose = false
         var drawn: Bitmap? = null
 
@@ -219,11 +249,12 @@ class MirrorViewingTest {
             val surface = MirrorSurface()
             val written = mutableListOf<Bitmap>()
             val started = CountDownLatch(1)
+            val frames = surface.startStream()
             val decoder = thread {
                 repeat(FRAMES_PER_ROUND) { frame ->
                     // Alternating sizes allocates a new bitmap on most frames.
                     val side = if (frame % 2 == 0) 4 else 8
-                    surface.writeFrame(width = side, height = side, ColorType.BGRA_8888) { bitmap ->
+                    frames.writeFrame(width = side, height = side, ColorType.BGRA_8888) { bitmap ->
                         written += bitmap
                         started.countDown()
                         true
@@ -241,12 +272,13 @@ class MirrorViewingTest {
     @Test
     fun `the decoder never writes into the bitmap being drawn`() {
         MirrorSurface().use { surface ->
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+            val frames = surface.startStream()
+            frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
             val onScreen = surface.drawnFrame()
             val written = mutableListOf<Any>()
 
             repeat(3) {
-                surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
+                frames.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
                     written += bitmap
                     fill(Color.GREEN)(bitmap)
                 }
@@ -268,7 +300,7 @@ class MirrorViewingTest {
             assertEquals(Color.RED, surface.drawnFrame()?.getColor(0, 0))
             assertTrue(surface.showingKeptFrame)
 
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.GREEN))
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.GREEN))
             assertEquals(Color.GREEN, surface.drawnFrame()?.getColor(0, 0))
             assertFalse(surface.showingKeptFrame)
         }
@@ -293,7 +325,7 @@ class MirrorViewingTest {
     fun `the newest frame is kept even when the screen had no time to show it`() {
         MirrorSurface().use { surface ->
             surface.showLive("phone", Color.RED)
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.GREEN))
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.GREEN))
 
             surface.switchTo("tablet")
             surface.switchTo("phone")
@@ -334,7 +366,7 @@ class MirrorViewingTest {
         val written = mutableListOf<Bitmap>()
         listOf("a", "b", "c").forEach { device ->
             surface.switchTo(device)
-            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
                 written += bitmap
                 true
             }
@@ -357,7 +389,7 @@ private fun MirrorSurface.drawnFrame(): Bitmap? {
 /** Mirrors [device] until a frame of [color] is on screen. */
 private fun MirrorSurface.showLive(device: String, color: Int) {
     switchTo(device)
-    writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(color))
+    startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(color))
     drawnFrame()
 }
 

@@ -117,16 +117,16 @@ internal const val MIN_RAW_WIDTH = 240
 internal const val MAX_SIMULATOR_STREAM_WIDTH = 600
 
 /**
- * Copies BGRA frames of [frameSize] from [stream] into [surface] until the stream ends. Blocks the
+ * Copies BGRA frames of [frameSize] from [stream] into [target] until the stream ends. Blocks the
  * calling thread, so run it off the UI. One buffer holds a frame between the pipe and the bitmap
  * for the whole stream.
  */
-internal fun readRawBgraInto(surface: MirrorSurface, stream: VideoStream.RawBgra, onFrame: () -> Unit) {
+internal fun readRawBgraInto(target: MirrorSurface.FrameStream, stream: VideoStream.RawBgra, onFrame: () -> Unit) {
     val frame = ByteArray(stream.rowBytes * stream.frameSize.height)
     val input = WaitTimingInputStream(stream.frames)
     val pace = ArrivalPace(requestedFps = stream.fps, windowNanos = PACE_WINDOW_NANOS)
-    while (input.timingWork(surface::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
-        surface.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
+    while (input.timingWork(target::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
+        target.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
         onFrame()
         val arrivedFps = pace.fellBehind(System.nanoTime()) ?: continue
         if (stream.onFellBehind(arrivedFps)) return
@@ -163,8 +163,8 @@ internal class ArrivalPace(private val requestedFps: Int, private val windowNano
 
 private const val KEPT_PACE_SHARE = 0.85
 
-/** Stores [frame], BGRA rows of [rowBytes], as the next frame of this surface. */
-internal fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
+/** Stores [frame], BGRA rows of [rowBytes], as the next frame of this stream. */
+internal fun MirrorSurface.FrameStream.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
     writeFrame(frameSize.width, frameSize.height, ColorType.BGRA_8888) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
         pixmap.writeRows(frame, sourceRowBytes = rowBytes, height = frameSize.height)

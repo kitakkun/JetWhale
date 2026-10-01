@@ -246,7 +246,7 @@ private fun MirrorVideoPreview() {
 private fun rememberPreviewSurface(): MirrorSurface = remember {
     MirrorSurface().apply {
         switchTo("emulator-5554")
-        writeFrame(width = 108, height = 240, colorType = ColorType.BGRA_8888) { bitmap ->
+        startStream().writeFrame(width = 108, height = 240, colorType = ColorType.BGRA_8888) { bitmap ->
             bitmap.erase(Color.makeRGB(r = 0x3D, g = 0x5A, b = 0xFE))
             true
         }

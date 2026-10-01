@@ -158,7 +158,7 @@ class IosPhysicalDeviceCapturesTest {
     fun `the streaming device's newest frame is encoded as a PNG at the size it was decoded`() {
         MirrorSurface().use { surface ->
             surface.switchTo("iphone")
-            surface.writeFrame(width = 6, height = 12, colorType = ColorType.BGRA_8888) {
+            surface.startStream().writeFrame(width = 6, height = 12, colorType = ColorType.BGRA_8888) {
                 it.erase(Color.RED)
                 true
             }

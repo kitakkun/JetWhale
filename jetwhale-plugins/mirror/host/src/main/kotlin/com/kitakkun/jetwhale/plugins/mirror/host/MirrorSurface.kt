@@ -51,6 +51,9 @@ internal class MirrorSurface : AutoCloseable {
     // Set by [close]; a decoder still finishing its last frame then writes nothing.
     private var closed = false
 
+    // Bumped by [startStream] and [switchTo]; a writer of an earlier stream then writes nothing.
+    private var streamGeneration = 0L
+
     // The bitmap [drawFrame] is drawing outside the lock. Whatever retires it meanwhile — a
     // [switchTo], a [close] — sets [closeWhenDrawn] and leaves the closing to the draw's end.
     private var drawn: Bitmap? = null
@@ -86,15 +89,36 @@ internal class MirrorSurface : AutoCloseable {
     private val window = StatsWindow()
 
     /**
-     * Stores one frame of [width] by [height] pixels laid out as [colorType], which [write] puts into
-     * the bitmap it is given; [write] returns false when it could not, and the frame is dropped.
-     * Called from the decoding thread.
+     * Starts the next stream of frames into this surface. From now on only the returned
+     * [FrameStream] writes: a stream started before it may still be finishing a frame, of a screen
+     * since turned or folded, and that frame must not land between the new stream's.
      */
-    fun writeFrame(width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
+    fun startStream(): FrameStream = FrameStream(synchronized(lock) { ++streamGeneration })
+
+    /** One stream's frames into this surface; its writes are dropped once a newer stream has started. */
+    inner class FrameStream internal constructor(private val generation: Long) {
+        /**
+         * Stores one frame of [width] by [height] pixels laid out as [colorType], which [write] puts
+         * into the bitmap it is given; [write] returns false when it could not, and the frame is
+         * dropped. Called from the decoding thread.
+         */
+        fun writeFrame(width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) = writeStreamFrame(generation, width, height, colorType, write)
+
+        /**
+         * Records the time the decoder took for one frame, for [stats]. Leave out the time spent
+         * waiting for the device to send it: a still screen sends nothing for seconds.
+         */
+        fun recordDecode(nanos: Long) {
+            window.recordDecode(nanos)
+            publishStatsIfDue()
+        }
+    }
+
+    private fun writeStreamFrame(generation: Long, width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
         val started = System.nanoTime()
         // The write happens under the lock too, so [clear] can never close the bitmap being written.
         synchronized(lock) {
-            if (closed) return
+            if (closed || generation != streamGeneration) return
             val reusable = back?.takeIf { it.width == width && it.height == height && it.imageInfo.colorType == colorType }
             val target = reusable ?: newBitmap(width, height, colorType).also {
                 back?.close()
@@ -109,15 +133,6 @@ internal class MirrorSurface : AutoCloseable {
         showingKeptFrame = false
         window.recordCopy(System.nanoTime() - started)
         frameCounter++
-    }
-
-    /**
-     * Records the time the decoder took for one frame, for [stats]. Leave out the time spent waiting
-     * for the device to send it: a still screen sends nothing for seconds.
-     */
-    fun recordDecode(nanos: Long) {
-        window.recordDecode(nanos)
-        publishStatsIfDue()
     }
 
     /**
@@ -207,6 +222,7 @@ internal class MirrorSurface : AutoCloseable {
             }
             if (previous != nextDeviceId) front = lastFrames.remove(nextDeviceId)
             deviceId = nextDeviceId
+            streamGeneration++
             while (lastFrames.size > MAX_KEPT_FRAMES) {
                 val oldest = lastFrames.keys.first()
                 lastFrames.remove(oldest)?.closeUnlessDrawn()

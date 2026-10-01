@@ -56,9 +56,12 @@ When a tool is missing, the device list says which one and what it would enable.
   saves one screenshot per device into the captures; what was saved shows briefly at the bottom.
 - **Live view.** The mirrored screen fills the pane at its own aspect ratio, and the video is
   decoded at the size it is shown. A click is a tap and a drag is a swipe, at the matching point
-  on the device. An iOS simulator streams uncompressed frames at up to 60 per second, scaled by the
-  simulator to the size shown. When no live video is available, the mirror falls back to
-  screenshots and says why above the text field.
+  on the device. When an Android device rotates or a foldable folds, the view follows within a
+  couple of seconds, keeping the last picture up meanwhile. An iOS simulator streams uncompressed
+  frames at up to 60 per second, scaled by the simulator to the size shown. When no live video is
+  available, the mirror falls back to screenshots and says why above the text field. It tries the
+  video again after 5 seconds, then 15, then once a minute, and returns to it as soon as the video
+  comes back.
 - **Switching devices.** Switching back to a device shows its last frame at once, dimmed, until
   its stream reconnects. The last frames of the four devices shown most recently are kept.
 - **Hardware buttons.** Icon buttons in the toolbar, with the name in a tooltip, in groups

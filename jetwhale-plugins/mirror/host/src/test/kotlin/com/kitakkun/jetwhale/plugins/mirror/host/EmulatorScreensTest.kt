@@ -98,7 +98,7 @@ class EmulatorScreensTest {
         MirrorSurface().use { surface ->
             var count = 0
 
-            readEmulatorFramesInto(surface, ByteArrayInputStream(whole + cut)) { count++ }
+            readEmulatorFramesInto(surface.startStream(), ByteArrayInputStream(whole + cut)) { count++ }
 
             assertEquals(1, count)
         }
@@ -119,7 +119,7 @@ class EmulatorScreensTest {
         MirrorSurface().use { surface ->
             var count = 0
 
-            readEmulatorFramesInto(surface, ByteArrayInputStream(frames)) { count++ }
+            readEmulatorFramesInto(surface.startStream(), ByteArrayInputStream(frames)) { count++ }
 
             assertEquals(2, count)
             surface.drawFrame { bitmap -> assertEquals(9.toByte(), bitmap.readPixels()?.first()) }
