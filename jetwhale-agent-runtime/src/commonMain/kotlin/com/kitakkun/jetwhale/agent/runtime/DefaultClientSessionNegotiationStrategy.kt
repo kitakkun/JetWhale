@@ -67,7 +67,7 @@ internal class DefaultClientSessionNegotiationStrategy(
                 appMetadata = appMetadata,
             ),
         )
-        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $resumingSessionId".takeIf { resumingSessionId != null })
+        JetWhaleLogger.v("Sent session negotiation request" + resumingSessionId?.let { " with sessionId: $it" }.orEmpty())
 
         val assignedSessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
         JetWhaleLogger.d("Session negotiation completed with sessionId: $assignedSessionId")
