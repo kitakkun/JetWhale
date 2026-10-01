@@ -255,14 +255,14 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
         MutationKey<Unit, McpPluginPermissionParams> by noop("mcp_plugin_interact") {},
     mcpPluginToolPermissionMutationKey = noop("mcp_plugin_tool"),
     pluginInstallMutationKey = noop("plugin_install"),
-    startPluginInstallMutationKey = noopReturning("start_plugin_install"),
+    startPluginInstallMutationKey = unexercised("start_plugin_install"),
     cancelPluginInstallMutationKey = object : CancelPluginInstallMutationKey, MutationKey<Unit, String> by noop("cancel_plugin_install") {},
     dismissPluginInstallMutationKey = object : DismissPluginInstallMutationKey, MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
     trustPluginMutationKey = noop("trust_plugin"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},
-    updateCheckMutationKey = noopReturning("update_check"),
+    updateCheckMutationKey = unexercised("update_check"),
     updateInstallMutationKey = noop("update_install"),
     checkForUpdatesOnStartupMutationKey = object :
         CheckForUpdatesOnStartupMutationKey,
@@ -273,19 +273,19 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     hostVersionInfo = HostVersionInfo("0.0.0-test"),
     generateSslCertificateMutationKey = object :
         GenerateSslCertificateMutationKey,
-        MutationKey<SslCertificateEntry, String?> by noopReturning("generate_ssl_certificate") {},
+        MutationKey<SslCertificateEntry, String?> by unexercised("generate_ssl_certificate") {},
     activateSslCertificateMutationKey = object :
         ActivateSslCertificateMutationKey,
-        MutationKey<Boolean, String> by noopReturning("activate_ssl_certificate") {},
+        MutationKey<Boolean, String> by unexercised("activate_ssl_certificate") {},
     deleteSslCertificateMutationKey = object :
         DeleteSslCertificateMutationKey,
-        MutationKey<Boolean, String> by noopReturning("delete_ssl_certificate") {},
+        MutationKey<Boolean, String> by unexercised("delete_ssl_certificate") {},
     logCaptureService = NoopLogCaptureService,
 )
 
 private fun <V> noop(id: String): MutationKey<Unit, V> = buildMutationKey(id = MutationId(id), mutate = { })
 
-private fun <T, V> noopReturning(id: String): MutationKey<T, V> = buildMutationKey(
+private fun <T, V> unexercised(id: String): MutationKey<T, V> = buildMutationKey(
     id = MutationId(id),
     mutate = { error("$id is not exercised by these tests") },
 )

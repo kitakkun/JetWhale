@@ -45,10 +45,10 @@ fun ToolingDrawer(
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expandMenu by retain { mutableStateOf(true) }
+    var isExpanded by retain { mutableStateOf(true) }
 
     AnimatedSwappableContent(
-        showContent1 = expandMenu,
+        showContent1 = isExpanded,
         modifier = modifier,
         content1 = {
             ExpandedToolingDrawerView(
@@ -63,7 +63,7 @@ fun ToolingDrawer(
                 onResizeFinished = onSidebarResizeFinished,
                 onFollowAiOperationChange = onFollowAiOperationChange,
                 onOpenMcpSettings = onOpenMcpSettings,
-                onClickShrinkDrawer = { expandMenu = false },
+                onClickShrinkDrawer = { isExpanded = false },
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
                 onClickInfo = onClickInfo,
@@ -88,7 +88,7 @@ fun ToolingDrawer(
                 onFollowAiOperationChange = onFollowAiOperationChange,
                 onOpenMcpSettings = onOpenMcpSettings,
                 onClickPlugin = onClickPlugin,
-                onClickExpandMenu = { expandMenu = true },
+                onClickExpandMenu = { isExpanded = true },
                 onClickSettings = onClickSettings,
                 onClickInfo = onClickInfo,
                 onOpenAllMcpTools = onOpenAllMcpTools,

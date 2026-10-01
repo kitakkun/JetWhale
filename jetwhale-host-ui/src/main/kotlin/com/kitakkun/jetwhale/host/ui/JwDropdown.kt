@@ -80,10 +80,9 @@ public fun JwDropdownButton(
 ) {
     val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
-    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     val shape = JwShapes.small
-    val contentColor = if (enabled) scheme.onSurface else colors.textDisabled
+    val contentColor = if (enabled) colors.onSurface else colors.textDisabled
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -91,8 +90,8 @@ public fun JwDropdownButton(
                 .height(JwMetrics.controlHeight)
                 .jwFocusRing(interactionSource, shape)
                 .clip(shape)
-                .background(if (hovered && enabled) colors.hover else scheme.panelBackground, shape)
-                .border(JwMetrics.borderWidth, if (enabled) scheme.controlBorder else colors.border.copy(alpha = 0.5f), shape)
+                .background(if (hovered && enabled) colors.hover else colors.panelBackground, shape)
+                .border(JwMetrics.borderWidth, if (enabled) colors.controlBorder else colors.border.copy(alpha = 0.5f), shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,

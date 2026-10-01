@@ -46,8 +46,8 @@ fun EntryProviderScope<NavKey>.emptyPluginEntry() {
 
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.pluginEntries(
-    isOpenedOnPopout: (pluginId: String, sessionId: String) -> Boolean,
-    onBringbackToMainWindow: (pluginId: String, sessionId: String) -> Unit,
+    isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
+    onBringBackToMainWindow: (pluginId: String, sessionId: String) -> Unit,
 ) {
     entry<PluginNavKey> { navKey ->
         context(
@@ -58,10 +58,10 @@ fun EntryProviderScope<NavKey>.pluginEntries(
                 )
             },
         ) {
-            if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
+            if (isPoppedOut(navKey.pluginId, navKey.sessionId)) {
                 PluginPoppedOutScreen(
-                    onBringbackToMainWindow = {
-                        onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
+                    onBringBackToMainWindow = {
+                        onBringBackToMainWindow(navKey.pluginId, navKey.sessionId)
                     },
                 )
             } else {

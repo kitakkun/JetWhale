@@ -46,7 +46,7 @@ class DefaultPluginInstallJobService(
     // Installs share the staging directory and the single progress slot, so they run one at a time.
     private val installLock = Mutex()
     private val runningJobs = ConcurrentHashMap<String, Job>()
-    private val outcomes = ConcurrentHashMap<String, CompletableDeferred<PluginInstallStatus>>()
+    private val pendingOutcomes = ConcurrentHashMap<String, CompletableDeferred<PluginInstallStatus>>()
 
     override val jobsFlow: StateFlow<ImmutableList<PluginInstallJob>>
         field = MutableStateFlow(persistentListOf())
@@ -58,12 +58,12 @@ class DefaultPluginInstallJobService(
     /** The job for [request], and its outcome, taken under the same lock that retires finished jobs. */
     private fun enqueueWithOutcome(request: PluginInstallRequest): Pair<PluginInstallJob, CompletableDeferred<PluginInstallStatus>> = synchronized(this) {
         jobsFlow.value.firstOrNull { it.request.key == request.key && it.status.isActive }?.let { active ->
-            return active to checkNotNull(outcomes[active.id]) { "no outcome is tracked for install ${active.id}" }
+            return active to checkNotNull(pendingOutcomes[active.id]) { "no outcome is tracked for install ${active.id}" }
         }
         val job = PluginInstallJob(id = UUID.randomUUID().toString(), request = request, status = PluginInstallStatus.Queued)
         val outcome = CompletableDeferred<PluginInstallStatus>()
         jobsFlow.update { jobs -> (jobs.filterNot { it.request.key == request.key } + job).toPersistentList() }
-        outcomes[job.id] = outcome
+        pendingOutcomes[job.id] = outcome
         // Undispatched, so the install registers itself and takes its place in the lock's queue before
         // this returns: installs then run in the order they were requested.
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -100,12 +100,12 @@ class DefaultPluginInstallJobService(
             }
             synchronized(this) {
                 setStatus(job.id, outcome)
-                outcomes.remove(job.id)?.complete(outcome)
+                pendingOutcomes.remove(job.id)?.complete(outcome)
             }
         } finally {
             runningJobs.remove(job.id)
             synchronized(this) {
-                outcomes.remove(job.id)?.let { outcome ->
+                pendingOutcomes.remove(job.id)?.let { outcome ->
                     jobsFlow.update { jobs -> jobs.filterNot { it.id == job.id }.toPersistentList() }
                     outcome.complete(PluginInstallStatus.Failed(reason = "the install was cancelled"))
                 }

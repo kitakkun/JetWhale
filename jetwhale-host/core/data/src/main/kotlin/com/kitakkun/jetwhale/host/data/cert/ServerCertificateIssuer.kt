@@ -34,7 +34,7 @@ class ServerCertificateIssuer {
             serverKeyPair = serverKeyPair,
             commonName = commonName,
             daysValid = daysValid,
-            subjectAllNames = GeneralNames(sanNames.toTypedArray()),
+            subjectAltNames = GeneralNames(sanNames.toTypedArray()),
         )
 
         val signer = JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
@@ -56,7 +56,7 @@ class ServerCertificateIssuer {
         serverKeyPair: KeyPair,
         commonName: String,
         daysValid: Int,
-        subjectAllNames: GeneralNames,
+        subjectAltNames: GeneralNames,
     ): X509v3CertificateBuilder {
         val extUtils = JcaX509ExtensionUtils()
         val now = Date()
@@ -84,7 +84,7 @@ class ServerCertificateIssuer {
             // required for hostname verification (CN is ignored by modern TLS)
             Extension.subjectAlternativeName,
             false,
-            subjectAllNames,
+            subjectAltNames,
         ).addExtension(
             Extension.subjectKeyIdentifier,
             false,
