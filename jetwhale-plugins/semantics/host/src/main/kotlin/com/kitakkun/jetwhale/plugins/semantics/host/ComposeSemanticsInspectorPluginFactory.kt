@@ -30,11 +30,11 @@ import kotlin.time.TimeSource
 
 @Suppress("UNUSED")
 class ComposeSemanticsInspectorPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = ComposeNodeInspectorHostPlugin()
+    override fun createPlugin(): JetWhaleHostPlugin = ComposeSemanticsInspectorHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private class ComposeNodeInspectorHostPlugin :
+private class ComposeSemanticsInspectorHostPlugin :
     JetWhaleMessagingHostPlugin(),
     JetWhaleHostPluginUi,
     JetWhaleMcpCapablePlugin {

@@ -95,7 +95,7 @@ internal class ViewAttributeStore(
                     return@withLock
                 }
                 try {
-                    apply(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
+                    writeAndRecord(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
                 } catch (e: JetWhaleMessagingException) {
                     state = state.copy(writeStatus = "${attribute.id} failed: ${e.message}", writeFailed = true)
                 }
@@ -110,10 +110,10 @@ internal class ViewAttributeStore(
      * Writes one attribute of any node and returns what came back, for the MCP tool — which has a
      * caller waiting on the answer, and so cannot go through [commit].
      */
-    suspend fun writeAttribute(request: SetViewAttribute): ViewAttributeResult = writeLock.withLock { apply(request) }
+    suspend fun writeAttribute(request: SetViewAttribute): ViewAttributeResult = writeLock.withLock { writeAndRecord(request) }
 
     /** The write itself, already serialised by [writeLock]. */
-    private suspend fun apply(request: SetViewAttribute): ViewAttributeResult {
+    private suspend fun writeAndRecord(request: SetViewAttribute): ViewAttributeResult {
         val result = write(request)
         if (node == NodeKey(rootId = request.rootId, nodeId = request.nodeId)) {
             record(attributeId = request.attributeId, result = result)
