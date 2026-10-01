@@ -37,9 +37,15 @@ internal class AndroidDeviceController(
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
     override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adbPath, "-s", serial, "exec-out", "screencap", "-p", *panelArguments(option = "-d", display = display())).stdout
 
-    // Reads the display afresh: the mirror asks for the size to notice a foldable folding.
-    override suspend fun screenSize(): IntSize = parseWmSize(runCommandChecked(adbPath, "-s", serial, "shell", "wm", "size", *displayArguments(readDisplay())).stdoutText)
-        ?: throw deviceControlError("'adb shell wm size' reported no screen size")
+    // Reads the display afresh: the mirror asks for the size to notice a foldable folding or a
+    // screen turning. `wm size` gives the size the screen has upright, which taps on a turned
+    // screen do not use, so it is only asked when the display's own reading has no size.
+    override suspend fun screenSize(): IntSize {
+        val reading = readDisplay()
+        return reading.size
+            ?: parseWmSize(runCommandChecked(adbPath, "-s", serial, "shell", "wm", "size", *displayArguments(reading.display)).stdoutText)
+            ?: throw deviceControlError("'adb shell wm size' reported no screen size")
+    }
 
     override suspend fun tap(x: Int, y: Int) {
         runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "tap", "$x", "$y")
@@ -114,13 +120,14 @@ internal class AndroidDeviceController(
     private suspend fun display(): AndroidDisplay? {
         val reading = displayReading
         if (reading != null && System.nanoTime() - reading.readAtNanos < DISPLAY_READING_MAX_AGE_NANOS) return reading.display
-        return readDisplay()
+        return readDisplay().display
     }
 
-    private suspend fun readDisplay(): AndroidDisplay? {
+    private suspend fun readDisplay(): DisplayReading {
         // grep exits non-zero when nothing matches, which reads as a device with one panel.
         val output = runCommand(adbPath, "-s", serial, "shell", "dumpsys display | grep -F -e DisplayDeviceInfo -e mOverrideDisplayInfo").stdoutText
-        return parseActiveAndroidDisplay(output).also { displayReading = DisplayReading(it, System.nanoTime()) }
+        val display = parseActiveAndroidDisplay(output)
+        return DisplayReading(display, parseDisplaySize(output, displayId = display?.logicalId ?: DEFAULT_DISPLAY_ID), System.nanoTime()).also { displayReading = it }
     }
 
     /** `-d` and the logical id `input` and `wm` take, or nothing on a device with one panel. */
@@ -129,7 +136,7 @@ internal class AndroidDeviceController(
     /** [option] and the panel id screencap and screenrecord take, or nothing on a device with one panel. */
     private fun panelArguments(option: String, display: AndroidDisplay?): Array<String> = display?.let { arrayOf(option, it.physicalId) } ?: emptyArray()
 
-    private class DisplayReading(val display: AndroidDisplay?, val readAtNanos: Long)
+    private class DisplayReading(val display: AndroidDisplay?, val size: IntSize?, val readAtNanos: Long)
 }
 
 private const val DISPLAY_READING_MAX_AGE_NANOS = 2_000_000_000L
@@ -169,12 +176,26 @@ internal fun parseActiveAndroidDisplay(dumpsysDisplay: String): AndroidDisplay? 
 
 private const val DEFAULT_DISPLAY_ID = 0
 
+/**
+ * The size logical display [displayId] has now in the `mOverrideDisplayInfo` lines of
+ * `adb shell dumpsys display`, or null when they do not give it. It is the `real` size: turned as
+ * the screen is, and following a `wm size` override, the size `input` takes coordinates in and
+ * `screencap` writes.
+ */
+internal fun parseDisplaySize(dumpsysDisplay: String, displayId: Int): IntSize? {
+    val line = dumpsysDisplay.lines().firstOrNull { "mOverrideDisplayInfo=DisplayInfo{" in it && LOGICAL_DISPLAY_ID.find(it)?.groupValues?.get(1)?.toInt() == displayId } ?: return null
+    val (width, height) = DISPLAY_REAL_SIZE.find(line)?.destructured ?: return null
+    return IntSize(width.toInt(), height.toInt())
+}
+
 /** A physical panel's id, as `uniqueId="local:…"` in `DisplayDeviceInfo` and `uniqueId "local:…"` in `DisplayInfo`. */
 private val PANEL_ID = Regex("""uniqueId[=\s]"local:(\d+)"""")
 
 private val LOGICAL_DISPLAY_ID = Regex("""displayId (\d+)""")
 
 private val PANEL_STATE = Regex(""", state (\w+)""")
+
+private val DISPLAY_REAL_SIZE = Regex("""real (\d+) x (\d+)""")
 
 /**
  * [text] as `adb shell input text` needs it: the device shell parses the argument again, so its

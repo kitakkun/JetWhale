@@ -71,7 +71,7 @@ class AndroidDeviceControllerTest {
     }
 
     @Test
-    fun `a foldable's panel is named to screencap and screenrecord and its display to input and wm`() = runBlocking {
+    fun `a foldable's panel is named to screencap and screenrecord and its display to input`() = runBlocking {
         dumpsysDisplay.writeText(FOLDED)
 
         controller.screenSize()
@@ -85,7 +85,6 @@ class AndroidDeviceControllerTest {
         val given = commands.readLines().filterNot { "dumpsys" in it }
         assertEquals(
             listOf(
-                "-s device-1 shell wm size -d 0",
                 "-s device-1 exec-out screencap -p -d $COVER_PANEL",
                 "-s device-1 shell input -d 0 tap 10 20",
                 "-s device-1 shell input -d 0 swipe 1 2 3 4 250",
@@ -106,7 +105,22 @@ class AndroidDeviceControllerTest {
         controller.tap(10, 20)
 
         val given = commands.readLines().filterNot { "dumpsys" in it }
-        assertEquals(listOf("-s device-1 shell wm size", "-s device-1 exec-out screencap -p", "-s device-1 shell input tap 10 20"), given)
+        assertEquals(listOf("-s device-1 exec-out screencap -p", "-s device-1 shell input tap 10 20"), given)
+    }
+
+    @Test
+    fun `a turned screen has its size turned, as taps and screenshots use it`() = runBlocking {
+        dumpsysDisplay.writeText(dumpsysDisplayOf("folded-turned"))
+
+        assertEquals(IntSize(2364, 1080), controller.screenSize())
+    }
+
+    @Test
+    fun `a display reading without a size asks wm for that display's size`() = runBlocking {
+        dumpsysDisplay.writeText(FOLDED.replace(Regex("""real \d+ x \d+, """), ""))
+
+        assertEquals(IntSize(1080, 2364), controller.screenSize())
+        assertEquals(listOf("-s device-1 shell wm size -d 0"), commands.readLines().filterNot { "dumpsys" in it })
     }
 
     @Test
