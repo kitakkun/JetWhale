@@ -87,7 +87,7 @@ internal val UiNode.isOperable: Boolean
 
 /** How a node should read in a list: its own label if it has one, otherwise its role or id. */
 internal fun UiNode.displayLabel(): String {
-    val label = listOfNotNull(text, contentDescription, editableText, (this as? ComposeNode)?.testTag).firstOrNull()
+    val label = ownLabel
     return when (this) {
         is AppleNode -> buildString {
             append(className.substringAfterLast('.'))
@@ -112,6 +112,13 @@ internal fun UiNode.displayLabel(): String {
         }
     }
 }
+
+/** `true` when [displayLabel] falls back to the node's id, the node having no role or label of its own. */
+internal val UiNode.isLabeledById: Boolean
+    get() = this is ComposeNode && role == null && ownLabel == null
+
+private val UiNode.ownLabel: String?
+    get() = listOfNotNull(text, contentDescription, editableText, (this as? ComposeNode)?.testTag).firstOrNull()
 
 /**
  * Matcher shared by the tree view's search box and the `findNodes` MCP tool.
