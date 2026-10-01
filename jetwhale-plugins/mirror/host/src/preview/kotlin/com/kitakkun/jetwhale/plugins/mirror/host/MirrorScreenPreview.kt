@@ -91,7 +91,7 @@ private object NoActions : MirrorActions {
 
     override fun recordSelectedDevice() = Unit
 
-    override fun finishRecording() = Unit
+    override fun stopSelectedRecording() = Unit
 
     override fun wake() = Unit
 

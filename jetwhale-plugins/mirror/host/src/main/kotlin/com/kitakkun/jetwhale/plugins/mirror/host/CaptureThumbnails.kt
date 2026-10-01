@@ -12,7 +12,7 @@ import java.io.InputStream
 import kotlin.concurrent.thread
 
 /** Tall enough for a grid cell on a Retina display, small enough to keep a hundred in memory. */
-internal const val THUMBNAIL_HEIGHT = 240
+internal const val THUMBNAIL_HEIGHT_PX = 240
 
 /**
  * The thumbnail of [capture], made on first request and read from its cache file after that; null
@@ -44,12 +44,12 @@ private fun shrinkScreenshot(file: File): ByteArray? {
 }
 
 private fun encodeShrunk(image: Image): ByteArray? {
-    val width = maxOf(1, image.width * THUMBNAIL_HEIGHT / image.height)
-    return Surface.makeRasterN32Premul(width, THUMBNAIL_HEIGHT).use { surface ->
+    val width = maxOf(1, image.width * THUMBNAIL_HEIGHT_PX / image.height)
+    return Surface.makeRasterN32Premul(width, THUMBNAIL_HEIGHT_PX).use { surface ->
         surface.canvas.drawImageRect(
             image,
             Rect.makeWH(image.width.toFloat(), image.height.toFloat()),
-            Rect.makeWH(width.toFloat(), THUMBNAIL_HEIGHT.toFloat()),
+            Rect.makeWH(width.toFloat(), THUMBNAIL_HEIGHT_PX.toFloat()),
             FilterMipmap(FilterMode.LINEAR, MipmapMode.LINEAR),
             null,
             true,
@@ -62,7 +62,7 @@ private fun encodeShrunk(image: Image): ByteArray? {
 private fun posterFrame(ffmpegPath: String, file: File): ByteArray? {
     val command = listOf(
         ffmpegPath, "-hide_banner", "-loglevel", "error", "-i", file.absolutePath,
-        "-frames:v", "1", "-vf", "scale=-2:$THUMBNAIL_HEIGHT:flags=area", "-f", "image2pipe", "-c:v", "png", "pipe:1",
+        "-frames:v", "1", "-vf", "scale=-2:$THUMBNAIL_HEIGHT_PX:flags=area", "-f", "image2pipe", "-c:v", "png", "pipe:1",
     )
     val process = try {
         SystemProcessLauncher.start(command)
