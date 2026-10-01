@@ -292,7 +292,10 @@ class DefaultMcpServerServiceTest {
             awaitCapableFor(HostSession.ID) { hostPlugin in it }
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { appPlugin in it } }
 
-            appSessions.forEach { eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, it)) }
+            appSessions.forEach { sessionId ->
+                every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns null
+                eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, sessionId))
+            }
 
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { it.isEmpty() } }
             assertEquals(listOf("com.example.host.greet"), servedToolNames().filter { it.startsWith("com.example.") })
