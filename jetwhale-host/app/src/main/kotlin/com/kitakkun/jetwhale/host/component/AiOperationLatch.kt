@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
-/** How long an MCP tool call keeps showing after it completes. */
+/** How long the indicator stays on after a tool call starts; a newer call restarts it. */
 private val AI_OPERATION_INDICATOR_LINGER = 1500.milliseconds
 
 /**
