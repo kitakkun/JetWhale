@@ -50,7 +50,7 @@ class CACertificateGenerator {
 
         val keyPairGenerator = KeyPairGenerator.getInstance(CertificateSpec.ALGORITHM, CertificateSpec.PROVIDER)
         keyPairGenerator.initialize(256)
-        val cakeyPair = keyPairGenerator.generateKeyPair()
+        val caKeyPair = keyPairGenerator.generateKeyPair()
 
         val now = Date()
         val expirationDate = Date(now.time + daysValid * 24L * 60L * 60L * 1000L)
@@ -63,7 +63,7 @@ class CACertificateGenerator {
             now,
             expirationDate,
             subject,
-            cakeyPair.public,
+            caKeyPair.public,
         ).addExtension(
             Extension.basicConstraints,
             true,
@@ -75,7 +75,7 @@ class CACertificateGenerator {
         ).addExtension(
             Extension.subjectKeyIdentifier,
             false,
-            JcaX509ExtensionUtils().createSubjectKeyIdentifier(cakeyPair.public),
+            JcaX509ExtensionUtils().createSubjectKeyIdentifier(caKeyPair.public),
         ).addExtension(
             // Critical, so a validator that does not understand Name Constraints rejects the chain
             // rather than ignoring the restriction.
@@ -85,17 +85,17 @@ class CACertificateGenerator {
         ).build(
             JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
                 .setProvider(CertificateSpec.PROVIDER)
-                .build(cakeyPair.private),
+                .build(caKeyPair.private),
         )
 
         val caCert = JcaX509CertificateConverter()
             .setProvider(CertificateSpec.PROVIDER)
             .getCertificate(certHolder)
 
-        caCert.verify(cakeyPair.public)
+        caCert.verify(caKeyPair.public)
 
         return CaMaterial(
-            keyPair = cakeyPair,
+            keyPair = caKeyPair,
             cert = caCert,
         )
     }

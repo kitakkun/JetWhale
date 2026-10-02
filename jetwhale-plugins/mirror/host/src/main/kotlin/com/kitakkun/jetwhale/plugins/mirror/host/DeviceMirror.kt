@@ -105,7 +105,7 @@ internal interface MirrorActions {
 
     fun recordSelectedDevice()
 
-    fun finishRecording()
+    fun stopSelectedRecording()
 
     fun wake()
 
@@ -148,7 +148,7 @@ internal class DeviceMirror(
     private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
     @Volatile
-    private var disposed = false
+    private var isDisposing = false
 
     private class ActiveRecording(val device: MirrorDevice, val handle: DeviceRecording, val file: File, val startedAt: Instant)
 
@@ -194,11 +194,11 @@ internal class DeviceMirror(
 
     private suspend fun streamUntilCancelled(device: MirrorDevice) {
         state = MirrorState.Connecting
-        var fallbacks = 0
+        var failuresInARow = 0
         while (coroutineContext.isActive) {
-            val fallbackMillis = SCREENSHOT_FALLBACK_MILLIS[fallbacks.coerceAtMost(SCREENSHOT_FALLBACK_MILLIS.lastIndex)]
+            val fallbackMillis = SCREENSHOT_FALLBACK_MILLIS[failuresInARow.coerceAtMost(SCREENSHOT_FALLBACK_MILLIS.lastIndex)]
             when (val outcome = streamOnce(device)) {
-                is StreamOutcome.Ended -> fallbacks = 0
+                is StreamOutcome.Ended -> failuresInARow = 0
 
                 // A physical iOS device has nothing to fall back on, so the mirror says why it
                 // is blank and tries again; the others still show something through screenshots.
@@ -207,7 +207,7 @@ internal class DeviceMirror(
                     delay(STREAM_RETRY_MILLIS)
                 } else {
                     pollScreenshots(device, reason = "the video stream sent no picture", forMillis = fallbackMillis)
-                    fallbacks++
+                    failuresInARow++
                 }
 
                 is StreamOutcome.Unavailable -> if (device.kind == DeviceKind.IosDevice) {
@@ -215,7 +215,7 @@ internal class DeviceMirror(
                     delay(STREAM_RETRY_MILLIS)
                 } else {
                     pollScreenshots(device, reason = outcome.message, forMillis = fallbackMillis)
-                    fallbacks++
+                    failuresInARow++
                 }
             }
         }
@@ -261,22 +261,22 @@ internal class DeviceMirror(
         }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
         if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
-        val android = device.kind.platform == DevicePlatform.Android
+        val isAndroid = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
                 val lastFrameAt = AtomicLong(System.nanoTime())
                 val watches = listOfNotNull(
                     screen?.let { launch { reopenWhenResized(it, outputSize, stream) } },
-                    screen?.takeIf { android }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
+                    screen?.takeIf { isAndroid }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
                     // Only screenrecord holds a still screen's last frame back; the emulator's own
                     // stream sends every change as it happens.
-                    stream.takeIf { android && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, screen, it, lastFrameAt) } },
+                    stream.takeIf { isAndroid && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, screen, it, lastFrameAt) } },
                 )
                 val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
                 val decoding = async(Dispatchers.IO) {
                     // screenrecord's bytes are its sign of life: a still screen's only frame
                     // decodes once the next one starts, which may be never.
-                    decode(stream, frames, outputSize, onInput = if (android) watchdog::frameArrived else ({})) {
+                    decode(stream, frames, outputSize, onInput = if (isAndroid) watchdog::frameArrived else ({})) {
                         lastFrameAt.set(System.nanoTime())
                         watchdog.frameArrived()
                         state = MirrorState.Streaming
@@ -287,7 +287,7 @@ internal class DeviceMirror(
                 // the body ends or is cancelled. The watches may never end on their own, so they
                 // are cancelled here too.
                 try {
-                    if (android) {
+                    if (isAndroid) {
                         // A first stream shows as live at once, with screenshots filling in a still
                         // screen; one tried again from behind screenshots keeps them up until it is heard from.
                         if (state == MirrorState.Connecting) state = MirrorState.Streaming
@@ -477,9 +477,9 @@ internal class DeviceMirror(
         scope.launch { recordFromUi(device) }
     }
 
-    override fun finishRecording() {
+    override fun stopSelectedRecording() {
         val deviceId = selectedId ?: return
-        scope.launch { finishFromUi(deviceId) }
+        scope.launch { stopFromUi(deviceId) }
     }
 
     /** Starts recording [deviceId] again after a failed start, unless a recording of it has started since. */
@@ -512,7 +512,7 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun finishFromUi(deviceId: String) = recordingLockOf(deviceId).withLock {
+    private suspend fun stopFromUi(deviceId: String) = recordingLockOf(deviceId).withLock {
         if (!activeRecordings.containsKey(deviceId)) return@withLock
         val notice = when (val result = stopResultLocked(deviceId)) {
             is RecordingResult.Saved -> MirrorNotice.saved(result.capture)
@@ -578,7 +578,7 @@ internal class DeviceMirror(
     }
 
     private suspend fun startRecordingLocked(device: MirrorDevice) {
-        if (disposed) throw deviceControlError("the mirror is closing; no recording can start")
+        if (isDisposing) throw deviceControlError("the mirror is closing; no recording can start")
         if (activeRecordings.containsKey(device.id)) throw deviceControlError("${device.listing.name} is already recording; stop it first")
         val file = try {
             captures.recordingFile(device.listing)
@@ -658,7 +658,7 @@ internal class DeviceMirror(
     suspend fun dispose() {
         // No start begins after this. One already under way holds its device's lock until its
         // recorder is running, so taking every lock waits for it, and its recording is stopped too.
-        disposed = true
+        isDisposing = true
         val failures = coroutineScope {
             recordingLocks.keys.toList().map { id ->
                 async { recordingLockOf(id).withLock { if (activeRecordings.containsKey(id)) stopResultLocked(id) else null } }

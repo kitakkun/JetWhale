@@ -344,9 +344,9 @@ private fun LeafRow(
 }
 
 /** An empty subtree reads as Off rather than On: nothing is allowed there, because nothing is there. */
-private fun toggleStateOf(children: List<Boolean>): ToggleableState = when {
-    children.isEmpty() || children.none { it } -> ToggleableState.Off
-    children.all { it } -> ToggleableState.On
+private fun toggleStateOf(leafStates: List<Boolean>): ToggleableState = when {
+    leafStates.isEmpty() || leafStates.none { it } -> ToggleableState.Off
+    leafStates.all { it } -> ToggleableState.On
     else -> ToggleableState.Indeterminate
 }
 

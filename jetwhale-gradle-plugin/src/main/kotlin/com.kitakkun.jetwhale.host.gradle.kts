@@ -353,9 +353,9 @@ tasks.named("assemble") {
     dependsOn(packagePlugin)
 }
 
-val runtimeElementsIncoming = configurations.getByName("runtimeClasspath").incoming
+val runtimeClasspathIncoming = configurations.getByName("runtimeClasspath").incoming
 
-val externalDependencyCoordinates: Provider<List<String>> = runtimeElementsIncoming.artifacts.resolvedArtifacts.map { artifacts ->
+val externalDependencyCoordinates: Provider<List<String>> = runtimeClasspathIncoming.artifacts.resolvedArtifacts.map { artifacts ->
     artifacts
         .mapNotNull { it.id.componentIdentifier as? org.gradle.api.artifacts.component.ModuleComponentIdentifier }
         .map { "${it.group}:${it.module}:${it.version}" }
@@ -418,7 +418,7 @@ gradle.projectsEvaluated {
     }
 }
 
-val projectDependencyFiles = runtimeElementsIncoming.artifactView {
+val projectDependencyFiles = runtimeClasspathIncoming.artifactView {
     componentFilter {
         it is org.gradle.api.artifacts.component.ProjectComponentIdentifier && it.projectPath in bundledProjectPaths
     }

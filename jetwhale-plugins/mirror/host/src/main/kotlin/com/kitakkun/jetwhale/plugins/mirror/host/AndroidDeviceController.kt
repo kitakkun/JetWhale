@@ -84,7 +84,7 @@ internal class AndroidDeviceController(
         emulatorScreens?.open(serial, wanted) ?: run {
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
             val panel = panelArguments(option = "--display-id", display = display())
-            VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "180", "-")), ffmpegPath)
+            VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", "-")), ffmpegPath)
         }
     }
 
@@ -92,7 +92,7 @@ internal class AndroidDeviceController(
         val remotePath = "/sdcard/${outputFile.name}"
         val panel = panelArguments(option = "--display-id", display = display())
         val process = withContext(Dispatchers.IO) {
-            SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "shell", "screenrecord", *panel, "--time-limit", "180", remotePath))
+            SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "shell", "screenrecord", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", remotePath))
         }
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
@@ -166,9 +166,9 @@ internal fun parseActiveAndroidDisplay(dumpsysDisplay: String): AndroidDisplay? 
         val physicalId = PANEL_ID.find(line)?.groupValues?.get(1) ?: return@mapNotNull null
         AndroidDisplay(logicalId, physicalId)
     }
-    val lit = displays.filter { panelIsOn[it.physicalId] == true }
-    return lit.firstOrNull { it.logicalId == DEFAULT_DISPLAY_ID }
-        ?: lit.firstOrNull()
+    val displaysOnLitPanels = displays.filter { panelIsOn[it.physicalId] == true }
+    return displaysOnLitPanels.firstOrNull { it.logicalId == DEFAULT_DISPLAY_ID }
+        ?: displaysOnLitPanels.firstOrNull()
         ?: displays.firstOrNull { it.logicalId == DEFAULT_DISPLAY_ID }
 }
 
@@ -230,3 +230,5 @@ internal fun androidKeycodeOf(button: DeviceButton): String = when (button) {
     DeviceButton.VolumeUp -> "KEYCODE_VOLUME_UP"
     DeviceButton.VolumeDown -> "KEYCODE_VOLUME_DOWN"
 }
+
+private const val SCREENRECORD_TIME_LIMIT_SECONDS = 180

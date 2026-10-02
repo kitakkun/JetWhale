@@ -79,7 +79,7 @@ internal fun DeviceToolbar(
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
-            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
+            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions)
             VolumeGroup(pane.device.kind, pane.capabilities, actions)
             ScreenPowerButton(pane.screenPower, actions)
             Row(
@@ -98,7 +98,7 @@ internal fun DeviceToolbar(
     }
 }
 
-private val NAVIGATION_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
+private val NAVIGATION_AND_POWER_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
 
 @Composable
 private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
@@ -142,7 +142,7 @@ private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions)
 @Composable
 private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, actions: MirrorActions) {
     when {
-        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::finishRecording)
+        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::stopSelectedRecording)
 
         capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::recordSelectedDevice) {
             JwIcon(imageVector = RecordIcon, contentDescription = null)

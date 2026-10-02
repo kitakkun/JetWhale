@@ -129,7 +129,7 @@ class CaptureLibraryTest {
         assertEquals(first, second)
         assertEquals(madeAt, second?.lastModified())
         val height = Image.makeFromEncoded(second?.readBytes() ?: ByteArray(0)).use(Image::height)
-        assertEquals(THUMBNAIL_HEIGHT, height)
+        assertEquals(THUMBNAIL_HEIGHT_PX, height)
     }
 
     @Test

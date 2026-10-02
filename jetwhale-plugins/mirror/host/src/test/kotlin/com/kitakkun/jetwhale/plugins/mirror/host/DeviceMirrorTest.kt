@@ -115,8 +115,8 @@ class DeviceMirrorTest {
         clicked.startRecording(device)
 
         withTimeout(QUEUED_CLICKS_TIMEOUT_MILLIS) {
-            clicked.finishRecording()
-            clicked.finishRecording()
+            clicked.stopSelectedRecording()
+            clicked.stopSelectedRecording()
             clicked.startRecording(device)
             clicked.stopRecording(deviceId = null)
         }

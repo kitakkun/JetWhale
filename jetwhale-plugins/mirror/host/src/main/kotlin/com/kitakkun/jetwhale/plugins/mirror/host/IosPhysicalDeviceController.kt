@@ -23,7 +23,7 @@ internal class IosPhysicalDeviceController(
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = ffmpegPath != null, screenPower = false)
 
-    private var streaming = false
+    private var holdsStreamCompanion = false
 
     @Volatile
     private var screen: IntSize? = null
@@ -114,14 +114,14 @@ internal class IosPhysicalDeviceController(
     private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
 
     private suspend fun holdCompanion() {
-        if (streaming) return
+        if (holdsStreamCompanion) return
         companions.acquire(udid)
-        streaming = true
+        holdsStreamCompanion = true
     }
 
     override suspend fun release() {
-        if (!streaming) return
-        streaming = false
+        if (!holdsStreamCompanion) return
+        holdsStreamCompanion = false
         companions.release(udid)
     }
 }

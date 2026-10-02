@@ -391,7 +391,7 @@ internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, 
         notices = notices,
         thumbnailOf = thumbnails::thumbnailOf,
         poll = { deviceId, heightPx -> thumbnails.keepFresh(heightPx) { mirror.devices.firstOrNull { it.id == deviceId } } },
-        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = false) },
+        livenessOf = { id -> livenessOf(id, mirror, thumbnails, selectedIsStreaming = false) },
         onOpen = { deviceId ->
             mirror.select(deviceId)
             onShowSingle()

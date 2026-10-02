@@ -47,7 +47,7 @@ internal fun ActionDetailPane(
 ) {
     var values by remember(action.id, rememberedArguments) { mutableStateOf(initialFormValues(action.parameters, rememberedArguments)) }
     var errors by remember(action.id) { mutableStateOf(emptyMap<String, String>()) }
-    var confirming by remember(action.id) { mutableStateOf<JsonObject?>(null) }
+    var argumentsAwaitingConfirmation by remember(action.id) { mutableStateOf<JsonObject?>(null) }
     val running = runs.firstOrNull { it.result == null }
 
     Column(
@@ -76,7 +76,7 @@ internal fun ActionDetailPane(
 
                         is FormArguments.Valid -> {
                             errors = emptyMap()
-                            if (action.destructive) confirming = built.arguments else onRun(built.arguments, false)
+                            if (action.destructive) argumentsAwaitingConfirmation = built.arguments else onRun(built.arguments, false)
                         }
                     }
                 },
@@ -86,23 +86,23 @@ internal fun ActionDetailPane(
         runs.firstNotNullOfOrNull(RunRecord::result)?.let { RunResult(it) }
         if (runs.isNotEmpty()) RunHistory(runs.take(LISTED_RUNS))
     }
-    confirming?.let { arguments ->
+    argumentsAwaitingConfirmation?.let { arguments ->
         JwDialog(
             title = "Run ${action.title}?",
             closeLabel = "Cancel",
-            onDismissRequest = { confirming = null },
+            onDismissRequest = { argumentsAwaitingConfirmation = null },
             confirmButton = {
                 JwButton(
                     text = "Run",
                     style = JwButtonStyle.Primary,
                     tone = JwTone.Error,
                     onClick = {
-                        confirming = null
+                        argumentsAwaitingConfirmation = null
                         onRun(arguments, true)
                     },
                 )
             },
-            dismissButton = { JwButton(text = "Cancel", onClick = { confirming = null }) },
+            dismissButton = { JwButton(text = "Cancel", onClick = { argumentsAwaitingConfirmation = null }) },
         ) {
             JwText(text = "This action is marked destructive: it changes or discards something in the app that cannot be restored.")
         }

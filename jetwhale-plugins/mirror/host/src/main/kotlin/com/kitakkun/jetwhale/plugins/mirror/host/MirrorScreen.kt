@@ -163,7 +163,7 @@ private fun SingleMirrorRoot(
         surface = mirror.surface,
         actions = mirror,
         showCaptures = showCaptures,
-        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = true) },
+        livenessOf = { id -> livenessOf(id, mirror, thumbnails, selectedIsStreaming = true) },
         onToggleCaptures = onToggleCaptures,
         onShowGrid = onShowGrid,
         capturesPanel = {
@@ -181,12 +181,12 @@ private fun SingleMirrorRoot(
 }
 
 /**
- * While the selected device [streaming], its liveness comes from its stream; every other device's,
+ * While the selected device [selectedIsStreaming], its liveness comes from its stream; every other device's,
  * and every device's while the grid is shown, from the grid's last look at it, which is nothing
  * until the grid has been shown.
  */
-internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, streaming: Boolean): DeviceLiveness {
-    if (!streaming || deviceId != mirror.selectedId) {
+internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, selectedIsStreaming: Boolean): DeviceLiveness {
+    if (!selectedIsStreaming || deviceId != mirror.selectedId) {
         return when (thumbnails.thumbnailOf(deviceId).state) {
             is ThumbnailState.Live -> DeviceLiveness.Live
             is ThumbnailState.ScreenOff -> DeviceLiveness.ScreenOff

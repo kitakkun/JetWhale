@@ -70,8 +70,8 @@ fun JetWhaleNavDisplay(
             logViewerEntry()
             mcpToolsEntry()
             pluginEntries(
-                isOpenedOnPopout = backStack::isPluginPoppedOut,
-                onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,
+                isPoppedOut = backStack::isPluginPoppedOut,
+                onBringBackToMainWindow = backStack::bringPluginBackToMainWindow,
             )
             disabledPluginEntry(onEnabled = backStack::openEnabledPlugin)
         },

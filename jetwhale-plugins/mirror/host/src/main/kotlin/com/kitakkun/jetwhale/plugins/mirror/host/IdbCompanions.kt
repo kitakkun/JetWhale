@@ -37,12 +37,12 @@ internal class IdbCompanions(
     private val idleTimeout: Duration,
     private val scope: CoroutineScope,
 ) {
-    private class Running(val process: Process, val port: Int, var users: Int) {
+    private class RunningCompanion(val process: Process, val port: Int, var users: Int) {
         var idleStop: Job? = null
     }
 
     private val mutex = Mutex()
-    private val running = ConcurrentHashMap<String, Running>()
+    private val running = ConcurrentHashMap<String, RunningCompanion>()
 
     /** Starts the companion of [udid] if it is not running yet; pair every call with [release]. */
     suspend fun acquire(udid: String): Unit = mutex.withLock {
@@ -61,7 +61,7 @@ internal class IdbCompanions(
             process.destroyForcibly()
             throw e
         }
-        running[udid] = Running(process, port, users = 1)
+        running[udid] = RunningCompanion(process, port, users = 1)
     }
 
     suspend fun release(udid: String): Unit = mutex.withLock {
@@ -101,7 +101,7 @@ internal class IdbCompanions(
         running.values.forEach { it.process.destroyForcibly() }
     }
 
-    private suspend fun stop(companion: Running) {
+    private suspend fun stop(companion: RunningCompanion) {
         companion.process.destroy()
         if (!companion.process.waitFor(3, TimeUnit.SECONDS)) companion.process.destroyForcibly()
         // Best effort: a failed disconnect leaves a stale entry in idb's target list and nothing more.

@@ -96,7 +96,7 @@ internal class CaptureLibrary(val root: File, private val zone: ZoneId) {
     }
 
     /** Where the thumbnail of [file] is cached, in a hidden folder beside the day's captures. */
-    fun thumbnailFileOf(file: File): File = File(File(file.parentFile, THUMBNAILS), "${file.name}.png")
+    fun thumbnailFileOf(file: File): File = File(File(file.parentFile, THUMBNAILS_FOLDER), "${file.name}.png")
 
     private fun readCapture(sidecar: File): Capture? {
         val file = File(sidecar.path.removeSuffix(SIDECAR_SUFFIX))
@@ -116,7 +116,7 @@ internal class CaptureLibrary(val root: File, private val zone: ZoneId) {
 }
 
 private const val SIDECAR_SUFFIX = ".json"
-private const val THUMBNAILS = ".thumbnails"
+private const val THUMBNAILS_FOLDER = ".thumbnails"
 
 /** Device folder, day folder, capture: sidecars are never deeper. */
 private const val CAPTURE_DEPTH = 3

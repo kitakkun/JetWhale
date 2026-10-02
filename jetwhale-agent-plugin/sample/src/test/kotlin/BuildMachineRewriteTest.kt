@@ -16,6 +16,6 @@ class BuildMachineRewriteTest {
         val scope = RecordingScope()
         declareEndpoints(scope)
 
-        assertEquals(listOf("ws://localhost:5080", "wss://198.51.100.7:5443"), scope.dialled)
+        assertEquals(listOf("ws://localhost:5080", "wss://198.51.100.7:5443"), scope.dialed)
     }
 }

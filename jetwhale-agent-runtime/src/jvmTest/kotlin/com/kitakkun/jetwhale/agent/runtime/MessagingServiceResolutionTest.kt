@@ -32,7 +32,7 @@ private class RecordingSocketClient(
     private val closeImmediately: Boolean = false,
 ) : JetWhaleSocketClient {
     val attempts: MutableList<ResolvedEndpoint> = Collections.synchronizedList(mutableListOf())
-    val attemptCount: Channel<ResolvedEndpoint> = Channel(Channel.UNLIMITED)
+    val attemptEvents: Channel<ResolvedEndpoint> = Channel(Channel.UNLIMITED)
     val connected: CompletableDeferred<ResolvedEndpoint> = CompletableDeferred()
 
     private var debuggerEvents: Channel<JetWhaleDebuggerEvent> = Channel(Channel.UNLIMITED)
@@ -41,7 +41,7 @@ private class RecordingSocketClient(
 
     override suspend fun openConnection(endpoint: ResolvedEndpoint): JetWhaleConnection {
         attempts.add(endpoint)
-        attemptCount.send(endpoint)
+        attemptEvents.send(endpoint)
         if (endpoint !in reachable) throw IllegalStateException("unreachable")
         connected.complete(endpoint)
         debuggerEvents = Channel(Channel.UNLIMITED)
@@ -119,7 +119,7 @@ class MessagingServiceResolutionTest {
                 delay(HELD_SESSION_MILLIS)
                 socketClient.closeConnection()
                 withTimeout(BACKOFF_FREE_WINDOW_MILLIS) {
-                    while (socketClient.attempts.size < 4) socketClient.attemptCount.receive()
+                    while (socketClient.attempts.size < 4) socketClient.attemptEvents.receive()
                 }
             }
         } finally {
@@ -137,10 +137,10 @@ class MessagingServiceResolutionTest {
 
         try {
             withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
-                socketClient.attemptCount.receive()
-                socketClient.attemptCount.receive()
+                socketClient.attemptEvents.receive()
+                socketClient.attemptEvents.receive()
             }
-            val third = withTimeoutOrNull(BACKOFF_FREE_WINDOW_MILLIS) { socketClient.attemptCount.receive() }
+            val third = withTimeoutOrNull(BACKOFF_FREE_WINDOW_MILLIS) { socketClient.attemptEvents.receive() }
             assertEquals(null, third, "expected the loop to be backing off, got another attempt")
         } finally {
             service.stopService()
@@ -182,8 +182,8 @@ class MessagingServiceResolutionTest {
 
         try {
             withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
-                socketClient.attemptCount.receive()
-                socketClient.attemptCount.receive()
+                socketClient.attemptEvents.receive()
+                socketClient.attemptEvents.receive()
             }
         } finally {
             service.stopService()
