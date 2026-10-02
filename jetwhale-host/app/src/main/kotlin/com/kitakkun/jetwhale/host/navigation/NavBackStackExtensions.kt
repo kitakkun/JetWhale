@@ -85,27 +85,30 @@ fun NavBackStack<NavKey>.removeAppPluginEntries() {
 }
 
 /**
- * Makes the plugin screen currently on top of the back stack follow a session switch.
+ * Makes the plugin the main window shows follow a session switch.
  *
- * If the top entry is a [PluginNavKey] targeting a different session, it is replaced with a
- * [PluginNavKey] for [newSessionId] so the same plugin is shown for the newly-selected session.
- * If the plugin is not available on the new session (per [isPluginAvailableOnNewSession]), the old
- * plugin entry is simply popped so the underlying (e.g. empty) screen is shown instead of a dead
+ * If the content — the top-most entry that is not an [OverlayNavKey] — is a [PluginNavKey]
+ * targeting a different session, it is replaced in place with a [PluginNavKey] for [newSessionId]
+ * so the same plugin is shown for the newly-selected session, and the overlays above it stay where
+ * they are. If the plugin is not available on the new session (per [isPluginAvailableOnNewSession]),
+ * the old plugin entry is removed so the underlying (e.g. empty) screen is shown instead of a dead
  * plugin screen.
  *
- * No-op when the top entry is not a [PluginNavKey], already targets [newSessionId], or is a plugin
- * of [HostSession], which belongs to no app and so stays put while the user switches apps.
+ * No-op when the content is not a [PluginNavKey], already targets [newSessionId], or is a plugin of
+ * [HostSession], which belongs to no app and so stays put while the user switches apps.
  */
 fun NavBackStack<NavKey>.followPluginToSession(
     newSessionId: String,
     isPluginAvailableOnNewSession: (pluginId: String) -> Boolean,
 ) {
-    val top = lastOrNull() as? PluginNavKey ?: return
-    if (top.sessionId == newSessionId || HostSession.isHost(top.sessionId)) return
+    val contentIndex = indexOfLast { it !is OverlayNavKey }
+    val content = getOrNull(contentIndex) as? PluginNavKey ?: return
+    if (content.sessionId == newSessionId || HostSession.isHost(content.sessionId)) return
 
-    removeLastOrNull()
-    if (isPluginAvailableOnNewSession(top.pluginId)) {
-        add(PluginNavKey(pluginId = top.pluginId, sessionId = newSessionId))
+    if (isPluginAvailableOnNewSession(content.pluginId)) {
+        this[contentIndex] = PluginNavKey(pluginId = content.pluginId, sessionId = newSessionId)
+    } else {
+        removeAt(contentIndex)
     }
 }
 
