@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -19,8 +22,17 @@ internal sealed interface RecordingResult {
     data class Failed(override val deviceId: String, override val deviceName: String, val reason: String) : RecordingResult
 }
 
-/** The result as the recording tools report it: the device, what happened, and the file or the reason. */
-internal fun RecordingResult.toJson(): JsonObject = buildJsonObject {
+/**
+ * Each device's result as the recording tools report it. The call fails only when no device
+ * succeeded: after a partial success, retrying the whole call would act again on the devices that did.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
+internal fun List<RecordingResult>.toMcpResult(): JetWhaleMcpResult {
+    val report = buildJsonObject { put("results", buildJsonArray { forEach { add(it.toJson()) } }) }
+    return if (isNotEmpty() && all { it is RecordingResult.Failed }) JetWhaleMcpResult.error(report.toString()) else JetWhaleMcpResult.json(report)
+}
+
+private fun RecordingResult.toJson(): JsonObject = buildJsonObject {
     put("deviceId", deviceId)
     put("deviceName", deviceName)
     when (this@toJson) {
@@ -34,7 +46,7 @@ internal fun RecordingResult.toJson(): JsonObject = buildJsonObject {
 
         is RecordingResult.Failed -> {
             put("status", "failed")
-            put("error", reason)
+            put("reason", reason)
         }
     }
 }

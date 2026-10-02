@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -15,5 +16,8 @@ internal class ReadKeyValueStoreCommand(
 
     private val store by string("Name of the store, as listLocations reports it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(KeyValueStoreContent.serializer(), client.readKeyValueStore(arguments[store]))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val content = client.readKeyValueStore(arguments[store])
+        return replyResult(content, KeyValueStoreContent.serializer(), content.error)
+    }
 }

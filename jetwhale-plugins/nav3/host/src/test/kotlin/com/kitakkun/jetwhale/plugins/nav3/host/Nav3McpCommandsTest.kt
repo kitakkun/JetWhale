@@ -4,10 +4,10 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -16,6 +16,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -120,17 +121,28 @@ class Nav3McpCommandsTest {
     }
 
     @Test
-    fun `a refusal from the app is reported as a failed mutation, not as a crash`() {
+    fun `a refusal from the app is a failed call that shows the stack it left`() {
         val controller = FakeNav3BackStackController(
             stacks = listOf(snapshot("main", "Home")),
             result = MutationResult(error = "removeAt index 9 is out of range (0..0)", snapshot = snapshot("main", "Home")),
         )
 
-        val result = RemoveNavKeyCommand(controller).runCommand(buildJsonObject { put("index", 9) })
+        val result = runBlocking { RemoveNavKeyCommand(controller).run(JetWhaleMcpArguments(buildJsonObject { put("index", 9) })) }
 
-        assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
-        assertEquals("removeAt index 9 is out of range (0..0)", result.getValue("error").jsonPrimitive.content)
-        assertEquals(1, result.getValue("stack").jsonObject.getValue("size").jsonPrimitive.content.toInt())
+        assertTrue(result.isError)
+        val message = (result.content.single() as JetWhaleMcpContent.Text).text
+        assertContains(message, "removeAt index 9 is out of range (0..0)")
+        assertContains(message, "\"size\":1")
+    }
+
+    @Test
+    fun `an accepted mutation answers with the stack it produced`() {
+        val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home", "Detail")))
+
+        val result = PopBackStackCommand(controller).runCommand()
+
+        assertEquals(true, result.getValue("applied").jsonPrimitive.content.toBoolean())
+        assertTrue(result.containsKey("stack"))
     }
 
     @Test
@@ -144,5 +156,5 @@ class Nav3McpCommandsTest {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.runCommand(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    checkNotNull(run(JetWhaleMcpArguments(arguments)).structuredContent)
 }

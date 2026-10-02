@@ -4,7 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import kotlinx.serialization.json.buildJsonArray
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -21,7 +21,7 @@ internal class StopRecordingCommand(
     private val all by booleanOrNull("Stop every running recording. Not combined with deviceId or deviceIds.")
     private val deviceIds by stringListOrNull("Device ids whose recordings to stop at once. Not combined with deviceId or all.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val single = arguments[deviceId]
         val several = arguments[deviceIds]
         val everyDevice = arguments[all] == true
@@ -30,12 +30,14 @@ internal class StopRecordingCommand(
         }
         if (several == null && !everyDevice) {
             val capture = deviceOperation { mirror.stopRecording(single) }
-            return buildJsonObject {
-                put("path", capture.file.absolutePath)
-                capture.info.durationMillis?.let { put("durationMillis", it) }
-            }.toString()
+            return JetWhaleMcpResult.json(
+                buildJsonObject {
+                    put("path", capture.file.absolutePath)
+                    capture.info.durationMillis?.let { put("durationMillis", it) }
+                },
+            )
         }
         val results = mirror.stopRecordings(several)
-        return buildJsonObject { put("results", buildJsonArray { results.forEach { add(it.toJson()) } }) }.toString()
+        return results.toMcpResult()
     }
 }

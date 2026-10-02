@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
@@ -50,7 +51,7 @@ internal class FindNodesCommand(
             "followed by a `… N more matches` line when limit cut the list short.",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val limit = arguments[limit]
         if (limit != null && limit <= 0) throw JetWhaleMcpArgumentException("invalid limit: $limit (expected a positive integer)")
 
@@ -74,7 +75,7 @@ internal class FindNodesCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
 
         val matches = snapshot.roots.flatMap { root ->
@@ -84,21 +85,25 @@ internal class FindNodesCommand(
         val page = if (limit == null) matches else matches.take(limit)
 
         if (arguments[format] == NodeOutputFormat.Text) {
-            return buildList {
-                snapshot.warnings.forEach { add("! $it") }
-                if (matches.isEmpty()) add("no matches")
-                page.forEach { (rootId, node) -> add(node.toMcpTextLine(rootId = rootId)) }
-                if (page.size < matches.size) add("… ${matches.size - page.size} more matches")
-            }.joinToString("\n")
+            return JetWhaleMcpResult.text(
+                buildList {
+                    snapshot.warnings.forEach { add("! $it") }
+                    if (matches.isEmpty()) add("no matches")
+                    page.forEach { (rootId, node) -> add(node.toMcpTextLine(rootId = rootId)) }
+                    if (page.size < matches.size) add("… ${matches.size - page.size} more matches")
+                }.joinToString("\n"),
+            )
         }
 
-        return buildJsonObject {
-            put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))
-            put("totalMatches", matches.size)
-            put("truncated", page.size < matches.size)
-            if (snapshot.warnings.isNotEmpty()) {
-                put("warnings", JsonArray(snapshot.warnings.map { JsonPrimitive(it) }))
-            }
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))
+                put("totalMatches", matches.size)
+                put("truncated", page.size < matches.size)
+                if (snapshot.warnings.isNotEmpty()) {
+                    put("warnings", JsonArray(snapshot.warnings.map { JsonPrimitive(it) }))
+                }
+            },
+        )
     }
 }
