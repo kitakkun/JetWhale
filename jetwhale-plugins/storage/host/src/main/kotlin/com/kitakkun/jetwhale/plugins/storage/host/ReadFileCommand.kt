@@ -36,7 +36,7 @@ internal class ReadFileCommand(
 
         val bytes = Base64.decode(content.contentBase64)
         val file = LoadedFile(location = location, bytes = bytes, totalSizeBytes = content.totalSizeBytes)
-        val text = decodeTextOrNull(bytes)
+        val text = file.text
         return buildJsonObject {
             put("totalSizeBytes", content.totalSizeBytes)
             put("offset", start)

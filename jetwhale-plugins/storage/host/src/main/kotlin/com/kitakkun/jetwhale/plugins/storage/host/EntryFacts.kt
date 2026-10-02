@@ -28,7 +28,7 @@ internal class EntryFacts(
         val absolutePath = root?.let { (listOf(it.absolutePath.trimEnd('/')) + row.location.path).joinToString("/") }
         absolutePath?.let { add("Path" to it) }
         absolutePath?.let(::storedByOf)?.let { add("Stored by" to it) }
-        loadedFile?.let { file -> fileKindOf(file.location.name, file.bytes)?.let { add("Kind" to it.label) } }
+        loadedFile?.kind?.let { add("Kind" to it.label) }
         loadedFile?.let(::textSummaryOf)?.let { add("Text" to it) }
         val entry = row.entry
         if (entry != null) {

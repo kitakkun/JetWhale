@@ -1,12 +1,20 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
-/** The first bytes of a file as read from the agent, with the file's whole size. */
+/**
+ * The first bytes of a file as read from the agent, with the file's whole size. What the bytes hold
+ * is worked out once, where the file is read, rather than again by each view of it.
+ */
 internal class LoadedFile(
     val location: FileLocation,
     val bytes: ByteArray,
     val totalSizeBytes: Long,
 ) {
     val isTruncated: Boolean get() = bytes.size < totalSizeBytes
+
+    /** The bytes as text, or null when they do not read as text; see [decodeTextOrNull]. */
+    val text: String? = decodeTextOrNull(bytes)
+
+    val kind: FileKind? = fileKindOf(location.name, bytes)
 }
 
 /** The ways the file pane can render a file's bytes. */
@@ -23,8 +31,8 @@ internal enum class PreviewFormat(val label: String) {
  */
 internal fun previewFormatsOf(file: LoadedFile): List<PreviewFormat> = buildList {
     if (file.location.name.endsWith(PREFERENCES_DATASTORE_SUFFIX) && !file.isTruncated) add(PreviewFormat.Preferences)
-    if (fileKindOf(file.location.name, file.bytes)?.isImage == true) add(PreviewFormat.Image)
-    if (decodeTextOrNull(file.bytes) != null) add(PreviewFormat.Text)
+    if (file.kind?.isImage == true) add(PreviewFormat.Image)
+    if (file.text != null) add(PreviewFormat.Text)
     add(PreviewFormat.Hex)
 }
 
@@ -59,7 +67,7 @@ internal fun decodeTextOrNull(bytes: ByteArray): String? {
  * part, the count covers the part that was read.
  */
 internal fun textSummaryOf(file: LoadedFile): String? {
-    val text = decodeTextOrNull(file.bytes) ?: return null
+    val text = file.text ?: return null
     val lines = text.count { it == '\n' } + if (text.isNotEmpty() && !text.endsWith('\n')) 1 else 0
     return buildString {
         append("$lines ${if (lines == 1) "line" else "lines"}, UTF-8")

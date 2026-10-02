@@ -14,7 +14,9 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class StorageBrowserTest {
@@ -189,6 +191,23 @@ class StorageBrowserTest {
         browser.computeSha256(location("Files", "notes.txt"))
 
         assertNull(browser.fileSha256)
+    }
+
+    @Test
+    fun `the tree and the selected row are the same objects until something they show changes`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+        val rows = browser.treeRows
+        val selected = browser.selectedRow
+
+        browser.computeSha256(location("Files", "notes.txt"))
+
+        assertSame(rows, browser.treeRows)
+        assertSame(selected, browser.selectedRow)
+        browser.toggleDirectory(location("Files", "datastore"))
+        assertNotSame(rows, browser.treeRows)
+        assertEquals(listOf("Files", "datastore", "settings.preferences_pb", "notes.txt"), browser.treeRows.map { it.location.name })
     }
 
     @Test

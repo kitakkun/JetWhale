@@ -212,7 +212,7 @@ private fun FilePreview(file: LoadedFile, modifier: Modifier = Modifier) {
 
                 PreviewFormat.Image -> ImagePreview(file.bytes)
 
-                PreviewFormat.Text -> ScrollingCode(decodeTextOrNull(file.bytes).orEmpty())
+                PreviewFormat.Text -> ScrollingCode(file.text.orEmpty())
 
                 PreviewFormat.Hex -> {
                     val shown = file.bytes.copyOf(minOf(file.bytes.size, HEX_PREVIEW_BYTES))

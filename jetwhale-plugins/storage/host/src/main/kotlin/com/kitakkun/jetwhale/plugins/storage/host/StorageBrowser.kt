@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,14 +74,16 @@ internal class StorageBrowser(
     private val children = mutableStateMapOf<FileLocation, List<FileEntry>>()
     private var expandedDirectories: Set<FileLocation> by mutableStateOf(emptySet())
 
-    val treeRows: List<FileTreeRow>
-        get() = flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
+    val treeRows: List<FileTreeRow> by derivedStateOf {
+        flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
+    }
 
     private var selectedLocation: FileLocation? by mutableStateOf(null)
 
     /** The row in the detail pane, looked up again after each reload so its size and date stay current. */
-    val selectedRow: FileTreeRow?
-        get() = selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    val selectedRow: FileTreeRow? by derivedStateOf {
+        selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    }
 
     var loadedFile: LoadedFile? by mutableStateOf(null)
         private set
