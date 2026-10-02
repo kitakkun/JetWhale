@@ -5,11 +5,13 @@ only when preparing a release.
 
 ## Finding what goes in
 
-The previous tag is the newest release tag, not a `<version>-SNAPSHOT` tag (the Publish Snapshot
-workflow creates those):
+The previous tag is the newest release tag on the remote. Release tags are bare versions such as
+`1.0.0-alpha12`; the Publish Snapshot workflow also pushes `<version>-SNAPSHOT` tags, and a clone can
+hold local-only tags, so fetch first and match the release pattern:
 
 ```shell
-git tag --sort=-creatordate | grep -v -- '-SNAPSHOT$' | head -1
+git fetch --tags origin
+git tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)[0-9]+)?$' | head -1
 ```
 
 List what reached `main` since then, and read each pull request with its diff:
@@ -51,8 +53,9 @@ A Breaking entry says what to do: which call to use instead, or which side to up
   longer goes wrong.
 - End each entry with its PR links, `(#N)`. Fold related PRs into one line.
 - Mark experimental features as such (the MCP server, Debug Actions, Device Mirror).
-- Say "not published; build from source" for anything not distributed yet (Device Mirror, the
-  IntelliJ IDEA plugin).
+- Say "not published; build from source" for anything not distributed yet. A module is published
+  when its build script sets `jetwhalePublish { … }`; the IntelliJ IDEA plugin is distributed only
+  once it is on the JetBrains Marketplace. Check each time instead of keeping a list.
 - Group entries under Added, Changed, Fixed and Removed, following Keep a Changelog.
 
 ## The release-prep PR
@@ -78,7 +81,7 @@ git push origin <version>
 
 The tag starts two workflows:
 
-- **Publish** releases the SDKs and the Gradle plugins to Maven Central.
+- **Publish** releases the SDKs, the official host plugins and the Gradle plugins to Maven Central.
 - **Distribute Desktop Application** builds the host installers and creates a draft GitHub release.
   Its notes are the changelog section, followed by GitHub's list of merged PRs. It fails when the
   changelog has no section for the tag.
