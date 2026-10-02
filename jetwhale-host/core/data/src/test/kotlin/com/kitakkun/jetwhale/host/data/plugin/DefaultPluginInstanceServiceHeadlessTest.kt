@@ -16,11 +16,15 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -113,6 +117,34 @@ class DefaultPluginInstanceServiceHeadlessTest {
         service.unloadPluginInstancesForPlugin(pluginId)
 
         assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId))
+    }
+
+    @Test
+    fun `a plugin coroutine that fails while its instance is disposed leaves no failure behind`() = runBlocking {
+        val plugin = FailsWhileDisposedPlugin()
+        val service = serviceWith { plugin }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        service.unloadPluginInstancesForPlugin(pluginId)
+        withTimeout(TIMEOUT_MILLIS) { plugin.coroutine.join() }
+
+        assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId))
+    }
+
+    private class FailsWhileDisposedPlugin : JetWhaleHostPlugin() {
+        private val disposing = CompletableDeferred<Unit>()
+        lateinit var coroutine: Job
+
+        override fun onCreate() {
+            coroutine = pluginScope.launch {
+                withContext(NonCancellable) { disposing.await() }
+                error("stream closed under the read")
+            }
+        }
+
+        override fun onDispose() {
+            disposing.complete(Unit)
+        }
     }
 
     private class ThrowingCoroutinePlugin : JetWhaleHostPlugin() {
