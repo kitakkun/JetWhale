@@ -85,7 +85,8 @@ internal class SetViewAttributeCommand(
     override val description =
         "Changes one attribute of one Android View node in the running app and returns " +
             "{\"applied\", \"rootId\", \"nodeId\", \"attributeId\", \"message\", \"attribute\"}, where \"attribute\" is the " +
-            "value as it reads back afterwards — an app may clamp or ignore what was asked for. The value is given as a " +
+            "value as it reads back afterwards — an app may clamp or ignore what was asked for. A change the app refuses fails " +
+            "with its reason. The value is given as a " +
             "string and parsed for the attribute's own type: \"GONE\", \"true\", \"0.5\", \"#80FF0000\", \"24\". " +
             "Call getViewAttributes first to see the ids, types and enum options. " + TEMPORARY_NOTICE
 
@@ -127,9 +128,12 @@ internal class SetViewAttributeCommand(
             return appDidNotAnswerResult(e)
         }
 
+        if (!result.applied) {
+            return JetWhaleMcpResult.error("$attributeId was not applied to node $nodeId in $rootId: ${result.message ?: "the app gave no reason"}")
+        }
         return JetWhaleMcpResult.json(
             buildJsonObject {
-                put("applied", result.applied)
+                put("applied", true)
                 put("rootId", rootId)
                 put("nodeId", nodeId)
                 put("attributeId", attributeId)

@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequestException
@@ -36,6 +37,25 @@ class ComposeMcpCommandsTest {
         val failures = commands.map { (command, arguments) -> command.failureOf(arguments) }
 
         assertEquals(List(commands.size) { "the app did not answer: timed out" }, failures)
+    }
+
+    @Test
+    fun `an action the app does not perform is a failed call with its reason`() {
+        val command = PerformNodeActionCommand(
+            lastSnapshot = { null },
+            capture = unanswered,
+            perform = { NodeActionResult(performed = false, message = "node 7 is disabled") },
+        )
+
+        val failure = command.failureOf(
+            buildJsonObject {
+                put("nodeId", 7)
+                put("action", "Click")
+                put("rootId", "window-1")
+            },
+        )
+
+        assertEquals("Click was not performed on node 7 in window-1: node 7 is disabled", failure)
     }
 }
 
