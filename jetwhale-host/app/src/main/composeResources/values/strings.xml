@@ -28,8 +28,8 @@
     <string name="session_connected_message">%1$s connected</string>
     <string name="sessions_connected_message">%1$d sessions connected</string>
     <string name="session_disconnected_message">%1$s disconnected</string>
-    <string name="plugin_enabled_change_failed_message">Couldn't enable or disable the plugin: %1$s</string>
     <string name="sessions_disconnected_message">%1$d sessions disconnected</string>
+    <string name="plugin_enabled_change_failed_message">Couldn't enable or disable the plugin: %1$s</string>
     <string name="plugin_installed_message">%1$s installed</string>
     <string name="plugin_install_failed_message">Couldn’t install %1$s: %2$s</string>
     <string name="plugin_install_open">Open</string>

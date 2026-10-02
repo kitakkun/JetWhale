@@ -4,7 +4,6 @@ import kotlinx.coroutines.runBlocking
 import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertContains
-import kotlin.test.assertFalse
 
 class ToolingScaffoldSnackbarMessageTest {
     @Test
@@ -22,11 +21,11 @@ class ToolingScaffoldSnackbarMessageTest {
     }
 
     @Test
-    fun `a failure with a blank message or no class name still names a reason`() = runBlocking {
-        val blank = ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(IOException("  "))
-        val anonymous = ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(object : Throwable() {})
+    fun `a failure with a blank message or no simple class name is announced by its class name`() = runBlocking {
+        val blankError = IOException("  ")
+        val anonymousError = object : Throwable() {}
 
-        assertContains(blank.snackbarMessage(), "IOException")
-        assertFalse(anonymous.snackbarMessage().trimEnd().endsWith(":"))
+        assertContains(ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(blankError).snackbarMessage(), "IOException")
+        assertContains(ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(anonymousError).snackbarMessage(), anonymousError.javaClass.name)
     }
 }
