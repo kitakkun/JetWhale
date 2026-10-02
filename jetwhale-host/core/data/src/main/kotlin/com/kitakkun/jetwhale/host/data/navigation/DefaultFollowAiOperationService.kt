@@ -43,9 +43,10 @@ class DefaultFollowAiOperationService(
 }
 
 /**
- * Whether the operated plugin is on screen already, either as the main window's destination or in a
+ * Whether the operated plugin is on screen already, either as the main window's content or in a
  * window of its own. Following in that case would only take the main window off whatever else the
- * user had put there.
+ * user had put there. Content under a dialog the user has open counts: it is back the moment the
+ * dialog closes, and following would only reopen the same plugin under it.
  *
  * A call that names no session is followed against whatever session the drawer has selected, so it
  * counts as shown wherever that plugin is shown.
@@ -53,8 +54,6 @@ class DefaultFollowAiOperationService(
 private fun HostDestination.alreadyShows(invocation: McpToolInvocation, pluginId: String): Boolean {
     val matchesSession = { sessionId: String? -> invocation.sessionId == null || invocation.sessionId == sessionId }
     val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && matchesSession(it.sessionId) }
-    // Judged on the content, not the top: a plugin under a dialog the user has open is on screen the
-    // moment the dialog closes, and following would only reopen the same plugin under it.
     val onScreen = content.kind == HostDestinationKind.PLUGIN && content.pluginId == pluginId && matchesSession(content.sessionId)
     return poppedOut || onScreen
 }
