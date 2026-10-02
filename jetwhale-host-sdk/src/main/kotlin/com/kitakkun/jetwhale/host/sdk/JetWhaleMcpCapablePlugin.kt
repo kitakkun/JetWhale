@@ -9,8 +9,9 @@ import kotlinx.serialization.json.JsonObject
  *
  * The MCP server queries all active plugin instances for this interface as sessions come up,
  * registers each command's descriptor, and dispatches invocations to the matching command on the
- * correct plugin instance (keyed by pluginId + sessionId). A [JetWhaleMcpArgumentException]
- * thrown by a command is rendered as an `{"error": ...}` payload instead of failing the server.
+ * correct plugin instance (keyed by pluginId + sessionId). A [JetWhaleMcpException] thrown by a
+ * command, or its narrower [JetWhaleMcpArgumentException] that the argument accessors raise, becomes
+ * a failed [JetWhaleMcpResult] instead of failing the server.
  *
  * Usage:
  * ```kotlin
@@ -38,26 +39,32 @@ public interface JetWhaleMcpCapablePlugin {
  * @property name        Unique tool name (no spaces; use dots as separators).
  * @property description Human-readable description shown to the AI agent.
  * @property parameters  Parameter descriptors keyed by parameter name.
+ * @property outputSchema JSON Schema of the structured content the tool answers with, always an
+ *   `object` schema as MCP requires. Null when the command declares no output: the tool then
+ *   advertises no shape for its answer, which may still be structured JSON.
  */
 @ExperimentalJetWhaleApi
 public class JetWhaleMcpToolDescriptor(
     public val name: String,
     public val description: String,
     public val parameters: Map<String, JetWhaleMcpParameterDescriptor> = emptyMap(),
+    public val outputSchema: JsonObject?,
 ) {
     override fun equals(other: Any?): Boolean = other is JetWhaleMcpToolDescriptor &&
         name == other.name &&
         description == other.description &&
-        parameters == other.parameters
+        parameters == other.parameters &&
+        outputSchema == other.outputSchema
 
     override fun hashCode(): Int {
         var result = name.hashCode()
         result = 31 * result + description.hashCode()
         result = 31 * result + parameters.hashCode()
+        result = 31 * result + outputSchema.hashCode()
         return result
     }
 
-    override fun toString(): String = "JetWhaleMcpToolDescriptor(name=$name, description=$description, parameters=$parameters)"
+    override fun toString(): String = "JetWhaleMcpToolDescriptor(name=$name, description=$description, parameters=$parameters, outputSchema=$outputSchema)"
 }
 
 /**

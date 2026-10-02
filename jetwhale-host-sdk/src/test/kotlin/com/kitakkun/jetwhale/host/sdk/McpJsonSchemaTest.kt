@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.serializer
@@ -63,6 +64,15 @@ private sealed interface Shape {
 @Serializable
 private abstract class OpenBase
 
+@Serializable
+private enum class Verb { GET, POST }
+
+@Serializable
+private data class NullableKinds(val verb: Verb?, val shape: Shape?)
+
+@Serializable
+private data class Drawing(val shape: Shape)
+
 class McpJsonSchemaTest {
     @Test
     fun `primitive kinds map onto the JSON Schema types`() {
@@ -89,6 +99,47 @@ class McpJsonSchemaTest {
     }
 
     private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
+
+    @Test
+    fun `a format without explicit nulls requires no nullable property`() {
+        val json = Json(from = DefaultArgumentJson) { explicitNulls = false }
+        assertNull(schemaOf<Optionality>(json)["required"])
+    }
+
+    @Test
+    fun `a nullable property admits null next to its type`() {
+        assertEquals(listOf("string", "null"), schemaOf<Optionality>().property("requiredHere").strings("type"))
+    }
+
+    @Test
+    fun `a nullable enum lists null among its entries`() {
+        val verb = schemaOf<NullableKinds>().property("verb")
+        assertEquals(listOf("string", "null"), verb.strings("type"))
+        assertEquals(listOf(JsonPrimitive("GET"), JsonPrimitive("POST"), JsonNull), (verb.getValue("enum") as JsonArray).toList())
+    }
+
+    @Test
+    fun `a nullable sealed value gains a null variant`() {
+        val variants = schemaOf<NullableKinds>().property("shape").variants()
+        assertEquals("null", variants.last().string("type"))
+        assertEquals(3, variants.size)
+    }
+
+    @Test
+    fun `a format that writes the discriminator on every object pins it on every class`() {
+        val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val schema = schemaOf<Optionality>(json)
+        assertEquals(serializer<Optionality>().descriptor.serialName, schema.property("type").string("const"))
+        assertEquals(listOf("type", "requiredHere"), schema.strings("required"))
+    }
+
+    @Test
+    fun `a sealed base's discriminator replaces the one its subclass carries on its own`() {
+        val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val circle = schemaOf<Drawing>(json).property("shape").variants().single { it.property("kind").string("const") == "circle" }
+        assertEquals(listOf("kind", "radius"), circle.strings("required"))
+        assertEquals(listOf("kind", "radius"), circle.obj("properties").keys.toList())
+    }
 
     @Test
     fun `maps and nested lists keep their element schemas`() {

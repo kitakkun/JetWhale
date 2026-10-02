@@ -5,8 +5,9 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -38,7 +39,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `listDevices tells a view-only iPhone from a device that takes input`() {
-        val devices = ListDevicesCommand(mirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
+        val devices = ListDevicesCommand(mirror).structuredAnswer().getValue("devices").jsonArray.map(JsonElement::jsonObject)
 
         val phone = devices.single { it.getValue("deviceId").jsonPrimitive.content == "00008110" }
         assertEquals("iOS", phone.getValue("platform").jsonPrimitive.content)
@@ -50,7 +51,7 @@ class MirrorMcpCommandsTest {
     fun `listDevices reports whether an Android screen is on and says nothing of an iPhone's`() {
         emulator.power = ScreenPower(awake = false, locked = true)
 
-        val devices = ListDevicesCommand(mirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
+        val devices = ListDevicesCommand(mirror).structuredAnswer().getValue("devices").jsonArray.map(JsonElement::jsonObject)
 
         val android = devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }
         assertFalse(android.getValue("screenOn").jsonPrimitive.boolean)
@@ -60,7 +61,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `setScreen turns an Android screen off and answers the state it leaves`() {
-        val answer = SetScreenCommand(mirror).run(buildJsonObject { put("on", false) })
+        val answer = SetScreenCommand(mirror).structuredAnswer(buildJsonObject { put("on", false) })
 
         assertEquals(listOf("sleep"), emulator.calls)
         assertFalse(answer.getValue("screenOn").jsonPrimitive.boolean)
@@ -69,7 +70,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `setScreen on an iPhone is refused with the reason`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            SetScreenCommand(mirror).run(
+            SetScreenCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "00008110")
                     put("on", true)
@@ -82,7 +83,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `a tap reaches the selected device when no device is named`() {
-        TapCommand(mirror).run(
+        TapCommand(mirror).structuredAnswer(
             buildJsonObject {
                 put("x", 10)
                 put("y", 20)
@@ -95,7 +96,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `a tap on a physical iPhone is refused with the reason and without asking for its screen size`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            TapCommand(mirror).run(
+            TapCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "00008110")
                     put("x", 10)
@@ -112,7 +113,7 @@ class MirrorMcpCommandsTest {
     fun `a tap off the screen never reaches the device`() {
         val refused = listOf(1080 to 600, 540 to 2400).map { (x, y) ->
             runCatching {
-                TapCommand(mirror).run(
+                TapCommand(mirror).structuredAnswer(
                     buildJsonObject {
                         put("x", x)
                         put("y", y)
@@ -127,7 +128,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `a swipe passes both ends and the duration in order`() {
-        SwipeCommand(mirror).run(
+        SwipeCommand(mirror).structuredAnswer(
             buildJsonObject {
                 put("fromX", 1)
                 put("fromY", 2)
@@ -148,7 +149,7 @@ class MirrorMcpCommandsTest {
             swipe(fromX = 540, toY = 600, durationMillis = 60_000),
             swipe(fromX = 1080, toY = 600, durationMillis = null),
             swipe(fromX = 540, toY = 2400, durationMillis = null),
-        ).map { arguments -> runCatching { SwipeCommand(mirror).run(arguments) }.exceptionOrNull() }
+        ).map { arguments -> runCatching { SwipeCommand(mirror).structuredAnswer(arguments) }.exceptionOrNull() }
 
         assertTrue(refused.all { it is JetWhaleMcpArgumentException }, refused.toString())
         assertEquals(emptyList(), emulator.calls)
@@ -157,7 +158,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `a swipe on a physical iPhone is refused without asking for its screen size`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            SwipeCommand(mirror).run(
+            SwipeCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "00008110")
                     put("fromX", 10)
@@ -175,7 +176,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `a negative swipe is refused before the device is looked up`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            SwipeCommand(mirror).run(
+            SwipeCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "nope")
                     put("fromX", -1)
@@ -192,7 +193,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `an unknown device is refused with a pointer to listDevices`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            PressButtonCommand(mirror).run(
+            PressButtonCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "nope")
                     put("button", "Home")
@@ -205,21 +206,48 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `stopping when nothing records is refused`() {
-        assertFailsWith<JetWhaleMcpArgumentException> { StopRecordingCommand(mirror).run() }
+        assertFailsWith<JetWhaleMcpArgumentException> { StopRecordingCommand(mirror).structuredAnswer() }
     }
 
     @Test
     fun `startRecording with all starts every device at once and reports each device's result`() {
-        val results = StartRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.map(JsonElement::jsonObject)
+        val results = StartRecordingCommand(mirror).structuredAnswer(buildJsonObject { put("all", true) }).getValue("results").jsonArray.map(JsonElement::jsonObject)
 
         assertEquals(listOf<List<String>?>(null), mirror.recordingRequests)
         assertEquals(listOf("started", "failed"), results.map { it.getValue("status").jsonPrimitive.content })
-        assertEquals("cannot record", results[1].getValue("error").jsonPrimitive.content)
+        assertEquals("cannot record", results[1].getValue("reason").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `startRecording that starts no device is a failed call that still names each device's reason`() {
+        val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("deviceIds", buildJsonArray { add("00008110") }) })
+
+        assertTrue(result.isError)
+        assertTrue("cannot record" in result.text(), result.text())
+    }
+
+    @Test
+    fun `captureScreenshot answers with the saved file and adds the PNG only when asked`() {
+        val png = File.createTempFile("screenshot", ".png").apply {
+            deleteOnExit()
+            writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47))
+        }
+        mirror.screenshot = recording.copy(file = png, info = recording.info.copy(kind = CaptureKind.Screenshot, durationMillis = null))
+
+        val pathOnly = CaptureScreenshotCommand(mirror).answer(buildJsonObject { })
+        val withImage = CaptureScreenshotCommand(mirror).answer(buildJsonObject { put("includeImage", true) })
+
+        assertEquals(png.absolutePath, pathOnly.structuredContent?.getValue("path")?.jsonPrimitive?.content)
+        assertEquals(emptyList(), pathOnly.content.filterIsInstance<JetWhaleMcpContent.Image>())
+        assertEquals(pathOnly.structuredContent, withImage.structuredContent)
+        val image = withImage.content.filterIsInstance<JetWhaleMcpContent.Image>().single()
+        assertEquals("image/png", image.mimeType)
+        assertEquals(png.readBytes().toList(), image.data.toList())
     }
 
     @Test
     fun `startRecording with deviceIds starts just those`() {
-        StartRecordingCommand(mirror).run(buildJsonObject { put("deviceIds", buildJsonArray { add("emulator-5554") }) })
+        StartRecordingCommand(mirror).structuredAnswer(buildJsonObject { put("deviceIds", buildJsonArray { add("emulator-5554") }) })
 
         assertEquals(listOf<List<String>?>(listOf("emulator-5554")), mirror.recordingRequests)
     }
@@ -227,7 +255,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `startRecording refuses a device together with all`() {
         assertFailsWith<JetWhaleMcpArgumentException> {
-            StartRecordingCommand(mirror).run(
+            StartRecordingCommand(mirror).structuredAnswer(
                 buildJsonObject {
                     put("deviceId", "emulator-5554")
                     put("all", true)
@@ -239,7 +267,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `stopRecording with all reports each saved file`() {
-        val result = StopRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.single().jsonObject
+        val result = StopRecordingCommand(mirror).structuredAnswer(buildJsonObject { put("all", true) }).getValue("results").jsonArray.single().jsonObject
 
         assertEquals("stopped", result.getValue("status").jsonPrimitive.content)
         assertEquals(recording.file.absolutePath, result.getValue("path").jsonPrimitive.content)
@@ -247,7 +275,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `listCaptures passes its filters on and reports each capture's file, device and length`() {
-        val captures = ListCapturesCommand(mirror).run(
+        val captures = ListCapturesCommand(mirror).structuredAnswer(
             buildJsonObject {
                 put("deviceId", "emulator-5554")
                 put("kind", "Recording")
@@ -264,7 +292,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `listCaptures without filters asks for every device's captures`() {
-        ListCapturesCommand(mirror).run()
+        ListCapturesCommand(mirror).structuredAnswer()
 
         assertEquals(listOf(CaptureQuery(deviceId = null, kind = null, sinceEpochMillis = null)), mirror.captureQueries)
     }
@@ -279,9 +307,13 @@ private fun swipe(fromX: Int, toY: Int, durationMillis: Int?) = buildJsonObject 
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
-}
+private fun JetWhaleMcpCommand.answer(arguments: JsonObject): JetWhaleMcpResult = runBlocking { run(JetWhaleMcpArguments(arguments)) }
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private fun JetWhaleMcpCommand.structuredAnswer(arguments: JsonObject = buildJsonObject { }): JsonObject = checkNotNull(answer(arguments).structuredContent)
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private fun JetWhaleMcpResult.text(): String = (content.single() as JetWhaleMcpContent.Text).text
 
 private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : MirrorDevices {
     override val selectedId: String = devices.first().id
@@ -293,7 +325,9 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
 
     val captureQueries = mutableListOf<CaptureQuery>()
 
-    override suspend fun saveScreenshot(device: MirrorDevice): Capture = throw deviceControlError("no screenshots in tests")
+    var screenshot: Capture? = null
+
+    override suspend fun saveScreenshot(device: MirrorDevice): Capture = screenshot ?: throw deviceControlError("no screenshot is set up for this test")
 
     override suspend fun startRecording(device: MirrorDevice) = Unit
 

@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class TapCommand(
@@ -16,7 +17,7 @@ internal class TapCommand(
     private val x by int("Horizontal position in screenshot pixels.")
     private val y by int("Vertical position in screenshot pixels.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val x = arguments[x]
         val y = arguments[y]
         if (x < 0 || y < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got x=$x, y=$y)")
@@ -27,6 +28,6 @@ internal class TapCommand(
             throw JetWhaleMcpArgumentException("the tap is off the ${screen.width}x${screen.height} screen (got x=$x, y=$y)")
         }
         deviceOperation { device.controller.tap(x, y) }
-        return okJson()
+        return okResult()
     }
 }

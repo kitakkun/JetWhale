@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class InputTextCommand(
@@ -14,9 +15,9 @@ internal class InputTextCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val text by string("The text to type.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         deviceOperation { device.controller.inputText(arguments[text]) }
-        return okJson()
+        return okResult()
     }
 }

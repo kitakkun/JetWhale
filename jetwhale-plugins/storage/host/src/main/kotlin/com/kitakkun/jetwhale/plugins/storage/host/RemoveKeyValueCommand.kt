@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class RemoveKeyValueCommand(
@@ -16,5 +16,5 @@ internal class RemoveKeyValueCommand(
     private val store by string("Name of the store, as listLocations reports it.")
     private val key by string("The key to remove.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(StorageOperationResult.serializer(), client.removeKeyValue(storeName = arguments[store], key = arguments[key]))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = client.removeKeyValue(storeName = arguments[store], key = arguments[key]).toMcpResult()
 }
