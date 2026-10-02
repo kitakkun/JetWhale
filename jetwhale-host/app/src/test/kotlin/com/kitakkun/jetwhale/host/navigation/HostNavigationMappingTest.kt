@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.navigation
 import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
+import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -33,7 +34,7 @@ class HostNavigationMappingTest {
         assertEquals(HostDestinationKind.PLUGIN, destination.kind)
         assertEquals("plugin-1", destination.pluginId)
         assertEquals(HostContent(HostDestinationKind.PLUGIN, "plugin-1", "session-1"), destination.content)
-        assertEquals(listOf("plugin-2"), destination.poppedOutPlugins.map { it.pluginId })
+        assertEquals(listOf("plugin-2"), destination.poppedOutPlugins.map(PoppedOutPlugin::pluginId))
     }
 
     @Test

@@ -153,6 +153,9 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
             (sessionId == null || destination.content.sessionId == sessionId)
 }
 
+/**
+ * @property overlay The dialog still open over the content a HOME or PLUGIN request was applied under, if any.
+ */
 @Serializable
 data class NavigateResult(
     val applied: Boolean,
@@ -161,7 +164,6 @@ data class NavigateResult(
     val sessionId: String? = null,
     val settingsSection: String? = null,
     val poppedOut: Boolean = false,
-    /** The dialog still open over the content a HOME or PLUGIN request was applied under, if any. */
     val overlay: String? = null,
     val reason: String? = null,
 )

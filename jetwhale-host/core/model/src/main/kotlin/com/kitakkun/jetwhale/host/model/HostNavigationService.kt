@@ -30,14 +30,18 @@ enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, 
 
 data class PoppedOutPlugin(val pluginId: String, val sessionId: String)
 
-/** What the main host window currently shows. Popped-out plugins live in their own windows and are listed separately. */
+/**
+ * What the main host window currently shows. Popped-out plugins live in their own windows and are
+ * listed separately.
+ *
+ * @property content What the main window shows as its content, under whatever dialog is open over it.
+ */
 data class HostDestination(
     val kind: HostDestinationKind,
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: HostSettingsSection? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
-    /** What the main window shows as its content, under whatever dialog is open over it. */
     val content: HostContent,
 )
 

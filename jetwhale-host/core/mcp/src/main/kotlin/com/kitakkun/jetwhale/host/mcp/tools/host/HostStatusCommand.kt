@@ -157,13 +157,15 @@ data class PermissionsJson(
     val changeableIn: String = "Settings → AI Agents → Permissions",
 )
 
+/**
+ * @property content What the main window shows under [destination] when that is a dialog; otherwise the same thing.
+ */
 @Serializable
 data class UiStateJson(
     val destination: String,
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: String? = null,
-    /** What the main window shows under [destination] when that is a dialog; otherwise the same thing. */
     val content: ContentJson,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
     val selectedSessionId: String? = null,
