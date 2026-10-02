@@ -73,11 +73,9 @@ private const val MAX_CONCURRENT_THUMBNAIL_CAPTURES = 2
 @Composable
 internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifier) {
     LaunchedEffect(mirror) { mirror.keepDevicesCurrent() }
-    // Both views save captures, so the saved folder is restored whichever one opens first.
     LaunchedEffect(mirror.captures) { mirror.captures.restoreFolder() }
     var showGrid by rememberPersistent("showGrid", default = false)
     var showCaptures by rememberPersistent("showCaptures", default = false)
-    // Kept across both views: the grid fills it, and the single view's device picker reads it.
     val thumbnails = remember { DeviceThumbnails(refreshIntervalMillis = THUMBNAIL_REFRESH_MILLIS, maxConcurrentCaptures = MAX_CONCURRENT_THUMBNAIL_CAPTURES, decodeDispatcher = Dispatchers.IO, clock = Clock.System) }
     DisposableEffect(thumbnails) { onDispose(thumbnails::close) }
     val devices = mirror.devices
@@ -113,7 +111,6 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
 
         override fun hold(held: Boolean) = mirror.notices.hold(held)
     }
-    // Leaving the single view stops the selected device's stream: the grid captures by screenshot.
     Box(modifier.fillMaxSize()) {
         if (showGrid) {
             DeviceGridRoot(mirror, thumbnails, notices, onShowSingle = { showGrid = false })
@@ -232,7 +229,6 @@ internal fun MirrorScreen(
                 description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
             )
         } else {
-            // While switching, the screen state still describes the previous device.
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
             val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis)
             DevicePane(pane, surface, actions, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
@@ -288,19 +284,13 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
             val switching = surface.deviceId != pane.device.id
             when {
-                // A frame kept from the last visit stays up, dimmed, until the new stream sends one.
                 surface.showingKeptFrame || (switching && surface.hasKeptFrame(pane.device.id)) -> ReconnectingScrim()
-
                 switching -> JwEmptyState(title = "Connecting to ${pane.device.name}…")
-
                 else -> StateOverlay(pane.device, pane.state)
             }
-            // A screen that is off streams nothing, so the mirror would otherwise just stay black.
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
-            // Over the video rather than above it, so a notice never moves the picture.
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
-        // Screenshots move a few times a second; say so, or the mirror just looks broken.
         (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
         if (pane.capabilities.input) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
@@ -393,7 +383,6 @@ private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
 }
 
 private fun statsText(sourceLabel: String, stats: MirrorStats): String {
-    // A still screen sends nothing; that is not a stall.
     if (stats.receivedFps == 0) return "$sourceLabel · the screen is not changing, so the device sends no frames"
     return "$sourceLabel · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
         "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"

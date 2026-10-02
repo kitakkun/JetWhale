@@ -59,7 +59,6 @@ class ClickToolTest {
         }
         renderTestScene(scene)
 
-        // Element is 50dp x 50dp = 50px x 50px at density 1; click far outside
         val result = dispatchClick(scene, 500f, 500f)
 
         assertFalse(result)

@@ -23,7 +23,6 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
 import com.kitakkun.jetwhale.protocol.messaging.request
 
-// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class StorageHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = StorageHostPlugin()
@@ -38,7 +37,6 @@ private class StorageHostPlugin :
 
     private val browser by lazy { StorageBrowser(client = this, scope = pluginScope) }
 
-    // The agent pushes nothing, so the whole view is fetched once per connection.
     override suspend fun onPrepare() {
         browser.load()
     }

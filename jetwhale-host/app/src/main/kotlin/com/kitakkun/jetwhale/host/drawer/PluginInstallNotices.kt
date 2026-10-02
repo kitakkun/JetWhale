@@ -56,16 +56,12 @@ internal fun PluginInstallNotices(
     onReviewInstalls: () -> Unit,
 ) {
     val currentInstallJobs by rememberUpdatedState(installJobs)
-    // A notice can wait in the snackbar queue for a while, so it acts through the callbacks of the
-    // latest composition, not those of the one that queued it.
     val currentOnOpen by rememberUpdatedState(onOpen)
     val currentOnRetry by rememberUpdatedState(onRetry)
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     val currentOnShowInstalledPlugins by rememberUpdatedState(onShowInstalledPlugins)
     val currentOnReviewInstalls by rememberUpdatedState(onReviewInstalls)
 
-    // Installs whose notice has ended. They stay in the list until the presenter drops them, or for
-    // good when the user went to review them, and must not be announced again meanwhile.
     val settledJobIds = remember { mutableStateSetOf<String>() }
     LaunchedEffect(installJobs) {
         val listedIds = installJobs.map(PluginInstallJob::id).toSet()
@@ -74,8 +70,6 @@ internal fun PluginInstallNotices(
 
     LaunchedEffect(snackbarHostState) {
         snapshotFlow { currentInstallJobs.filter { !it.status.isActive && it.id !in settledJobIds } }
-            // A newer set of finished installs cancels the wait, or the notice on screen, which takes
-            // it off, and shows one for the whole set instead.
             .collectLatest { finished ->
                 if (finished.isEmpty()) return@collectLatest
                 delay(BATCH_WINDOW_MILLIS)
@@ -86,6 +80,9 @@ internal fun PluginInstallNotices(
                     duration = notice.duration,
                     dismissLabel = getString(Res.string.notice_dismiss),
                 )
+                // Settled only after the notice closes: a job finishing meanwhile restarts this
+                // block through collectLatest, and the jobs already on the notice must be in the
+                // next one too.
                 settledJobIds += finished.map(PluginInstallJob::id)
                 when (notice.action) {
                     is NoticeAction.Open -> {
@@ -94,9 +91,7 @@ internal fun PluginInstallNotices(
                     }
 
                     is NoticeAction.Retry -> when (result) {
-                        // The retry replaces this install in the list, so there is nothing to dismiss.
                         JwSnackbarResult.ActionPerformed -> currentOnRetry(notice.action.job.request)
-
                         JwSnackbarResult.Dismissed -> currentOnDismiss(listOf(notice.action.job.id))
                     }
 
@@ -106,7 +101,6 @@ internal fun PluginInstallNotices(
                     }
 
                     is NoticeAction.ReviewInstalls -> when (result) {
-                        // The failures stay listed on the page the user goes to, with their retries.
                         JwSnackbarResult.ActionPerformed -> {
                             currentOnDismiss(finished.filter { it.status == PluginInstallStatus.Succeeded }.map(PluginInstallJob::id))
                             currentOnReviewInstalls()

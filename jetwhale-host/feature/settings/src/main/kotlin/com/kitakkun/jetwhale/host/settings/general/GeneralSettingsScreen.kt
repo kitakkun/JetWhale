@@ -231,9 +231,6 @@ private fun MaintenanceSection(
         label = stringResource(Res.string.maintenance),
         modifier = modifier,
     ) {
-        // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
-        // it can't be starved down to one character per line, and the path takes the
-        // remaining space (weight) and wraps within it.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),

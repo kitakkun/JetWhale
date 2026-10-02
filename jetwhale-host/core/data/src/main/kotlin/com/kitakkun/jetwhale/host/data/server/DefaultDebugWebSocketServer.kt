@@ -45,8 +45,6 @@ class DefaultDebugWebSocketServer(
 
     override suspend fun start(host: String, port: Int, wssPort: Int?) {
         subscribeServerEvents()
-        // Advertise the server over mDNS while it runs so LAN devices can discover it. The advertiser
-        // tracks statusFlow itself, so it registers once the connectors report Started.
         hostDiscoveryAdvertiser.start()
         ktorWebSocketServer.start(
             host = host,
@@ -78,17 +76,12 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorAdbAutoWiring() {
-        // Read the stored value instead of sampling the flow: the flow reports the default until the
-        // store answers, and this decision is made once per server start. Sampling it too early would
-        // wire devices for a user who turned the setting off, for the whole run.
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
         var wiredPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
             when (status) {
                 is DebugWebSocketServerStatus.Started -> {
-                    // Wire both connectors so an on-device app can reach ws and wss alike through
-                    // localhost, whichever it is configured for.
                     wiredPorts = listOfNotNull(status.port, status.wssPort)
                     wiredPorts.forEach(adbAutoWiringService::startAutoWiring)
                 }
@@ -122,8 +115,6 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorEnabledPluginChanges() {
-        // Thin subscriber: the reconciliation service owns the enabled-plugin x session mapping and
-        // the instance lifecycle; this only forwards the resulting notifications to the agents.
         reconciliationService.reconciliationEvents().collect { event ->
             when (event) {
                 is PluginReconciliationEvent.Activated -> event.sessionIds.forEach { sessionId ->

@@ -25,8 +25,6 @@ class NodeHighlightControllerTest {
     private val firstRoot = NodeKey(rootId = "window-1", nodeId = -4)
     private val secondRoot = NodeKey(rootId = "window-2", nodeId = 12)
 
-    // -- NodeHighlightController ----------------------------------------------
-
     @Test
     fun `showing a node sends it with the shared time to live`() = runBlocking {
         val recorder = Recorder()
@@ -118,8 +116,6 @@ class NodeHighlightControllerTest {
         assertEquals("Highlight failed: the session is gone", controller.statusMessage)
     }
 
-    // -- setTarget, on virtual time -------------------------------------------
-
     @Test
     fun `a target replaced within the debounce is never sent`() = runTest {
         val recorder = Recorder()
@@ -193,9 +189,6 @@ class NodeHighlightControllerTest {
 
     @Test
     fun `a clear cancelled before its turn leaves its root to be cleared`() = runTest {
-        // The clear waits for the request ahead of it to answer. Being replaced while it sits in that
-        // queue must not make the controller forget the root it was going to clear, or the box on it
-        // would stand until the app's own TTL — nothing else ever names that root again.
         val answering = CompletableDeferred<Unit>()
         val recorder = Recorder(answer = { request ->
             if (request.nodeId == -9) answering.await()
@@ -204,9 +197,6 @@ class NodeHighlightControllerTest {
         val controller = recorder.controller(backgroundScope)
 
         controller.show(firstRoot)
-        // Same root, so it sends no clear of its own; it is only here to hold the queue open. It is
-        // cancelled rather than answered so that it never records an answer, leaving what the clear
-        // did to the bookkeeping as the only thing this test can be reading.
         val occupying = backgroundScope.launch { controller.show(firstRoot.copy(nodeId = -9)) }
         runCurrent()
         val clearing = backgroundScope.launch { controller.show(null) }

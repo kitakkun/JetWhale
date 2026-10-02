@@ -16,8 +16,8 @@ internal object TextActions {
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.SetText, "text")
-            // A text field only accepts programmatic edits while it holds focus, exactly as when a
-            // user types into it, so take focus first when the node offers it.
+            // A text field accepts programmatic edits only while it holds focus, so take focus
+            // first when the node offers it.
             node.config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
             return node.config.invokeAction(SemanticsActions.SetText) { it(AnnotatedString(text)) }
         }

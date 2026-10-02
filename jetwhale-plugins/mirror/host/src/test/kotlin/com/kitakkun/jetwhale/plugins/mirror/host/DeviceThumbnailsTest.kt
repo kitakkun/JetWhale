@@ -130,7 +130,6 @@ class DeviceThumbnailsTest {
 
         assertEquals(ThumbnailState.Failed("adb: device offline"), thumbnails.thumbnailOf("a").state)
         assertNotNull(thumbnails.thumbnailOf("a").image)
-        // The image still shown is the one from before the failure, and says so.
         assertEquals(CAPTURED_AT_MILLIS, thumbnails.thumbnailOf("a").updatedAtMillis)
     }
 

@@ -27,7 +27,6 @@ internal fun ExampleTestScreen() {
     val eventLogs by plugin.eventLogsFlow.collectAsState()
     var counter by remember { mutableIntStateOf(0) }
 
-    // Offered while this tab is shown; the host lists it as a screen action and drops it on leaving.
     DIModule.debugActionsAgentPlugin.DebugActions {
         action<SetCounter>("Set counter") {
             description = "Sets the Example tab's click counter and returns the previous value."

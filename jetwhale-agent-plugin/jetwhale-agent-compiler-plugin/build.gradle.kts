@@ -23,13 +23,11 @@ val kotlinPluginApi: String = providers.gradleProperty("kotlin.plugin.api")
     .get()
 
 kotlin {
-    // 17, matching gradle-conventions/jvm.gradle.kts — and not a matter of tidiness. Both of these
-    // JARs are loaded by someone else's JVM: the Gradle daemon for the Gradle plugin, the Kotlin
-    // compile daemon for the compiler plugin. Emitting Java 21 bytecode makes a consumer building on
-    // JDK 17 fail with UnsupportedClassVersionError before any of this runs.
+    // 17, because these JARs load in someone else's JVM: the Gradle daemon for the Gradle plugin,
+    // the Kotlin compile daemon for the compiler plugin. Java 21 bytecode would make a consumer
+    // building on JDK 17 fail with UnsupportedClassVersionError.
     jvmToolchain(17)
     compilerOptions {
-        // The plugin API is @ExperimentalCompilerApi by design; opting in per-file would be noise.
         freeCompilerArgs.add("-opt-in=org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")
     }
 }
@@ -40,12 +38,10 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinPluginApi")
     compileOnly(kotlin("stdlib"))
 
-    // Runners live in `test` rather than test-fixtures so they can see the plugin's `internal`
-    // declarations — Kotlin associates `test` with `main`, test-fixtures is its own compilation.
-    // The test framework links against the *un-shaded* kotlin-compiler, so the tests get that while
-    // the published JAR keeps compiling against the embeddable one. Safe here only because this
-    // plugin references no IntelliJ classes at all — verified by grepping the compiled bytecode for
-    // `com/intellij` — so the same .class files load under either compiler.
+    // Runners live in test, not test fixtures, so they can see the plugin's internal declarations.
+    // The test framework links against the un-shaded kotlin-compiler while the published JAR
+    // compiles against the embeddable one; that is safe only while this plugin references no
+    // com.intellij classes.
     testImplementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinPluginApi")
     testImplementation("org.jetbrains.kotlin:kotlin-compiler-internal-test-framework:$kotlinPluginApi")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlinPluginApi")
@@ -74,7 +70,6 @@ sourceSets {
 tasks.test {
     dependsOn(testArtifacts)
     useJUnitPlatform()
-    // testData paths in the runners are resolved against this.
     workingDir = layout.projectDirectory.asFile
 
     systemProperty("idea.home.path", layout.projectDirectory.asFile.path)

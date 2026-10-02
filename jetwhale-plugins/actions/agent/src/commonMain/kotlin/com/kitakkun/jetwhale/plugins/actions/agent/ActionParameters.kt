@@ -20,7 +20,6 @@ internal fun SerialDescriptor.toActionParameters(parametersWithOptions: Set<Stri
     if (kind != StructureKind.CLASS) return emptyList()
     return (0 until elementsCount).map { index ->
         val element = getElementDescriptor(index)
-        // A value class is transparent on the wire, so its field is entered as what it wraps.
         val encoded = if (element.isInline) element.getElementDescriptor(0) else element
         val name = getElementName(index)
         ActionParameter(

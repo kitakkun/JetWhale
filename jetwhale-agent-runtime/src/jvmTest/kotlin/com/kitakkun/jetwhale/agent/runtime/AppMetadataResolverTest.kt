@@ -28,14 +28,12 @@ class AppMetadataResolverTest {
 
     @Test
     fun `encodeAppIconOrNull drops an icon whose encoded form exceeds the cap`() {
-        // 3 raw bytes encode to 4 base64 chars, so this comfortably exceeds the encoded-length cap.
         val oversized = ByteArray(MAX_APP_ICON_BASE64_LENGTH) { 0 }
         assertNull(encodeAppIconOrNull(oversized))
     }
 
     @Test
     fun `encodeAppIconOrNull keeps an icon right at the encoded-length cap`() {
-        // Raw byte count that encodes to exactly the cap length (base64 encodes 3 bytes to 4 chars).
         val rawSize = MAX_APP_ICON_BASE64_LENGTH / 4 * 3
         val encoded = encodeAppIconOrNull(ByteArray(rawSize) { 0 })
         assertNotNull(encoded)
@@ -70,7 +68,6 @@ class AppMetadataResolverTest {
 
         val metadata = resolveAppMetadata(config)
 
-        // On the JVM the device name falls back to the OS name and is never blank.
         assertEquals(getDeviceModelName(), metadata.deviceName)
     }
 }

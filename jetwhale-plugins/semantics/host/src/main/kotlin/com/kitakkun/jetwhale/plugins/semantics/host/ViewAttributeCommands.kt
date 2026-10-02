@@ -19,11 +19,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-// The two attribute tools. They sit apart from the tree tools because they address one View node
-// rather than the tree, and because only View nodes have anything to answer.
-
-// Both tools describe the value types from ViewAttributeType rather than spelling them out, so a
-// type added there cannot leave the descriptions behind.
 private val WRITTEN_AS_BY_TYPE = ViewAttributeType.entries.joinToString(", ") { "${it.wireName} takes ${it.writtenAs}" }
 
 private val EXTRA_FIELDS_BY_TYPE = ViewAttributeType.entries
@@ -106,8 +101,6 @@ internal class SetViewAttributeCommand(
         val text = arguments[value]
 
         val result = try {
-            // The current value is what says how to read the string, so the write always starts from
-            // a fresh read; it also means an unknown id is caught here, where the known ids can be listed.
             val response = getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
             val snapshot = response.snapshot
                 ?: return errorJson(response.message ?: "this node has no View attributes")
@@ -154,11 +147,8 @@ internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
     when (current) {
         is ViewAttributeValue.EnumValue -> put("options", JsonArray(current.options.map { JsonPrimitive(it) }))
 
-        // The pixel figure is authoritative; the dp figure is what makes it recognisable.
         is ViewAttributeValue.DimensionValue -> put("dp", current.dp)
 
-        // Both of what this takes are spelled out whichever one it currently reads as: the
-        // constants it accepts, and — when it is a length — that length in dp as well.
         is ViewAttributeValue.LayoutSizeValue -> {
             put("constants", JsonArray(current.constants.map { JsonPrimitive(it) }))
             current.dp?.let { put("dp", it) }
@@ -166,7 +156,6 @@ internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
 
         else -> Unit
     }
-    // Most attributes can be written; the read-only ones are the ones worth pointing out.
     if (!editable) put("editable", false)
 }
 
@@ -215,6 +204,8 @@ internal fun parseViewAttributeValue(attributeId: String, current: ViewAttribute
 
     is ViewAttributeValue.DimensionValue -> {
         val px = text.trim().toFloatOrNull() ?: invalidValue(attributeId = attributeId, text = text, expected = "a length in pixels")
+        // The agent writes px and ignores dp, and the host has no density to convert with, so dp
+        // repeats the pixel figure. The same holds for a layout size below.
         ViewAttributeValue.DimensionValue(px = px, dp = px)
     }
 

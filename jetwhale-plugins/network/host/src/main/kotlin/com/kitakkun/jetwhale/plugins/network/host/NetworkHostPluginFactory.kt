@@ -47,8 +47,6 @@ private class NetworkHostPlugin :
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
 
-    // MCP_ONLY redaction rules configured on the agent: applied to MCP tool results only, so the
-    // host UI keeps showing the raw values. Empty when the agent predates GetRedactionConfig.
     private var mcpRedactionRules: List<RedactionRule> = emptyList()
 
     override fun JetWhaleMessageHandlers.configure() {
@@ -64,8 +62,6 @@ private class NetworkHostPlugin :
         }
     }
 
-    // The agent is the source of truth for the mock config (it survives host restarts): fetch and
-    // adopt it before any traffic handler runs.
     override suspend fun onPrepare() {
         val config = messenger.request(GetMockConfig)
         mockingEnabled = config.enabled
@@ -73,6 +69,8 @@ private class NetworkHostPlugin :
             clear()
             addAll(config.rules)
         }
+        // An agent that predates redaction has no handler for GetRedactionConfig; treat it as
+        // having no MCP-only rules instead of failing the whole prepare.
         mcpRedactionRules = try {
             messenger.request(GetRedactionConfig).mcpOnlyRules
         } catch (_: JetWhaleMessagingException) {
@@ -89,8 +87,6 @@ private class NetworkHostPlugin :
 
     @Composable
     override fun Content() {
-        // MCP screenshot captures are AI-agent-facing like tool results, so MCP_ONLY rules
-        // apply to them too; the interactive window keeps showing the raw values.
         val redactForCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
         NetworkInspectorScreenRoot(
             transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
@@ -114,8 +110,6 @@ private class NetworkHostPlugin :
         )
     }
 
-    // Pushes the new rule set to the agent first and commits it locally only on success, so the
-    // host view never drifts ahead of the agent's actual mocking behaviour.
     private suspend fun syncMockRules(newRules: List<MockRule>): JetWhaleMessagingException? {
         try {
             messenger.request(SetMockRules(newRules))

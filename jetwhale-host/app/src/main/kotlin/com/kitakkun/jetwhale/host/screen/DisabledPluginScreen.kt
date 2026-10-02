@@ -97,10 +97,8 @@ private fun DisabledPluginPresenter(
     ActionEffect(screenChannel) { action ->
         when (action) {
             is DisabledPluginScreenAction.Enable -> {
-                // mutate, not mutateAsync: it waits until the setting is stored, so the plugin opens
-                // only once it is on, and a failure is reported here instead of after navigating away.
-                // Whatever keeps the setting from being stored is shown as "could not enable"; the
-                // screen must not crash over it.
+                // mutate, not mutateAsync: it waits until the setting is stored, so the plugin
+                // opens only once it is on and a failure is reported here.
                 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                 val result = try {
                     setPluginEnabledMutation.mutate(SetPluginEnabledParams(pluginId, enabled = true))

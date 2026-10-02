@@ -49,8 +49,7 @@ fun main(args: Array<String>) = runBlocking {
 
     if (cliOptions.headless) {
         // AWT reads this once, when its first class is loaded, so it has to be set before anything
-        // else here touches AWT. A headless run has no window to attach to, and a CI machine has no
-        // display for AWT to find.
+        // else here touches AWT.
         System.setProperty("java.awt.headless", "true")
     } else {
         configureAppMetadata()
@@ -70,7 +69,6 @@ fun main(args: Array<String>) = runBlocking {
     appGraph.applicationLifecycleOwner.initialize()
 
     if (cliOptions.headless) {
-        // Serves until signalled; the window and everything that drives it stays uncreated.
         exitProcess(appGraph.headlessHostRunner.run())
     }
 
@@ -141,7 +139,9 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
 
     LaunchedEffect(windowState) {
         snapshotFlow { Triple(windowState.size, windowState.position, windowState.placement) }
-            // Only persist normal window geometry; maximized/fullscreen must not overwrite it.
+            // Only a floating window's geometry is saved: a maximized or full-screen one would
+            // overwrite it, and the next launch would open a floating window the size of the
+            // screen.
             .map { (size, position, placement) ->
                 if (placement != WindowPlacement.Floating) return@map null
                 PersistedWindowState(
@@ -173,7 +173,6 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
             }
         },
     ) {
-        // The user's color scheme is not loaded yet while these show, so they follow the OS.
         JwTheme(darkTheme = isSystemInDarkTheme()) {
             when (applicationState) {
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
@@ -206,7 +205,6 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
 private fun applyLogLevel(level: JetWhaleLogLevel) {
     val root = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
     if (root !is LogbackLogger) {
-        // Another SLF4J binding is in charge; leave its configuration alone rather than guess at it.
         return
     }
     root.level = when (level) {

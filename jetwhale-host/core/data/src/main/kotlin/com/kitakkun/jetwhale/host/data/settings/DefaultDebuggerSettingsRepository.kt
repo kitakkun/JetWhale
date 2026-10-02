@@ -34,9 +34,6 @@ class DefaultDebuggerSettingsRepository(
 ) : DebuggerSettingsRepository {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    // Ports named on the command line shadow the stored ones for the rest of the session, so every
-    // reader of this repository — the servers, the settings screen, the restart flows — sees the
-    // ports actually in use. Picking a port in the settings screen drops the matching override.
     private val portOverrides = MutableStateFlow(launchPortOverrides)
 
     override val adbAutoPortMappingEnabledFlow = dataStore.data

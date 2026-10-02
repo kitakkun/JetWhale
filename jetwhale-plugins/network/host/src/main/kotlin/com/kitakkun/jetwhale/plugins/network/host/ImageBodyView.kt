@@ -107,14 +107,9 @@ internal fun suggestedImageFileName(url: String, mediaType: String?): String {
 private val UNSAFE_FILE_NAME_CHARS = Regex("[^A-Za-z0-9._-]")
 
 private fun imageFileExtension(mediaType: String?): String = when (mediaType) {
-    // jpg over the media type's own "jpeg": it is what image tools and users expect to see.
     "image/jpeg" -> "jpg"
-
     "image/x-icon", "image/vnd.microsoft.icon" -> "ico"
-
     null -> "img"
-
-    // Covers image/webp, image/avif, ... whose subtype is already the conventional extension.
     else -> mediaType.substringAfter('/').substringAfterLast('+').removePrefix("x-").ifBlank { "img" }
 }
 

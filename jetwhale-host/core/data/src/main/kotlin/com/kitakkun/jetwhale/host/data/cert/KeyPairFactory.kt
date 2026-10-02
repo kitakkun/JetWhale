@@ -11,8 +11,6 @@ import java.security.Security
  */
 class KeyPairFactory {
     fun generate(): KeyPair {
-        // Java built-in provider does not support some algorithms required for certificate handling,
-        // so BouncyCastle is registered as the security provider.
         if (Security.getProvider(CertificateSpec.PROVIDER) == null) {
             Security.addProvider(BouncyCastleProvider())
         }

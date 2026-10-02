@@ -90,8 +90,6 @@ fun NavBackStack<NavKey>.followPluginToSession(
 
     removeLastOrNull()
     if (isPluginAvailableOnNewSession(top.pluginId)) {
-        // Plain add (not addSingleTop): we only replace the top entry, so earlier entries for the
-        // same plugin/session deeper in the back stack must be left intact.
         add(PluginNavKey(pluginId = top.pluginId, sessionId = newSessionId))
     }
 }

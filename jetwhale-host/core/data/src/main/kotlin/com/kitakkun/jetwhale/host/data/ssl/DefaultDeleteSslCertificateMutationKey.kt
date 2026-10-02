@@ -20,7 +20,6 @@ class DefaultDeleteSslCertificateMutationKey(
     MutationKey<Boolean, String> by buildMutationKey(
         id = MutationId("delete_ssl_certificate"),
         mutate = { id: String ->
-            // File removal and metadata persistence are blocking disk work.
             withContext(Dispatchers.IO) {
                 sslCertificateManager.deleteCertificate(id)
             }

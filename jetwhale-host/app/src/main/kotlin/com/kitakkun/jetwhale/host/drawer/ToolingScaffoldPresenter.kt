@@ -128,15 +128,12 @@ fun toolingScaffoldPresenter(
     val saveSidebarWidthMutation = rememberMutation(presenterContext.saveSidebarWidthMutationKey)
     val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
     val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)
-    // Retained so a settings dialog over the window does not reset a width being dragged; seeded
-    // from storage only until the user drags.
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
             loadedPlugins.map { metaData ->
-                // A plugin that needs no app lives in the host session, whatever app is selected.
                 val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
@@ -147,15 +144,10 @@ fun toolingScaffoldPresenter(
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
                     pluginAvailability = when {
-                        // An app plugin runs only where the selected app's agent advertised it.
                         metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-
                         isEnabledInSettings -> PluginAvailability.Enabled
-
                         else -> PluginAvailability.Disabled
                     },
-                    // Attributed only when the operation targets the session this row opens in;
-                    // highlighting a plugin for some other device would be misleading.
                     underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
                     exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
                     isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
@@ -235,9 +227,6 @@ private fun SessionArrivalEffect(
     debugSessions: ImmutableList<DebugSession>,
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
 ) {
-    // Seeded from the sessions of the first composition so opening the window announces nothing:
-    // whoever was already connected is not an arrival. Read only inside the effect below, never
-    // during composition, so writing it back cannot drive a recomposition loop.
     var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
     LaunchedEffect(debugSessions) {
         val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)

@@ -68,10 +68,6 @@ public abstract class JetWhaleMcpCommand(
 
     private val declaredParameters = mutableListOf<JetWhaleMcpParameter<*>>()
 
-    // Set once the schema has been produced (and may have been shown to a caller); late
-    // declarations would silently diverge from it, so they throw instead. The declarations are
-    // deliberately not readable any other way: an accidental read during construction would
-    // observe a half-built list.
     private var parametersSealed = false
 
     /**
@@ -96,9 +92,6 @@ public abstract class JetWhaleMcpCommand(
         )
     }
 
-    // -- Scalar parameters (use with `by` on a property; the property name is the parameter
-    // name unless overridden via the `name` argument) ---------------------------------------
-
     protected fun string(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String> = requiredScalar(name, STRING_SCHEMA, description) { _, value -> value }
 
     protected fun stringOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String?> = optionalScalar(name, STRING_SCHEMA, description) { _, value -> value }
@@ -120,8 +113,6 @@ public abstract class JetWhaleMcpCommand(
 
     /** Matches [entries] by enum name, case-insensitively; the entry names are advertised as the schema's `enum`. */
     protected fun <T : Enum<T>> enumOrNull(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalScalar(name, enumSchema(entries), description) { paramName, value -> parseEnum(paramName, value, entries) }
-
-    // -- Structured parameters ----------------------------------------------------------------
 
     /**
      * A value decoded into the `@Serializable` type [T]. The parameter's JSON Schema is derived
@@ -172,8 +163,6 @@ public abstract class JetWhaleMcpCommand(
 
     /** @see jsonArray */
     protected fun jsonArrayOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray?> = optionalStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
-
-    // -- Declaration builders -----------------------------------------------------------------
 
     private fun <T : Any> requiredScalar(name: String?, schema: JsonObject, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, schema, description) { paramName, element ->
         parse(paramName, scalarContent(paramName, element))

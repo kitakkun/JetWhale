@@ -20,8 +20,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
-        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
-        // present; CI and other machines fall through to Central.
         mavenLocal {
             content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
         }
@@ -35,8 +33,6 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
-        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
-        // present; CI and other machines fall through to Central.
         mavenLocal {
             content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
         }
@@ -50,11 +46,10 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-// Also at the top level, not only in pluginManagement: that block resolves the *plugin*, while the
-// compiler-plugin JAR the plugin points `getPluginArtifact()` at is an ordinary dependency, and only
-// a top-level include substitutes the local project for those coordinates. Without this the demo
-// resolves jetwhale-agent-compiler-plugin from Maven Central, where the version being developed does
-// not exist yet.
+// Also included at the top level: pluginManagement only resolves the plugin, while the
+// compiler-plugin JAR it points `getPluginArtifact()` at is an ordinary dependency that only a
+// top-level include substitutes. Without this the demo resolves the compiler plugin from Maven
+// Central, where the version in development does not exist.
 includeBuild("jetwhale-agent-plugin")
 
 include(":jetwhale-annotations")

@@ -73,16 +73,11 @@ class DefaultPluginTrustRepository(
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
-            // Verify the HMAC over the exact re-encoding of the entries map — the same string
-            // persist() signed.
             when (trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)) {
-                // DISABLED means no signing key exists at all, so there is nothing to verify against.
                 TrustRegistrySigner.Verification.VALID,
                 TrustRegistrySigner.Verification.DISABLED,
                 -> Unit
 
-                // A key exists but the signature is missing or forged: something that could not sign
-                // rewrote the file.
                 TrustRegistrySigner.Verification.INVALID -> {
                     logger.warning("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
                     return emptyMap()
@@ -102,8 +97,6 @@ class DefaultPluginTrustRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            // A corrupt or unreadable registry must fail safe: treat everything as untrusted rather
-            // than risk loading a jar we cannot prove was approved.
             logger.warning("Failed to read plugin trust registry, treating all plugins as untrusted: ${e.message}")
             emptyMap()
         }
@@ -118,14 +111,10 @@ class DefaultPluginTrustRepository(
                 trustedAtEpochMillis = entry.trustedAtEpochMillis,
             )
         }
-        // sign() returns the signature when a key exists, or null when it does not (signing off) —
-        // so the registry is signed iff a key exists, with no separate flag to keep in sync.
         val registry = TrustRegistryFile(
             entries = storedEntries,
             signature = trustRegistrySigner.sign(json.encodeToString(storedEntries)),
         )
-        // Write to a sibling temp file and move it into place so an interrupted write can never
-        // leave a truncated registry behind (which would fail-safe but wipe all trust decisions).
         val tempFile = File(file.parentFile, "${file.name}.tmp")
         tempFile.writeText(json.encodeToString(registry))
         try {
@@ -153,6 +142,8 @@ class DefaultPluginTrustRepository(
     )
 
     companion object {
+        // Signatures cover this instance's encoding of the entries; changing its configuration
+        // invalidates every existing signature.
         private val json = Json { prettyPrint = true }
     }
 }

@@ -43,8 +43,6 @@ internal class IosPhysicalDeviceController(
         }
     }
 
-    // The screen's size never changes, so idb is asked once. The companion is held only for the
-    // question: this runs before a stream and after a recording alike, and only a stream keeps it.
     override suspend fun screenSize(): IntSize {
         screen?.let { return it }
         companions.acquire(udid)

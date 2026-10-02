@@ -21,7 +21,6 @@ class DefaultGenerateSslCertificateMutationKey(
     MutationKey<SslCertificateEntry, String?> by buildMutationKey(
         id = MutationId("generate_ssl_certificate"),
         mutate = { name: String? ->
-            // Certificate generation and persistence are blocking disk/crypto work.
             withContext(Dispatchers.IO) {
                 sslCertificateManager.generateAndAddCertificate(name)
             }

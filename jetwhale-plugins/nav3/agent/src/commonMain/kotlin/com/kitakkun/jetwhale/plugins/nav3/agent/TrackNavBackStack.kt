@@ -19,7 +19,6 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.DEFAULT_NAV_STACK_ID
  * @param stackId Names the stack for the host; give each stack its own id when the app nests
  *   navigation.
  */
-// The host drives the registered stack, so it has to be the app's own mutable list.
 @Suppress("KOTRAIL_MUTABLE_COLLECTION_IN_PUBLIC_API")
 @Composable
 fun <K : NavKey> JetWhaleNav3AgentPlugin<K>.TrackNavBackStack(

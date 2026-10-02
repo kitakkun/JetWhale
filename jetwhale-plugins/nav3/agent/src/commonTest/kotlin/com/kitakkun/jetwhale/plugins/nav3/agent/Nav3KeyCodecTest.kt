@@ -47,8 +47,6 @@ class Nav3KeyCodecTest {
 
     @Test
     fun `encoding a key the app did not register yields null instead of failing`() {
-        // CatalogKey is registered; a key type left out of the module is not encodable, and the
-        // entry still has to be listed so it can be popped by index.
         val codec = Nav3KeyCodec.openPolymorphic(
             SerializersModule { polymorphic(NavKey::class) { subclass(CatalogKey::class, CatalogKey.serializer()) } },
         )
@@ -60,8 +58,6 @@ class Nav3KeyCodecTest {
     fun `catalog lists every type registered against NavKey in a stable order`() {
         val codec = Nav3KeyCodec.openPolymorphic(openModule)
 
-        // Sorted by name, because a SerializersModule enumerates its registrations in no defined
-        // order — the host would otherwise show the types shuffled differently every session.
         assertEquals(listOf("Catalog", "Detail", "Home"), codec.keyTypes.map(NavKeyTypeDescriptor::serialName))
     }
 
@@ -93,7 +89,6 @@ class Nav3KeyCodecTest {
             },
             templates["Detail"],
         )
-        // An enum suggests its first entry and a list starts out empty, so the template decodes as-is.
         val catalog = templates["Catalog"] as JsonObject
         assertEquals(JsonPrimitive("Grid"), catalog["layout"])
         assertEquals(CatalogKey(layout = CatalogLayout.Grid, tags = emptyList()), codec.decode(catalog))

@@ -186,7 +186,6 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.mcpToolsEntry() {
     entry<McpToolsNavKey>(
-        // The browser sizes itself; the platform default width would squeeze it to a narrow column.
         metadata = StableDialogSceneStrategy.dialog(
             dialogProperties = DialogProperties(
                 usePlatformDefaultWidth = false,

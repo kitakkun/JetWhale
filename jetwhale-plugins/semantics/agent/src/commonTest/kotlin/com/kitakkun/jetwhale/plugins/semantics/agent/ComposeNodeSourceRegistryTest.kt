@@ -59,8 +59,6 @@ class ComposeNodeSourceRegistryTest {
 
     @Test
     fun `a root stays registered until the last claim on it is released`() {
-        // The Application-level probe and the in-composition one can both claim the same root; the
-        // first to be torn down must not take it away from the other.
         val first = ComposeNodeSourceRegistry.register(FakeSource("root-1"))
         val second = ComposeNodeSourceRegistry.register(FakeSource("root-1"))
 

@@ -118,7 +118,6 @@ internal class ActionsBrowser(
     /** Takes a catalog the app pushed or returned, keeping the selection when the action survives. */
     fun adopt(latest: ActionCatalog) {
         catalog = latest
-        // A replaced descriptor may offer different options, or none; never show the old ones.
         loadedOptions.clear()
         val selected = latest.actions.firstOrNull { it.id == selectedId } ?: latest.actions.firstOrNull()
         selectedId = selected?.id

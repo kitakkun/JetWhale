@@ -40,10 +40,11 @@ internal fun fileKindOf(name: String, bytes: ByteArray): FileKind? = when {
 
     bytes.startsWith(byteArrayOf(0x1F, 0x8B.toByte())) -> FileKind.Gzip
 
+    // BMP's signature is the two printable letters "BM", which plenty of text files start with, so
+    // it only counts once the bytes have failed to read as text.
     else -> textKindOf(bytes) ?: FileKind.Bmp.takeIf { bytes.startsWith("BM".encodeToByteArray()) }
 }
 
-// Checked before BMP, whose two-letter signature a text file could start with too.
 private fun textKindOf(bytes: ByteArray): FileKind? {
     val text = decodeTextOrNull(bytes) ?: return null
     return when (text.trimStart().firstOrNull()) {

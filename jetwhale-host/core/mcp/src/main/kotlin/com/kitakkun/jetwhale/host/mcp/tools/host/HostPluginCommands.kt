@@ -101,10 +101,6 @@ class SetPluginEnabledCommand(
         }
         val shouldEnable = arguments[enabled]
 
-        // Reconciliation runs asynchronously, so collect the Ready events before flipping the flag —
-        // otherwise "ok" would be reported before any instance actually exists. An app plugin with
-        // nothing connected has nothing to instantiate, so skip the wait; a plugin that needs no app
-        // is instantiated in the host session, which is always there.
         val hasTargetSession = !pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.requiresAgent ||
             debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
@@ -145,8 +141,6 @@ class InstallOfficialPluginCommand(
     private val pluginId by string("The official plugin to install; from the availableOfficial list of jetwhale.listInstalledPlugins.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        // Whether an agent may install at all is the Manage plugins permission, enforced for every
-        // tool in the group by McpToolRegistrar before this runs.
         val targetPluginId = arguments[pluginId]
         val plugin = OfficialPluginCatalog.plugins.find { it.pluginId == targetPluginId }
             ?: throw JetWhaleMcpArgumentException(
@@ -162,8 +156,6 @@ class InstallOfficialPluginCommand(
                 ),
             )
         }
-        // Installs are queued with the settings screen's; this waits its turn, or joins an install of
-        // the same plugin the user already started.
         withContext(Dispatchers.IO) { officialPluginInstallService.install(plugin) }
 
         return Json.encodeToString(

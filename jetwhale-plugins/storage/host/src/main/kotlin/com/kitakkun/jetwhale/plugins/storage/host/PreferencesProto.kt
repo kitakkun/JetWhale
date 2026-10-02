@@ -102,7 +102,6 @@ private class ProtoReader(
 
     fun lengthDelimited(): ProtoReader {
         expect(WIRE_LENGTH_DELIMITED)
-        // A malformed length may not fit an Int, so it is checked against the bytes left before it is narrowed.
         val length = varintAt()
         require(length in 0..(end - position).toLong()) { "a length-delimited field runs past the end of its message" }
         return ProtoReader(bytes, position, position + length.toInt()).also { position += length.toInt() }

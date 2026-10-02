@@ -64,7 +64,6 @@ internal class EmulatorImageReader(private val input: InputStream) {
     /** Reads an `Image.image` field's pixels into [pixels]; returns how many bytes they took. */
     private fun readPixels(message: BoundedReader): Int {
         val length = message.readVarint()
-        // Checked before anything is allocated: a garbled length must not ask for gigabytes.
         if (length > message.remaining() || length > MAX_FRAME_BYTES) throw deviceControlError("the emulator sent a frame of $length bytes, more than the mirror accepts")
         val bytes = length.toInt()
         if (pixels.size < bytes) pixels = ByteArray(bytes)
@@ -179,7 +178,6 @@ private const val WIRE_FIXED64 = 1
 private const val WIRE_LENGTH_DELIMITED = 2
 private const val WIRE_FIXED32 = 5
 
-// Image.format (1, a message), Image.image (4, bytes); ImageFormat.width (3) and .height (4).
 private const val KEY_FORMAT = (1L shl 3) or WIRE_LENGTH_DELIMITED.toLong()
 private const val KEY_IMAGE = (4L shl 3) or WIRE_LENGTH_DELIMITED.toLong()
 private const val KEY_FORMAT_WIDTH = (3L shl 3) or WIRE_VARINT.toLong()

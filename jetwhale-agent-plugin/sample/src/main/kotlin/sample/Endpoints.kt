@@ -14,7 +14,6 @@ class RecordingScope : JetWhaleEndpointScope {
         dialled += "wss://$host:$port"
     }
 
-    // Reaching this means the call was not rewritten — the plugin did not run, or ran and declined.
     override fun buildMachineWss(port: Int) {
         dialled += "unrewritten:$port"
     }

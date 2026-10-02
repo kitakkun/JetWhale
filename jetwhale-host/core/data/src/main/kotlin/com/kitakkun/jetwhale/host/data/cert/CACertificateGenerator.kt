@@ -44,13 +44,10 @@ class CACertificateGenerator {
         commonName: String,
         daysValid: Int = 3650,
     ): CaMaterial {
-        // Java built-in provider does not support some algorithms required to generate CA certificate.
-        // So we use BouncyCastle as a security provider.
         if (Security.getProvider(CertificateSpec.PROVIDER) == null) {
             Security.addProvider(BouncyCastleProvider())
         }
 
-        // Generate key pair
         val keyPairGenerator = KeyPairGenerator.getInstance(CertificateSpec.ALGORITHM, CertificateSpec.PROVIDER)
         keyPairGenerator.initialize(256)
         val cakeyPair = keyPairGenerator.generateKeyPair()
@@ -68,42 +65,33 @@ class CACertificateGenerator {
             subject,
             cakeyPair.public,
         ).addExtension(
-            // Needed to mark this certificate as CA
             Extension.basicConstraints,
             true,
             BasicConstraints(true),
         ).addExtension(
-            // restrict key usage for CA
             Extension.keyUsage,
             true,
             KeyUsage(KeyUsage.keyCertSign or KeyUsage.cRLSign),
         ).addExtension(
-            // specify public hash for identifying certificate
             Extension.subjectKeyIdentifier,
             false,
             JcaX509ExtensionUtils().createSubjectKeyIdentifier(cakeyPair.public),
         ).addExtension(
-            // Bound the blast radius if the CA key leaks or the CA is installed into an OS trust
-            // store: a conforming validator only accepts certificates this CA issues for the
-            // permitted debug-local names below (localhost and private/link-local address ranges).
-            // Marked critical so validators that do not understand Name Constraints reject the chain
-            // outright rather than ignoring the restriction.
+            // Critical, so a validator that does not understand Name Constraints rejects the chain
+            // rather than ignoring the restriction.
             Extension.nameConstraints,
             true,
             localNameConstraints(),
         ).build(
-            // sign the certificate with private key
             JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
                 .setProvider(CertificateSpec.PROVIDER)
                 .build(cakeyPair.private),
         )
 
-        // convert to X509Certificate
         val caCert = JcaX509CertificateConverter()
             .setProvider(CertificateSpec.PROVIDER)
             .getCertificate(certHolder)
 
-        // verify the certificate
         caCert.verify(cakeyPair.public)
 
         return CaMaterial(
@@ -120,12 +108,12 @@ class CACertificateGenerator {
     private fun localNameConstraints(): NameConstraints {
         val permitted = arrayOf(
             GeneralSubtree(GeneralName(GeneralName.dNSName, "localhost")),
-            ipv4Subtree("127.0.0.0", 8), // loopback
-            ipv4Subtree("10.0.0.0", 8), // private
-            ipv4Subtree("172.16.0.0", 12), // private
-            ipv4Subtree("192.168.0.0", 16), // private
-            ipv4Subtree("169.254.0.0", 16), // link-local
-            ipv6Subtree("::1", 128), // loopback
+            ipv4Subtree("127.0.0.0", 8),
+            ipv4Subtree("10.0.0.0", 8),
+            ipv4Subtree("172.16.0.0", 12),
+            ipv4Subtree("192.168.0.0", 16),
+            ipv4Subtree("169.254.0.0", 16),
+            ipv6Subtree("::1", 128),
         )
         return NameConstraints(permitted, null)
     }

@@ -63,8 +63,6 @@ internal fun startQaApp(name: String, options: QaAgentOptions): QaApp {
 
     val session = startJetWhale {
         app {
-            // Make this session obvious in jetwhale.listSessions so it is never mistaken for a
-            // real device someone is debugging.
             appName = name
             deviceName = QA_DEVICE_NAME
             deviceId = QA_DEVICE_ID

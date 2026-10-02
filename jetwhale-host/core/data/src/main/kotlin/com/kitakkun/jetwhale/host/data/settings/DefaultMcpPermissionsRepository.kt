@@ -32,8 +32,6 @@ class DefaultMcpPermissionsRepository(
     override val permissionsFlow = dataStore.data
         .map { preferences ->
             McpPermissions(
-                // An entry that no longer names a group is dropped rather than failing the read, so
-                // removing a group in a later release cannot brick the settings screen.
                 allowedHostGroups = preferences[KEY_ALLOWED_HOST_GROUPS]
                     ?.mapNotNullTo(mutableSetOf()) { name -> McpHostToolGroup.entries.find { it.name == name } }
                     ?: McpPermissions.Default.allowedHostGroups,
@@ -45,8 +43,6 @@ class DefaultMcpPermissionsRepository(
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            // Until the stored value arrives the defaults apply, so the gap at startup denies rather
-            // than grants.
             initialValue = McpPermissions.Default.allOverriddenBy(launchOverride),
         )
 
@@ -81,7 +77,6 @@ class DefaultMcpPermissionsRepository(
     }
 
     companion object Companion {
-        // Host groups are stored as what is allowed and plugins as what is denied; see McpPermissions.
         private val KEY_ALLOWED_HOST_GROUPS = stringSetPreferencesKey("mcp_allowed_host_groups")
         private val KEY_DENIED_PLUGIN_INSPECT = stringSetPreferencesKey("mcp_denied_plugin_inspect")
         private val KEY_DENIED_PLUGIN_INTERACT = stringSetPreferencesKey("mcp_denied_plugin_interact")

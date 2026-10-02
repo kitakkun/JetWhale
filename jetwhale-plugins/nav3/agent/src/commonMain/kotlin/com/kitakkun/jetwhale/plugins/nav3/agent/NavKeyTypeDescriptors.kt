@@ -24,8 +24,6 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.SerializersModuleCollector
 import kotlin.reflect.KClass
 
-// How deep a nested @Serializable field is expanded in a key template. Past this the placeholder is
-// an empty object: templates are a starting point for a human or an agent, not a schema.
 private const val MAX_TEMPLATE_DEPTH = 3
 
 /**
@@ -46,7 +44,6 @@ internal fun describeNavKeyTypes(
     if (root.kind == PolymorphicKind.SEALED && root.elementsCount > 1) {
         root.getElementDescriptor(1).elementDescriptors.forEach { descriptors.getOrPut(it.serialName) { it } }
     }
-    // Open polymorphism: the subclasses exist only in the module the app registered them in.
     serializersModule.dumpTo(
         NavKeyRegistrationCollector { descriptor -> descriptors.getOrPut(descriptor.serialName) { descriptor } },
     )
@@ -120,7 +117,6 @@ private fun objectTemplate(
 }
 
 private fun placeholderFor(descriptor: SerialDescriptor, visited: Set<String>, depth: Int): JsonElement {
-    // A nullable field takes null: it is always a valid value, and it reads as "nothing here yet".
     if (descriptor.isNullable) return JsonNull
     return when (descriptor.kind) {
         is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> JsonPrimitive("")
@@ -144,7 +140,6 @@ private fun placeholderFor(descriptor: SerialDescriptor, visited: Set<String>, d
                 objectTemplate(descriptor, typeName = null, visited = visited, depth = depth + 1)
             }
 
-        // Contextual or polymorphic fields have no single shape to suggest.
         else -> JsonNull
     }
 }

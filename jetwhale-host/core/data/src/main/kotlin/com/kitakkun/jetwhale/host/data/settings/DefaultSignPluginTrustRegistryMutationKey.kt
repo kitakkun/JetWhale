@@ -17,8 +17,6 @@ class DefaultSignPluginTrustRegistryMutationKey(
 ) : SignPluginTrustRegistryMutationKey,
     MutationKey<Unit, Boolean> by buildMutationKey(
         id = MutationId("sign_plugin_trust_registry"),
-        // Route through the service so enabling signing also re-signs the existing registry (one
-        // credential-store prompt), rather than only flipping the setting.
         mutate = { enabled: Boolean ->
             pluginTrustService.setSigningEnabled(enabled)
         },

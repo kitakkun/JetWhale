@@ -123,7 +123,6 @@ fun Modifier.aiOperatingBorder(
         ),
         label = "ai-operating-border-angle",
     )
-    // Two opposite highlights with transparent gaps between them, so a pair of beams sweeps around.
     val brushColors = listOf(color, Color.Transparent, color, Color.Transparent, color)
     return drawWithCache {
         val strokePx = width.toPx()
@@ -149,7 +148,6 @@ fun Modifier.aiOperatingBorder(
                 ),
             )
         }
-        // Large enough to cover the ring at any rotation.
         val cover = size.maxDimension * 2f
         onDrawWithContent {
             drawContent()
@@ -178,7 +176,6 @@ fun aiActivityPulseAlpha(operating: Boolean): Float {
         initialValue = 1f,
         targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
-            // Sine easing on each leg gives a soft breathing pulse rather than a hard blink.
             animation = tween(PULSE_PERIOD_MILLIS, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse,
         ),
@@ -260,7 +257,6 @@ private fun AiActivityCard(
                 modifier = Modifier.alpha(aiActivityPulseAlpha(operating)),
             )
             JwText(
-                // The ring already says a call is running; the line only has to say which.
                 text = uiState.operatingToolShortName ?: aiCardLabel(connected = uiState.isAgentConnected, mcpServer = uiState.mcpServer),
                 style = JwTheme.textStyles.label,
                 color = if (uiState.isAgentConnected) JwTheme.colors.onSurface else JwTheme.colors.textSecondary,
@@ -438,7 +434,6 @@ private fun McpConnectHelp(
     ) {
         JwText(text = stringResource(Res.string.ai_connect_agent), style = JwTheme.textStyles.subtitle)
         JwText(text = stringResource(Res.string.ai_connect_agent_description), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
-        // The menu scrolls past its max height; the ways out stay above the snippets that push it there.
         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
             JwButton(text = stringResource(Res.string.ai_mcp_open_guide), onClick = { uriHandler.openUri(McpClientSetup.GUIDE_URL) }, style = JwButtonStyle.Text)
             JwButton(text = stringResource(Res.string.ai_mcp_open_settings), onClick = onOpenMcpSettings, style = JwButtonStyle.Text)

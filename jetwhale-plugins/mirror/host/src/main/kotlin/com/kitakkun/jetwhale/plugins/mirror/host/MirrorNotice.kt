@@ -152,8 +152,6 @@ internal class MirrorNotices(private val scope: CoroutineScope) {
         scheduleExpiry()
     }
 
-    // Restarts the full wait on release rather than resuming it, so a notice never vanishes the
-    // moment the pointer leaves it.
     private fun scheduleExpiry() {
         expiry?.cancel()
         val notice = current ?: return

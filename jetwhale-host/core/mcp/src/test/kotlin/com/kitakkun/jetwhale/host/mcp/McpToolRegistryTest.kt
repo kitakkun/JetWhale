@@ -45,7 +45,6 @@ class McpToolRegistryTest {
 
     @Test
     fun `plugins registering at the same time from several threads are all reported`() {
-        // The lost update depends on timing, so one attempt may pass by luck; many rounds do not.
         repeat(ROUNDS) { round ->
             val registry = McpToolRegistry(mock<PluginInstanceService>())
             val start = CountDownLatch(1)

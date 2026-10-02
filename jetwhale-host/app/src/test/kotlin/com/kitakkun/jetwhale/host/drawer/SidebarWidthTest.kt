@@ -30,8 +30,6 @@ class SidebarWidthTest {
 
     @Test
     fun `dragging the sidebar's edge asks for the width dragged to and saves once at the end`() = runComposeUiTest {
-        // The requested width is not fed back during the drag, as a presenter round trip may not
-        // arrive between two drag events: each step still has to add to the steps before it.
         var requested = 0.dp
         var saves = 0
         setContent {
@@ -69,7 +67,6 @@ class SidebarWidthTest {
             val edge = centerRight.copy(x = right - 2f)
             moveTo(edge)
             press()
-            // Several small steps, each landing before the width comes back: every one must count.
             repeat(6) { moveBy(edge.copy(x = 10f, y = 0f)) }
             release()
         }

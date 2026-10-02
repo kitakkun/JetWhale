@@ -14,9 +14,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-// Shared by the Nav3 plugin's MCP command classes (one class per file in this package).
-
-// The tool names are namespaced by the pluginId, so they follow it rather than restating it.
 internal const val TOOL_PREFIX = NAV3_PLUGIN_ID
 
 /** What the MCP commands are allowed to see and do; the host plugin is the only implementation. */

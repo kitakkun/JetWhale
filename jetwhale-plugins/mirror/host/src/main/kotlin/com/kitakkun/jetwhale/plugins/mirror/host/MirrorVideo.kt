@@ -35,10 +35,7 @@ internal fun MirrorVideo(
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Where the last frame was drawn, for mapping the pointer to device pixels; set by drawing.
     val drawn = remember { DrawnFrame() }
-    // A kept frame, or the previous device's while the surface switches, is laid out for another
-    // screen: a point on it would reach this device at the wrong place.
     val live = surface.deviceId == deviceId && !surface.showingKeptFrame
     val input = if (interactive && live) {
         Modifier.pointerInput(Unit) {

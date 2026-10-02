@@ -44,8 +44,6 @@ object DIModule {
             install(HttpTimeout) {
                 requestTimeoutMillis = 10_000
             }
-            // A demo header so the inspector clearly shows application-level request headers
-            // (not just the Ktor default Accept).
             install(DefaultRequest) {
                 header("X-Demo-Client", "JetWhale-Demo")
             }

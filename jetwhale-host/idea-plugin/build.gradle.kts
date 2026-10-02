@@ -38,6 +38,8 @@ kotlin {
 val hostRuntime: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
+    // The host's modules are Kotlin Multiplatform and Compose libraries with several variants each;
+    // these attributes select their JVM runtime jars.
     attributes {
         attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
         attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
@@ -74,7 +76,6 @@ val hostJarNames: Provider<Map<File, String>> = hostRuntime.incoming.artifacts.r
     }
 }
 
-// Every sandbox variant (build, runIde, tests) needs the host jars, not only the one buildPlugin zips.
 tasks.withType<PrepareSandboxTask>().configureEach {
     // A local copy: a lambda that reads the script-level property would capture the script object,
     // which the configuration cache cannot serialize.
@@ -85,8 +86,6 @@ tasks.withType<PrepareSandboxTask>().configureEach {
     }
 }
 
-// The host jars under host/ are loaded by the plugin's own class loader and unloaded with it, so
-// Kotrail checks them, not only this module, for references that would outlive the plugin.
 configure<KotrailExtension> {
     compilation("main") {
         configFile = file("kotrail-main.yaml")

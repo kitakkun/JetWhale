@@ -19,7 +19,6 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class DragToolTest {
 
-    // A scene with no content has nothing to observe; the point is only that the drag completes.
     @Suppress("KOTRAIL_TEST_WITHOUT_ASSERTION")
     @Test
     fun `dispatchDrag does not throw on empty scene`() = runBlocking {
@@ -93,8 +92,8 @@ class DragToolTest {
 
         assertTrue(dragEnded, "Drag should have ended cleanly via onDragEnd")
 
-        // The last move is at fraction=1.0 (same position as release); Compose may coalesce it,
-        // so we accept either `steps` or `steps - 1` drag events.
+        // The last move lands where the release does and Compose may coalesce it, so one drag event
+        // can be missing.
         assertTrue(
             dragPositions.size >= steps - 1,
             "Expected at least ${steps - 1} drag events, got ${dragPositions.size}",

@@ -24,12 +24,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
-// ---------------------------------------------------------------------------
-// PoC message set: plain @Serializable classes, roles declared by markers only.
-// The reply types (Pong, Identity) implement NO marker: they cannot be sent
-// standalone — `messenger.trySend(Pong("x"))` does not compile.
-// ---------------------------------------------------------------------------
-
 @Serializable
 @SerialName("poc/counter")
 private data class CounterEvent(val value: Int) : JetWhaleEvent
@@ -79,8 +73,6 @@ class SymmetricMessagingPoCTest {
         scope.cancel()
     }
 
-    // -- prepare barrier -------------------------------------------------------
-
     @Test
     fun `an awaitReady peer holds handler dispatch until markReady, but its own requests complete`() = runBlocking {
         val received = Channel<Int>(Channel.UNLIMITED)
@@ -99,11 +91,8 @@ class SymmetricMessagingPoCTest {
             onEvent { event: CounterEvent -> received.send(event.value) }
         }
 
-        // The remote sends events before the preparing side is ready: they must be held.
         remote.messenger.trySend(CounterEvent(1))
         remote.messenger.trySend(CounterEvent(2))
-        // Outbound requests from the preparing side (what onPrepare does) still complete: replies
-        // bypass the gate. Their round trip also gives any premature dispatch time to show up.
         assertEquals(Pong("during-prepare"), preparing.messenger.request(Ping("during-prepare")))
         assertTrue(received.tryReceive().isFailure, "events must not be dispatched before markReady")
 
@@ -111,8 +100,6 @@ class SymmetricMessagingPoCTest {
         val flushed = withTimeout(5_000) { listOf(received.receive(), received.receive()) }
         assertEquals(listOf(1, 2), flushed, "held events flush in arrival order")
     }
-
-    // -- fire-and-forget ------------------------------------------------------
 
     @Test
     fun `events arrive serially in send order`() = runBlocking {
@@ -129,12 +116,11 @@ class SymmetricMessagingPoCTest {
 
     @Test
     fun `unknown event is skipped without breaking the connection`() = runBlocking {
-        // right registers no CounterEvent handler at all
         right.configure {
             onRequest { ping: Ping -> reply(Pong(ping.tag)) }
         }
 
-        left.messenger.trySend(CounterEvent(42)) // skipped on the right, must not break anything
+        left.messenger.trySend(CounterEvent(42))
         val pong: Pong = left.messenger.request(Ping("still-alive"))
         assertEquals(Pong("still-alive"), pong)
     }
@@ -154,8 +140,6 @@ class SymmetricMessagingPoCTest {
         )
         responder = JetWhalePluginPeer(PLUGIN_ID, scope, sendFrame = { caller.onFrame(roundTrip(it)) })
         responder.configure {
-            // The notification handler is held until the request is on the same inbound queue, so a
-            // dispatch that ignored arrival order would run the request while this one still waits.
             onEvent { _: CounterEvent ->
                 requestQueued.await()
                 order += "event"
@@ -173,15 +157,12 @@ class SymmetricMessagingPoCTest {
         assertEquals(listOf("event", "request"), order.toList())
     }
 
-    // -- request/response -----------------------------------------------------
-
     @Test
     fun `request infers the reply type from the request declaration`() = runBlocking {
         right.configure {
             onRequest { ping: Ping -> reply(Pong(ping.tag.uppercase())) }
         }
 
-        // The whole point of the marker: no type argument, no cast — `Pong` is inferred.
         val pong: Pong = left.messenger.request(Ping("hello"))
         assertEquals(Pong("HELLO"), pong)
     }
@@ -195,7 +176,6 @@ class SymmetricMessagingPoCTest {
             onRequest { _: WhoAreYou -> reply(Identity("right")) }
         }
 
-        // host->agent AND agent->host with the exact same API.
         assertEquals(Identity("right"), left.messenger.request(WhoAreYou))
         assertEquals(Identity("left"), right.messenger.request(WhoAreYou))
     }
@@ -217,8 +197,6 @@ class SymmetricMessagingPoCTest {
             val pending = tags.map { tag -> tag to async { left.messenger.request<Ping, Pong>(Ping(tag)) } }
 
             withTimeout(5_000) { repeat(tags.size) { arrived.receive() } }
-            // Replies are completed in an order unrelated to the send order, so only correlation —
-            // not arrival order — can match each reply to its own request.
             tags.shuffled(Random(seed = 1)).forEach { replyGates.getValue(it).complete(Unit) }
 
             pending.forEach { (tag, pong) -> assertEquals(Pong(tag), pong.await()) }
@@ -231,7 +209,6 @@ class SymmetricMessagingPoCTest {
             onRequest { _: WhoAreYou -> reply(Identity("left")) }
         }
         right.configure {
-            // While handling left's Ping, right requests WhoAreYou from left.
             onRequest { ping: Ping ->
                 val caller: Identity = right.messenger.request(WhoAreYou)
                 reply(Pong("${ping.tag}-handled-for-${caller.name}"))
@@ -244,9 +221,8 @@ class SymmetricMessagingPoCTest {
 
     @Test
     fun `inbound requests beyond the concurrency bound are rejected fast`(): Unit = runBlocking {
-        val gate = CompletableDeferred<Unit>() // holds every handler in-flight until released
+        val gate = CompletableDeferred<Unit>()
 
-        // A responder bounded to `maxConcurrent` in-flight requests, wired back-to-back to a caller.
         lateinit var responder: JetWhalePluginPeer
         val caller = JetWhalePluginPeer(PLUGIN_ID, scope, sendFrame = { responder.onFrame(roundTrip(it)) })
         val maxConcurrent = 3
@@ -270,11 +246,8 @@ class SymmetricMessagingPoCTest {
                 // Capture the messaging outcome without runCatching, which would also swallow cancellation.
                 async { messagingResult { caller.messenger.request<Ping, Pong>(Ping("t$i")) }.also { settled.send(it) } }
             }
-            // A request is only rejected once the bound is reached, so these first outcomes landing
-            // means every request has reached the responder and taken or been refused a slot. The
-            // ones that did get a slot cannot settle yet: their handler is holding on the gate.
             withTimeout(5_000) { repeat(total - maxConcurrent) { settled.receive() } }
-            gate.complete(Unit) // release the handlers that did get a slot
+            gate.complete(Unit)
             val outcomes = pending.map { it.await() }
 
             val succeeded = outcomes.count { it.isSuccess }
@@ -285,8 +258,6 @@ class SymmetricMessagingPoCTest {
             assertEquals(total - maxConcurrent, rejected, "the rest should be rejected fast")
         }
     }
-
-    // -- failure paths ---------------------------------------------------------
 
     @Test
     fun `request without a registered handler fails loudly`() = runBlocking {
@@ -299,8 +270,6 @@ class SymmetricMessagingPoCTest {
     @Test
     fun `handler exception surfaces as a request failure with the message`() = runBlocking {
         right.configure {
-            // A realistic failing handler validates then throws; the reply-typed return path
-            // (Pong) keeps R pinned even though this input always throws.
             onRequest { explode: Explode ->
                 require(explode.reason != "test") { "boom: ${explode.reason}" }
                 reply(Pong(explode.reason))
@@ -323,8 +292,6 @@ class SymmetricMessagingPoCTest {
             }
         }
 
-        // The handler never replies, so the request can only end in a timeout. Failing well inside
-        // the peer's 5s default is what proves the 200ms per-call value is the one that was applied.
         val e = withTimeout(2_000) {
             assertFailsWith<JetWhaleRequestException> {
                 left.messenger.request<Ping, Pong>(Ping("slow"), timeout = 200.milliseconds)
@@ -338,7 +305,7 @@ class SymmetricMessagingPoCTest {
         val mute = JetWhalePluginPeer(
             pluginId = PLUGIN_ID,
             parentScope = scope,
-            sendFrame = { /* dropped */ },
+            sendFrame = { },
             requestTimeout = 200.milliseconds,
         )
 
@@ -354,13 +321,11 @@ class SymmetricMessagingPoCTest {
         val silent = JetWhalePluginPeer(
             pluginId = PLUGIN_ID,
             parentScope = scope,
-            sendFrame = { requestOnTheWire.complete(Unit) }, // never replies
+            sendFrame = { requestOnTheWire.complete(Unit) },
         )
 
         coroutineScope {
             val pending = async { messagingResult { silent.messenger.request<Ping, Pong>(Ping("doomed")) } }
-            // The peer registers a request as pending before handing the frame to the transport, so
-            // by the time the frame is on the wire there is a pending request for close() to fail.
             withTimeout(5_000) { requestOnTheWire.await() }
             silent.close()
             val result = pending.await()

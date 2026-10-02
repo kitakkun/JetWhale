@@ -30,8 +30,6 @@ class DefaultDebugServerSettingsMutationKey(
             debugWebSocketServer.start(
                 host = "localhost",
                 port = settings.serverPort,
-                // A stored wss port with the connector switched off means "remember this for when it
-                // is switched back on", not "bind it".
                 wssPort = settings.wssPort.takeIf { settings.wssEnabled },
             )
         },

@@ -93,7 +93,6 @@ internal fun ActionsScreen(
     val searchFocus = remember { FocusRequester() }
     Column(
         modifier.fillMaxSize().onPreviewKeyEvent { event ->
-            // The search field exists only while the Actions tab lists actions.
             val searchShown = tab == ActionsTab.ACTIONS && !catalog?.actions.isNullOrEmpty()
             val isPaletteShortcut = searchShown && event.type == KeyEventType.KeyDown && event.key == Key.K && (event.isMetaPressed || event.isCtrlPressed)
             if (isPaletteShortcut) searchFocus.requestFocus()
@@ -179,7 +178,6 @@ private fun ActionsTabContent(
                     JwEmptyState(title = "Nothing selected", description = "Pick an action to see its arguments and run it.")
                 } else {
                     val prefilled = prefill?.takeIf { it.actionId == selectedAction.id }
-                    // A new prefill starts the form over, even when it carries the same arguments as before.
                     key(prefilled) {
                         ActionDetailPane(
                             action = selectedAction,

@@ -34,8 +34,8 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
         ComposeRoot(
             rootId = sourceId,
             label = window.describe(),
-            // Bounds are reported in points, which are already density-independent: a point is
-            // what every iOS tool takes, so nothing is gained by scaling to pixels and back.
+            // Bounds are in points, which are already density-independent and what every iOS tool
+            // takes.
             density = 1f,
             windowOffsetX = frame.left,
             windowOffsetY = frame.top,
@@ -48,8 +48,6 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
         )
     }
 
-    // A window that has gone off screen has nothing readable to report, so the check gates every
-    // call rather than only the registration.
     private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden }
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = IosUiThread.await {

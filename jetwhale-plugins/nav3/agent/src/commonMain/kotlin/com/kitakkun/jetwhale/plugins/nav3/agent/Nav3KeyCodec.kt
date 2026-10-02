@@ -81,11 +81,7 @@ class Nav3KeyCodec<K : NavKey> private constructor(
         private fun navKeyJson(module: SerializersModule): Json = Json {
             serializersModule = module
             classDiscriminator = NAV_KEY_DISCRIMINATOR
-            // The host echoes keys it read back into pushes; an app that added a field since should
-            // not turn that round trip into a failure.
             ignoreUnknownKeys = true
-            // Defaulted fields are part of what the host shows and offers for editing, so they have
-            // to be in the encoded form rather than implied by their absence.
             encodeDefaults = true
         }
     }

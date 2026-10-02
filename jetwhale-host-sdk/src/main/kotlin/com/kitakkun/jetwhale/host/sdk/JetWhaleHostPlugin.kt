@@ -73,8 +73,6 @@ public abstract class JetWhaleHostPlugin {
     /** Called when this plugin instance is disposed (session closed, plugin disabled, or reloaded). */
     public open fun onDispose() {}
 
-    // -- runtime hooks (not for plugin authors) -------------------------------
-
     /** Binds the instance-scoped coroutine scope. Called once, before [onCreate]. */
     @InternalJetWhaleHostApi
     public fun bindPluginScope(scope: CoroutineScope) {
@@ -100,8 +98,6 @@ public abstract class JetWhaleHostPlugin {
     }
 
     @InternalJetWhaleHostApi
-    // Unlike the other lifecycle hooks, onDispose is public, so this dispatcher is not a facade
-    // over a less visible callee; it stays as the host-side counterpart of dispatchCreate.
     @Suppress("KOTRAIL_PASS_THROUGH_FUNCTION")
     public fun dispatchDispose() {
         onDispose()
@@ -182,8 +178,6 @@ public abstract class JetWhaleHostPlugin {
         override suspend fun clear() {
             ensureMigrated()
             raw.clear()
-            // clear() wipes the version stamp with the data; restore it so the store is not treated
-            // as pre-versioning legacy data on the next launch.
             raw.put(VERSION_KEY, storageVersion, Int.serializer())
         }
 

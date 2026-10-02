@@ -114,11 +114,11 @@ class DefaultMcpServerServiceTest {
     @Test
     fun `start and stop can be called multiple times safely`() = runBlocking {
         service.start(host, port)
-        service.start(host, port) // second call should be no-op
+        service.start(host, port)
         assertEquals(McpServerStatus.Running(host, port), service.statusFlow.value)
 
         service.stop()
-        service.stop() // second call should be no-op
+        service.stop()
         assertEquals(McpServerStatus.Stopped, service.statusFlow.value)
     }
 
@@ -148,8 +148,6 @@ class DefaultMcpServerServiceTest {
             assertTrue(service.statusFlow.value is McpServerStatus.Error)
         }
 
-        // The port is free again; retrying must not be blocked by the leftovers of the failed
-        // attempt (notably the `running` flag it had already flipped).
         service.start(host, contestedPort)
         try {
             assertEquals(McpServerStatus.Running(host, contestedPort), service.statusFlow.value)
@@ -171,8 +169,6 @@ class DefaultMcpServerServiceTest {
             assertTrue(service.statusFlow.value is McpServerStatus.Error)
         }
 
-        // No plugin instances remain loaded, so the tools the failed attempt registered must have
-        // been cleared rather than carried over.
         every { pluginInstanceService.getLoadedPluginInstances() } returns emptyList()
 
         service.start(host, port)
@@ -295,9 +291,6 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `every MCP-capable plugin in a session is reported as capable`() = runBlocking {
-        // Regression guard: the drawer's "exposes MCP tools" badge reads mcpCapablePluginsFlow, and
-        // every plugin that registers tools must appear there — not just the first one. This mirrors
-        // a session that has two MCP-capable plugins installed at once.
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         val sessionId = "test-session-multi"
@@ -313,7 +306,6 @@ class DefaultMcpServerServiceTest {
             eventFlow.emit(PluginInstanceEvent.Ready(pluginA, sessionId))
             eventFlow.emit(PluginInstanceEvent.Ready(pluginB, sessionId))
 
-            // Registration is handled asynchronously, so wait for the flow to settle on both.
             val capable = withTimeout(5.seconds) {
                 service.mcpCapablePluginsFlow.first { it.pluginIdsFor(sessionId).size == 2 }
             }
@@ -421,7 +413,6 @@ class DefaultMcpServerServiceTest {
         )
         val recordedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, recordedPort)
-        // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$recordedPort/sse")
             try {
@@ -455,7 +446,6 @@ class DefaultMcpServerServiceTest {
         )
         val capturedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, capturedPort)
-        // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$capturedPort/sse")
             try {
@@ -482,12 +472,10 @@ class DefaultMcpServerServiceTest {
         )
         val rejectedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, rejectedPort)
-        // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$rejectedPort/sse")
             try {
                 val result = client.callTool("fake.rejected", emptyMap())
-                // The handler returns normally, so nothing but `isError` marks this as a failure.
                 assertEquals(true, result.isError)
             } finally {
                 client.close()
@@ -513,7 +501,6 @@ class DefaultMcpServerServiceTest {
         )
         val structuredPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, structuredPort)
-        // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$structuredPort/sse")
             try {
@@ -542,7 +529,6 @@ class DefaultMcpServerServiceTest {
         )
         val failingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, failingPort)
-        // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$failingPort/sse")
             try {
@@ -586,8 +572,6 @@ class DefaultMcpServerServiceTest {
             service.stop()
         }
 
-        // Plugin tool schemas carry no pluginId, so this only works if attribution is resolved
-        // through the registry rather than read off the arguments.
         val invocation = mcpActivityRepository.recordedInvocations.single()
         assertEquals("com.example.test.greet", invocation.toolName)
         assertEquals(testPluginId, invocation.pluginId)

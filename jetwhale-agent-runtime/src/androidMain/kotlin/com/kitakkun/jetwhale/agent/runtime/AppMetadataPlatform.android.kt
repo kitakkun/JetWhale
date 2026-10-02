@@ -44,7 +44,6 @@ internal actual fun resolveDefaultAppName(): String? {
  * Rasterizes the launcher icon into a 64x64 PNG. Going through [Drawable] rather than the raw
  * resource is what makes adaptive icons work: those are XML, so they have no PNG bytes to read.
  */
-// Drawing runs the app's own Drawable, which can throw anything; the icon is optional metadata.
 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
 internal actual fun resolveDefaultAppIconPng(): ByteArray? = try {
     val context = currentApplicationOrNull() ?: return null

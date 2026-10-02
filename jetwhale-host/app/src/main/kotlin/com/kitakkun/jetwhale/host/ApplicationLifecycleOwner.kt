@@ -44,9 +44,6 @@ class ApplicationLifecycleOwner(
     fun initialize() {
         mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
-            // Read the stored value rather than sampling the flow: this runs before anything has
-            // awaited the store, so the flow still carries its default here, and the decision is
-            // made once for the whole run.
             val wssPort = if (settingsRepository.readWssEnabled()) {
                 settingsRepository.readWssPort()
             } else {
@@ -62,16 +59,9 @@ class ApplicationLifecycleOwner(
                 port = settingsRepository.readMcpServerPort(),
             )
 
-            // Load only jars the user has explicitly approved (pinned by content hash). Anything else
-            // in the plugins directory — a jar that was never approved, or one whose bytes changed
-            // after approval — is surfaced for review instead of being executed. This is what stops a
-            // malicious jar dropped into ~/.jetwhale/plugins from auto-running in the host process.
             pluginTrustService.loadTrustedPlugins()
-            // From here on, jars dropped into the plugins directory are offered to the user instead of
-            // waiting for the next launch.
             pluginDirectoryWatchService.start()
 
-            // A no-op unless the jetwhale.devPluginsDir system property is set.
             pluginHotReloadService.start()
 
             mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }
@@ -81,7 +71,6 @@ class ApplicationLifecycleOwner(
     fun shutdown() {
         mutableApplicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
-            // First, so a half-downloaded plugin is removed from the staging directory before exit.
             pluginInstallJobService.cancelAll()
             pluginHotReloadService.stop()
             pluginDirectoryWatchService.stop()

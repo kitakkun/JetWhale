@@ -73,7 +73,6 @@ internal fun ParameterField(
         modifier = modifier,
     ) {
         when (parameter.type) {
-            // A switch has no third state for the blank value that means "default" or null.
             ParameterType.BOOLEAN if parameter.optional || parameter.nullable -> ChoiceMenu(
                 text = value.ifEmpty { if (parameter.optional) "Default" else "null" },
                 choices = listOf("", "true", "false"),
@@ -127,7 +126,6 @@ private fun SuggestionTextField(
     onValueChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Opened from the ▾ the menu lists every suggestion; typing narrows it.
     var narrowing by remember { mutableStateOf(false) }
     var highlighted by remember { mutableIntStateOf(-1) }
     var fieldWidth by remember { mutableIntStateOf(0) }
@@ -154,7 +152,6 @@ private fun SuggestionTextField(
                 null
             } else {
                 {
-                    // Focus goes to the field, not the button, so the menu's keys work straight away.
                     val openFromButton = {
                         fieldFocus.requestFocus()
                         open(false)
@@ -182,10 +179,10 @@ private fun SuggestionTextField(
                 },
         )
         if (expanded && shown.isNotEmpty()) {
-            // Not focusable, unlike JwDropdownMenu: the field keeps focus, so typing goes on narrowing the list.
             Popup(
                 popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowStart),
                 onDismissRequest = { expanded = false },
+                // Not focusable, so typing stays in the field, whose key handler drives the menu.
                 properties = PopupProperties(focusable = false),
             ) {
                 Column(

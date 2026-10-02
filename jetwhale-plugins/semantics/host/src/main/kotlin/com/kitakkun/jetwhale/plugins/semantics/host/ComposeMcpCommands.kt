@@ -4,8 +4,6 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-// Shared by the Compose Semantics Inspector's MCP command classes (one class per file in this package).
-
 /** Tool names are globally unique across plugins, so they carry the pluginId by convention. */
 internal const val TOOL_PREFIX = "com.kitakkun.jetwhale.semantics"
 

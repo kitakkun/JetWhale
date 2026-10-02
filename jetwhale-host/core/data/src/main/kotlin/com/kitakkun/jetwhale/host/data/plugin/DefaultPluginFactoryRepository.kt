@@ -77,11 +77,9 @@ class DefaultPluginFactoryRepository(
     }
 
     private fun loadPluginUnderLock(pluginJarPath: String, expectedSha256: String?) {
-        // Open the classloader on a private copy of the jar so the source jar can be overwritten
-        // (dev hot-reload restaging, or a new version dropped over an installed jar that keeps running
-        // until the user approves it) without corrupting this classloader's open zip handle —
-        // which otherwise throws ZipException on later resource/class reads. Every plugin declared by
-        // the jar shares this single classloader.
+        // Open the classloader on a private copy so the source jar can be overwritten (hot-reload
+        // restaging, or a new version dropped over a running jar) without corrupting this
+        // classloader's open zip handle, which would throw ZipException on later reads.
         val runtimeJar = createRuntimeCopyIfReplaceable(pluginJarPath)
         val openedJar = runtimeJar ?: File(pluginJarPath)
         if (expectedSha256 != null && openedJar.sha256Hex() != expectedSha256) {
@@ -90,10 +88,6 @@ class DefaultPluginFactoryRepository(
             return
         }
 
-        // Maven-installed plugins declare their external dependencies in a manifest instead of
-        // bundling them; those jars were downloaded into the plugin libs directory at install time
-        // and join the plugin's classpath here. A missing jar (or an unreadable manifest) fails the
-        // load and surfaces the jar in the failed list. Fat-jars have no manifest → empty list.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val dependencyJarUrls = try {
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
@@ -111,27 +105,21 @@ class DefaultPluginFactoryRepository(
             DefaultPluginFactoryRepository::class.java.classLoader,
         )
 
-        // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
-        // must not close it; until then it (and its temp copy) is ours to discard on any failure.
         var committed = false
-        // Loading runs the plugin's own code (class initializers, factory constructors): any failure, LinkageError included, marks this jar failed instead of aborting the load.
+        // Loading runs the plugin's own code, so any failure, LinkageError included, marks this jar
+        // failed.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
             val newPluginIds = loaded.map { it.manifest.pluginId }
 
-            // Detach any of these plugin ids that another jar currently provides, so we neither leak
-            // that jar's classloader nor show a duplicate plugin (e.g. a plugin moved between jars).
             detachPluginIdsFromOtherJars(newPluginIds.toSet(), keepJarPath = pluginJarPath)
 
-            // Hand the new classloader to the map (discarding the previous one for this jar, e.g. a
-            // reload, so no stale classloader and its classes leak) and record this load's runtime copy.
             val previousClassLoader = classLoaders.put(pluginJarPath, classLoader)
             committed = true
             previousClassLoader?.close()
             if (runtimeJar != null) runtimeJars[pluginJarPath] = runtimeJar else runtimeJars.remove(pluginJarPath)
 
-            // Plugin ids this jar provided before but no longer does (removed/renamed across a rebuild).
             val removedPluginIds = jarPathToPluginIds[pluginJarPath].orEmpty() - newPluginIds.toSet()
             jarPathToPluginIds[pluginJarPath] = newPluginIds
 
@@ -142,14 +130,11 @@ class DefaultPluginFactoryRepository(
                 }.toPersistentMap()
             }
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
-            // A previously failed jar may now succeed (e.g. after a rebuild); clear it from failures.
             mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
-            // recordFailedJar replaces a previous entry, so repeated failed loads (e.g. a hot-reload
-            // rebuild loop) don't accumulate duplicates.
             recordFailedJar(pluginJarPath, e.message ?: e.javaClass.simpleName)
         } finally {
             if (!committed) {
@@ -211,8 +196,6 @@ class DefaultPluginFactoryRepository(
 
         return manifests.map { manifest ->
             val factory = try {
-                // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
-                // constructor, so a non-public/missing one fails clearly with NoSuchMethodException.
                 classLoader.loadClass(manifest.factoryClass).getConstructor().newInstance()
             } catch (e: ReflectiveOperationException) {
                 throw IllegalStateException(
@@ -280,12 +263,7 @@ class DefaultPluginFactoryRepository(
     override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginIds[pluginJarPath].orEmpty()
 
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
-        // loadPlugin already closes and replaces the previous classloader for this jar, dropping the
-        // stale classes. We simply re-run it (under the same lock, so the result read below is
-        // consistent with it) and report the resulting plugin ids.
         loadPluginUnderLock(pluginJarPath, expectedSha256)
-        // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
-        // reload (don't report stale success from a leftover jarPathToPluginIds mapping).
         if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
             emptyList()
         } else {
@@ -300,11 +278,9 @@ class DefaultPluginFactoryRepository(
 
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
-            // Redefine every class this jar's classloader has already loaded, using the rebuilt jar's
-            // bytecode. redefineClasses works on the loaded Class regardless of classloader, so this
-            // reaches the plugin's child-classloader classes (which Compose Hot Reload cannot). Because
-            // all plugins in the jar share this classloader, one redefine covers every plugin. Array
-            // and hidden classes (e.g. invokedynamic lambdas) have no class file and are skipped.
+            // redefineClasses works on loaded classes regardless of classloader, so this reaches
+            // the plugin's child-classloader classes, which Compose Hot Reload cannot. Array and
+            // hidden classes (e.g. invokedynamic lambdas) have no class file.
             val loadedClasses = instrumentation.allLoadedClasses
                 .filter { it.classLoader === classLoader && !it.isArray && !it.isHidden }
             if (loadedClasses.isEmpty()) return emptyList()
@@ -312,9 +288,8 @@ class DefaultPluginFactoryRepository(
             val definitions = ArrayList<ClassDefinition>(loadedClasses.size)
             JarFile(pluginJarPath).use { jar ->
                 for (clazz in loadedClasses) {
-                    // A loaded (non-hidden, non-array) class with no class file in the rebuilt jar
-                    // would leave stale bytecode behind — a partial redefine. Bail out so the caller
-                    // does a full reload instead of reporting a misleading success.
+                    // A loaded class missing from the rebuilt jar would keep stale bytecode, so
+                    // return empty and let the caller do a full reload.
                     val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return emptyList()
                     definitions += ClassDefinition(clazz, jar.getInputStream(entry).use { it.readBytes() })
                 }
@@ -325,8 +300,6 @@ class DefaultPluginFactoryRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            // UnsupportedOperationException (structural change without an enhanced runtime),
-            // LinkageError, etc. The caller falls back to a full reload.
             println("In-place redefine failed for ${pluginIds.joinToString()}: ${e.message}; falling back to full reload")
             emptyList()
         }

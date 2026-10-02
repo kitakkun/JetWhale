@@ -36,14 +36,7 @@ class DefaultDynamicPluginBridgeProvider(
                     state1 = rememberSubscription(themeSubscriptionKey),
                     state2 = rememberSubscription(appearanceSettingsSubscriptionKey),
                 ) { theme, appearanceSettings ->
-                    // HostTheme publishes LocalJetWhaleDarkTheme for the plugin, decided from the
-                    // scheme itself (definitive for Light/Dark, OS for Dynamic) rather than a
-                    // luminance guess of the resolved surface.
                     HostTheme(theme.colorScheme) {
-                        // The scene has to carry its own background. On screen the host window
-                        // paints one behind it, but an off-screen MCP capture has nothing behind
-                        // it, so a plugin that draws no background of its own would be captured
-                        // transparent and read as white.
                         JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                             AppEnvironment(appearanceSettings.appLanguage) {
                                 content()

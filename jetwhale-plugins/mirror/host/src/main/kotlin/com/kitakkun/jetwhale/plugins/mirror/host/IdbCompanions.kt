@@ -108,6 +108,7 @@ internal class IdbCompanions(
         try {
             commands.runChecked(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
         } catch (_: DeviceControlException) {
+            // A failed disconnect leaves only a stale entry in idb's target list.
         }
     }
 
@@ -117,7 +118,6 @@ internal class IdbCompanions(
         val ready = CompletableDeferred<Unit>()
         val output = StringBuilder()
         listOf(process.inputStream, process.errorStream).forEach { stream -> drain(stream, output, ready) }
-        // The companion is another process, so its time is real time, whatever clock the caller runs on.
         try {
             withContext(Dispatchers.IO) { withTimeout(COMPANION_START_TIMEOUT_MILLIS) { ready.await() } }
         } catch (e: TimeoutCancellationException) {

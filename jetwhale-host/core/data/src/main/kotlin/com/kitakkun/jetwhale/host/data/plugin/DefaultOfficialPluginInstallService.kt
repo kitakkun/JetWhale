@@ -17,8 +17,6 @@ class DefaultOfficialPluginInstallService(
     private val pluginInstallJobService: PluginInstallJobService,
 ) : OfficialPluginInstallService {
     override suspend fun install(plugin: OfficialPlugin) {
-        // Through the same queue as the settings screen, so an agent's install shows up there and
-        // joins one the user already started instead of racing it.
         val outcome = pluginInstallJobService.install(PluginInstallRequest.Official(plugin))
         if (outcome is PluginInstallStatus.Failed) throw PluginInstallationException(outcome.reason)
     }

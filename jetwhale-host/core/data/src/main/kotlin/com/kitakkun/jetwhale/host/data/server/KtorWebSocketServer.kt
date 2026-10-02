@@ -95,8 +95,6 @@ class KtorWebSocketServer(
     private var plainServer: EmbeddedServer<*, *>? = null
     private var tlsServer: EmbeddedServer<*, *>? = null
 
-    // Serializes TLS server lifecycle transitions (initial start and hot-swap restarts) so rapid
-    // certificate changes cannot race a stop against a start.
     private val tlsServerMutex: Mutex = Mutex()
     private var certificateObserverJob: Job? = null
 
@@ -120,7 +118,6 @@ class KtorWebSocketServer(
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
-        // Every start failure (a taken port, a bad certificate, the engine itself) is shown as the server's Error status.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             currentHost = host
@@ -142,13 +139,10 @@ class KtorWebSocketServer(
                 startCertificateObserver()
             }
 
-            // Started reflects both listeners. The wss port is only reported when the TLS server is
-            // actually up, so a certificate that fails to load surfaces as a plain-only server.
             mutableStatusFlow.update {
                 DebugWebSocketServerStatus.Started(host, port, wssPort.takeIf { tlsStarted })
             }
         } catch (e: CancellationException) {
-            // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
             throw e
         } catch (e: Throwable) {
             mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
@@ -270,11 +264,6 @@ class KtorWebSocketServer(
         }
 
         routing {
-            // Serves the active CA certificate so agents can fetch and pin it at connect time
-            // (trust-on-first-use) without hardcoding a PEM. Both servers install this module, so the
-            // route is reachable over the plain port (localhost / ADB) and over the TLS port on
-            // 0.0.0.0 (LAN devices such as iPhones that cannot reach the loopback-bound plain server).
-            // The CA certificate is public trust-anchor material, so exposing it is not a secret leak.
             get("/jetwhale/ca") {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {
@@ -294,11 +283,10 @@ class KtorWebSocketServer(
     context(log: Logger)
     private suspend fun DefaultWebSocketServerSession.configureSession() {
         val transportSecurity = when {
-            // Arrived through the TLS (wss) connector: encrypted end to end.
             call.request.origin.scheme == "https" -> SessionTransportSecurity.TLS
 
-            // Plain ws whose peer is loopback: traffic never leaves the machine (the ADB-forwarded
-            // case), so it is effectively secure.
+            // ADB-forwarded connections arrive from loopback, so their traffic never leaves the
+            // machine.
             call.request.origin.remoteHost in LOOPBACK_HOSTS -> SessionTransportSecurity.LOOPBACK
 
             else -> SessionTransportSecurity.PLAINTEXT

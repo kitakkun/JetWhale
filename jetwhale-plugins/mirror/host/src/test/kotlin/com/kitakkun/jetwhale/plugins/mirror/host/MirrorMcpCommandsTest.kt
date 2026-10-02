@@ -270,7 +270,6 @@ class MirrorMcpCommandsTest {
     }
 }
 
-// A swipe on the 1080x2400 test screen from ([fromX], 1800) to (540, [toY]).
 private fun swipe(fromX: Int, toY: Int, durationMillis: Int?) = buildJsonObject {
     put("fromX", fromX)
     put("fromY", 1800)

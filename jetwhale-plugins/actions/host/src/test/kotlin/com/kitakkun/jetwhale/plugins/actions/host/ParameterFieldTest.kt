@@ -50,7 +50,6 @@ class ParameterFieldTest {
         onNodeWithText("pro@example.com").performClick()
 
         onNode(hasSetTextAction()).assertTextContains("pro@example.com")
-        // Only the field itself still shows the value; the menu item is gone.
         onAllNodesWithText("pro@example.com").assertCountEquals(1)
     }
 }

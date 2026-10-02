@@ -56,9 +56,6 @@ afterEvaluate {
 
     logger.info("Configuring publishing for $artifactName ($artifactId)")
 
-    // -PjetwhalePublishOnly=<selectors> restricts a `publishToMavenCentral` run to some artifacts;
-    // the others keep their publications configured but their publish tasks disabled, so one
-    // invocation still covers the whole build and skips what was not asked for.
     val selectors = findProperty("jetwhalePublishOnly")?.toString()?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
     if (selectors != null && selectors.none { it.selects(artifactId) }) {
         logger.lifecycle("Not publishing $artifactId: not selected by jetwhalePublishOnly=${selectors.joinToString(",")}")

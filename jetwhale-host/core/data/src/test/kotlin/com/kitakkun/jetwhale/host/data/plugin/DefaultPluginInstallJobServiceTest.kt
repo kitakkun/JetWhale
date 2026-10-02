@@ -42,7 +42,6 @@ class DefaultPluginInstallJobServiceTest {
     private val coordinates = MavenCoordinates(groupId = "com.example", artifactId = "network", version = "1.3.0", repositoryUrl = "https://example.com/releases")
     private val request = PluginInstallRequest.Maven(coordinates)
 
-    // Each stage of an install waits on its gate, so a test can look at the install while it is there.
     private val pluginDownloadGate = CompletableDeferred<Unit>()
     private val dependencyDownloadGate = CompletableDeferred<Unit>()
     private val loadGate = CompletableDeferred<Unit>()
@@ -95,7 +94,6 @@ class DefaultPluginInstallJobServiceTest {
 
     @AfterTest
     fun cleanup() {
-        // Opened first: an install that has started loading its plugin is not cancelled but waited for.
         openAllGates()
         runBlocking { withTimeout(TIMEOUT_MILLIS) { service.cancelAll() } }
         originalUserHome?.let { System.setProperty("user.home", it) }
@@ -253,7 +251,6 @@ class DefaultPluginInstallJobServiceTest {
         val job = service.enqueue(request)
         awaitStatus(job.id) { it == PluginInstallStatus.Running(PluginInstallProgress.LoadingPlugin) }
 
-        // Undispatched, so a shutdown that does not wait has already returned when launch does.
         val shutdown = launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }
         assertFalse(shutdown.isCompleted)
         loadGate.complete(Unit)

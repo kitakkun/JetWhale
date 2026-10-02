@@ -48,11 +48,6 @@ class DefaultPluginJarSwapService(
     override suspend fun hotSwap(jarPath: String) {
         if (!File(jarPath).exists()) return
 
-        // Try an in-place class redefinition first: it keeps the plugins' classloader and instances
-        // (so instance state survives) and recreates only their compose scenes, so the redefined
-        // Content runs against that state. Composable-local `remember` is reset with the scene, so
-        // state that must survive a reload belongs in the plugin instance. Unlike Compose Hot
-        // Reload, this reaches the classes in the plugins' child classloader.
         val redefinedPluginIds = pluginFactoryRepository.tryRedefinePlugin(jarPath)
         if (redefinedPluginIds.isNotEmpty()) {
             withContext(Dispatchers.Main) {
@@ -74,10 +69,6 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        // Plugin instance state is lost. Capture the plugin ids currently served by this jar, and those
-        // it declares that another jar serves now (a new version under a new file name takes them
-        // over, closing that jar's classloader), so their running instances and scenes are disposed
-        // before the code under them goes away.
         val takenOverPluginIds = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
             .filter { it in pluginFactoryRepository.loadedPlugins }
         val previousPluginIds = (pluginFactoryRepository.findPluginIdsByJarPath(jarPath) + takenOverPluginIds).distinct()
@@ -86,9 +77,8 @@ class DefaultPluginJarSwapService(
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
-            // A failed reload (e.g. a compile error in the rebuilt jar) leaves the previously loaded
-            // code intact in the repository, so restore the instances/scenes we disposed above instead
-            // of leaving active sessions without the plugin until the next successful build.
+            // A failed reload leaves the previous code loaded, so restore the instances and scenes
+            // disposed above.
             previousPluginIds.forEach {
                 reinitializeInstances(it)
                 pluginReloadedFlow.emit(it)
@@ -96,8 +86,6 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
-        // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
         (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
 
         reloadedPluginIds.forEach { reinitializeInstances(it) }
@@ -111,7 +99,6 @@ class DefaultPluginJarSwapService(
         pluginFactoryRepository.unloadPluginJar(jarPath)
     }
 
-    // The scene service keeps its scenes on the main thread; the directory watchers call in from IO.
     private suspend fun disposePlugin(pluginId: String) = withContext(Dispatchers.Main) {
         pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
         pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
@@ -124,13 +111,11 @@ class DefaultPluginJarSwapService(
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
-        // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
         val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
 
         if (activeSessionIds.isEmpty()) return
 
-        // Instance creation drives compose, so do it on the main dispatcher to match the scene service.
         withContext(Dispatchers.Main) {
             pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                 pluginId = pluginId,

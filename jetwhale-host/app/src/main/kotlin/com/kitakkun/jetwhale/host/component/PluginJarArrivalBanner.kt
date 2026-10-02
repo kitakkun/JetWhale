@@ -47,8 +47,6 @@ fun PluginJarArrivalBanner(
     onReviewInSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Acting on a strip removes it and moves the next one up under the pointer; a double click must
-    // not approve a jar the user never read.
     var listChangedAtMillis by remember { mutableLongStateOf(0L) }
     LaunchedEffect(arrivedJars.map(ArrivedPluginJar::jarPath)) {
         listChangedAtMillis = System.currentTimeMillis()
@@ -140,6 +138,9 @@ private fun formatSize(bytes: Long): String = when {
     else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
 }
 
+// Acting on a strip removes it and moves the next one up under the pointer. Clicks this soon after
+// the list changes are dropped, so the second click of a double click cannot load a jar the user
+// never read.
 private const val REFLOW_GUARD_MILLIS = 600L
 
 /** More strips than this would push the window's content out of view; the rest are in the settings. */

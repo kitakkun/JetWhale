@@ -48,19 +48,13 @@ internal class MirrorSurface : AutoCloseable {
     // draw closes it instead.
     private var retired: Bitmap? = null
 
-    // Set by [close]; a decoder still finishing its last frame then writes nothing.
     private var closed = false
 
-    // Bumped by [startStream] and [switchTo]; a writer of an earlier stream then writes nothing.
     private var streamGeneration = 0L
 
-    // The bitmap [drawFrame] is drawing outside the lock. Whatever retires it meanwhile — a
-    // [switchTo], a [close] — sets [closeWhenDrawn] and leaves the closing to the draw's end.
     private var drawn: Bitmap? = null
     private var closeWhenDrawn = false
 
-    // The last frame of each device mirrored recently, least recently shown first, so switching
-    // back shows it at once instead of nothing while the new stream starts.
     private val lastFrames = LinkedHashMap<String, Bitmap>()
 
     /** The device whose frames this surface holds now; set by [switchTo]. */
@@ -116,7 +110,6 @@ internal class MirrorSurface : AutoCloseable {
 
     private fun writeStreamFrame(generation: Long, width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
         val started = System.nanoTime()
-        // The write happens under the lock too, so [clear] can never close the bitmap being written.
         synchronized(lock) {
             if (closed || generation != streamGeneration) return
             val reusable = back?.takeIf { it.width == width && it.height == height && it.imageInfo.colorType == colorType }
@@ -266,8 +259,6 @@ internal class MirrorSurface : AutoCloseable {
         frameCounter++
     }
 
-    // Call with [lock] held. Empties the rotation and returns its newest frame, which may not have
-    // been drawn yet; the others are freed.
     private fun takeNewestFrame(): Bitmap? {
         val newest = if (readyIsNewer) ready else front
         back?.close()
@@ -280,13 +271,11 @@ internal class MirrorSurface : AutoCloseable {
         return newest
     }
 
-    // Call with [lock] held. The draw may still be using [bitmap], so the next draw closes it.
     private fun retire(bitmap: Bitmap) {
         retired?.closeUnlessDrawn()
         retired = bitmap
     }
 
-    // Call with [lock] held.
     private fun Bitmap.closeUnlessDrawn() {
         if (this === drawn) closeWhenDrawn = true else close()
     }

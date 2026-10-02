@@ -83,28 +83,21 @@ class GetAccessibilityTreeMcpTool(
  */
 @OptIn(InternalComposeUiApi::class)
 fun captureAccessibilityTree(scene: PluginComposeScene): String {
-    // Render the scene to flush pending recompositions and sync the semantics tree.
+    // The render's pixels are discarded; it runs to flush pending recompositions and sync the
+    // semantics tree.
     val size = sceneViewportSize(scene)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
-        // Raised only for this off-screen render; being on the UI thread, no interactive frame can
-        // observe the raised state.
         scene.isMcpCapture.value = true
         try {
-            // render() only flushes snapshot apply notifications at its end (before draw), so a write
-            // made right before it is not yet observed by the scene's recomposer and the frame would be
-            // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
-            // within this render pass.
+            // render() flushes snapshot apply notifications only at its end, so flush here or the
+            // frame is drawn before the flag flip is observed.
             Snapshot.sendApplyNotifications()
             scene.render(Canvas(ImageBitmap(size.width, size.height)))
-            // Read the semantics while the flag is still raised: lowering it first would leave the tree
-            // one recomposition away from the values that were actually rendered.
             scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::traverseSemanticsTree)
         } finally {
             scene.isMcpCapture.value = false
-            // Flush the restore so the next interactive render observes capture=false immediately rather
-            // than lagging a frame behind.
             Snapshot.sendApplyNotifications()
         }
     }

@@ -62,8 +62,6 @@ import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 
-// The window's entry point takes its whole dependency graph as a context parameter, which a
-// @Preview has no way to build.
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 context(appGraph: JetWhaleAppGraph)
@@ -88,8 +86,6 @@ fun JetWhaleApp() {
         onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
-            // Startup update check: notify-only. Installing always requires an explicit
-            // user action in the settings screen.
             val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
             var updateBannerDismissed by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
@@ -124,23 +120,17 @@ fun JetWhaleApp() {
 @Composable
 context(appGraph: JetWhaleAppGraph)
 private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
-    // Scenes created for a caller that never displays them (the MCP screenshot tool, say) would
-    // otherwise lay out at density 1.0 and disagree with what this window shows.
     val density = LocalDensity.current
     LaunchedEffect(density) {
         appGraph.pluginComposeSceneService.updateHostDensity(density)
     }
 
-    // Publish what the window shows so the MCP server can report it and confirm its own navigation
-    // requests were applied. ToolingScaffoldRoot publishes the drawer selection alongside it.
     LaunchedEffect(backStack) {
         snapshotFlow { backStack.toList() }.collect { keys ->
             appGraph.hostNavigationService.updateDestination(keys.toHostDestination())
         }
     }
 
-    // Started from the window rather than at app start: it drives the navigation this window owns,
-    // and a headless run has nothing to point anywhere.
     LaunchedEffect(Unit) {
         appGraph.followAiOperationService.followAiOperations()
     }
@@ -161,7 +151,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
-            // Not done inside debugWebSocketServer itself: that would be a dependency cycle.
             appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
         }
     }
@@ -222,8 +211,6 @@ private fun ThemedHostWindow(
                         isPoppedOut = backStack::isPluginPoppedOut,
                         onClickBringBack = backStack::bringPluginBackToMainWindow,
                         onNavigateHome = {
-                            // Popouts live in their own windows; going home in the main
-                            // window must not close them.
                             backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
                         },
                         onNavigateSettings = { page ->
@@ -231,9 +218,6 @@ private fun ThemedHostWindow(
                         },
                         onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                         onSelectedSessionChange = { selectedSession ->
-                            // When the user switches the active session, make any plugin screen
-                            // currently on top follow the newly-selected session instead of
-                            // lingering on the previous one.
                             backStack.followPluginToSession(
                                 newSessionId = selectedSession.id,
                                 isPluginAvailableOnNewSession = { pluginId ->
@@ -283,8 +267,6 @@ private fun HostWindowContent(
             enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
             exit = slideOutVertically(targetOffsetY = Int::unaryMinus) + shrinkVertically(shrinkTowards = Alignment.Top),
         ) {
-            // Non-null while visible; stays rendered during the exit animation because dismissing
-            // only flips the flag.
             availableUpdate?.let { update ->
                 UpdateAvailableBanner(
                     latestVersion = update.latestVersion,
@@ -300,8 +282,6 @@ private fun HostWindowContent(
         ) {
             PluginJarArrivalBanner(
                 arrivedJars = arrivedJars,
-                // A jar that cannot be loaded ends up among the failed jars in the plugin settings.
-                // Approves the content the banner showed, not whatever is at the path by now.
                 onLoad = { jar -> coroutineScope.launch { trustPluginMutation.mutateAsync(TrustPluginRequest(jar.jarPath, jar.sha256)) } },
                 onPostpone = { jarPath -> coroutineScope.launch { postponeMutation.mutateAsync(PostponeArrivedPluginJarRequest(jarPath)) } },
                 onReviewInSettings = onClickReviewArrivedPlugins,

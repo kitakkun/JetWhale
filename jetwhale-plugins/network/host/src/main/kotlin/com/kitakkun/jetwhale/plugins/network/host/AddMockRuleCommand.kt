@@ -28,7 +28,6 @@ internal class AddMockRuleCommand(
     )
     private val method by stringOrNull("HTTP method to match (case-insensitive). Matches any method if omitted.")
 
-    // The property cannot be called `name` (that is the tool name), so the wire name is overridden.
     private val ruleName by stringOrNull("Human-readable rule name shown in the UI.", name = "name")
     private val statusCode by intOrNull("Status code of the mocked response. Defaults to 200.")
     private val body by stringOrNull("Body of the mocked response. Defaults to empty.")
@@ -63,7 +62,6 @@ internal class AddMockRuleCommand(
         }
     }
 
-    // The explicit headers map wins; contentType only fills in a Content-Type when absent.
     private fun resolveHeaders(headers: Map<String, String>?, contentType: String?): Map<String, String> {
         val base = headers ?: emptyMap()
         if (contentType == null || base.keys.any { it.equals("Content-Type", ignoreCase = true) }) return base

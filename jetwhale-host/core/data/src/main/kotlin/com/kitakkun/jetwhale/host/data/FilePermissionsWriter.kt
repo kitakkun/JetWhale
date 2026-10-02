@@ -39,7 +39,6 @@ internal object FilePermissionsWriter {
         if (supportsPosix) {
             Files.setPosixFilePermissions(path, posixPermissions)
         } else {
-            // Non-POSIX fallback: revoke access for everyone, then re-grant to the owner only.
             file.setReadable(false, false)
             file.setWritable(false, false)
             file.setExecutable(false, false)

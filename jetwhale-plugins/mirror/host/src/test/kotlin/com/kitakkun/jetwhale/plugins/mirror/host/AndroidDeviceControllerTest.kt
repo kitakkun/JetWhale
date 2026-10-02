@@ -14,7 +14,6 @@ class AndroidDeviceControllerTest {
     private val commands = File(folder, "commands.txt")
     private val dumpsysDisplay = File(folder, "dumpsys-display.txt")
 
-    // Answers the two reads the controller makes and logs every command it is given.
     private val fakeAdb = File(folder, "adb").apply {
         writeText(
             """
@@ -38,7 +37,6 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `a folded foldable is mirrored from the cover panel its default display has moved to`() {
-        // The default display itself reads OFF here while the cover panel behind it is on.
         assertEquals(AndroidDisplay(logicalId = 0, physicalId = COVER_PANEL), parseActiveAndroidDisplay(FOLDED))
     }
 

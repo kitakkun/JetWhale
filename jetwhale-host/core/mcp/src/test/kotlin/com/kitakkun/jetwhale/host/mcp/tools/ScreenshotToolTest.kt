@@ -32,7 +32,6 @@ class ScreenshotToolTest {
         val bytes = captureScreenshot(scene, viewport)
 
         assertTrue(bytes.isNotEmpty(), "Expected PNG bytes to be non-empty")
-        // PNG magic number: 0x89 0x50 0x4E 0x47
         assertTrue(bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte(), "Expected PNG header")
     }
 
@@ -47,7 +46,6 @@ class ScreenshotToolTest {
         val bytes = captureScreenshot(scene, viewport)
 
         assertTrue(bytes.isNotEmpty())
-        // PNG width (bytes 16-19) and height (bytes 20-23) are big-endian int32
         val width = (bytes[16].toInt() and 0xFF shl 24) or (bytes[17].toInt() and 0xFF shl 16) or
             (bytes[18].toInt() and 0xFF shl 8) or (bytes[19].toInt() and 0xFF)
         val height = (bytes[20].toInt() and 0xFF shl 24) or (bytes[21].toInt() and 0xFF shl 16) or
@@ -112,8 +110,6 @@ class ScreenshotToolTest {
 
     @Test
     fun `the frame drawn after a capture uses the scene's own density`() {
-        // A 50dp box covers 50px at density 1 and 150px at density 3, so the pixel it lands on
-        // says which density the interactive frame was laid out at.
         val scene = createTestScene {
             Box(modifier = Modifier.size(50.dp).background(Color.Red))
         }

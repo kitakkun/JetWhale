@@ -35,11 +35,8 @@ internal data class WindowEntry<T : Any>(
     val properties: WindowProperties,
 )
 
-// An OverlayScene that renders a single window. Each window is its own scene (like the built-in
-// DialogScene), so its identity is only its own content key: it is independent of the entries drawn
-// below it (overlaidEntries) and of every other window, and NavDisplay never tears it down on unrelated
-// navigation. Because the scene stays alive, the per-window [rememberWindowState] survives too, so each
-// window keeps its position and size.
+// Each window is its own scene, keyed only by its content key, so NavDisplay never tears it down on
+// unrelated navigation and the per-window [rememberWindowState] keeps its position and size.
 internal class WindowOverlayScene<T : Any>(
     private val windowEntry: WindowEntry<T>,
     override val previousEntries: List<NavEntry<T>>,
@@ -69,8 +66,6 @@ internal class WindowOverlayScene<T : Any>(
             },
         ) {
             CompositionLocalProvider(LocalComposeWindow provides this.window) {
-                // The window paints its own background, as the main window does: a popout that
-                // drew none would show the platform's default behind a plugin.
                 JwSurface(modifier = Modifier.fillMaxSize()) {
                     windowEntry.entry.Content()
                 }
@@ -94,9 +89,8 @@ class WindowSceneStrategy<T : Any>(
     private val onCloseRequestForContentKey: (Any) -> Unit,
 ) : SceneStrategy<T> {
     override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
-        // Render one window per scene. The framework re-runs the scene strategies over overlaidEntries, so
-        // returning the topmost window here and leaving the rest below lets each window become its own
-        // independent overlay scene, stacked in order.
+        // The framework re-runs the scene strategies over overlaidEntries, so returning only the
+        // topmost window lets each window become its own overlay scene, stacked in order.
         val windowIndex = entries.indexOfLast { it.metadata[WINDOW_KEY] is WindowProperties }
         if (windowIndex == -1) return null
 

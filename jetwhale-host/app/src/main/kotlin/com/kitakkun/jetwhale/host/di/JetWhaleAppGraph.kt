@@ -77,8 +77,6 @@ interface JetWhaleAppGraph : ScreenContext {
 
     @DependencyGraph.Factory
     fun interface Factory {
-        // The command line is only readable from main(), so the launch overrides enter the graph
-        // here instead of being provided from within it.
         fun create(
             @Provides serverPortOverrides: ServerPortOverrides,
             @Provides mcpPermissionOverride: McpPermissionOverride,
@@ -86,10 +84,6 @@ interface JetWhaleAppGraph : ScreenContext {
         ): JetWhaleAppGraph
     }
 
-    // One cache for the process. Unscoped, every read of `swrClient` built another SwrCachePlus with
-    // a CoroutineScope of its own — and JetWhaleApp reads it from composition, so each recomposition
-    // leaked one and handed the subtree a cache that shared no query, mutation or subscription with
-    // the one the composition before it used.
     @Provides
     @SingleIn(AppScope::class)
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))

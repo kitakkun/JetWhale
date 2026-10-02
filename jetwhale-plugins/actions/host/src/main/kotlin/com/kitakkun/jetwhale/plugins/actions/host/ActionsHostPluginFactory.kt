@@ -21,7 +21,6 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.serialization.json.JsonObject
 
-// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ActionsHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = ActionsHostPlugin()
@@ -40,7 +39,6 @@ private class ActionsHostPlugin :
         onEvent { event: ActionsChanged -> browser.adopt(event.catalog) }
     }
 
-    // The agent pushes only changes, so the whole catalog is fetched once per connection.
     override suspend fun onPrepare() {
         browser.load()
     }
@@ -58,8 +56,6 @@ private class ActionsHostPlugin :
         ActionsScreenRoot(browser)
     }
 
-    // Lazy because the browser needs pluginScope; the host reads the commands only once the plugin
-    // is bound.
     override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
         listOf(ListActionsCommand(browser), RunActionCommand(browser))
     }

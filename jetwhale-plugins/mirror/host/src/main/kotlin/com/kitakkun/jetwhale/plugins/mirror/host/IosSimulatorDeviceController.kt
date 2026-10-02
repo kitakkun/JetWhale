@@ -27,8 +27,6 @@ internal class IosSimulatorDeviceController(
 
     private var screen: IdbScreen? = null
 
-    // Lowered each time a stream falls behind, for instance while another tool streams this
-    // simulator too; they stay lowered for as long as the simulator is listed.
     @Volatile
     private var fpsCap = MAX_RAW_FPS
 
@@ -75,12 +73,12 @@ internal class IosSimulatorDeviceController(
 
     // A simulator's H.264 stream sends a frame only when the framebuffer reports damage, which a
     // current CoreSimulator does so rarely that the picture freezes for seconds. Its raw stream is
-    // paced by --fps instead, and scaled to the view by the simulator, so there is nothing to decode;
-    // see rawBgraLayout for the size and rate.
+    // paced by --fps and scaled by the simulator instead, so there is nothing to decode.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
+                // idb names its raw format rbga; the bytes it writes are BGRA.
                 listOf(requireIdbPath(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
             )
         }

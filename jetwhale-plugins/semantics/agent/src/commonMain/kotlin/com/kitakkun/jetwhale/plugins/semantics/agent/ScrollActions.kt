@@ -57,8 +57,6 @@ internal object ScrollActions {
         override val runsOnDisabledNode = true
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
-            // A node that is not placed has no position to compute a scroll from — a capture taken with
-            // includeInvisible, or a node that left the layout since.
             if (!node.layoutInfo.isPlaced) {
                 return NodeActionResult(performed = false, message = "the node is not laid out, so there is nothing to scroll to")
             }

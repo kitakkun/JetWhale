@@ -20,7 +20,6 @@ class DefaultActivateSslCertificateMutationKey(
     MutationKey<Boolean, String> by buildMutationKey(
         id = MutationId("activate_ssl_certificate"),
         mutate = { id: String ->
-            // Metadata persistence is blocking disk work.
             withContext(Dispatchers.IO) {
                 sslCertificateManager.setActiveCertificate(id)
             }

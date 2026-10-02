@@ -83,16 +83,12 @@ internal val UiNode.isOperable: Boolean
 internal fun UiNode.displayLabel(): String {
     val label = listOfNotNull(text, contentDescription, editableText, (this as? ComposeNode)?.testTag).firstOrNull()
     return when (this) {
-        // Named like a View, by class then identifier: the class is what says what the thing is,
-        // and a mangled Swift or a Compose-internal class still tells a reader which toolkit it is.
         is AppleNode -> buildString {
             append(className.substringAfterLast('.'))
             accessibilityIdentifier?.let { append(" · $it") }
             label?.let { append(" · $it") }
         }
 
-        // A View is named by its class the way a Compose node is named by its role: it is what says
-        // what the thing is. The resource id comes next, because that is what the app calls it.
         is ViewNode -> buildString {
             append(viewClass.substringAfterLast('.'))
             resourceId?.let { append(" · @id/$it") }

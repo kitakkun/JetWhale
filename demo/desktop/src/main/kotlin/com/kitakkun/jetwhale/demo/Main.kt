@@ -12,8 +12,6 @@ fun main() {
     startDemoApiServer()
 
     singleWindowApplication {
-        // Desktop has no process-wide root callback, so the probe is scoped to this window. Dialogs
-        // and popups rendered inside it are picked up on their own.
         JetWhaleSemanticsProbe()
         App()
     }

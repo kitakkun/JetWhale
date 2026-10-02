@@ -173,7 +173,6 @@ class NavBackStackOperationsTest {
         apply(stack, NavBackStackOperation.RemoveAt(index = 1))
 
         assertContentEquals(listOf("home", "detail"), stack)
-        // "home" stays exactly where it is: only "list" and "detail" are taken off.
         assertEquals(2, stack.removals)
     }
 }

@@ -45,7 +45,6 @@ private class RecordingSocketClient(
         if (endpoint !in reachable) throw IllegalStateException("unreachable")
         connected.complete(endpoint)
         debuggerEvents = Channel(Channel.UNLIMITED)
-        // A closed event flow ends the session as soon as the service starts collecting it.
         if (closeImmediately) debuggerEvents.close()
         return JetWhaleConnection(
             negotiationResult = ClientSessionNegotiationResult.Success(availablePluginIds = emptyList()),
@@ -69,8 +68,6 @@ private class ScriptedEndpointResolver(private val rounds: List<List<ResolvedEnd
 class MessagingServiceResolutionTest {
     @Test
     fun `a candidate that refuses is passed over for the next one in the same round`() = runBlocking {
-        // The point of the whole list: a host that answers discovery but refuses connections must not
-        // strand the session. Both are dialled before any backoff is owed.
         val unreachable = ResolvedEndpoint("unreachable", 1, useWss = false)
         val reachable = ResolvedEndpoint("reachable", 2, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
@@ -92,8 +89,6 @@ class MessagingServiceResolutionTest {
 
     @Test
     fun `the fallback is reached when the discovered candidate refuses`() = runBlocking {
-        // Resolving once per round is not enough on its own: before the chain, a discovered host that
-        // refused was re-picked every round and the configured fallback was never dialled at all.
         val discovered = ResolvedEndpoint("192.168.3.26", 5443, useWss = false)
         val fallback = ResolvedEndpoint("localhost", 5443, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(fallback))
@@ -113,9 +108,6 @@ class MessagingServiceResolutionTest {
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `a session that held reconnects without waiting out a backoff`() = runBlocking {
-        // Refusals before the candidate that worked are not the round's verdict, so a session that ran
-        // is not treated as a failed round: it reconnects at once, as it did before candidates were
-        // tried in turn.
         val refused = ResolvedEndpoint("refused", 1, useWss = false)
         val reachable = ResolvedEndpoint("reachable", 2, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
@@ -124,8 +116,6 @@ class MessagingServiceResolutionTest {
         try {
             withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
                 socketClient.connected.await()
-                // Long enough that the session counts as having worked rather than as a host dropping
-                // it straight away, which is a failed round and does owe a backoff.
                 delay(HELD_SESSION_MILLIS)
                 socketClient.closeConnection()
                 withTimeout(BACKOFF_FREE_WINDOW_MILLIS) {
@@ -141,8 +131,6 @@ class MessagingServiceResolutionTest {
 
     @Test
     fun `a host that accepts and drops straight away does not spin the loop`() = runBlocking {
-        // Seen for real: a host whose websocket handler threw after the upgrade, accepting and closing
-        // each time. Reconnecting with no delay would dial it as fast as it can close.
         val flapping = ResolvedEndpoint("flapping", 1, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(flapping), closeImmediately = true)
         val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(flapping))))
@@ -152,8 +140,6 @@ class MessagingServiceResolutionTest {
                 socketClient.attemptCount.receive()
                 socketClient.attemptCount.receive()
             }
-            // A backoff was owed between them, so a third cannot arrive inside the window a
-            // delay-free loop would have filled with hundreds.
             val third = withTimeoutOrNull(BACKOFF_FREE_WINDOW_MILLIS) { socketClient.attemptCount.receive() }
             assertEquals(null, third, "expected the loop to be backing off, got another attempt")
         } finally {
@@ -167,8 +153,6 @@ class MessagingServiceResolutionTest {
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
         var firstCall = true
         val service = service(socketClient) {
-            // Resolution is not supposed to throw, but one escaping must not take the loop down
-            // with it and leave the agent silently dead for the life of the process.
             if (firstCall) {
                 firstCall = false
                 throw IllegalStateException("resolver blew up")
@@ -187,8 +171,6 @@ class MessagingServiceResolutionTest {
 
     @Test
     fun `a spent round is resolved again rather than retried as it was`() = runBlocking {
-        // A host started after the app is only reached by browsing again, so each round asks the
-        // resolver afresh instead of reusing what the last one produced.
         val socketClient = RecordingSocketClient()
         val resolver = ScriptedEndpointResolver(
             listOf(

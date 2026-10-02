@@ -12,10 +12,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import kotlin.math.roundToInt
 
-// The attributes of an Android `View` that this plugin reads, and the subset it writes. Everything
-// here must run on the main thread. The list is an explicit allowlist rather than reflection over
-// the view's getters: reflection is what makes the equivalent in other layout inspectors fragile,
-// and Android's non-SDK interface restrictions block most of what it would reach anyway.
+// Everything here must run on the main thread. The attributes are an explicit allowlist rather than
+// reflection over getters: Android's non-SDK interface restrictions block most of what reflection
+// would reach.
 
 /**
  * One attribute: how to read it off a view, and how to write it back when it can be written.
@@ -57,12 +56,9 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
     val write = descriptor.write
         ?: return ViewAttributeResult(applied = false, message = "${descriptor.id} is read-only")
 
-    // The write calls the app's own View setter, which may reject the value by throwing anything; the reply carries why.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         write(this, value)
-        // An app may reject a layoutParams change from its own onLayout, so the value is read back
-        // after the pass that would apply it is requested rather than before.
         if (descriptor.relayouts) requestLayout() else invalidate()
         ViewAttributeResult(applied = true, attribute = descriptor.toAttribute(this))
     } catch (e: Throwable) {
@@ -74,8 +70,6 @@ private fun ViewAttributeDescriptor.toAttribute(view: View): ViewAttribute? = re
     ViewAttribute(id = id, label = label, group = group, value = value, editable = write != null)
 }
 
-// -- The allowlist ------------------------------------------------------------
-
 private const val GROUP_STATE = "State"
 private const val GROUP_LAYOUT = "Layout"
 private const val GROUP_APPEARANCE = "Appearance"
@@ -85,7 +79,6 @@ private const val GROUP_INFO = "Info"
 private val VISIBILITY_OPTIONS = listOf("VISIBLE", "INVISIBLE", "GONE")
 
 private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
-    // State ------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "visibility",
@@ -101,11 +94,8 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
     addFlag(id = "activated", group = GROUP_STATE, read = View::isActivated, write = { view, on -> view.isActivated = on })
     addFlag(id = "clickable", group = GROUP_STATE, read = View::isClickable, write = { view, on -> view.isClickable = on })
     addFlag(id = "focusable", group = GROUP_STATE, read = View::isFocusable, write = { view, on -> view.isFocusable = on })
-    // Read-only: taking focus is an action with side effects of its own — a keyboard, a scroll —
-    // so it belongs to performNodeAction's RequestFocus rather than to a property editor.
     addFlag(id = "focused", group = GROUP_STATE, read = View::isFocused, write = null)
 
-    // Layout -----------------------------------------------------------------
     addLayoutSize(id = "layout.width", read = { it.width }, write = { params, size -> params.width = size })
     addLayoutSize(id = "layout.height", read = { it.height }, write = { params, size -> params.height = size })
     addDimension(
@@ -167,7 +157,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 
-    // Appearance -------------------------------------------------------------
     addFloat(
         id = "alpha",
         group = GROUP_APPEARANCE,
@@ -181,8 +170,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             id = "backgroundColor",
             label = "backgroundColor",
             group = GROUP_APPEARANCE,
-            // Only a flat color background has a color to report; anything else is described by the
-            // read-only `background` attribute below.
             read = { view -> (view.background as? ColorDrawable)?.let { ViewAttributeValue.ColorValue(it.color) } },
             write = { view, value -> view.setBackgroundColor(value.asColor("backgroundColor")) },
         ),
@@ -207,7 +194,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
     addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = View::getScaleX, write = { view, value -> view.scaleX = value })
     addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = View::getScaleY, write = { view, value -> view.scaleY = value })
 
-    // Text -------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "text",
@@ -233,8 +219,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             id = "textSize",
             label = "textSize",
             group = GROUP_TEXT,
-            // The px figure is what the platform stores; the second figure is the sp the app would
-            // have written, which is the number a reader recognises.
             read = { view -> (view as? TextView)?.let { ViewAttributeValue.DimensionValue(px = it.textSize, dp = it.textSize / view.scaledTextDensity()) } },
             write = { view, value -> (view as TextView).setTextSize(TypedValue.COMPLEX_UNIT_PX, value.asDimensionPx("textSize")) },
             relayouts = true,
@@ -260,7 +244,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 
-    // Info -------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "id",
@@ -280,8 +263,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 }
-
-// -- Descriptor builders ------------------------------------------------------
 
 private fun MutableList<ViewAttributeDescriptor>.addFlag(
     id: String,
@@ -397,12 +378,10 @@ private fun MutableList<ViewAttributeDescriptor>.addLayoutSize(
     )
 }
 
-// -- Value conversion ---------------------------------------------------------
-
 private fun View.density(): Float = resources.displayMetrics.density
 
-// A TextView's size is written in sp, which scales with the user's font-size setting on top of the
-// display density — so the sp figure needs that scale, not the plain one.
+// A TextView's sp scales with the user's font-size setting on top of display density, so converting
+// to sp needs scaledDensity, not density.
 @Suppress("DEPRECATION")
 private fun View.scaledTextDensity(): Float = resources.displayMetrics.scaledDensity
 

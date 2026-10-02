@@ -34,7 +34,6 @@ internal fun decodeH264Into(target: MirrorSurface.FrameStream, stream: VideoStre
     }
     val feeding = thread(isDaemon = true, name = "mirror-ffmpeg-input") { feed(input, ffmpegProcess) }
     val frames = try {
-        // No size means ffmpeg ended before describing its output; the error check below says why.
         val frameSize = outputSize ?: log.outputSize.get()
         frameSize?.let { copyFrames(WaitTimingInputStream(ffmpegProcess.inputStream), it, target, log::inputResized, onFrame) } ?: 0
     } finally {
@@ -42,8 +41,6 @@ internal fun decodeH264Into(target: MirrorSurface.FrameStream, stream: VideoStre
         ffmpegProcess.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)
         feeding.join(FFMPEG_EXIT_WAIT_MILLIS)
     }
-    // A stream that showed frames ends like any other, and the mirror opens the next; one that
-    // decoded nothing says why when ffmpeg did.
     val failure = log.errors()
     if (frames == 0 && failure.isNotEmpty()) throw deviceControlError("the video stream could not be decoded: $failure")
 }
@@ -75,7 +72,7 @@ private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, target
  * a frame rate the device never promised.
  */
 internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List<String> = buildList {
-    addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info"))
+    addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info")) // info, not error: FfmpegLog reads the frame sizes and size changes from this log.
     addAll(listOf("-flags", "low_delay", "-probesize", "65536", "-analyzeduration", "500000"))
     addAll(listOf("-f", "h264", "-i", "pipe:0"))
     outputSize?.let { addAll(listOf("-vf", "scale=${it.width}:${it.height}:flags=area")) }
@@ -99,7 +96,6 @@ internal fun feed(source: InputStream, ffmpegProcess: Process) {
             }
         }
     } catch (_: IOException) {
-        // ffmpeg exited, or the device's stream was closed: either way the input is over.
     }
 }
 
@@ -141,7 +137,6 @@ private class FfmpegLog(log: InputStream, onInputResized: () -> Unit) {
                     }
                 }
             } catch (_: IOException) {
-                // The process was destroyed while its log was being read.
             } finally {
                 outputSize.complete(null)
             }

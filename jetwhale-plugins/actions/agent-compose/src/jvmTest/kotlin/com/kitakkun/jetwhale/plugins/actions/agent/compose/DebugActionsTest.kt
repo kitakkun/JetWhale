@@ -58,7 +58,6 @@ class DebugActionsTest {
             plugin.DebugActions(card) { action("Fill $card") { perform { } } }
         }
         card = "amex"
-        // The recomposer has to be waiting for a frame before one is sent, or the frame is lost.
         Snapshot.sendApplyNotifications()
         testScheduler.runCurrent()
         frameClock.sendFrame(0L)

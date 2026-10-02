@@ -206,7 +206,6 @@ private fun runPresenter(
     val scope = PresenterScope(
         state = { uiState },
         send = {
-            // Actions normally arrive from Root, which holds a ScreenContext.
             with(TestScreenContext) { channel.send(it) }
             waitForIdle()
         },

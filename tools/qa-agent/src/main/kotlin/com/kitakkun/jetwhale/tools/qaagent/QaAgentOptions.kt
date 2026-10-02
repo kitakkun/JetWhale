@@ -63,8 +63,6 @@ internal fun parseArgs(args: Array<String>): QaAgentOptions {
         when (val arg = args[i]) {
             "--app" -> {
                 val name = valueOf(++i, arg)
-                // Names key every control call, so a duplicate would make one of the two sessions
-                // unreachable rather than merely confusing.
                 require(name !in options.apps) { "--app $name was given twice; app names address sessions and must be unique.\n\n$usage" }
                 options = options.copy(apps = options.apps + name)
             }

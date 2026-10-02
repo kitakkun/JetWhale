@@ -157,7 +157,6 @@ private fun LibraryDetailDialog(
                 val content = license.licenseContent?.takeIf(String::isNotBlank)
                     ?: license.url
                     ?: stringResource(Res.string.licenses_no_license_text)
-                // Bounded and scrolled on its own so a long license keeps the dialog's buttons in reach.
                 JwText(
                     text = content,
                     style = JwTheme.textStyles.bodySmall,

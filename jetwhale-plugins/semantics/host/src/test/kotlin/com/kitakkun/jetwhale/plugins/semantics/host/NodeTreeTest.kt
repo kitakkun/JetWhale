@@ -23,8 +23,6 @@ class NodeTreeTest {
 
         val filtered = tree.filterTree { it is ComposeNode && it.testTag == "target" }
 
-        // The ancestors 1 and 2 do not match themselves, but dropping them would reparent the
-        // match and lose where it sits in the tree.
         assertEquals(listOf(1, 2, 3), filtered?.asSequence()?.map(UiNode::id)?.toList())
     }
 
@@ -57,7 +55,6 @@ class NodeTreeTest {
 
     @Test
     fun `findRootOf prefers the newest root when an id appears in more than one`() {
-        // Ids are only unique within a root, so a dialog can reuse the id of a node underneath it.
         val snapshot = snapshot(
             root("window", node = node(id = 7, text = "behind")),
             root("dialog", node = node(id = 7, text = "in front")),
@@ -144,8 +141,6 @@ class NodeTreeTest {
 
     @Test
     fun `a View node keeps its ancestors when filtered`() {
-        // An Android capture nests the two kinds in one tree, so a filter that matched a View node
-        // has to keep the Compose nodes above it just as it would a Compose match.
         val tree = node(
             id = 1,
             children = listOf(node(id = 2, children = listOf(viewNode(id = -3, viewClass = "android.widget.Button", resourceId = "submit")))),
@@ -238,8 +233,6 @@ class NodeTreeTest {
     fun `viewAttributeNode takes no node this snapshot does not hold`() {
         val tree = snapshot(root("window-1", node = viewNode(id = -4, viewClass = "android.widget.TextView")))
 
-        // The right id under the wrong root is as absent as an id nothing carries: node ids are
-        // only unique within their root.
         assertNull(tree.viewAttributeNode(NodeKey(rootId = "window-2", nodeId = -4)))
         assertNull(tree.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = -9)))
         val notCaptured: NodeTreeSnapshot? = null

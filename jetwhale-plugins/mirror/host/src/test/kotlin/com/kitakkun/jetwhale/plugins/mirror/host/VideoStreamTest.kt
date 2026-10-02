@@ -14,7 +14,6 @@ class VideoStreamTest {
 
     @Test
     fun `a raw stream is asked for frames exactly as wide as they are shown`() {
-        // Drawing a frame even slightly larger than it is blurs its text.
         val layout = rawBgraLayout(simulator, IntSize(598, 1296), maxFps = MAX_RAW_FPS, maxWidth = Int.MAX_VALUE)
 
         assertEquals(598, layout.frameSize.width)
@@ -42,9 +41,6 @@ class VideoStreamTest {
 
     @Test
     fun `a view as large as the screen streams one pixel narrower so idb never sends its page-rounded buffer`() {
-        // At a scale of exactly 1, idb measured 12,107,776 bytes a frame: 2,556 rows of 4,736 bytes
-        // rounded up to a whole page, which drifts a reader counting rows. At 1,178 pixels wide the
-        // frames were exactly their rows.
         val layout = rawBgraLayout(simulator, null, maxFps = MAX_RAW_FPS, maxWidth = Int.MAX_VALUE)
 
         assertEquals(IntSize(1178, 2554), layout.frameSize)
@@ -138,7 +134,6 @@ class VideoStreamTest {
     @Test
     fun `padding at the end of each row is left out of the picture`() {
         val size = IntSize(2, 2)
-        // Rows of 16 bytes: 8 of pixels, then 8 of padding filled with a marker.
         val stream = ByteArrayInputStream(ByteArray(32) { if (it % 16 < 8) 1 else 9 })
         MirrorSurface().use { surface ->
             readRawBgraInto(surface.startStream(), rawStream(stream, size, rowBytes = 16)) {}
@@ -150,7 +145,6 @@ class VideoStreamTest {
     @Test
     fun `an odd width padded to 64 bytes reads each frame from its own start`() {
         val size = IntSize(3, 2)
-        // 12 bytes of pixels then 52 of padding per row; each frame is filled with its index.
         val frameBytes = 64 * size.height
         val stream = ByteArrayInputStream(ByteArray(frameBytes * 4) { i -> if (i % 64 < 12) (i / frameBytes).toByte() else 99 })
         MirrorSurface().use { surface ->

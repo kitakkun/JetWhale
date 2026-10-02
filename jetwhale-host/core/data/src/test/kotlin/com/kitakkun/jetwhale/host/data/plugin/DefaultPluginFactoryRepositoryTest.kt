@@ -56,7 +56,6 @@ class DefaultPluginFactoryRepositoryTest {
 
         repository.loadPlugin(jar.absolutePath, expectedSha256 = jar.sha256Hex())
 
-        // The bytes are no plugin, so the load fails later, for that reason rather than the hash.
         assertFalse(repository.failedJarsFlow.first().single().reason.contains(APPROVAL_MISMATCH))
     }
 

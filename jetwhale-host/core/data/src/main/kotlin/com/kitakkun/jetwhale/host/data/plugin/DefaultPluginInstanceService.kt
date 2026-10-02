@@ -92,9 +92,6 @@ class DefaultPluginInstanceService(
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
 
-        // Reinstalling or reloading a jar yields a new factory behind a new classloader; instances the
-        // previous factory produced hold classes from a classloader that is already closed, so drop
-        // them and let the loop below rebuild them from the current code.
         loadedPlugins.entries
             .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
             .map { it.key }
@@ -127,8 +124,6 @@ class DefaultPluginInstanceService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            // A factory (or plugin constructor) that throws must not abort the caller's
-            // reconciliation loop — every other plugin and session still needs its instance.
             logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
             return false
         }
@@ -138,9 +133,6 @@ class DefaultPluginInstanceService(
     private fun createInstance(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): LoadedInstance {
         val plugin = loaded.factory.createPlugin()
         if (!loaded.manifest.requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
-            // A messaging plugin without an agent counterpart waits out its prepare timeout on every
-            // session and gets "not active" failures for every request — surface the misconfiguration
-            // instead of degrading silently.
             logger.warning(
                 "Plugin '$pluginId' declares requiresAgent=false but its factory returns a JetWhaleMessagingHostPlugin; " +
                     "its messenger will never reach an agent.",
@@ -149,14 +141,8 @@ class DefaultPluginInstanceService(
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
 
-        // Hand the plugin a storage handle already scoped to its own pluginId, so it can never
-        // name or reach another plugin's data.
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
-        // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
-        // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor
-        // abort loading for the caller.
-        // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
         val descriptor = "plugin '$pluginId' in session '$sessionId'"
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
             createPeer(pluginId = pluginId, sessionId = sessionId, plugin = plugin, descriptor = descriptor)
@@ -205,8 +191,6 @@ class DefaultPluginInstanceService(
             plugin.bindMessenger(newPeer.messenger)
             return newPeer
         }
-        // Registration failed: discard the half-configured peer (mirrors the agent's bail-out).
-        // Subsequent frames fast-fail via the no-peer path in routeFrame.
         scope.launch { newPeer.close() }
         return null
     }
@@ -227,8 +211,6 @@ class DefaultPluginInstanceService(
             peer.onFrame(frame)
             return
         }
-        // No instance for this frame in this session: fast-fail a request so the agent-side
-        // requester does not wait out the timeout.
         replyPeerUnavailable(
             scope = scope,
             frame = frame,
@@ -256,14 +238,9 @@ class DefaultPluginInstanceService(
         try {
             removed.plugin.dispatchDispose()
         } catch (e: Throwable) {
-            // A throwing onDispose must not leak the scope/peer, nor abort disposing the session's
-            // other plugins from the callers' forEach loops.
             logger.warning("onDispose for plugin '${key.pluginId}' in session '${key.sessionId}' failed: ${e.message}")
         } finally {
             removed.instanceScope.cancel()
-            // close() suspends (it fails pending requests under a mutex), so run it off the caller.
-            // Join the prepare job first so its finally (which opens the ready gate) cannot run after
-            // close() and resurrect dispatch on a peer that is being torn down.
             removed.peer?.let { peer ->
                 scope.launch {
                     removed.prepareJob?.cancelAndJoin()

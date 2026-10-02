@@ -80,8 +80,6 @@ public fun JwSectionHeader(
                             role = Role.Button,
                             onClick = onToggleExpanded,
                         )
-                        // Language-neutral state for screen readers and the host's MCP tools: the
-                        // matching action is offered, so "expand" and "collapse" need no label.
                         .semantics {
                             if (expanded) {
                                 collapse {
@@ -114,8 +112,6 @@ public fun JwSectionHeader(
                     .rotate(rotation),
             )
         }
-        // Title and count share the remaining width, the count hugging the title; anything
-        // trailing keeps its own size at the far end.
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,

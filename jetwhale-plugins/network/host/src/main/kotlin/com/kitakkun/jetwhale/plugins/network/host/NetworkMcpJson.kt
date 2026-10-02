@@ -13,9 +13,6 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
-// This module compiles without the kotlinx-serialization compiler plugin, so MCP results are
-// assembled with the JsonObject builders instead of @Serializable DTOs.
-
 /** Compact one-line-per-transaction view for listTransactions. */
 internal fun HttpTransaction.toSummaryJson(): JsonObject = buildJsonObject {
     put("txId", txId)

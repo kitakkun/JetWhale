@@ -38,7 +38,6 @@ class McpToolRegistrar(
             description = description,
             inputSchema = inputSchema,
             permission = permission,
-            // Tools that drive a plugin UI declare this argument; the rest report no target.
             resolvePluginId = { request -> request.arguments?.get("pluginId")?.jsonContent },
             handler = handler,
         )
@@ -78,9 +77,6 @@ class McpToolRegistrar(
         resolvePluginId: (CallToolRequest) -> String?,
         handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
     ) {
-        // A host group is decidable now, so a denied one is not listed at all rather than listed and
-        // refused. Per-plugin permissions are not: the same tool is allowed for one plugin and denied
-        // for another, so those stay listed and are settled per call.
         if (permission is McpToolPermission.HostGroup &&
             !permissionsRepository.permissionsFlow.value.allows(permission, pluginId = null)
         ) {
@@ -103,17 +99,10 @@ class McpToolRegistrar(
                 toolName = name,
                 pluginId = targetPluginId,
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
-                // Every argument key is reported, including the ones the UI already shows as
-                // attribution, so history describes the call exactly as the agent made it.
                 arguments = request.arguments.orEmpty().mapValues { (_, value) ->
-                    // Primitives render without the surrounding JSON quoting; objects and arrays
-                    // fall back to their JSON form.
                     value.jsonContent ?: value.toString()
                 },
             )
-            // A tool fails in two ways: the handler throws, or it returns a result flagged with
-            // `isError`, which is how the protocol wants a tool-level failure reported. Both have to
-            // reach the repository before the call leaves here.
             var failed = true
             var response = ""
             try {
@@ -122,7 +111,6 @@ class McpToolRegistrar(
                     response = it.renderForHistory()
                 }
             } catch (throwable: Throwable) {
-                // A failure is only explainable in history if it says what went wrong.
                 response = throwable.message.orEmpty()
                 throw throwable
             } finally {

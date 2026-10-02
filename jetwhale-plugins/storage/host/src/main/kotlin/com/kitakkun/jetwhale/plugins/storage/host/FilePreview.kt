@@ -22,7 +22,6 @@ internal enum class PreviewFormat(val label: String) {
  * decoded, an image is drawn, anything that reads as text is text, and every file has a hex dump.
  */
 internal fun previewFormatsOf(file: LoadedFile): List<PreviewFormat> = buildList {
-    // A truncated DataStore file cannot be decoded: its last entry would be cut in half.
     if (file.location.name.endsWith(PREFERENCES_DATASTORE_SUFFIX) && !file.isTruncated) add(PreviewFormat.Preferences)
     if (fileKindOf(file.location.name, file.bytes)?.isImage == true) add(PreviewFormat.Image)
     if (decodeTextOrNull(file.bytes) != null) add(PreviewFormat.Text)

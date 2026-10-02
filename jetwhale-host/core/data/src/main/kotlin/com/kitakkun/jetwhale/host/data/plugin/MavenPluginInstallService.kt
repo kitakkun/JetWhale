@@ -57,9 +57,6 @@ class MavenPluginInstallService(
 
     private suspend fun install(coordinates: MavenCoordinates) {
         pluginInstallProgressRepository.update(PluginInstallProgress.DownloadingPlugin)
-        // Downloaded outside the plugins directory and moved in only once complete: the directory is
-        // watched, and a jar sitting there unapproved while its dependencies download would be offered
-        // to the user as a jar that appeared by other means.
         val stagedJar = try {
             File(mavenArtifactResolver.downloadJar(coordinates, appDataDirectoryProvider.getPluginStagingDirectory()))
         } catch (e: CancellationException) {
@@ -73,7 +70,6 @@ class MavenPluginInstallService(
             stagedJar.delete()
             throw e
         } catch (e: Exception) {
-            // A jar of the same name already installed stays as it was.
             stagedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
         }
@@ -85,8 +81,6 @@ class MavenPluginInstallService(
 
     private suspend fun putInPlaceAndLoad(stagedJar: File, coordinates: MavenCoordinates) {
         val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
-        // A copy, not a move: the installed jar stays in place until the new one replaces it in one
-        // step, so the watcher never sees the plugin removed.
         val previousJar = installedJar.takeIf(File::isFile)?.let { installed ->
             File.createTempFile("${installed.name}.", ".previous", appDataDirectoryProvider.getPluginStagingDirectory()).also { installed.copyTo(it, overwrite = true) }
         }
@@ -96,16 +90,12 @@ class MavenPluginInstallService(
         try {
             appDataDirectoryProvider.moveStagedJarIntoPluginDirectory(stagedJar, installedJar)
         } catch (e: Exception) {
-            // The move did not happen, so a jar of the same name already installed is still the
-            // working one and stays.
             stagedJar.delete()
             previousJar?.delete()
             throw PluginInstallationException("Failed to install plugin $coordinates: ${e.message}", e)
         }
         try {
             val loadFailure = try {
-                // Requesting an install by coordinates is the user's explicit consent, exactly like the
-                // file picker: approve (pin the content hash) and load.
                 pluginTrustService.trustAndLoad(installedJar.absolutePath, approvedSha256 = null)
                 pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == installedJar.absolutePath }?.reason
             } catch (e: Exception) {

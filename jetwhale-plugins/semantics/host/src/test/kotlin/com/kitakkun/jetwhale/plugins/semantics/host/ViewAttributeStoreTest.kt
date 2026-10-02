@@ -166,8 +166,6 @@ class ViewAttributeStoreTest {
             write = { request ->
                 val text = (request.value as ViewAttributeValue.FloatValue).value.toString()
                 started += text
-                // The first write is held open, so the second one would overtake it were the two
-                // not serialised.
                 if (started.size == 1) first.await()
                 ViewAttributeResult(applied = true, attribute = attribute("alpha", request.value))
             },

@@ -68,18 +68,15 @@ class ServerCertificateIssuer {
             X500Name("CN=$commonName"),
             serverKeyPair.public,
         ).addExtension(
-            // mark this certificate is not a CA
             Extension.basicConstraints,
             true,
             BasicConstraints(false),
         ).addExtension(
-            // digitalSignature: for TLS handshake
-            // keyEncipherment: mainly for RSA key transport; kept for compatibility
+            // keyEncipherment only matters for RSA key transport; it is kept for compatibility.
             Extension.keyUsage,
             true,
             KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment),
         ).addExtension(
-            // assert this certificate is used for TLS server auth
             Extension.extendedKeyUsage,
             false,
             ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth),
@@ -89,12 +86,10 @@ class ServerCertificateIssuer {
             false,
             subjectAllNames,
         ).addExtension(
-            // provide public key hash for identifying certificate
             Extension.subjectKeyIdentifier,
             false,
             extUtils.createSubjectKeyIdentifier(serverKeyPair.public),
         ).addExtension(
-            // identify issuer (CA) key for chain building
             Extension.authorityKeyIdentifier,
             false,
             extUtils.createAuthorityKeyIdentifier(ca.cert),

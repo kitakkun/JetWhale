@@ -31,7 +31,6 @@ class ViewAttributeSerializationTest {
         ViewAttributeValue.ColorValue(0x80FF0000.toInt()) to "color",
         ViewAttributeValue.DimensionValue(px = 48f, dp = 24f) to "dimension",
         ViewAttributeValue.EnumValue("GONE", listOf("VISIBLE", "INVISIBLE", "GONE")) to "enum",
-        // Both cases of the one variant, because it is the pair of them that has to survive.
         ViewAttributeValue.LayoutSizeValue(constant = "WRAP_CONTENT", px = null, dp = null, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
         ViewAttributeValue.LayoutSizeValue(constant = null, px = 500f, dp = 250f, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
     )

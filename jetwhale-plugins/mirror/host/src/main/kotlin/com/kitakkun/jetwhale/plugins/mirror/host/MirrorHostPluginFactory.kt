@@ -41,19 +41,12 @@ private val companions: IdbCompanions? by lazy {
         idleTimeout = COMPANION_IDLE_TIMEOUT,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     ).also { shared ->
-        // A companion is a separate process; one left behind by a host that quit would keep the
-        // device's screen capture open until killed by hand.
         Runtime.getRuntime().addShutdownHook(Thread(shared::destroyAllNow))
     }
 }
 
-// The instances of this plugin's classloader that are alive. When the last one goes, the companions
-// it shares go with it: a jar reload closes this classloader right after disposing its instances,
-// and nothing loaded from it could stop them afterwards, so the next jar would start a second
-// companion beside the first for the same iPhone.
 private val liveInstances = AtomicInteger()
 
-// Shared like the companions: its HTTP/2 connections to an emulator serve every instance.
 private val emulatorScreens: EmulatorScreens by lazy {
     EmulatorScreens(
         emulatorRunningDirectories(
@@ -86,6 +79,8 @@ private class MirrorHostPlugin :
     }
 
     override fun onDispose() {
+        // onDispose cannot suspend, and pluginScope is cancelled with the instance, so the running
+        // recordings are stopped and saved here before it returns.
         runBlocking {
             try {
                 mirror.dispose()

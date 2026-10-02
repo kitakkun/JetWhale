@@ -52,8 +52,6 @@ private class Nav3HostPlugin :
         }
     }
 
-    // The events above only carry changes, and the key catalog travels nowhere else, so the whole
-    // state is fetched once per connection before any handler runs.
     override suspend fun onPrepare() {
         val state = messenger.request(GetNavState)
         stacks.apply {
@@ -70,28 +68,17 @@ private class Nav3HostPlugin :
         if (selectedStackId == null) selectedStackId = snapshot.stackId
     }
 
-    // -------------------------------------------------------------------------
-    // Nav3BackStackController — the state and the one mutating call the UI and the MCP
-    // commands both work through.
-    // -------------------------------------------------------------------------
-
     override fun stacks(): List<NavBackStackSnapshot> = stacks.toList()
 
     override fun keyTypes(): List<NavKeyTypeDescriptor> = navKeyTypes
 
     override suspend fun mutate(stackId: String, operations: List<NavBackStackOperation>): MutationResult = try {
         val result = messenger.request(MutateBackStack(stackId = stackId, operations = operations))
-        // The agent also broadcasts the change, but adopting the reply keeps the UI in step even if
-        // the event is still in flight.
         result.snapshot?.let(::applySnapshot)
         result
     } catch (e: JetWhaleMessagingException) {
         MutationResult(error = "failed to reach the debuggee: ${e.message}", snapshot = null)
     }
-
-    // -------------------------------------------------------------------------
-    // JetWhaleHostPluginUi
-    // -------------------------------------------------------------------------
 
     @Composable
     override fun Content() {
@@ -130,10 +117,6 @@ private class Nav3HostPlugin :
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // JetWhaleMcpCapablePlugin
-    // -------------------------------------------------------------------------
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         GetBackStackCommand(this),

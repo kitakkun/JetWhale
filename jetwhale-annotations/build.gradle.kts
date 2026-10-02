@@ -15,8 +15,6 @@ kotlin {
     android.namespace = "com.kitakkun.jetwhale.annotations"
 
     sourceSets.commonMain.dependencies {
-        // Exposed in public API: McpDescription is a @SerialInfo annotation, and consumers read it
-        // back off a SerialDescriptor.
         api(libs.kotlinxSerializationCore)
     }
 }

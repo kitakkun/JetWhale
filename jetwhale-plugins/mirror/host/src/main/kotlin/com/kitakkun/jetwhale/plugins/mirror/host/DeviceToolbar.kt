@@ -82,7 +82,6 @@ internal fun DeviceToolbar(
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
             VolumeGroup(pane.device.kind, pane.capabilities, actions)
             ScreenPowerButton(pane.screenPower, actions)
-            // Pushed to the line's end, and wrapped to a line of its own only as a whole.
             Row(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
@@ -119,7 +118,6 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
     when {
         volume.any { it in capabilities.buttons } -> ButtonGroup(capabilities.buttons.filter(volume::contains), actions)
 
-        // Shown disabled rather than left out, so their absence is explained rather than puzzling.
         kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
             volume.forEach { button ->
                 JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
@@ -132,7 +130,6 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
     }
 }
 
-// Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
 @Composable
 private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
     when (screenPower?.awake) {

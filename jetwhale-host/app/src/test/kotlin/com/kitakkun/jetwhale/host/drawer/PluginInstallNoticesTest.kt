@@ -180,7 +180,6 @@ class PluginInstallNoticesTest {
 
         mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS / 2)
         jobs = persistentListOf(failed, failed.copy(id = "job-2", request = mavenRequest("storage")))
-        // Past the first install's deadline, but not yet a full wait after the second one finished.
         mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS * 3 / 4)
         onNodeWithText(failureMessage).assertDoesNotExist()
         onNodeWithText("Couldn’t install: network, storage").assertDoesNotExist()
@@ -233,7 +232,6 @@ class PluginInstallNoticesTest {
         }
     }
 
-    // Finishing installs are gathered for a moment before their notice shows.
     private fun ComposeUiTest.waitOutBatchWindow() {
         mainClock.advanceTimeBy(BATCH_WINDOW_MILLIS + BATCH_WINDOW_MILLIS / 2)
         waitForIdle()
@@ -246,5 +244,4 @@ class PluginInstallNoticesTest {
     )
 }
 
-// The notices' own batching window, which the tests step through on the test clock.
 private const val BATCH_WINDOW_MILLIS = 1_000L

@@ -52,7 +52,6 @@ class NetworkRedactionRulesTest {
         }
         val redacted = rules.redactAtCapture(
             request(
-                // "🔑" and "🐳" are surrogate pairs (length 2 each); "あ" is a single UTF-16 unit.
                 headers = mapOf("Authorization" to listOf("🔑ab🐳")),
                 body = """{"secret":"🐳あ🐳"}""",
             ),

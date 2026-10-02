@@ -33,9 +33,8 @@ abstract class HostMcpCommand :
     JetWhaleMcpCommand(),
     JetWhaleMcpTool {
 
-    // Lazy, never an eager property: base-class initializers run before the subclass declares its
-    // parameters, and reading the descriptor seals the parameter list. Producing it is idempotent,
-    // so caching it here only avoids rebuilding it once per SSE connection.
+    // Lazy, never eager: base-class initializers run before the subclass declares its parameters,
+    // and reading the descriptor seals the parameter list.
     private val descriptor by lazy(::toDescriptor)
 
     /**
@@ -60,8 +59,6 @@ abstract class HostMcpCommand :
             } catch (e: JetWhaleMcpArgumentException) {
                 errorResult(e.message.orEmpty())
             } catch (e: Exception) {
-                // Host tools do real I/O — downloads, socket binds, plugin loading. A failure has to
-                // reach the agent as a readable result rather than tearing down the MCP connection.
                 errorResult("${e::class.simpleName}: ${e.message.orEmpty()}")
             }
         }

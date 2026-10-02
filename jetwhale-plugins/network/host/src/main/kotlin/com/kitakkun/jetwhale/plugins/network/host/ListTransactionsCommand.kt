@@ -41,7 +41,6 @@ internal class ListTransactionsCommand(
         val afterTxId = arguments[this.afterTxId]
         val filtered = matchingTransactions(arguments)
 
-        // Without a cursor, limit keeps its "latest N" meaning; with one, it pages forward.
         val page = when {
             limit == null -> filtered
             afterTxId == null -> filtered.takeLast(limit)
@@ -62,8 +61,6 @@ internal class ListTransactionsCommand(
         val untilTimestampMs = arguments[this.untilTimestampMs]
         val afterTxId = arguments[this.afterTxId]
 
-        // The cursor is resolved against the unfiltered capture list so it stays valid when
-        // the caller changes filters between pages.
         val all = transactions()
         val afterIndex = if (afterTxId != null) {
             val index = all.indexOfFirst { it.txId == afterTxId }

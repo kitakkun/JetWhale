@@ -21,8 +21,6 @@ fun settingsScreenScaffoldPresenter(
     initialPage: SettingsScreenPage,
 ): SettingsScreenScaffoldUiState {
     var selectedPage by retain { mutableStateOf(initialPage) }
-    // Only the section being visited starts open, so the list opens at a length that can be read
-    // rather than every page of every section at once.
     var expandedSections by retain { mutableStateOf(setOf(initialPage.section)) }
 
     ActionEffect(screenChannel) { action ->

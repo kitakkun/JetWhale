@@ -89,7 +89,6 @@ class DefaultPluginSessionReconciliationServiceTest {
 
         val collectJob = launch { service.reconciliationEvents().collect { } }
 
-        // The enabled id is reconciled from the start, but nothing is loaded yet, so no instance.
         assertEquals(emptySet(), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
 
         factoryRepository.load(loadedPlugin)
@@ -195,7 +194,6 @@ class DefaultPluginSessionReconciliationServiceTest {
         override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
 
         override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-            // Mirrors the real service: an id with no loaded plugin yields no instance.
             val newSessionIds = if (factoryRepository.loadedPlugins[pluginId] == null) {
                 emptySet()
             } else {

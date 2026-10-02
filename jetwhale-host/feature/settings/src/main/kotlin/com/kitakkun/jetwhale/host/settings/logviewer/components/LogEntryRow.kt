@@ -28,9 +28,8 @@ fun LogEntryRow(
     logEntry: LogEntry,
     modifier: Modifier = Modifier,
 ) {
-    // Per-item SelectionContainer: the log list is a LazyColumn, so selection is scoped to a
-    // single line. Wrapping the whole LazyColumn in one SelectionContainer is avoided because it
-    // forces composition of off-screen items and has known perf/UX issues.
+    // Selection is per line: one SelectionContainer around the whole LazyColumn would force
+    // off-screen items to compose.
     val backgroundColor = logEntry.level.backgroundColor
     val textColor = logEntry.level.textColor
     SelectionContainer {

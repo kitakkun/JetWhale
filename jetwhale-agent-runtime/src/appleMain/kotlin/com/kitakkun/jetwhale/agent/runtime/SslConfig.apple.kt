@@ -36,8 +36,6 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling.convert(), null)
             return@handleChallenge
         }
-        // Accept the presented server trust unconditionally: this path only fetches the CA over the
-        // wss port (trust-on-first-use), and the fetched CA still pins the subsequent wss session.
         completionHandler(NSURLSessionAuthChallengeUseCredential.convert(), NSURLCredential.create(trust = serverTrust))
     }
 }
@@ -46,9 +44,6 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
-    // The engine is not user-configurable: it always comes from defaultKtorEngineFactory(), which
-    // returns Darwin on this platform. If the default engine ever changes, fail fast here instead of
-    // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is DarwinClientEngineConfig) { "Expected DarwinClientEngineConfig but got ${this::class.simpleName}" }
 
     val anchorCertificates = sslConfiguration.trustedCertificates.mapNotNull { pem ->
@@ -68,8 +63,6 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
             return@handleChallenge
         }
 
-        // Evaluate the server chain against the configured CA certificates only, so the locally
-        // issued JetWhale CA is trusted without being installed in the device trust store.
         val trusted = memScoped {
             val certArray = allocArrayOf(*anchorCertificates.toTypedArray())
             val cfAnchors = CFArrayCreate(kCFAllocatorDefault, certArray.reinterpret(), anchorCertificates.size.convert(), null)

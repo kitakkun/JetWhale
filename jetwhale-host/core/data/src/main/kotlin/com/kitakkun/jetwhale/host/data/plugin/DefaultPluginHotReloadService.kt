@@ -48,7 +48,6 @@ class DefaultPluginHotReloadService(
     private var watchService: WatchService? = null
 
     override suspend fun start() {
-        // Idempotent: a second start() must not spin up another WatchService/job and leak the first.
         if (watchJob != null) return
         val devDir = appDataDirectoryProvider.getDevPluginsDir() ?: return
         val devDirectory = File(devDir)
@@ -58,7 +57,8 @@ class DefaultPluginHotReloadService(
 
         logger.info("Hot reload enabled. Watching dev plugins directory: $devDir")
 
-        // Initial load of any jars already present in the dev directory.
+        // Dev jars load without approval: the dev directory is named by a JVM property at launch,
+        // so whoever set it already chose what the host runs.
         appDataDirectoryProvider.getDevPluginJarFilePaths().forEach { jarPath ->
             pluginFactoryRepository.loadPlugin(jarPath, expectedSha256 = null)
         }
@@ -81,7 +81,6 @@ class DefaultPluginHotReloadService(
                     service.take()
                 } catch (e: Throwable) {
                     if (e is CancellationException) throw e
-                    // The watch service was closed, or this thread interrupted, while blocked in take().
                     break
                 }
 
@@ -91,7 +90,6 @@ class DefaultPluginHotReloadService(
                 }
 
                 if (!key.reset()) {
-                    // The watched directory is no longer accessible.
                     break
                 }
             }
@@ -130,6 +128,8 @@ class DefaultPluginHotReloadService(
     override fun stop() {
         watchJob?.cancel()
         watchJob = null
+        // take() blocks its thread and ignores coroutine cancellation; closing the service is what
+        // releases it.
         watchService?.close()
         watchService = null
     }

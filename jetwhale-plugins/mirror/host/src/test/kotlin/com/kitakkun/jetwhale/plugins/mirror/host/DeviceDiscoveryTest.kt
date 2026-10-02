@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 class DeviceDiscoveryTest {
     private val folder: File = Files.createTempDirectory("mirror-discovery").toFile()
 
-    // An adb that takes a moment to answer, as a real one does while its server starts.
+    // Slow to answer, so the simultaneous looks overlap.
     private val fakeAdb = File(folder, "adb").apply {
         writeText("#!/bin/sh\nsleep 0.2\nprintf 'List of devices attached\\nemulator-5554\\tdevice product:sdk model:Pixel_9 device:emu\\n'\n")
         setExecutable(true)

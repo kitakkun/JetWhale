@@ -24,8 +24,7 @@ internal class EmulatorEndpoint(val port: Int, val token: String?)
  * next change, which screenrecord's H.264 has.
  */
 internal class EmulatorScreens(private val runningDirectories: List<File>) {
-    // One client for every emulator: gRPC runs over one HTTP/2 connection per endpoint. A stream
-    // stays open for as long as it is watched, so reads never time out.
+    // A stream stays open for as long as it is watched, so reads never time out.
     private val client = OkHttpClient.Builder()
         .protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
         .readTimeout(0, TimeUnit.MILLISECONDS)

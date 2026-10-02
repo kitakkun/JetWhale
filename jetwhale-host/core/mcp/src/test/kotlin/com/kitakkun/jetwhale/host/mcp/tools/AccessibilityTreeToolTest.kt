@@ -77,8 +77,6 @@ class AccessibilityTreeToolTest {
 
         captureAccessibilityTree(scene)
 
-        // The tree is captured at the scene's own size, but the window info is a separate piece of
-        // state that the tool must not repoint at it.
         assertEquals(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT), scene.windowInfoUpdater.currentIntSize)
         assertEquals(DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp), scene.windowInfoUpdater.currentDpSize)
     }

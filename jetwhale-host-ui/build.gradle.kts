@@ -17,19 +17,12 @@ kotlin {
 
     abiValidation()
 
-    // A compilation of its own for the previews, so that they are compiled and rule-checked on
-    // every build without reaching the JAR, the sources JAR, the publication or the ABI dump.
-    // Associating it with `main` also lets a preview call an internal declaration.
     target.compilations.create("preview") {
         associateWith(target.compilations.getByName("main"))
     }
 }
 
 dependencies {
-    // Every one of these is exposed in the public API (composable signatures take Modifier, Color,
-    // TextStyle, ...), and every one is provided by the host at runtime: a plugin consumes this
-    // module as compileOnly, exactly like jetwhale-host-sdk. Deliberately no Material: the
-    // library is built on foundation alone, so its API does not move with Material's.
     api(compose.runtime)
     api(compose.foundation)
     api(compose.ui)
@@ -44,9 +37,6 @@ dependencies {
     testImplementation(libs.roborazziComposeDesktop)
 }
 
-// Screenshot tests of the component gallery. The images are not committed: CI renders main and
-// the pull request on one runner and posts the diff on the PR (see screenshot-check.yml).
-// Locally, `recordRoborazziJvm` writes them here to look at.
 roborazzi {
     outputDir.set(file("screenshots"))
 }

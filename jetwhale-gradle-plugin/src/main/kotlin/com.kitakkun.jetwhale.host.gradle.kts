@@ -36,10 +36,6 @@ val pluginExtension = extensions.create("jetwhalePlugin", JetWhalePluginExtensio
     pluginArchiveName.convention(project.name)
 }
 
-// ---------------------------------------------------------------------------
-// packagePlugin: the distributable plugin fat-jar.
-// ---------------------------------------------------------------------------
-
 val packagePlugin = tasks.register<Jar>("packagePlugin") {
     group = "jetwhale"
     description = "Builds the distributable JetWhale plugin fat-jar (drop it into ~/.jetwhale/plugins/)."
@@ -48,19 +44,13 @@ val packagePlugin = tasks.register<Jar>("packagePlugin") {
     archiveClassifier.set("jetwhale-plugin")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // The module's own thin jar (compiled classes + bundled resources such as the plugin manifest).
     val thinJar = tasks.named<Jar>("jar")
     from(thinJar.map { zipTree(it.archiveFile) })
 
-    // Bundle every runtime dependency, unpacked, into the same jar (the "fat" part).
     val runtimeClasspath = configurations.named("runtimeClasspath")
     dependsOn(runtimeClasspath)
     from({ runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) } })
 }
-
-// ---------------------------------------------------------------------------
-// installPlugin: copy the packaged jar into ~/.jetwhale/plugins/.
-// ---------------------------------------------------------------------------
 
 val userPluginsDir = File(System.getProperty("user.home"), ".jetwhale/plugins")
 
@@ -72,16 +62,8 @@ tasks.register<Copy>("installPlugin") {
     into(userPluginsDir)
 }
 
-// ---------------------------------------------------------------------------
-// stageDevPlugin: stage the packaged plugin into a dev directory the host hot-reloads from.
-// ---------------------------------------------------------------------------
-
-// A private dev directory under the module's build folder. The host watches it and hot-reloads the
-// plugin jar whenever it is re-staged (e.g. by running `stageDevPlugin -t` in a separate terminal).
-// NOTE: the in-repo `jetwhale-host-launch` convention reuses this exact path, so keep them in sync.
 val devPluginsDir = layout.buildDirectory.dir("jetwhale/devPlugins")
 
-// Stage the freshly packaged plugin into the dev directory.
 val stageDevPlugin = tasks.register<Copy>("stageDevPlugin") {
     group = "jetwhale"
     description = "Copies the packaged plugin jar into the host dev plugins directory."
@@ -90,14 +72,8 @@ val stageDevPlugin = tasks.register<Copy>("stageDevPlugin") {
     into(devPluginsDir)
 }
 
-// ---------------------------------------------------------------------------
-// Continuous re-staging for runJetWhaleHot.
-// ---------------------------------------------------------------------------
-
-// runJetWhaleHot starts a background `stageDevPlugin -t` so a single command is the whole hot-reload
-// loop (see registerRunTask). The watcher's PID is handed from the run task's doFirst to the finalizer
-// below through this file: the configuration cache does not preserve a shared field across task actions,
-// and a finalizer (unlike doLast) also runs when the host exits with a non-zero status.
+// The watcher's PID passes from the run task's doFirst to stopHotStaging through this file because
+// the configuration cache does not preserve a shared field across task actions.
 val hotStagingPidFile = layout.buildDirectory.file("jetwhale/hot-staging.pid")
 
 val stopHotStaging = tasks.register("stopHotStaging") {
@@ -114,8 +90,6 @@ val stopHotStaging = tasks.register("stopHotStaging") {
                 // Gradle daemon (doFirst runs in it), so only act when the process is still our child.
                 .filter { handle -> handle.parent().map { it.pid() == ProcessHandle.current().pid() }.orElse(false) }
                 .ifPresent { handle ->
-                    // Stop it gracefully first, then — if it has not exited shortly — force it so the
-                    // watcher is never left running.
                     handle.descendants().forEach { it.destroy() }
                     handle.destroy()
                     runCatching { handle.onExit().get(3, java.util.concurrent.TimeUnit.SECONDS) }
@@ -129,15 +103,6 @@ val stopHotStaging = tasks.register("stopHotStaging") {
     }
 }
 
-// ---------------------------------------------------------------------------
-// runJetWhale: download a released host and launch it with this plugin, for plugin
-// authors developing OUTSIDE this repository (the `:jetwhale-host:app` project is not available to
-// them). Set `jetwhalePlugin.hostVersion` to choose which released host to run against, or pass
-// `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar (useful before a release exists).
-// ---------------------------------------------------------------------------
-
-// "<os>-<arch>" of the current machine (resolved lazily), matching the host uber-jar release asset
-// names. Fails clearly for OS/architectures we don't publish assets for.
 val currentOsArch: Provider<String> =
     providers.systemProperty("os.name").zip(providers.systemProperty("os.arch")) { osName, archName ->
         val os = when {
@@ -154,8 +119,6 @@ val currentOsArch: Provider<String> =
         "$os-$arch"
     }
 
-// A locally built host uber jar to launch instead of downloading (e.g. the output of
-// `:jetwhale-host:app:packageUberJarForCurrentOS`). When set it overrides hostVersion.
 val localHostJar: Provider<String> = providers.gradleProperty("jetwhaleHostJar")
 
 // Resolve user.home as a provider OUTSIDE the combiner below. Reading it via `providers` inside the
@@ -163,7 +126,6 @@ val localHostJar: Provider<String> = providers.gradleProperty("jetwhaleHostJar")
 // configuration cache cannot serialize ("cannot serialize Gradle script object references").
 val userHome: Provider<String> = providers.systemProperty("user.home")
 
-// Path of the cached host uber jar for the configured version (resolved lazily, value only when set).
 val hostReleaseJar: Provider<File> =
     pluginExtension.hostVersion.zip(currentOsArch) { version, osArch -> version to osArch }
         .zip(userHome) { (version, osArch), home ->
@@ -178,18 +140,15 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     val osArchProvider = currentOsArch
     val jarProvider = hostReleaseJar
     val localJarProvider = localHostJar
-    // Nothing to download when launching a local jar, or when no version is configured.
     onlyIf { versionProvider.isPresent && !localJarProvider.isPresent }
     doLast {
         val jar = jarProvider.get()
         val version = versionProvider.get()
         val isSnapshot = version.endsWith("-SNAPSHOT")
         val cached = jar.exists() && jar.length() > 0
-        // Immutable releases never change, so a present cache is always valid (no network needed).
         if (!isSnapshot && cached) return@doLast
         jar.parentFile.mkdirs()
         val url = "https://github.com/kitakkun/jetwhale/releases/download/$version/jetwhale-host-$version-${osArchProvider.get()}.jar"
-        // Sidecar storing the downloaded asset's ETag, used to detect whether a SNAPSHOT changed.
         val etagFile = File(jar.parentFile, "${jar.name}.etag")
 
         fun open(method: String) = (java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection).apply {
@@ -198,7 +157,6 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
             readTimeout = 60_000
         }
 
-        // SNAPSHOTs are overwritten on each publish; re-download only when the asset's ETag changed.
         if (isSnapshot && cached && etagFile.exists()) {
             val remoteETag = runCatching {
                 val head = open("HEAD")
@@ -224,7 +182,6 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
                 jar.toPath(),
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING,
             )
-            // Record the new ETag so the next run can skip an unchanged download.
             connection.getHeaderField("ETag")?.let { etagFile.writeText(it) }
         } finally {
             tmp.delete()
@@ -232,17 +189,13 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     }
 }
 
-// `runJetWhale` and `runJetWhaleHot` share the same launch config. `hot` runs the host on the
-// JetBrains Runtime with enhanced class redefinition, so structural code changes (added/removed
-// members, etc.) are redefined in place instead of triggering a full, state-resetting reload.
 fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks.register<JavaExec>(name) {
     group = "jetwhale"
     description = taskDescription
     dependsOn(stageDevPlugin, downloadJetWhaleHost)
 
-    // Resolve the host jar lazily so JavaExec reads it at execution (after downloadJetWhaleHost has
-    // run). A provider is required: reassigning `classpath` in doFirst is lost under the
-    // configuration cache, leaving an empty classpath and a cryptic "could not find main class".
+    // A provider is required: reassigning `classpath` in doFirst is lost under the configuration
+    // cache, leaving an empty classpath and a "could not find main class" failure.
     val hostJarProvider = providers.provider {
         when {
             localHostJar.isPresent -> File(localHostJar.get())
@@ -258,10 +211,9 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     classpath = files(hostJarProvider)
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
-    // The host app targets Java 21, so both variants need a 21 launcher regardless of the plugin
-    // module's own toolchain. `hot` additionally runs on the JetBrains Runtime (provisioned via
-    // Gradle toolchains; add the foojay resolver to settings to auto-download it) so it can
-    // redefine structural changes in place.
+    // The host app targets Java 21 regardless of the plugin module's own toolchain. The JetBrains
+    // Runtime is provisioned via Gradle toolchains; add the foojay resolver to settings to
+    // auto-download it.
     javaLauncher.set(
         project.extensions.getByType(JavaToolchainService::class.java).launcherFor {
             languageVersion.set(JavaLanguageVersion.of(21))
@@ -270,10 +222,6 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     )
 
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
-    // An isolated, disposable app-data root for this plugin project. The host runs against it instead
-    // of the developer's real `~/.jetwhale`, so trying the plugin never reads or mutates their installed
-    // plugins, settings, plugin-data or trust registry. It lives under `build/`, so it persists across
-    // re-launches of the same project (test data survives) but `clean` wipes it for a fresh start.
     val sandboxDirProvider = layout.buildDirectory.dir("jetwhale-sandbox").map { it.asFile.absolutePath }
     val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
@@ -287,17 +235,11 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
                 // Self-attach for the dev hot-reload's in-place class redefinition (off by default
                 // on JDK 9+).
                 add("-Djdk.attach.allowAttachSelf=true")
-                // On the JetBrains Runtime, allow redefining structural changes in place too.
                 if (hot) add("-XX:+AllowEnhancedClassRedefinition")
             }
         },
     )
 
-    // Make `runJetWhaleHot` the whole hot-reload loop in one command: while the host runs in the
-    // foreground (and hot-reloads from the dev directory), a background `stageDevPlugin -t` re-packages
-    // and re-stages the plugin on every source change — so authors no longer need a second terminal.
-    // The host is launched in the foreground here; `dependsOn(stageDevPlugin)` already staged it once
-    // before this watcher takes over re-staging on change.
     if (hot) {
         // stopHotStaging is a finalizer (not doLast) so the watcher is also stopped when the host exits
         // non-zero; on an interactive Ctrl+C the watcher additionally receives the terminal's SIGINT
@@ -319,7 +261,7 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
                 )
                 return@doFirst
             }
-            // On Windows a .bat must be launched through cmd; elsewhere the wrapper is executed directly.
+            // On Windows a .bat must be launched through cmd.
             val command = buildList {
                 if (isWindows) addAll(listOf("cmd", "/c"))
                 add(gradlew.absolutePath)
@@ -333,9 +275,8 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
             val pidFile = pidFileProvider.get().asFile
             pidFile.parentFile.mkdirs()
             pidFile.writeText(process.pid().toString())
-            // The task action runs inside the Gradle daemon, whose streams are not the user's console,
-            // so a raw INHERIT would hide re-staging progress and (critically) any compile errors.
-            // Pump the watcher's output through this task's logger so it surfaces on the console.
+            // The task action runs inside the Gradle daemon, whose streams are not the user's
+            // console, so INHERIT would hide re-staging progress and compile errors.
             val watcherLogger = logger
             Thread(
                 {
@@ -348,15 +289,12 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
         }
     }
 
-    // Verify the resolved host jar exists at EXECUTION time — after downloadJetWhaleHost (a dependency)
-    // has had a chance to download it. Checking this inside hostJarProvider instead would evaluate it
-    // while Gradle resolves the classpath's dependencies during task-graph configuration, before the
-    // jar is downloaded, failing with the cryptic "Could not determine the dependencies of task".
-    // Registered last so that, with doFirst's LIFO ordering, it runs before the hot-staging watcher above.
+    // Checked here rather than inside hostJarProvider: Gradle evaluates that provider while
+    // resolving the classpath during task-graph configuration, before the jar is downloaded, and
+    // fails with "Could not determine the dependencies of task". Registered last so that, with
+    // doFirst's LIFO ordering, it runs before the hot-staging watcher.
     doFirst {
         val hostJar = hostJarProvider.get()
-        // Require a real, non-empty file: a directory (e.g. a misconfigured -PjetwhaleHostJar) or an
-        // empty file would otherwise pass and fail later with a cryptic JVM "could not find main class".
         check(hostJar.isFile && hostJar.length() > 0) {
             "JetWhale host jar is missing, empty, or not a regular file: $hostJar"
         }
@@ -375,15 +313,6 @@ registerRunTask(
     hot = true,
 )
 
-// ---------------------------------------------------------------------------
-// QA agent: a headless debuggee to drive this plugin against.
-// ---------------------------------------------------------------------------
-
-// A plugin's UI only renders for a connected session, and the usual source of one is a real app.
-// This launches a headless stand-in instead: it connects as an ordinary session and forwards
-// messages POSTed to its local control API on to the host plugin, so the UI can be driven from a
-// script with no debuggee app to build. It speaks the raw messaging layer, so nothing here depends
-// on this plugin's own protocol.
 val qaAgentClasspath = configurations.create("jetwhaleQaAgent") {
     isCanBeConsumed = false
     isCanBeResolved = true
@@ -404,10 +333,6 @@ tasks.register<JavaExec>("runJetWhaleQaAgent") {
     classpath = qaAgentClasspath
     mainClass.set("com.kitakkun.jetwhale.tools.qaagent.MainKt")
 
-    // Arguments come from the command line so one run can target any plugin id, port or host without
-    // editing the build:
-    // `-PjetwhaleQaAgentArgs="--plugin com.example.myplugin --control-port 7101"`.
-    // The agent's `--help` lists them all.
     val extraArgs = providers.gradleProperty("jetwhaleQaAgentArgs")
     argumentProviders.add(
         CommandLineArgumentProvider {
@@ -424,35 +349,12 @@ tasks.register<JavaExec>("runJetWhaleQaAgent") {
     }
 }
 
-// Make sure `packagePlugin` participates in the standard `assemble`/`build` lifecycle so authors get
-// the distributable artifact without invoking the task by name.
 tasks.named("assemble") {
     dependsOn(packagePlugin)
 }
 
-// ---------------------------------------------------------------------------
-// Maven publishing: publish a thin plugin jar plus a dependency manifest.
-// ---------------------------------------------------------------------------
-
-// The published plugin artifact deliberately does NOT bundle third-party dependencies (publishing a
-// fat-jar would redistribute them, with the license obligations that entails, and would bake the
-// build machine's platform-specific artifacts into a supposedly universal jar). Instead the
-// published jar carries:
-//
-// - the module's own classes and resources (plus, as a fallback, the classes of any in-build
-//   project dependency that is NOT itself published — a published project dependency has Maven
-//   coordinates of its own, taken from its `publishing` configuration exactly as the generated POM
-//   does, and is listed in the manifest like any external dependency), and
-// - `META-INF/jetwhale/dependencies.txt` — the flat list of runtime dependencies as
-//   `group:artifact:version` lines, exactly as Gradle resolved them at build time.
-//
-// The host downloads the listed jars itself when installing the plugin from Maven, so no full
-// dependency-resolution logic (parent POMs, BOMs, Gradle module metadata…) is ever needed at
-// runtime, and nothing third-party is redistributed by the plugin author.
-
 val runtimeElementsIncoming = configurations.getByName("runtimeClasspath").incoming
 
-// External module dependencies -> lockfile lines. Resolved lazily and configuration-cache safe.
 val externalDependencyCoordinates: Provider<List<String>> = runtimeElementsIncoming.artifacts.resolvedArtifacts.map { artifacts ->
     artifacts
         .mapNotNull { it.id.componentIdentifier as? org.gradle.api.artifacts.component.ModuleComponentIdentifier }
@@ -461,17 +363,11 @@ val externalDependencyCoordinates: Provider<List<String>> = runtimeElementsIncom
         .sorted()
 }
 
-// In-build project dependencies: published ones are trusted to be fetchable by their publication
-// coordinates (the same source the generated POM uses — for KMP modules that is the `jvm`
-// publication, e.g. `protocol-jvm`); unpublished ones are bundled into the jar as a fallback.
-// Both sets are filled once every project is evaluated (publication coordinates are configured in
-// the dependency projects' own afterEvaluate blocks, so they cannot be read earlier).
 val publishedProjectDependencyCoordinates = mutableSetOf<String>()
 val bundledProjectPaths = mutableSetOf<String>()
 
-// Declared-dependency configurations that can carry project dependencies, for plain-JVM and KMP
-// modules alike. Walking declarations (instead of resolving the classpath, which is not allowed at
-// configuration time) is safe here: we only need to identify the project modules in the graph.
+// Walks declarations because resolving the classpath is not allowed at configuration time; only the
+// project modules in the graph are needed.
 val projectDependencyConfigurationNames = listOf(
     "api",
     "implementation",
@@ -494,6 +390,9 @@ fun collectProjectDependencies(from: Project, seenPaths: MutableSet<String>) {
     }
 }
 
+// Publication coordinates are set in each dependency project's afterEvaluate (see the publish
+// convention), so they can be read only once every project is evaluated. The sets filled here are
+// read lazily by the manifest task and the artifact view.
 gradle.projectsEvaluated {
     val seenPaths = mutableSetOf<String>()
     collectProjectDependencies(project, seenPaths)
@@ -558,10 +457,6 @@ val packageMavenPlugin = tasks.register<Jar>("packageMavenPlugin") {
     }
 }
 
-// When the plugin author also applies a Maven publishing plugin, replace the outgoing jar of the
-// java component with the `packageMavenPlugin` jar (classifier cleared, so it publishes as the
-// plain `<artifactId>-<version>.jar`): the JetWhale host's Install-from-Maven feature downloads
-// exactly that main artifact.
 pluginManager.withPlugin("maven-publish") {
     listOf("apiElements", "runtimeElements").forEach { configurationName ->
         configurations.named(configurationName) {

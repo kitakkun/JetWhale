@@ -47,17 +47,11 @@ internal class AndroidWindowNodeSource(rootView: View) :
 
     private val rootViewRef = WeakReference(rootView)
 
-    // At most one box per window, so pointing at another node moves this one.
     private val highlightOverlay = NodeHighlightOverlay()
 
-    // Read on the main thread, where the overlay is touched: a highlight request that resolved this
-    // source before it was unregistered still reaches the UI thread afterwards, and must not put a
-    // box back that nothing will renew or clear.
     @Volatile
     private var unregistered = false
 
-    // The overlay otherwise comes down only with its window; a probe disposed while the window stays
-    // up would leave the box there until the TTL.
     override fun onUnregistered() {
         unregistered = true
         highlightOverlay.clearFromAnyThread()
@@ -82,8 +76,8 @@ internal class AndroidWindowNodeSource(rootView: View) :
         )
     }
 
-    // A detached window has nothing readable to report, and reading a composition inside it can
-    // throw, so the attachment check gates every call rather than only the registration.
+    // Checked on every call, not only at registration: reading a composition inside a detached
+    // window can throw.
     private fun attachedRootView(): View? = rootViewRef.get()?.takeIf(View::isAttachedToWindow)
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = AndroidComposeUiThread.await {
@@ -99,12 +93,6 @@ internal class AndroidWindowNodeSource(rootView: View) :
         }
     }
 
-    // -- ViewAttributeSource ---------------------------------------------------
-    //
-    // A window is the only root that has platform attributes at all: its nodes include real `View`s.
-    // The work itself lives in ViewAttributes.kt; this only resolves the node and hops to the UI
-    // thread, the same way performAction does.
-
     override suspend fun attributes(nodeId: Int): ViewAttributeSnapshot? = AndroidComposeUiThread.await {
         val rootView = attachedRootView() ?: return@await null
         viewInWindow(nodeId, rootView)?.readAttributes(rootId = sourceId, nodeId = nodeId)
@@ -118,28 +106,16 @@ internal class AndroidWindowNodeSource(rootView: View) :
         view.writeAttribute(attributeId = attributeId, value = value)
     }
 
-    // -- NodeHighlightSource ---------------------------------------------------
-    //
-    // A window is the only root that can be pointed at: it has a decor view to hang an overlay on.
-    // The drawing lives in NodeHighlightOverlay.kt; this only resolves the node's bounds and hops to
-    // the UI thread, the same way the other two capabilities do.
-
     override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult = AndroidComposeUiThread.await {
         if (nodeId == null || unregistered) {
             highlightOverlay.clear()
             return@await HighlightResult(shown = false, message = "the window is no longer readable".takeIf { unregistered })
         }
-        // A request that cannot be honored still replaces what was showing: the caller asked to point
-        // at something else, and a box left on the previous node would answer a question nobody is
-        // asking any more.
         val rootView = attachedRootView()
         if (rootView == null) {
             highlightOverlay.clear()
             return@await HighlightResult(shown = false, message = "the window is no longer readable")
         }
-        // Passed as a lookup rather than as the bounds it currently reports: a scroll or a relayout
-        // moves the node, and the overlay follows it by asking again. Through the weak reference, so
-        // a box left up does not keep a destroyed window's view tree alive until its TTL.
         val resolveBounds = { attachedRootView()?.highlightBoundsOf(nodeId) }
         val bounds = resolveBounds()
         if (bounds == null) {
@@ -147,10 +123,6 @@ internal class AndroidWindowNodeSource(rootView: View) :
             return@await HighlightResult(
                 shown = false,
                 message = "node $nodeId is not in this window right now (a list may have recycled it, or it may be gone for good)",
-                // A row a `LazyColumn` disposed on its way off screen and a node that has left for
-                // good resolve to the same nothing from here, so this cannot tell them apart. Asking
-                // again is the recoverable guess: the box comes back by itself when the row scrolls
-                // back, and the host stops asking the moment the selection moves off it either way.
                 retryLater = true,
             )
         }
@@ -201,15 +173,15 @@ private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
  */
 private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (nodeId < 0) {
     viewInWindow(nodeId, this)?.let { view ->
-        // Visibility as the captured tree decides it: `getGlobalVisibleRect` still reports a rect for
-        // an INVISIBLE view, which occupies its space without drawing anything to point at.
+        // `getGlobalVisibleRect` still reports a rect for an INVISIBLE view, which takes up space
+        // without drawing anything.
         val shown = view.visibility == View.VISIBLE && view.isShown
         android.graphics.Rect().also { visible -> if (!shown || !view.getGlobalVisibleRect(visible)) visible.setEmpty() }
     }
 } else {
     findSemanticsNode(nodeId)?.node?.boundsInWindow?.let { bounds ->
-        // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
-        // exception; empty is what "not on screen yet" means to the overlay.
+        // A node not yet placed reports non-finite bounds, on which roundToInt throws; empty means
+        // "not on screen yet" to the overlay.
         val placed = bounds.left.isFinite() && bounds.top.isFinite() && bounds.right.isFinite() && bounds.bottom.isFinite()
         if (placed) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
     }
@@ -255,8 +227,6 @@ private fun Rect.toOutwardAndroidRect(): android.graphics.Rect = android.graphic
  */
 private fun View.composeRootsInWindow(): Sequence<ViewRootForTest> = sequence {
     if (this@composeRootsInWindow is ViewRootForTest) yield(this@composeRootsInWindow)
-    // A Compose root's own children are the views an `AndroidView { }` embeds, and one of those can
-    // host a further composition — so the descent continues through it rather than stopping at it.
     if (this@composeRootsInWindow is ViewGroup) {
         for (index in 0 until childCount) {
             getChildAt(index)?.let { yieldAll(it.composeRootsInWindow()) }

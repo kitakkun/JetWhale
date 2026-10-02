@@ -29,11 +29,9 @@ kotlin {
             implementation(libs.kermit)
         }
 
-        // The websocket client test spins up a real Ktor server (ktor-server-test-host), which
-        // is JVM-only and pulls ktor-network; keeping it here avoids leaking node:net into the
-        // JS browser test bundle.
+        // ktor-server-test-host is JVM-only and pulls ktor-network, so it stays in jvmTest to keep
+        // node:net out of the JS browser test bundle.
         jvmMain.dependencies {
-            // JVM mDNS/DNS-SD browsing for zero-config host discovery.
             implementation(libs.jmdns)
         }
 

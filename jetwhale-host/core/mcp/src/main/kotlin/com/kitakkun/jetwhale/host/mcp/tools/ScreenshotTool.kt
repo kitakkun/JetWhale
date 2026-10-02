@@ -111,20 +111,14 @@ fun captureScreenshot(
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
     val composeCanvas = Canvas(imageBitmap)
     withScopedViewport(scene, viewport) {
-        // Raised only for this off-screen render; being on the UI thread, no interactive frame can
-        // observe the raised state.
         scene.isMcpCapture.value = true
         try {
-            // render() only flushes snapshot apply notifications at its end (before draw), so a write
-            // made right before it is not yet observed by the scene's recomposer and the frame would be
-            // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
-            // within this render pass.
+            // render() flushes snapshot apply notifications only at its end, so flush here or the
+            // frame is drawn before the flag flip is observed.
             Snapshot.sendApplyNotifications()
             scene.render(composeCanvas)
         } finally {
             scene.isMcpCapture.value = false
-            // Flush the restore so the next interactive render observes capture=false immediately rather
-            // than lagging a frame behind.
             Snapshot.sendApplyNotifications()
         }
     }
@@ -155,8 +149,6 @@ internal fun resolveViewport(
     requestedDensity: Float?,
 ): McpViewport {
     val sceneDensity = scene.composeScene.density
-    // Override the density scalar only: fontScale is a separate, user-facing setting that the
-    // caller is not asking about, so carry the scene's through.
     val density = requestedDensity
         ?.let { Density(density = it, fontScale = sceneDensity.fontScale) }
         ?: sceneDensity

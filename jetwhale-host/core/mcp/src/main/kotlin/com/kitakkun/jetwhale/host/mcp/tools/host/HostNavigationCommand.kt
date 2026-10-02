@@ -56,9 +56,6 @@ class HostNavigationCommand(
         val request = arguments.toRequest()
         hostNavigationService.navigate(request)
 
-        // Report what the window actually shows rather than assuming the request landed: the drawer
-        // resets its selection when the selected session goes inactive, and the window may not have
-        // composed yet.
         val applied = withTimeoutOrNull(CONFIRMATION_TIMEOUT_MILLIS) {
             hostNavigationService.currentView.filterNotNull().first { request.matches(it.destination) }
         }?.destination
@@ -109,15 +106,12 @@ class HostNavigationCommand(
         }
         if (targetSessionId == null) return
 
-        // A plugin that needs no app opens in the host session whatever session was named.
         if (!reconciliationService.requiresAgent(targetPluginId)) return
         if (HostSession.isHost(targetSessionId)) {
             throw JetWhaleMcpArgumentException("invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.")
         }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
             ?: throw JetWhaleMcpArgumentException("invalid sessionId: no session '$targetSessionId'. See jetwhale.listSessions.")
-        // A disconnected session stays listed, but its plugin instances are already gone: the screen
-        // would open on nothing, after the cleanup that closes such screens has run.
         if (!session.isActive) {
             throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.")
         }

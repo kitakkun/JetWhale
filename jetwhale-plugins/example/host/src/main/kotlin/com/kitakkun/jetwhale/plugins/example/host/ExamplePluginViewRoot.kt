@@ -37,8 +37,6 @@ fun ExamplePluginViewRoot(
     onClickSendPing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Demonstrates rememberPersistent: this text is saved to the plugin's own pluginId-scoped
-    // storage and survives plugin reloads and host restarts.
     var persistedInput by rememberPersistent("draft-input", default = "")
 
     ExamplePluginView(

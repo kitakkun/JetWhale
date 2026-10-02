@@ -61,8 +61,6 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
     /** How long the runtime waits for [onPrepare] before warning and proceeding. */
     protected open val prepareTimeoutMillis: Long = 10_000
 
-    // -- runtime hooks (not for plugin authors) -------------------------------
-
     @InternalJetWhaleHostApi
     public fun registerHandlers(handlers: JetWhaleMessageHandlers) {
         handlers.configure()

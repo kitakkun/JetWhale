@@ -29,9 +29,8 @@ class McpPermissionsTreeViewTest {
     fun `a launch override leaves nothing to click`() = runTreeView(isOverriddenForLaunch = true) { calls ->
         onNodeWithText(OBSERVE_LABEL, substring = true).assertIsNotEnabled()
 
-        // Clicked rather than only asserted disabled: performClick injects a pointer event at the
-        // node's center instead of invoking the OnClick semantics action, so a disabled box takes it
-        // and does nothing. Dropping the click would leave the test passing on an editable tree.
+        // performClick injects a pointer event rather than invoking the OnClick action, so a
+        // disabled box takes it; without the click the test would pass on an editable tree.
         onNodeWithText(OBSERVE_LABEL, substring = true).performClick()
 
         assertTrue(calls.isEmpty(), "an overridden launch cannot store a choice, so it must not take one")

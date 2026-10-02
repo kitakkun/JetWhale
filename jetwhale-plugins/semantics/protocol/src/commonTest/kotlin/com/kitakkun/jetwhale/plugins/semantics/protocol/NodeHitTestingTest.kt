@@ -206,8 +206,6 @@ class NodeHitTestingTest {
 
     @Test
     fun `a point inside a window that nothing accepts is nobody's rather than the window's`() {
-        // Every window is touch-modal, the activity's included; a tap landing in it that no node
-        // takes is not the window swallowing anything — the app takes no touch at all.
         val roots = listOf(root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)), isTouchModal = true))
 
         assertEquals(NodeHitTesting.TouchTarget.Nothing, NodeHitTesting.targetAt(roots, 500f, 500f))

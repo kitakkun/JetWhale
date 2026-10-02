@@ -81,11 +81,8 @@ fun McpPermissionsTreeView(
     modifier: Modifier = Modifier,
 ) {
     val tree = buildPermissionTree(uiState = uiState)
-    // Keyed by node id rather than by position, so a plugin appearing or disappearing does not hand
-    // its expansion state to whichever node took its place.
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
-    // The heading comes from the SettingOptionView this sits in, like every other settings block.
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -184,8 +181,6 @@ private fun buildPermissionTree(uiState: McpPermissionsUiState): List<Permission
             PermissionNode.Branch(
                 id = "plugin/${plugin.pluginId}",
                 label = plugin.displayName,
-                // Collapsed by default: with a few plugins installed the fully expanded tree is
-                // longer than the pane, and the summary already says whether this one needs opening.
                 startExpanded = false,
                 children = listOf(
                     PermissionNode.Branch(
@@ -209,8 +204,6 @@ private fun buildPermissionTree(uiState: McpPermissionsUiState): List<Permission
                         id = "plugin/${plugin.pluginId}/tools",
                         label = stringResource(Res.string.mcp_permission_plugin_own_tools),
                         startExpanded = true,
-                        // Its commands are only published once it is instantiated for a session, so
-                        // with nothing connected there is no list to show. Stored denials survive.
                         emptyHint = stringResource(Res.string.mcp_permission_plugin_tools_offline),
                         children = plugin.tools.map { tool ->
                             PermissionNode.Leaf(
@@ -295,14 +288,10 @@ private fun BranchRow(
             .fillMaxWidth()
             .padding(start = INDENT_STEP * depth),
     ) {
-        // The tri-state is a summary of the leaves rather than a switch of its own, so a half-ticked
-        // parent is the honest rendering of a partial selection.
         JwTriStateCheckbox(
             state = toggleStateOf(leaves.map(PermissionNode.Leaf::allowed)),
             label = null,
             enabled = enabled && leaves.isNotEmpty(),
-            // A partially-ticked parent turns everything on: the alternative — clearing a mixed
-            // selection — throws away choices the user made one by one.
             onClick = {
                 val allowAll = allowedCount < leaves.size
                 leaves.forEach { onSetAllowed(it.target, allowAll) }
@@ -322,8 +311,6 @@ private fun BranchRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            // Only while collapsed: with the children on screen the count is already there to read,
-            // and a number repeating them invites being clicked as if it were a control.
             if (!isExpanded && leaves.isNotEmpty()) {
                 JwText(
                     text = "$allowedCount / ${leaves.size}",

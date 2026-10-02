@@ -64,8 +64,6 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
 /** The resolver a configured `endpoints { }` amounts to, in the order its candidates were declared. */
 internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver {
     val declared = candidates.ifEmpty {
-        // Nothing declared: the deprecated host/port carry whatever they hold, defaults included, and
-        // take their scheme from `ssl { }` the way the whole connection used to.
         @Suppress("DEPRECATION")
         listOf(EndpointCandidate.Static(host, port, useWss = sslConfiguration.isEnabled))
     }
@@ -437,8 +435,6 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
     private val declaredCandidates: MutableList<EndpointCandidate> = mutableListOf()
     val candidates: List<EndpointCandidate> get() = declaredCandidates
 
-    // Repeated blocks add to the list rather than replacing it, so the order candidates were written
-    // in is the order they are tried, wherever they were written.
     override fun endpoints(configure: JetWhaleEndpointScope.() -> Unit) {
         JetWhaleEndpointConfiguration(declaredCandidates).configure()
     }
@@ -464,8 +460,6 @@ private class JetWhaleEndpointConfiguration(
         candidates += EndpointCandidate.Dynamic(policy.hostNames, policy.addresses, policy.acceptsAnyHost)
     }
 
-    // Reaching this body means the call was never rewritten, because rewriting replaces it outright
-    // with wss(<baked address>, port). So there is no address to contribute — only an explanation.
     @ExperimentalJetWhaleApi
     override fun buildMachineWss(port: Int) {
         JetWhaleLogger.w(

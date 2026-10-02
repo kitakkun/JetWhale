@@ -92,7 +92,6 @@ fun dispatchClick(scene: PluginComposeScene, x: Float, y: Float): Boolean {
 
 private fun findClickableNodeAt(node: SemanticsNode, point: Offset): SemanticsNode? {
     if (!node.boundsInRoot.contains(point)) return null
-    // Prefer the deepest (most specific) clickable child.
     for (child in node.children) {
         val result = findClickableNodeAt(child, point)
         if (result != null) return result

@@ -71,7 +71,6 @@ class DefaultMcpServerService(
     override suspend fun start(host: String, port: Int) {
         if (!running.compareAndSet(false, true)) return
 
-        // Register plugin instances that were already created before the MCP server started.
         pluginInstanceService.getLoadedPluginInstances().forEach { (pluginId, sessionId, plugin) ->
             if (plugin is JetWhaleMcpCapablePlugin) {
                 toolRegistry.register(pluginId, sessionId, plugin)
@@ -93,13 +92,10 @@ class DefaultMcpServerService(
             install(SSE)
             routing {
                 sse("/sse") {
-                    // An idle MCP connection carries no server-to-client traffic, so without a
-                    // periodic write the server never learns that the agent went away and the UI
-                    // would keep claiming an agent is attached. The comment-only event is ignored
-                    // by SSE clients; the failing write is what surfaces the disconnect.
+                    // An idle MCP connection carries no server-to-client traffic, so only a failing
+                    // heartbeat write reveals that the agent went away.
                     heartbeat { period = CLIENT_LIVENESS_PROBE_PERIOD }
                     val transport = SseServerTransport("/message", this)
-                    // transport.sessionId: MCP-library-assigned UUID per SSE connection (not a JetWhale device session)
                     transports[transport.sessionId] = transport
                     val mcpServer = createMcpServer()
                     // A departing client surfaces either as the session closing or as this block
@@ -114,14 +110,14 @@ class DefaultMcpServerService(
                     mcpActivityRepository.clientConnected()
                     try {
                         mcpServer.createSession(transport).onClose(::markDisconnected)
+                        // Returning from the sse handler closes the stream, so it suspends until
+                        // the client disconnects.
                         awaitCancellation()
                     } finally {
                         markDisconnected()
                     }
                 }
                 post("/message") {
-                    // sessionId here is the MCP transport session ID (matches transport.sessionId above),
-                    // not a JetWhale device session ID. Used to route the POST body to the correct SSE channel.
                     val sessionId = call.request.queryParameters["sessionId"]
                         ?: run {
                             call.respondText("Missing sessionId", status = HttpStatusCode.BadRequest)
@@ -140,16 +136,12 @@ class DefaultMcpServerService(
         bind(server, host, port)
     }
 
-    // Every bind failure is shown as the MCP server's Error status.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private suspend fun bind(server: EmbeddedServer<*, *>, host: String, port: Int) {
         try {
             server.start(wait = false)
             statusHolder.update(McpServerStatus.Running(host = host, port = port))
         } catch (e: CancellationException) {
-            // Never swallow cancellation: undo this attempt, then re-throw so the coroutine
-            // cancellation mechanism keeps working. The status stays untouched — the caller went
-            // away, the server did not fail.
             rollbackFailedStart(server)
             throw e
         } catch (e: Throwable) {
@@ -234,8 +226,6 @@ class DefaultMcpServerService(
                 inputSchema = inputSchema,
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
-                // Forward the arguments as raw JSON so structured (object/array) parameters keep
-                // their shape; the command's parameter DSL decodes each value by its declared type.
                 val arguments = request.arguments ?: emptyMap()
                 val result = toolRegistry.dispatch(toolName, arguments)
                 CallToolResult(content = listOf(TextContent(result ?: "null")))

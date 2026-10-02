@@ -39,9 +39,6 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
     put("rootId", rootId)
     put("label", label)
     put("density", density)
-    // Where this root's window sits on screen. Zero for a full-screen activity; non-zero for a
-    // dialog, a popup, or a split-screen window — which is exactly when node coordinates would
-    // drift if they were reported window-relative, so it is worth being able to see it.
     putJsonObject("windowOffset") {
         put("x", windowOffsetX.roundToInt())
         put("y", windowOffsetY.roundToInt())
@@ -62,8 +59,6 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
     contentDescription?.let { put("contentDescription", it) }
     toggleableState?.let { put("toggleableState", it) }
 
-    // Only the surprising side of each flag is emitted: an enabled, visible, unfocused node is the
-    // norm, and spelling that out on every node would triple the payload for no information.
     if (isClickable) put("clickable", true)
     if (!isEnabled) put("enabled", false)
     if (isFocused) put("focused", true)
@@ -71,9 +66,7 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
     if (isEditable) put("editable", true)
     if (isScrollable) put("scrollable", true)
     if (!isVisible) put("visible", false)
-    // Something to operate that cannot be operated is the surprising case; the flags below say why.
     if (isInteractive && !isOperable) put("operable", false)
-    // The reason a caller reaches for coordinates at all: the touch would land somewhere else.
     if (!isHittable) {
         put("hittable", false)
         obscuredBy?.let { obstruction ->
@@ -106,8 +99,6 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
     }
 }
 
-// Only the surprising kinds are emitted: most of a tree is Compose, and a View or an iOS node is the
-// one a caller has to read differently — negative id, a class instead of a role.
 private fun JsonObjectBuilder.putKindFields(node: UiNode) {
     when (node) {
         is ViewNode -> {

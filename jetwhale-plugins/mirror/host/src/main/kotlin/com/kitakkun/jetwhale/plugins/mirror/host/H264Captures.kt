@@ -15,7 +15,6 @@ internal fun firstH264FrameAsPng(h264: InputStream, ffmpegPath: String, timeoutM
     val ffmpegProcess = SystemProcessLauncher.start(ffmpegFirstFramePngCommand(ffmpegPath))
     val log = thread(isDaemon = true, name = "mirror-still-ffmpeg-log") { ffmpegProcess.errorStream.use(InputStream::readAllBytes) }
     val feeding = thread(isDaemon = true, name = "mirror-still-ffmpeg-input") { feed(h264, ffmpegProcess) }
-    // A device that sends nothing would leave ffmpeg waiting on its input for good.
     val watchdog = thread(isDaemon = true, name = "mirror-still-watchdog") {
         if (!ffmpegProcess.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)) ffmpegProcess.destroyForcibly()
     }
@@ -65,7 +64,6 @@ internal class H264FileRecorder(private val sourceProcess: Process, ffmpegPath: 
         try {
             ffmpegProcess.errorStream.bufferedReader().forEachLine { synchronized(errors) { errors.appendLine(it) } }
         } catch (_: IOException) {
-            // The process was destroyed while its log was being read.
         }
     }
     private val feeding = thread(isDaemon = true, name = "mirror-recording-ffmpeg-input") { feed(sourceProcess.inputStream, ffmpegProcess) }

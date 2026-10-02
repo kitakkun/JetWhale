@@ -94,7 +94,6 @@ class IosPhysicalDeviceCapturesTest {
     fun `a recording stopped by ending its source is a finished mp4 with a length`() {
         val ffmpegPath = installedFfmpegPath()
         val output = File(folder, "clip.mp4")
-        // Raw H.264 is stamped as it arrives, so the sample is paced like a device would send it.
         val source = PacedStreamProcess(PacedInputStream(h264Sample(ffmpegPath), chunks = SAMPLE_FRAMES, pauseMillis = 30))
         val recorder = H264FileRecorder(source, ffmpegPath, output)
         source.awaitDrained()
@@ -121,9 +120,9 @@ class IosPhysicalDeviceCapturesTest {
         )
         val iphone = IosPhysicalDeviceController(udid = "udid-1", idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath)
 
-        // What the mirror does for a recording started from the grid: record, stop, then ask the size.
-        // The stand-in stream can be stopped before ffmpeg has read any of it, which fails the file;
-        // the companion must be let go either way, and that is what this checks.
+        // Record, stop, then ask the size, as a recording started from the grid does. The stand-in
+        // stream can stop before ffmpeg reads any of it, which fails the file; the companion must
+        // be released either way.
         try {
             iphone.startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {

@@ -40,7 +40,6 @@ class CANameConstraintsTest {
         val certPath = certFactory.generateCertPath(listOf(server, ca.cert))
         val anchor = TrustAnchor(ca.cert.subjectX500Principal, ca.keyPair.public, null)
         val params = PKIXParameters(setOf(anchor)).apply {
-            // Local PKI has no CRL/OCSP infrastructure; disable revocation checks.
             isRevocationEnabled = false
         }
         return CertPathValidator.getInstance("PKIX").validate(certPath, params) as PKIXCertPathValidatorResult

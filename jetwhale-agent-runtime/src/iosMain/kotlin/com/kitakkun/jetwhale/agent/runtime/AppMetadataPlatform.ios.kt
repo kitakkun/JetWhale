@@ -54,6 +54,8 @@ private fun appIconNames(): List<String> {
 private fun Map<*, *>.iconFileNames(): List<String> = (get("CFBundleIconFiles") as? List<*>)?.filterIsInstance<String>().orEmpty()
 
 private fun UIImage.scaledToSquare(size: Double): UIImage? {
+    // Scale 1.0 makes the 64pt canvas 64 pixels, as the icon contract requires; 0.0 would take the
+    // screen scale and render at 2x or 3x.
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size, size), false, 1.0)
     drawInRect(CGRectMake(x = 0.0, y = 0.0, width = size, height = size))
     val scaled = UIGraphicsGetImageFromCurrentImageContext()
