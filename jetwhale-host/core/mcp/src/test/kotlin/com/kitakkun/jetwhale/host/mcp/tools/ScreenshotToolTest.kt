@@ -25,25 +25,25 @@ import kotlin.test.assertTrue
 class ScreenshotToolTest {
 
     @Test
-    fun `captureScreenshot returns non-empty PNG bytes on empty scene`() {
+    fun `a screenshot of an empty scene encodes to non-empty PNG bytes`() {
         val scene = createTestScene()
         val viewport = McpViewport(size = IntSize(320, 240), density = Density(1f))
 
-        val bytes = captureScreenshot(scene, viewport)
+        val bytes = renderScreenshot(scene, viewport).encodeToPng()
 
         assertTrue(bytes.isNotEmpty(), "Expected PNG bytes to be non-empty")
         assertTrue(bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte(), "Expected PNG header")
     }
 
     @Test
-    fun `captureScreenshot returns PNG with correct dimensions`() {
+    fun `a screenshot encodes to a PNG of the viewport size`() {
         val scene = createTestScene {
             Box(modifier = Modifier.size(100.dp).background(Color.Red))
         }
         scene.composeScene.size = IntSize(320, 240)
         val viewport = McpViewport(size = IntSize(320, 240), density = Density(1f))
 
-        val bytes = captureScreenshot(scene, viewport)
+        val bytes = renderScreenshot(scene, viewport).encodeToPng()
 
         assertTrue(bytes.isNotEmpty())
         val width = (bytes[16].toInt() and 0xFF shl 24) or (bytes[17].toInt() and 0xFF shl 16) or
@@ -55,18 +55,18 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `captureScreenshot handles different viewport sizes`() {
+    fun `a screenshot renders at any viewport size`() {
         val scene = createTestScene()
 
         for ((width, height) in listOf(160 to 120, 640 to 480, 1280 to 720)) {
             val viewport = McpViewport(size = IntSize(width, height), density = Density(1f))
-            val bytes = captureScreenshot(scene, viewport)
+            val bytes = renderScreenshot(scene, viewport).encodeToPng()
             assertTrue(bytes.isNotEmpty(), "Expected non-empty PNG for ${width}x$height")
         }
     }
 
     @Test
-    fun `captureScreenshot renders colors of side-by-side boxes correctly`() {
+    fun `a render shows side-by-side boxes in their own colors`() {
         val scene = createTestScene {
             Row {
                 Box(modifier = Modifier.size(50.dp).background(Color.Red))
@@ -85,24 +85,24 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `captureScreenshot leaves the scene on the size and density it had`() {
+    fun `a screenshot leaves the scene on the size and density it had`() {
         val scene = createTestScene()
         scene.composeScene.size = IntSize(320, 240)
         scene.composeScene.density = Density(density = 1.5f, fontScale = 1.25f)
 
-        captureScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
 
         assertEquals(IntSize(320, 240), scene.composeScene.size, "Capture size must not outlive the capture")
         assertEquals(Density(density = 1.5f, fontScale = 1.25f), scene.composeScene.density, "Capture density must not outlive the capture")
     }
 
     @Test
-    fun `captureScreenshot leaves the window info it had`() {
+    fun `a screenshot leaves the window info it had`() {
         val scene = createTestScene()
         scene.composeScene.size = IntSize(320, 240)
         applyViewport(scene, McpViewport(size = IntSize(320, 240), density = Density(1f)))
 
-        captureScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
 
         assertEquals(IntSize(320, 240), scene.windowInfoUpdater.currentIntSize)
         assertEquals(DpSize(320.dp, 240.dp), scene.windowInfoUpdater.currentDpSize)
@@ -115,7 +115,7 @@ class ScreenshotToolTest {
         }
         scene.composeScene.density = Density(1f)
 
-        captureScreenshot(scene, McpViewport(size = IntSize(200, 200), density = Density(3f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(200, 200), density = Density(3f)))
 
         val imageBitmap = ImageBitmap(200, 200)
         scene.composeScene.size = IntSize(200, 200)
@@ -132,7 +132,7 @@ class ScreenshotToolTest {
             observed.add(LocalIsMcpCapture.current)
         }
         renderTestScene(scene)
-        captureScreenshot(scene, McpViewport(size = IntSize(100, 100), density = Density(1f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(100, 100), density = Density(1f)))
         renderTestScene(scene)
 
         assertEquals(false, observed.first(), "Interactive composition must see capture=false")

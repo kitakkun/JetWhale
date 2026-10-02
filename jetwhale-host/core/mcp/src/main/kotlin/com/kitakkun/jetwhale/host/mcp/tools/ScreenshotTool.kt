@@ -81,42 +81,39 @@ class ScreenshotMcpTool(
             invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            val pngBytes = withContext(Dispatchers.Main) {
-                val viewport = resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity)
-                captureScreenshot(scene, viewport)
+            val frame = withContext(Dispatchers.Main) {
+                renderScreenshot(scene, resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity))
             }
-            val base64 = Base64.getEncoder().encodeToString(pngBytes)
+            // Encoding takes about a hundred times as long as the render; on the UI thread it would
+            // freeze every host window for that long.
+            val base64 = Base64.getEncoder().encodeToString(frame.encodeToPng())
             CallToolResult(content = listOf(ImageContent(data = base64, mimeType = "image/png")))
         }
     }
 }
 
 /**
- * Renders the plugin's ComposeScene to an in-memory PNG image.
+ * Renders the plugin's ComposeScene into a new bitmap of [viewport]'s size.
  *
  * Must be called on the UI thread (Dispatchers.Main), as it mutates the ComposeScene. [viewport] is
  * scoped to the capture: the scene is put back on the viewport it had before returning, so the
  * on-screen plugin UI is unaffected and later captures do not inherit this one's size or density.
- *
- * @param scene  The plugin ComposeScene to render.
- * @param viewport Output viewport (size + density) to render with.
- * @return PNG-encoded bytes.
  */
 @OptIn(InternalComposeUiApi::class)
-fun captureScreenshot(
+internal fun renderScreenshot(
     scene: PluginComposeScene,
     viewport: McpViewport,
-): ByteArray {
+): ImageBitmap {
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
-    val composeCanvas = Canvas(imageBitmap)
     withScopedViewport(scene, viewport) {
-        scene.whileCapturingForMcp { scene.render(composeCanvas) }
+        scene.whileCapturingForMcp { scene.render(Canvas(imageBitmap)) }
     }
-
-    return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap()).use { image ->
-        image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes)
-    } ?: error("Failed to encode screenshot to PNG")
+    return imageBitmap
 }
+
+internal fun ImageBitmap.encodeToPng(): ByteArray = SkiaImage.makeFromBitmap(asSkiaBitmap()).use { image ->
+    image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes)
+} ?: error("Failed to encode screenshot to PNG")
 
 /**
  * Why a caller-supplied density is rejected, or null when it is usable.

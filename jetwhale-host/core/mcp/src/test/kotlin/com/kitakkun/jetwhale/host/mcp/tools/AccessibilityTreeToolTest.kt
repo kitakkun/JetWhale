@@ -90,7 +90,7 @@ class AccessibilityTreeToolTest {
         renderTestScene(scene)
         val before = boundsOf(scene, "bounded")
 
-        captureScreenshot(scene, McpViewport(size = IntSize(400, 300), density = Density(2f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(400, 300), density = Density(2f)))
 
         assertEquals(before, boundsOf(scene, "bounded"), "A screenshot's density must not move later bounds")
     }
