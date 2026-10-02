@@ -119,7 +119,12 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports what the host window shows once it has composed`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example", sessionId = "s1"),
+            destination = HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "com.example",
+                sessionId = "s1",
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example", "s1"),
+            ),
             selectedSessionId = "s1",
             selectedPluginId = "com.example",
         )

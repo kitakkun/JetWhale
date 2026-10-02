@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.navigation
 
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
@@ -50,6 +51,7 @@ class DefaultHostNavigationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                content = HostContent(HostDestinationKind.PLUGIN, "plugin-1", "session-1"),
             ),
         )
 
@@ -62,7 +64,7 @@ class DefaultHostNavigationServiceTest {
 
     @Test
     fun `a later selection update keeps the reported destination`() = runBlocking {
-        service.updateDestination(HostDestination(kind = HostDestinationKind.SETTINGS))
+        service.updateDestination(HostDestination(kind = HostDestinationKind.SETTINGS, content = HostContent(HostDestinationKind.HOME)))
         service.updateSelection(selectedSessionId = "session-2", selectedPluginId = null)
 
         val view = requireNotNull(service.currentView.value)

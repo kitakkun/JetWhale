@@ -86,7 +86,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate reports the destination the host switched to`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER, content = HostContent(HostDestinationKind.HOME)),
         )
 
         val result = command
@@ -101,7 +101,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate does not confirm a settings section other than the one requested`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL, content = HostContent(HostDestinationKind.HOME)),
         )
 
         val result = command
@@ -127,6 +127,7 @@ class HostNavigationCommandTest {
                 pluginId = "com.example.agent",
                 sessionId = "session-1",
                 poppedOutPlugins = listOf(PoppedOutPlugin("com.example.agent", "session-1")),
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1"),
             ),
         )
 
@@ -252,7 +253,12 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens a plugin that needs no app in the host session whatever session was named`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID),
+            HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "com.example.hostonly",
+                sessionId = HostSession.ID,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.hostonly", HostSession.ID),
+            ),
         )
 
         val result = command
