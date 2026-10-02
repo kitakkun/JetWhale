@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -92,6 +93,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
         ),
         frameSender = frameSender,
         pluginDataStoreRepository = dataStoreRepository,
+        pluginComposeSceneFactory = mock<PluginComposeSceneFactory>(),
     )
 
     private class UiPlugin :

@@ -18,7 +18,8 @@ import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
@@ -62,8 +63,9 @@ interface JetWhaleAppGraph : ScreenContext {
     val debugWebSocketServer: DebugWebSocketServer
     val hostNavigationService: HostNavigationService
     val followAiOperationService: FollowAiOperationService
-    val pluginComposeSceneService: PluginComposeSceneService
+    val pluginComposeSceneFactory: PluginComposeSceneFactory
     val pluginInstanceService: PluginInstanceService
+    val pluginFactoryRepository: PluginFactoryRepository
     val pluginHotReloadService: PluginHotReloadService
     val pluginTrustService: PluginTrustService
     val logCaptureService: LogCaptureService

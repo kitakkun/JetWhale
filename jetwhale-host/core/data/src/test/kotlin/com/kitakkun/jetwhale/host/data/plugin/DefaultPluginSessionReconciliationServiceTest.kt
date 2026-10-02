@@ -8,9 +8,11 @@ import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
+import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginScreenState
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -94,6 +97,26 @@ class DefaultPluginSessionReconciliationServiceTest {
         factoryRepository.load(loadedPlugin)
 
         assertEquals(setOf(sessionId), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `a plugin disabled while reconciliation was not running has its instances unloaded when it resumes`() = runBlocking {
+        val factoryRepository = FakePluginFactoryRepository().apply { load(hostOnlyPlugin) }
+        val instanceService = FakePluginInstanceService(factoryRepository).apply {
+            loadedPluginIds = setOf(hostOnlyPluginId)
+        }
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf())),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(emptySet()),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = instanceService,
+        )
+
+        val collectJob = launch { service.reconciliationEvents().collect { } }
+
+        assertEquals(hostOnlyPluginId, withTimeout(TIMEOUT_MILLIS) { instanceService.unloadedPluginIds.receive() })
 
         collectJob.cancel()
     }
@@ -189,6 +212,11 @@ class DefaultPluginSessionReconciliationServiceTest {
 
         private val initializedSessionIds = mutableSetOf<String>()
 
+        /** Plugins reported as having an instance in the host session. */
+        var loadedPluginIds: Set<String> = emptySet()
+
+        val unloadedPluginIds: Channel<String> = Channel(Channel.UNLIMITED)
+
         override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = MutableSharedFlow()
 
         override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
@@ -204,10 +232,17 @@ class DefaultPluginSessionReconciliationServiceTest {
             return newSessionIds
         }
 
-        override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
+        override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPluginIds.map { pluginId ->
+            LoadedPluginInstance(pluginId = pluginId, sessionId = HostSession.ID, plugin = object : JetWhaleHostPlugin() {})
+        }
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
-        override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
+        override fun pluginScreenStateFlow(pluginId: String, sessionId: String): Flow<PluginScreenState> = flowOf(PluginScreenState.Starting)
+        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? = null
+        override fun recreatePluginScenes(pluginId: String) = Unit
+        override fun unloadPluginInstancesForPlugin(pluginId: String) {
+            unloadedPluginIds.trySend(pluginId)
+        }
         override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit
     }

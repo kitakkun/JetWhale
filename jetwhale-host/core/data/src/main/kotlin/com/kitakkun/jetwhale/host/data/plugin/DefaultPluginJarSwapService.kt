@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginJarSwapService
@@ -23,11 +22,12 @@ import java.util.logging.Logger
 /**
  * Reload sequence for a changed jar:
  * 1. dispose the affected plugin's running instances ([PluginInstanceService.unloadPluginInstancesForPlugin],
- *    which calls each instance's `onDispose`) and close its compose scenes,
+ *    which calls each instance's `onDispose` and closes its compose scene),
  * 2. reload the factory from a fresh classloader (the old classloader is dropped — see
  *    [PluginFactoryRepository.reloadPlugin]),
  * 3. re-create instances for active sessions that have the plugin installed, and
- * 4. emit [pluginReloadedFlow] so the open plugin screen re-creates its scene from the new code.
+ * 4. emit [pluginReloadedFlow] so an open plugin screen can say it was reloaded; it already follows
+ *    the new instance's scene.
  */
 @Inject
 @SingleIn(AppScope::class)
@@ -35,7 +35,6 @@ import java.util.logging.Logger
 class DefaultPluginJarSwapService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
-    private val pluginComposeSceneService: PluginComposeSceneService,
     private val debugSessionRepository: DebugSessionRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
     private val reconciliationService: PluginSessionReconciliationService,
@@ -50,9 +49,7 @@ class DefaultPluginJarSwapService(
 
         val redefinedPluginIds = pluginFactoryRepository.tryRedefinePlugin(jarPath)
         if (redefinedPluginIds.isNotEmpty()) {
-            withContext(Dispatchers.Main) {
-                redefinedPluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
-            }
+            redefinedPluginIds.forEach(pluginInstanceService::recreatePluginScenes)
             logger.info("Hot reloaded plugin(s) in place (instance state preserved): ${redefinedPluginIds.joinToString()}")
             redefinedPluginIds.forEach { pluginReloadedFlow.emit(it) }
             return
@@ -72,13 +69,13 @@ class DefaultPluginJarSwapService(
         val takenOverPluginIds = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
             .filter { it in pluginFactoryRepository.loadedPlugins }
         val previousPluginIds = (pluginFactoryRepository.findPluginIdsByJarPath(jarPath) + takenOverPluginIds).distinct()
-        previousPluginIds.forEach { disposePlugin(it) }
+        previousPluginIds.forEach(pluginInstanceService::unloadPluginInstancesForPlugin)
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
-            // A failed reload leaves the previous code loaded, so restore the instances and scenes
-            // disposed above.
+            // A failed reload leaves the previous code loaded, so restore the instances disposed
+            // above.
             previousPluginIds.forEach {
                 reinitializeInstances(it)
                 pluginReloadedFlow.emit(it)
@@ -86,7 +83,7 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
+        (previousPluginIds - reloadedPluginIds.toSet()).forEach(pluginInstanceService::unloadPluginInstancesForPlugin)
 
         reloadedPluginIds.forEach { reinitializeInstances(it) }
 
@@ -95,13 +92,8 @@ class DefaultPluginJarSwapService(
     }
 
     override suspend fun remove(jarPath: String) {
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { disposePlugin(it) }
+        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach(pluginInstanceService::unloadPluginInstancesForPlugin)
         pluginFactoryRepository.unloadPluginJar(jarPath)
-    }
-
-    private suspend fun disposePlugin(pluginId: String) = withContext(Dispatchers.Main) {
-        pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-        pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
     }
 
     /**
@@ -116,11 +108,9 @@ class DefaultPluginJarSwapService(
 
         if (activeSessionIds.isEmpty()) return
 
-        withContext(Dispatchers.Main) {
-            pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
-                pluginId = pluginId,
-                sessionIds = activeSessionIds,
-            )
-        }
+        pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
+            pluginId = pluginId,
+            sessionIds = activeSessionIds,
+        )
     }
 }

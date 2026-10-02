@@ -14,6 +14,10 @@ dependencies {
     implementation(libs.soilQueryCompose)
     implementation(libs.soilReacty)
     implementation(libs.lifecycleRuntimeCompose)
+
+    testImplementation(libs.kotlinTest)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 }
 
 compose.resources {

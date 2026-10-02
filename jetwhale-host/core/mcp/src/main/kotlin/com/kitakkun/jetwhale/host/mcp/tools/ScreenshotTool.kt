@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
 import com.kitakkun.jetwhale.host.mcp.jsonInt
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
@@ -19,7 +20,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -37,7 +38,7 @@ import org.jetbrains.skia.Image as SkiaImage
 @Inject
 @ContributesIntoSet(AppScope::class)
 class ScreenshotMcpTool(
-    private val pluginComposeSceneService: PluginComposeSceneService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
@@ -80,7 +81,8 @@ class ScreenshotMcpTool(
             val requestedDensity = request.arguments?.get("density")?.jsonFloat
             invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
-            val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+            val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             val frame = withContext(Dispatchers.Main) {
                 renderScreenshot(scene, resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity))
             }
