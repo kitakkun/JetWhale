@@ -30,6 +30,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import soil.plant.compose.reacty.ErrorBoundaryContext
 import soil.query.compose.rememberSubscription
 
@@ -64,6 +65,8 @@ fun PluginScreenRoot() {
 
                 // Nothing on this screen can make a new attempt to create the instance, so it offers none.
                 is PluginScreenState.FailedToStart -> PluginScreenErrorFallback(
+                    title = stringResource(Res.string.plugin_start_failed_title),
+                    hint = stringResource(Res.string.plugin_start_failed_hint),
                     pluginId = screenContext.pluginId,
                     errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
                     onClickReset = null,
@@ -71,6 +74,8 @@ fun PluginScreenRoot() {
 
                 // Restarting the subscription composes the scene again.
                 is PluginScreenState.ContentFailed -> PluginScreenErrorFallback(
+                    title = stringResource(Res.string.plugin_ui_crash_title),
+                    hint = null,
                     pluginId = screenContext.pluginId,
                     errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
                     onClickReset = { coroutineScope.launch { screenState.reset() } },

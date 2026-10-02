@@ -5,6 +5,8 @@
     <string name="plugin_ui_crash_reload">Reload</string>
     <string name="plugin_ui_crash_copy_full_stacktrace">Copy Stacktrace</string>
     <string name="plugin_ui_crash_stacktrace">StackTrace: %1$s</string>
+    <string name="plugin_start_failed_title">Plugin Failed to Start</string>
+    <string name="plugin_start_failed_hint">To try again, disable and re-enable the plugin, or reconnect the app.</string>
     <string name="headless_plugin_title">This plugin has no screen</string>
     <string name="headless_plugin_description">It is working in the background for this session — it can exchange data with your app and offer MCP tools to AI agents — but it has nothing to show here.</string>
     <string name="headless_plugin_plugin_id">Plugin ID: %1$s</string>
