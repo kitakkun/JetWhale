@@ -149,7 +149,7 @@ class MirrorViewingTest {
     }
 
     @Test
-    fun `a bitmap that leaves the rotation is closed instead of left to the collector`() {
+    fun `a frame bitmap replaced by a newer one is closed instead of left to the collector`() {
         val surface = MirrorSurface()
         val written = mutableListOf<Bitmap>()
         val record: (Bitmap) -> Boolean = { bitmap ->
@@ -214,7 +214,7 @@ class MirrorViewingTest {
     }
 
     @Test
-    fun `nothing is written or drawn once the surface is closed`() {
+    fun `nothing is drawn once the surface is closed`() {
         val surface = MirrorSurface()
         surface.close()
 
