@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,17 +79,19 @@ internal fun TrafficTab(
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
-    val visible = remember(transactions, query) {
-        val matched = if (query.isBlank()) {
-            transactions
-        } else {
-            transactions.filter { tx ->
-                tx.request.url.contains(query, ignoreCase = true) ||
-                    tx.request.method.contains(query, ignoreCase = true) ||
-                    tx.response?.statusCode?.toString()?.contains(query) == true
+    val visible by remember(transactions) {
+        derivedStateOf {
+            val matched = if (query.isBlank()) {
+                transactions
+            } else {
+                transactions.filter { tx ->
+                    tx.request.url.contains(query, ignoreCase = true) ||
+                        tx.request.method.contains(query, ignoreCase = true) ||
+                        tx.response?.statusCode?.toString()?.contains(query) == true
+                }
             }
+            matched.asReversed()
         }
-        matched.asReversed()
     }
 
     Column(modifier.fillMaxSize()) {
