@@ -313,8 +313,10 @@ class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpComman
     private val widgetId by string("The widget ID")
     private val verbose by booleanOrNull("Include layout details.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val widget = widgets.find(arguments[widgetId])
+            ?: return JetWhaleMcpResult.error("no widget with id: ${arguments[widgetId]}")
+        return JetWhaleMcpResult.json(widget.describe(verbose = arguments[verbose] ?: false))
     }
 }
 
@@ -329,8 +331,6 @@ Things to know:
 - **`sessionId` is injected for you.** JetWhale adds a required `sessionId` parameter to every
   plugin tool's schema and routes the call to the right plugin instance, so your command runs
   against the correct session without handling it yourself.
-- **`execute` returns a string** (plain text or JSON). Throw `JetWhaleMcpArgumentException` for
-  caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
 - **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
   a command can `request` the agent directly.
 - **Declare parameters as properties, never inside `execute`.** The list is read once, and declaring
@@ -339,6 +339,94 @@ Things to know:
 - Every declarator takes an optional `name` to override the wire name, for when the property cannot
   be called what the parameter should be called (`by stringOrNull("…", name = "name")`).
 - The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
+
+### What a tool answers with
+
+`execute` returns a `JetWhaleMcpResult`, built with one of four factories:
+
+| Factory                                   | What the AI agent gets                                                             |
+|-------------------------------------------|------------------------------------------------------------------------------------|
+| `JetWhaleMcpResult.text(s)`               | Plain text: prose, or JSON you serialized yourself.                                |
+| `JetWhaleMcpResult.json(obj)`             | A `JsonObject` as structured content, repeated as text for agents that ignore it.  |
+| `JetWhaleMcpResult.image(bytes, mimeType)` | An image the agent can look at. Pass the encoded bytes; the host Base64-encodes them. |
+| `JetWhaleMcpResult.error(message)`        | A **failure**: the call is flagged so the agent corrects and retries it.           |
+
+`withImage(bytes, mimeType)` adds an image to any of them, for an answer that is both data and a
+picture: a screenshot next to the JSON that says where it was saved, say.
+
+Report failures with `error(...)` rather than returning text that merely mentions the problem:
+without the flag, the agent reads "the widget does not exist" as the tool's answer and carries on.
+Throwing `JetWhaleMcpException` produces the same failed result and is the shorter path when the
+failure is found deep inside the command; it never fails the MCP server. Throw its narrower
+subclass `JetWhaleMcpArgumentException` when the arguments are what went wrong; the argument
+accessors already do.
+
+JetWhale owns this type instead of exposing the MCP library's own result types, so your plugin does
+not have to track that library's versions.
+
+A command that only ever answers with text can extend `JetWhaleMcpTextCommand` and return the string
+directly:
+
+```kotlin
+class DescribeWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpTextCommand() {
+    override val name = "com.example.myplugin.describeWidget"
+    override val description = "Describe the selected widget"
+
+    private val widgetId by string("The widget ID")
+
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = widgets.describe(arguments[widgetId])
+}
+```
+
+Whatever `executeText` returns is reported as a success, so throw `JetWhaleMcpException` to report
+a failure.
+
+### Declaring what a tool returns
+
+A tool whose answer has a known shape declares it with `serializableOutput<T>()`, the counterpart of
+the `serializable<T>()` parameter declarator. The declaration hands back the handle that builds the
+result:
+
+```kotlin
+@Serializable
+data class WidgetDescription(val id: String, val label: String, val visible: Boolean = true)
+
+class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
+    override val name = "com.example.myplugin.inspectWidget"
+    override val description = "Inspect the selected widget"
+
+    private val widgetId by string("The widget ID")
+    private val widget = serializableOutput<WidgetDescription>()
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val found = widgets.find(arguments[widgetId])
+            ?: return JetWhaleMcpResult.error("no widget with id: ${arguments[widgetId]}")
+        return widget.result(WidgetDescription(id = found.id, label = found.label))
+    }
+}
+```
+
+The tool's `outputSchema` is derived from `T`'s serializer by the same rules as a parameter's,
+including `@McpDescription` and "required means no default value", and `result(...)` encodes with
+the same format. The AI agent therefore knows the shape of the answer *before* it calls the tool,
+and what it is promised cannot drift from what it receives.
+
+Things to know:
+
+- **Declaring nothing is the default and stays valid.** A tool that declares no output advertises no
+  `outputSchema`; it may still answer with `JetWhaleMcpResult.json(...)`, the agent is just not told
+  the shape in advance. Only declare an output when the tool always answers with one structure.
+- **MCP requires the output schema to describe an object with named properties**, so `T` must
+  serialize to one. Wrap a list, a map or a sealed hierarchy in a `@Serializable` class holding it;
+  declaring one directly fails when the command is constructed.
+- **The declaration is enforced.** Once a command declares an output, a successful answer has to come
+  from that declaration's `result(...)`. The host refuses one built with `JetWhaleMcpResult.json(...)`
+  or `text(...)` as a programming error, since nothing checked it against the schema.
+- **A failure is not the tool's answer.** A command that declares an output can still return
+  `JetWhaleMcpResult.error(...)` or throw `JetWhaleMcpException`; the output schema does not apply
+  to a failed call.
+- **Declare it as a property**, next to the parameters. An output declared after the schema was read
+  (inside `execute`, say) throws, and a command has a single output.
 
 ### Structured parameters
 
@@ -402,7 +490,8 @@ class InspectWidgetCommand : JetWhaleMcpCommand(
 ```
 
 The schema is derived from the same instance, so the names and discriminator advertised to the
-agent are the ones the command actually decodes. The format is also available to `execute` as the
+agent are the ones the command actually decodes. A nullable property admits `null` in its schema,
+and under `explicitNulls = false` it is not required either, since that format leaves it out. The format is also available to `execute` as the
 protected `json` property, for encoding the result.
 
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
