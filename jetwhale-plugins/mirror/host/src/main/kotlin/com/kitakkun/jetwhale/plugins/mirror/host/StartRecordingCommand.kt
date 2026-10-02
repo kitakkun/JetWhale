@@ -27,6 +27,7 @@ internal class StartRecordingCommand(
         if (listOf(single != null, several != null, everyDevice).count { it } > 1) {
             throw JetWhaleMcpArgumentException("pass one of deviceId, deviceIds or all=true")
         }
+        if (several?.isEmpty() == true) throw JetWhaleMcpArgumentException("deviceIds names no device; pass at least one id from $TOOL_PREFIX.listDevices, or all=true")
         if (several == null && !everyDevice) {
             val device = deviceOperation { mirror.resolve(single) }
             deviceOperation { mirror.startRecording(device) }

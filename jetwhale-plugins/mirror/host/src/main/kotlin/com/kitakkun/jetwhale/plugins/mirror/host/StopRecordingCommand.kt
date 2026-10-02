@@ -28,6 +28,7 @@ internal class StopRecordingCommand(
         if (listOf(single != null, several != null, everyDevice).count { it } > 1) {
             throw JetWhaleMcpArgumentException("pass one of deviceId, deviceIds or all=true")
         }
+        if (several?.isEmpty() == true) throw JetWhaleMcpArgumentException("deviceIds names no device; pass at least one id, or all=true")
         if (several == null && !everyDevice) {
             val capture = deviceOperation { mirror.stopRecording(single) }
             return JetWhaleMcpResult.json(
