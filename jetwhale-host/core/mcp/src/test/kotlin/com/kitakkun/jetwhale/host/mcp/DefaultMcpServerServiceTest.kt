@@ -491,6 +491,32 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    fun `a plugin tool that throws is answered as an error and recorded as a failure`() = runBlocking {
+        val pluginId = "com.example.test"
+        val sessionId = "session-plugin-throws"
+        val plugin = ThrowingMcpCapablePlugin("com.example.test.boom")
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(LoadedPluginInstance(pluginId, sessionId, plugin))
+        every { pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) } returns plugin
+
+        service.start(host, port)
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val result = client.callTool("com.example.test.boom", mapOf("sessionId" to sessionId))
+                assertEquals(true, result.isError)
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            service.stop()
+        }
+
+        assertEquals("com.example.test.boom", record.toolName)
+        assertFalse(record.succeeded)
+    }
+
+    @Test
     fun `a structured response is recorded alongside the text content`() = runBlocking {
         val serviceWithTool = DefaultMcpServerService(
             pluginInstanceService = pluginInstanceService,
@@ -673,6 +699,19 @@ private class FakeMcpCapablePlugin(private val toolName: String = "com.example.t
             private val greetName by string("Name to greet", name = "name")
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): String = "Hello, ${arguments[greetName]}!"
+        },
+    )
+}
+
+private class ThrowingMcpCapablePlugin(private val toolName: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = "Always throws"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = error("plugin boom")
         },
     )
 }

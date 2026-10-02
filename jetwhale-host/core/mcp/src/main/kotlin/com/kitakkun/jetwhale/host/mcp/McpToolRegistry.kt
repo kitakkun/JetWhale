@@ -8,13 +8,13 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -79,9 +79,10 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
      * That key is stripped before forwarding to the plugin.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The command's result; an error result for a caller mistake or a command that threw;
+     * or null when no plugin instance serves [toolName] in that session.
      */
-    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
+    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): CallToolResult? {
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
         val entry = registrations[toolName] ?: return null
         val pluginId = entry.sessionToPlugin[sessionId] ?: return null
@@ -91,19 +92,14 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         ) as? JetWhaleMcpCapablePlugin ?: return null
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
-            command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+            CallToolResult(content = listOf(TextContent(command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId"))))))
         } catch (e: JetWhaleMcpArgumentException) {
-            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+            errorResult(e.message.orEmpty())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            // A bug in the plugin's command: name the plugin so the agent (and whoever reads the
-            // log) knows whose it is, rather than surfacing a bare exception from the server.
             logger.log(Level.WARNING, "MCP tool '$toolName' of plugin '$pluginId' threw", e)
-            buildJsonObject {
-                put("error", "the plugin's tool failed: $e")
-                put("pluginId", pluginId)
-            }.toString()
+            errorResult("the tool of plugin '$pluginId' failed: $e")
         }
     }
 

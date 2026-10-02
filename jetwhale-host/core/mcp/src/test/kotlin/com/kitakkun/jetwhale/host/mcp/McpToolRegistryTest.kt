@@ -3,12 +3,15 @@ package com.kitakkun.jetwhale.host.mcp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -95,17 +98,31 @@ class McpToolRegistryTest {
     }
 
     @Test
-    fun `a plugin command that throws answers with an error naming the plugin`() = runBlocking {
+    fun `a plugin command that throws answers with an error result naming the plugin`() = runBlocking {
         val plugin = ThrowingToolPlugin()
         val registry = McpToolRegistry(
             mock<PluginInstanceService> { every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin },
         )
         registry.register("com.example.a", "session-1", plugin)
 
-        val result = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.boom", mapOf("sessionId" to JsonPrimitive("session-1"))))).jsonObject
+        val result = checkNotNull(registry.dispatch("a.boom", mapOf("sessionId" to JsonPrimitive("session-1"))))
 
-        assertEquals("com.example.a", result.getValue("pluginId").jsonPrimitive.content)
-        assertEquals("the plugin's tool failed: java.lang.IllegalStateException: command boom", result.getValue("error").jsonPrimitive.content)
+        assertEquals(true, result.isError)
+        assertEquals("the tool of plugin 'com.example.a' failed: java.lang.IllegalStateException: command boom", errorOf(result))
+    }
+
+    @Test
+    fun `a plugin command rejecting its arguments answers with an error result`() = runBlocking {
+        val plugin = ThrowingToolPlugin()
+        val registry = McpToolRegistry(
+            mock<PluginInstanceService> { every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin },
+        )
+        registry.register("com.example.a", "session-1", plugin)
+
+        val result = checkNotNull(registry.dispatch("a.rejects", mapOf("sessionId" to JsonPrimitive("session-1"))))
+
+        assertEquals(true, result.isError)
+        assertEquals("count must be positive", errorOf(result))
     }
 
     @Test
@@ -142,8 +159,15 @@ private class ThrowingToolPlugin :
             override val description = "Throws"
             override suspend fun execute(arguments: JetWhaleMcpArguments): String = error("command boom")
         },
+        object : JetWhaleMcpCommand() {
+            override val name = "a.rejects"
+            override val description = "Rejects its arguments"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = throw JetWhaleMcpArgumentException("count must be positive")
+        },
     )
 }
+
+private fun errorOf(result: CallToolResult): String = Json.parseToJsonElement((result.content.single() as TextContent).text).jsonObject.getValue("error").jsonPrimitive.content
 
 private const val ROUNDS = 200
 private const val THREADS = 8
