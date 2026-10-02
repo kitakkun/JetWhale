@@ -228,8 +228,7 @@ class DefaultMcpServerService(
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
                 val arguments = request.arguments ?: emptyMap()
-                val result = toolRegistry.dispatch(toolName, arguments)
-                CallToolResult(content = listOf(TextContent(result ?: "null")))
+                toolRegistry.dispatch(toolName, arguments) ?: CallToolResult(content = listOf(TextContent("null")))
             }
         }
     }

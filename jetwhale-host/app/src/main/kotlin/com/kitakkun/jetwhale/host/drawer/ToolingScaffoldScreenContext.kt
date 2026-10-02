@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
+import com.kitakkun.jetwhale.host.model.PluginFailuresSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallJobsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SaveSidebarWidthMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
@@ -50,6 +51,7 @@ class ToolingScaffoldScreenContext(
     val sidebarWidthSubscriptionKey: SidebarWidthSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val pluginInstallJobsSubscriptionKey: PluginInstallJobsSubscriptionKey,
+    val pluginFailuresSubscriptionKey: PluginFailuresSubscriptionKey,
     val hostNavigationService: HostNavigationService,
     val presenterContext: ToolingScaffoldPresenterContext,
 ) : ScreenContext

@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.DpSize
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import com.kitakkun.jetwhale.host.model.isComposeSceneClosed
 import kotlinx.coroutines.CancellationException
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
@@ -49,9 +50,17 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         }
     }
 
-    val density = LocalDensity.current
-
+    // A scene that had already failed when it arrived is not reported again: it is the one the
+    // scene query still holds from before a Reload or a return to this screen, and the refetch that
+    // follows brings a fresh scene. Reporting it would put the fallback straight back up.
+    val failedOnArrival = remember(pluginComposeScene) { pluginComposeScene.failure.value != null }
+    val failure = pluginComposeScene.failure.value
     val catchThrowHost = LocalCatchThrowHost.current
+    LaunchedEffect(failure) {
+        if (failure != null && !failedOnArrival) catchThrowHost[uuid()] = failure
+    }
+
+    val density = LocalDensity.current
     Canvas(
         modifier = Modifier.fillMaxSize()
             .pointerHoverIcon(pluginComposeScene.pointerIcon.value)
@@ -132,7 +141,18 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         // tools on a different clock.
         @Suppress("UNUSED_EXPRESSION")
         frameNanoTime
-        this.drawIntoCanvas(pluginComposeScene::render)
+        if (pluginComposeScene.failure.value != null) return@Canvas
+        this.drawIntoCanvas { canvas ->
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+            try {
+                pluginComposeScene.render(canvas)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // Rethrowing would take the host window down with the plugin. render() has recorded
+                // the exception in the scene's failure, which the effect above reports.
+            }
+        }
     }
 }
 
@@ -147,10 +167,3 @@ private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> = t
         historical = pointerInputChange.historical,
     )
 }
-
-/**
- * True when this exception is the benign "input/render after the scene was closed" race that Compose
- * throws if we dispatch to a [androidx.compose.ui.scene.ComposeScene] that has already been disposed
- * (e.g. during navigation, session switch, or hot reload).
- */
-private fun IllegalStateException.isComposeSceneClosed(): Boolean = message?.contains("ComposeScene is closed") == true

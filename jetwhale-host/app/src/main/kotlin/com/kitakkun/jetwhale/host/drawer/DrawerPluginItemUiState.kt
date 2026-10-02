@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.model.PluginIconResource
  * @property needsApp False for a plugin that runs without any app (`requiresAgent = false`): it lives in
  *   [com.kitakkun.jetwhale.host.model.HostSession], is listed apart from the selected app's plugins,
  *   and is usable with no app connected.
+ * @property failureMessage The last exception this plugin's instance let escape in the selected session, kept until the instance is disposed.
  */
 data class DrawerPluginItemUiState(
     val name: String,
@@ -21,4 +22,5 @@ data class DrawerPluginItemUiState(
     val exposesMcpTools: Boolean,
     val isHeadless: Boolean,
     val needsApp: Boolean,
+    val failureMessage: String?,
 )

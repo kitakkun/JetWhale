@@ -1,0 +1,14 @@
+<configuration>
+    <!-- Takes the place of the host's logback.xml in tests, without its FILE appender: a test JVM
+         must not write to the developer's own ~/.jetwhale/logs/host.log. -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <root level="trace">
+        <appender-ref ref="STDOUT"/>
+    </root>
+    <logger name="io.netty" level="INFO"/>
+    <logger name="javax.jmdns" level="INFO"/>
+</configuration>

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
@@ -62,7 +61,8 @@ fun ToolingScaffoldRoot(
             state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
             state4 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
             state5 = rememberSubscription(screenContext.pluginInstallJobsSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus, installJobs ->
+            state6 = rememberSubscription(screenContext.pluginFailuresSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus, installJobs, pluginFailures ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -79,6 +79,7 @@ fun ToolingScaffoldRoot(
                     mcpActivity = mcpActivity,
                     mcpCapablePlugins = mcpCapablePlugins,
                     headlessPlugins = headlessPlugins,
+                    pluginFailures = pluginFailures,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     persistedSidebarWidth = persistedSidebarWidth,
                     mcpServerStatus = mcpServerStatus,
@@ -102,13 +103,10 @@ fun ToolingScaffoldRoot(
                 onReviewInstalls = { onNavigateSettings(SettingsScreenPage.AddPlugins) },
             )
 
-            val scope = rememberCoroutineScope()
             HostNavigationRequestEffect(
                 screenChannel = screenChannel,
                 onFollowAgent = { pluginName ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
-                    }
+                    snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
                 },
                 onClickPlugin = onClickPlugin,
                 onClickInfo = onClickInfo,
@@ -241,7 +239,7 @@ private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
     sessions: ImmutableList<DebugSession>,
     uiState: ToolingScaffoldUiState,
-    onFollowAgent: (pluginName: String) -> Unit,
+    onFollowAgent: suspend (pluginName: String) -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInfo: () -> Unit,
     onNavigateHome: () -> Unit,
@@ -271,7 +269,9 @@ private fun HostNavigationRequestEffect(
                 is HostNavigationRequest.Plugin -> {
                     val announceFollow = {
                         if (request.followsAgent) {
-                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+                            // Launched, not awaited: showing a snackbar suspends until it is
+                            // dismissed, and the next navigation request must not wait for that.
+                            launch { currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId) }
                         }
                     }
                     if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {

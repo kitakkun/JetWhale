@@ -18,4 +18,11 @@ class LogbackConfigurationTest {
         assertFalse(jmdns.isDebugEnabled)
         assertTrue(jmdns.isInfoEnabled)
     }
+
+    @Test
+    fun `timestamps carry the calendar year, not the week-based one that turns over in late December`() {
+        val config = checkNotNull(LogbackConfigurationTest::class.java.getResource("/logback.xml")).readText()
+
+        assertFalse("YYYY" in config)
+    }
 }

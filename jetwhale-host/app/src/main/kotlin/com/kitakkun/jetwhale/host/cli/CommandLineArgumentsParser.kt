@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.cli
 
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
+import com.kitakkun.jetwhale.host.model.SafeModeRequest
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 
 /**
@@ -9,6 +10,8 @@ import com.kitakkun.jetwhale.host.model.ServerPortOverrides
  * what the log viewer can show — for every launch that never asked for it.
  * @property headless Runs the servers with no window, for CI and agent-driven QA. See
  * [com.kitakkun.jetwhale.host.headless.HeadlessHostRunner].
+ * @property safeMode Starts without creating any plugin instance, for when a plugin keeps the host
+ * from starting. Applies to this run only.
  */
 data class JetWhaleCliOptions(
     val pluginDirs: List<String>,
@@ -16,6 +19,7 @@ data class JetWhaleCliOptions(
     val serverPortOverrides: ServerPortOverrides,
     val mcpPermissionOverride: McpPermissionOverride,
     val headless: Boolean,
+    val safeMode: SafeModeRequest,
 )
 
 enum class JetWhaleLogLevel {
@@ -33,6 +37,7 @@ class CommandLineArgumentsParser {
             serverPortOverrides = ServerPortOverrides(serverPort = null, wssPort = null, mcpServerPort = null),
             mcpPermissionOverride = McpPermissionOverride.None,
             headless = false,
+            safeMode = SafeModeRequest(requested = false),
         )
 
         val iterator = args.iterator()
@@ -77,6 +82,8 @@ class CommandLineArgumentsParser {
                 "--mcp-allow-all-permissions" -> options = options.copy(mcpPermissionOverride = McpPermissionOverride(allowAll = true))
 
                 "--headless" -> options = options.copy(headless = true)
+
+                "--safe-mode" -> options = options.copy(safeMode = SafeModeRequest(requested = true))
 
                 else -> Unit
             }
