@@ -427,6 +427,9 @@ Things to know:
   to a failed call.
 - **Declare it as a property**, next to the parameters. An output declared after the schema was read
   (inside `execute`, say) throws, and a command has a single output.
+- **Describe the answer as a whole in the tool's `description`.** MCP's output schema carries the
+  properties and which are required, but no description of its own, so `@McpDescription` on `T`'s
+  properties reaches the agent and one on `T` itself does not.
 
 ### Structured parameters
 
@@ -491,8 +494,13 @@ class InspectWidgetCommand : JetWhaleMcpCommand(
 
 The schema is derived from the same instance, so the names and discriminator advertised to the
 agent are the ones the command actually decodes. A nullable property admits `null` in its schema,
-and under `explicitNulls = false` it is not required either, since that format leaves it out. The format is also available to `execute` as the
-protected `json` property, for encoding the result.
+and under `explicitNulls = false` it is not required either, since that format leaves it out. A
+contextual type is advertised by the serializer the module registers for it; one with nothing
+registered, and a raw `JsonElement` or `JsonPrimitive`, admit any value. Under
+`ClassDiscriminatorMode.ALL_JSON_OBJECTS` an output schema pins the discriminator on every object,
+because the format writes it there, while a parameter schema leaves it out, because the format does
+not read it back. The format is also available to `execute` as the protected `json` property, for
+encoding the result.
 
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
 example — see `jetwhale-plugins/network/host`.

@@ -160,10 +160,10 @@ public abstract class JetWhaleMcpCommand(
     protected inline fun <reified T : Any> serializableOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = serializableOrNull(serializer<T>(), description, name)
 
     /** Explicit-serializer form of [serializable], for types whose serializer cannot be resolved from the type argument. */
-    protected fun <T : Any> serializable(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializable(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, serializer.descriptor.toJsonSchema(json, describesOutput = false), description) { paramName, element -> decode(paramName, serializer, element) }
 
     /** Explicit-serializer form of [serializableOrNull]. */
-    protected fun <T : Any> serializableOrNull(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializableOrNull(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, serializer.descriptor.toJsonSchema(json, describesOutput = false), description) { paramName, element -> decode(paramName, serializer, element) }
 
     /** A JSON array of strings, e.g. `["a", "b"]`. */
     protected fun stringList(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>> = requiredStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
@@ -210,6 +210,9 @@ public abstract class JetWhaleMcpCommand(
      *
      * MCP requires a tool's output schema to describe an object with named properties, so [T] must
      * serialize to one; a list, a map or a sealed hierarchy has to be wrapped in a class holding it.
+     * That schema carries the properties and which of them are required, but no description of its
+     * own: a `@McpDescription` on a property reaches the agent, one on [T] itself does not, so
+     * describe the answer as a whole in the tool's [description].
      *
      * Declare this only as a property of the command, next to its parameters. Leave it out when the
      * answer's shape is not worth advertising: prose, or JSON whose keys vary from call to call. A
@@ -228,7 +231,7 @@ public abstract class JetWhaleMcpCommand(
      * it does not produce; that is checked no further than the payload being a JSON object.
      */
     protected fun <T : Any> serializableOutput(serializer: KSerializer<T>): JetWhaleMcpOutput<T> {
-        val schema = serializer.descriptor.toJsonSchema(json)
+        val schema = serializer.descriptor.toJsonSchema(json, describesOutput = true)
         check((schema["type"] as? JsonPrimitive)?.content == "object" && "properties" in schema) {
             "Output type ${serializer.descriptor.serialName} of '$name' does not serialize to a JSON object with named properties, which MCP requires of a tool's output schema. Wrap it in a @Serializable class."
         }

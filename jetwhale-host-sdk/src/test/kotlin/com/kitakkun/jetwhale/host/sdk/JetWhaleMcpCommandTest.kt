@@ -5,23 +5,39 @@ package com.kitakkun.jetwhale.host.sdk
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.annotations.McpDescription
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
+import kotlinx.serialization.modules.SerializersModule
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -62,6 +78,47 @@ private object ArrayAnswerSerializer : KSerializer<Answer> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ArrayAnswer") { element<String>("detail") }
     override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(wire, listOf(value.detail.orEmpty()))
     override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(wire).single())
+}
+
+@Serializable
+private data class Inner(val value: String)
+
+@Serializable
+private data class Outer(val inner: Inner, val note: String?)
+
+private class Stamp(val epochSeconds: Long)
+
+private object StampAsStringSerializer : KSerializer<Stamp> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Stamp", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Stamp) = encoder.encodeString(value.epochSeconds.toString())
+    override fun deserialize(decoder: Decoder): Stamp = Stamp(decoder.decodeString().toLong())
+}
+
+@Serializable
+private data class Report(
+    @Contextual val at: Stamp,
+    val payload: JsonObject,
+    val anything: JsonElement,
+    val scalar: JsonPrimitive,
+    val inner: Inner?,
+)
+
+private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
+    override val name = "test.report"
+    override val description = "answers with a report"
+    private val report = serializableOutput<Report>()
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = report.result(
+        Report(
+            at = Stamp(epochSeconds = 5),
+            payload = buildJsonObject { put("count", 1) },
+            anything = buildJsonArray {
+                add(1)
+                add("two")
+            },
+            scalar = JsonPrimitive(3),
+            inner = Inner(value = "x"),
+        ),
+    )
 }
 
 class JetWhaleMcpCommandTest {
@@ -241,5 +298,88 @@ class JetWhaleMcpCommandTest {
         }
 
         assertEquals(JetWhaleMcpResult.text("hello"), runBlocking { command.run(noArguments) })
+    }
+
+    @Test
+    fun `an argument that follows the advertised schema decodes under a format that writes a discriminator on every object`() {
+        val json = Json { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val command = object : JetWhaleMcpCommand(json) {
+            override val name = "test.readOuter"
+            override val description = "reads an Outer"
+            private val outer by serializable<Outer>("The value to read.")
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[outer].inner.value)
+        }
+        val argument = buildJsonObject {
+            putJsonObject("inner") { put("value", "x") }
+            put("note", JsonNull)
+        }
+
+        assertConforms(argument, command.toDescriptor().parameters.getValue("outer").schema)
+        assertEquals(JetWhaleMcpResult.text("x"), runBlocking { command.run(JetWhaleMcpArguments(buildJsonObject { put("outer", argument) })) })
+    }
+
+    @Test
+    fun `a declared output's answer conforms to the schema it advertises`() {
+        val module = SerializersModule { contextual(Stamp::class, StampAsStringSerializer) }
+        val formats = listOf(
+            Json(from = DefaultArgumentJson) { serializersModule = module },
+            Json(from = DefaultArgumentJson) {
+                serializersModule = module
+                classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS
+            },
+        )
+
+        for (json in formats) {
+            val command = ReportCommand(json)
+            val schema = assertNotNull(command.toDescriptor().outputSchema)
+            assertConforms(assertNotNull(runBlocking { command.run(noArguments) }.structuredContent), schema)
+        }
+    }
+
+    private fun assertConforms(value: JsonElement, schema: JsonObject) {
+        val violations = violations(value, schema, path = "$")
+        assertTrue(violations.isEmpty(), "$value does not conform to $schema: $violations")
+    }
+
+    /**
+     * Checks [value] against the part of JSON Schema the walker emits. A keyword outside that part
+     * is reported rather than skipped, so a schema passes only when every constraint in it was checked.
+     */
+    private fun violations(value: JsonElement, schema: JsonObject, path: String): List<String> {
+        val unknownKeywords = schema.keys - setOf("type", "properties", "required", "additionalProperties", "items", "enum", "const", "oneOf", "description")
+        if (unknownKeywords.isNotEmpty()) return listOf("$path: unchecked keywords $unknownKeywords")
+        val problems = mutableListOf<String>()
+        schema["type"]?.let { type ->
+            val allowed = (type as? JsonArray)?.map { it.jsonPrimitive.content } ?: listOf(type.jsonPrimitive.content)
+            if (allowed.none { value.hasJsonSchemaType(it) }) problems += "$path: $value is none of $allowed"
+        }
+        schema["enum"]?.let { if (value !in it.jsonArray) problems += "$path: $value is not in $it" }
+        schema["const"]?.let { if (value != it) problems += "$path: $value is not $it" }
+        schema["oneOf"]?.let { variants ->
+            val matching = variants.jsonArray.count { violations(value, it.jsonObject, path).isEmpty() }
+            if (matching != 1) problems += "$path: $value matches $matching oneOf variants instead of one"
+        }
+        if (value is JsonObject) {
+            schema["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.filterNot(value::containsKey)?.forEach { problems += "$path: $it is missing" }
+            for ((key, item) in value) {
+                val itemSchema = schema["properties"]?.jsonObject?.get(key) ?: schema["additionalProperties"] ?: continue
+                problems += violations(item, itemSchema.jsonObject, "$path.$key")
+            }
+        }
+        if (value is JsonArray) {
+            schema["items"]?.let { items -> value.forEachIndexed { index, item -> problems += violations(item, items.jsonObject, "$path[$index]") } }
+        }
+        return problems
+    }
+
+    private fun JsonElement.hasJsonSchemaType(type: String): Boolean = when (type) {
+        "object" -> this is JsonObject
+        "array" -> this is JsonArray
+        "null" -> this is JsonNull
+        "string" -> this is JsonPrimitive && isString
+        "boolean" -> this is JsonPrimitive && !isString && booleanOrNull != null
+        "integer" -> this is JsonPrimitive && !isString && longOrNull != null
+        "number" -> this is JsonPrimitive && !isString && doubleOrNull != null
+        else -> error("unknown JSON Schema type $type")
     }
 }

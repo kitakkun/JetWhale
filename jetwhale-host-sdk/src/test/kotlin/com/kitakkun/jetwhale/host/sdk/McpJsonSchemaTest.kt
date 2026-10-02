@@ -4,18 +4,28 @@ package com.kitakkun.jetwhale.host.sdk
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.annotations.McpDescription
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonContentPolymorphicSerializer
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -73,6 +83,27 @@ private data class NullableKinds(val verb: Verb?, val shape: Shape?)
 @Serializable
 private data class Drawing(val shape: Shape)
 
+@Serializable
+private data class NullableHolder(val optionality: Optionality?)
+
+private class Opaque
+
+private object OpaqueAsStringSerializer : KSerializer<Opaque> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Opaque", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Opaque) = encoder.encodeString("opaque")
+    override fun deserialize(decoder: Decoder): Opaque = Opaque().also { decoder.decodeString() }
+}
+
+@Serializable
+private data class HasContextual(@Contextual val value: Opaque)
+
+private object ContentChosenSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
+    override fun selectDeserializer(element: JsonElement) = Payload.Text.serializer()
+}
+
+@Serializable
+private data class HasContentChosen(@Serializable(with = ContentChosenSerializer::class) val payload: Payload)
+
 class McpJsonSchemaTest {
     @Test
     fun `primitive kinds map onto the JSON Schema types`() {
@@ -85,7 +116,7 @@ class McpJsonSchemaTest {
         assertEquals("boolean", schema.property("flag").string("type"))
     }
 
-    private inline fun <reified T> schemaOf(json: Json = DefaultArgumentJson): JsonObject = serializer<T>().descriptor.toJsonSchema(json)
+    private inline fun <reified T> schemaOf(json: Json = DefaultArgumentJson): JsonObject = serializer<T>().descriptor.toJsonSchema(json, describesOutput = false)
 
     private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
 
@@ -126,17 +157,34 @@ class McpJsonSchemaTest {
     }
 
     @Test
-    fun `a format that writes the discriminator on every object pins it on every class`() {
+    fun `an output of a format that writes the discriminator on every object pins it on every class`() {
         val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
-        val schema = schemaOf<Optionality>(json)
+        val schema = outputSchemaOf<Optionality>(json)
         assertEquals(serializer<Optionality>().descriptor.serialName, schema.property("type").string("const"))
         assertEquals(listOf("type", "requiredHere"), schema.strings("required"))
+    }
+
+    private inline fun <reified T> outputSchemaOf(json: Json): JsonObject = serializer<T>().descriptor.toJsonSchema(json, describesOutput = true)
+
+    @Test
+    fun `a nullable class in an output pins the discriminator to the class's own serial name`() {
+        val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val holder = outputSchemaOf<NullableHolder>(json).property("optionality")
+        assertEquals(serializer<Optionality>().descriptor.serialName, holder.property("type").string("const"))
+    }
+
+    @Test
+    fun `a parameter of a format that writes the discriminator on every object leaves it off every class`() {
+        val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val schema = schemaOf<Optionality>(json)
+        assertEquals(listOf("requiredHere", "optionalHere"), schema.obj("properties").keys.toList())
+        assertEquals(listOf("requiredHere"), schema.strings("required"))
     }
 
     @Test
     fun `a sealed base's discriminator replaces the one its subclass carries on its own`() {
         val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
-        val circle = schemaOf<Drawing>(json).property("shape").variants().single { it.property("kind").string("const") == "circle" }
+        val circle = outputSchemaOf<Drawing>(json).property("shape").variants().single { it.property("kind").string("const") == "circle" }
         assertEquals(listOf("kind", "radius"), circle.strings("required"))
         assertEquals(listOf("kind", "radius"), circle.obj("properties").keys.toList())
     }
@@ -183,8 +231,24 @@ class McpJsonSchemaTest {
     }
 
     @Test
+    fun `a contextual type is described by the serializer the format's module registers`() {
+        val json = Json(from = DefaultArgumentJson) { serializersModule = SerializersModule { contextual(Opaque::class, OpaqueAsStringSerializer) } }
+        assertEquals("string", schemaOf<HasContextual>(json).property("value").string("type"))
+    }
+
+    @Test
+    fun `a contextual type with nothing registered admits any value`() {
+        assertEquals(JsonObject(emptyMap()), schemaOf<HasContextual>().property("value"))
+    }
+
+    @Test
+    fun `a sealed type whose descriptor lists no subclasses admits any value`() {
+        assertEquals(JsonObject(emptyMap()), schemaOf<HasContentChosen>().property("payload"))
+    }
+
+    @Test
     fun `an open polymorphic type is advertised as an unconstrained object`() {
-        val schema = PolymorphicSerializer(OpenBase::class).descriptor.toJsonSchema(DefaultArgumentJson)
+        val schema = PolymorphicSerializer(OpenBase::class).descriptor.toJsonSchema(DefaultArgumentJson, describesOutput = false)
         assertEquals("object", schema.string("type"))
         assertNull(schema["oneOf"])
     }
