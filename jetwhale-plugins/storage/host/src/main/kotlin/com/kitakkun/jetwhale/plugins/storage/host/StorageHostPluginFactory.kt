@@ -23,6 +23,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
 import com.kitakkun.jetwhale.protocol.messaging.request
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class StorageHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = StorageHostPlugin()

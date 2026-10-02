@@ -38,6 +38,7 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class ScrollToolTest {
 
+    // A scene with no content has nothing to observe; the point is only that the scroll completes.
     @Suppress("KOTRAIL_TEST_WITHOUT_ASSERTION")
     @Test
     fun `dispatchScroll does not throw on empty scene`() = runBlocking {

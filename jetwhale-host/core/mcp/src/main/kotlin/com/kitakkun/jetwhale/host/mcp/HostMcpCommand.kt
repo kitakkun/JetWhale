@@ -50,6 +50,8 @@ abstract class HostMcpCommand :
             inputSchema = descriptor.toToolSchema(),
             permission = McpToolPermission.HostGroup(group),
         ) { request ->
+            // A command failing in any way answers with the tool's error result rather than an MCP
+            // protocol error.
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))

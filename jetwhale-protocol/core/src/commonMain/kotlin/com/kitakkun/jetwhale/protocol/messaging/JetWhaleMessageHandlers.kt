@@ -54,6 +54,7 @@ public class JetWhaleMessageHandlers internal constructor() {
     ) {
         val key = eventSerializer.descriptor.serialName
         check(key !in eventEntries) { "An event handler for '$key' is already registered." }
+        // The entry decodes with [eventSerializer], so the value is always an [E].
         @Suppress("UNCHECKED_CAST")
         eventEntries[key] = EventEntry(eventSerializer) { value -> handler(value as E) }
     }
@@ -66,6 +67,7 @@ public class JetWhaleMessageHandlers internal constructor() {
     ) {
         val key = requestSerializer.descriptor.serialName
         check(key !in requestEntries) { "A request handler for '$key' is already registered." }
+        // The entry decodes with [requestSerializer], so the value is always a [REQ].
         @Suppress("UNCHECKED_CAST")
         requestEntries[key] = RequestEntry(requestSerializer, replySerializer) { value -> handler(value as REQ).value }
     }

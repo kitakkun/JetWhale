@@ -1,3 +1,4 @@
+// These annotations are used only by other modules' tests.
 @file:Suppress("UNUSED")
 
 package com.kitakkun.test.annotations

@@ -234,6 +234,8 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
             return@post
         }
+        // Any failure of the send is the QA client's answer, returned as a response rather than a
+        // server error.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
@@ -269,6 +271,8 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
             return@post
         }
+        // Any failure of the request is the QA client's answer, returned as a response rather than
+        // a server error.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var reply: String
@@ -300,6 +304,8 @@ private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
             )
             return@post
         }
+        // Any failure of the HTTP call is the QA client's answer, returned as a response rather
+        // than a server error.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var status: HttpStatusCode

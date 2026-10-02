@@ -64,6 +64,8 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
 /** The resolver a configured `endpoints { }` amounts to, in the order its candidates were declared. */
 internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver {
     val declared = candidates.ifEmpty {
+        // Nothing declared: the deprecated host and port stand in, defaults included, with the
+        // scheme `ssl { }` gives them.
         @Suppress("DEPRECATION")
         listOf(EndpointCandidate.Static(host, port, useWss = sslConfiguration.isEnabled))
     }
@@ -426,6 +428,8 @@ internal sealed interface EndpointCandidate {
     ) : EndpointCandidate
 }
 
+// Implements the deprecated host and port the scope keeps for configurations written before
+// `endpoints { }`.
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
 internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
     override var host: String = "localhost"

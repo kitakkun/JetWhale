@@ -22,6 +22,8 @@ internal fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any
     return agent to recorder.events
 }
 
+// The agent's mock rules are set by the host over messaging in production; a unit test can't drive
+// that internal path, so it seeds the state directly.
 @Suppress("UNCHECKED_CAST")
 internal fun JetWhaleNetworkAgentPlugin.seedMockRules(rules: List<MockRule>) {
     val field = JetWhaleNetworkAgentPlugin::class.java.getDeclaredField("mockRules").apply { isAccessible = true }

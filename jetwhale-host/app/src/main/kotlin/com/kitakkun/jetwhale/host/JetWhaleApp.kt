@@ -62,6 +62,8 @@ import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 
+// The window's entry point takes its whole dependency graph as a context parameter, which a
+// `@Preview` has no way to build.
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 context(appGraph: JetWhaleAppGraph)

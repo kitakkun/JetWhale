@@ -70,6 +70,8 @@ class DefaultPluginTrustRepository(
     private fun readFromDisk(): Map<String, TrustedPluginEntry> {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
+        // An unreadable or corrupt registry fails closed, whatever the cause: every plugin is
+        // treated as untrusted.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())

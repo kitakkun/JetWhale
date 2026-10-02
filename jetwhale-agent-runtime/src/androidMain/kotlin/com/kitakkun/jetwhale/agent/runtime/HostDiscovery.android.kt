@@ -37,6 +37,8 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
                     if (resolving) return
                     val next = pending.removeFirstOrNull() ?: return
                     resolving = true
+                    // Its replacement, registerServiceInfoCallback, needs API 34, and the agent
+                    // runs from API 23.
                     @Suppress("DEPRECATION")
                     nsdManager.resolveService(next, listener)
                 }
@@ -119,6 +121,7 @@ private fun currentApplicationContext(): Context? = try {
 private fun NsdServiceInfo.resolvedHostAddress(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
     hostAddresses.firstOrNull()?.hostAddress
 } else {
+    // Below API 34, the only branch that reaches here, `host` is the only address there is.
     @Suppress("DEPRECATION")
     host?.hostAddress
 }

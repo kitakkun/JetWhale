@@ -144,6 +144,8 @@ private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImage
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
     val mediaType = body.contentType()?.let { "${it.type}/${it.subtype}" }
     val isImage = isPreviewableImageMediaType(mediaType)
+    // RequestBody.writeTo is the app's code; a capture that fails in any way drops the capture,
+    // never the request.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         val sink = TruncatingSink(maxBytes = if (isImage) maxImageBytes + 1L else maxChars * 4L)

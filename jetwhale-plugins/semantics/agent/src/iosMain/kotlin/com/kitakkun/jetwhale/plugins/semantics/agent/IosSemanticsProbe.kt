@@ -62,6 +62,8 @@ private object IosSemanticsProbe {
                 .mapNotNull { it as? UIWindowScene }
                 .flatMap { scene -> scene.windows.map { it as UIWindow } }
 
+            // Deprecated since iOS 15, but an app that has not adopted scenes keeps its windows
+            // only here.
             @Suppress("DEPRECATION")
             val legacyWindows = application.windows.map { it as UIWindow }
             (sceneWindows + legacyWindows)

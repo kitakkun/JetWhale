@@ -8,6 +8,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ConnectionEndpointTest {
+    // Pins the deprecated host and port for as long as they remain in the API.
     @Suppress("DEPRECATION")
     @Test
     fun `the deprecated host and port stand in for undeclared endpoints`() {

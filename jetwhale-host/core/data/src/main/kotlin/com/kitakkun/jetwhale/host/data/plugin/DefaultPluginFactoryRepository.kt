@@ -88,6 +88,8 @@ class DefaultPluginFactoryRepository(
             return
         }
 
+        // A missing dependency jar or an unreadable manifest fails only this plugin's load, which
+        // lists its jar as failed.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val dependencyJarUrls = try {
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
@@ -276,6 +278,8 @@ class DefaultPluginFactoryRepository(
         val pluginIds = jarPathToPluginIds[pluginJarPath]?.takeIf { it.isNotEmpty() } ?: return emptyList()
         val classLoader = classLoaders[pluginJarPath] ?: return emptyList()
 
+        // Any failure of the in-place redefine falls back to a full reload, which is always
+        // correct.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             // redefineClasses works on loaded classes regardless of classloader, so this reaches
