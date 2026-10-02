@@ -36,7 +36,7 @@ internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
 
     override fun start() {
         startJetWhale {
-            connection { host = "localhost"; port = 5080 }
+            connection { endpoints { ws("localhost", 5080) } }
             plugins { register(networkAgent) }
         }
     }

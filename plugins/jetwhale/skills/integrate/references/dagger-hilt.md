@@ -20,7 +20,7 @@ Declare the optional binding once, in `src/main`:
 
 ```kotlin
 // src/main — production code, never names JetWhale
-interface DebugToolingInitializer {
+fun interface DebugToolingInitializer {
     fun initialize(): String
 }
 
@@ -47,7 +47,7 @@ object JetWhaleModule {
     fun initializer(agents: JetWhaleAgents): DebugToolingInitializer =
         DebugToolingInitializer {
             startJetWhale {
-                connection { host = "localhost"; port = 5080 }
+                connection { endpoints { ws("localhost", 5080) } }
                 plugins { register(agents.network) }
             }
         }

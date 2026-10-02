@@ -35,7 +35,7 @@ lives behind an implementation of it that only exists on the debug classpath.
  │                       debugImplementation(:debug-jetwhale)
  │
  ├── :core:debug        ← always compiled
- │     interface DebugToolingInitializer
+ │     fun interface DebugToolingInitializer
  │     NoOpInitializer      @ContributesBinding(AppScope::class)
  │
  └── :debug-jetwhale    ← debug classpath only; the only module that imports JetWhale
@@ -62,7 +62,7 @@ your app module.
 // :core:debug — on every classpath, release included
 package com.example.debug
 
-interface DebugToolingInitializer {
+fun interface DebugToolingInitializer {
     fun initialize()
 }
 
@@ -107,8 +107,7 @@ class JetWhaleInitializer(
     override fun initialize() {
         startJetWhale {
             connection {
-                host = "localhost"
-                port = 5080
+                endpoints { ws("localhost", 5080) }
             }
             plugins {
                 register(agents.network)

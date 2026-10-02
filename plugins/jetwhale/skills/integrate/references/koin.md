@@ -9,7 +9,7 @@ variant-specific too, so a leak fails the release build at compile time rather t
 
 ```kotlin
 // src/main — production code
-interface DebugToolingInitializer {
+fun interface DebugToolingInitializer {
     fun initialize()
 }
 ```
@@ -37,7 +37,7 @@ val debugToolingModule = module {
         val agent: JetWhaleNetworkAgentPlugin = get()
         DebugToolingInitializer {
             startJetWhale {
-                connection { host = "localhost"; port = 5080 }
+                connection { endpoints { ws("localhost", 5080) } }
                 plugins { register(agent) }
             }
         }

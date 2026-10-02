@@ -28,7 +28,7 @@ decorator.
 
 ```kotlin
 // :core:debug
-interface DebugToolingInitializer {
+fun interface DebugToolingInitializer {
     fun initialize()
 }
 
@@ -57,8 +57,7 @@ class JetWhaleInitializer(
     override fun initialize() {
         startJetWhale {
             connection {
-                host = "localhost"
-                port = 5080
+                endpoints { ws("localhost", 5080) }
             }
             plugins {
                 register(agents.network)

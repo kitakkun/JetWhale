@@ -24,7 +24,7 @@ is `@MergeComponent(AppScope::class)` on an abstract class, instantiated with
 
 ```kotlin
 // production module
-interface DebugToolingInitializer {
+fun interface DebugToolingInitializer {
     fun initialize(): String
 }
 
