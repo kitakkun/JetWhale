@@ -91,6 +91,19 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a listing reached through a link to a directory does not mark the files in it as links`() {
+        val real = File(directory, "real").apply { mkdir() }
+        File(real, "file.txt").writeText("hello")
+        val alias = File(directory, "alias")
+        Files.createSymbolicLink(alias.toPath(), real.toPath())
+
+        val entry = listDirectoryEntries(alias.path).single()
+
+        assertEquals("file.txt", entry.name)
+        assertEquals(false, entry.isSymbolicLink)
+    }
+
+    @Test
     fun `measuring counts everything below and does not follow links`() {
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "big.bin").writeBytes(ByteArray(1000))

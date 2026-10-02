@@ -12,8 +12,9 @@ internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
     val children = directory.listFiles() ?: throw IOException(
         if (directory.isDirectory) "'$path' cannot be read" else "'$path' is not a directory",
     )
+    val canonicalDirectory = directory.canonicalFile
     return children.map { child ->
-        val isLink = child.isSymbolicLink()
+        val isLink = child.isSymbolicLinkIn(canonicalDirectory)
         FileEntry(
             name = child.name,
             isDirectory = child.isDirectory,
@@ -67,10 +68,12 @@ private fun deleteWithoutFollowingLinks(file: File) {
 }
 
 /** True when the last component of this path is a symbolic link, whether or not its target exists. */
-private fun File.isSymbolicLink(): Boolean {
+private fun File.isSymbolicLink(): Boolean = isSymbolicLinkIn(absoluteFile.parentFile?.canonicalFile ?: return false)
+
+/** True when this file, a child of the directory whose canonical form is [canonicalParent], is itself a symbolic link. */
+private fun File.isSymbolicLinkIn(canonicalParent: File): Boolean {
     // Not Files.isSymbolicLink: java.nio.file arrives on Android only at API 26, and this code runs
     // down to API 23.
-    val parent = absoluteFile.parentFile?.canonicalFile ?: return false
-    val inCanonicalParent = File(parent, name)
+    val inCanonicalParent = File(canonicalParent, name)
     return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile
 }
