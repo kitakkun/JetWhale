@@ -31,6 +31,14 @@ fun NavBackStack<NavKey>.showBelowOverlays(navKey: NavKey) {
 }
 
 /**
+ * Clears the main window's content back to the empty home screen, leaving the dialogs and windows
+ * open over it, for the same reason as [showBelowOverlays].
+ */
+fun NavBackStack<NavKey>.showHome() {
+    removeAll { it !is EmptyPluginNavKey && it !is OverlayNavKey }
+}
+
+/**
  * Shows the MCP tools browser, seeded with the scope it was opened from.
  *
  * At most one browser window exists: opening it from a different scope re-seeds the filters rather

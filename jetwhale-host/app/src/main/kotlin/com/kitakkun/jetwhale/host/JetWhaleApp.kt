@@ -40,7 +40,6 @@ import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
 import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
 import com.kitakkun.jetwhale.host.navigation.LogViewerNavKey
-import com.kitakkun.jetwhale.host.navigation.OverlayNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
@@ -51,6 +50,7 @@ import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
 import com.kitakkun.jetwhale.host.navigation.showBelowOverlays
+import com.kitakkun.jetwhale.host.navigation.showHome
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -214,9 +214,7 @@ private fun ThemedHostWindow(
                         },
                         isPoppedOut = backStack::isPluginPoppedOut,
                         onClickBringBack = backStack::bringPluginBackToMainWindow,
-                        onNavigateHome = {
-                            backStack.removeAll { it !is EmptyPluginNavKey && it !is OverlayNavKey }
-                        },
+                        onNavigateHome = backStack::showHome,
                         onNavigateSettings = { page ->
                             backStack.addSingleTop(SettingsNavKey(initialPage = page))
                         },

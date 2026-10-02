@@ -58,4 +58,25 @@ class ShowBelowOverlaysTest {
 
         assertEquals(listOf(EmptyPluginNavKey, SettingsNavKey(), otherPlugin, plugin), backStack.toList())
     }
+
+    @Test
+    fun `going home clears the content and leaves the dialogs and windows open`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, otherPlugin, plugin, popout, SettingsNavKey())
+
+        backStack.showHome()
+
+        assertEquals(listOf(EmptyPluginNavKey, popout, SettingsNavKey()), backStack.toList())
+    }
+
+    @Test
+    fun `bringing a popout back while a dialog is open shows the plugin under the dialog`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, otherPlugin, popout, SettingsNavKey())
+
+        backStack.bringPluginBackToMainWindow(pluginId = popout.pluginId, sessionId = popout.sessionId)
+
+        assertEquals(
+            listOf(EmptyPluginNavKey, otherPlugin, PluginNavKey(popout.pluginId, popout.sessionId), SettingsNavKey()),
+            backStack.toList(),
+        )
+    }
 }
