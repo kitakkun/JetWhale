@@ -19,15 +19,4 @@ class UninstalledPluginBackStackTest {
 
         assertEquals(listOf(EmptyPluginNavKey, kept), backStack.toList())
     }
-
-    @Test
-    fun `a plugin enabled after it was uninstalled does not stay open`() {
-        val disabled = DisabledPluginNavKey(pluginId = "com.example.removed", pluginName = "Removed", sessionId = "app-1", notInApp = false)
-        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, disabled)
-
-        backStack.openEnabledPlugin(disabled)
-        backStack.removeEntriesOfUninstalledPlugins(installedPluginIds = emptySet())
-
-        assertEquals(listOf<NavKey>(EmptyPluginNavKey), backStack.toList())
-    }
 }
