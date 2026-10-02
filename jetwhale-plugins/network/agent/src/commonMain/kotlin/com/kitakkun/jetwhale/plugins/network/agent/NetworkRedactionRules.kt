@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
@@ -37,6 +38,8 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
     fun redactAtCapture(request: CapturedHttpRequest): CapturedHttpRequest = captureRules.redact(request)
 
     fun redactAtCapture(response: CapturedHttpResponse): CapturedHttpResponse = captureRules.redact(response)
+
+    fun redactAtCapture(failure: HttpRequestFailure): HttpRequestFailure = captureRules.redact(failure)
 
     class Builder internal constructor() {
         private val rules = mutableListOf<RedactionRule>()

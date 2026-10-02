@@ -107,6 +107,7 @@ private class NetworkHostPlugin :
         return copy(
             request = mcpRedactionRules.redact(request),
             response = response?.let { mcpRedactionRules.redact(it) },
+            failure = failure?.let { mcpRedactionRules.redact(it) },
         )
     }
 
