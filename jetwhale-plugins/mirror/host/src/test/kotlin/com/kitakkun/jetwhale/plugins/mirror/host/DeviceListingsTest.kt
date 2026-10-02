@@ -65,6 +65,29 @@ class DeviceListingsTest {
     }
 
     @Test
+    fun `idb_companion lists physical devices by their keys and leaves simulators to simctl`() {
+        val output = """
+            {"model":"iPhone 17","os_version":"iOS 26.0","udid":"00008150-0001A2B3C4D5E6F7","architecture":"arm64e","type":"Device","name":"iPhone","state":"Booted"}
+            {"model":"iPhone 16","os_version":"iOS 18.5","udid":"0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9","architecture":"arm64","type":"Simulator","name":"iPhone 16","state":"Booted"}
+        """.trimIndent()
+
+        assertEquals(
+            listOf(DeviceListing(id = "00008150-0001A2B3C4D5E6F7", name = "iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.0")),
+            parseCompanionDevices(output),
+        )
+    }
+
+    @Test
+    fun `idb_companion with nothing attached lists no device`() {
+        assertEquals(emptyList(), parseCompanionDevices(""))
+    }
+
+    @Test
+    fun `idb_companion output without a single target in it is not taken for no devices`() {
+        assertNull(parseCompanionDevices("Unknown option --only\nUsage: idb_companion [options]"))
+    }
+
+    @Test
     fun `a size override set on the device wins over its physical size`() {
         assertEquals(IntSize(1080, 2400), parseWmSize("Physical size: 1080x2400\n"))
         assertEquals(IntSize(720, 1600), parseWmSize("Physical size: 1080x2400\nOverride size: 720x1600\n"))

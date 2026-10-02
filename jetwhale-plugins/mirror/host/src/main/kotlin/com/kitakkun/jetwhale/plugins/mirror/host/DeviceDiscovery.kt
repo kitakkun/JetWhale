@@ -11,8 +11,8 @@ internal class Discovery(
 
 /**
  * Lists Android emulators and devices through adb, booted iOS simulators through simctl, and USB
- * iOS devices through idb. A device keeps its controller from one look to the next, so a device
- * that is streaming keeps what its stream holds, such as an idb companion.
+ * iOS devices through idb_companion. A device keeps its controller from one look to the next, so a
+ * device that is streaming keeps what its stream holds, such as an idb companion.
  */
 internal class DeviceDiscovery(
     private val toolPaths: MirrorToolPaths,
@@ -52,8 +52,12 @@ internal class DeviceDiscovery(
 
     private suspend fun listIosDevices(): List<DeviceListing>? {
         val idbPath = toolPaths.idbPath ?: return emptyList()
+        val idbCompanionPath = toolPaths.idbCompanionPath ?: return emptyList()
         if (companions == null) return emptyList()
-        return tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
+        // idb's Python client takes about half a second of CPU for every look; the companion lists the
+        // same devices for a tenth of that. idb stays for a companion that fails or answers unreadably.
+        return tryList { parseCompanionDevices(runCommandChecked(idbCompanionPath, "--list", "1", "--only", "device").stdoutText) }
+            ?: tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
     }
 
     private fun controllerFor(listing: DeviceListing): DeviceController = when (listing.kind) {
@@ -70,7 +74,7 @@ internal class DeviceDiscovery(
         if (toolPaths.ffmpegPath == null && (toolPaths.adbPath != null || toolPaths.idbCompanionPath != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 
-    private suspend fun tryList(list: suspend () -> List<DeviceListing>): List<DeviceListing>? = try {
+    private suspend fun tryList(list: suspend () -> List<DeviceListing>?): List<DeviceListing>? = try {
         list()
     } catch (_: DeviceControlException) {
         null

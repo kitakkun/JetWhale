@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.IntSize
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -51,6 +52,29 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
         }
     }
 }
+
+/**
+ * The physical iOS devices in `idb_companion --list 1` output, which has one JSON object per target,
+ * or null when no line is such an object: output in a form this does not read, which the caller
+ * then takes from idb instead. Simulators can be listed there too, but simctl already reports those.
+ */
+internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
+    val targets = output.lineSequence().filter(String::isNotBlank).mapNotNull { line ->
+        try {
+            Json.parseToJsonElement(line) as? JsonObject
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }.toList()
+    if (targets.isEmpty() && output.isNotBlank()) return null
+    return targets.mapNotNull { target ->
+        if (!target.text("type").equals("device", ignoreCase = true)) return@mapNotNull null
+        val udid = target.text("udid") ?: return@mapNotNull null
+        DeviceListing(id = udid, name = target.text("name") ?: udid, kind = DeviceKind.IosDevice, osVersion = target.text("os_version"))
+    }
+}
+
+private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.content
 
 /**
  * The physical iOS devices in `idb list-targets` output, whose lines read
