@@ -197,16 +197,16 @@ class ViewAttributeCommandsTest {
     }
 
     @Test
-    fun `setViewAttribute reports a refusal from the app rather than throwing`() {
+    fun `setViewAttribute that the app refuses is a failed call with its reason`() {
         val command = SetViewAttributeCommand(
             getAttributes = { response(attribute("alpha", ViewAttributeValue.FloatValue(1f), group = "Appearance")) },
             setAttribute = { ViewAttributeResult(applied = false, message = "the app rejected the change") },
         )
 
-        val result = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))
+        val result = runBlocking { command.run(JetWhaleMcpArguments(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))) }
 
-        assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
-        assertEquals("the app rejected the change", result["message"]?.jsonPrimitive?.content)
+        assertTrue(result.isError)
+        assertEquals("alpha was not applied to node -4 in window-1: the app rejected the change", (result.content.single() as JetWhaleMcpContent.Text).text)
     }
 }
 

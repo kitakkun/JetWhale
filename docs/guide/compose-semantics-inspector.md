@@ -83,7 +83,7 @@ tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetTex
 `EditText`, `ImeAction` → `onEditorAction`, `ScrollBy` → `scrollBy`, `ScrollToIndex` →
 `RecyclerView.scrollToPosition` / `ListView.setSelection`, `BringIntoView` →
 `requestRectangleOnScreen`, `RequestFocus` → `requestFocus()`. `Dismiss`, `Expand` and `Collapse`
-have no `View` counterpart and come back `performed: false` saying so. As always, only what a node
+have no `View` counterpart, and the call fails saying so. As always, only what a node
 lists in `actions` can be invoked — except `BringIntoView`, which every node takes.
 
 ### Editing View attributes
@@ -590,8 +590,8 @@ Changes one attribute: `rootId`, `nodeId`, `attributeId`, and `value` as a **str
 to the attribute's own type — `"GONE"`, `"true"`, `"0.5"`, `"#80FF0000"`, `"24"` — so there is no
 sealed JSON to construct. A `layoutSize` takes one of its constants, case-insensitively, or a pixel
 figure: `"wrap_content"`, `"match_parent"`, `"500"`. The answer carries the attribute as it reads back afterwards, which is not
-always what was asked for: an app may clamp a value or ignore it. The edit is temporary, and only
-`View` nodes have attributes at all.
+always what was asked for: an app may clamp a value or ignore it. A change the app refuses outright
+fails with its reason. The edit is temporary, and only `View` nodes have attributes at all.
 
 ```
 findNodes(resourceId: "status")   → { "nodes": [{ "rootId": "android-window-1f2e", "id": -4, "kind": "View" }] }
@@ -731,8 +731,8 @@ from Android views with no Compose in it is not captured at all — see
 [Android View support](#android-view-support). On iOS a dialog stays inside the window that showed
 it and is part of that root.
 
-**An action comes back `performed: false`.** The message says why — the node does not expose that
-action, it is disabled, or its handler declined. Capture the tree again and check the node's
+**An action fails.** The message says why — the node does not expose that action, it is disabled,
+or its handler declined. Capture the tree again and check the node's
 `actions` list; only what is listed there can be invoked.
 
 **Node ids changed between calls.** A node's id is stable while it stays composed — a `View` node's,
