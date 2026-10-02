@@ -319,7 +319,18 @@ private fun CrashRecoveryBanners() {
     val canOpenFiles = remember { Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) }
     val showFile: (path: String) -> Unit = { path ->
         if (canOpenFiles) {
-            openInDesktop(File(path))
+            val failure = try {
+                Desktop.getDesktop().open(File(path))
+                null
+            } catch (e: IOException) {
+                e
+            } catch (e: IllegalArgumentException) {
+                // Desktop.open rejects a file that no longer exists, such as a crash log deleted since startup.
+                e
+            } catch (e: SecurityException) {
+                e
+            }
+            failure?.let { Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open $path", it) }
         } else {
             coroutineScope.launch { clipboard.setClipEntry(ClipEntry(StringSelection(path))) }
         }
@@ -354,19 +365,4 @@ private fun CrashRecoveryBanners() {
             }
         }
     }
-}
-
-private fun openInDesktop(file: File) {
-    val failure = try {
-        Desktop.getDesktop().open(file)
-        null
-    } catch (e: IOException) {
-        e
-    } catch (e: IllegalArgumentException) {
-        // Desktop.open rejects a file that no longer exists, such as a crash log deleted since startup.
-        e
-    } catch (e: SecurityException) {
-        e
-    }
-    failure?.let { Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", it) }
 }
