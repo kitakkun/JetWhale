@@ -104,9 +104,12 @@ class DefaultPluginComposeSceneServiceFailureTest {
         }
         runCatching { render(failed) }
         assertNotNull(failed.failure.value)
+        withContext(Dispatchers.Main) {
+            armed.value = false
+            Snapshot.sendApplyNotifications()
+        }
 
-        assertFailsWith<IllegalStateException> { render(failed) }
-        armed.value = false
+        assertEquals("draw boom", assertFailsWith<IllegalStateException> { render(failed) }.message)
         val fresh = service.getOrCreatePluginScene(pluginId, sessionId)
 
         assertNotSame(failed, fresh)
