@@ -106,7 +106,6 @@ class DefaultPluginInstanceServiceScreenStateTest {
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
         val replacedScene = awaitReady(screenState).scene
 
-        // A reinstall serves the plugin from a new factory, whose instances replace the old ones.
         repository.loaded = loadedPlugin(factoryOf { UiPlugin() })
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
@@ -233,7 +232,6 @@ class DefaultPluginInstanceServiceScreenStateTest {
         screenState.first { it is PluginScreenState.Ready } as PluginScreenState.Ready
     }
 
-    // Scenes close on the main thread, after the instance is already gone.
     private suspend fun awaitClosed(scene: PluginComposeScene) = withTimeout(TIMEOUT_MILLIS) {
         sceneFactory.closed.first { scene in it }
     }

@@ -61,7 +61,6 @@ class DefaultPluginComposeSceneFactory(
             }
             composed = true
         } finally {
-            // Content that throws while first composed leaves a scene no one else holds to close.
             if (!composed) composeScene.close()
         }
 
