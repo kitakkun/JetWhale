@@ -38,10 +38,6 @@ class DefaultFollowAiOperationService(
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
         val pluginId = invocation.pluginId ?: return
         val currentView = hostNavigationService.currentView.value
-        // A call that names no session goes where the window would open it: the host session for a
-        // plugin that needs no app, otherwise the app the drawer has selected. The request names that
-        // session explicitly, so the window opens exactly the one checked here rather than whatever
-        // the drawer selects by the time it runs.
         val targetSessionId = invocation.sessionId
             ?: HostSession.ID.takeIf { pluginInstanceService.getPluginInstanceForSession(pluginId, it) != null }
             ?: currentView?.selectedSessionId
