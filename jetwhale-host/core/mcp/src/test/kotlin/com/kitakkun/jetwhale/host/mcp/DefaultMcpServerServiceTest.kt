@@ -274,7 +274,7 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
-    fun `a debug server stop withdraws the app sessions' tools and keeps the host session's`() = runBlocking {
+    fun `disposing app-session instances withdraws only those sessions' tools`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 4)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         val appPlugin = "com.example.app"
