@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -89,16 +88,9 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
-        scene.isMcpCapture.value = true
-        try {
-            // render() flushes snapshot apply notifications only at its end, so flush here or the
-            // frame is drawn before the flag flip is observed.
-            Snapshot.sendApplyNotifications()
+        scene.whileCapturingForMcp {
             scene.render(Canvas(ImageBitmap(size.width, size.height)))
             scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::traverseSemanticsTree)
-        } finally {
-            scene.isMcpCapture.value = false
-            Snapshot.sendApplyNotifications()
         }
     }
     return Json.encodeToString(AccessibilityTreeResult(nodes))

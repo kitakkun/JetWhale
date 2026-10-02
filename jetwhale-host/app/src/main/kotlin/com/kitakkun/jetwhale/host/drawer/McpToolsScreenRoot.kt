@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -9,6 +8,7 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
+import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session_disconnected
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session_host
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -20,13 +20,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import soil.query.compose.rememberSubscription
-import kotlin.time.Duration.Companion.milliseconds
-
-/** How long a finished MCP tool call keeps reading as "running" on the screen. */
-private val MCP_TOOLS_RUNNING_LINGER = 1500.milliseconds
 
 /** One tool row, carrying the plugin that publishes it because the list mixes plugins. */
 data class McpToolRowUiState(
@@ -61,14 +56,7 @@ fun McpToolsScreenRoot(
         var selectedPluginIds by retain { mutableStateOf(setOfNotNull(initialPluginId).toPersistentSet()) }
         var selectedSessionIds by retain { mutableStateOf(setOfNotNull(initialSessionId).toPersistentSet()) }
 
-        var running by remember { mutableStateOf(false) }
-        LaunchedEffect(mcpActivity.startedCount) {
-            if (mcpActivity.startedCount > 0L) {
-                running = true
-                delay(MCP_TOOLS_RUNNING_LINGER)
-                running = false
-            }
-        }
+        val running = rememberAiOperating(mcpActivity.startedCount)
         val runningInvocation = mcpActivity.lastStartedInvocation?.takeIf { running }
 
         val pluginNamesById = remember(loadedPlugins) { loadedPlugins.associate { it.id to it.name } }

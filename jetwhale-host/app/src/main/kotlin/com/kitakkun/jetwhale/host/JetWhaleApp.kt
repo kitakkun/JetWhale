@@ -90,7 +90,7 @@ fun JetWhaleApp() {
             var updateBannerDismissed by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    runCatching { updateCheckMutation.mutateAsync(Unit) }
+                    updateCheckMutation.mutateAsync(Unit)
                 }
             }
             val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)

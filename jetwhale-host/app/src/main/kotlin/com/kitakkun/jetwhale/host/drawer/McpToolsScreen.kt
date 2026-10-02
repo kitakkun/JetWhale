@@ -330,7 +330,7 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
         JwText(
             text = count.toString(),
             style = JwTheme.textStyles.code,
-            color = if (running) Color.Black else JwTheme.colors.onSurface,
+            color = if (running) JwTheme.colors.onAiAccent else JwTheme.colors.onSurface,
         )
     }
 }
