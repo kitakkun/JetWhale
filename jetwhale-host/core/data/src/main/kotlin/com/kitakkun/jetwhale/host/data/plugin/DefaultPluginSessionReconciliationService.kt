@@ -50,7 +50,6 @@ class DefaultPluginSessionReconciliationService(
                 // installing a jar whose pluginId is already enabled changes neither flow above,
                 // and the plugin would never get an instance.
                 pluginFactoryRepository.loadedPluginsFlow,
-                // In safe mode no instance is created; leaving it re-runs this with the real set.
                 safeModeService.safeModeFlow,
             ) { enabledPluginIds, activeSessions, _, safeMode ->
                 (if (safeMode == null) enabledPluginIds else emptySet()) to activeSessions

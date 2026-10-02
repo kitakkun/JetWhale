@@ -258,7 +258,6 @@ class DefaultPluginSessionReconciliationServiceTest {
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
 
-        // Long enough for a reconciliation that should not happen to have happened.
         const val QUIET_MILLIS = 500L
     }
 }

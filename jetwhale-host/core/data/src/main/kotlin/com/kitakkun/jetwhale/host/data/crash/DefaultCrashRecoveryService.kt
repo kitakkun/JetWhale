@@ -55,7 +55,6 @@ class DefaultCrashRecoveryService(
     private val logger = Logger.getLogger(DefaultCrashRecoveryService::class.java.name)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Read by the shutdown hook, which runs on a thread of its own.
     @Volatile
     private var runMarker: RunMarker? = null
 

@@ -315,7 +315,6 @@ private fun CrashRecoveryBanners() {
     val setPluginEnabledMutation = rememberMutation(appGraph.setPluginEnabledMutationKey)
     val coroutineScope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
-    // Linux without desktop integration has no way to open a file; the path is copied instead.
     val canOpenFiles = remember { Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) }
     val showFile: (path: String) -> Unit = { path ->
         if (canOpenFiles) {

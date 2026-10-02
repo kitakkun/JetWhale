@@ -286,7 +286,6 @@ class DefaultCrashRecoveryServiceTest {
     }
 
     private companion object {
-        // Far above any pid the OS hands out here, so no live process has it.
         const val DEAD_PID = 999_999_999L
         const val DEAD_RUN_ID = "dead-run"
         const val TIMEOUT_MILLIS = 5_000L

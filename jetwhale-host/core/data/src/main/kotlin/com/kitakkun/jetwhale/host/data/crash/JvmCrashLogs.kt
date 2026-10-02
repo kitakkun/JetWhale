@@ -60,7 +60,6 @@ internal fun JvmCrashLog.suspectPlugin(pluginPackages: Map<String, String>): Str
         .map { frame -> pluginPackages.entries.filter { (_, pluginPackage) -> pluginPackage.isNotEmpty() && frame.startsWith("$pluginPackage.") } }
         .firstOrNull { it.isNotEmpty() }
         ?: return null
-    // A plugin nested inside another's package is the more specific match.
     val longest = matches.maxOf { (_, pluginPackage) -> pluginPackage.length }
     return matches.singleOrNull { (_, pluginPackage) -> pluginPackage.length == longest }?.key
 }

@@ -146,8 +146,6 @@ class DefaultPluginComposeSceneServiceFailureTest {
         }
     }
 
-    // Like a plugin whose LaunchedEffect decodes something it was sent and throws on bad input: the
-    // effect is already running when it throws, so no composition or draw is on the stack.
     private class EffectThrowingUiPlugin(
         private val armed: MutableState<Boolean>,
     ) : JetWhaleHostPlugin(),
