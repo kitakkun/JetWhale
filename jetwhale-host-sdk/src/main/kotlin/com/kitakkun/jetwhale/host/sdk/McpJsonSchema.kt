@@ -10,10 +10,13 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementNames
+import kotlinx.serialization.descriptors.getContextualDescriptor
+import kotlinx.serialization.descriptors.nonNullOriginal
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -23,6 +26,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import kotlinx.serialization.modules.SerializersModule
 
 /**
  * Derives a JSON Schema fragment describing the values this descriptor accepts, so a serializable
@@ -37,18 +41,25 @@ import kotlinx.serialization.json.putJsonObject
  * carrying the class discriminator as a `const`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
- * The schema follows [json]'s configuration — its class discriminator and naming strategy — so the
- * shape advertised to the caller is the shape the same format decodes. Under
- * [ClassDiscriminatorMode.ALL_JSON_OBJECTS] every class schema carries the discriminator too, pinned
- * to the class's serial name, since that is what the format writes.
+ * Where the descriptor does not say what is written, the schema admits any value rather than guess:
+ * a contextual type is described by the serializer [json]'s module registers for it, and is
+ * unconstrained when none is registered; a `JsonElement`, `JsonPrimitive` or `JsonNull` is
+ * unconstrained, so a `JsonObject` is an object and a `JsonArray` an array of any values.
+ *
+ * The schema follows [json]'s configuration — its class discriminator, naming strategy and module —
+ * so the shape advertised to the caller is the shape the same format reads and writes. The one place
+ * the two directions part is [ClassDiscriminatorMode.ALL_JSON_OBJECTS]: the format writes the
+ * discriminator into every class, but does not read it back, and a format that does not ignore
+ * unknown keys rejects it. So only a schema that [describesOutput] pins it on every class.
  */
-internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema(
+internal fun SerialDescriptor.toJsonSchema(json: Json, describesOutput: Boolean): JsonObject = buildSchema(
     SchemaContext(
         classDiscriminator = json.configuration.classDiscriminator,
         writesClassDiscriminator = json.configuration.classDiscriminatorMode != ClassDiscriminatorMode.NONE,
-        writesClassDiscriminatorOnEveryClass = json.configuration.classDiscriminatorMode == ClassDiscriminatorMode.ALL_JSON_OBJECTS,
+        pinsClassDiscriminatorOnEveryClass = describesOutput && json.configuration.classDiscriminatorMode == ClassDiscriminatorMode.ALL_JSON_OBJECTS,
         namingStrategy = json.configuration.namingStrategy,
         explicitNulls = json.configuration.explicitNulls,
+        serializersModule = json.serializersModule,
     ),
     mutableSetOf(),
 )
@@ -56,19 +67,23 @@ internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema
 private class SchemaContext(
     val classDiscriminator: String,
     val writesClassDiscriminator: Boolean,
-    val writesClassDiscriminatorOnEveryClass: Boolean,
+    val pinsClassDiscriminatorOnEveryClass: Boolean,
     val namingStrategy: JsonNamingStrategy?,
     val explicitNulls: Boolean,
+    val serializersModule: SerializersModule,
 )
 
+// A nullable wrapper's serial name ends in "?", but Json writes the non-null type's name, a class
+// discriminator included.
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    val schema = nonNullSchema(context, enclosingTypes)
+    val schema = nonNullOriginal.nonNullSchema(context, enclosingTypes)
     return if (isNullable) schema.allowingNull() else schema
 }
 
 private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     // A value class is transparent on the wire: it encodes as its single underlying element.
     if (isInline) return getElementDescriptor(0).buildSchema(context, enclosingTypes)
+    if (serialName in UNCONSTRAINED_JSON_ELEMENTS) return ANY_VALUE
 
     val schema = when (kind) {
         is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> typeOnly("string")
@@ -102,7 +117,9 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
 
         is PolymorphicKind.SEALED -> guarded(enclosingTypes) { sealedSchema(context, enclosingTypes) }
 
-        else -> typeOnly("object")
+        is PolymorphicKind.OPEN -> typeOnly("object")
+
+        is SerialKind.CONTEXTUAL -> context.serializersModule.getContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE
     }
 
     val classDescription = annotations.mcpDescription() ?: return schema
@@ -132,7 +149,7 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
             .map { context.jsonNameOf(this@classSchema, it) }
         if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
     }
-    if (!context.writesClassDiscriminatorOnEveryClass) return schema
+    if (!context.pinsClassDiscriminatorOnEveryClass) return schema
     return schema.withDiscriminator(annotations.classDiscriminatorOr(context.classDiscriminator), serialName)
 }
 
@@ -140,9 +157,11 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * A sealed serializer's descriptor holds two elements: the discriminator and a contextual holder
  * whose elements are the subclasses, named by their serial names. `Json` writes the discriminator
  * flattened into the value's own object, so each variant is that subclass' object schema with the
- * discriminator pinned to a constant.
+ * discriminator pinned to a constant. A sealed descriptor of another shape, such as a
+ * `JsonContentPolymorphicSerializer`'s, which lists no subclasses, says nothing of what is written.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    if (elementsCount != 2 || getElementDescriptor(1).kind != SerialKind.CONTEXTUAL) return ANY_VALUE
     val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {
@@ -164,7 +183,7 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
 private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: String, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = buildSchema(context, enclosingTypes)
     if (discriminator == null) return schema
-    if (!context.writesClassDiscriminatorOnEveryClass) return schema.withDiscriminator(discriminator, serialName)
+    if (!context.pinsClassDiscriminatorOnEveryClass) return schema.withDiscriminator(discriminator, serialName)
     // Inside a sealed value Json writes the base's discriminator key, not the subclass's own.
     val ownDiscriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     if (ownDiscriminator == discriminator) return schema
@@ -242,3 +261,11 @@ private fun JsonObject.allowingNull(): JsonObject {
 }
 
 private fun typeOnly(type: String): JsonObject = buildJsonObject { put("type", type) }
+
+private val ANY_VALUE = JsonObject(emptyMap())
+
+private val UNCONSTRAINED_JSON_ELEMENTS = setOf(
+    JsonElement.serializer().descriptor.serialName,
+    JsonPrimitive.serializer().descriptor.serialName,
+    JsonNull.serializer().descriptor.serialName,
+)
