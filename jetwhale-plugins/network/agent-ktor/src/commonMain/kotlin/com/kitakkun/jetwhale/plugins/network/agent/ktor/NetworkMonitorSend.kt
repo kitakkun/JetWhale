@@ -223,7 +223,9 @@ private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: Body
         return call to BodyCapture("<streaming response body>", false)
     }
 
-    val saved = call.save()
+    // Ktor's SaveBody has already read a non-streaming body into response.call, and save() hands a
+    // saved call back as it is; only a streamed response, or a call synthesized for a mock, is read here.
+    val saved = response.call.save()
     val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
     if (isPreviewableImageMediaType(mediaType)) {
         return saved to encodeImage(saved.response.readRawBytes(), mediaType, limits.maxImageBytes)

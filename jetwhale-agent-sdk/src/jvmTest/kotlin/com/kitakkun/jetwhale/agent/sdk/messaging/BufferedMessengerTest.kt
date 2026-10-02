@@ -81,6 +81,39 @@ class BufferedMessengerTest {
     }
 
     @Test
+    fun `events queued after a reconnect go to the new transport once it opens flushing, not to the old one`() = runBlocking {
+        // Unconfined drains inside sendRaw, so an event flushed to the wrong transport is already there below.
+        val bufferedMessenger = BufferedMessenger(CoroutineScope(scope.coroutineContext + Dispatchers.Unconfined), Json, bufferCapacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+        bufferedMessenger.unbind()
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        bufferedMessenger.startFlush()
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `a transport bound while flushing is open receives the queued events from then on`() = runBlocking {
+        val bufferedMessenger = messenger(capacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
+    }
+
+    @Test
     fun `trySend (DROP) is dropped and reported while offline`() {
         val bufferedMessenger = messenger(capacity = 16)
         assertFalse(bufferedMessenger.sendRaw("t", "p", OfflineSendPolicy.DROP), "DROP should report false while offline")
