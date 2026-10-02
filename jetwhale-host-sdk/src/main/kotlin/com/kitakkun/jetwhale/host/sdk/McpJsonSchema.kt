@@ -80,9 +80,9 @@ private class SchemaContext(
     val serializersModule: SerializersModule,
 )
 
-// A nullable wrapper's serial name ends in "?", but Json writes the non-null type's name, a class
-// discriminator included.
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    // A nullable wrapper's serial name ends in "?", but Json writes the non-null type's name, a
+    // class discriminator included.
     val schema = nonNullOriginal.nonNullSchema(context, enclosingTypes)
     return if (isNullable) schema.allowingNull() else schema
 }
