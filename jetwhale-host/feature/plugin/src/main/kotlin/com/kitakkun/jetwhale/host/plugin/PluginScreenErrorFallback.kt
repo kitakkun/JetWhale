@@ -26,6 +26,8 @@ import java.awt.datatransfer.StringSelection
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PluginScreenErrorFallback(
+    title: String,
+    hint: String?,
     pluginId: String,
     errorBoundaryContext: ErrorBoundaryContext,
     onClickReset: (() -> Unit)?,
@@ -38,9 +40,15 @@ fun PluginScreenErrorFallback(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         JwText(
-            text = stringResource(Res.string.plugin_ui_crash_title),
+            text = title,
             style = JwTheme.textStyles.title,
         )
+        if (hint != null) {
+            JwText(
+                text = hint,
+                style = JwTheme.textStyles.body,
+            )
+        }
         JwText(
             text = stringResource(Res.string.plugin_ui_crash_plugin_id, pluginId),
             style = JwTheme.textStyles.body,
@@ -81,6 +89,8 @@ fun PluginScreenErrorFallback(
 private fun PluginScreenErrorFallbackPreview() {
     JwTheme(darkTheme = false) {
         PluginScreenErrorFallback(
+            title = stringResource(Res.string.plugin_ui_crash_title),
+            hint = null,
             pluginId = "com.example.sample-plugin",
             onClickReset = {},
             errorBoundaryContext = ErrorBoundaryContext(
