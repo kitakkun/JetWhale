@@ -15,12 +15,13 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
 }
 
 /**
- * Shows [navKey] as the main window's content without disturbing what is drawn over it.
+ * Shows [navKey] as the main window's content without disturbing what is open over it.
  *
- * The overlays at the top of the stack — dialogs and popout windows, see [OverlayNavKey] — are
- * rendered only while they sit above the content, so appending the key would push them under it
- * and take them down. An agent following its own operations, or a caller navigating over MCP,
- * changes what the window shows underneath; a settings dialog the user has open is theirs to close.
+ * The key goes below the run of [OverlayNavKey]s at the top of the stack. A dialog is drawn only
+ * while no content sits above it, so appending the key would take an open dialog down. Windows are
+ * drawn wherever they sit, but a dialog can be under one, so the run includes them. An agent
+ * following its own operations, or a caller navigating over MCP, changes what the window shows
+ * underneath; a settings dialog the user has open is theirs to close.
  */
 fun NavBackStack<NavKey>.showBelowOverlays(navKey: NavKey) {
     removeIf { it == navKey }
@@ -118,5 +119,5 @@ fun NavBackStack<NavKey>.followPluginToSession(
  */
 fun NavBackStack<NavKey>.openEnabledPlugin(navKey: DisabledPluginNavKey) {
     remove(navKey)
-    navKey.sessionId?.let { addSingleTop(PluginNavKey(navKey.pluginId, it)) }
+    navKey.sessionId?.let { showBelowOverlays(PluginNavKey(navKey.pluginId, it)) }
 }

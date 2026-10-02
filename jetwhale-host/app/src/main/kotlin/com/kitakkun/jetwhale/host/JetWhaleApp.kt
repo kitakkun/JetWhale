@@ -197,7 +197,7 @@ private fun ThemedHostWindow(
                         },
                         onClickInfo = { backStack.addSingleTop(InfoNavKey) },
                         onClickInactivePlugin = { pluginId, pluginName, sessionId, notInApp ->
-                            backStack.addSingleTop(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
+                            backStack.showBelowOverlays(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
                         },
                         onClickPlugin = { pluginId, sessionId ->
                             backStack.showBelowOverlays(PluginNavKey(pluginId, sessionId))
