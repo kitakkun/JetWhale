@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,7 +32,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import soil.plant.compose.reacty.ErrorBoundaryContext
+import soil.plant.compose.reacty.ErrorBoundary
 import soil.query.compose.rememberSubscription
 
 @OptIn(InternalComposeUiApi::class)
@@ -39,6 +40,7 @@ import soil.query.compose.rememberSubscription
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reloadCount by remember { mutableIntStateOf(0) }
+    var crashReloadCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(screenContext) {
         screenContext.pluginReloadedFlow.collect { reloadCount++ }
@@ -47,8 +49,6 @@ fun PluginScreenRoot() {
     Box(Modifier.fillMaxSize()) {
         val screenState = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
         val coroutineScope = rememberCoroutineScope()
-        // The state flow reports failures as states, so the error fallback is only the boundary's
-        // required default.
         SoilDataBoundary(
             state = screenState,
             fallback = SoilFallbackDefaults.custom(
@@ -59,25 +59,37 @@ fun PluginScreenRoot() {
             when (state) {
                 PluginScreenState.Starting -> PluginStartingScreen()
 
-                is PluginScreenState.Ready -> PluginScreen(pluginComposeScene = state.scene)
+                is PluginScreenState.Ready -> key(state.scene, crashReloadCount) {
+                    ErrorBoundary(
+                        fallback = {
+                            PluginScreenErrorFallback(
+                                title = stringResource(Res.string.plugin_ui_crash_title),
+                                hint = null,
+                                pluginId = screenContext.pluginId,
+                                cause = it.err,
+                                onClickReset = { crashReloadCount++ },
+                            )
+                        },
+                    ) {
+                        PluginScreen(pluginComposeScene = state.scene)
+                    }
+                }
 
                 PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
 
-                // Nothing on this screen can make a new attempt to create the instance, so it offers none.
                 is PluginScreenState.FailedToStart -> PluginScreenErrorFallback(
                     title = stringResource(Res.string.plugin_start_failed_title),
                     hint = stringResource(Res.string.plugin_start_failed_hint),
                     pluginId = screenContext.pluginId,
-                    errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
+                    cause = state.cause,
                     onClickReset = null,
                 )
 
-                // Restarting the subscription composes the scene again.
                 is PluginScreenState.ContentFailed -> PluginScreenErrorFallback(
                     title = stringResource(Res.string.plugin_ui_crash_title),
                     hint = null,
                     pluginId = screenContext.pluginId,
-                    errorBoundaryContext = ErrorBoundaryContext(err = state.cause, reset = null),
+                    cause = state.cause,
                     onClickReset = { coroutineScope.launch { screenState.reset() } },
                 )
             }
