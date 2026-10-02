@@ -104,7 +104,7 @@ actions capture as keys; they are declared again when a key changes.
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.actions.listActions` | Every action with its argument JSON Schema, suggested values, and whether it is destructive or belongs to the current screen |
-| `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace |
+| `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace. A run that did not succeed is reported as a failed call |
 
 The tool list of an MCP connection is fixed when it opens, while screen actions come and go, so
 actions are not tools of their own: an agent lists them, then runs one by id. List again after
