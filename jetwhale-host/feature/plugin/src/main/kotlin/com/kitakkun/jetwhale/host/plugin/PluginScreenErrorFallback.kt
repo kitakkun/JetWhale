@@ -20,7 +20,6 @@ import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
-import soil.plant.compose.reacty.ErrorBoundaryContext
 import java.awt.datatransfer.StringSelection
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -29,7 +28,7 @@ fun PluginScreenErrorFallback(
     title: String,
     hint: String?,
     pluginId: String,
-    errorBoundaryContext: ErrorBoundaryContext,
+    cause: Throwable,
     onClickReset: (() -> Unit)?,
 ) {
     val clipboard = LocalClipboard.current
@@ -54,11 +53,11 @@ fun PluginScreenErrorFallback(
             style = JwTheme.textStyles.body,
         )
         JwText(
-            text = stringResource(Res.string.plugin_ui_crash_error_message, errorBoundaryContext.err.localizedMessage),
+            text = stringResource(Res.string.plugin_ui_crash_error_message, cause.localizedMessage),
             style = JwTheme.textStyles.bodySmall,
         )
         JwText(
-            text = stringResource(Res.string.plugin_ui_crash_stacktrace, errorBoundaryContext.err.stackTraceToString()),
+            text = stringResource(Res.string.plugin_ui_crash_stacktrace, cause.stackTraceToString()),
             style = JwTheme.textStyles.bodySmall,
             maxLines = 10,
             overflow = TextOverflow.Ellipsis,
@@ -68,7 +67,7 @@ fun PluginScreenErrorFallback(
                 text = stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace),
                 onClick = {
                     clipboard.awtClipboard?.setContents(
-                        StringSelection(errorBoundaryContext.err.stackTraceToString()),
+                        StringSelection(cause.stackTraceToString()),
                         null,
                     )
                 },
@@ -93,10 +92,7 @@ private fun PluginScreenErrorFallbackPreview() {
             hint = null,
             pluginId = "com.example.sample-plugin",
             onClickReset = {},
-            errorBoundaryContext = ErrorBoundaryContext(
-                err = IllegalStateException("The plugin UI threw while composing"),
-                reset = null,
-            ),
+            cause = IllegalStateException("The plugin UI threw while composing"),
         )
     }
 }
