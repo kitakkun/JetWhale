@@ -64,6 +64,15 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `a node several levels down is found and counted`() {
+        val deep = node(id = 1, children = listOf(node(id = 2, children = listOf(node(id = 3, children = listOf(node(id = 4))))), node(id = 5)))
+        val snapshot = snapshot(root("window", node = deep))
+
+        assertEquals(4, snapshot.findRootOf(nodeId = 4)?.findNode(4)?.id)
+        assertEquals(5, snapshot.nodeCount())
+    }
+
+    @Test
     fun `findRootOf returns null for an unknown id`() {
         assertNull(snapshot(root("window", node = node(id = 1))).findRootOf(nodeId = 99))
     }

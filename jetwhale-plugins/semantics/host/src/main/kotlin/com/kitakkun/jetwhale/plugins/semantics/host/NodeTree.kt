@@ -38,7 +38,13 @@ internal fun UiNode.asSequence(): Sequence<UiNode> = sequence {
     children.forEach { yieldAll(it.asSequence()) }
 }
 
-internal fun ComposeRoot.findNode(nodeId: Int): UiNode? = node?.asSequence()?.firstOrNull { it.id == nodeId }
+internal fun ComposeRoot.findNode(nodeId: Int): UiNode? = node?.findDescendant(nodeId)
+
+/** This node, or the node below it with [nodeId]. */
+internal fun UiNode.findDescendant(nodeId: Int): UiNode? = if (id == nodeId) this else children.firstNotNullOfOrNull { it.findDescendant(nodeId) }
+
+/** How many nodes this subtree holds, this node included. */
+internal fun UiNode.subtreeSize(): Int = 1 + children.sumOf(UiNode::subtreeSize)
 
 /**
  * The root holding [nodeId], for resolving a node the caller named without saying where. Searched
@@ -47,7 +53,7 @@ internal fun ComposeRoot.findNode(nodeId: Int): UiNode? = node?.asSequence()?.fi
  */
 internal fun NodeTreeSnapshot.findRootOf(nodeId: Int): ComposeRoot? = roots.lastOrNull { it.findNode(nodeId) != null }
 
-internal fun NodeTreeSnapshot.nodeCount(): Int = roots.sumOf { it.node?.asSequence()?.count() ?: 0 }
+internal fun NodeTreeSnapshot.nodeCount(): Int = roots.sumOf { it.node?.subtreeSize() ?: 0 }
 
 /**
  * The node whose platform attributes are worth reading, given what the tree has selected: only an
