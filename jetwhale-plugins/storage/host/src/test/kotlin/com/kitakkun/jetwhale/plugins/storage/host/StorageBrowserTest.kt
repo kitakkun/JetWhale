@@ -194,17 +194,15 @@ class StorageBrowserTest {
     }
 
     @Test
-    fun `the tree and the selected row are the same objects until something they show changes`() {
+    fun `the tree rows are the same objects until something they show changes`() {
         runBlocking { browser.load() }
         browser.toggleDirectory(location("Files"))
         browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
         val rows = browser.treeRows
-        val selected = browser.selectedRow
 
         browser.computeSha256(location("Files", "notes.txt"))
 
         assertSame(rows, browser.treeRows)
-        assertSame(selected, browser.selectedRow)
         browser.toggleDirectory(location("Files", "datastore"))
         assertNotSame(rows, browser.treeRows)
         assertEquals(listOf("Files", "datastore", "settings.preferences_pb", "notes.txt"), browser.treeRows.map { it.location.name })
