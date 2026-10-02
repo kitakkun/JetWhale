@@ -223,7 +223,25 @@ class MirrorMcpCommandsTest {
         val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("deviceIds", buildJsonArray { add("00008110") }) })
 
         assertTrue(result.isError)
-        assertTrue("cannot record" in result.text(), result.text())
+        assertEquals("Every device failed:\n- 00008110: cannot record", result.text())
+    }
+
+    @Test
+    fun `startRecording with no device to start is a failed call`() {
+        val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("deviceIds", buildJsonArray { }) })
+
+        assertTrue(result.isError)
+        assertTrue("no device to start" in result.text(), result.text())
+    }
+
+    @Test
+    fun `stopRecording with all while nothing records is a failed call`() {
+        mirror.runningRecordings = emptyList()
+
+        val result = StopRecordingCommand(mirror).answer(buildJsonObject { put("all", true) })
+
+        assertTrue(result.isError)
+        assertTrue("no recording to stop" in result.text(), result.text())
     }
 
     @Test
@@ -342,7 +360,9 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
 
     override suspend fun stopRecording(deviceId: String?): Capture = throw deviceControlError("no recording is running")
 
-    override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = listOf(RecordingResult.Saved(recording))
+    var runningRecordings: List<Capture> = listOf(recording)
+
+    override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = runningRecordings.map(RecordingResult::Saved)
 
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> {
         captureQueries += CaptureQuery(deviceId, kind, sinceEpochMillis)
