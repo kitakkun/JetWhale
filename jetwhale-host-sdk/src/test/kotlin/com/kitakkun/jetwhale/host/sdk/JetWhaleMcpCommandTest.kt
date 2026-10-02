@@ -95,12 +95,23 @@ private object StampAsStringSerializer : KSerializer<Stamp> {
 }
 
 @Serializable
+private sealed interface Outcome {
+    @Serializable
+    data class Ok(val value: Int) : Outcome
+
+    @Serializable
+    data class Partial(val value: Int, val note: String? = null) : Outcome
+}
+
+@Serializable
 private data class Report(
     @Contextual val at: Stamp,
     val payload: JsonObject,
     val anything: JsonElement,
     val scalar: JsonPrimitive,
+    val nothing: JsonNull,
     val inner: Inner?,
+    val outcome: Outcome,
 )
 
 private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
@@ -116,7 +127,9 @@ private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
                 add("two")
             },
             scalar = JsonPrimitive(3),
+            nothing = JsonNull,
             inner = Inner(value = "x"),
+            outcome = Outcome.Ok(value = 1),
         ),
     )
 }
@@ -307,15 +320,32 @@ class JetWhaleMcpCommandTest {
             override val name = "test.readOuter"
             override val description = "reads an Outer"
             private val outer by serializable<Outer>("The value to read.")
-            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[outer].inner.value)
+            private val fallback by serializableOrNull<Outer>("The value to read after outer.")
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[outer].inner.value + arguments[fallback]?.inner?.value)
         }
         val argument = buildJsonObject {
             putJsonObject("inner") { put("value", "x") }
             put("note", JsonNull)
         }
+        val parameters = command.toDescriptor().parameters
 
-        assertConforms(argument, command.toDescriptor().parameters.getValue("outer").schema)
-        assertEquals(JetWhaleMcpResult.text("x"), runBlocking { command.run(JetWhaleMcpArguments(buildJsonObject { put("outer", argument) })) })
+        assertConforms(argument, parameters.getValue("outer").schema)
+        assertConforms(argument, parameters.getValue("fallback").schema)
+        val arguments = buildJsonObject {
+            put("outer", argument)
+            put("fallback", argument)
+        }
+        assertEquals(JetWhaleMcpResult.text("xx"), runBlocking { command.run(JetWhaleMcpArguments(arguments)) })
+    }
+
+    @Test
+    fun `a declared output pins the discriminator a format writes on every object`() {
+        val command = MeasureCommand(Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS })
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+        val written = assertNotNull(runBlocking { command.run(noArguments) }.structuredContent)
+
+        assertEquals(written.getValue("type"), (schema.getValue("properties") as JsonObject).getValue("type").jsonObject.getValue("const"))
+        assertEquals("type", (schema.getValue("required") as JsonArray).first().jsonPrimitive.content)
     }
 
     @Test
@@ -326,6 +356,10 @@ class JetWhaleMcpCommandTest {
             Json(from = DefaultArgumentJson) {
                 serializersModule = module
                 classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS
+            },
+            Json(from = DefaultArgumentJson) {
+                serializersModule = module
+                classDiscriminatorMode = ClassDiscriminatorMode.NONE
             },
         )
 
@@ -346,7 +380,7 @@ class JetWhaleMcpCommandTest {
      * is reported rather than skipped, so a schema passes only when every constraint in it was checked.
      */
     private fun violations(value: JsonElement, schema: JsonObject, path: String): List<String> {
-        val unknownKeywords = schema.keys - setOf("type", "properties", "required", "additionalProperties", "items", "enum", "const", "oneOf", "description")
+        val unknownKeywords = schema.keys - setOf("type", "properties", "required", "additionalProperties", "items", "enum", "const", "oneOf", "anyOf", "description")
         if (unknownKeywords.isNotEmpty()) return listOf("$path: unchecked keywords $unknownKeywords")
         val problems = mutableListOf<String>()
         schema["type"]?.let { type ->
@@ -358,6 +392,9 @@ class JetWhaleMcpCommandTest {
         schema["oneOf"]?.let { variants ->
             val matching = variants.jsonArray.count { violations(value, it.jsonObject, path).isEmpty() }
             if (matching != 1) problems += "$path: $value matches $matching oneOf variants instead of one"
+        }
+        schema["anyOf"]?.let { variants ->
+            if (variants.jsonArray.none { violations(value, it.jsonObject, path).isEmpty() }) problems += "$path: $value matches no anyOf variant"
         }
         if (value is JsonObject) {
             schema["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.filterNot(value::containsKey)?.forEach { problems += "$path: $it is missing" }

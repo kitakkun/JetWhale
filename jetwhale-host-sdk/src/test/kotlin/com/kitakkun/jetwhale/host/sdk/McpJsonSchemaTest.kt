@@ -97,6 +97,17 @@ private object OpaqueAsStringSerializer : KSerializer<Opaque> {
 @Serializable
 private data class HasContextual(@Contextual val value: Opaque)
 
+private class Box<T>(val content: T)
+
+private class BoxSerializer<T>(private val contentSerializer: KSerializer<T>) : KSerializer<Box<T>> {
+    override val descriptor: SerialDescriptor = contentSerializer.descriptor
+    override fun serialize(encoder: Encoder, value: Box<T>) = encoder.encodeSerializableValue(contentSerializer, value.content)
+    override fun deserialize(decoder: Decoder): Box<T> = Box(decoder.decodeSerializableValue(contentSerializer))
+}
+
+@Serializable
+private data class HasBox(@Contextual val box: Box<String>)
+
 private object ContentChosenSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
     override fun selectDeserializer(element: JsonElement) = Payload.Text.serializer()
 }
@@ -237,6 +248,12 @@ class McpJsonSchemaTest {
     }
 
     @Test
+    fun `a contextual type registered through a provider of its type arguments' serializers admits any value`() {
+        val json = Json(from = DefaultArgumentJson) { serializersModule = SerializersModule { contextual(Box::class) { args -> BoxSerializer(args[0]) } } }
+        assertEquals(JsonObject(emptyMap()), schemaOf<HasBox>(json).property("box"))
+    }
+
+    @Test
     fun `a contextual type with nothing registered admits any value`() {
         assertEquals(JsonObject(emptyMap()), schemaOf<HasContextual>().property("value"))
     }
@@ -268,10 +285,20 @@ class McpJsonSchemaTest {
     }
 
     @Test
-    fun `ClassDiscriminatorMode NONE drops the discriminator from every variant`() {
+    fun `ClassDiscriminatorMode NONE drops the discriminator from every variant and lets any of them match`() {
         val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.NONE }
-        val variants = schemaOf<Payload>(json).variants()
+        val schema = schemaOf<Payload>(json)
+        assertNull(schema["oneOf"])
+        val variants = (schema.getValue("anyOf") as JsonArray).map { it as JsonObject }
         assertEquals(listOf("body"), variants.single().obj("properties").keys.toList())
+    }
+
+    @Test
+    fun `a nullable sealed value of a format without discriminators gains a null variant too`() {
+        val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.NONE }
+        val variants = (schemaOf<NullableKinds>(json).property("shape").getValue("anyOf") as JsonArray).map { it as JsonObject }
+        assertEquals("null", variants.last().string("type"))
+        assertEquals(3, variants.size)
     }
 
     @Test
