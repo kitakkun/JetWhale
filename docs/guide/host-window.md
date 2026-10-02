@@ -142,8 +142,10 @@ starts and removes it when it shuts down, so the next launch knows the previous 
 That launch opens with a banner: *JetWhale quit unexpectedly last time*. From it you can:
 
 - **Open crash log** — the JVM's `hs_err_pid<pid>.log` for that process, when it wrote one.
-- **Open logs folder** — `~/.jetwhale/logs/`, which holds the crash logs and `host.log`, the host's
-  own log (`INFO` and above, rotated at 10 MB, three files kept).
+- **Open logs folder** — `~/.jetwhale/logs/`, which holds the crash logs and `host.log` (`INFO` and
+  above, rotated at 10 MB, three files kept). `host.log` keeps what the host logs through SLF4J: its
+  servers, and exceptions nothing caught. Lines logged through `java.util.logging`, a plugin's
+  failures among them, reach the [log viewer](#the-log-viewer) but not this file.
 - **Disable \<plugin\>** — offered when the crashing thread was running a plugin's code. The host
   reads the Java frames of the crash log and names the plugin whose factory's package they belong to, as long as no other plugin shares that package.
 
