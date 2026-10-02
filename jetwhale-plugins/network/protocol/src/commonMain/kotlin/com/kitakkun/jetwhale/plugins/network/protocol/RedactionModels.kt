@@ -162,7 +162,16 @@ private fun jsonStringLiterals(text: String): Sequence<String> = sequence {
                     literal.append(code.toChar())
                     at += 6
                 } else {
-                    literal.append(text[at + 1])
+                    literal.append(
+                        when (val escaped = text[at + 1]) {
+                            'b' -> '\b'
+                            'f' -> '\u000C'
+                            'n' -> '\n'
+                            'r' -> '\r'
+                            't' -> '\t'
+                            else -> escaped
+                        },
+                    )
                     at += 2
                 }
             } else {

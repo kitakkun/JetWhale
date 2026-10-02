@@ -226,6 +226,15 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `a field name holding a control-character escape in a truncated body is still caught`() {
+        val rules = NetworkRedactionRules { bodyField("pass\tword") }
+        val redacted = rules.redactAtCapture(
+            request(body = """{"pass\tword":"hunter2","items":[""", bodyTruncated = true),
+        )
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
     fun `a truncated JSON body that names no redacted field is kept as captured`() {
         val rules = NetworkRedactionRules { bodyField("password") }
         val body = """{"user":"alice","items":[1,2,3"""
