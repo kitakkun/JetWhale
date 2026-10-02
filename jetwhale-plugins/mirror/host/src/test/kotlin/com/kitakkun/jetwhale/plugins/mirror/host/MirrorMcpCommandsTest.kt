@@ -227,11 +227,22 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
-    fun `startRecording with no device to start is a failed call`() {
-        val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("deviceIds", buildJsonArray { }) })
+    fun `startRecording with all while every device records already or none can is a failed call`() {
+        mirror.recordAllTargets = emptyList()
+
+        val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("all", true) })
 
         assertTrue(result.isError)
         assertTrue("no device to start" in result.text(), result.text())
+    }
+
+    @Test
+    fun `an empty deviceIds is refused before any recording starts or stops`() {
+        val noDevices = buildJsonObject { put("deviceIds", buildJsonArray { }) }
+
+        assertFailsWith<JetWhaleMcpArgumentException> { StartRecordingCommand(mirror).answer(noDevices) }
+        assertFailsWith<JetWhaleMcpArgumentException> { StopRecordingCommand(mirror).answer(noDevices) }
+        assertEquals(emptyList(), mirror.recordingRequests)
     }
 
     @Test
@@ -351,9 +362,11 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
 
     val recordingRequests = mutableListOf<List<String>?>()
 
+    var recordAllTargets: List<String> = devices.map(MirrorDevice::id)
+
     override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> {
         recordingRequests += deviceIds
-        return (deviceIds ?: devices.map(MirrorDevice::id)).map { id ->
+        return (deviceIds ?: recordAllTargets).map { id ->
             if (id == devices.first().id) RecordingResult.Started(deviceId = id, deviceName = "Pixel 9") else RecordingResult.Failed(deviceId = id, deviceName = id, reason = "cannot record")
         }
     }
