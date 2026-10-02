@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -162,6 +163,20 @@ class MirrorViewingTest {
         surface.close()
 
         assertTrue(written.all(Bitmap::isClosed))
+    }
+
+    @Test
+    fun `a frame whose write throws has its bitmap closed`() {
+        var target: Bitmap? = null
+
+        assertFailsWith<IllegalStateException> {
+            MirrorSurface().startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
+                target = bitmap
+                error("malformed frame")
+            }
+        }
+
+        assertTrue(target?.isClosed ?: false)
     }
 
     @Test

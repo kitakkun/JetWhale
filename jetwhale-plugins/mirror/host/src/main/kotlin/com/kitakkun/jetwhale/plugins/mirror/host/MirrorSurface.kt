@@ -109,7 +109,13 @@ internal class MirrorSurface : AutoCloseable {
     private fun writeStreamFrame(generation: Long, width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
         val started = System.nanoTime()
         val frame = newBitmap(width, height, colorType)
-        if (!write(frame)) return frame.close()
+        var written = false
+        try {
+            written = write(frame)
+        } finally {
+            if (!written) frame.close()
+        }
+        if (!written) return
         frame.setImmutable()
         val replaced = synchronized(lock) {
             if (closed || generation != streamGeneration) frame else ready.also { ready = frame }
