@@ -15,13 +15,15 @@ import com.kitakkun.jetwhale.host.mcp.tools.captureAccessibilityTree
 import com.kitakkun.jetwhale.host.mcp.tools.createTestScene
 import com.kitakkun.jetwhale.host.mcp.tools.renderTestScene
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RenderDiscardingPixelsTest {
     @Test
-    fun `a click or type reads the tree after the pending recomposition has run`() {
+    fun `a click or type reads the tree after the pending recomposition has run`() = runBlocking(Dispatchers.Main) {
         var label by mutableStateOf("before")
         val scene = createTestScene { BasicText(label) }
         renderTestScene(scene)
@@ -34,11 +36,12 @@ class RenderDiscardingPixelsTest {
     }
 
     @Test
-    fun `the accessibility tree is captured after the pending recomposition has run`() {
+    fun `the accessibility tree is captured after the pending recomposition has run`() = runBlocking(Dispatchers.Main) {
         var label by mutableStateOf("before")
         val scene = createTestScene { BasicText(label) }
         renderTestScene(scene)
         label = "after"
+        Snapshot.sendApplyNotifications()
 
         val tree = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
 
