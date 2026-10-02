@@ -12,6 +12,7 @@ import platform.Foundation.create
 import platform.Foundation.dataUsingEncoding
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -91,6 +92,37 @@ class PlatformFileSystemAppleTest {
     @Test
     fun `listing a missing directory is an error`() {
         assertFailsWith<IllegalStateException> { listDirectoryEntries("$directory/missing") }
+    }
+
+    @Test
+    fun `an upload in chunks replaces the target only on the last chunk`() {
+        writeText("$directory/settings.bin", "old")
+        val staging = "$directory/.settings.bin.jetwhale-upload-1"
+
+        receiveUploadChunk(staging, "$directory/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        assertEquals("old", readFileBytes("$directory/settings.bin", offset = 0, maxBytes = 100).decodeToString())
+
+        receiveUploadChunk(staging, "$directory/settings.bin", offset = 3, bytes = byteArrayOf(4, 5), isLast = true)
+
+        assertContentEquals(byteArrayOf(1, 2, 3, 4, 5), readFileBytes("$directory/settings.bin", offset = 0, maxBytes = 100))
+        assertFalse(fileManager.fileExistsAtPath(staging))
+    }
+
+    @Test
+    fun `an empty upload writes an empty file`() {
+        receiveUploadChunk("$directory/.empty.jetwhale-upload-1", "$directory/empty", offset = 0, bytes = ByteArray(0), isLast = true)
+
+        assertEquals(0, fileSize("$directory/empty"))
+    }
+
+    @Test
+    fun `an upload never replaces a directory`() {
+        fileManager.createDirectoryAtPath("$directory/cache", withIntermediateDirectories = true, attributes = null, error = null)
+
+        assertFailsWith<IllegalStateException> {
+            receiveUploadChunk("$directory/.cache.jetwhale-upload-1", "$directory/cache", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+        assertFalse(fileManager.fileExistsAtPath("$directory/.cache.jetwhale-upload-1"))
     }
 
     private fun writeText(path: String, text: String) {

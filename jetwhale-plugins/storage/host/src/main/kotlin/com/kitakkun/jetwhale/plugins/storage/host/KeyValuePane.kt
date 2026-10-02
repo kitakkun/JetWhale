@@ -97,9 +97,10 @@ private fun StoreEntries(storeName: String, content: KeyValueStoreContent?, acti
         if (content != null) KeyValueTable(entries = content.entries, selectedKey = selectedKey, onSelect = { selectedKey = it.key })
     }
     if (confirmingDelete && selectedEntry != null) {
-        ConfirmDeleteDialog(
+        ConfirmDialog(
             title = "Delete ${selectedEntry.key}?",
             message = "The entry is removed from $storeName. This cannot be undone.",
+            confirmLabel = "Delete",
             onConfirm = {
                 confirmingDelete = false
                 selectedKey = null
