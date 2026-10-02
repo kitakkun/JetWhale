@@ -133,15 +133,13 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
 
         // JSON that does not parse, a truncated body above all, cannot have its fields redacted one by
         // one, and the value of a field it names may follow the name.
-        looksLikeJson(body, headers) && namesBodyField(body) -> WITHHELD_BODY
+        (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) && namesBodyField(body) -> WITHHELD_BODY
 
         else -> body
     }
 }
 
 private const val WITHHELD_BODY = "<body withheld: it names a redacted field but could not be parsed to redact it>"
-
-private fun looksLikeJson(body: String, headers: Map<String, List<String>>): Boolean = headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }
 
 private fun List<RedactionRule>.namesBodyField(text: String): Boolean {
     val names = filter { it.target == RedactionTarget.BODY_FIELD }.map(RedactionRule::name)
