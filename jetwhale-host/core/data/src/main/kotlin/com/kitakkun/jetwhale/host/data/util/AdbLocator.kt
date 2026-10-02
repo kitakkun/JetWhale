@@ -14,11 +14,15 @@ import java.io.File
  * started from the macOS Dock does not inherit the shell's `PATH`.
  */
 internal class AdbLocator(
-    private val environment: Map<String, String>,
+    environment: Map<String, String>,
     private val userHome: String?,
     private val isWindows: Boolean,
     private val fixedDirectories: List<String>,
 ) {
+    // Windows matches variable names case-insensitively, but System.getenv() keeps their spelling
+    // (usually `Path`) in a map that does not.
+    private val environment: Map<String, String> = if (isWindows) environment.toSortedMap(String.CASE_INSENSITIVE_ORDER) else environment
+
     val executableName: String = if (isWindows) "adb.exe" else "adb"
 
     /** The adb executable, or null when no SDK location, fixed directory or `PATH` entry holds one. */

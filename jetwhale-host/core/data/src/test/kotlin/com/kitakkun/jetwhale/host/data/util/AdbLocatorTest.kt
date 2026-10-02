@@ -19,7 +19,7 @@ class AdbLocatorTest {
 
     @Test
     fun `no Android SDK and no adb on PATH means adb is not found`() {
-        val locator = locator(environment = mapOf("PATH" to emptyDirectory.path))
+        val locator = locator(environment = mapOf("PATH" to emptyDirectory.path), isWindows = false)
 
         assertNull(locator.find())
     }
@@ -28,19 +28,31 @@ class AdbLocatorTest {
     fun `adb on PATH is found`() {
         val adb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(":")))
+        val locator = locator(environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(":")), isWindows = false)
 
         assertEquals(adb, locator.find())
     }
 
     @Test
-    fun `the SDK ANDROID_HOME names is found before an adb on PATH`() {
+    fun `the SDK named by ANDROID_HOME is found before an adb on PATH`() {
         val sdkAdb = executableAdbIn(File(folder, "sdk/platform-tools"))
         val pathAdb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent))
+        val locator = locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent), isWindows = false)
 
         assertEquals(sdkAdb, locator.find())
+    }
+
+    @Test
+    fun `on Windows a PATH spelled Path is still searched`() {
+        val adb = File(File(folder, "bin").apply { mkdirs() }, "adb.exe").apply {
+            writeText("")
+            setExecutable(true)
+        }
+
+        val locator = locator(environment = mapOf("Path" to adb.parent), isWindows = true)
+
+        assertEquals(adb, locator.find())
     }
 
     @Test
@@ -50,15 +62,15 @@ class AdbLocatorTest {
             setExecutable(false)
         }
 
-        val locator = locator(environment = mapOf("PATH" to notExecutable.parent))
+        val locator = locator(environment = mapOf("PATH" to notExecutable.parent), isWindows = false)
 
         assertNull(locator.find())
     }
 
-    private fun locator(environment: Map<String, String>) = AdbLocator(
+    private fun locator(environment: Map<String, String>, isWindows: Boolean) = AdbLocator(
         environment = environment,
         userHome = home.path,
-        isWindows = false,
+        isWindows = isWindows,
         fixedDirectories = emptyList(),
     )
 
