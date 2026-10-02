@@ -7,8 +7,6 @@ data class PluginFailure(
     val pluginId: String,
     val sessionId: String,
     val message: String,
-    val stackTrace: String,
-    val occurredAtMillis: Long,
 )
 
 /** The latest escaped exception of each plugin instance, keyed by session, then plugin. */

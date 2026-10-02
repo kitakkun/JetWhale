@@ -10,13 +10,6 @@ class JvmCrashLogsTest {
     private val skikoCrash = parseJvmCrashLog("hs_err_pid65669.log", fixture("crash/hs_err_skiko.log"))
 
     @Test
-    fun `the signal the problematic frame and the crashing thread are read`() {
-        assertEquals("SIGSEGV (0xb) at pc=0x000000014957d3d0, pid=65669, tid=130819", skikoCrash.errorLine)
-        assertEquals("C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0", skikoCrash.problematicFrame)
-        assertEquals("JavaThread \"DefaultDispatcher-worker-10\" daemon [_thread_in_native, id=130819, stack(0x000000030aeac000,0x000000030b0af000) (2060K)]", skikoCrash.crashingThread)
-    }
-
-    @Test
     fun `java frames are read from compiled and interpreted lines innermost first`() {
         assertEquals(
             listOf(
@@ -65,11 +58,9 @@ class JvmCrashLogsTest {
     }
 
     @Test
-    fun `a log cut short still yields what it has`() {
+    fun `a log cut short before the frames yields none`() {
         val truncated = parseJvmCrashLog("hs_err_pid1.log", "#\n#  SIGBUS (0xa) at pc=0x1, pid=1, tid=2\n#\n")
 
-        assertEquals("SIGBUS (0xa) at pc=0x1, pid=1, tid=2", truncated.errorLine)
-        assertNull(truncated.problematicFrame)
         assertEquals(emptyList(), truncated.javaFrames)
     }
 

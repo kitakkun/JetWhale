@@ -111,14 +111,8 @@ private fun UncleanExitBannerPreview() {
     JwTheme(darkTheme = false) {
         UncleanExitBanner(
             report = UncleanExitReport(
-                pid = 65669,
-                startedAtMillis = 0,
-                duringStartup = false,
                 crashLog = JvmCrashLog(
                     path = "/Users/me/.jetwhale/logs/hs_err_pid65669.log",
-                    errorLine = "SIGSEGV (0xb) at pc=0x000000014957d3d0, pid=65669, tid=130819",
-                    problematicFrame = "C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0",
-                    crashingThread = null,
                     javaFrames = emptyList(),
                 ),
                 suspectedPlugin = SuspectedPlugin(pluginId = "com.example.mirror", pluginName = "Device Mirror"),

@@ -16,34 +16,11 @@ internal fun findJvmCrashLog(pid: Long, startedAtMillis: Long, directories: List
     .map { File(it, "hs_err_pid$pid.log") }
     .firstOrNull { it.isFile && it.lastModified() >= startedAtMillis }
 
-/**
- * Reads the parts of an `hs_err_pid*.log` worth showing. Everything is optional: a log cut short by
- * the dying process still yields what it has.
- */
-internal fun parseJvmCrashLog(path: String, text: String): JvmCrashLog {
-    val lines = text.lines()
-    val errorLine = lines
-        .firstOrNull { it.startsWith("#  ") && (it.contains("SIG") || it.contains("EXCEPTION_") || it.contains("Internal Error") || it.contains("OutOfMemory")) }
-        ?.removePrefix("#")
-        ?.trim()
-    val problematicFrame = lines
-        .indexOfFirst { it.startsWith("# Problematic frame:") }
-        .takeIf { it >= 0 }
-        ?.let { lines.getOrNull(it + 1) }
-        ?.removePrefix("#")
-        ?.trim()
-    val crashingThread = lines
-        .firstOrNull { it.startsWith("Current thread (") }
-        ?.substringAfter("):")
-        ?.trim()
-    return JvmCrashLog(
-        path = path,
-        errorLine = errorLine,
-        problematicFrame = problematicFrame,
-        crashingThread = crashingThread,
-        javaFrames = crashingThreadJavaFrames(lines),
-    )
-}
+/** Reads an `hs_err_pid*.log`. A log cut short by the dying process still yields the frames it has. */
+internal fun parseJvmCrashLog(path: String, text: String): JvmCrashLog = JvmCrashLog(
+    path = path,
+    javaFrames = crashingThreadJavaFrames(text.lines()),
+)
 
 /**
  * The Java methods on the crashing thread's stack, from the "Native frames" block (which interleaves

@@ -259,13 +259,7 @@ class DefaultPluginInstanceService(
     private fun recordFailure(pluginId: String, sessionId: String, instanceLive: AtomicBoolean, throwable: Throwable) {
         logger.log(Level.WARNING, "Plugin '$pluginId' in session '$sessionId' threw from one of its coroutines", throwable)
         if (!instanceLive.get()) return
-        val failure = PluginFailure(
-            pluginId = pluginId,
-            sessionId = sessionId,
-            message = throwable.toString(),
-            stackTrace = throwable.stackTraceToString(),
-            occurredAtMillis = System.currentTimeMillis(),
-        )
+        val failure = PluginFailure(pluginId = pluginId, sessionId = sessionId, message = throwable.toString())
         pluginFailuresFlow.update { failures ->
             val session = failures.bySession[sessionId].orEmpty() + (pluginId to failure)
             PluginFailures(failures.bySession + (sessionId to session))

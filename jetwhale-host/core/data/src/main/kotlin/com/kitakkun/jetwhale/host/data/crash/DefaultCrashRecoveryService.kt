@@ -116,8 +116,7 @@ class DefaultCrashRecoveryService(
     }
 
     private fun reportUncleanExit(previous: RunMarker) {
-        val duringStartup = !previous.startupCompleted
-        consecutiveStartupCrashes = if (duringStartup) previous.consecutiveStartupCrashes + 1 else 0
+        consecutiveStartupCrashes = if (previous.startupCompleted) 0 else previous.consecutiveStartupCrashes + 1
         val crashLogDirectories = listOfNotNull(
             appDataDirectoryProvider.getLogsDirectory(),
             previous.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
@@ -134,9 +133,6 @@ class DefaultCrashRecoveryService(
         }
         logger.warning("The previous run (pid ${previous.pid}) did not shut down cleanly; crash log: ${crashLog?.path ?: "none found"}")
         uncleanExitReportFlow.value = UncleanExitReport(
-            pid = previous.pid,
-            startedAtMillis = previous.startedAtMillis,
-            duringStartup = duringStartup,
             crashLog = crashLog,
             suspectedPlugin = null,
             logsDirectory = appDataDirectoryProvider.getLogsDirectory().path,
