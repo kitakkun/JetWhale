@@ -82,8 +82,21 @@ class JvmCrashLogsTest {
             deleteOnExit()
         }
 
-        assertEquals(File(second, "hs_err_pid42.log"), findJvmCrashLog(42, listOf(first, second)))
-        assertNull(findJvmCrashLog(43, listOf(first, second)))
+        assertEquals(File(second, "hs_err_pid42.log"), findJvmCrashLog(42, startedAtMillis = 0, listOf(first, second)))
+        assertNull(findJvmCrashLog(43, startedAtMillis = 0, listOf(first, second)))
+    }
+
+    @Test
+    fun `a crash log older than the run is one an earlier process with the same pid left`() {
+        val logs = Files.createTempDirectory("logs").toFile().apply { deleteOnExit() }
+        val leftOver = File(logs, "hs_err_pid42.log").apply {
+            writeText("x")
+            setLastModified(1_000_000)
+            deleteOnExit()
+        }
+
+        assertNull(findJvmCrashLog(42, startedAtMillis = 2_000_000, listOf(logs)))
+        assertEquals(leftOver, findJvmCrashLog(42, startedAtMillis = 1_000_000, listOf(logs)))
     }
 
     private fun fixture(path: String): String = checkNotNull(javaClass.classLoader.getResource(path)).readText()

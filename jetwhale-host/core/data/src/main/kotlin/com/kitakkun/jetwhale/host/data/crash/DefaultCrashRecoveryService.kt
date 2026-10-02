@@ -123,9 +123,8 @@ class DefaultCrashRecoveryService(
             previous.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
             System.getProperty("java.io.tmpdir")?.let(::File),
             File("/tmp"),
-            System.getProperty("user.home")?.let(::File),
         )
-        val crashLog = findJvmCrashLog(previous.pid, crashLogDirectories)?.let { file ->
+        val crashLog = findJvmCrashLog(previous.pid, previous.startedAtMillis, crashLogDirectories)?.let { file ->
             try {
                 parseJvmCrashLog(file.path, file.readText())
             } catch (e: IOException) {

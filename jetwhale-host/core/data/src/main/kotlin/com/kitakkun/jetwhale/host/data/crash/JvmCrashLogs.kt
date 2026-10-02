@@ -9,11 +9,12 @@ private const val MAX_JAVA_FRAMES = 20
 /**
  * The fatal error log HotSpot wrote for the process [pid], looked up in [directories] in order.
  * Without `-XX:ErrorFile` HotSpot writes it to the working directory, or to the temp directory when
- * that is not writable.
+ * that is not writable. A log older than [startedAtMillis], when that process started, was left by
+ * an earlier process that had the same pid.
  */
-internal fun findJvmCrashLog(pid: Long, directories: List<File>): File? = directories
+internal fun findJvmCrashLog(pid: Long, startedAtMillis: Long, directories: List<File>): File? = directories
     .map { File(it, "hs_err_pid$pid.log") }
-    .firstOrNull(File::isFile)
+    .firstOrNull { it.isFile && it.lastModified() >= startedAtMillis }
 
 /**
  * Reads the parts of an `hs_err_pid*.log` worth showing. Everything is optional: a log cut short by
