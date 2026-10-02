@@ -15,7 +15,8 @@ sealed interface PluginScreenState {
 
     /**
      * The last attempt to create the instance threw [cause]. It stays so until an attempt succeeds,
-     * which takes a new one from outside the screen: re-enabling the plugin, or its session reconnecting.
+     * which takes a new one from outside the screen: re-enabling the plugin, or, in an app's session,
+     * the app reconnecting.
      */
     data class FailedToStart(val cause: Throwable) : PluginScreenState
 
