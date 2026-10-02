@@ -24,27 +24,25 @@ private const val STATS_WINDOW_NANOS = 1_000_000_000L
 
 /**
  * Where decoded frames meet the screen, the way a SurfaceView sits between a video decoder and a
- * window: the decoder writes pixels into a bitmap it owns, and drawing picks up the newest
+ * window: the decoder writes each frame into a bitmap of its own, and drawing picks up the newest
  * complete frame without anything around it recomposing.
  *
- * Three bitmaps rotate so neither side waits on the other: the decoder fills `back`, then swaps it
- * with `ready`; a draw swaps `ready` into `front` when a newer frame is there, and draws `front`.
- * A frame the screen had no time to show is simply overwritten in `ready` — the newest one wins.
- * The bitmaps are reused for as long as the frame size stays the same.
+ * A frame's bitmap is written before anyone else can see it, then made immutable and handed over as
+ * `ready`; a draw moves `ready` to `front` and draws `front`. A frame the screen had no time to show
+ * is replaced in `ready`, so the newest one wins. Since no bitmap is written once it is shown, the
+ * decoder never waits for a draw, and Skia draws an immutable bitmap without copying its pixels.
  *
- * Every bitmap is closed as soon as it leaves the rotation. Skia frees a bitmap's pixels only when
- * it is closed or after a garbage collection, and a heap of small wrapper objects rarely prompts
- * one, so a bitmap left to the collector per frame grows native memory without bound.
+ * Every bitmap is closed as soon as it is replaced. Skia frees a bitmap's pixels only when it is
+ * closed or after a garbage collection, and a heap of small wrapper objects rarely prompts one, so
+ * a bitmap left to the collector per frame grows native memory without bound.
  */
 @Stable
 internal class MirrorSurface : AutoCloseable {
     private val lock = Any()
-    private var back: Bitmap? = null
     private var ready: Bitmap? = null
     private var front: Bitmap? = null
-    private var readyIsNewer = false
 
-    // A frame that was on screen when [clear] ran; the draw may still be using it, so the next
+    // A frame that was on screen when [switchTo] ran; the draw may still be using it, so the next
     // draw closes it instead.
     private var retired: Bitmap? = null
 
@@ -110,19 +108,14 @@ internal class MirrorSurface : AutoCloseable {
 
     private fun writeStreamFrame(generation: Long, width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) {
         val started = System.nanoTime()
-        synchronized(lock) {
-            if (closed || generation != streamGeneration) return
-            val reusable = back?.takeIf { it.width == width && it.height == height && it.imageInfo.colorType == colorType }
-            val target = reusable ?: newBitmap(width, height, colorType).also {
-                back?.close()
-                back = it
-            }
-            if (!write(target)) return
-            target.notifyPixelsChanged()
-            back = ready
-            ready = target
-            readyIsNewer = true
+        val frame = newBitmap(width, height, colorType)
+        if (!write(frame)) return frame.close()
+        frame.setImmutable()
+        val replaced = synchronized(lock) {
+            if (closed || generation != streamGeneration) frame else ready.also { ready = frame }
         }
+        replaced?.close()
+        if (replaced === frame) return
         showingKeptFrame = false
         window.recordCopy(System.nanoTime() - started)
         frameCounter++
@@ -138,11 +131,10 @@ internal class MirrorSurface : AutoCloseable {
             if (closed) return
             retired?.close()
             retired = null
-            if (readyIsNewer) {
-                val shown = front
-                front = ready
-                ready = shown
-                readyIsNewer = false
+            ready?.let { newer ->
+                front?.close()
+                front = newer
+                ready = null
                 window.recordDisplayed(System.nanoTime())
             }
             front?.also { drawn = it }
@@ -184,10 +176,14 @@ internal class MirrorSurface : AutoCloseable {
      * The newest frame streamed from [streamingDeviceId], encoded as PNG at the size it was decoded,
      * or null when the surface shows another device or only a frame kept from an earlier visit.
      */
-    fun newestFramePng(streamingDeviceId: String): ByteArray? = synchronized(lock) {
-        if (closed || deviceId != streamingDeviceId || showingKeptFrame) return null
-        val newest = (if (readyIsNewer) ready else front) ?: return null
-        Image.makeFromBitmap(newest).use { image -> image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes) }
+    fun newestFramePng(streamingDeviceId: String): ByteArray? {
+        // The image shares the frame's pixels and keeps them alive, so the encode, which takes tens
+        // of milliseconds, runs after the lock is released and holds up neither the decoder nor a draw.
+        val newest = synchronized(lock) {
+            if (closed || deviceId != streamingDeviceId || showingKeptFrame) return null
+            Image.makeFromBitmap(ready ?: front ?: return null)
+        }
+        return newest.use { image -> image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes) }
     }
 
     fun recordDraw(nanos: Long) = window.recordDraw(nanos)
@@ -242,17 +238,14 @@ internal class MirrorSurface : AutoCloseable {
     override fun close() {
         synchronized(lock) {
             closed = true
-            back?.close()
             ready?.close()
             retired?.closeUnlessDrawn()
             front?.closeUnlessDrawn()
             lastFrames.values.forEach { it.closeUnlessDrawn() }
             lastFrames.clear()
-            back = null
             ready = null
             retired = null
             front = null
-            readyIsNewer = false
         }
         showingKeptFrame = false
         stats = MirrorStats.Empty
@@ -260,14 +253,10 @@ internal class MirrorSurface : AutoCloseable {
     }
 
     private fun takeNewestFrame(): Bitmap? {
-        val newest = if (readyIsNewer) ready else front
-        back?.close()
-        if (ready !== newest) ready?.close()
+        val newest = ready ?: front
         if (front !== newest) front?.let(::retire)
-        back = null
         ready = null
         front = null
-        readyIsNewer = false
         return newest
     }
 

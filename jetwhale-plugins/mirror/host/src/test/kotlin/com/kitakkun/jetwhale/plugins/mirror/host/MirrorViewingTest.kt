@@ -165,27 +165,36 @@ class MirrorViewingTest {
     }
 
     @Test
-    fun `switching devices waits for a frame being written instead of closing its bitmap mid-write`() {
+    fun `a device switch during a frame's write neither waits for it nor closes the bitmap being written`() {
         MirrorSurface().use { surface ->
-            val clearStarted = CountDownLatch(1)
-            val cleared = CountDownLatch(1)
+            val switched = CountDownLatch(1)
+            var switchedDuringWrite = false
             var closedDuringWrite = true
-            var clearedDuringWrite = true
+            var written: Bitmap? = null
             surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { target ->
+                written = target
                 thread {
-                    clearStarted.countDown()
                     surface.switchTo("device-2")
-                    cleared.countDown()
+                    switched.countDown()
                 }
-                clearStarted.await()
-                clearedDuringWrite = cleared.await(CLEAR_GRACE_MILLIS, TimeUnit.MILLISECONDS)
+                switchedDuringWrite = switched.await(SWITCH_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
                 closedDuringWrite = target.isClosed
-                true
+                fill(Color.RED)(target)
             }
-            cleared.await()
 
-            assertFalse(clearedDuringWrite)
+            assertTrue(switchedDuringWrite)
             assertFalse(closedDuringWrite)
+            assertTrue(written?.isClosed ?: false)
+            assertNull(surface.drawnFrame())
+        }
+    }
+
+    @Test
+    fun `a frame is drawn from an immutable bitmap so Skia shares its pixels instead of copying them`() {
+        MirrorSurface().use { surface ->
+            surface.startStream().writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888, write = fill(Color.RED))
+
+            assertTrue(surface.drawnFrame()?.isImmutable ?: false)
         }
     }
 
@@ -392,5 +401,5 @@ private fun fill(color: Int): (Bitmap) -> Boolean = { bitmap ->
 private const val CLOSE_RACE_ROUNDS = 200
 private const val FRAMES_PER_ROUND = 50
 
-/** Long enough for an unguarded switch to finish while the write is still running. */
-private const val CLEAR_GRACE_MILLIS = 200L
+/** Far longer than a switch that does not wait for the write takes. */
+private const val SWITCH_TIMEOUT_MILLIS = 5_000L
