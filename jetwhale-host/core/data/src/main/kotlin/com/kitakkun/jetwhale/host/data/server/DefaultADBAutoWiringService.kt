@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.host.data.util.findAdbPath
+import com.kitakkun.jetwhale.host.data.util.AdbLocator
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -31,7 +31,10 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
 
     private val wiredPorts = ConcurrentSet<Int>()
     private var wiringJob: Job? = null
-    private val adbPath: String by lazy(::findAdbPath)
+
+    // Without an adb found, the bare name still lets the launch fail with the OS's own error, which
+    // the wiring reports.
+    private val adbPath: String by lazy { AdbLocator.ofCurrentProcess().let { it.find()?.path ?: it.executableName } }
 
     override fun startAutoWiring(port: Int) {
         if (wiredPorts.add(port)) {

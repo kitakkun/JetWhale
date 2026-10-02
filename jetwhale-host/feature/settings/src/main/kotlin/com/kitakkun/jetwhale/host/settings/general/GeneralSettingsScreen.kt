@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -317,13 +318,11 @@ private fun AdbHealthCheckSection(
                 text = adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
             )
             Spacer(Modifier.width(8.dp))
-            if (adbPath.isNotEmpty()) {
-                JwIcon(
-                    imageVector = Icons.Default.Check,
-                    tint = JwTone.Success.color,
-                    contentDescription = null,
-                )
-            }
+            JwIcon(
+                imageVector = if (adbPath.isNotEmpty()) Icons.Default.Check else Icons.Default.Warning,
+                tint = if (adbPath.isNotEmpty()) JwTone.Success.color else JwTone.Warning.color,
+                contentDescription = null,
+            )
         }
     }
 }
