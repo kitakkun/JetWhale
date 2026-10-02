@@ -53,13 +53,13 @@ class DeviceListingsTest {
     @Test
     fun `idb lists physical devices and leaves simulators to simctl`() {
         val output = """
-            Takumi's iPhone | 00008110-00161D9801DA801E | Booted | device | iOS 26.6.1 | arm64e | No Companion Connected
+            Test iPhone | 00008110-0000000000000001 | Booted | device | iOS 26.6.1 | arm64e | No Companion Connected
             iPhone 16 | 0A1B2C3D-4E5F | Shutdown | simulator | iOS 18.5 | arm64 | No Companion Connected
             Apple TV | 37E509F4-ECF8 | Shutdown | simulator | tvOS 18.5 | x86_64 | No Companion Connected
         """.trimIndent()
 
         assertEquals(
-            listOf(DeviceListing(id = "00008110-00161D9801DA801E", name = "Takumi's iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
+            listOf(DeviceListing(id = "00008110-0000000000000001", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
             parseIdbDevices(output),
         )
     }
