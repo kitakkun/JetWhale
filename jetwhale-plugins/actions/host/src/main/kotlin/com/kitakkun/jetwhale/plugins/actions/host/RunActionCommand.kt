@@ -31,14 +31,26 @@ internal class RunActionCommand(
             throw JetWhaleMcpArgumentException("'${action.title}' is destructive; call again with confirmDestructive: true if running it is intended")
         }
         val result = browser.runNow(action.id, arguments[actionArguments] ?: JsonObject(emptyMap()), RunOrigin.AI_AGENT, confirmedDestructive = arguments[confirmDestructive] == true)
-        val report = buildJsonObject {
-            put("outcome", result.outcome.name)
-            result.text?.let { put("text", it) }
-            result.json?.let { put("json", it) }
-            result.error?.let { put("error", it) }
-            result.stackTrace?.let { put("stackTrace", it) }
-            put("durationMillis", result.durationMillis)
+        if (result.outcome != ActionOutcome.SUCCESS) {
+            return JetWhaleMcpResult.error(
+                buildString {
+                    append("'${action.title}' ended with ${result.outcome.name} after ${result.durationMillis} ms")
+                    result.error?.let { append(": ").append(it) }
+                    result.text?.let { append("\nIt returned: ").append(it) }
+                    result.json?.let { append("\nIt returned: ").append(it) }
+                    result.stackTrace?.let { append("\n").append(it) }
+                },
+            )
         }
-        return if (result.outcome == ActionOutcome.SUCCESS) JetWhaleMcpResult.json(report) else JetWhaleMcpResult.error(report.toString())
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("outcome", result.outcome.name)
+                result.text?.let { put("text", it) }
+                result.json?.let { put("json", it) }
+                result.error?.let { put("error", it) }
+                result.stackTrace?.let { put("stackTrace", it) }
+                put("durationMillis", result.durationMillis)
+            },
+        )
     }
 }
