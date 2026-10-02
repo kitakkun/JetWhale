@@ -88,6 +88,12 @@ class DeviceListingsTest {
     }
 
     @Test
+    fun `idb_companion output with a target it cannot read is not taken for no devices`() {
+        assertNull(parseCompanionDevices("""{"type":"Device","name":"iPhone"}"""))
+        assertNull(parseCompanionDevices("""{"type":"Watch","udid":"00008150-0000000000000002","name":"Watch"}"""))
+    }
+
+    @Test
     fun `a size override set on the device wins over its physical size`() {
         assertEquals(IntSize(1080, 2400), parseWmSize("Physical size: 1080x2400\n"))
         assertEquals(IntSize(720, 1600), parseWmSize("Physical size: 1080x2400\nOverride size: 720x1600\n"))

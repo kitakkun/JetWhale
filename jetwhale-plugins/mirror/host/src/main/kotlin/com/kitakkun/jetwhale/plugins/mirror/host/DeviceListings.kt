@@ -55,8 +55,9 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
 
 /**
  * The physical iOS devices in `idb_companion --list 1` output, which has one JSON object per target,
- * or null when no line is such an object: output in a form this does not read, which the caller
- * then takes from idb instead. Simulators can be listed there too, but simctl already reports those.
+ * or null when the output is in a form this does not read: no line is such an object, a target is of
+ * a type other than a device or a simulator, or a device has no UDID. The caller then takes the
+ * devices from idb instead. Simulators can be listed there too, but simctl already reports those.
  */
 internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
     val targets = output.lineSequence().filter(String::isNotBlank).mapNotNull { line ->
@@ -68,9 +69,16 @@ internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
     }.toList()
     if (targets.isEmpty() && output.isNotBlank()) return null
     return targets.mapNotNull { target ->
-        if (!target.text("type").equals("device", ignoreCase = true)) return@mapNotNull null
-        val udid = target.text("udid") ?: return@mapNotNull null
-        DeviceListing(id = udid, name = target.text("name") ?: udid, kind = DeviceKind.IosDevice, osVersion = target.text("os_version"))
+        when (target.text("type")?.lowercase()) {
+            "simulator" -> null
+
+            "device" -> {
+                val udid = target.text("udid") ?: return null
+                DeviceListing(id = udid, name = target.text("name") ?: udid, kind = DeviceKind.IosDevice, osVersion = target.text("os_version"))
+            }
+
+            else -> return null
+        }
     }
 }
 
