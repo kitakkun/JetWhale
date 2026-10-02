@@ -1,18 +1,12 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.scene.CanvasLayersComposeScene
-import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginScreenState
@@ -30,11 +24,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
