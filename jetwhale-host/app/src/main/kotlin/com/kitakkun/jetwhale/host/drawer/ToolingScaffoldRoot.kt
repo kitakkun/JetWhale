@@ -338,7 +338,7 @@ internal suspend fun ToolingScaffoldScreenActionResult.snackbarMessage(): String
         ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
 
-    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(Res.string.plugin_enabled_change_failed_message, error.message ?: error::class.simpleName.orEmpty())
+    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(Res.string.plugin_enabled_change_failed_message, error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName ?: error.javaClass.name)
 }
 
 /**
