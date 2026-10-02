@@ -34,6 +34,6 @@ internal class StartRecordingCommand(
         }
         if (everyDevice) mirror.refresh()
         val results = mirror.startRecordings(several)
-        return results.toMcpResult()
+        return results.toMcpResult(nothingToDo = "there is no device to start recording: each one that can record already is, or none is connected; call $TOOL_PREFIX.listDevices")
     }
 }

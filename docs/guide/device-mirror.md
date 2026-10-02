@@ -171,5 +171,5 @@ can be left out to use the device selected in the mirror.
 An agent can read a returned path to look at the capture. A client that shows images to the model
 can instead pass `includeImage: true` to `captureScreenshot`; it is off by default because a
 full-resolution screenshot can be several megabytes. Starting or stopping several recordings at
-once reports each device's result, and fails as a whole only when no device succeeded. On a
-physical iPhone, input is refused with the reason.
+once reports each device's result, and fails as a whole only when no device succeeded, including
+when there was no device to start or stop. On a physical iPhone, input is refused with the reason.
