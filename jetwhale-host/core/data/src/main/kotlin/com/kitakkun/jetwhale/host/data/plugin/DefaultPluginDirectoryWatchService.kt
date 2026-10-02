@@ -40,6 +40,8 @@ class DefaultPluginDirectoryWatchService(
             while (isActive) {
                 delay(POLL_INTERVAL)
                 poller.poll().forEach { jarPath ->
+                    // A failure on one changed jar must not end the watch loop; that jar is retried
+                    // on the next poll.
                     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                     try {
                         pluginTrustService.onPluginJarsChanged(setOf(jarPath))

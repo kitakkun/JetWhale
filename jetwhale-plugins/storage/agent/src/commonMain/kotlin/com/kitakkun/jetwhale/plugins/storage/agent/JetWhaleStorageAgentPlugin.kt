@@ -75,6 +75,7 @@ class JetWhaleStorageAgentPlugin(
         keyValueStores = keyValueStores().map { KeyValueStoreInfo(name = it.name) },
     )
 
+    // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun listDirectory(request: ListDirectory): DirectoryListing = try {
         val entries = listDirectoryEntries(resolve(request.rootName, request.path))
@@ -83,6 +84,7 @@ class JetWhaleStorageAgentPlugin(
         DirectoryListing(entries = emptyList(), error = e.describe())
     }
 
+    // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun readFile(request: ReadFile): FileContent = try {
         val path = resolve(request.rootName, request.path)
@@ -92,6 +94,7 @@ class JetWhaleStorageAgentPlugin(
         FileContent(contentBase64 = "", totalSizeBytes = 0, error = e.describe())
     }
 
+    // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun deleteFileEntry(request: DeleteFileEntry): StorageOperationResult = try {
         require(request.path.isNotEmpty()) { "a file root cannot be deleted, only what is inside it" }
@@ -101,6 +104,7 @@ class JetWhaleStorageAgentPlugin(
         StorageOperationResult(error = e.describe())
     }
 
+    // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun measureDirectory(request: MeasureDirectory): DirectoryMeasurement = try {
         measureDirectoryTree(resolve(request.rootName, request.path), entryLimit = MEASURED_ENTRY_LIMIT)
@@ -108,6 +112,7 @@ class JetWhaleStorageAgentPlugin(
         DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = e.describe())
     }
 
+    // The app's key-value store can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private suspend fun readKeyValueStore(request: ReadKeyValueStore): KeyValueStoreContent = try {
         KeyValueStoreContent(entries = keyValueStore(request.storeName).entries().sortedBy(KeyValueEntry::key), error = null)
@@ -117,6 +122,7 @@ class JetWhaleStorageAgentPlugin(
         KeyValueStoreContent(entries = emptyList(), error = e.describe())
     }
 
+    // The app's key-value store can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private suspend fun removeKeyValue(request: RemoveKeyValue): StorageOperationResult = try {
         keyValueStore(request.storeName).remove(request.key)

@@ -12,6 +12,8 @@ import java.io.ByteArrayOutputStream
 /** Edge length the app icon is rasterized to, matching the cap the negotiation payload documents. */
 private const val APP_ICON_SIZE_PX: Int = 64
 
+// The host groups sessions by device; ANDROID_ID is scoped to the app's signing key, not a hardware
+// serial.
 @SuppressLint("HardwareIds")
 internal actual fun getDeviceId(): String? = try {
     val context = currentApplicationOrNull() ?: return null

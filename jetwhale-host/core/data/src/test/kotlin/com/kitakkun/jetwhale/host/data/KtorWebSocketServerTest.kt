@@ -92,6 +92,8 @@ class KtorWebSocketServerTest {
         }
     }
 
+    // The hot-swap is observable only on the wire: the server exposes no signal for "the TLS
+    // listener is back up with the new certificate", so the handshake has to be retried for it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `swapping the active certificate restarts the tls listener with the new certificate`() {

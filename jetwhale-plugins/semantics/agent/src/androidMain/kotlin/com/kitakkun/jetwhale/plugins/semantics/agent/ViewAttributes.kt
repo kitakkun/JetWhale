@@ -56,6 +56,8 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
     val write = descriptor.write
         ?: return ViewAttributeResult(applied = false, message = "${descriptor.id} is read-only")
 
+    // The write calls the app's own View setter, which may reject the value by throwing anything;
+    // the reply carries why.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         write(this, value)

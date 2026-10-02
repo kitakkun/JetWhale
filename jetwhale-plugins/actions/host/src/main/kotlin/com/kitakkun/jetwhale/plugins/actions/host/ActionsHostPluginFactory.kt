@@ -21,6 +21,7 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.serialization.json.JsonObject
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ActionsHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = ActionsHostPlugin()

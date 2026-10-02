@@ -65,6 +65,8 @@ class BufferedMessengerTest {
 
     private fun messenger(capacity: Int) = BufferedMessenger(scope, Json, bufferCapacity = capacity)
 
+    // The claim is that nothing flushes while the gate is shut, and the messenger offers no signal
+    // for "the flusher has had its turn and stayed parked"; only elapsed time can establish it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `buffered events are held until startFlush opens the gate`() = runBlocking {

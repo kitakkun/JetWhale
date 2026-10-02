@@ -115,6 +115,8 @@ class DefaultPluginInstanceService(
     private fun createInstanceIfAbsent(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): Boolean {
         val key = PluginInstanceKey(pluginId, sessionId)
         var created = false
+        // A plugin whose factory throws fails only its own instance; the other plugins still get
+        // theirs.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             loadedPlugins.computeIfAbsent(key) {
@@ -197,6 +199,8 @@ class DefaultPluginInstanceService(
 
     /** Runs the plugin's `onCreate`; a throwing plugin must not abort loading for the caller. */
     private fun dispatchCreateGuarded(plugin: JetWhaleHostPlugin, descriptor: String) {
+        // onCreate is the plugin's code, and anything it throws must not abort loading for the
+        // caller.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             plugin.dispatchCreate()
@@ -234,6 +238,8 @@ class DefaultPluginInstanceService(
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
+        // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
+        // peer closed.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             removed.plugin.dispatchDispose()

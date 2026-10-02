@@ -28,6 +28,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.TimeSource
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ComposeSemanticsInspectorPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = ComposeSemanticsInspectorHostPlugin()

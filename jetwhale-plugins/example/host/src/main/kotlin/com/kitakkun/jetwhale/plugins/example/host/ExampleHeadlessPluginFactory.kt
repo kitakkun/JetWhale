@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ExampleHeadlessPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = ExampleHeadlessPlugin()

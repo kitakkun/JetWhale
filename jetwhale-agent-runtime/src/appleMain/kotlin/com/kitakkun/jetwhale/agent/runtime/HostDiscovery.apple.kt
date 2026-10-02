@@ -138,6 +138,7 @@ private fun NSNetService.resolvedIpv4Address(): String? {
 /** TXT record values arrive as `NSData`; decode them as UTF-8 strings. */
 private fun Any?.toDecodedString(): String? {
     val data = this as? NSData ?: return null
+    // Kotlin/Native bridges NSString to String at runtime, a conversion the compiler cannot see.
     @Suppress("CAST_NEVER_SUCCEEDS")
     return NSString.create(data, NSUTF8StringEncoding) as? String
 }
