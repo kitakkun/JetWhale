@@ -1,11 +1,12 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import android.view.View
+import android.widget.Checkable
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 
 /**
- * `performClick()` rather than a synthesised tap: the listener the app registered still runs, with
+ * `performClick()` rather than a synthesized tap: the listener the app registered still runs, with
  * no coordinates involved and no chance of landing on whatever moved into that spot.
  */
 internal object AndroidViewPointerActions {
@@ -16,7 +17,11 @@ internal object AndroidViewPointerActions {
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
             if (!view.isClickable) return NodeActionResult.notSupported("the view is not clickable")
-            return NodeActionResult.performedIf(view.performClick(), "performClick() returned false")
+            val checkedBefore = (view as? Checkable)?.isChecked
+            val clickHandled = view.performClick()
+            // CompoundButton.performClick() toggles, then returns false when no OnClickListener is set.
+            val toggled = (view as? Checkable)?.isChecked != checkedBefore
+            return NodeActionResult.performedIf(clickHandled || toggled, "performClick() returned false")
         }
     }
 
