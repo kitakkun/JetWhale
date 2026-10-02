@@ -28,8 +28,8 @@ class LogbackConfigurationTest {
     }
 
     @Test
-    fun `the MCP SDK logs only warnings and above, its tool registry included`() {
-        listOf("io.modelcontextprotocol.kotlin.sdk.shared.Protocol", "FeatureRegistry[Tool]").forEach { name ->
+    fun `the MCP SDK logs only warnings and above, its feature registries included`() {
+        listOf("io.modelcontextprotocol.kotlin.sdk.shared.Protocol", "FeatureRegistry[Tool]", "FeatureRegistry[Prompt]", "FeatureRegistry[Resource]", "FeatureRegistry[ResourceTemplate]").forEach { name ->
             val logger = LoggerFactory.getLogger(name)
 
             assertFalse(logger.isInfoEnabled, name)

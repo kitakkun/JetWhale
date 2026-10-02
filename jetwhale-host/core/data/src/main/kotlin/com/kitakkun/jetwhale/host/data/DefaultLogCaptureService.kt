@@ -41,8 +41,8 @@ class DefaultLogCaptureService : LogCaptureService {
         originalOut = previousOut
         originalErr = previousErr
 
-        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO))
-        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR))
+        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO, streamCharset("stdout.encoding")))
+        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR, streamCharset("stderr.encoding")))
 
         isCapturing = true
     }
@@ -63,31 +63,46 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 
-    // Every print reaches this stream as the bytes it encodes to, so the terminal and the captured lines are
-    // cut from the same bytes.
+    // Every print reaches this stream as the bytes it encodes to, in the charset the original stream
+    // encodes with, so the terminal and the captured lines are cut from the same bytes.
     private inner class CapturingPrintStream(
         original: PrintStream,
         level: LogLevel,
+        charset: Charset,
     ) : PrintStream(
         object : OutputStream() {
             private val line = ByteArrayOutputStream()
 
-            // A line is decoded only once it is whole, so a character split across writes survives.
             override fun write(b: Int) {
                 original.write(b)
-                if (b == '\n'.code) {
-                    addLogEntry(line.toString(Charset.defaultCharset()), level)
-                    line.reset()
-                } else {
-                    line.write(b)
+                if (b == '\n'.code) endLine() else line.write(b)
+            }
+
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                original.write(b, off, len)
+                var start = off
+                for (i in off until off + len) {
+                    if (b[i] == '\n'.code.toByte()) {
+                        line.write(b, start, i - start)
+                        endLine()
+                        start = i + 1
+                    }
                 }
+                line.write(b, start, off + len - start)
             }
 
             override fun flush() {
                 original.flush()
             }
+
+            // A line is decoded only once it is whole, so a character split across writes survives.
+            private fun endLine() {
+                addLogEntry(line.toString(charset), level)
+                line.reset()
+            }
         },
         true,
+        charset,
     )
 
     private fun addLogEntry(message: String, level: LogLevel) {
@@ -107,3 +122,16 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 }
+
+/**
+ * The charset System.out or System.err encodes with: the JDK picks it from [property]
+ * (`stdout.encoding` / `stderr.encoding`), which can differ from the default charset, as on a
+ * Windows console.
+ */
+private fun streamCharset(property: String): Charset = System.getProperty(property)?.let { name ->
+    try {
+        Charset.forName(name)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+} ?: Charset.defaultCharset()
