@@ -247,6 +247,28 @@ class JetWhaleNetworkKtorPluginTest {
     }
 
     @Test
+    fun `captures a streamed response body without breaking the caller's read`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    content = "streamed",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/plain"),
+                )
+            },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        val body = client.prepareGet("http://example/streamed").execute { it.bodyAsText() }
+
+        assertEquals("streamed", body)
+        val received = events.last() as ResponseReceived
+        assertEquals("streamed", received.response.body)
+    }
+
+    @Test
     fun `records a WebSocket upgrade without corrupting the frame stream`() = runBlocking {
         val (agent, events) = agentWithEvents()
         // A real server and engine are needed here: MockEngine can't perform a protocol upgrade.
