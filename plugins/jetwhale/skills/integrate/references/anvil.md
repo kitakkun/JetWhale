@@ -5,13 +5,15 @@ contributions across the compile classpath, so the module layout and the seam ar
 Metro's — read [`metro.md`](metro.md) first and treat this file as the delta.
 
 - **kotlin-inject-anvil** (Amazon, actively developed) — the section below.
-- **Square Anvil** — in maintenance mode and pinned to an old Kotlin, so that section is written for
-  a project that is already on it, and leads with the constraint to check rather than the syntax.
+- **Square Anvil** — runs only on the K1 compiler, which keeps a project on Kotlin 2.2 or older,
+  below JetWhale's Kotlin 2.3 floor. A Square Anvil project has to migrate before it can add
+  JetWhale; see its section below.
 
-Both were verified by building a four-module project (`:seam`, `:tooling`, `:app-debug` depending on
-both, `:app-release` depending on `:seam` only) and running each app: release resolves the no-op,
-debug resolves the real implementation, and a scoped holder is shared across two injection sites.
-Each has one sharp edge that the Metro shape does not have.
+The kotlin-inject-anvil shape was verified by building a four-module project (`:seam`, `:tooling`,
+`:app-debug` depending on both, `:app-release` depending on `:seam` only) and running each app, with
+stand-in classes in place of JetWhale's: release resolves the no-op, debug resolves the real
+implementation, and a scoped holder is shared across two injection sites. That checks the DI shape,
+not a JetWhale connection.
 
 ## kotlin-inject-anvil
 
@@ -25,13 +27,13 @@ is `@MergeComponent(AppScope::class)` on an abstract class, instantiated with
 ```kotlin
 // production module
 fun interface DebugToolingInitializer {
-    fun initialize(): String
+    fun initialize()
 }
 
 @ContributesBinding(AppScope::class)
 @Inject
 class NoOpInitializer : DebugToolingInitializer {
-    override fun initialize() = "noop"
+    override fun initialize() = Unit
 }
 ```
 
@@ -43,7 +45,12 @@ class NoOpInitializer : DebugToolingInitializer {
 class JetWhaleInitializer(
     private val agents: JetWhaleAgents,
 ) : DebugToolingInitializer {
-    override fun initialize() = "jetwhale"
+    override fun initialize() {
+        startJetWhale {
+            connection { endpoints { ws("localhost", 5080) } }
+            plugins { register(agents.network) }
+        }
+    }
 }
 ```
 
@@ -82,65 +89,18 @@ class JetWhaleHttpClientDecorator(private val agents: JetWhaleAgents) : HttpClie
 
 One mechanism for both seams, and it is the mechanism that works.
 
-## Square Anvil — for a project already on it
+## Square Anvil — migrate first
 
-Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20, and Metro is its successor, so this is
-not a library a project adopts today. It is one a project already has — often a large, long-lived
-Android app, which is exactly the kind that most benefits from keeping the debugger out of its
-release build.
+Square Anvil generates through a K1-only compiler plugin, and Kotlin 2.3 dropped language version
+1.9, the last one that runs K1. A project on Square Anvil is therefore held at Kotlin 2.2, while
+JetWhale needs Kotlin 2.3 or newer, so its artifacts do not load there.
+`-Xskip-metadata-version-check` exists but is an unsupported escape hatch, not a plan.
 
-### Check the Dagger processor first: kapt, not KSP
-
-Worth settling before writing any wiring. Anvil is a Kotlin **compiler plugin**: it adds
-`@Component` and the merged supertypes during compilation. KSP reads source before that happens, so
-Dagger's KSP processor never sees a component to process.
-
-There is no warning for this — nothing is generated, and the build fails later at a point that looks
-unrelated:
-
-```
-e: Unresolved reference: DaggerAppComponent
-```
-
-Both variants build and resolve correctly once Dagger's processor moves to kapt:
-
-```kotlin
-plugins {
-    kotlin("kapt")
-}
-dependencies {
-    kapt("com.google.dagger:dagger-compiler:2.60.1")
-}
-```
-
-A project that already runs Dagger through KSP cannot have both, so this is a decision for the team
-rather than a detail to change in passing.
-
-### The wiring itself
-
-Identical to Metro's, with `com.squareup.anvil.annotations.ContributesBinding`, Dagger's
-`@Inject constructor()` and `@Singleton`, and `@MergeComponent(AppScope::class)` on the component —
-instantiated as `DaggerAppComponent.create()`. `replaces` still names the contributing class:
-
-```kotlin
-// production module
-@ContributesBinding(AppScope::class)
-class NoOpInitializer @Inject constructor() : DebugToolingInitializer { … }
-
-// debug-only module
-@ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
-class JetWhaleInitializer @Inject constructor(private val agents: JetWhaleAgents) :
-    DebugToolingInitializer { … }
-```
-
-Verified with Anvil 2.7.0, Dagger 2.60.1, Kotlin 2.2.20.
-
-### The exit
-
-This wiring transfers to Metro with only the annotation packages changed — and there
-`@Multibinds(allowEmpty = true)` is available again, so the HTTP decorator can go back to being a
-multibinding. If the team is weighing a migration, the seam is a small, self-contained place to
-start.
+Before adding JetWhale, the project needs to leave Square Anvil: for Metro, its successor, or for a
+KSP-based Anvil fork such as anvil-ksp. The seam then transfers with only the annotation packages
+changed, and on Metro `@Multibinds(allowEmpty = true)` lets the HTTP decorator be a multibinding
+again. Say this to the team rather than starting the migration on your own; it is a decision for
+them.
 
 ## Common failure modes
 
@@ -149,5 +109,4 @@ start.
 | Duplicate binding for the seam type | `replaces` missing, or the contributions target different scopes |
 | Release cannot resolve the seam | The no-op is in the debug-only module |
 | `Cannot find an @Inject constructor or provider for: Set<…>` | kotlin-inject-anvil: an empty multibinding. Use `replaces` with a no-op instead |
-| `Unresolved reference: DaggerAppComponent`, nothing generated | Square Anvil with Dagger on KSP. Move Dagger to kapt |
 | Contribution silently ignored | The debug module is not on the compile classpath of the component declaration — the variant dependency has to sit on the module that merges |

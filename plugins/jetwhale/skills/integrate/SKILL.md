@@ -25,19 +25,20 @@ Run these before deciding anything. Each answer routes a later step.
 
 ```bash
 # Targets: is this Android-only, or Kotlin Multiplatform?
-grep -rlE 'kotlin\("multiplatform"\)|kotlin-multiplatform' --include=build.gradle.kts .
+grep -rlE 'kotlin\("multiplatform"\)|kotlin\.multiplatform|kotlin-multiplatform|kotlinMultiplatform' \
+  --include='*.gradle.kts' --include='*.toml' .
 
 # DI framework
 grep -rnE 'dev\.zacsweers\.metro|com\.squareup\.anvil|lastmile\.kotlin\.inject\.anvil|com\.google\.dagger|dagger\.hilt|io\.insert-koin' \
-  --include=*.kts --include=*.toml . | head
+  --include='*.kts' --include='*.toml' . | head
 
 # HTTP client
-grep -rnE 'io\.ktor:ktor-client|com\.squareup\.okhttp3' --include=*.kts --include=*.toml . | head
+grep -rnE 'io\.ktor:ktor-client|com\.squareup\.okhttp3' --include='*.kts' --include='*.toml' . | head
 
 # An existing debug seam to ride on
-grep -rn 'BuildConfig.DEBUG' --include=*.kt . | head
+grep -rn 'BuildConfig.DEBUG' --include='*.kt' . | head
 find . -type d -name debug -path '*/src/*' | head
-grep -rlniE 'class (NoOp|Noop)[A-Za-z]*' --include=*.kt . | head
+grep -rlniE 'class (NoOp|Noop)[A-Za-z]*' --include='*.kt' . | head
 ```
 
 Answer these five, out loud, before continuing:
@@ -112,13 +113,13 @@ JetWhale-backed implementation that displaces it on the debug classpath only.
 |---|---|---|
 | Metro (`dev.zacsweers.metro`) | `references/metro.md` | Empty multibindings need `@Multibinds(allowEmpty = true)` |
 | kotlin-inject-anvil | `references/anvil.md` | **No empty multibindings at all** — use `replaces` for every seam |
-| Square Anvil (maintenance mode) | `references/anvil.md` | **Dagger must run on kapt, not KSP** — under KSP nothing is generated and nothing says so |
+| Square Anvil (maintenance mode) | `references/anvil.md` | **K1 only, so the project is held at Kotlin 2.2, below JetWhale's 2.3 floor** — it has to migrate (Metro, or a KSP-based Anvil fork) first |
 | Hilt | `references/dagger-hilt.md` | `@InstallIn` is discovered, so the debug side is the only side |
 | Plain Dagger | `references/dagger-hilt.md` | Modules are listed, so a same-name module per variant is unavoidable |
 | Koin | `references/koin.md` | Runtime resolution — the compiler catches nothing |
 | None | `references/no-di.md` | Same-signature factory per variant; KMP has no variants |
 
-Every row was verified by building and running a project, not reasoned about. See
+Every DI shape was verified by building and running a project, not reasoned about. See
 [Verified against](#verified-against) for versions and evidence.
 
 Whichever you follow, two JetWhale-side facts hold:
@@ -147,7 +148,8 @@ An empty grep and a green release build together mean the seam holds. Then confi
 actually works, because a perfectly isolated integration that never connects is the other failure:
 
 1. Launch the JetWhale host (default port **5080**).
-2. Android only — `adb reverse tcp:5080 tcp:5080`, or enable ADB auto port mapping in the host.
+2. Android only — the host's ADB auto port mapping forwards the port by default; if it is turned
+   off, run `adb reverse tcp:5080 tcp:5080`.
 3. Launch the debug build. It appears as a session in the host within a second or two.
 4. If the Network Inspector is wired, make one request and watch it land.
 
@@ -168,16 +170,18 @@ State plainly:
 
 Each pattern below was built as a four-module project (`:seam`, `:tooling`, `:app-debug` depending
 on both, `:app-release` depending on `:seam` only) and **run**, so the recorded result is the
-binding that actually resolved — not one inferred from the annotations.
+binding that actually resolved — not one inferred from the annotations. The projects used stand-in
+classes in place of JetWhale's agents: they verify the DI shape and the classpath isolation, not a
+JetWhale connection.
 
 | Framework | Versions | Evidence |
 |---|---|---|
 | Metro | 1.3.2, Kotlin 2.4.10 | release `noop` + empty decorator set; debug real binding; `@SingleIn` holder identical across both injection sites |
 | kotlin-inject-anvil | 0.1.7, kotlin-inject 0.9.0, KSP 2.3.10, Kotlin 2.3.10 | `replaces` resolves both ways; an empty `Set<T>` fails KSP outright |
-| Square Anvil | 2.7.0, Dagger 2.60.1, Kotlin 2.2.20 | `replaces` resolves both ways — **only** after moving Dagger from KSP to kapt |
+| Square Anvil | 2.7.0, Dagger 2.60.1, Kotlin 2.2.20 | DI shape only: `replaces` resolves both ways once Dagger runs on kapt. Cannot host JetWhale, whose Kotlin floor is 2.3 |
 | Dagger | 2.60.1 | `@BindsOptionalOf` → `Optional.empty()` in release, present in debug; `@Multibinds` allows empty with no parameter |
 | Hilt + Android variants | 2.60.1, AGP 9.3.0, Kotlin 2.4.10 | generated component: `Optional.of(...)` in debug vs `Optional.empty()` in release, with no release-side module |
-| Koin | 4.2.2 | `getOrNull` null in release; `getAll` empty; `single` shares one instance |
+| Koin | 4.2.2 | `getAll` empty in release; `single` shares one instance |
 | No DI + AGP variants | AGP 9.3.0, Kotlin 2.4.10 | debug APK dex carries the debug-only class, release APK carries zero occurrences |
 
 Classpath isolation was checked on the built artifacts in the Android project: the debug-only

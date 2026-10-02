@@ -2,7 +2,7 @@
 
 Neither has Metro's `replaces`. What they have instead is **optional bindings**: production code
 declares that a binding *may be absent*, and the debug side is the only one that supplies it. That
-is a better fit than it sounds — the release behaviour this seam wants is "do nothing", which is
+is a better fit than it sounds — the release behavior this seam wants is "do nothing", which is
 exactly what absence means.
 
 Whether you need a release-side counterpart at all comes down to one difference:
@@ -21,7 +21,7 @@ Declare the optional binding once, in `src/main`:
 ```kotlin
 // src/main — production code, never names JetWhale
 fun interface DebugToolingInitializer {
-    fun initialize(): String
+    fun initialize()
 }
 
 @Module
@@ -36,6 +36,10 @@ Supply it from `src/debug` only. There is no `src/release` file:
 
 ```kotlin
 // src/debug — the only source set that imports JetWhale
+class JetWhaleAgents {
+    val network: JetWhaleNetworkAgentPlugin = JetWhaleNetworkAgentPlugin()
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object JetWhaleModule {
@@ -136,7 +140,8 @@ dependencies {
 }
 ```
 
-Verified end to end on the built artifacts, not just the wiring:
+Verified on the built artifacts of a sample app, with a stand-in class (`FakeAgents`) in place of
+JetWhale's agents, so it shows the classpath isolation and the DI shape rather than a live session:
 
 ```
 :app:dependencies --configuration releaseRuntimeClasspath   → no :tooling

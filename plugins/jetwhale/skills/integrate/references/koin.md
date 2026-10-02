@@ -70,9 +70,8 @@ val networkModule = module {
 ```
 
 `getAll<T>()` returns every definition of the type and is empty when none are declared, which is
-exactly the release case — verified on Koin 4.2.2: the release side resolved `client[]` and
-`getOrNull<DebugToolingInitializer>()` returned null, while the debug side resolved both. Declare
-the decorator only in `src/debug`:
+exactly the release case — verified on Koin 4.2.2: the release side resolved an empty decorator list,
+while the debug side resolved the decorator. Declare the decorator only in `src/debug`:
 
 ```kotlin
 // src/debug

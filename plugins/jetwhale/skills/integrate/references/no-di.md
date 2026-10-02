@@ -51,15 +51,17 @@ Call it once, from `Application.onCreate()`:
 DebugToolingHolder.instance.start()
 ```
 
-The Gradle side is a single line:
+The Gradle side is the runtime plus the network agent this sample registers:
 
 ```kotlin
 dependencies {
     debugImplementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    debugImplementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
 }
 ```
 
-Verified on AGP 9.3.0 / Kotlin 2.4.10 by reading the built APKs rather than the wiring: the debug
+Verified on AGP 9.3.0 / Kotlin 2.4.10, with stand-in classes, by reading the built APKs rather than
+the wiring: the debug
 APK's dex carried the debug-only class and the `"jetwhale:"` marker, while the release APK carried
 `"noop"` and zero occurrences of the debug-only class. `:tooling` appeared on
 `debugRuntimeClasspath` and was absent from `releaseRuntimeClasspath`.
@@ -105,9 +107,13 @@ build type, so neither helps. Two options:
    ```
 
    ```kotlin
-   // debug module, called explicitly from the debug entry point
+   // debug module
    DebugToolingHolder.instance = JetWhaleDebugTooling()
    ```
+
+   Something still has to run that line without production code naming the debug module: on the
+   JVM a `ServiceLoader` entry can; elsewhere it takes a debug-only entry point, at which point
+   option 2 is the simpler shape.
 
 2. **Two thin entry-point modules** — `:app-debug` and `:app-release`, each with its own `main()`
    that wires what it needs. More files, but no mutable global and no reflection.
