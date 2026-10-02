@@ -104,10 +104,9 @@ internal fun UiNode.displayLabel(): String {
         is ComposeNode -> {
             val role = role
             when {
+                isLabeledById -> "#$id"
                 role != null && label != null -> "$role · $label"
-                role != null -> role
-                label != null -> label
-                else -> "#$id"
+                else -> role ?: label.orEmpty()
             }
         }
     }
