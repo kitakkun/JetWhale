@@ -1,8 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -15,6 +13,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
 import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
@@ -82,14 +81,11 @@ class GetAccessibilityTreeMcpTool(
  */
 @OptIn(InternalComposeUiApi::class)
 fun captureAccessibilityTree(scene: PluginComposeScene): String {
-    // The render's pixels are discarded; it runs to flush pending recompositions and sync the
-    // semantics tree.
-    val size = sceneViewportSize(scene)
-    val viewport = McpViewport(size = size, density = scene.composeScene.density)
+    val viewport = McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
         scene.whileCapturingForMcp {
-            scene.render(Canvas(ImageBitmap(size.width, size.height)))
+            scene.renderDiscardingPixels()
             scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::traverseSemanticsTree)
         }
     }
