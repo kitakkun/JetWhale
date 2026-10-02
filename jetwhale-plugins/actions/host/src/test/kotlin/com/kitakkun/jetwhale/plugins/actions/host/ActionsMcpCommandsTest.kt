@@ -118,10 +118,7 @@ class ActionsMcpCommandsTest {
         }
 
         assertTrue(result.isError)
-        val report = (result.content.single() as JetWhaleMcpContent.Text).text
-        assertTrue("\"outcome\":\"FAILURE\"" in report, report)
-        assertTrue("no such user" in report, report)
-        assertTrue("at LoginAs.run" in report, report)
+        assertEquals("'Log in as' ended with FAILURE after 3 ms: no such user\nat LoginAs.run", (result.content.single() as JetWhaleMcpContent.Text).text)
     }
 
     @Test
