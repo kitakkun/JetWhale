@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.model.SafeModeService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -39,6 +40,7 @@ class DefaultPluginJarSwapService(
     private val debugSessionRepository: DebugSessionRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
     private val reconciliationService: PluginSessionReconciliationService,
+    private val safeModeService: SafeModeService,
 ) : PluginJarSwapService {
     private val logger = Logger.getLogger(DefaultPluginJarSwapService::class.java.name)
 
@@ -110,6 +112,8 @@ class DefaultPluginJarSwapService(
      */
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
+        // Leaving safe mode runs the reconciliation, which creates the instances then.
+        if (safeModeService.safeModeFlow.value != null) return
 
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
         val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
