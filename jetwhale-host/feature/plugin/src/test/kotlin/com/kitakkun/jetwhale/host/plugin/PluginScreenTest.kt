@@ -34,13 +34,14 @@ class PluginScreenTest {
             }
         }
         renderFrames()
-        val sizeBefore = scene.composeScene.size
+        val sizeBefore = assertNotNull(scene.composeScene.size)
 
         windowDensity = Density(2f)
         renderFrames()
 
         assertEquals(sizeBefore, scene.composeScene.size, "the change must not have come with a new size")
         assertEquals(Density(2f), scene.composeScene.density)
+        assertEquals(with(Density(2f)) { DpSize(sizeBefore.width.toDp(), sizeBefore.height.toDp()) }, scene.windowInfoUpdater.currentDpSize)
 
         windowDensity = Density(1f)
         renderFrames()
