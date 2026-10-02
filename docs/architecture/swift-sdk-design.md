@@ -1,6 +1,8 @@
 # Native Swift SDK — API design
 
-Status: **design/proposal** (not yet implemented). Companion to the Swift-Export feasibility study.
+Status: **design/proposal** (not yet implemented). Packaging for a pure Swift app is covered in
+[iOS native views](./semantics-ios-native-views.md#distribution-to-a-pure-swift-app); this document
+covers the start API and custom Swift plugins.
 
 ## Goal
 
@@ -14,37 +16,38 @@ The existing agent API is Kotlin-idiomatic and leans on exactly the features tha
 to Swift today (whether via Obj-C interop or the still-Alpha Swift Export):
 
 - receiver-lambda DSLs (`startJetWhale { connection { … } }`),
-- reified generics (`request<R>()`, `JetWhaleRequest<R>`),
+- reified generics (`request<R>()`, `JetWhaleRequest<R>`), which the handler registry is built on,
 - `@Serializable` message types (no `Codable` bridging),
 - sealed marker interfaces,
-- Kotlin `abstract class` plugins (Swift cannot subclass exported Kotlin classes).
+- a plugin base class whose lifecycle hooks are `protected`. Swift can subclass exported Kotlin
+  classes over Obj-C interop, but `protected` members are not exported, so a Swift subclass has
+  nothing to override.
 
 So we do **not** try to export the Kotlin authoring surface. Instead we add a thin **façade layer in
 `commonMain`** whose public shape is export-clean, and design a Swift wrapper on top of it. The
-Kotlin API for Kotlin consumers is untouched.
+Kotlin DSL for Kotlin consumers stays as it is; the one change below it is a public raw-dispatch
+path in `jetwhale-protocol` (see the Kotlin-side façade).
 
 ## The one design rule
 
 > **Only strings and plain values cross the Kotlin↔Swift boundary.** All generic typing and
 > serialization lives on the Swift side (`Codable`).
 
-This is already possible: `JetWhaleMessenger` exposes a monomorphic boundary today —
-`sendRaw(messageType: String, payload: String): Boolean` and
-`suspend requestRaw(messageType, payload, timeout): String`
-(`jetwhale-protocol/core/src/commonMain/kotlin/com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger.kt:32,40`).
-The typed `trySend`/`request` are just
-reified extensions over these. The Swift SDK builds directly on the raw pair and does its own
-`Codable` encode/decode, so generics and serialization never need to bridge.
+The sending side already has that boundary: `JetWhaleMessenger` (in `jetwhale-protocol`) is itself
+the raw layer — `sendRaw(messageType: String, payload: String): Boolean` and
+`suspend requestRaw(messageType, payload, timeout): String` — and the typed `trySend`/`request` are
+reified extensions over it. The Swift SDK builds on the raw pair and does its own `Codable`
+encode/decode, so generics and serialization never need to bridge. The receiving side has no such
+boundary yet; see the Kotlin-side façade.
 
 ## Distribution
 
 Ship as a **Swift Package with a binary `.xcframework`** target
-(`.binaryTarget(name:url:checksum:)`, zip on GitHub Releases). The repo already builds a static
-XCFramework for the demo (`demo/shared/build.gradle.kts:61-67`) and `agent-runtime` targets
-`iosArm64` / `iosSimulatorArm64` / `macosArm64`. Recommended: a **dynamic** framework for a
-distributed SDK (avoids duplicate-symbol issues when linked into app extensions), automated with
-Touchlab **KMMBridge** (build → upload → refresh checksum in `Package.swift`). Build the XCFramework
-from the **Obj-C interop** path today; swap to Swift Export later without changing the Swift API.
+(`.binaryTarget(name:url:checksum:)`, zip on GitHub Releases). The repo already builds an
+XCFramework for the demo (the `XCFramework("shared")` block in `demo/shared/build.gradle.kts`), and
+`agent-runtime` targets `iosArm64` / `iosSimulatorArm64` / `macosArm64`. The framework is
+**dynamic**, for the reasons in the packaging section of the iOS native views design. Build it from
+the **Obj-C interop** path today; swap to Swift Export later without changing the Swift API.
 
 ## Swift-facing API (consumer view)
 
@@ -52,12 +55,13 @@ from the **Obj-C interop** path today; swap to Swift Export later without changi
 import JetWhale
 
 // 1. Start — a value config, not a receiver-lambda DSL
-JetWhale.start(host: "localhost", port: 5443) { config in
+JetWhale.start { config in
     config.appName = "My App (staging)"
     config.logging(.info)
-    config.ssl(.trustServerCertificate)          // or .trustCertificate(pem: "…")
-    config.register(NetworkPlugin())             // official plugins
-    config.register(MyPlugin())                  // your own
+    config.endpoints.ws(host: "localhost", port: 5080)          // simulator
+    config.endpoints.discoverWss { $0.allowHostName("my-mac") }  // physical device
+    config.plugins.networkInspector()                            // official plugins
+    config.plugins.register(MyPlugin())                          // your own
 }
 
 // 2. Message contracts — Swift Codable structs tagged by a stable type id
@@ -74,13 +78,14 @@ struct Pong: Codable { let ok: Bool }
 // 3. A plugin — a Swift type conforming to a protocol (no subclassing)
 final class MyPlugin: JetWhalePlugin {
     let pluginId = "com.example.myplugin"
+    let pluginVersion = "1.0.0"
 
     func configure(_ handlers: JetWhaleHandlers) {
         handlers.onEvent(ButtonClicked.self) { event in
             print("clicked \(event.count)")
         }
         handlers.onRequest(Ping.self) { _ in
-            Pong(ok: true)                       // reply is the declared Reply type
+            Pong(ok: true)                       // reply is the declared Reply type; may await
         }
     }
 
@@ -106,40 +111,65 @@ Key Swift types:
 
 - `JetWhaleEvent` / `JetWhaleRequest` — Swift protocols refining `Codable` with a `static var
   messageType: String`. `JetWhaleRequest` adds `associatedtype Reply: Codable`.
-- `JetWhalePlugin` — a Swift protocol (backed by an Obj-C protocol from Kotlin; Swift *can* conform
-  to exported Kotlin interfaces even though it can't subclass Kotlin classes).
-- `JetWhaleHandlers` — closure registry: `onEvent(_:_:)`, `onRequest(_:_:)`.
+- `JetWhalePlugin` — a Swift protocol (backed by an Obj-C protocol from Kotlin) with `pluginId`,
+  `pluginVersion`, `configure` and the lifecycle callbacks. `pluginVersion` is sent during session
+  negotiation, as it is for every Kotlin agent plugin.
+- `JetWhaleHandlers` — closure registry: `onEvent(_:_:)`, `onRequest(_:_:)`; request handlers are
+  `async`.
 - `JetWhaleMessenger` — `trySend`, `sendOrQueue`, `sendOrFail`, and `async` `request`.
-- `JetWhale.start(host:port:_:)` — trailing-closure builder over a `JetWhaleConfig` value type.
+- `JetWhale.start(_:)` — trailing-closure builder over a `JetWhaleConfig` value type.
+
+### Endpoints
+
+The config carries an **ordered candidate list**, as `endpoints { }` does in Kotlin: the agent tries
+each candidate in turn. `ws(host:port:)`, `wss(host:port:)` and `discoverWss(_:)` map one-to-one;
+`discoverWss` keeps its required allowlist (`allowHostName`, `allowAddress`, `allowAll`) and still
+needs `_jetwhale._tcp` under `NSBonjourServices` in the app's `Info.plist`. `buildMachineWss` is not
+offered: the agent's Kotlin compiler plugin rewrites it when the *app's* Kotlin is compiled, and a
+pure Swift app consumes a prebuilt framework with no Kotlin compilation of its own.
+
+Certificate trust (`trustServerCertificate`, `trustCertificate(pem:)`) is a separate `config.ssl`
+section, as `ssl { }` is in Kotlin; it does not pick the scheme, the endpoints do.
 
 ## Kotlin-side façade (what backs it)
 
-Add to `commonMain` (new, export-clean; nothing generic/suspend-receiver in the public shape):
+1. **A public raw-dispatch path in `jetwhale-protocol`** — the prerequisite. Today
+   `JetWhaleMessageHandlers` only accepts the reified `onEvent<E>` / `onRequest<REQ, R>`, keyed by
+   the serializer's `descriptor.serialName`; its constructor and registration functions are
+   `internal`, and the inbound dispatcher looks up only those typed entries. There is no raw shape
+   to register a catch-all against (the QA agent's `WireLevelQaPlugin` is send-only for the same
+   reason). Add a raw fallback — e.g. `onRawEvent { messageType, json -> }` and
+   `onRawRequest { messageType, json -> replyJson }` — that the dispatcher consults when no typed
+   entry matches. This is the one addition to the Kotlin-facing API.
 
-1. **`JetWhaleSwiftConfig`** — a plain class with settable properties (`appName`, `host`, `port`,
-   `logLevel`, an `ssl` enum/holder) and `register(plugin)`. `JetWhale.start` (Swift) fills one and
+2. **`JetWhaleSwiftConfig`** — a plain class with settable properties (`appName`, `logLevel`), an
+   ordered endpoint list (`ws`, `wss`, `discoverWss`), an `ssl` section, and a `plugins` section with
+   one method per official plugin plus `register(bridge)`. `JetWhale.start` (Swift) fills one and
    hands it to a non-suspend `startJetWhaleFromConfig(config)` that internally builds today's DSL.
 
-2. **`SwiftPluginBridge`** (Kotlin `interface` → Obj-C protocol the Swift plugin conforms to):
+3. **`SwiftPluginBridge`** (Kotlin `interface` → Obj-C protocol the Swift plugin conforms to):
    ```kotlin
    interface SwiftPluginBridge {
        val pluginId: String
+       val pluginVersion: String
        fun onActivate(messenger: RawMessenger)
-       fun onPrepare(messenger: RawMessenger, done: () -> Unit)   // async → callback
+       fun onPrepare(messenger: RawMessenger, done: () -> Unit)
        fun onDisconnected()
        fun onDeactivate()
        fun handleEvent(messageType: String, payloadJson: String)
-       fun handleRequest(messageType: String, payloadJson: String): String  // returns reply json
+       fun handleRequest(messageType: String, payloadJson: String, reply: (String) -> Unit)
    }
    ```
-   A Kotlin `SwiftBackedAgentPlugin(bridge) : JetWhaleAgentPlugin` adapts it: its `configure`
-   registers a single catch-all raw handler that dispatches `(messageType, json)` to
-   `bridge.handleEvent/handleRequest`; its lifecycle hooks forward to the bridge. The Swift side
-   implements `SwiftPluginBridge` inside a wrapper around the developer's `JetWhalePlugin`.
+   `onPrepare` and `handleRequest` take a callback rather than returning, so the Swift side can
+   answer from an `async` context. A Kotlin `SwiftBackedAgentPlugin(bridge) : JetWhaleAgentPlugin`
+   adapts it: its `configure` registers the raw fallback from (1) and dispatches
+   `(messageType, json)` to `bridge.handleEvent/handleRequest`, suspending until `reply` is called;
+   its lifecycle hooks and `pluginVersion` forward to the bridge. The Swift side implements
+   `SwiftPluginBridge` inside a wrapper around the developer's `JetWhalePlugin`.
 
-3. **`RawMessenger`** — a narrow export of the raw messenger: `trySendRaw(type, json): Bool`,
-   `sendOrQueueRaw`, `sendOrFailRaw`, and (Kotlin 2.4 `suspend`→Swift `async`) `requestRaw(type,
-   json): String`. The Swift `JetWhaleMessenger` wraps it and does `Codable` on both sides.
+4. **`RawMessenger`** — a narrow export of the raw messenger: `trySendRaw(type, json): Bool`,
+   `sendOrQueueRaw`, `sendOrFailRaw`, and `suspend requestRaw(type, json): String`. The Swift
+   `JetWhaleMessenger` wraps it and does `Codable` on both sides.
 
 The Swift wrapper layer (in the Swift package, not Kotlin) owns: the `Codable` encode/decode, the
 `messageType`→handler map, and turning `SwiftPluginBridge` callbacks into calls on the developer's
@@ -167,20 +197,20 @@ Kotlin and back) should gate releases.
 
 ## Async & state
 
-- `request` / `onPrepare` → Swift `async` (Kotlin 2.4 exports `suspend`→`async`); until that path is
-  proven, back them with completion-handler overloads.
+- `request` / `onPrepare` → Swift `async`: Obj-C export already turns a `suspend` function into a
+  method with a completion handler, which Swift imports as `async`, so no extra overloads are
+  needed.
 - Observable plugin state (host→agent `StateFlow`) → expose as an `AsyncStream`/`AsyncSequence`
-  (Kotlin 2.4 `Flow`→`AsyncSequence`) or a `subscribe(_:)` callback. `StateFlow.value` bridging is
-  undocumented in Swift Export, so provide an explicit accessor on the façade.
+  or a `subscribe(_:)` callback. `StateFlow.value` bridging is undocumented in Swift Export, so
+  provide an explicit accessor on the façade.
 - Threading: `request`/handlers run on the runtime's coroutine scope; the façade must document/main-
   thread-hop where Swift callers expect it and honor Swift task cancellation.
 
 ## Network Inspector on Swift (Phase 2)
 
-The Network Inspector core is transport-agnostic — `JetWhaleNetworkAgentPlugin` exposes
-`recordRequest`/`recordResponse`/`recordFailure`/`findMock`/`newTransactionId`
-(`jetwhale-plugins/network/agent/src/commonMain/kotlin/com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin.kt:79-94`),
-and its docstring invites new adapters.
+The Network Inspector core is transport-agnostic — `JetWhaleNetworkAgentPlugin` (in
+`jetwhale-plugins/network/agent`) exposes `newTransactionId`, `recordRequest`, `recordResponse`,
+`recordFailure` and `findMock`, and its KDoc invites new adapters.
 A Swift app uses **URLSession**, which has no global interceptor, so ship a Swift-native adapter:
 
 - capture via a `URLProtocol` subclass (or `URLSessionTaskDelegate` + `URLSessionTaskMetrics`),
@@ -193,17 +223,18 @@ SSE/streaming and background-session parity with the Ktor adapter are the hard p
 
 - **Phase 0** — publish `agent-runtime` (+ SDK/protocol) as an XCFramework; prove a pure-Swift app
   can call a hand-written thin Kotlin façade over Obj-C interop.
-- **Phase 1** — ship the Swift façade above (config builder, `JetWhalePlugin` protocol, `Codable`
-  messenger) + the `SwiftPluginBridge`/`RawMessenger` Kotlin layer. Custom plugins fully usable.
-  No dependency on Swift Export.
+- **Phase 1** — the raw-dispatch path in `jetwhale-protocol`, then the Swift façade above (config
+  builder, `JetWhalePlugin` protocol, `Codable` messenger) and the
+  `SwiftPluginBridge`/`RawMessenger` Kotlin layer. Custom plugins fully usable. No dependency on
+  Swift Export.
 - **Phase 2** — the URLSession Network Inspector adapter.
 - **Phase 3** — migrate the façade's interop from Obj-C to Swift Export as it matures, keeping the
   Swift API stable.
 
 ## Open questions
 
-- Static vs dynamic XCFramework for the SDK (extension-linking, size).
-- Exact discriminator scheme kotlinx.serialization uses on the host, and how to pin the Swift
-  `messageType` to it without a shared Kotlin module.
-- Whether to ship official plugins (Network Inspector) as separate Swift packages/targets.
-- Minimum Kotlin/Swift/Xcode versions to commit to for the `suspend`→`async` export path.
+- The raw-dispatch API's exact shape: a fallback on `JetWhaleMessageHandlers`, or a separate raw
+  plugin base the dispatcher recognizes.
+- Whether official plugins beyond the first package's set can ship separately, given that
+  Kotlin/Native frameworks do not compose (see the packaging section).
+- Minimum Kotlin/Swift/Xcode versions to commit to.
