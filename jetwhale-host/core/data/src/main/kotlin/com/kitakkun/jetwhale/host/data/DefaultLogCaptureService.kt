@@ -41,8 +41,8 @@ class DefaultLogCaptureService : LogCaptureService {
         originalOut = previousOut
         originalErr = previousErr
 
-        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO, streamCharset("stdout.encoding")))
-        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR, streamCharset("stderr.encoding")))
+        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO))
+        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR))
 
         isCapturing = true
     }
@@ -63,23 +63,21 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 
-    // Every print reaches this stream as the bytes it encodes to, in the charset the original stream
-    // encodes with, so the terminal and the captured lines are cut from the same bytes.
+    // Logback writes bytes in the default charset, and so does this stream for every print, so one
+    // decoder reads every line; the terminal then gets each line through the original stream, which
+    // encodes it in the console's own charset.
     private inner class CapturingPrintStream(
         original: PrintStream,
         level: LogLevel,
-        charset: Charset,
     ) : PrintStream(
         object : OutputStream() {
             private val line = ByteArrayOutputStream()
 
             override fun write(b: Int) {
-                original.write(b)
                 if (b == '\n'.code) endLine() else line.write(b)
             }
 
             override fun write(b: ByteArray, off: Int, len: Int) {
-                original.write(b, off, len)
                 var start = off
                 for (i in off until off + len) {
                     if (b[i] == '\n'.code.toByte()) {
@@ -97,12 +95,15 @@ class DefaultLogCaptureService : LogCaptureService {
 
             // A line is decoded only once it is whole, so a character split across writes survives.
             private fun endLine() {
-                addLogEntry(line.toString(charset), level)
+                val text = line.toString(Charset.defaultCharset())
                 line.reset()
+                original.print(text)
+                original.print('\n')
+                addLogEntry(text, level)
             }
         },
         true,
-        charset,
+        Charset.defaultCharset(),
     )
 
     private fun addLogEntry(message: String, level: LogLevel) {
@@ -122,16 +123,3 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 }
-
-/**
- * The charset System.out or System.err encodes with: the JDK picks it from [property]
- * (`stdout.encoding` / `stderr.encoding`), which can differ from the default charset, as on a
- * Windows console.
- */
-private fun streamCharset(property: String): Charset = System.getProperty(property)?.let { name ->
-    try {
-        Charset.forName(name)
-    } catch (_: IllegalArgumentException) {
-        null
-    }
-} ?: Charset.defaultCharset()

@@ -17,10 +17,6 @@ class DefaultLogCaptureServiceTest {
     private val encodingsBefore = ENCODING_PROPERTIES.associateWith(System::getProperty)
     private val terminal = ByteArrayOutputStream()
 
-    init {
-        ENCODING_PROPERTIES.forEach { System.setProperty(it, Charsets.UTF_8.name()) }
-    }
-
     @AfterTest
     fun restoreTerminal() {
         service.stopCapture()
@@ -52,16 +48,37 @@ class DefaultLogCaptureServiceTest {
     }
 
     @Test
-    fun `the terminal gets the bytes of its own charset and the captured line reads back the same`() {
-        val windowsConsole = Charset.forName("windows-31j")
-        System.setProperty("stdout.encoding", windowsConsole.name())
-        System.setOut(PrintStream(terminal, true, windowsConsole))
-        service.startCapture()
+    fun `logback's bytes are captured exactly whatever code page the console uses`() {
+        for ((console, terminalShows) in CONSOLES) {
+            val terminal = ByteArrayOutputStream()
+            val service = DefaultLogCaptureService()
+            System.setProperty("stdout.encoding", console.name())
+            System.setOut(PrintStream(terminal, true, console))
+            service.startCapture()
 
-        println("プラグイン")
+            System.out.write("$NON_ASCII\n".toByteArray(Charset.defaultCharset()))
 
-        assertEquals("プラグイン" + System.lineSeparator(), terminal.toString(windowsConsole))
-        assertEquals("プラグイン", service.logs.value.single().message)
+            assertEquals(NON_ASCII, service.logs.value.single().message, console.name())
+            assertEquals("$terminalShows\n", terminal.toString(console), console.name())
+            service.stopCapture()
+        }
+    }
+
+    @Test
+    fun `printed text is captured exactly whatever code page the console uses`() {
+        for ((console, terminalShows) in CONSOLES) {
+            val terminal = ByteArrayOutputStream()
+            val service = DefaultLogCaptureService()
+            System.setProperty("stdout.encoding", console.name())
+            System.setOut(PrintStream(terminal, true, console))
+            service.startCapture()
+
+            println(NON_ASCII)
+
+            assertEquals(NON_ASCII, service.logs.value.single().message, console.name())
+            assertEquals(terminalShows + System.lineSeparator(), terminal.toString(console), console.name())
+            service.stopCapture()
+        }
     }
 
     @Test
@@ -107,3 +124,11 @@ private const val WRITERS = 8
 private const val LINES_PER_WRITER = 500
 
 private val ENCODING_PROPERTIES = listOf("stdout.encoding", "stderr.encoding")
+
+private const val NON_ASCII = "プラグイン Zoë"
+
+/** Console code pages paired with what each can show of [NON_ASCII]; the rest becomes '?'. */
+private val CONSOLES = listOf(
+    Charset.forName("windows-31j") to "プラグイン Zo?",
+    Charset.forName("windows-1252") to "????? Zoë",
+)
