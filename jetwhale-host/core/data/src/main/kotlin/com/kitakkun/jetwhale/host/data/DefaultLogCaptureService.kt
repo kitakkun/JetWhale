@@ -10,8 +10,10 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
+import java.nio.charset.Charset
 import kotlin.time.Clock
 
 @Inject
@@ -20,6 +22,10 @@ import kotlin.time.Clock
 class DefaultLogCaptureService : LogCaptureService {
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
     override val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
+
+    // Lines arrive from stdout and stderr on any thread; the lock keeps every one of them.
+    private val entries = ArrayDeque<LogEntry>()
+    private var nextEntryId = 0L
 
     private var originalOut: PrintStream? = null
     private var originalErr: PrintStream? = null
@@ -51,7 +57,10 @@ class DefaultLogCaptureService : LogCaptureService {
     }
 
     override fun clearLogs() {
-        _logs.value = emptyList()
+        synchronized(entries) {
+            entries.clear()
+            _logs.value = emptyList()
+        }
     }
 
     private inner class CapturingPrintStream(
@@ -59,24 +68,21 @@ class DefaultLogCaptureService : LogCaptureService {
         private val level: LogLevel,
     ) : PrintStream(
         object : OutputStream() {
-            private val buffer = StringBuilder()
+            private val line = ByteArrayOutputStream()
 
+            // A line is decoded only once it is whole, so a character split across writes survives.
             override fun write(b: Int) {
+                original.write(b)
                 if (b == '\n'.code) {
-                    flush()
+                    addLogEntry(line.toString(Charset.defaultCharset()), level)
+                    line.reset()
                 } else {
-                    buffer.append(b.toChar())
+                    line.write(b)
                 }
             }
 
             override fun flush() {
-                if (buffer.isNotEmpty()) {
-                    val message = buffer.toString()
-                    buffer.clear()
-                    addLogEntry(message, level)
-                    original.print(message)
-                    original.flush()
-                }
+                original.flush()
             }
         },
     ) {
@@ -102,12 +108,17 @@ class DefaultLogCaptureService : LogCaptureService {
     private fun addLogEntry(message: String, level: LogLevel) {
         if (message.isBlank()) return
 
-        val entry = LogEntry(
-            timestamp = Clock.System.now(),
-            message = message.trim(),
-            level = level,
-        )
-
-        _logs.value = (_logs.value + entry).takeLast(maxLogEntries)
+        synchronized(entries) {
+            if (entries.size == maxLogEntries) entries.removeFirst()
+            entries.addLast(
+                LogEntry(
+                    id = nextEntryId++,
+                    timestamp = Clock.System.now(),
+                    message = message.trim(),
+                    level = level,
+                ),
+            )
+            _logs.value = entries.toList()
+        }
     }
 }

@@ -48,16 +48,19 @@ private fun LogViewerScreenPreview() {
             uiState = LogViewerScreenUiState(
                 logs = persistentListOf(
                     LogEntry(
+                        id = 0,
                         timestamp = Clock.System.now(),
                         message = "Application started",
                         level = LogLevel.INFO,
                     ),
                     LogEntry(
+                        id = 1,
                         timestamp = Clock.System.now(),
                         message = "Error connecting to server",
                         level = LogLevel.ERROR,
                     ),
                     LogEntry(
+                        id = 2,
                         timestamp = Clock.System.now(),
                         message = "Processing request...",
                         level = LogLevel.INFO,

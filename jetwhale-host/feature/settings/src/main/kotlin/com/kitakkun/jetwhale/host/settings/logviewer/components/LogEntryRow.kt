@@ -132,6 +132,7 @@ private fun LogEntryRowPreview() {
     JwTheme(darkTheme = false) {
         LogEntryRow(
             logEntry = LogEntry(
+                id = 0,
                 timestamp = Clock.System.now(),
                 message = "Error connecting to server",
                 level = LogLevel.ERROR,
