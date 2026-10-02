@@ -349,7 +349,7 @@ private fun CrashRecoveryBanners() {
             safeMode?.let {
                 SafeModeBanner(
                     safeMode = safeMode,
-                    onClickLoadPlugins = { coroutineScope.launch { leaveSafeModeMutation.mutateAsync(Unit) } },
+                    onClickStartPlugins = { coroutineScope.launch { leaveSafeModeMutation.mutateAsync(Unit) } },
                 )
             }
         }

@@ -151,9 +151,9 @@ Crash logs are written to `~/.jetwhale/logs/` by the packaged app and by `runJet
 `runJetWhaleHot` (into the sandbox's `logs/`). A JVM started some other way writes it to its working
 directory or the temp directory; the host looks there too.
 
-If the host quits twice in a row within 30 seconds of starting, the third launch comes up in
+If the host quits unexpectedly twice in a row within 30 seconds of starting, the third launch comes up in
 **safe mode**: plugins are listed but no plugin instance is created, and a banner says so. Choose
-**Load plugins** in the banner to leave safe mode for the rest of that run — after disabling the
+**Start plugins** in the banner to leave safe mode for the rest of that run — after disabling the
 plugin you suspect, for instance. Start with `--safe-mode` (see
 [Command-line options](/guide/host-settings#other-options)) to get the same thing on purpose.
 

@@ -22,9 +22,9 @@
     <string name="unclean_exit_banner_copy_crash_log_path">crash log のパスをコピー</string>
     <string name="unclean_exit_banner_copy_logs_path">ログフォルダのパスをコピー</string>
     <string name="unclean_exit_banner_disable_plugin">%1$s を無効化</string>
-    <string name="safe_mode_banner_requested">Safe mode: プラグインを読み込んでいません (--safe-mode)</string>
-    <string name="safe_mode_banner_startup_crashes">Safe mode: 起動中に 2 回続けて終了したため、プラグインを読み込んでいません</string>
-    <string name="safe_mode_banner_load_plugins">プラグインを読み込む</string>
+    <string name="safe_mode_banner_requested">Safe mode: プラグインを起動していません (--safe-mode)</string>
+    <string name="safe_mode_banner_startup_crashes">Safe mode: 起動中に 2 回続けて異常終了したため、プラグインを起動していません</string>
+    <string name="safe_mode_banner_start_plugins">プラグインを起動</string>
     <string name="developed_by">開発者: kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSSライセンス</string>

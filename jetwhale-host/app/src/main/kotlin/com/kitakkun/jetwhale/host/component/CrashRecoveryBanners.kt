@@ -10,8 +10,8 @@ import com.kitakkun.jetwhale.host.model.SafeMode
 import com.kitakkun.jetwhale.host.model.SafeModeReason
 import com.kitakkun.jetwhale.host.model.SuspectedPlugin
 import com.kitakkun.jetwhale.host.model.UncleanExitReport
-import com.kitakkun.jetwhale.host.safe_mode_banner_load_plugins
 import com.kitakkun.jetwhale.host.safe_mode_banner_requested
+import com.kitakkun.jetwhale.host.safe_mode_banner_start_plugins
 import com.kitakkun.jetwhale.host.safe_mode_banner_startup_crashes
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
@@ -85,7 +85,7 @@ fun UncleanExitBanner(
 @Composable
 fun SafeModeBanner(
     safeMode: SafeMode,
-    onClickLoadPlugins: () -> Unit,
+    onClickStartPlugins: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwBanner(
@@ -97,8 +97,8 @@ fun SafeModeBanner(
         tone = JwTone.Warning,
         actions = {
             JwButton(
-                text = stringResource(Res.string.safe_mode_banner_load_plugins),
-                onClick = onClickLoadPlugins,
+                text = stringResource(Res.string.safe_mode_banner_start_plugins),
+                onClick = onClickStartPlugins,
                 style = JwButtonStyle.Text,
             )
         },
@@ -133,7 +133,7 @@ private fun SafeModeBannerPreview() {
     JwTheme(darkTheme = false) {
         SafeModeBanner(
             safeMode = SafeMode(SafeModeReason.RepeatedStartupCrashes),
-            onClickLoadPlugins = {},
+            onClickStartPlugins = {},
         )
     }
 }
