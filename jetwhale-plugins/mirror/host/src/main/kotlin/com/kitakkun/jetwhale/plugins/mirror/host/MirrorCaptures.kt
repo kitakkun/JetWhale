@@ -103,7 +103,17 @@ internal class MirrorCaptures(
     }
 
     init {
-        scope.launch(Dispatchers.IO) { copyRequestsInOrder() }
+        scope.launch(Dispatchers.IO) {
+            for ((capture, pathOnly) in clipboardRequests) {
+                val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
+                try {
+                    if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
+                    notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: IOException) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                }
+            }
+        }
     }
 
     /** Reads the folder the user picked last time, if any. */
@@ -232,18 +242,6 @@ internal class MirrorCaptures(
             notices.show(MirrorNotice.failure("Could not open it: ${e.message}", retry = null))
         } catch (e: UnsupportedOperationException) {
             notices.show(MirrorNotice.failure("This desktop cannot open files from here: ${e.message}", retry = null))
-        }
-    }
-
-    private suspend fun copyRequestsInOrder() {
-        for ((capture, pathOnly) in clipboardRequests) {
-            val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
-            try {
-                if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
-                notices.show(MirrorNotice.info("Copied $what"))
-            } catch (e: IOException) {
-                notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
-            }
         }
     }
 
