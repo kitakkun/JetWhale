@@ -96,22 +96,14 @@ internal class MirrorCaptures(
 
     // One copy at a time, in the order they were asked for, so a slow copy cannot land on the
     // clipboard after a later one.
-    private val clipboardRequests = Channel<ClipboardRequest>(Channel.UNLIMITED).also { requests ->
-        scope.launch(Dispatchers.IO) {
-            for ((capture, pathOnly) in requests) {
-                val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
-                try {
-                    if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
-                    notices.show(MirrorNotice.info("Copied $what"))
-                } catch (e: IOException) {
-                    notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
-                }
-            }
-        }
-    }
+    private val clipboardRequests = Channel<ClipboardRequest>(Channel.UNLIMITED)
 
     private val thumbnails = object : LinkedHashMap<File, ImageBitmap>(THUMBNAIL_CACHE_SIZE, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<File, ImageBitmap>): Boolean = size > THUMBNAIL_CACHE_SIZE
+    }
+
+    init {
+        scope.launch(Dispatchers.IO) { copyRequestsInOrder() }
     }
 
     /** Reads the folder the user picked last time, if any. */
@@ -240,6 +232,18 @@ internal class MirrorCaptures(
             notices.show(MirrorNotice.failure("Could not open it: ${e.message}", retry = null))
         } catch (e: UnsupportedOperationException) {
             notices.show(MirrorNotice.failure("This desktop cannot open files from here: ${e.message}", retry = null))
+        }
+    }
+
+    private suspend fun copyRequestsInOrder() {
+        for ((capture, pathOnly) in clipboardRequests) {
+            val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
+            try {
+                if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
+                notices.show(MirrorNotice.info("Copied $what"))
+            } catch (e: IOException) {
+                notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+            }
         }
     }
 
