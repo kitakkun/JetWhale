@@ -66,11 +66,13 @@ fun main(args: Array<String>) = runBlocking {
             safeModeRequest = cliOptions.safeMode,
         )
 
+    // Before anything logs: java.util.logging binds its console handler to System.err at the first
+    // record, so a record logged earlier would send every later one around the capture.
+    appGraph.logCaptureService.startCapture()
+
     // Before anything that could crash: the previous run's marker has to be read before this run
     // replaces it, and safe mode is decided from it before any plugin instance is created.
     appGraph.crashRecoveryService.onStartup()
-
-    appGraph.logCaptureService.startCapture()
 
     appGraph.applicationLifecycleOwner.initialize()
 
