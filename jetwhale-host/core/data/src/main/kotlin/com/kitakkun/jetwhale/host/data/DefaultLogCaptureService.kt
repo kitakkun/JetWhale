@@ -63,9 +63,11 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 
+    // Every print reaches this stream as the bytes it encodes to, so the terminal and the captured lines are
+    // cut from the same bytes.
     private inner class CapturingPrintStream(
-        private val original: PrintStream,
-        private val level: LogLevel,
+        original: PrintStream,
+        level: LogLevel,
     ) : PrintStream(
         object : OutputStream() {
             private val line = ByteArrayOutputStream()
@@ -85,25 +87,8 @@ class DefaultLogCaptureService : LogCaptureService {
                 original.flush()
             }
         },
-    ) {
-        override fun println(x: String?) {
-            x?.let { addLogEntry(it, level) }
-            original.println(x)
-        }
-
-        override fun println(x: Any?) {
-            x?.toString()?.let { addLogEntry(it, level) }
-            original.println(x)
-        }
-
-        override fun print(x: String?) {
-            original.print(x)
-        }
-
-        override fun print(x: Any?) {
-            original.print(x)
-        }
-    }
+        true,
+    )
 
     private fun addLogEntry(message: String, level: LogLevel) {
         if (message.isBlank()) return

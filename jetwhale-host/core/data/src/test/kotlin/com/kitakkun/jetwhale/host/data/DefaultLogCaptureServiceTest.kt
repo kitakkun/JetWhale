@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
+import com.kitakkun.jetwhale.host.model.LogEntry
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.nio.charset.Charset
@@ -48,6 +49,19 @@ class DefaultLogCaptureServiceTest {
         System.out.write(bytes, 2, bytes.size - 2)
 
         assertEquals("プラグイン", service.logs.value.single().message)
+    }
+
+    @Test
+    fun `a line printed in pieces is captured as the one line the terminal shows`() {
+        System.setOut(PrintStream(terminal, true))
+        service.startCapture()
+
+        print("a")
+        System.out.write("b".toByteArray(Charset.defaultCharset()))
+        println("c")
+
+        assertEquals(listOf("abc"), service.logs.value.map(LogEntry::message))
+        assertEquals("abc" + System.lineSeparator(), terminal.toString(Charset.defaultCharset()))
     }
 
     @Test
