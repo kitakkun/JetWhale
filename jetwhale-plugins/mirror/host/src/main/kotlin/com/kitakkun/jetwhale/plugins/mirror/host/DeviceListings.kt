@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -82,7 +83,7 @@ internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
     }
 }
 
-private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.content
+private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull
 
 /**
  * The physical iOS devices in `idb list-targets` output, whose lines read

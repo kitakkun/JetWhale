@@ -115,7 +115,7 @@ class DeviceDiscoveryTest {
 
     private fun companionPrints(output: String) {
         val quoted = output.replace("'", "'\\''")
-        fakeCompanion.writeText("#!/bin/sh\nprintf '%s' '$quoted'\n")
+        fakeCompanion.writeText("#!/bin/sh\n[ \"$*\" = '--list 1 --only device' ] || { echo \"unexpected arguments: $*\" >&2; exit 64; }\nprintf '%s' '$quoted'\n")
         fakeCompanion.setExecutable(true)
     }
 
