@@ -16,6 +16,10 @@ import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
+import io.ktor.util.reflect.typeInfo
+import io.ktor.utils.io.charsets.Charsets
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
@@ -71,6 +75,26 @@ class KtorWebSocketClientTest {
         webSocketClient.sendDebuggeeEvent(event)
 
         assertEquals(event, withTimeout(5.seconds) { received.await() })
+    }
+
+    @Test
+    fun `a sent event's frame text is exactly what the websocket serialization converter writes`() = testApplication {
+        val receivedText = CompletableDeferred<String>()
+        configureTestServer { receivedText.complete((incoming.receive() as Frame.Text).readText()) }
+        val event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+            frame = PluginFrame.Notification(
+                pluginId = "pluginId",
+                messageType = "test/message",
+                payload = """{"quoted":"value ✓"}""",
+            ),
+        )
+        val converterText = (KotlinxWebsocketSerializationConverter(json).serialize(Charsets.UTF_8, typeInfo<JetWhaleDebuggeeEvent>(), event) as Frame.Text).readText()
+
+        val webSocketClient = webSocketClient()
+        webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
+        webSocketClient.sendDebuggeeEvent(event)
+
+        assertEquals(converterText, withTimeout(5.seconds) { receivedText.await() })
     }
 
     @Test

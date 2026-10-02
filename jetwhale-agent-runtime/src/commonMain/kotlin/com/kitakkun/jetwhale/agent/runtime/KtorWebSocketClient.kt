@@ -10,7 +10,6 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -70,7 +69,7 @@ internal class KtorWebSocketClient(
     )
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
-        session?.sendSerialized(event)
+        session?.send(Frame.Text(json.encodeToString(JetWhaleDebuggeeEvent.serializer(), event)))
     }
 
     override suspend fun closeConnection() {
