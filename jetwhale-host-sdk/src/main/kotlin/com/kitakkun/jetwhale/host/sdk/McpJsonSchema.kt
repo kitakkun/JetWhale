@@ -3,14 +3,17 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import com.kitakkun.jetwhale.annotations.McpDescription
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.capturedKClass
 import kotlinx.serialization.descriptors.elementNames
-import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.nonNullOriginal
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
@@ -27,6 +30,8 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.SerializersModuleCollector
+import kotlin.reflect.KClass
 
 /**
  * Derives a JSON Schema fragment describing the values this descriptor accepts, so a serializable
@@ -38,13 +43,15 @@ import kotlinx.serialization.modules.SerializersModule
  * a missing nullable property as `null` and leaves a `null` one out when writing, so there a nullable
  * property is never required. A nullable property's schema admits JSON `null` next to its type, since
  * that is what the format writes for it. A sealed hierarchy becomes a `oneOf` over its subclasses, each
- * carrying the class discriminator as a `const`. Open polymorphic types are advertised as an
+ * carrying the class discriminator as a `const`; under [ClassDiscriminatorMode.NONE], where nothing
+ * tells the variants apart, it is an `anyOf`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
  * Where the descriptor does not say what is written, the schema admits any value rather than guess:
  * a contextual type is described by the serializer [json]'s module registers for it, and is
- * unconstrained when none is registered; a `JsonElement`, `JsonPrimitive` or `JsonNull` is
- * unconstrained, so a `JsonObject` is an object and a `JsonArray` an array of any values.
+ * unconstrained when none is registered, or only a provider that needs the type arguments'
+ * serializers is; a `JsonElement`, `JsonPrimitive` or `JsonNull` is unconstrained, so a `JsonObject`
+ * is an object and a `JsonArray` an array of any values.
  *
  * The schema follows [json]'s configuration — its class discriminator, naming strategy and module —
  * so the shape advertised to the caller is the shape the same format reads and writes. The one place
@@ -119,11 +126,37 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
 
         is PolymorphicKind.OPEN -> typeOnly("object")
 
-        is SerialKind.CONTEXTUAL -> context.serializersModule.getContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE
+        is SerialKind.CONTEXTUAL -> context.serializersModule.plainContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE
     }
 
     val classDescription = annotations.mcpDescription() ?: return schema
     return schema.withDescription(classDescription)
+}
+
+/**
+ * The descriptor of the serializer this module registers as is for [contextual]'s class. A class
+ * registered through a provider is left unresolved: the provider needs the serializers of the type
+ * arguments, which a contextual descriptor does not carry.
+ */
+private fun SerializersModule.plainContextualDescriptor(contextual: SerialDescriptor): SerialDescriptor? {
+    val contextualClass = contextual.capturedKClass ?: return null
+    var registered: SerialDescriptor? = null
+    dumpTo(
+        object : SerializersModuleCollector {
+            override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
+                if (kClass == contextualClass) registered = serializer.descriptor
+            }
+
+            override fun <T : Any> contextual(kClass: KClass<T>, provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>) = Unit
+
+            override fun <Base : Any, Sub : Base> polymorphic(baseClass: KClass<Base>, actualClass: KClass<Sub>, actualSerializer: KSerializer<Sub>) = Unit
+
+            override fun <Base : Any> polymorphicDefaultSerializer(baseClass: KClass<Base>, defaultSerializerProvider: (value: Base) -> SerializationStrategy<Base>?) = Unit
+
+            override fun <Base : Any> polymorphicDefaultDeserializer(baseClass: KClass<Base>, defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<Base>?) = Unit
+        },
+    )
+    return registered
 }
 
 private inline fun SerialDescriptor.guarded(enclosingTypes: MutableSet<String>, build: () -> JsonObject): JsonObject {
@@ -157,7 +190,9 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * A sealed serializer's descriptor holds two elements: the discriminator and a contextual holder
  * whose elements are the subclasses, named by their serial names. `Json` writes the discriminator
  * flattened into the value's own object, so each variant is that subclass' object schema with the
- * discriminator pinned to a constant. A sealed descriptor of another shape, such as a
+ * discriminator pinned to a constant; exactly one variant matches a value, and they form a `oneOf`.
+ * A format that writes no discriminator leaves two variants of the same shape matching the same
+ * value, so there they form an `anyOf`. A sealed descriptor of another shape, such as a
  * `JsonContentPolymorphicSerializer`'s, which lists no subclasses, says nothing of what is written.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
@@ -165,7 +200,7 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
     val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {
-        putJsonArray("oneOf") {
+        putJsonArray(if (context.writesClassDiscriminator) "oneOf" else "anyOf") {
             for (index in 0 until subclasses.elementsCount) {
                 add(
                     subclasses.getElementDescriptor(index).variantSchema(
@@ -239,10 +274,11 @@ private fun JsonObject.withDescription(description: String): JsonObject = JsonOb
 
 /**
  * Widens a schema so that JSON `null` validates against it, in the form each shape supports: `type`
- * gains `"null"`, an `enum` gains the `null` entry, and a `oneOf` gains a null variant.
+ * gains `"null"`, an `enum` gains the `null` entry, and a `oneOf` or `anyOf` gains a null variant.
  */
 private fun JsonObject.allowingNull(): JsonObject {
     val type = this["type"]
+    val variantsKeyword = listOf("oneOf", "anyOf").firstOrNull { it in this }
     return when {
         type is JsonPrimitive -> JsonObject(
             mapValues { (key, value) ->
@@ -254,7 +290,7 @@ private fun JsonObject.allowingNull(): JsonObject {
             },
         )
 
-        "oneOf" in this -> JsonObject(this + ("oneOf" to JsonArray(getValue("oneOf") as JsonArray + typeOnly("null"))))
+        variantsKeyword != null -> JsonObject(this + (variantsKeyword to JsonArray(getValue(variantsKeyword) as JsonArray + typeOnly("null"))))
 
         else -> this
     }

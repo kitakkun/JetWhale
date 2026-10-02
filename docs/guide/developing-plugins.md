@@ -496,7 +496,9 @@ The schema is derived from the same instance, so the names and discriminator adv
 agent are the ones the command actually decodes. A nullable property admits `null` in its schema,
 and under `explicitNulls = false` it is not required either, since that format leaves it out. A
 contextual type is advertised by the serializer the module registers for it; one with nothing
-registered, and a raw `JsonElement` or `JsonPrimitive`, admit any value. Under
+registered, one registered through a provider of its type arguments' serializers, and a raw
+`JsonElement` or `JsonPrimitive` admit any value. Under `ClassDiscriminatorMode.NONE` a sealed
+hierarchy is an `anyOf`, since nothing tells two variants of the same shape apart. Under
 `ClassDiscriminatorMode.ALL_JSON_OBJECTS` an output schema pins the discriminator on every object,
 because the format writes it there, while a parameter schema leaves it out, because the format does
 not read it back. The format is also available to `execute` as the protected `json` property, for
