@@ -117,14 +117,20 @@ internal class MirrorSurface : AutoCloseable {
         }
         if (!written) return
         frame.setImmutable()
+        // Published under the lock, so a device switch lands wholly before or after this frame.
         val replaced = synchronized(lock) {
-            if (closed || generation != streamGeneration) frame else ready.also { ready = frame }
+            if (closed || generation != streamGeneration) {
+                frame
+            } else {
+                ready.also {
+                    ready = frame
+                    showingKeptFrame = false
+                    window.recordCopy(System.nanoTime() - started)
+                    frameCounter++
+                }
+            }
         }
         replaced?.close()
-        if (replaced === frame) return
-        showingKeptFrame = false
-        window.recordCopy(System.nanoTime() - started)
-        frameCounter++
     }
 
     /**
@@ -200,7 +206,7 @@ internal class MirrorSurface : AutoCloseable {
      * At most [MAX_KEPT_FRAMES] frames are kept; the device shown longest ago loses its frame first.
      */
     fun switchTo(nextDeviceId: String) {
-        val kept = synchronized(lock) {
+        synchronized(lock) {
             val newest = takeNewestFrame()
             val previous = deviceId
             when {
@@ -222,11 +228,10 @@ internal class MirrorSurface : AutoCloseable {
                 val oldest = lastFrames.keys.first()
                 lastFrames.remove(oldest)?.closeUnlessDrawn()
             }
-            front != null && previous != nextDeviceId
+            showingKeptFrame = front != null && previous != nextDeviceId
+            stats = MirrorStats.Empty
+            frameCounter++
         }
-        showingKeptFrame = kept
-        stats = MirrorStats.Empty
-        frameCounter++
     }
 
     /** Drops the kept frames of devices other than [present], which are no longer connected. */
