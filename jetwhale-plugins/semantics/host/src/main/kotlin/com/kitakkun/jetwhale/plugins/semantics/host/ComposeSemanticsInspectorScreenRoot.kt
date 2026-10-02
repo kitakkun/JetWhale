@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -128,9 +129,12 @@ internal fun ComposeSemanticsInspectorScreenRoot(
         onSelectedNodeChange(selectedKey)
     }
 
-    val highlighted = if (highlightOnDevice) hoveredKey ?: selectedKey else null
-    LaunchedEffect(highlighted) { onHighlightTargetChange(highlighted) }
     val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
+    // Read in the effect, not in composition, so a pointer crossing rows doesn't recompose the screen.
+    LaunchedEffect(Unit) {
+        snapshotFlow { if (highlightOnDevice) hoveredKey ?: selectedKey else null }
+            .collect { currentOnHighlightTargetChange(it) }
+    }
     DisposableEffect(Unit) {
         onDispose { currentOnHighlightTargetChange(null) }
     }
