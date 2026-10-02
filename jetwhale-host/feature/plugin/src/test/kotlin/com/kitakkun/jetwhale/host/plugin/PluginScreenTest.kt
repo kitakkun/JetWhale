@@ -24,7 +24,7 @@ import kotlin.test.assertNotNull
 @OptIn(ExperimentalTestApi::class, InternalComposeUiApi::class)
 class PluginScreenTest {
     @Test
-    fun `a density change alone reaches the plugin's scene`() = runComposeUiTest {
+    fun `a density change alone reaches the plugin's scene in both directions`() = runComposeUiTest {
         mainClock.autoAdvance = false
         val scene = pluginScene()
         var windowDensity by mutableStateOf(Density(1f))
@@ -41,6 +41,11 @@ class PluginScreenTest {
 
         assertEquals(sizeBefore, scene.composeScene.size, "the change must not have come with a new size")
         assertEquals(Density(2f), scene.composeScene.density)
+
+        windowDensity = Density(1f)
+        renderFrames()
+
+        assertEquals(Density(1f), scene.composeScene.density)
     }
 
     @Test
