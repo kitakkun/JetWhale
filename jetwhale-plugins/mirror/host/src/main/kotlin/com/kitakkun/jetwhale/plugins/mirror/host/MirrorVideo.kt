@@ -61,8 +61,8 @@ internal fun MirrorVideo(
     } else {
         Modifier
     }
-    // Compose re-records the whole nearest layer when state read in a draw changes; without a layer
-    // of its own, each frame would redraw everything around the video too.
+    // Its own layer, so a new frame re-records only the video: Compose re-records the whole
+    // nearest layer when state read in a draw changes.
     Canvas(modifier.then(input).onSizeChanged { surface.viewSize = it }.graphicsLayer()) {
         surface.frameCounter
         val started = System.nanoTime()
