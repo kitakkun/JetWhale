@@ -40,6 +40,7 @@ Read these before editing; they apply to every change.
 - Keep PRs focused, include a short description of changes, and note how they were tested. See `agents/rules/pr-descriptions.md` for the shape.
 - For UI changes in the host or demo apps, include screenshots or a short recording.
 - User-facing changes are recorded in `CHANGELOG.md` when a release is prepared, not in each PR. Before tagging, a release-prep PR renames `[Unreleased]` to `[<version>] - <date>`, adds a fresh empty `[Unreleased]` and updates the links at the bottom; the tag's draft release takes its notes from that section and fails without one.
+- To prepare a release, follow `agents/release.md`: what goes in the changelog, the release-prep PR, and the tag.
 - Record third-party assets (icons, fonts) with their source and license in `THIRD_PARTY_NOTICES.md`.
 - Open work-in-progress PRs as drafts: PR workflows skip drafts and run once the PR is marked *Ready for review*.
 - To push without running CI, put `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`) in the head commit message.
