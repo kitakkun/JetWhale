@@ -85,8 +85,10 @@ Implement `JetWhaleHostPluginFactory` and declare it in a plugin manifest. The h
 by instantiating the `factoryClass` named in the manifest. See `jetwhale-plugins/example/host` for a
 complete, working example:
 
-- `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
-  `JetWhaleHostPlugin`. It needs a public no-arg constructor so the host can instantiate it.
+- `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` whose
+  `createPlugin(context)` returns your `JetWhaleHostPlugin`; `context` holds the
+  [host services](#host-services). The factory needs a public no-arg constructor so the host can
+  instantiate it.
 - `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — one entry per plugin under `plugins`,
   each with `pluginId`, `pluginName`, `version`, and `factoryClass` (the fully-qualified name of the
   factory above):
@@ -294,6 +296,51 @@ own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagi
 it at the top of the sidebar, above the app picker, so it works before any app connects and is not
 recreated per app. Its MCP tools take `sessionId: "host"`. See `ExampleHostOnlyPlugin` in
 `jetwhale-plugins/example/host`.
+
+## Host services
+
+`createPlugin(context)` hands every plugin instance the host's own capabilities as a
+`JetWhaleHostPluginContext`. The same object serves every instance, in the `host` session and in
+each app's, and it stays valid for the instance's whole life, so keep what the plugin needs:
+
+```kotlin
+class DeviceToolsFactory : JetWhaleHostPluginFactory {
+    @OptIn(ExperimentalJetWhaleApi::class)
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = DeviceToolsPlugin(context.adb)
+}
+```
+
+### adb <Badge type="warning" text="experimental" />
+
+`context.adb` runs adb through the executable the host finds for its own port forwarding: in
+`ANDROID_HOME`, `ANDROID_SDK_ROOT` and the usual SDK locations, then on `PATH`. A plugin needs no
+Android SDK setup of its own.
+
+- `adb.run(vararg args, timeout)` runs a command to completion and returns a `JetWhaleAdbResult`:
+  the exit code and what adb printed to stdout and stderr. A non-zero exit is a result, not an
+  exception.
+- `adb.runStreaming(vararg args, timeout) { stream -> … }` hands the consumer adb's stdout, and only
+  its stdout, for binary or unbounded output such as `exec-out screencap -p` or `logcat`. adb is
+  ended once the consumer returns. If the consumer reads stdout to its end and adb then exits with a
+  non-zero code, the call throws `JetWhaleAdbCommandException`, whose `errorOutput` holds what adb
+  printed to stderr.
+
+Every call takes a timeout. When it elapses, adb is ended and the call throws
+`JetWhaleAdbTimeoutException`; a cancelled call ends adb too. `JetWhaleAdbUnavailableException` means
+no adb was found or it could not be launched, and retrying does not help until an Android SDK is
+installed. All three extend `JetWhaleAdbException`, so a tool can catch that one type and report it
+as a failed call:
+
+```kotlin
+val result = try {
+    adb.run("-s", serial, "shell", "getprop", "ro.product.model", timeout = 10.seconds)
+} catch (e: JetWhaleAdbException) {
+    return JetWhaleMcpResult.error("adb failed: ${e.message}")
+}
+```
+
+`AdbVersionCommand` in `ExampleHeadlessPlugin` (`jetwhale-plugins/example/host`) is a complete
+tool built this way.
 
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 
