@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleAdbTimeoutException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleAdbUnavailableException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -65,8 +66,10 @@ internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb
         }
         val timedOut = AtomicBoolean(false)
         // A read from adb's output blocks without noticing cancellation, so adb is ended from here:
-        // at the deadline, when the caller is cancelled, and once the body is done.
-        val lifetime = launch {
+        // at the deadline, when the caller is cancelled, and once the body is done. A coroutine
+        // cancelled before it is dispatched never runs its block, so this one starts undispatched and
+        // reaches its `finally` even when the caller was cancelled while adb was being launched.
+        val lifetime = launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 delay(timeout)
                 timedOut.set(true)
