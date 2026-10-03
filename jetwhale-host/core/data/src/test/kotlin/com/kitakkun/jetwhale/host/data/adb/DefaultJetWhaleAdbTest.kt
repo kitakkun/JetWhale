@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleAdbTimeoutException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleAdbUnavailableException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -104,6 +106,38 @@ class DefaultJetWhaleAdbTest {
         call.cancelAndJoin()
 
         assertTrue(cancelled.elapsedNow() < 10.seconds)
+    }
+
+    @Test
+    fun `a call cancelled while adb is being looked up ends adb once it has started`() = runBlocking {
+        installFakeAdb()
+        val lookingUp = CountDownLatch(1)
+        val cancelled = CountDownLatch(1)
+        val environment = mapOf("PATH" to bin.path)
+        val environmentReadAfterCancellation = object : Map<String, String> by environment {
+            override fun get(key: String): String? {
+                lookingUp.countDown()
+                cancelled.await()
+                return environment[key]
+            }
+        }
+        val adb = DefaultJetWhaleAdb(
+            AdbLocator(
+                environment = environmentReadAfterCancellation,
+                userHome = null,
+                isWindows = false,
+                fixedDirectories = emptyList(),
+            ),
+        )
+        val call = launch(Dispatchers.IO) { adb.run("hang", timeout = 1.minutes) }
+        lookingUp.await()
+
+        call.cancel()
+        cancelled.countDown()
+        val cancelledAt = TimeSource.Monotonic.markNow()
+        call.join()
+
+        assertTrue(cancelledAt.elapsedNow() < 10.seconds)
     }
 
     @Test
