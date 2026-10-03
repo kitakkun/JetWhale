@@ -80,10 +80,12 @@ class DefaultPluginComposeSceneFactoryTest {
         withContext(Dispatchers.Main) {
             val scene = factory.createScene(boundPlugin()) {}
             val sizeBeforeShown = scene.windowInfoUpdater.currentIntSize
+            val dpSizeBeforeShown = scene.windowInfoUpdater.currentDpSize
 
             scene.showAt(pluginArea)
 
             assertEquals(scene.windowInfoUpdater.currentIntSize, sizeBeforeShown)
+            assertEquals(DpSize(999.dp, 772.dp), dpSizeBeforeShown)
         }
     }
 
@@ -99,6 +101,22 @@ class DefaultPluginComposeSceneFactoryTest {
             scene.render(Canvas(ImageBitmap(1, 1)))
 
             assertEquals(IntSize(800, 600), plugin.observedContainerSize)
+        }
+    }
+
+    @Test
+    fun `a scene no window has shown yet still follows the plugin area after a capture at another size`() = runBlocking {
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        factory.updateHostPluginArea(intSize = IntSize(800, 600), dpSize = DpSize(400.dp, 300.dp))
+        withContext(Dispatchers.Main) {
+            val scene = factory.createScene(boundPlugin()) {}
+            val beforeCapture = scene.windowInfoUpdater.saveWindowInfo()
+            scene.windowInfoUpdater.updateWindowSize(intSize = IntSize(320, 240), dpSize = DpSize(320.dp, 240.dp))
+            scene.windowInfoUpdater.restoreWindowInfo(beforeCapture)
+
+            factory.updateHostPluginArea(intSize = IntSize(1200, 900), dpSize = DpSize(600.dp, 450.dp))
+
+            assertEquals(IntSize(1200, 900), scene.windowInfoUpdater.currentIntSize)
         }
     }
 

@@ -130,4 +130,10 @@ private class DynamicWindowInfoPlatformContext(
             override val containerDpSize: DpSize = dpSize
         }
     }
+
+    override fun saveWindowInfo(): WindowInfo = windowInfo
+
+    override fun restoreWindowInfo(saved: WindowInfo) {
+        windowInfoOverride = saved.takeUnless { it === windowInfoUntilShown }
+    }
 }
