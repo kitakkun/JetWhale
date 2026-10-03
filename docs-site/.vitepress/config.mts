@@ -85,6 +85,7 @@ export default defineConfig({
           { text: 'Debug Actions', link: '/guide/debug-actions' },
           { text: 'Device Mirror', link: '/guide/device-mirror' },
           { text: 'MCP Server', link: '/guide/mcp-server' },
+          { text: 'MCP Workflows', link: '/guide/mcp-workflow' },
           { text: 'Host Settings', link: '/guide/host-settings' },
           { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
         ],
