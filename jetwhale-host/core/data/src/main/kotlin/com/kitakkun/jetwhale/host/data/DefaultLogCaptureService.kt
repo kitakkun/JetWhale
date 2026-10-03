@@ -9,7 +9,6 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
@@ -20,8 +19,8 @@ import kotlin.time.Clock
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultLogCaptureService : LogCaptureService {
-    private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
-    override val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
+    override val logs: StateFlow<List<LogEntry>>
+        field = MutableStateFlow<List<LogEntry>>(emptyList())
 
     // Lines arrive from stdout and stderr on any thread; the lock keeps every one of them.
     private val entries = ArrayDeque<LogEntry>()
@@ -59,7 +58,7 @@ class DefaultLogCaptureService : LogCaptureService {
     override fun clearLogs() {
         synchronized(entries) {
             entries.clear()
-            _logs.value = emptyList()
+            logs.value = emptyList()
         }
     }
 
@@ -119,7 +118,7 @@ class DefaultLogCaptureService : LogCaptureService {
                     level = level,
                 ),
             )
-            _logs.value = entries.toList()
+            logs.value = entries.toList()
         }
     }
 }
