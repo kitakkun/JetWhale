@@ -10,9 +10,12 @@ pass". The JetWhale debug tool exposes an MCP server whose tools operate on a pl
 scene, so an agent can drive the actual UI and look at the result.
 
 The key property: the host creates a plugin's scene **on demand**, independent of what its window is
-displaying. Driving a plugin never needs the window, and never steals it from whoever is using it —
-`jetwhale.navigate` exists for the times you *want* the window moved, and is the only tool that
-touches it.
+displaying. Driving a plugin never needs the window.
+
+The window does move by default, though. **Follow the AI**, a switch in the drawer's AI activity card
+that is on unless someone turned it off, brings the plugin each tool call operates into view, unless
+it is already on screen or popped out. Turn it off when a person is using the window and you should
+not take it from them. `jetwhale.navigate` moves the window explicitly, whatever that switch says.
 
 **Assumed setup.** Your plugin module applies the `com.kitakkun.jetwhale.host` Gradle plugin and
 sets `jetwhalePlugin.hostVersion`, which is what gives you the `runJetWhale` and
