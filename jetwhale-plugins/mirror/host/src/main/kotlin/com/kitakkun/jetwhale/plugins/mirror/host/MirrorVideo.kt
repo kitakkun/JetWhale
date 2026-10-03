@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -60,7 +61,9 @@ internal fun MirrorVideo(
     } else {
         Modifier
     }
-    Canvas(modifier.then(input).onSizeChanged { surface.viewSize = it }) {
+    // Its own layer, so a new frame re-records only the video: Compose re-records the whole
+    // nearest layer when state read in a draw changes.
+    Canvas(modifier.then(input).onSizeChanged { surface.viewSize = it }.graphicsLayer()) {
         surface.frameCounter
         val started = System.nanoTime()
         // Until the surface has switched to the selected device, the previous one's stream is still
