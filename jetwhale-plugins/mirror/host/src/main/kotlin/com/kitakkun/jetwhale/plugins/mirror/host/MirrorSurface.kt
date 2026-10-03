@@ -122,12 +122,12 @@ internal class MirrorSurface : AutoCloseable {
             if (closed || generation != streamGeneration) {
                 frame
             } else {
-                ready.also {
-                    ready = frame
-                    showingKeptFrame = false
-                    window.recordCopy(System.nanoTime() - started)
-                    frameCounter++
-                }
+                val previous = ready
+                ready = frame
+                showingKeptFrame = false
+                window.recordCopy(System.nanoTime() - started)
+                frameCounter++
+                previous
             }
         }
         replaced?.close()
