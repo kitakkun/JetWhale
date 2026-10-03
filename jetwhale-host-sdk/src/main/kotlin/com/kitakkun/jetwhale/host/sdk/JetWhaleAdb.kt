@@ -5,9 +5,9 @@ import java.io.InputStream
 import kotlin.time.Duration
 
 /**
- * Runs adb commands for a plugin. The host looks for adb on each call the way it does for its own
- * port forwarding: in `ANDROID_HOME`, `ANDROID_SDK_ROOT` and the usual SDK locations, then on
- * `PATH`.
+ * Runs adb commands for a plugin. The host looks adb up on each call, with the same search as its own
+ * port forwarding: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, the usual SDK locations and a few common
+ * install directories, then `PATH`.
  *
  * Every call takes a timeout, and adb is ended when it elapses; a device that stops answering fails
  * the call instead of hanging it. A call that is cancelled ends adb too.
