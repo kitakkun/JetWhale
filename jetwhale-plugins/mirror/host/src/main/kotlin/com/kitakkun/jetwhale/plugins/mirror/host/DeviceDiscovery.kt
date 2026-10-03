@@ -54,8 +54,9 @@ internal class DeviceDiscovery(
         val idbPath = toolPaths.idbPath ?: return emptyList()
         val idbCompanionPath = toolPaths.idbCompanionPath ?: return emptyList()
         if (companions == null) return emptyList()
-        // idb's Python client takes about half a second of CPU for every look; the companion lists the
-        // same devices for a tenth of that. idb stays for a companion that fails or answers unreadably.
+        // idb list-targets goes through idb's Python client, which takes 2–7 s and 0.45–0.73 s of
+        // CPU on every look; the companion lists the same devices in about 0.7 s for 0.25 s of CPU.
+        // idb stays for a companion that fails or prints output this does not read.
         return tryList { parseCompanionDevices(runCommandChecked(idbCompanionPath, "--list", "1", "--only", "device").stdoutText) }
             ?: tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
     }

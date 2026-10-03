@@ -29,7 +29,6 @@ class DeviceDiscoveryTest {
 
     private val idbRuns = File(folder, "idb-runs")
 
-    // Lists one iPhone, and notes each run so a test can tell whether the companion was enough.
     private val fakeIdb = File(folder, "idb").apply {
         writeText("#!/bin/sh\necho run >> '${idbRuns.path}'\nprintf 'iPhone | 00008150-LISTED-BY-IDB | Booted | device | iOS 26.0 | arm64e | No Companion Connected\\n'\n")
         setExecutable(true)
