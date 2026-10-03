@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
@@ -69,6 +70,7 @@ class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
     private val pluginDataStoreRepository: PluginDataStoreRepository,
+    private val pluginContext: JetWhaleHostPluginContext,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -133,7 +135,7 @@ class DefaultPluginInstanceService(
     }
 
     private fun createInstance(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): LoadedInstance {
-        val plugin = loaded.factory.createPlugin()
+        val plugin = loaded.factory.createPlugin(pluginContext)
         if (!loaded.manifest.requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
             logger.warning(
                 "Plugin '$pluginId' declares requiresAgent=false but its factory returns a JetWhaleMessagingHostPlugin; " +

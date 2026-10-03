@@ -1,13 +1,16 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.Composable
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.sdk.JetWhaleAdb
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
@@ -35,6 +38,11 @@ class DefaultPluginInstanceServiceHeadlessTest {
         every { storageFor(any()) } returns storage
     }
     private val frameSender = mock<HostPluginFrameSender>()
+
+    @OptIn(ExperimentalJetWhaleApi::class)
+    private val pluginContext = object : JetWhaleHostPluginContext {
+        override val adb: JetWhaleAdb get() = error("no plugin here runs adb")
+    }
 
     @Test
     fun `a plugin with no UI is reported as headless for the session it was created for`() {
@@ -86,12 +94,13 @@ class DefaultPluginInstanceServiceHeadlessTest {
                     requiresAgent = false,
                 ),
                 factory = object : JetWhaleHostPluginFactory {
-                    override fun createPlugin(): JetWhaleHostPlugin = createPlugin()
+                    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = createPlugin()
                 },
             ),
         ),
         frameSender = frameSender,
         pluginDataStoreRepository = dataStoreRepository,
+        pluginContext = pluginContext,
     )
 
     private class UiPlugin :
