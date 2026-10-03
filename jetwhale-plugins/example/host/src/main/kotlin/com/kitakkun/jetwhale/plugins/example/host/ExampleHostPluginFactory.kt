@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
@@ -27,7 +28,7 @@ import kotlinx.serialization.json.put
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = ExampleHostPlugin()
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = ExampleHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

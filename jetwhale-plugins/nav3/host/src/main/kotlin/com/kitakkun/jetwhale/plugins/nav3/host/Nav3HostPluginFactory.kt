@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class Nav3HostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = Nav3HostPlugin()
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = Nav3HostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

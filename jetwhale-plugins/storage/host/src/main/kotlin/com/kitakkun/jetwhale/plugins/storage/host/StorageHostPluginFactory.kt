@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.host
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -26,7 +27,7 @@ import com.kitakkun.jetwhale.protocol.messaging.request
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class StorageHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = StorageHostPlugin()
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = StorageHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
