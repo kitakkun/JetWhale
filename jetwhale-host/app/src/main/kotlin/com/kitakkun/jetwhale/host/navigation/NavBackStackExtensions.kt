@@ -9,9 +9,15 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
     add(navKey)
 }
 
-fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
-    removeIf { it == navKey }
-    add(index, navKey)
+/**
+ * Goes back in the main window: removes the top entry it shows. The log viewer and popped-out
+ * plugins are in the stack too but in windows of their own, which only those windows close, so
+ * dismissing a dialog opened before or after them closes the dialog. The home screen at the bottom
+ * is never removed.
+ */
+fun NavBackStack<NavKey>.popMainWindow() {
+    val top = indexOfLast { it !is LogViewerNavKey && it !is PluginPopoutNavKey && it !is EmptyPluginNavKey }
+    if (top >= 0) removeAt(top)
 }
 
 /**

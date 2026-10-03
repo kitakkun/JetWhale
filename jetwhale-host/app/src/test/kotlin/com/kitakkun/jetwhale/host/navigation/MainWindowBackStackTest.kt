@@ -1,0 +1,37 @@
+package com.kitakkun.jetwhale.host.navigation
+
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class MainWindowBackStackTest {
+    private val poppedOut = PluginPopoutNavKey(pluginId = "com.example.network", sessionId = "app-1", pluginName = "Network")
+
+    @Test
+    fun `going back from a dialog opened before the log viewer closes the dialog and keeps the log viewer window`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, SettingsNavKey(), LogViewerNavKey)
+
+        backStack.popMainWindow()
+
+        assertEquals(listOf(EmptyPluginNavKey, LogViewerNavKey), backStack.toList())
+    }
+
+    @Test
+    fun `going back from a dialog keeps a popped-out plugin's window`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, InfoNavKey, poppedOut)
+
+        backStack.popMainWindow()
+
+        assertEquals(listOf(EmptyPluginNavKey, poppedOut), backStack.toList())
+    }
+
+    @Test
+    fun `going back on the home screen leaves it and the windows of their own`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, LogViewerNavKey)
+
+        backStack.popMainWindow()
+
+        assertEquals(listOf(EmptyPluginNavKey, LogViewerNavKey), backStack.toList())
+    }
+}
