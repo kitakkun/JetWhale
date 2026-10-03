@@ -7,6 +7,8 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -28,6 +30,8 @@ internal class RecordingPluginComposeSceneFactory : PluginComposeSceneFactory {
     var failNext: Throwable? = null
 
     override fun updateHostDensity(density: Density) = Unit
+
+    override fun updateHostPluginArea(intSize: IntSize, dpSize: DpSize) = Unit
 
     override fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene {
         failNext?.let { failure ->
