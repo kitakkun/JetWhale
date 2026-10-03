@@ -4,6 +4,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
@@ -99,8 +100,7 @@ internal fun <T> withScopedViewport(
 private class SceneViewportState(
     val composeSceneSize: IntSize?,
     val density: Density,
-    val windowIntSize: IntSize,
-    val windowDpSize: DpSize,
+    val windowInfo: WindowInfo,
 )
 
 /** Null when the scene cannot be read, i.e. it is being disposed and has nothing left to restore. */
@@ -109,8 +109,7 @@ private fun readSceneViewportState(scene: PluginComposeScene): SceneViewportStat
     SceneViewportState(
         composeSceneSize = scene.composeScene.size,
         density = scene.composeScene.density,
-        windowIntSize = scene.windowInfoUpdater.currentIntSize,
-        windowDpSize = scene.windowInfoUpdater.currentDpSize,
+        windowInfo = scene.windowInfoUpdater.saveWindowInfo(),
     )
 }.getOrNull()
 
@@ -122,7 +121,7 @@ private fun restoreSceneViewportState(scene: PluginComposeScene, state: SceneVie
         scene.composeScene.size = state.composeSceneSize
     } catch (_: IllegalStateException) {
     }
-    scene.windowInfoUpdater.updateWindowSize(intSize = state.windowIntSize, dpSize = state.windowDpSize)
+    scene.windowInfoUpdater.restoreWindowInfo(state.windowInfo)
     // The scene density and the window info override are snapshot state; flush so the next
     // interactive render sees the restored viewport.
     Snapshot.sendApplyNotifications()

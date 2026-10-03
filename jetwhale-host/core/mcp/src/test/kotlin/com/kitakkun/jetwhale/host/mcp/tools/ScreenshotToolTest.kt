@@ -19,6 +19,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(InternalComposeUiApi::class)
@@ -106,6 +107,16 @@ class ScreenshotToolTest {
 
         assertEquals(IntSize(320, 240), scene.windowInfoUpdater.currentIntSize)
         assertEquals(DpSize(320.dp, 240.dp), scene.windowInfoUpdater.currentDpSize)
+    }
+
+    @Test
+    fun `a screenshot hands the scene back the window info it had and not a copy of its size`() {
+        val scene = createTestScene()
+        val beforeCapture = scene.windowInfoUpdater.saveWindowInfo()
+
+        renderScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
+
+        assertSame(beforeCapture, scene.windowInfoUpdater.saveWindowInfo())
     }
 
     @Test
