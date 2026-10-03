@@ -194,12 +194,13 @@ class DefaultLogCaptureServiceTest {
         assertEquals(LogLevel.ERROR, service.logs.value.single().level)
     }
 
-    // ConsoleHandler binds System.err when it is created, so it has to come after the capture starts.
     private fun julLoggerOnCapturedStderr(): Logger {
         System.setErr(PrintStream(ByteArrayOutputStream(), true))
         service.startCapture()
         return Logger.getAnonymousLogger().apply {
             useParentHandlers = false
+            // ConsoleHandler binds System.err when it is created, so it has to come after the
+            // capture starts.
             addHandler(ConsoleHandler())
         }
     }

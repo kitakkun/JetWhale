@@ -132,10 +132,10 @@ class DefaultLogCaptureService : LogCaptureService {
             }
         }
 
-        // JUL prints the level name localized for the default locale at the moment it formats the
-        // record, and the App Language setting changes that locale while the host runs.
         private fun levelOfRecordLine(line: String): LogLevel? {
             val name = line.substringBefore(": ", missingDelimiterValue = "")
+            // JUL prints the level name localized for the default locale at the moment it formats
+            // the record, and the App Language setting changes that locale while the host runs.
             val level = JAVA_UTIL_LOGGING_LEVELS.firstOrNull { name.isNotEmpty() && (name == it.name || name == it.localizedName) } ?: return null
             return if (level.intValue() >= Level.WARNING.intValue()) LogLevel.ERROR else LogLevel.INFO
         }
@@ -161,5 +161,6 @@ class DefaultLogCaptureService : LogCaptureService {
 
 private val JAVA_UTIL_LOGGING_LEVELS = listOf(Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST)
 
-// JUL's default header, "%1$tb %1$td, %1$tY %1$tl:%1$tM:%1$tS %1$Tp %2$s", in any locale.
+// The first line of JUL's default format, "%1$tb %1$td, %1$tY %1$tl:%1$tM:%1$tS %1$Tp %2$s"; the
+// month and AM/PM names are localized.
 private val JAVA_UTIL_LOGGING_HEADER = Regex("""^\S+ \d{1,2}, \d{4} \d{1,2}:\d{2}:\d{2} \S+ .+$""")
