@@ -300,8 +300,8 @@ recreated per app. Its MCP tools take `sessionId: "host"`. See `ExampleHostOnlyP
 ## Host services
 
 `createPlugin(context)` hands every plugin instance the host's own capabilities as a
-`JetWhaleHostPluginContext`. The same object serves every instance, in the `host` session and in
-each app's, and it stays valid for the instance's whole life, so keep what the plugin needs:
+`JetWhaleHostPluginContext`. It stays valid for the instance's whole life, so keep what the plugin
+needs:
 
 ```kotlin
 class DeviceToolsFactory : JetWhaleHostPluginFactory {
@@ -312,9 +312,10 @@ class DeviceToolsFactory : JetWhaleHostPluginFactory {
 
 ### adb <Badge type="warning" text="experimental" />
 
-`context.adb` runs adb through the executable the host finds for its own port forwarding: in
-`ANDROID_HOME`, `ANDROID_SDK_ROOT` and the usual SDK locations, then on `PATH`. A plugin needs no
-Android SDK setup of its own.
+`context.adb` looks adb up on every call, with the same search the host uses for its own port
+forwarding: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, the usual SDK locations, then `/usr/bin`,
+`/usr/local/bin` and `/opt/homebrew/bin` (except on Windows), then `PATH`. A plugin needs no Android
+SDK setup of its own.
 
 - `adb.run(vararg args, timeout)` runs a command to completion and returns a `JetWhaleAdbResult`:
   the exit code and what adb printed to stdout and stderr. A non-zero exit is a result, not an
