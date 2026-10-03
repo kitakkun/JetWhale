@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.host.model
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 
 interface PluginComposeSceneFactory {
@@ -16,6 +18,16 @@ interface PluginComposeSceneFactory {
      * at the ComposeScene default of 1.0 and lay out as if the display were non-HiDPI.
      */
     fun updateHostDensity(density: Density)
+
+    /**
+     * Records the size of the main window's plugin area, where a plugin shown in that window is
+     * drawn.
+     *
+     * A scene no window has shown yet reports this as its window size and follows it as the window
+     * resizes, so a caller that renders it off screen (a screenshot, say) lays it out at the size it
+     * gets once the window shows it. Once a window shows the scene, that window sets its size.
+     */
+    fun updateHostPluginArea(intSize: IntSize, dpSize: DpSize)
 
     /**
      * A new scene composing [content] with [plugin]'s storage in reach. Call it on the main thread,
