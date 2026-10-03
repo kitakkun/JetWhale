@@ -81,9 +81,9 @@ internal class AndroidDeviceController(
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
-        // The emulator streams its own framebuffer, which only its own posture (`adb emu fold`)
-        // reshapes. `cmd device_state state` moves the display to the other panel behind its back,
-        // and the stream would stretch that panel's picture to the framebuffer's shape.
+        // The emulator streams its own framebuffer, which follows only its own posture
+        // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
+        // it, and the stream would stretch that panel's picture to the framebuffer's shape.
         val emulatorStream = emulatorScreens?.takeUnless {
             isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
         }?.open(serial, wanted)
