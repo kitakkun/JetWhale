@@ -81,7 +81,13 @@ internal class AndroidDeviceController(
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
-        emulatorScreens?.open(serial, wanted) ?: run {
+        // The emulator streams its own framebuffer, which follows only its own posture
+        // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
+        // it, and the stream would stretch that panel's picture to the framebuffer's shape.
+        val emulatorStream = emulatorScreens?.takeUnless {
+            display() != null && isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
+        }?.open(serial, wanted)
+        emulatorStream ?: run {
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
             val panel = panelArguments(option = "--display-id", display = display())
             VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", "-")), ffmpegPath)
@@ -194,6 +200,20 @@ private val LOGICAL_DISPLAY_ID = Regex("""displayId (\d+)""")
 private val PANEL_STATE = Regex(""", state (\w+)""")
 
 private val DISPLAY_REAL_SIZE = Regex("""real (\d+) x (\d+)""")
+
+/**
+ * Whether the `mBaseState` and `mCommittedState` lines of `adb shell dumpsys device_state` show the
+ * device in a posture other than its hardware's, as `cmd device_state state` puts it in; false
+ * when they do not say.
+ */
+internal fun isPostureOverridden(dumpsysDeviceState: String): Boolean {
+    val states = DEVICE_STATE.findAll(dumpsysDeviceState).associate { it.groupValues[1] to it.groupValues[2] }
+    val base = states["mBaseState"] ?: return false
+    val committed = states["mCommittedState"] ?: return false
+    return base != committed
+}
+
+private val DEVICE_STATE = Regex("""(mBaseState|mCommittedState)=Optional\[DeviceState\{identifier=(\d+)""")
 
 /**
  * [text] as `adb shell input text` needs it: the device shell parses the argument again, so its
