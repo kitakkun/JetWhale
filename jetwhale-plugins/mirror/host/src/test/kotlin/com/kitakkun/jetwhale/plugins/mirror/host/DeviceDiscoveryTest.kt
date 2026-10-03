@@ -1,8 +1,11 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Files
@@ -10,8 +13,10 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 
 class DeviceDiscoveryTest {
     private val folder: File = Files.createTempDirectory("mirror-discovery").toFile()
@@ -22,8 +27,20 @@ class DeviceDiscoveryTest {
         setExecutable(true)
     }
 
+    private val idbRuns = File(folder, "idb-runs")
+
+    private val fakeIdb = File(folder, "idb").apply {
+        writeText("#!/bin/sh\necho run >> '${idbRuns.path}'\nprintf 'iPhone | 00008150-LISTED-BY-IDB | Booted | device | iOS 26.0 | arm64e | No Companion Connected\\n'\n")
+        setExecutable(true)
+    }
+
+    private val fakeCompanion = File(folder, "idb_companion")
+
+    private val companionScope = CoroutineScope(SupervisorJob())
+
     @AfterTest
     fun cleanUp() {
+        companionScope.cancel()
         folder.deleteRecursively()
     }
 
@@ -55,6 +72,65 @@ class DeviceDiscoveryTest {
 
         assertEquals(emptyList(), discovery.discover().devices)
     }
+
+    @Test
+    fun `iPhones are listed by idb_companion without running idb`() = runBlocking {
+        companionPrints("""{"udid":"00008150-LISTED-BY-COMPANION","name":"iPhone","os_version":"iOS 26.0","type":"Device","state":"Booted"}""")
+
+        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+
+        assertEquals(listOf("00008150-LISTED-BY-COMPANION"), listed)
+        assertFalse(idbRuns.exists())
+    }
+
+    @Test
+    fun `a companion that lists nothing means no iPhone, without asking idb`() = runBlocking {
+        companionPrints("")
+
+        val listed = iosDeviceDiscovery().discover().devices
+
+        assertEquals(emptyList(), listed)
+        assertFalse(idbRuns.exists())
+    }
+
+    @Test
+    fun `a companion that fails leaves the listing to idb`() = runBlocking {
+        fakeCompanion.writeText("#!/bin/sh\necho 'no such option' >&2\nexit 1\n")
+        fakeCompanion.setExecutable(true)
+
+        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+
+        assertEquals(listOf("00008150-LISTED-BY-IDB"), listed)
+    }
+
+    @Test
+    fun `a companion whose answer is not a list of targets leaves the listing to idb`() = runBlocking {
+        companionPrints("Usage: idb_companion [options]")
+
+        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+
+        assertEquals(listOf("00008150-LISTED-BY-IDB"), listed)
+    }
+
+    private fun companionPrints(output: String) {
+        val quoted = output.replace("'", "'\\''")
+        fakeCompanion.writeText("#!/bin/sh\n[ \"$*\" = '--list 1 --only device' ] || { echo \"unexpected arguments: $*\" >&2; exit 64; }\nprintf '%s' '$quoted'\n")
+        fakeCompanion.setExecutable(true)
+    }
+
+    private fun iosDeviceDiscovery() = DeviceDiscovery(
+        MirrorToolPaths(adbPath = null, idbPath = fakeIdb.absolutePath, idbCompanionPath = fakeCompanion.absolutePath, xcrunPath = null, ffmpegPath = null),
+        companions = IdbCompanions(
+            idbCompanionPath = fakeCompanion.absolutePath,
+            idbPath = fakeIdb.absolutePath,
+            launcher = SystemProcessLauncher,
+            commands = { command -> runCommandChecked(*command.toTypedArray()) },
+            ports = LocalPorts,
+            idleTimeout = 1.minutes,
+            scope = companionScope,
+        ),
+        emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
+    )
 
     @Test
     fun `a machine without ffmpeg is told that Android devices fall back to screenshots and how to install it`() = runBlocking {
