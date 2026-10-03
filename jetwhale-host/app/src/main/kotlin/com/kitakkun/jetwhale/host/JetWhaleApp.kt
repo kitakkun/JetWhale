@@ -67,7 +67,7 @@ import soil.query.compose.rememberSubscription
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 context(appGraph: JetWhaleAppGraph)
-fun JetWhaleApp() {
+fun JetWhaleApp(menuBar: @Composable () -> Unit) {
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration {
             serializersModule = SerializersModule {
@@ -84,33 +84,30 @@ fun JetWhaleApp() {
 
     HostWindowEffects(backStack)
 
-    KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
-    ) {
-        SwrClientProvider(appGraph.swrClient) {
-            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
-            var updateBannerDismissed by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    updateCheckMutation.mutateAsync(Unit)
-                }
+    SwrClientProvider(appGraph.swrClient) {
+        val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
+        var updateBannerDismissed by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                updateCheckMutation.mutateAsync(Unit)
             }
-            val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
+        }
+        val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
 
-            SoilDataBoundary(
-                state1 = rememberSubscription(appGraph.themeSubscriptionKey),
-                state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
-                fallback = SoilFallbackDefaults.none(),
-            ) { theme, settings ->
-                ThemedHostWindow(
-                    colorScheme = theme.colorScheme,
-                    appLanguage = settings.appLanguage,
-                    backStack = backStack,
-                    availableUpdate = availableUpdate,
-                    onDismissUpdateBanner = { updateBannerDismissed = true },
-                    isUpdateBannerDismissed = updateBannerDismissed,
-                )
-            }
+        SoilDataBoundary(
+            state1 = rememberSubscription(appGraph.themeSubscriptionKey),
+            state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
+            fallback = SoilFallbackDefaults.none(),
+        ) { theme, settings ->
+            ThemedHostWindow(
+                colorScheme = theme.colorScheme,
+                appLanguage = settings.appLanguage,
+                backStack = backStack,
+                availableUpdate = availableUpdate,
+                isUpdateBannerDismissed = updateBannerDismissed,
+                menuBar = menuBar,
+                onDismissUpdateBanner = { updateBannerDismissed = true },
+            )
         }
     }
 }
@@ -180,10 +177,13 @@ private fun ThemedHostWindow(
     backStack: NavBackStack<NavKey>,
     availableUpdate: UpdateCheckResult?,
     isUpdateBannerDismissed: Boolean,
+    menuBar: @Composable () -> Unit,
     onDismissUpdateBanner: () -> Unit,
 ) {
     HostTheme(colorScheme) {
         AppEnvironment(appLanguage) {
+            // Inside AppEnvironment, so the menus' labels follow the host's language setting.
+            menuBar()
             JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                 context(retain { appGraph.toolingScaffoldScreenContext }) {
                     ToolingScaffoldRoot(
@@ -213,7 +213,7 @@ private fun ThemedHostWindow(
                         isPoppedOut = backStack::isPluginPoppedOut,
                         onClickBringBack = backStack::bringPluginBackToMainWindow,
                         onNavigateHome = {
-                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
+                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey && it !is LogViewerNavKey }
                         },
                         onNavigateSettings = { page ->
                             backStack.addSingleTop(SettingsNavKey(initialPage = page))

@@ -2,18 +2,20 @@ package com.kitakkun.jetwhale.host
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
@@ -25,9 +27,12 @@ import com.kitakkun.jetwhale.host.cli.JetWhaleLogLevel
 import com.kitakkun.jetwhale.host.component.InitializingDialog
 import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
+import com.kitakkun.jetwhale.host.menu.MainWindowMenu
+import com.kitakkun.jetwhale.host.menu.MainWindowMenus
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
-import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
@@ -37,7 +42,10 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.awt.Desktop
 import java.awt.Taskbar
+import java.awt.desktop.QuitResponse
+import java.util.concurrent.atomic.AtomicReference
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
 import ch.qos.logback.classic.Logger as LogbackLogger
@@ -126,6 +134,22 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         .verifyingTrustRegistryFlow
         .collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
+    val mainWindow = remember { AtomicReference<ComposeWindow?>(null) }
+    val menu = remember(appGraph, coroutineScope) {
+        MainWindowMenu(
+            hostNavigationService = appGraph.hostNavigationService,
+            coroutineScope = coroutineScope,
+            quit = appGraph.applicationLifecycleOwner::shutdown,
+            raiseMainWindow = { mainWindow.get()?.toFront() },
+        )
+    }
+    val systemQuitResponse = remember { AtomicReference<QuitResponse?>(null) }
+    val isMac = HostOs.current == HostOs.MAC
+    if (isMac) {
+        MacApplicationMenuEffect(menu = menu, systemQuitResponse = systemQuitResponse)
+    }
+
     LaunchedEffect(Unit) {
         appGraph
             .applicationLifecycleOwner
@@ -133,6 +157,9 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
             .collect {
                 if (it == ApplicationLifecycleOwner.ApplicationState.STOPPED) {
                     exitApplication()
+                    // macOS waits for an answer to a quit it asked for (the application menu, the
+                    // Dock, a logout), so the answer comes once the host has shut down.
+                    systemQuitResponse.getAndSet(null)?.performQuit()
                 }
             }
     }
@@ -164,15 +191,15 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         icon = painterResource(Res.drawable.app_icon),
         state = windowState,
         onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
-        onPreviewKeyEvent = { keyEvent ->
-            if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.Q) {
-                appGraph.applicationLifecycleOwner.shutdown()
-                true
-            } else {
-                false
-            }
-        },
+        // After the focused content has had the key, so a plugin's own shortcut wins. On macOS the
+        // menu bar handles them instead: ⌘, and ⌘Q natively, the rest also only once the content
+        // has declined the key.
+        onKeyEvent = { keyEvent -> !isMac && menu.runShortcut(keyEvent) },
     ) {
+        DisposableEffect(window) {
+            mainWindow.set(window)
+            onDispose { mainWindow.set(null) }
+        }
         JwTheme(darkTheme = isSystemInDarkTheme()) {
             when (applicationState) {
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
@@ -187,8 +214,41 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
             }
         }
 
-        context(appGraph) {
-            JetWhaleApp()
+        CompositionLocalProvider(LocalMainWindowMenu provides menu) {
+            context(appGraph) {
+                JetWhaleApp(
+                    menuBar = {
+                        if (isMac) {
+                            MenuBar {
+                                MainWindowMenus(plugins = menu.plugins, onGoHome = menu::goHome, onOpenLogViewer = menu::openLogViewer, onOpenPlugin = menu::openPlugin)
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Puts the host behind the macOS application menu's About, Settings… and Quit, which macOS shows
+ * only once a handler is installed. A quit there is answered through [systemQuitResponse] after the
+ * host's own shutdown.
+ */
+@Composable
+private fun MacApplicationMenuEffect(menu: MainWindowMenu, systemQuitResponse: AtomicReference<QuitResponse?>) {
+    DisposableEffect(menu) {
+        val desktop = Desktop.getDesktop()
+        desktop.setAboutHandler { menu.showAbout() }
+        desktop.setPreferencesHandler { menu.openSettings() }
+        desktop.setQuitHandler { _, response ->
+            systemQuitResponse.set(response)
+            menu.quit()
+        }
+        onDispose {
+            desktop.setAboutHandler(null)
+            desktop.setPreferencesHandler(null)
+            desktop.setQuitHandler(null)
         }
     }
 }

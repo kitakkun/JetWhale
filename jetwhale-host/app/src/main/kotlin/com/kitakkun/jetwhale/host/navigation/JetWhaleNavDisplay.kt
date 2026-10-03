@@ -40,6 +40,7 @@ fun JetWhaleNavDisplay(
 
     NavDisplay<NavKey>(
         backStack = backStack,
+        onBack = backStack::popMainWindow,
         sceneStrategies = listOf(dialogSceneStrategy, windowSceneStrategy, listDetailSceneStrategy),
         transitionSpec = {
             ContentTransform(
@@ -63,12 +64,9 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(
                 onClickClose = { backStack.removeIf { it is SettingsNavKey } },
-                // At the bottom of the stack, not on top: dismissing a dialog pops the last entry,
-                // so with the log viewer window last, closing Settings would close the log viewer
-                // instead.
-                onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) },
+                onOpenLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
             )
-            licensesEntry(onClickBack = backStack::removeLastOrNull)
+            licensesEntry(onClickBack = backStack::popMainWindow)
             logViewerEntry()
             mcpToolsEntry()
             pluginEntries(
