@@ -56,7 +56,7 @@ private class AdbVersionCommand(private val adb: JetWhaleAdb) : JetWhaleMcpComma
         } catch (e: JetWhaleAdbException) {
             return JetWhaleMcpResult.error("adb could not report its version: ${e.message}")
         }
-        if (result.exitCode != 0) return JetWhaleMcpResult.error("adb version exited with code ${result.exitCode}: ${result.output}")
+        if (result.exitCode != 0) return JetWhaleMcpResult.error("adb version exited with code ${result.exitCode}: ${result.errorOutput}")
         return JetWhaleMcpResult.text(result.output)
     }
 }
