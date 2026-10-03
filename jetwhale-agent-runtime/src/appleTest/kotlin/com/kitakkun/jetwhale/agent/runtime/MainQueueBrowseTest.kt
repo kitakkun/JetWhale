@@ -15,14 +15,16 @@ class MainQueueBrowseTest {
     @Test
     fun `a running browse keeps the delegate of its browser alive through a garbage collection`() {
         val browse = MainQueueBrowse(onResolved = {})
-        // Drained here, as a run loop drains it after each event, so the pool holds nothing past start.
-        val delegate = autoreleasepool {
+        // A run loop drains its autorelease pool after each event. Draining this one does the same,
+        // so nothing autoreleased while starting the browse can keep the delegate alive through the
+        // collection.
+        val weakDelegate = autoreleasepool {
             browse.start()
             weakDelegateOf(browse)
         }
         GC.collect()
 
-        assertNotNull(delegate?.value)
+        assertNotNull(weakDelegate?.value)
         browse.stop()
     }
 
