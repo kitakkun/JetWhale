@@ -42,9 +42,7 @@ internal class MirrorSurface : AutoCloseable {
     private var ready: Bitmap? = null
     private var front: Bitmap? = null
 
-    // A frame that was on screen when [switchTo] ran; the draw may still be using it, so the next
-    // draw closes it instead.
-    private var retired: Bitmap? = null
+    private var closedOnNextDraw: Bitmap? = null
 
     private var closed = false
 
@@ -117,8 +115,9 @@ internal class MirrorSurface : AutoCloseable {
         }
         if (!written) return
         frame.setImmutable()
-        // Published under the lock, so a device switch lands wholly before or after this frame.
-        val replaced = synchronized(lock) {
+        // Published under the lock together with showingKeptFrame and frameCounter, so a device
+        // switch lands wholly before or after this frame.
+        val discarded = synchronized(lock) {
             if (closed || generation != streamGeneration) {
                 frame
             } else {
@@ -130,7 +129,7 @@ internal class MirrorSurface : AutoCloseable {
                 previous
             }
         }
-        replaced?.close()
+        discarded?.close()
     }
 
     /**
@@ -141,8 +140,8 @@ internal class MirrorSurface : AutoCloseable {
     fun drawFrame(draw: (Bitmap) -> Unit) {
         val bitmap = synchronized(lock) {
             if (closed) return
-            retired?.close()
-            retired = null
+            closedOnNextDraw?.close()
+            closedOnNextDraw = null
             ready?.let { newer ->
                 front?.close()
                 front = newer
@@ -189,8 +188,8 @@ internal class MirrorSurface : AutoCloseable {
      * or null when the surface shows another device or only a frame kept from an earlier visit.
      */
     fun newestFramePng(streamingDeviceId: String): ByteArray? {
-        // The image shares the frame's pixels and keeps them alive, so the encode, which takes tens
-        // of milliseconds, runs after the lock is released and holds up neither the decoder nor a draw.
+        // The image keeps the frame's pixels alive even once the bitmap is closed, so the PNG
+        // encode runs outside the lock and holds up neither the decoder nor a draw.
         val newest = synchronized(lock) {
             if (closed || deviceId != streamingDeviceId || showingKeptFrame) return null
             Image.makeFromBitmap(ready ?: front ?: return null)
@@ -212,7 +211,7 @@ internal class MirrorSurface : AutoCloseable {
             when {
                 newest == null -> Unit
 
-                previous == null -> retire(newest)
+                previous == null -> closeOnNextDraw(newest)
 
                 previous == nextDeviceId -> front = newest
 
@@ -250,12 +249,12 @@ internal class MirrorSurface : AutoCloseable {
         synchronized(lock) {
             closed = true
             ready?.close()
-            retired?.closeUnlessDrawn()
+            closedOnNextDraw?.closeUnlessDrawn()
             front?.closeUnlessDrawn()
             lastFrames.values.forEach { it.closeUnlessDrawn() }
             lastFrames.clear()
             ready = null
-            retired = null
+            closedOnNextDraw = null
             front = null
         }
         showingKeptFrame = false
@@ -265,15 +264,15 @@ internal class MirrorSurface : AutoCloseable {
 
     private fun takeNewestFrame(): Bitmap? {
         val newest = ready ?: front
-        if (front !== newest) front?.let(::retire)
+        if (front !== newest) front?.let(::closeOnNextDraw)
         ready = null
         front = null
         return newest
     }
 
-    private fun retire(bitmap: Bitmap) {
-        retired?.closeUnlessDrawn()
-        retired = bitmap
+    private fun closeOnNextDraw(bitmap: Bitmap) {
+        closedOnNextDraw?.closeUnlessDrawn()
+        closedOnNextDraw = bitmap
     }
 
     private fun Bitmap.closeUnlessDrawn() {
