@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
@@ -37,6 +38,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HostNavigationCommandTest {
@@ -84,7 +86,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate reports the destination the host switched to`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER, content = HostContent(HostDestinationKind.HOME)),
         )
 
         val result = command
@@ -99,7 +101,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate does not confirm a settings section other than the one requested`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL, content = HostContent(HostDestinationKind.HOME)),
         )
 
         val result = command
@@ -125,6 +127,7 @@ class HostNavigationCommandTest {
                 pluginId = "com.example.agent",
                 sessionId = "session-1",
                 poppedOutPlugins = listOf(PoppedOutPlugin("com.example.agent", "session-1")),
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1"),
             ),
         )
 
@@ -134,6 +137,51 @@ class HostNavigationCommandTest {
 
         assertTrue(result.applied)
         assertTrue(result.poppedOut)
+    }
+
+    @Test
+    fun `navigate to a plugin is confirmed under a dialog the user has open and names the dialog`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(
+                kind = HostDestinationKind.SETTINGS,
+                settingsSection = HostSettingsSection.GENERAL,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1"),
+            ),
+        )
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.agent")))
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals("PLUGIN", result.destination)
+        assertEquals("com.example.agent", result.pluginId)
+        assertEquals("SETTINGS", result.overlay)
+        assertNull(result.settingsSection)
+    }
+
+    @Test
+    fun `navigate home is confirmed under a dialog too`() = runBlocking {
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.INFO, content = HostContent(HostDestinationKind.HOME)))
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("HOME"))).decode()
+
+        assertTrue(result.applied)
+        assertEquals("HOME", result.destination)
+        assertEquals("INFO", result.overlay)
+    }
+
+    @Test
+    fun `a dialog request is confirmed on the dialog itself and names no overlay`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.INFO, content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1")),
+        )
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("INFO"))).decode()
+
+        assertTrue(result.applied)
+        assertEquals("INFO", result.destination)
+        assertNull(result.overlay)
     }
 
     @Test
@@ -205,7 +253,12 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens a plugin that needs no app in the host session whatever session was named`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID),
+            HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "com.example.hostonly",
+                sessionId = HostSession.ID,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.hostonly", HostSession.ID),
+            ),
         )
 
         val result = command
