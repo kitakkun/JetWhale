@@ -14,7 +14,7 @@ internal class LoadedFile(
     /** The bytes as text, or null when they do not read as text; see [decodeTextOrNull]. */
     val text: String? = decodeTextOrNull(bytes)
 
-    val kind: FileKind? = fileKindOf(location.name, bytes)
+    val kind: FileKind? = fileKindOf(location.name, bytes, text)
 }
 
 /** The ways the file pane can render a file's bytes. */

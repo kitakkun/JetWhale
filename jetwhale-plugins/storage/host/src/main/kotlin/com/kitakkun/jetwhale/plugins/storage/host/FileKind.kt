@@ -17,8 +17,11 @@ internal enum class FileKind(val label: String, val isImage: Boolean) {
     Text("Plain text", isImage = false),
 }
 
-/** The kind of a file named [name] that starts with [bytes], or null when nothing identifies it. */
-internal fun fileKindOf(name: String, bytes: ByteArray): FileKind? = when {
+/**
+ * The kind of a file named [name] that starts with [bytes], or null when nothing identifies it.
+ * [text] is [bytes] as [decodeTextOrNull] reads them.
+ */
+internal fun fileKindOf(name: String, bytes: ByteArray, text: String?): FileKind? = when {
     // A Preferences DataStore file is protobuf, which has no signature: only its name tells.
     name.endsWith(PREFERENCES_DATASTORE_SUFFIX) -> FileKind.PreferencesDataStore
 
@@ -42,13 +45,8 @@ internal fun fileKindOf(name: String, bytes: ByteArray): FileKind? = when {
 
     // BMP's signature is the two printable letters "BM", which plenty of text files start with, so
     // it only counts once the bytes have failed to read as text.
-    else -> textKindOf(bytes) ?: FileKind.Bmp.takeIf { bytes.startsWith("BM".encodeToByteArray()) }
-}
-
-private fun textKindOf(bytes: ByteArray): FileKind? {
-    val text = decodeTextOrNull(bytes) ?: return null
-    return when (text.trimStart().firstOrNull()) {
-        null -> null
+    else -> when (text?.trimStart()?.firstOrNull()) {
+        null -> FileKind.Bmp.takeIf { bytes.startsWith("BM".encodeToByteArray()) }
         '{', '[' -> FileKind.Json
         '<' -> FileKind.Xml
         else -> FileKind.Text
