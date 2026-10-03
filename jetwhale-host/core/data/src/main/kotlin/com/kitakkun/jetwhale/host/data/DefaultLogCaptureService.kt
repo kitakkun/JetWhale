@@ -69,22 +69,22 @@ class DefaultLogCaptureService : LogCaptureService {
         level: LogLevel,
     ) : PrintStream(
         object : OutputStream() {
-            private val line = ByteArrayOutputStream()
+            private val pendingLineBytes = ByteArrayOutputStream()
 
             override fun write(b: Int) {
-                if (b == '\n'.code) endLine() else line.write(b)
+                if (b == '\n'.code) endLine() else pendingLineBytes.write(b)
             }
 
             override fun write(b: ByteArray, off: Int, len: Int) {
                 var start = off
                 for (i in off until off + len) {
                     if (b[i] == '\n'.code.toByte()) {
-                        line.write(b, start, i - start)
+                        pendingLineBytes.write(b, start, i - start)
                         endLine()
                         start = i + 1
                     }
                 }
-                line.write(b, start, off + len - start)
+                pendingLineBytes.write(b, start, off + len - start)
             }
 
             override fun flush() {
@@ -92,8 +92,8 @@ class DefaultLogCaptureService : LogCaptureService {
             }
 
             private fun endLine() {
-                val text = line.toString(Charset.defaultCharset())
-                line.reset()
+                val text = pendingLineBytes.toString(Charset.defaultCharset())
+                pendingLineBytes.reset()
                 // Not println: on Windows the text still ends in the '\r' of its line break, so
                 // only the '\n' is added back.
                 original.print(text)
