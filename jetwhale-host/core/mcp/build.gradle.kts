@@ -32,5 +32,6 @@ dependencies {
     implementation(libs.logbackClassic)
 
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(libs.ktorClientCio)
 }

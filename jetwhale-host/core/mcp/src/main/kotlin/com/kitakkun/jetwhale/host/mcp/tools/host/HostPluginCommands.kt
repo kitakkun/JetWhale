@@ -19,6 +19,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -75,8 +76,8 @@ class ListInstalledPluginsCommand(
     }
 }
 
-/** How long to wait for reconciliation to instantiate a freshly enabled plugin before reporting what happened. */
-private const val INSTANTIATION_TIMEOUT_MILLIS = 2_000L
+/** How long Ready events are collected after enabling a plugin; the result lists the sessions that became ready within it. */
+private const val INSTANTIATION_WINDOW_MILLIS = 2_000L
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
@@ -105,14 +106,16 @@ class SetPluginEnabledCommand(
             debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
-            val collector = launch {
+            // pluginInstanceEventFlow does not replay, and a session can become ready while the
+            // flag is still being written, so the collector subscribes before the write starts.
+            val collector = launch(start = CoroutineStart.UNDISPATCHED) {
                 pluginInstanceService.pluginInstanceEventFlow
                     .filterIsInstance<PluginInstanceEvent.Ready>()
                     .filter { it.pluginId == targetPluginId }
                     .collect { instantiatedSessions += it.sessionId }
             }
             enabledPluginsRepository.setPluginEnabled(targetPluginId, shouldEnable)
-            if (shouldEnable && hasTargetSession) delay(INSTANTIATION_TIMEOUT_MILLIS)
+            if (shouldEnable && hasTargetSession) delay(INSTANTIATION_WINDOW_MILLIS)
             collector.cancel()
         }
 
