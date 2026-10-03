@@ -24,9 +24,9 @@ class HostLogCommandsTest {
 
     private val logs = MutableStateFlow(
         listOf(
-            logEntry("first info", LogLevel.INFO),
-            logEntry("second boom", LogLevel.ERROR),
-            logEntry("third info", LogLevel.INFO),
+            logEntry(0, "first info", LogLevel.INFO),
+            logEntry(1, "second boom", LogLevel.ERROR),
+            logEntry(2, "third info", LogLevel.INFO),
         ),
     )
     private val logCaptureService = mock<LogCaptureService> {
@@ -76,7 +76,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `getLogs truncates an oversized message`() = runBlocking {
-        logs.value = listOf(logEntry("x".repeat(3000), LogLevel.INFO))
+        logs.value = listOf(logEntry(0, "x".repeat(3000), LogLevel.INFO))
 
         val message = GetLogsCommand(logCaptureService).execute(arguments()).decodeLogs().logs.single().message
 
@@ -93,7 +93,8 @@ class HostLogCommandsTest {
     }
 }
 
-private fun logEntry(message: String, level: LogLevel) = LogEntry(
+private fun logEntry(id: Long, message: String, level: LogLevel) = LogEntry(
+    id = id,
     timestamp = Instant.fromEpochMilliseconds(0),
     message = message,
     level = level,

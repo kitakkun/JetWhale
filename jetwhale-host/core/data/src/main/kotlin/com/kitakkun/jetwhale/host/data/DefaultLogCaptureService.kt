@@ -9,17 +9,21 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
+import java.nio.charset.Charset
 import kotlin.time.Clock
 
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultLogCaptureService : LogCaptureService {
-    private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
-    override val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
+    override val logs: StateFlow<List<LogEntry>>
+        field = MutableStateFlow<List<LogEntry>>(emptyList())
+
+    private val entries = ArrayDeque<LogEntry>()
+    private var nextEntryId = 0L
 
     private var originalOut: PrintStream? = null
     private var originalErr: PrintStream? = null
@@ -51,63 +55,70 @@ class DefaultLogCaptureService : LogCaptureService {
     }
 
     override fun clearLogs() {
-        _logs.value = emptyList()
+        synchronized(entries) {
+            entries.clear()
+            logs.value = emptyList()
+        }
     }
 
+    // Logback writes bytes in the JVM default charset, and this stream encodes print in it too, so
+    // every line decodes with that one charset; the original stream re-encodes the text in the
+    // console's charset, which can differ.
     private inner class CapturingPrintStream(
-        private val original: PrintStream,
-        private val level: LogLevel,
+        original: PrintStream,
+        level: LogLevel,
     ) : PrintStream(
         object : OutputStream() {
-            private val buffer = StringBuilder()
+            private val pendingLineBytes = ByteArrayOutputStream()
 
             override fun write(b: Int) {
-                if (b == '\n'.code) {
-                    flush()
-                } else {
-                    buffer.append(b.toChar())
+                if (b == '\n'.code) endLine() else pendingLineBytes.write(b)
+            }
+
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                var start = off
+                for (i in off until off + len) {
+                    if (b[i] == '\n'.code.toByte()) {
+                        pendingLineBytes.write(b, start, i - start)
+                        endLine()
+                        start = i + 1
+                    }
                 }
+                pendingLineBytes.write(b, start, off + len - start)
             }
 
             override fun flush() {
-                if (buffer.isNotEmpty()) {
-                    val message = buffer.toString()
-                    buffer.clear()
-                    addLogEntry(message, level)
-                    original.print(message)
-                    original.flush()
-                }
+                original.flush()
+            }
+
+            private fun endLine() {
+                val text = pendingLineBytes.toString(Charset.defaultCharset())
+                pendingLineBytes.reset()
+                // Not println: on Windows the text still ends in the '\r' of its line break, so
+                // only the '\n' is added back.
+                original.print(text)
+                original.print('\n')
+                addLogEntry(text, level)
             }
         },
-    ) {
-        override fun println(x: String?) {
-            x?.let { addLogEntry(it, level) }
-            original.println(x)
-        }
-
-        override fun println(x: Any?) {
-            x?.toString()?.let { addLogEntry(it, level) }
-            original.println(x)
-        }
-
-        override fun print(x: String?) {
-            original.print(x)
-        }
-
-        override fun print(x: Any?) {
-            original.print(x)
-        }
-    }
+        true,
+        Charset.defaultCharset(),
+    )
 
     private fun addLogEntry(message: String, level: LogLevel) {
         if (message.isBlank()) return
 
-        val entry = LogEntry(
-            timestamp = Clock.System.now(),
-            message = message.trim(),
-            level = level,
-        )
-
-        _logs.value = (_logs.value + entry).takeLast(maxLogEntries)
+        synchronized(entries) {
+            if (entries.size == maxLogEntries) entries.removeFirst()
+            entries.addLast(
+                LogEntry(
+                    id = nextEntryId++,
+                    timestamp = Clock.System.now(),
+                    message = message.trim(),
+                    level = level,
+                ),
+            )
+            logs.value = entries.toList()
+        }
     }
 }

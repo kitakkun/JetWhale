@@ -11,4 +11,13 @@
     <!-- jmDNS logs every mDNS record on the network at DEBUG and TRACE, enough to push the host's own
          entries out of the log viewer within minutes. -->
     <logger name="javax.jmdns" level="INFO"/>
+    <!-- Ktor traces the routing of every request over nine lines, and every WebSocket frame. -->
+    <logger name="io.ktor" level="INFO"/>
+    <!-- The MCP SDK logs each tool call at INFO, DEBUG and TRACE; its feature registries log under
+         names outside its package. -->
+    <logger name="io.modelcontextprotocol" level="WARN"/>
+    <logger name="FeatureRegistry[Tool]" level="WARN"/>
+    <logger name="FeatureRegistry[Prompt]" level="WARN"/>
+    <logger name="FeatureRegistry[Resource]" level="WARN"/>
+    <logger name="FeatureRegistry[ResourceTemplate]" level="WARN"/>
 </configuration>
