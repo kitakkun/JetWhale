@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
 import java.nio.charset.Charset
+import java.util.logging.Level
 import kotlin.time.Clock
 
 @Inject
@@ -39,8 +40,8 @@ class DefaultLogCaptureService : LogCaptureService {
         originalOut = previousOut
         originalErr = previousErr
 
-        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO))
-        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR))
+        System.setOut(CapturingPrintStream(previousOut, LineSink(LogLevel.INFO)))
+        System.setErr(CapturingPrintStream(previousErr, LineSink(LogLevel.ERROR)))
 
         isCapturing = true
     }
@@ -66,7 +67,7 @@ class DefaultLogCaptureService : LogCaptureService {
     // console's charset, which can differ.
     private inner class CapturingPrintStream(
         original: PrintStream,
-        level: LogLevel,
+        sink: LineSink,
     ) : PrintStream(
         object : OutputStream() {
             private val pendingLineBytes = ByteArrayOutputStream()
@@ -98,12 +99,47 @@ class DefaultLogCaptureService : LogCaptureService {
                 // only the '\n' is added back.
                 original.print(text)
                 original.print('\n')
-                addLogEntry(text, level)
+                sink.accept(text)
             }
         },
         true,
         Charset.defaultCharset(),
     )
+
+    /**
+     * Files each line at [streamLevel], unless it is a java.util.logging record, which states its
+     * own level: libraries log through JUL to stderr at every level, so stderr alone does not mean
+     * an error. JUL's default format writes a record as a header line (time and source) followed
+     * by `LEVEL: message`, so a header is held back until the next line shows whether it is one.
+     * A `LEVEL: ` prefix counts only after such a header: a line printed as `INFO: …` on its own
+     * is not a JUL record and keeps its stream's level.
+     */
+    private inner class LineSink(private val streamLevel: LogLevel) {
+        private var pendingHeader: String? = null
+
+        fun accept(text: String) {
+            val line = text.removeSuffix("\r")
+            val header = pendingHeader
+            pendingHeader = null
+            val recordLevel = header?.let { levelOfRecordLine(line) }
+            when {
+                recordLevel != null -> addLogEntry("$header\n$line", recordLevel)
+
+                else -> {
+                    header?.let { addLogEntry(it, streamLevel) }
+                    if (JAVA_UTIL_LOGGING_HEADER.matches(line)) pendingHeader = line else addLogEntry(line, streamLevel)
+                }
+            }
+        }
+
+        private fun levelOfRecordLine(line: String): LogLevel? {
+            val name = line.substringBefore(": ", missingDelimiterValue = "")
+            // JUL prints the level name localized for the default locale at the moment it formats
+            // the record, and the App Language setting changes that locale while the host runs.
+            val level = JAVA_UTIL_LOGGING_LEVELS.firstOrNull { name.isNotEmpty() && (name == it.name || name == it.localizedName) } ?: return null
+            return if (level.intValue() >= Level.WARNING.intValue()) LogLevel.ERROR else LogLevel.INFO
+        }
+    }
 
     private fun addLogEntry(message: String, level: LogLevel) {
         if (message.isBlank()) return
@@ -122,3 +158,9 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 }
+
+private val JAVA_UTIL_LOGGING_LEVELS = listOf(Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST)
+
+// The first line of JUL's default format, "%1$tb %1$td, %1$tY %1$tl:%1$tM:%1$tS %1$Tp %2$s"; the
+// month and AM/PM names are localized.
+private val JAVA_UTIL_LOGGING_HEADER = Regex("""^\S+ \d{1,2}, \d{4} \d{1,2}:\d{2}:\d{2} \S+ .+$""")
