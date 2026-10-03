@@ -22,7 +22,6 @@ class DefaultLogCaptureService : LogCaptureService {
     override val logs: StateFlow<List<LogEntry>>
         field = MutableStateFlow<List<LogEntry>>(emptyList())
 
-    // Lines arrive from stdout and stderr on any thread; the lock keeps every one of them.
     private val entries = ArrayDeque<LogEntry>()
     private var nextEntryId = 0L
 
@@ -62,9 +61,9 @@ class DefaultLogCaptureService : LogCaptureService {
         }
     }
 
-    // Logback writes bytes in the default charset, and so does this stream for every print, so one
-    // decoder reads every line; the terminal then gets each line through the original stream, which
-    // encodes it in the console's own charset.
+    // Logback writes bytes in the JVM default charset, and this stream encodes print in it too, so
+    // every line decodes with that one charset; the original stream re-encodes the text in the
+    // console's charset, which can differ.
     private inner class CapturingPrintStream(
         original: PrintStream,
         level: LogLevel,
@@ -92,10 +91,11 @@ class DefaultLogCaptureService : LogCaptureService {
                 original.flush()
             }
 
-            // A line is decoded only once it is whole, so a character split across writes survives.
             private fun endLine() {
                 val text = line.toString(Charset.defaultCharset())
                 line.reset()
+                // Not println: on Windows the text still ends in the '\r' of its line break, so
+                // only the '\n' is added back.
                 original.print(text)
                 original.print('\n')
                 addLogEntry(text, level)
