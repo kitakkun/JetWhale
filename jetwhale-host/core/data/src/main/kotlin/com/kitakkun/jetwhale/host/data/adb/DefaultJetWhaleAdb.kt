@@ -102,6 +102,7 @@ internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb
         } finally {
             lifetime.cancel()
         }
+        ensureActive()
         if (timedOut.get()) throw timeoutException(args, timeout, null)
         value
     }

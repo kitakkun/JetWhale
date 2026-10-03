@@ -10,7 +10,8 @@ import kotlin.time.Duration
  * install directories, then `PATH`.
  *
  * Every call takes a timeout, and adb is ended when it elapses; a device that stops answering fails
- * the call instead of hanging it. A call that is cancelled ends adb too.
+ * the call instead of hanging it. A call that is cancelled ends adb too, and ends as cancelled even
+ * when its deadline has also passed.
  */
 @ExperimentalJetWhaleApi
 public interface JetWhaleAdb {
