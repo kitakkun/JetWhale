@@ -106,7 +106,8 @@ class SetPluginEnabledCommand(
             debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
-            // Subscribed before the flag flips: a session can become ready while it is still being written.
+            // pluginInstanceEventFlow does not replay, and a session can become ready while the
+            // flag is still being written, so the collector subscribes before the write starts.
             val collector = launch(start = CoroutineStart.UNDISPATCHED) {
                 pluginInstanceService.pluginInstanceEventFlow
                     .filterIsInstance<PluginInstanceEvent.Ready>()
