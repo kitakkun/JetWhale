@@ -85,7 +85,7 @@ internal class AndroidDeviceController(
         // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
         // it, and the stream would stretch that panel's picture to the framebuffer's shape.
         val emulatorStream = emulatorScreens?.takeUnless {
-            isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
+            display() != null && isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
         }?.open(serial, wanted)
         emulatorStream ?: run {
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")

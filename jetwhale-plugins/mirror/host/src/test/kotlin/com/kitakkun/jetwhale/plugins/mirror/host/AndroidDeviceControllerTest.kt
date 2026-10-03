@@ -140,7 +140,7 @@ class AndroidDeviceControllerTest {
     @Test
     fun `an emulator folded through device_state is mirrored through screenrecord rather than its own stream`() = runBlocking {
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
-        emulatorWithStream { emulator, server ->
+        emulatorWithStream(FOLDED) { emulator, server ->
             assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).process.waitFor()
 
             assertEquals(0, server.requestCount)
@@ -151,15 +151,26 @@ class AndroidDeviceControllerTest {
     @Test
     fun `an emulator folded by its own posture is mirrored through its own stream`() = runBlocking {
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded"))
-        emulatorWithStream { emulator, server ->
+        emulatorWithStream(FOLDED) { emulator, server ->
             assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
 
             assertEquals(1, server.requestCount)
         }
     }
 
-    private suspend fun emulatorWithStream(check: suspend (AndroidDeviceController, MockWebServer) -> Unit) {
-        dumpsysDisplay.writeText(FOLDED)
+    @Test
+    fun `an emulator with one panel opens its own stream without asking for its posture`() = runBlocking {
+        dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
+        emulatorWithStream(ONE_PANEL) { emulator, server ->
+            assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
+
+            assertEquals(1, server.requestCount)
+            assertTrue(commands.readLines().none { "device_state" in it })
+        }
+    }
+
+    private suspend fun emulatorWithStream(display: String, check: suspend (AndroidDeviceController, MockWebServer) -> Unit) {
+        dumpsysDisplay.writeText(display)
         MockWebServer().use { server ->
             server.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
             server.enqueue(MockResponse().setHeader("content-type", "application/grpc"))
