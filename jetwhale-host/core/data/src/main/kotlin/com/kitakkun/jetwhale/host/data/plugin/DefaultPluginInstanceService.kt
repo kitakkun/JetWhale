@@ -30,6 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -77,7 +78,9 @@ class DefaultPluginInstanceService(
 
     private val loadedPlugins: ConcurrentHashMap<PluginInstanceKey, LoadedInstance> = ConcurrentHashMap()
 
-    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
+    // Unbounded: the server stopping disposes every app session's instances in one burst, and a
+    // dropped Disposed would leave that instance's MCP tools listed.
+    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = Channel.UNLIMITED)
     override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
@@ -95,7 +98,7 @@ class DefaultPluginInstanceService(
         loadedPlugins.entries
             .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
             .map { it.key }
-            .forEach { disposeInstance(it) }
+            .forEach(::disposeInstance)
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
@@ -104,7 +107,7 @@ class DefaultPluginInstanceService(
 
         publishHeadlessPlugins()
         newlyInitializedSessions.forEach { sessionId ->
-            emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
+            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
     }
@@ -225,18 +228,18 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
-        loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach { disposeInstance(it) }
+        loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach(::disposeInstance)
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
-        loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach { disposeInstance(it) }
+        loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach(::disposeInstance)
     }
 
     override fun clearAppSessionPluginInstances() {
-        loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach { disposeInstance(it, emitEvent = false) }
+        loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
     }
 
-    private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
+    private fun disposeInstance(key: PluginInstanceKey) {
         val removed = loadedPlugins.remove(key) ?: return
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.
@@ -255,7 +258,7 @@ class DefaultPluginInstanceService(
             }
         }
         publishHeadlessPlugins()
-        if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+        mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**
@@ -270,11 +273,5 @@ class DefaultPluginInstanceService(
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
         )
-    }
-
-    private fun emitEvent(event: PluginInstanceEvent) {
-        if (!mutablePluginInstanceEventFlow.tryEmit(event)) {
-            logger.warning("Plugin instance event dropped (buffer full): $event")
-        }
     }
 }

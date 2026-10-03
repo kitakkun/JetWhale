@@ -1,12 +1,10 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -16,8 +14,6 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -76,7 +72,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     }
 
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(
-        pluginFactoryRepository = FakePluginFactoryRepository(
+        pluginFactoryRepository = SinglePluginFactoryRepository(
             LoadedHostPlugin(
                 manifest = JetWhaleHostPluginManifest(
                     pluginId = pluginId,
@@ -99,17 +95,5 @@ class DefaultPluginInstanceServiceHeadlessTest {
         JetWhaleHostPluginUi {
         @Composable
         override fun Content() = Unit
-    }
-
-    private class FakePluginFactoryRepository(plugin: LoadedHostPlugin) : PluginFactoryRepository {
-        override val loadedPlugins: Map<String, LoadedHostPlugin> = mapOf(plugin.manifest.pluginId to plugin)
-        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
-        override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
-
-        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
-        override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
-        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
-        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
-        override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
 }
