@@ -9,6 +9,10 @@ import java.io.RandomAccessFile
  * The length of the MP4 video in [file], read from its movie header (`moov` › `mvhd`), or null when
  * the file has no readable header. A recording's own length differs from the time between starting
  * and stopping it: the recorder takes a moment to start before its first frame.
+ *
+ * The movie header is the length players show. A simulator sends frames only when its screen
+ * changes, so `simctl recordVideo` ends a recording with an edit that holds the last frame until the
+ * stop, and its frames alone (the track's `mdhd`, or ffprobe's duration) cover less than that.
  */
 internal fun mp4DurationMillis(file: File): Long? = try {
     RandomAccessFile(file, "r").use { mp4 ->

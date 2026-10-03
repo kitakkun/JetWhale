@@ -15,7 +15,7 @@ internal class ListDevicesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listDevices"
     override val description =
-        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports: a physical iOS device is view-only (screenshots, no input or recording). " +
+        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports: a physical iOS device takes no input (no taps, swipes, buttons or text), and gives screenshots and recordings only when ffmpeg is installed, since both come from its video stream. " +
             "An Android device also reports \"screenOn\" and \"locked\"; a screen that is off shows as black, and $TOOL_PREFIX.setScreen turns it on."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
