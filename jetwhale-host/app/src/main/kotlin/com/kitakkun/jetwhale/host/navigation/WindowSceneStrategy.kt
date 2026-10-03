@@ -4,11 +4,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
@@ -20,9 +17,17 @@ import androidx.navigation3.scene.SceneStrategyScope
 import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_icon
-import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
+import com.kitakkun.jetwhale.host.menu.HostShortcuts
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
+import com.kitakkun.jetwhale.host.menu.MainWindowMenus
+import com.kitakkun.jetwhale.host.menu.matches
+import com.kitakkun.jetwhale.host.menu.toKeyShortcut
+import com.kitakkun.jetwhale.host.menu_close_window
+import com.kitakkun.jetwhale.host.menu_window
+import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 data class WindowProperties(
     val windowPlacement: WindowPlacement = WindowPlacement.Floating,
@@ -52,19 +57,37 @@ internal class WindowOverlayScene<T : Any>(
             height = windowEntry.properties.height,
         )
 
+        val menu = LocalMainWindowMenu.current
+        val isMac = HostOs.current == HostOs.MAC
         Window(
             state = windowState,
             icon = painterResource(Res.drawable.app_icon),
             onCloseRequest = { onCloseRequest(windowEntry.entry) },
-            onPreviewKeyEvent = { keyEvent ->
-                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
-                    onCloseRequest(windowEntry.entry)
-                    true
-                } else {
-                    false
+            onKeyEvent = { keyEvent ->
+                when {
+                    isMac -> false
+
+                    HostShortcuts.closeWindow.matches(keyEvent) -> {
+                        onCloseRequest(windowEntry.entry)
+                        true
+                    }
+
+                    else -> menu?.runShortcut(keyEvent) == true
                 }
             },
         ) {
+            if (isMac) {
+                MenuBar {
+                    menu?.let { MainWindowMenus(plugins = it.plugins, onGoHome = it::goHome, onOpenLogViewer = it::openLogViewer, onOpenPlugin = it::openPlugin) }
+                    Menu(text = stringResource(Res.string.menu_window)) {
+                        Item(
+                            text = stringResource(Res.string.menu_close_window),
+                            shortcut = HostShortcuts.closeWindow.toKeyShortcut(),
+                            onClick = { onCloseRequest(windowEntry.entry) },
+                        )
+                    }
+                }
+            }
             CompositionLocalProvider(LocalComposeWindow provides this.window) {
                 JwSurface(modifier = Modifier.fillMaxSize()) {
                     windowEntry.entry.Content()

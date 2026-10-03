@@ -1,0 +1,7 @@
+<resources>
+    <string name="menu_go">移動</string>
+    <string name="menu_home">ホーム</string>
+    <string name="menu_no_plugins">開けるプラグインはありません</string>
+    <string name="menu_window">ウィンドウ</string>
+    <string name="menu_close_window">ウィンドウを閉じる</string>
+</resources>

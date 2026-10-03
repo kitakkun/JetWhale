@@ -84,33 +84,29 @@ fun JetWhaleApp() {
 
     HostWindowEffects(backStack)
 
-    KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
-    ) {
-        SwrClientProvider(appGraph.swrClient) {
-            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
-            var updateBannerDismissed by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    updateCheckMutation.mutateAsync(Unit)
-                }
+    SwrClientProvider(appGraph.swrClient) {
+        val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
+        var updateBannerDismissed by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                updateCheckMutation.mutateAsync(Unit)
             }
-            val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
+        }
+        val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
 
-            SoilDataBoundary(
-                state1 = rememberSubscription(appGraph.themeSubscriptionKey),
-                state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
-                fallback = SoilFallbackDefaults.none(),
-            ) { theme, settings ->
-                ThemedHostWindow(
-                    colorScheme = theme.colorScheme,
-                    appLanguage = settings.appLanguage,
-                    backStack = backStack,
-                    availableUpdate = availableUpdate,
-                    onDismissUpdateBanner = { updateBannerDismissed = true },
-                    isUpdateBannerDismissed = updateBannerDismissed,
-                )
-            }
+        SoilDataBoundary(
+            state1 = rememberSubscription(appGraph.themeSubscriptionKey),
+            state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
+            fallback = SoilFallbackDefaults.none(),
+        ) { theme, settings ->
+            ThemedHostWindow(
+                colorScheme = theme.colorScheme,
+                appLanguage = settings.appLanguage,
+                backStack = backStack,
+                availableUpdate = availableUpdate,
+                onDismissUpdateBanner = { updateBannerDismissed = true },
+                isUpdateBannerDismissed = updateBannerDismissed,
+            )
         }
     }
 }

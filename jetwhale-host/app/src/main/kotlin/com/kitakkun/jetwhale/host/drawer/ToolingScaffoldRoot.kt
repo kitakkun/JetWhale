@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.following_ai_toast
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -142,7 +143,8 @@ fun ToolingScaffoldRoot(
 /**
  * The scaffold wired up: every UI event either goes to [screenChannel] as an action or out to the
  * host's navigation callbacks, with [ToolingScaffoldUiState.sessionIdFor] supplying the session id
- * that the scaffold's own callbacks leave out.
+ * that the scaffold's own callbacks leave out. The plugins the drawer can open are offered in the
+ * window's Plugins menu as well.
  */
 @Composable
 context(screenContext: ToolingScaffoldScreenContext)
@@ -162,6 +164,12 @@ private fun ToolingScaffoldWithActions(
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val menu = LocalMainWindowMenu.current
+    val hasSelectedApp = uiState.selectedSession != null
+    LaunchedEffect(menu, uiState.plugins, hasSelectedApp) {
+        menu?.updatePlugins(uiState.plugins, hasSelectedApp)
+    }
+
     ToolingScaffold(
         uiState = uiState,
         onClickSettings = onClickSettings,
