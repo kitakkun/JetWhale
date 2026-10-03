@@ -28,6 +28,7 @@
     <string name="sessions_connected_message">%1$d 件のセッションが接続されました</string>
     <string name="session_disconnected_message">%1$s が切断されました</string>
     <string name="sessions_disconnected_message">%1$d 件のセッションが切断されました</string>
+    <string name="plugin_enabled_change_failed_message">プラグインを有効または無効にできませんでした: %1$s</string>
     <string name="plugin_installed_message">%1$s をインストールしました</string>
     <string name="plugin_install_failed_message">%1$s をインストールできませんでした: %2$s</string>
     <string name="plugin_install_open">開く</string>
