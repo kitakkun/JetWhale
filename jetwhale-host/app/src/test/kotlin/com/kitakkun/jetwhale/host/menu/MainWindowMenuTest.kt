@@ -38,11 +38,13 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class MainWindowMenuTest {
     private val navigation = RecordingHostNavigationService()
-    private var shutdownCount = 0
+    private var quitCount = 0
+    private var raisedCount = 0
     private val menu = MainWindowMenu(
         hostNavigationService = navigation,
         coroutineScope = CoroutineScope(Dispatchers.Unconfined),
-        shutdown = { shutdownCount++ },
+        quit = { quitCount++ },
+        raiseMainWindow = { raisedCount++ },
     )
 
     @Test
@@ -109,7 +111,20 @@ class MainWindowMenuTest {
             ),
             navigation.navigated,
         )
-        assertEquals(1, shutdownCount)
+        assertEquals(1, quitCount)
+    }
+
+    @Test
+    fun `a destination the main window shows brings it to the front and the log viewer leaves it where it is`() {
+        menu.openSettings()
+        menu.showAbout()
+        menu.goHome()
+        menu.openPlugin("network")
+        assertEquals(4, raisedCount)
+
+        menu.openLogViewer()
+
+        assertEquals(4, raisedCount)
     }
 
     @Test

@@ -25,6 +25,7 @@ import com.kitakkun.jetwhale.host.menu.toKeyShortcut
 import com.kitakkun.jetwhale.host.menu_close_window
 import com.kitakkun.jetwhale.host.menu_window
 import com.kitakkun.jetwhale.host.model.HostOs
+import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -58,14 +59,14 @@ internal class WindowOverlayScene<T : Any>(
         )
 
         val menu = LocalMainWindowMenu.current
-        val isMac = HostOs.current == HostOs.MAC
+        val usesMenuBar = HostOs.current == HostOs.MAC && !LocalEmbeddedInIde.current
         Window(
             state = windowState,
             icon = painterResource(Res.drawable.app_icon),
             onCloseRequest = { onCloseRequest(windowEntry.entry) },
             onKeyEvent = { keyEvent ->
                 when {
-                    isMac -> false
+                    usesMenuBar -> false
 
                     HostShortcuts.closeWindow.matches(keyEvent) -> {
                         onCloseRequest(windowEntry.entry)
@@ -76,7 +77,7 @@ internal class WindowOverlayScene<T : Any>(
                 }
             },
         ) {
-            if (isMac) {
+            if (usesMenuBar) {
                 MenuBar {
                     menu?.let { MainWindowMenus(plugins = it.plugins, onGoHome = it::goHome, onOpenLogViewer = it::openLogViewer, onOpenPlugin = it::openPlugin) }
                     Menu(text = stringResource(Res.string.menu_window)) {

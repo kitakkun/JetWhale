@@ -31,12 +31,15 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Every destination goes through [HostNavigationService], the channel the window already takes
  * navigation requests from, so a menu item lands exactly where the same request from an agent
- * would. The plugins come from the drawer, which publishes the ones it can open.
+ * would. A destination the main window shows also brings that window to the front, since the menus
+ * are used from pop-outs and the log viewer too. The plugins come from the drawer, which publishes
+ * the ones it can open.
  */
 internal class MainWindowMenu(
     private val hostNavigationService: HostNavigationService,
     private val coroutineScope: CoroutineScope,
-    private val shutdown: () -> Unit,
+    val quit: () -> Unit,
+    private val raiseMainWindow: () -> Unit,
 ) {
     var plugins: ImmutableList<MenuPlugin> by mutableStateOf(persistentListOf())
         private set
@@ -50,17 +53,15 @@ internal class MainWindowMenu(
             .toImmutableList()
     }
 
-    fun openSettings() = navigate(HostNavigationRequest.Settings(HostSettingsSection.GENERAL))
+    fun openSettings() = showInMainWindow(HostNavigationRequest.Settings(HostSettingsSection.GENERAL))
 
-    fun showAbout() = navigate(HostNavigationRequest.Info)
+    fun showAbout() = showInMainWindow(HostNavigationRequest.Info)
 
-    fun goHome() = navigate(HostNavigationRequest.Home)
+    fun goHome() = showInMainWindow(HostNavigationRequest.Home)
 
     fun openLogViewer() = navigate(HostNavigationRequest.LogViewer)
 
-    fun openPlugin(pluginId: String) = navigate(HostNavigationRequest.Plugin(pluginId, sessionId = null, followsAgent = false))
-
-    fun quit() = shutdown()
+    fun openPlugin(pluginId: String) = showInMainWindow(HostNavigationRequest.Plugin(pluginId, sessionId = null, followsAgent = false))
 
     /**
      * Runs what [event] is the shortcut of, for a window that has no menu bar to catch its own
@@ -77,6 +78,11 @@ internal class MainWindowMenu(
             else -> return false
         }
         return true
+    }
+
+    private fun showInMainWindow(request: HostNavigationRequest) {
+        navigate(request)
+        raiseMainWindow()
     }
 
     private fun navigate(request: HostNavigationRequest) {

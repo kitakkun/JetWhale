@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
@@ -134,11 +135,13 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         .collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
+    val mainWindow = remember { AtomicReference<ComposeWindow?>(null) }
     val menu = remember(appGraph, coroutineScope) {
         MainWindowMenu(
             hostNavigationService = appGraph.hostNavigationService,
             coroutineScope = coroutineScope,
-            shutdown = appGraph.applicationLifecycleOwner::shutdown,
+            quit = appGraph.applicationLifecycleOwner::shutdown,
+            raiseMainWindow = { mainWindow.get()?.toFront() },
         )
     }
     val systemQuitResponse = remember { AtomicReference<QuitResponse?>(null) }
@@ -189,13 +192,13 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         state = windowState,
         onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
         // After the focused content has had the key, so a plugin's own shortcut wins. On macOS the
-        // menu bar catches its shortcuts itself.
+        // menu bar handles them instead: ⌘, and ⌘Q natively, the rest also only once the content
+        // has declined the key.
         onKeyEvent = { keyEvent -> !isMac && menu.runShortcut(keyEvent) },
     ) {
-        if (isMac) {
-            MenuBar {
-                MainWindowMenus(plugins = menu.plugins, onGoHome = menu::goHome, onOpenLogViewer = menu::openLogViewer, onOpenPlugin = menu::openPlugin)
-            }
+        DisposableEffect(window) {
+            mainWindow.set(window)
+            onDispose { mainWindow.set(null) }
         }
         JwTheme(darkTheme = isSystemInDarkTheme()) {
             when (applicationState) {
@@ -213,7 +216,15 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
 
         CompositionLocalProvider(LocalMainWindowMenu provides menu) {
             context(appGraph) {
-                JetWhaleApp()
+                JetWhaleApp(
+                    menuBar = {
+                        if (isMac) {
+                            MenuBar {
+                                MainWindowMenus(plugins = menu.plugins, onGoHome = menu::goHome, onOpenLogViewer = menu::openLogViewer, onOpenPlugin = menu::openPlugin)
+                            }
+                        }
+                    },
+                )
             }
         }
     }
