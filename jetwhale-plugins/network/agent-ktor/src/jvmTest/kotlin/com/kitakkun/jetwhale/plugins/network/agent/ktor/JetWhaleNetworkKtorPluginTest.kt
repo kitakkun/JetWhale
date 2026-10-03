@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import io.ktor.client.HttpClient
@@ -42,10 +44,14 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -266,6 +272,20 @@ class JetWhaleNetworkKtorPluginTest {
         assertEquals("streamed", body)
         val received = events.last() as ResponseReceived
         assertEquals("streamed", received.response.body)
+    }
+
+    @Test
+    fun `a failed call's message never carries a redacted query value`() = runBlocking {
+        val (agent, events) = agentWithEvents(NetworkRedactionRules { urlQueryParam("token") })
+        val client = HttpClient(MockEngine { request -> throw IOException("Connection refused [url=${request.url}]") }) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertFailsWith<IOException> { client.get("https://api.example.com/a?token=secret-value&page=2") }
+
+        val failure = (events.last() as RequestFailed).failure
+        assertFalse("secret-value" in failure.message, failure.message)
+        assertContains(failure.message, "page=2")
     }
 
     @Test

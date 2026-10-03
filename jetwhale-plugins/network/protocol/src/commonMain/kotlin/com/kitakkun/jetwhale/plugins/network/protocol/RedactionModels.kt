@@ -72,6 +72,17 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
     )
 }
 
+/**
+ * Applies the URL query rules to the URLs inside a failure's message: client exceptions such as
+ * Ktor's timeouts quote the request URL in full.
+ */
+fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure {
+    if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return failure
+    return failure.copy(message = failure.message.replace(URL_IN_TEXT) { redactUrl(it.value) })
+}
+
+private val URL_IN_TEXT = Regex("""https?://\S+""")
+
 private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
     when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
         null -> values
@@ -96,7 +107,7 @@ private fun List<RedactionRule>.redactUrl(url: String): String {
         .split('&')
         .joinToString("&") { param ->
             val name = param.substringBefore('=')
-            val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name)
+            val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name.formUrlDecode())
             if ('=' in param && strategy != null) {
                 "$name=${strategy.render(param.substringAfter('='))}"
             } else {
@@ -113,11 +124,63 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     if (encoding == BodyEncoding.BASE64) return body
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
-        Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray } ?: return body
+        Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray }
     } catch (_: SerializationException) {
-        return body
+        null
     }
-    return Json.encodeToString(JsonElement.serializer(), redactFields(element))
+    return when {
+        element != null -> Json.encodeToString(JsonElement.serializer(), redactFields(element))
+
+        // JSON that does not parse, a truncated body above all, cannot have its fields redacted one by
+        // one, and the value of a field it names may follow the name.
+        (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) && namesBodyField(body) -> WITHHELD_BODY
+
+        else -> body
+    }
+}
+
+private const val WITHHELD_BODY = "<body withheld: it names a redacted field but could not be parsed to redact it>"
+
+private fun List<RedactionRule>.namesBodyField(text: String): Boolean {
+    val names = filter { it.target == RedactionTarget.BODY_FIELD }.map(RedactionRule::name)
+    return jsonStringLiterals(text).any { literal -> names.any { it.equals(literal, ignoreCase = true) } }
+}
+
+/** The complete JSON string literals in [text], unescaped; one cut off at the end is left out. */
+private fun jsonStringLiterals(text: String): Sequence<String> = sequence {
+    var index = text.indexOf('"')
+    while (index >= 0) {
+        val literal = StringBuilder()
+        var at = index + 1
+        while (at < text.length && text[at] != '"') {
+            if (text[at] == '\\' && at + 1 < text.length) {
+                val unicode = text.getOrNull(at + 1) == 'u' && at + 6 <= text.length
+                val code = if (unicode) text.substring(at + 2, at + 6).takeIf { it.all(Char::isHexDigit) }?.toInt(radix = 16) else null
+                if (code != null) {
+                    literal.append(code.toChar())
+                    at += 6
+                } else {
+                    literal.append(
+                        when (val escaped = text[at + 1]) {
+                            'b' -> '\b'
+                            'f' -> '\u000C'
+                            'n' -> '\n'
+                            'r' -> '\r'
+                            't' -> '\t'
+                            else -> escaped
+                        },
+                    )
+                    at += 2
+                }
+            } else {
+                literal.append(text[at])
+                at++
+            }
+        }
+        if (at >= text.length) return@sequence
+        yield(literal.toString())
+        index = text.indexOf('"', startIndex = at + 1)
+    }
 }
 
 private fun List<RedactionRule>.redactFormBody(body: String): String = body
