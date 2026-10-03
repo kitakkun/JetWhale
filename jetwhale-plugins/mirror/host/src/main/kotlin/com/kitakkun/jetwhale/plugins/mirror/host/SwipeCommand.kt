@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 /** Long enough for a scroll to register as a drag rather than a fling. */
 private const val DEFAULT_SWIPE_MILLIS = 300
@@ -25,7 +26,7 @@ internal class SwipeCommand(
     private val toY by int("End, vertical, in screenshot pixels.")
     private val durationMillis by intOrNull("How long the swipe takes, from 0 to $MAX_SWIPE_MILLIS ms. Defaults to $DEFAULT_SWIPE_MILLIS ms.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val fromX = arguments[fromX]
         val fromY = arguments[fromY]
         val toX = arguments[toX]
@@ -40,6 +41,6 @@ internal class SwipeCommand(
             throw JetWhaleMcpArgumentException("the swipe leaves the ${screen.width}x${screen.height} screen (got $fromX,$fromY -> $toX,$toY)")
         }
         deviceOperation { device.controller.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = duration) }
-        return okJson()
+        return okResult()
     }
 }

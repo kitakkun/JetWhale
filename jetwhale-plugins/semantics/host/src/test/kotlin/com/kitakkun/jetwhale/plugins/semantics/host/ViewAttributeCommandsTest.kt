@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
@@ -39,7 +40,7 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4))
+        val result = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4))
 
         assertEquals("android.widget.TextView", result["viewClass"]?.jsonPrimitive?.content)
         val rows = result.getValue("attributes").jsonArray.map(JsonElement::jsonObject)
@@ -62,7 +63,7 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
+        val rows = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertEquals("layoutSize", rows[0]["type"]?.jsonPrimitive?.content)
         assertEquals("WRAP_CONTENT", rows[0]["value"]?.jsonPrimitive?.content)
@@ -85,7 +86,7 @@ class ViewAttributeCommandsTest {
         )
 
         for (text in listOf("wrap_content", "match_parent", "500")) {
-            command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "layout.width", "value" to text))
+            command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "layout.width", "value" to text))
         }
 
         assertEquals(
@@ -109,7 +110,7 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
+        val rows = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertNull(rows[0]["editable"])
         assertEquals(false, rows[1]["editable"]?.jsonPrimitive?.content?.toBoolean())
@@ -121,7 +122,7 @@ class ViewAttributeCommandsTest {
             getAttributes = { ViewAttributeResponse(snapshot = null, message = "node 42 is a Compose semantics node, which has no View attributes") },
         )
 
-        val result = command.run(arguments("rootId" to "window-1", "nodeId" to 42))
+        val result = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to 42))
 
         assertTrue(result.getValue("message").jsonPrimitive.content.contains("Compose semantics node"))
         assertNull(result["attributes"])
@@ -141,7 +142,7 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "visibility", "value" to "gone"))
+        val result = command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "visibility", "value" to "gone"))
 
         assertEquals(ViewAttributeValue.EnumValue("GONE", listOf("VISIBLE", "INVISIBLE", "GONE")), sent?.value)
         assertTrue(result.getValue("applied").jsonPrimitive.content.toBoolean())
@@ -156,7 +157,7 @@ class ViewAttributeCommandsTest {
         )
 
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "colour", "value" to "red"))
+            command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "colour", "value" to "red"))
         }
 
         assertTrue(failure.reason.contains("unknown attributeId: colour"), failure.reason)
@@ -175,7 +176,7 @@ class ViewAttributeCommandsTest {
         )
 
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
-            command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "bounds", "value" to "1,1,2,2"))
+            command.structuredAnswer(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "bounds", "value" to "1,1,2,2"))
         }
 
         assertTrue(failure.reason.contains("read-only"), failure.reason)
@@ -183,22 +184,35 @@ class ViewAttributeCommandsTest {
     }
 
     @Test
-    fun `setViewAttribute reports a refusal from the app rather than throwing`() {
+    fun `setViewAttribute on a node without View attributes is a failed call`() {
+        val command = SetViewAttributeCommand(
+            getAttributes = { ViewAttributeResponse(snapshot = null, message = "node -4 is not a View") },
+            setAttribute = { ViewAttributeResult(applied = true) },
+        )
+
+        val result = runBlocking { command.run(JetWhaleMcpArguments(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))) }
+
+        assertTrue(result.isError)
+        assertEquals("node -4 is not a View", (result.content.single() as JetWhaleMcpContent.Text).text)
+    }
+
+    @Test
+    fun `setViewAttribute that the app refuses is a failed call with its reason`() {
         val command = SetViewAttributeCommand(
             getAttributes = { response(attribute("alpha", ViewAttributeValue.FloatValue(1f), group = "Appearance")) },
             setAttribute = { ViewAttributeResult(applied = false, message = "the app rejected the change") },
         )
 
-        val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))
+        val result = runBlocking { command.run(JetWhaleMcpArguments(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))) }
 
-        assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
-        assertEquals("the app rejected the change", result["message"]?.jsonPrimitive?.content)
+        assertTrue(result.isError)
+        assertEquals("alpha was not applied to node -4 in window-1: the app rejected the change", (result.content.single() as JetWhaleMcpContent.Text).text)
     }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+private fun JetWhaleMcpCommand.structuredAnswer(arguments: JsonObject): JsonObject = runBlocking {
+    checkNotNull(run(JetWhaleMcpArguments(arguments)).structuredContent)
 }
 
 private fun attribute(

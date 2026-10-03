@@ -153,7 +153,7 @@ can be left out to use the device selected in the mirror.
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, OS version, and what they accept: input, buttons, recording. An Android device also reports `screenOn` and `locked` |
-| `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
+| `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels, and with `includeImage: true` the PNG itself |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
@@ -163,5 +163,8 @@ can be left out to use the device selected in the mirror.
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops it; returns the video's path and length |
 | `com.kitakkun.jetwhale.mirror.listCaptures` | Saved captures, newest first, optionally only one `deviceId`, one `kind` (`Screenshot` or `Recording`), or those taken at or after `since` (epoch milliseconds) |
 
-An agent can read a returned path to look at the capture. On a physical iPhone, input is
-refused with the reason.
+An agent can read a returned path to look at the capture. A client that shows images to the model
+can instead pass `includeImage: true` to `captureScreenshot`; it is off by default because a
+full-resolution screenshot can be several megabytes. Starting or stopping several recordings at
+once reports each device's result, and fails as a whole only when no device succeeded, including
+when there was no device to start or stop. On a physical iPhone, input is refused with the reason.

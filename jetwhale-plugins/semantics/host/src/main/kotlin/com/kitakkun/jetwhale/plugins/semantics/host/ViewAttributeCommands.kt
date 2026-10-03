@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
@@ -47,27 +48,31 @@ internal class GetViewAttributesCommand(
     private val rootId by string("The root the node belongs to, as reported by findNodes or getNodeTree.")
     private val nodeId by int("The View node's id, as reported by findNodes or getNodeTree. It is negative.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val rootId = arguments[rootId]
         val nodeId = arguments[nodeId]
         val response = try {
             getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
         val snapshot = response.snapshot
-            ?: return buildJsonObject {
-                put("rootId", rootId)
-                put("nodeId", nodeId)
-                put("message", response.message ?: "this node has no View attributes")
-            }.toString()
+            ?: return JetWhaleMcpResult.json(
+                buildJsonObject {
+                    put("rootId", rootId)
+                    put("nodeId", nodeId)
+                    put("message", response.message ?: "this node has no View attributes")
+                },
+            )
 
-        return buildJsonObject {
-            put("rootId", snapshot.rootId)
-            put("nodeId", snapshot.nodeId)
-            put("viewClass", snapshot.viewClass)
-            put("attributes", JsonArray(snapshot.attributes.map { it.toMcpJson() }))
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("rootId", snapshot.rootId)
+                put("nodeId", snapshot.nodeId)
+                put("viewClass", snapshot.viewClass)
+                put("attributes", JsonArray(snapshot.attributes.map { it.toMcpJson() }))
+            },
+        )
     }
 }
 
@@ -80,7 +85,8 @@ internal class SetViewAttributeCommand(
     override val description =
         "Changes one attribute of one Android View node in the running app and returns " +
             "{\"applied\", \"rootId\", \"nodeId\", \"attributeId\", \"message\", \"attribute\"}, where \"attribute\" is the " +
-            "value as it reads back afterwards — an app may clamp or ignore what was asked for. The value is given as a " +
+            "value as it reads back afterwards — an app may clamp or ignore what was asked for. A change the app refuses fails " +
+            "with its reason. The value is given as a " +
             "string and parsed for the attribute's own type: \"GONE\", \"true\", \"0.5\", \"#80FF0000\", \"24\". " +
             "Call getViewAttributes first to see the ids, types and enum options. " + TEMPORARY_NOTICE
 
@@ -94,7 +100,7 @@ internal class SetViewAttributeCommand(
             "\"match_parent\" — or a pixel figure \"500\".",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val rootId = arguments[rootId]
         val nodeId = arguments[nodeId]
         val attributeId = arguments[attributeId]
@@ -103,7 +109,7 @@ internal class SetViewAttributeCommand(
         val result = try {
             val response = getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
             val snapshot = response.snapshot
-                ?: return errorJson(response.message ?: "this node has no View attributes")
+                ?: return JetWhaleMcpResult.error(response.message ?: "this node has no View attributes")
             val current = snapshot.attributes.firstOrNull { it.id == attributeId }
                 ?: throw JetWhaleMcpArgumentException(
                     "unknown attributeId: $attributeId (this ${snapshot.viewClass} exposes ${snapshot.attributes.joinToString(transform = ViewAttribute::id)})",
@@ -119,17 +125,22 @@ internal class SetViewAttributeCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
 
-        return buildJsonObject {
-            put("applied", result.applied)
-            put("rootId", rootId)
-            put("nodeId", nodeId)
-            put("attributeId", attributeId)
-            result.message?.let { put("message", it) }
-            result.attribute?.let { put("attribute", it.toMcpJson()) }
-        }.toString()
+        if (!result.applied) {
+            return JetWhaleMcpResult.error("$attributeId was not applied to node $nodeId in $rootId: ${result.message ?: "the app gave no reason"}")
+        }
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("applied", true)
+                put("rootId", rootId)
+                put("nodeId", nodeId)
+                put("attributeId", attributeId)
+                result.message?.let { put("message", it) }
+                result.attribute?.let { put("attribute", it.toMcpJson()) }
+            },
+        )
     }
 }
 

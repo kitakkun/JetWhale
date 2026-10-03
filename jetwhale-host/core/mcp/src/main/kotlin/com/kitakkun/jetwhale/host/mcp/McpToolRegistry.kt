@@ -4,17 +4,17 @@ import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -73,25 +73,30 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Dispatches a tool call to the owning plugin instance.
      *
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
-     * That key is stripped before forwarding to the plugin.
+     * That key is stripped before forwarding to the plugin. A missing `sessionId`, or a session the
+     * tool is not offered in, is answered with a failed result that names the sessions it runs in.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The command's result, or null when no plugin instance offers [toolName] any more.
      */
-    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
-        val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
+    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): JetWhaleMcpResult? {
         val entry = registrations[toolName] ?: return null
-        val pluginId = entry.sessionToPlugin[sessionId] ?: return null
+        val sessionId = (arguments["sessionId"]?.takeUnless { it is JsonNull } as? JsonPrimitive)?.content
+            ?: return JetWhaleMcpResult.error("'sessionId' is required: the session to run '$toolName' in (available in: ${entry.availableSessions()}).")
+        val pluginId = entry.sessionToPlugin[sessionId]
+            ?: return JetWhaleMcpResult.error("'$toolName' is not available in session '$sessionId' (available in: ${entry.availableSessions()}).")
         val plugin = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
         ) as? JetWhaleMcpCapablePlugin ?: return null
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
-            command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
-        } catch (e: JetWhaleMcpArgumentException) {
-            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+            command.run(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+        } catch (e: JetWhaleMcpException) {
+            JetWhaleMcpResult.error(e.message.orEmpty())
         }
     }
+
+    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.sorted().joinToString().ifEmpty { "no session" }
 
     /**
      * Resolves which plugin would handle [toolName] for [sessionId], without invoking it.

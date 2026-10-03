@@ -2,11 +2,9 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.McpToolPermission
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 
@@ -30,7 +28,7 @@ import kotlinx.serialization.json.JsonObject
  * ```
  */
 abstract class HostMcpCommand :
-    JetWhaleMcpCommand(),
+    JetWhaleMcpTextCommand(),
     JetWhaleMcpTool {
 
     // Lazy, never eager: base-class initializers run before the subclass declares its parameters,
@@ -54,11 +52,10 @@ abstract class HostMcpCommand :
             // protocol error.
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
-                val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))
-                CallToolResult(content = listOf(TextContent(result)))
+                run(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap()))).toCallToolResult()
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: JetWhaleMcpArgumentException) {
+            } catch (e: JetWhaleMcpException) {
                 errorResult(e.message.orEmpty())
             } catch (e: Exception) {
                 errorResult("${e::class.simpleName}: ${e.message.orEmpty()}")

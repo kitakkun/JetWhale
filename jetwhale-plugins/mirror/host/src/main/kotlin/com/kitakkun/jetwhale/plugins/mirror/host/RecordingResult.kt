@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -19,8 +22,25 @@ internal sealed interface RecordingResult {
     data class Failed(override val deviceId: String, override val deviceName: String, val reason: String) : RecordingResult
 }
 
-/** The result as the recording tools report it: the device, what happened, and the file or the reason. */
-internal fun RecordingResult.toJson(): JsonObject = buildJsonObject {
+/**
+ * Each device's result as the recording tools report it. The call fails only when no device
+ * succeeded, which includes there being no device to act on, as [nothingToDo] says: after a partial
+ * success, retrying the whole call would act again on the devices that did.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
+internal fun List<RecordingResult>.toMcpResult(nothingToDo: String): JetWhaleMcpResult {
+    if (isEmpty()) return JetWhaleMcpResult.error(nothingToDo)
+    if (all { it is RecordingResult.Failed }) {
+        val reasons = filterIsInstance<RecordingResult.Failed>().joinToString("\n") { failure ->
+            val device = if (failure.deviceName == failure.deviceId) failure.deviceId else "${failure.deviceName} (${failure.deviceId})"
+            "- $device: ${failure.reason}"
+        }
+        return JetWhaleMcpResult.error("Every device failed:\n$reasons")
+    }
+    return JetWhaleMcpResult.json(buildJsonObject { put("results", buildJsonArray { forEach { add(it.toJson()) } }) })
+}
+
+private fun RecordingResult.toJson(): JsonObject = buildJsonObject {
     put("deviceId", deviceId)
     put("deviceName", deviceName)
     when (this@toJson) {
@@ -34,7 +54,7 @@ internal fun RecordingResult.toJson(): JsonObject = buildJsonObject {
 
         is RecordingResult.Failed -> {
             put("status", "failed")
-            put("error", reason)
+            put("reason", reason)
         }
     }
 }

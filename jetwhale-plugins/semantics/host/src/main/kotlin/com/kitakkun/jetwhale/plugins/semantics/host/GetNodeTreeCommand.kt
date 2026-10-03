@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
@@ -46,7 +47,7 @@ internal class GetNodeTreeCommand(
         "Return only this root. Use it to look at just the dialog on top, for example. Returns every root if omitted.",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val snapshot = try {
             capture(
                 NodeTreeCaptureOptions(
@@ -56,7 +57,7 @@ internal class GetNodeTreeCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
 
         val requestedRootId = arguments[rootId]
@@ -75,8 +76,8 @@ internal class GetNodeTreeCommand(
 
         val result = snapshot.copy(roots = pruned)
         return when (arguments[format] ?: NodeOutputFormat.Json) {
-            NodeOutputFormat.Json -> result.toMcpJson().toString()
-            NodeOutputFormat.Text -> result.toMcpText()
+            NodeOutputFormat.Json -> JetWhaleMcpResult.json(result.toMcpJson())
+            NodeOutputFormat.Text -> JetWhaleMcpResult.text(result.toMcpText())
         }
     }
 }
