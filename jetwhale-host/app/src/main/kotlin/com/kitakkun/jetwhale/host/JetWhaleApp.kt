@@ -18,7 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpSize
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -298,6 +300,15 @@ private fun HostWindowContent(
                 onReviewInSettings = onClickReviewArrivedPlugins,
             )
         }
-        JetWhaleNavDisplay(backStack)
+        val density = LocalDensity.current
+        JetWhaleNavDisplay(
+            backStack = backStack,
+            modifier = Modifier.onSizeChanged {
+                appGraph.pluginComposeSceneFactory.updateHostPluginArea(
+                    intSize = it,
+                    dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) },
+                )
+            },
+        )
     }
 }
