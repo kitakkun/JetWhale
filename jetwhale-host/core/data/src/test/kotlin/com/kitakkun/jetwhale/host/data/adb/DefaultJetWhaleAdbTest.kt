@@ -14,9 +14,11 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -130,7 +132,7 @@ class DefaultJetWhaleAdbTest {
             ),
         )
         val call = launch(Dispatchers.IO) { adb.run("hang", timeout = 1.minutes) }
-        lookingUp.await()
+        assertTrue(lookingUp.await(10, TimeUnit.SECONDS))
 
         call.cancel()
         cancelled.countDown()
@@ -155,6 +157,29 @@ class DefaultJetWhaleAdbTest {
             reading.await()
 
             call.cancel()
+
+            assertFailsWith<CancellationException> { call.await() }
+        }
+        Unit
+    }
+
+    @Test
+    fun `a call cancelled after its deadline passed ends as cancelled`() = runBlocking {
+        installFakeAdb()
+        supervisorScope {
+            val adbPid = CompletableDeferred<Long>()
+            val cancelled = CountDownLatch(1)
+            val call = async(Dispatchers.IO) {
+                adb.runStreaming("hang-printing-pid", timeout = 100.milliseconds) { stream ->
+                    adbPid.complete(generateSequence { stream.read() }.takeWhile { it != '\n'.code }.map(Int::toChar).joinToString("").toLong())
+                    cancelled.await()
+                }
+            }
+            val pid = adbPid.await()
+            withContext(Dispatchers.IO) { ProcessHandle.of(pid).ifPresent { it.onExit().join() } }
+
+            call.cancel()
+            cancelled.countDown()
 
             assertFailsWith<CancellationException> { call.await() }
         }
@@ -243,6 +268,7 @@ class DefaultJetWhaleAdbTest {
                 case "$1" in
                   fail) echo out; echo 'error: device offline' >&2; exit 1 ;;
                   hang) exec sleep 60 ;;
+                  hang-printing-pid) echo $$; exec sleep 60 ;;
                   screencap) echo '* daemon started successfully' >&2; printf PNGDATA ;;
                   noisy) head -c 200000 /dev/zero | tr '\0' e >&2; printf PNGDATA ;;
                   offline) echo "error: device 'emulator-1' not found" >&2; exit 1 ;;
