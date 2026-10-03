@@ -21,6 +21,11 @@ internal sealed interface NoticeAction {
         override val label: String get() = "Open"
     }
 
+    /** Puts [capture] on the clipboard. */
+    data class CopyCapture(val capture: Capture) : NoticeAction {
+        override val label: String get() = "Copy"
+    }
+
     /** Shows the captures panel with every device's captures. */
     data object OpenCaptures : NoticeAction {
         override val label: String get() = "Open Captures"
@@ -59,7 +64,7 @@ internal class MirrorNotice(
 
         fun failure(message: String, retry: NoticeAction?): MirrorNotice = MirrorNotice(message, isError = true, actions = listOfNotNull(retry), details = emptyList())
 
-        fun saved(capture: Capture): MirrorNotice = MirrorNotice("Saved ${capture.file.name}", isError = false, actions = listOf(NoticeAction.OpenCapture(capture)), details = emptyList())
+        fun saved(capture: Capture): MirrorNotice = MirrorNotice("Saved ${capture.file.name}", isError = false, actions = listOf(NoticeAction.OpenCapture(capture), NoticeAction.CopyCapture(capture)), details = emptyList())
 
         /** How saving a screenshot of each device went; Retry takes the failed ones again. */
         fun screenshotsSaved(results: List<ScreenshotResult>): MirrorNotice {

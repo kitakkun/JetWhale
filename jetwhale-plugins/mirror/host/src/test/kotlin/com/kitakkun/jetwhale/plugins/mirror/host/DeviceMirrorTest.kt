@@ -44,7 +44,7 @@ class DeviceMirrorTest {
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
         discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null),
+        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null, clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
         scope = scope,
     )
@@ -107,7 +107,7 @@ class DeviceMirrorTest {
         val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
             discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null),
+            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null, clipboard = CaptureClipboard(osascriptPath = null)),
             notices = notices,
             scope = clicks,
         )

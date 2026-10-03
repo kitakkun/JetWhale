@@ -189,7 +189,11 @@ private fun CaptureDetail(capture: Capture, thumbnails: ThumbnailSource, actions
         FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
             JwButton(text = "Open", onClick = { actions.open(capture) })
             JwButton(text = "Reveal", onClick = { actions.reveal(capture) }, style = JwButtonStyle.Text)
-            if (capture.info.kind == CaptureKind.Screenshot) JwButton(text = "Copy image", onClick = { actions.copyImage(capture) }, style = JwButtonStyle.Text)
+            val copyLabel = when (capture.info.kind) {
+                CaptureKind.Screenshot -> "Copy image"
+                CaptureKind.Recording -> "Copy file"
+            }
+            JwButton(text = copyLabel, onClick = { actions.copy(capture) }, style = JwButtonStyle.Text)
             JwButton(text = "Copy path", onClick = { actions.copyPath(capture) }, style = JwButtonStyle.Text)
             JwButton(text = "Delete…", onClick = { confirmingDelete = true }, style = JwButtonStyle.Text, tone = JwTone.Error)
         }

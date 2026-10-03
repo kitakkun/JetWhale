@@ -29,11 +29,11 @@ class MirrorNoticeTest {
     private val capture = Capture(File(folder, "125424-screenshot.png").apply { writeText("png") }, info("emulator-5554", "Pixel 9"))
 
     @Test
-    fun `a saved screenshot offers to open that capture`() {
+    fun `a saved screenshot offers to open or copy that capture`() {
         val notice = MirrorNotice.saved(capture)
 
         assertEquals("Saved 125424-screenshot.png", notice.message)
-        assertEquals(listOf<NoticeAction>(NoticeAction.OpenCapture(capture)), notice.actions)
+        assertEquals(listOf(NoticeAction.OpenCapture(capture), NoticeAction.CopyCapture(capture)), notice.actions)
         assertTrue(!notice.isError)
     }
 
@@ -148,6 +148,17 @@ class MirrorNoticeTest {
 
         onNodeWithContentDescription("Dismiss").performClick()
         assertEquals(1, recorded.dismissals)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `copy on a saved notice asks to copy that capture`() = runComposeUiTest {
+        val recorded = RecordingNotices(MirrorNotice.saved(capture))
+        setContent { JwTheme(darkTheme = true) { MirrorNoticeHost(recorded) } }
+
+        onNodeWithText("Copy").performClick()
+
+        assertEquals(listOf<NoticeAction>(NoticeAction.CopyCapture(capture)), recorded.performed)
     }
 
     @OptIn(ExperimentalTestApi::class)

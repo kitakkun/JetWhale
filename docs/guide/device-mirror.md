@@ -80,6 +80,8 @@ When a tool is missing, the device list says which one and what it would enable.
   iOS devices have neither.
 - **Screenshot and Record.** Both save into the device's captures (below). Each device records
   on its own, so several can record at once. Android stops recording on its own after 180 seconds.
+  The notice that names the saved file offers **Open**, which shows it in the Captures panel, and
+  **Copy**, which puts it on the clipboard as in the panel.
 - **Stats.** **Stats** under the screen shows frames received and shown per second, the longest
   gap between two shown frames, and how long decoding, copying and drawing each take. Time spent
   waiting for a still screen, which sends nothing, is not counted as decoding.
@@ -137,8 +139,10 @@ folder…** in the Captures panel picks another folder, and the host remembers i
   the date tags narrow it to one day.
 - Captures are grouped by day, newest first, and a new capture appears as soon as it is saved.
 - Selecting a capture shows its details. **Open** opens it in its default app, **Reveal** shows it
-  in Finder or Explorer, **Copy image** puts a screenshot on the clipboard, **Copy path** copies
-  its absolute path, and **Delete…** removes it after you confirm.
+  in Finder or Explorer, and **Delete…** removes it after you confirm. **Copy image** puts a
+  screenshot on the clipboard both as an image and as its file; **Copy file** puts a recording
+  there as its file, which Finder, chat apps and upload fields accept. **Copy path** copies its
+  absolute path.
 - **Open folder** opens the device's folder, or the captures folder when all devices are shown.
 
 Thumbnails are small PNGs cached in a hidden `.thumbnails` folder beside the captures. Only the

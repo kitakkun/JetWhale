@@ -65,7 +65,7 @@ private object NoCaptureActions : CapturesActions {
 
     override fun reveal(capture: Capture) = Unit
 
-    override fun copyImage(capture: Capture) = Unit
+    override fun copy(capture: Capture) = Unit
 
     override fun copyPath(capture: Capture) = Unit
 
@@ -228,6 +228,22 @@ private fun CapturesPanelPreview() {
             kind = null,
             day = null,
             selected = previewCaptures.first(),
+            thumbnails = NoThumbnails,
+            actions = NoCaptureActions,
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun CapturesPanelRecordingPreview() {
+    JwTheme(darkTheme = true) {
+        CapturesPanel(
+            captures = previewCaptures,
+            allDevices = false,
+            kind = null,
+            day = null,
+            selected = previewCaptures.last(),
             thumbnails = NoThumbnails,
             actions = NoCaptureActions,
         )
