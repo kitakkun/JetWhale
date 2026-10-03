@@ -318,13 +318,14 @@ forwarding: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, the usual SDK locations, then `/
 SDK setup of its own.
 
 - `adb.run(vararg args, timeout)` runs a command to completion and returns a `JetWhaleAdbResult`:
-  the exit code and what adb printed to stdout and stderr. A non-zero exit is a result, not an
+  the exit code, stdout as `output` and stderr as `errorOutput`. A non-zero exit is a result, not an
   exception.
 - `adb.runStreaming(vararg args, timeout) { stream -> … }` hands the consumer adb's stdout, and only
   its stdout, for binary or unbounded output such as `exec-out screencap -p` or `logcat`. adb is
   ended once the consumer returns. If the consumer reads stdout to its end and adb then exits with a
   non-zero code, the call throws `JetWhaleAdbCommandException`, whose `errorOutput` holds what adb
-  printed to stderr.
+  printed to stderr. It does so even when the consumer threw on what it read; that exception is
+  the cause.
 
 Every call takes a timeout. When it elapses, adb is ended and the call throws
 `JetWhaleAdbTimeoutException`; a cancelled call ends adb too. `JetWhaleAdbUnavailableException` means

@@ -20,7 +20,7 @@ import kotlin.time.Duration
 class ExampleHeadlessPluginTest {
     @Test
     fun `adbVersion reports what adb version printed`() {
-        val result = adbVersion { JetWhaleAdbResult(exitCode = 0, output = "Android Debug Bridge version 1.0.41") }
+        val result = adbVersion { JetWhaleAdbResult(exitCode = 0, output = "Android Debug Bridge version 1.0.41", errorOutput = "") }
 
         assertEquals(false, result.isError)
         assertEquals("Android Debug Bridge version 1.0.41", result.text())
@@ -28,7 +28,7 @@ class ExampleHeadlessPluginTest {
 
     @Test
     fun `adbVersion is a failed call when adb exits with an error`() {
-        val result = adbVersion { JetWhaleAdbResult(exitCode = 1, output = "adb: usage") }
+        val result = adbVersion { JetWhaleAdbResult(exitCode = 1, output = "", errorOutput = "adb: usage") }
 
         assertEquals(true, result.isError)
         assertEquals("adb version exited with code 1: adb: usage", result.text())

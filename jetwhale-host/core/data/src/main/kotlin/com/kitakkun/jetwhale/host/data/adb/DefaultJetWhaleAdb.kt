@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleAdbUnavailableException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -24,43 +25,43 @@ import kotlin.time.Duration
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb {
-    override suspend fun run(vararg args: String, timeout: Duration): JetWhaleAdbResult = withProcess(args, timeout, mergeErrorStream = true) { process ->
-        val output = process.inputStream.bufferedReader().readText()
-        JetWhaleAdbResult(exitCode = process.waitFor(), output = output.trim())
+    override suspend fun run(vararg args: String, timeout: Duration): JetWhaleAdbResult = withProcess(args, timeout) { process, errorOutput ->
+        val output = process.inputStream.bufferedReader().readText().trim()
+        JetWhaleAdbResult(exitCode = process.waitFor(), output = output, errorOutput = errorOutput.await())
     }
 
-    override suspend fun <T> runStreaming(vararg args: String, timeout: Duration, consume: suspend (InputStream) -> T): T = withProcess(args, timeout, mergeErrorStream = false) { process ->
-        val errorOutput = async {
-            try {
-                process.errorStream.bufferedReader().readText().trim()
-            } catch (_: IOException) {
-                // The read fails only once the process has been ended, and stderr is not used after
-                // that.
-                ""
-            }
-        }
+    override suspend fun <T> runStreaming(vararg args: String, timeout: Duration, consume: suspend (InputStream) -> T): T = withProcess(args, timeout) { process, errorOutput ->
         val stdout = EndTrackingInputStream(process.inputStream)
-        val value = consume(stdout)
+
+        // The consumer is the plugin's code and may throw anything on what a failed command left in
+        // stdout; adb's own failure is what the caller is told, with the consumer's as its cause.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+        val consumed = try {
+            Result.success(consume(stdout))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
         if (stdout.reachedEnd) {
             val exitCode = process.waitFor()
             if (exitCode != 0) {
                 val stderr = errorOutput.await()
-                throw JetWhaleAdbCommandException(exitCode, stderr, "adb ${args.joinToString(" ")} exited with code $exitCode: $stderr")
+                throw JetWhaleAdbCommandException(exitCode, stderr, "adb ${args.joinToString(" ")} exited with code $exitCode: $stderr", consumed.exceptionOrNull())
             }
         }
-        value
+        consumed.getOrThrow()
     }
 
     private suspend fun <T> withProcess(
         args: Array<out String>,
         timeout: Duration,
-        mergeErrorStream: Boolean,
-        body: suspend CoroutineScope.(Process) -> T,
+        body: suspend CoroutineScope.(process: Process, errorOutput: Deferred<String>) -> T,
     ): T = withContext(Dispatchers.IO) {
         val executable = locator.find()
             ?: throw JetWhaleAdbUnavailableException("no adb found: set ANDROID_HOME to an Android SDK, or put adb on PATH", null)
         val process = try {
-            ProcessBuilder(listOf(executable.path) + args).redirectErrorStream(mergeErrorStream).start()
+            ProcessBuilder(listOf(executable.path) + args).start()
         } catch (e: IOException) {
             throw JetWhaleAdbUnavailableException("adb could not be launched from ${executable.path}: ${e.message}", e)
         }
@@ -77,13 +78,22 @@ internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb
                 process.destroyForcibly()
             }
         }
+        val errorOutput = async {
+            try {
+                process.errorStream.bufferedReader().readText().trim()
+            } catch (_: IOException) {
+                // The read fails only once the process has been ended, and stderr is not used after
+                // that.
+                ""
+            }
+        }
 
         // Once adb has been ended, by a cancellation or at the deadline, whatever the body throws on
         // the cut-off output is that ending's doing, so it is reported as the cancellation or the
         // timeout.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val value = try {
-            body(process)
+            body(process, errorOutput)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

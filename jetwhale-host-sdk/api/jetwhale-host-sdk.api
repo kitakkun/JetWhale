@@ -16,7 +16,7 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleAdb {
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleAdbCommandException : com/kitakkun/jetwhale/host/sdk/JetWhaleAdbException {
 	public static final field $stable I
-	public fun <init> (ILjava/lang/String;Ljava/lang/String;)V
+	public fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
 	public final fun getErrorOutput ()Ljava/lang/String;
 	public final fun getExitCode ()I
 }
@@ -28,8 +28,9 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleAdbException : java
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleAdbResult {
 	public static final field $stable I
-	public fun <init> (ILjava/lang/String;)V
+	public fun <init> (ILjava/lang/String;Ljava/lang/String;)V
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getErrorOutput ()Ljava/lang/String;
 	public final fun getExitCode ()I
 	public final fun getOutput ()Ljava/lang/String;
 	public fun hashCode ()I

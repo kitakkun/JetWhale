@@ -51,10 +51,10 @@ class DefaultJetWhaleAdbTest {
     }
 
     @Test
-    fun `run reports the exit code and what adb printed to stdout and stderr`() = runBlocking {
+    fun `run reports the exit code and keeps stdout and stderr apart`() = runBlocking {
         installFakeAdb()
 
-        assertEquals(JetWhaleAdbResult(exitCode = 1, output = "out\nerror: device offline"), adb.run("fail", timeout = 1.minutes))
+        assertEquals(JetWhaleAdbResult(exitCode = 1, output = "out", errorOutput = "error: device offline"), adb.run("fail", timeout = 1.minutes))
     }
 
     @Test
@@ -179,6 +179,36 @@ class DefaultJetWhaleAdbTest {
     }
 
     @Test
+    fun `a consumer failing on what a failed command left reports adb's failure with its own as the cause`() = runBlocking {
+        installFakeAdb()
+
+        val failure = assertFailsWith<JetWhaleAdbCommandException> {
+            adb.runStreaming("offline", timeout = 1.minutes) { stream -> check(stream.readBytes().isNotEmpty()) { "not a PNG" } }
+        }
+
+        assertEquals("error: device 'emulator-1' not found", failure.errorOutput)
+        assertEquals("not a PNG", failure.cause?.message)
+    }
+
+    @Test
+    fun `a consumer failing on what a successful command printed fails with its own exception`() = runBlocking {
+        installFakeAdb()
+
+        val failure = assertFailsWith<IllegalStateException> {
+            adb.runStreaming("screencap", timeout = 1.minutes) { stream -> check(stream.readBytes().isEmpty()) { "not empty" } }
+        }
+
+        assertEquals("not empty", failure.message)
+    }
+
+    @Test
+    fun `runStreaming drains stderr while its consumer is still reading stdout`() = runBlocking {
+        installFakeAdb()
+
+        assertEquals("PNGDATA", adb.runStreaming("noisy", timeout = 1.minutes) { it.readBytes().decodeToString() })
+    }
+
+    @Test
     fun `runStreaming returns what its consumer read and ends adb when the consumer stops early`() = runBlocking {
         installFakeAdb()
         val started = TimeSource.Monotonic.markNow()
@@ -214,6 +244,7 @@ class DefaultJetWhaleAdbTest {
                   fail) echo out; echo 'error: device offline' >&2; exit 1 ;;
                   hang) exec sleep 60 ;;
                   screencap) echo '* daemon started successfully' >&2; printf PNGDATA ;;
+                  noisy) head -c 200000 /dev/zero | tr '\0' e >&2; printf PNGDATA ;;
                   offline) echo "error: device 'emulator-1' not found" >&2; exit 1 ;;
                   endless) exec yes line ;;
                 esac
