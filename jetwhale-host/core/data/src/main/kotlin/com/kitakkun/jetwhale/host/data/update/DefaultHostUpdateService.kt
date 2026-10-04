@@ -33,6 +33,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readRawBytes
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
@@ -330,7 +331,7 @@ class DefaultHostUpdateService(
     private class LocalFileException(override val cause: IOException) : Exception(cause)
 
     private fun HttpResponse.isRateLimited(): Boolean = (status == HttpStatusCode.Forbidden || status == HttpStatusCode.TooManyRequests) &&
-        headers["x-ratelimit-remaining"] == "0"
+        (headers["x-ratelimit-remaining"] == "0" || headers.contains(HttpHeaders.RetryAfter))
 
     private class HostReleaseOffer(
         val metadata: HostReleaseMetadata,

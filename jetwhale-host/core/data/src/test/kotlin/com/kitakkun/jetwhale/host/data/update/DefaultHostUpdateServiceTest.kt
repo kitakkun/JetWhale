@@ -155,6 +155,18 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `reports GitHub's secondary rate limit as a rate limit`() = runBlocking {
+        listOf(HttpStatusCode.Forbidden, HttpStatusCode.TooManyRequests).forEach { status ->
+            responses[RELEASES_URL] = { respond("{}", status, headersOf(HttpHeaders.RetryAfter, "60")) }
+
+            val service = service()
+            service.check()
+
+            assertEquals(HostUpdateStatus.CheckFailed(HostUpdateFailure.RateLimited), service.stateFlow.value.status, "$status")
+        }
+    }
+
+    @Test
     fun `reports an answer it cannot use`() = runBlocking {
         responses[RELEASES_URL] = { respondError(HttpStatusCode.InternalServerError) }
 
