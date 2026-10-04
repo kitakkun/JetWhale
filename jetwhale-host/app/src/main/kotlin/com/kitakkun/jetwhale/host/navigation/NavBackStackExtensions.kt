@@ -10,15 +10,19 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
 }
 
 /**
- * Goes back in the main window: removes the top entry it shows. The log viewer and popped-out
- * plugins are in the stack too but in windows of their own, which only those windows close, so
- * dismissing a dialog opened before or after them closes the dialog. The home screen at the bottom
- * is never removed.
+ * Goes back in the main window: removes the top entry it shows, leaving the windows of their own
+ * (see [showsInMainWindow]), so dismissing a dialog opened before or after them closes the dialog.
+ * The home screen at the bottom is never removed.
  */
 fun NavBackStack<NavKey>.popMainWindow() {
-    val top = indexOfLast { it !is LogViewerNavKey && it !is PluginPopoutNavKey && it !is EmptyPluginNavKey }
+    val top = indexOfLastPoppable()
     if (top >= 0) removeAt(top)
 }
+
+/** Whether [popMainWindow] has anything to remove. */
+fun NavBackStack<NavKey>.canPopMainWindow(): Boolean = indexOfLastPoppable() >= 0
+
+private fun List<NavKey>.indexOfLastPoppable(): Int = indexOfLast { it.showsInMainWindow && it !is EmptyPluginNavKey }
 
 /**
  * Shows the MCP tools browser, seeded with the scope it was opened from.
@@ -76,27 +80,29 @@ fun NavBackStack<NavKey>.removeAppPluginEntries() {
 }
 
 /**
- * Makes the plugin screen currently on top of the back stack follow a session switch.
+ * Makes the plugin screen the main window shows follow a session switch.
  *
- * If the top entry is a [PluginNavKey] targeting a different session, it is replaced with a
- * [PluginNavKey] for [newSessionId] so the same plugin is shown for the newly-selected session.
- * If the plugin is not available on the new session (per [isPluginAvailableOnNewSession]), the old
- * plugin entry is simply popped so the underlying (e.g. empty) screen is shown instead of a dead
- * plugin screen.
+ * If the main window's top entry is a [PluginNavKey] targeting a different session, it is replaced
+ * in place with a [PluginNavKey] for [newSessionId] so the same plugin is shown for the
+ * newly-selected session. If the plugin is not available on the new session (per
+ * [isPluginAvailableOnNewSession]), the old plugin entry is simply removed so the underlying (e.g.
+ * empty) screen is shown instead of a dead plugin screen.
  *
- * No-op when the top entry is not a [PluginNavKey], already targets [newSessionId], or is a plugin
- * of [HostSession], which belongs to no app and so stays put while the user switches apps.
+ * No-op when the main window's top entry is not a [PluginNavKey], already targets [newSessionId],
+ * or is a plugin of [HostSession], which belongs to no app and so stays put while the user switches
+ * apps.
  */
 fun NavBackStack<NavKey>.followPluginToSession(
     newSessionId: String,
     isPluginAvailableOnNewSession: (pluginId: String) -> Boolean,
 ) {
-    val top = lastOrNull() as? PluginNavKey ?: return
+    val topIndex = indexOfLast(NavKey::showsInMainWindow)
+    val top = getOrNull(topIndex) as? PluginNavKey ?: return
     if (top.sessionId == newSessionId || HostSession.isHost(top.sessionId)) return
 
-    removeLastOrNull()
+    removeAt(topIndex)
     if (isPluginAvailableOnNewSession(top.pluginId)) {
-        add(PluginNavKey(pluginId = top.pluginId, sessionId = newSessionId))
+        add(topIndex, PluginNavKey(pluginId = top.pluginId, sessionId = newSessionId))
     }
 }
 
