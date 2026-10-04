@@ -14,7 +14,7 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's Context was not reachable, so its manifest could not be read."))
     // PackageManager exposes no intent filters (ActivityInfo carries none), so they are read from
     // the app's compiled manifest, which holds them as merged at build time.
-    val manifest = openBaseManifest(context)
+    val manifest = openBaseManifest(context.packageName) { cookie -> context.assets.openXmlResourceParser(cookie, "AndroidManifest.xml") }
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's own manifest was not among its loaded APKs, so its links could not be read."))
     val verification = appLinkVerificationStates(context)
     val links = manifest.use { parser ->
@@ -27,21 +27,33 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
 }
 
 /**
- * A parser of the base APK's manifest, on its root element. Opened without a cookie, the manifest is
- * looked up from the last loaded APK back, which is a split's or a shared library's (WebView's, once
- * the app has shown one) whenever the app has those. The framework and its overlays load before the
- * base APK and all have a manifest, so the first cookie without one is past the app's APKs.
+ * A parser of the base APK's manifest, on its root element, or null when the APKs run out before it.
+ * Opened without a cookie, the manifest is looked up from the last loaded APK back, which is a split's
+ * or a shared library's (WebView's, once the app has shown one) whenever the app has those. The
+ * framework and its overlays load before the base APK and all have a manifest, so the first cookie
+ * without one is past the app's APKs.
+ *
+ * @param openManifest Opens the manifest of the APK with the given asset cookie, and throws
+ *   [FileNotFoundException] when there is no such APK or it has no manifest.
  */
-private fun openBaseManifest(context: Context): XmlResourceParser? {
+internal fun openBaseManifest(packageName: String, openManifest: (cookie: Int) -> XmlResourceParser): XmlResourceParser? {
     var cookie = 1
     while (true) {
         val parser = try {
-            context.assets.openXmlResourceParser(cookie, "AndroidManifest.xml")
+            openManifest(cookie)
         } catch (_: FileNotFoundException) {
             return null
         }
-        parser.nextTag()
-        if (parser.getAttributeValue(null, "package") == context.packageName && parser.getAttributeValue(null, "split") == null) return parser
+        val isBase = try {
+            // The platform's parser reports a START_DOCUMENT before the root element, which nextTag() rejects.
+            var event = parser.next()
+            while (event != XmlPullParser.START_TAG && event != XmlPullParser.END_DOCUMENT) event = parser.next()
+            event == XmlPullParser.START_TAG && parser.getAttributeValue(null, "package") == packageName && parser.getAttributeValue(null, "split") == null
+        } catch (e: Exception) {
+            parser.close()
+            throw e
+        }
+        if (isBase) return parser
         parser.close()
         cookie++
     }

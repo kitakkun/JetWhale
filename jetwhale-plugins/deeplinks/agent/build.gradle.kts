@@ -38,6 +38,7 @@ kotlin {
         namespace = "com.kitakkun.jetwhale.plugins.deeplinks.agent"
         compileSdk = 37
         minSdk = 23
+        withHostTest {}
     }
 
     sourceSets {
