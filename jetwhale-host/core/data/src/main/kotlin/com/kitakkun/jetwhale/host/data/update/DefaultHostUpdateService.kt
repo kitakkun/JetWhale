@@ -35,7 +35,7 @@ import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,6 +50,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.nio.channels.UnresolvedAddressException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -70,7 +71,9 @@ class DefaultHostUpdateService(
     private val metadataReader: HostReleaseMetadataReader,
     private val versions: HostVersionsRepository,
 ) : HostUpdateService {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e -> logger.error("A host update download failed", e) },
+    )
     private val httpClient = HttpClient(engine) {
         install(HttpTimeout) {
             connectTimeoutMillis = 30_000
@@ -95,13 +98,19 @@ class DefaultHostUpdateService(
     override suspend fun check() {
         if (hostLaunch !is HostLaunch.ByLauncher || downloadJob?.isActive == true) return
         setStatus(HostUpdateStatus.Checking)
-        val status = try {
-            lookUp(hostLaunch)
-        } catch (e: IOException) {
-            HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+        var status: HostUpdateStatus = HostUpdateStatus.NotChecked
+        try {
+            status = try {
+                lookUp(hostLaunch)
+            } catch (e: IOException) {
+                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+            } catch (e: UnresolvedAddressException) {
+                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+            }
+            logger.info("Host update check: {}", status)
+        } finally {
+            stateFlow.update { HostUpdateState(status = status, setAside = versions.setAsideVersion()) }
         }
-        logger.info("Host update check: {}", status)
-        stateFlow.update { HostUpdateState(status = status, setAside = versions.setAsideVersion()) }
     }
 
     override fun download() {
@@ -209,44 +218,47 @@ class DefaultHostUpdateService(
         return HostUpdateStatus.Available(metadata.version, platform.size)
     }
 
+    /**
+     * Runs one download. Whatever ends it, `staging/` is cleared and the status leaves
+     * [HostUpdateStatus.Downloading]; a cancel, or an error it does not know, offers the release again.
+     */
     private suspend fun downloadAndInstall(offer: HostReleaseOffer) {
         val version = offer.metadata.version
         setStatus(HostUpdateStatus.Downloading(version, downloadedBytes = 0, totalBytes = offer.platform.size))
+        var status: HostUpdateStatus = HostUpdateStatus.Available(version, offer.platform.size)
         try {
-            versions.clearForDownload(runningVersion = hostVersionInfo.version)
-            stateFlow.update { it.copy(setAside = versions.setAsideVersion()) }
-            val staging = versions.newStagingDirectory(version)
-            Files.write(staging.resolve(InstalledHostVersion.METADATA_FILE_NAME), offer.metadataBytes)
-            offer.signatureBytes?.let { Files.write(staging.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
-            val jar = staging.resolve(hostJarName(version, offer.platformKey))
-            val failure = downloadJar(offer, jar)
-            if (failure != null) {
-                versions.discardStaging()
-                setStatus(HostUpdateStatus.Failed(failure))
-                return
+            status = try {
+                fetchVerifyAndInstall(offer)
+            } catch (e: IOException) {
+                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+            } catch (e: UnresolvedAddressException) {
+                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
             }
-            val check = offer.platform.check(jar)
-            if (check != HostJarCheck.Matches) {
-                logger.warn("Discarded the download of host {}: {}", version, check)
-                versions.discardStaging()
-                setStatus(HostUpdateStatus.Failed(HostUpdateFailure.Corrupted))
-                return
-            }
-            currentCoroutineContext().ensureActive()
-            versions.install(staging, version)
-            logger.info("Installed host {} for the next start", version)
-            this.offer = null
-            stateFlow.update { HostUpdateState(status = HostUpdateStatus.ReadyToRestart(version), setAside = versions.setAsideVersion()) }
-        } catch (e: CancellationException) {
+        } finally {
             versions.discardStaging()
-            stateFlow.update {
-                HostUpdateState(status = HostUpdateStatus.Available(version, offer.platform.size), setAside = versions.setAsideVersion())
-            }
-            throw e
-        } catch (e: IOException) {
-            versions.discardStaging()
-            setStatus(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty())))
+            stateFlow.update { HostUpdateState(status = status, setAside = versions.setAsideVersion()) }
         }
+    }
+
+    private suspend fun fetchVerifyAndInstall(offer: HostReleaseOffer): HostUpdateStatus {
+        val version = offer.metadata.version
+        versions.clearForDownload(runningVersion = hostVersionInfo.version)
+        stateFlow.update { it.copy(setAside = versions.setAsideVersion()) }
+        val staging = versions.newStagingDirectory(version)
+        Files.write(staging.resolve(InstalledHostVersion.METADATA_FILE_NAME), offer.metadataBytes)
+        offer.signatureBytes?.let { Files.write(staging.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
+        val jar = staging.resolve(hostJarName(version, offer.platformKey))
+        downloadJar(offer, jar)?.let { return HostUpdateStatus.Failed(it) }
+        val check = offer.platform.check(jar)
+        if (check != HostJarCheck.Matches) {
+            logger.warn("Discarded the download of host {}: {}", version, check)
+            return HostUpdateStatus.Failed(HostUpdateFailure.Corrupted)
+        }
+        currentCoroutineContext().ensureActive()
+        versions.install(staging, version)
+        logger.info("Installed host {} for the next start", version)
+        this.offer = null
+        return HostUpdateStatus.ReadyToRestart(version)
     }
 
     /** Streams the jar into [jar], reporting progress; returns why it could not, or null. */

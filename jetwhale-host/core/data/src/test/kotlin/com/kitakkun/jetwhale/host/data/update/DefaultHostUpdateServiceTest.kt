@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
+import java.nio.channels.UnresolvedAddressException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -47,6 +48,7 @@ import kotlin.io.path.name
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -161,12 +163,24 @@ class DefaultHostUpdateServiceTest {
 
     @Test
     fun `reports a network failure`() = runBlocking {
-        responses[RELEASES_URL] = { throw IOException("no route to host") }
+        listOf(UnresolvedAddressException(), IOException("no route to host")).forEach { failure ->
+            responses[RELEASES_URL] = { throw failure }
+
+            val service = service()
+            service.check()
+
+            assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(failure.message.orEmpty())), service.stateFlow.value.status, "$failure")
+        }
+    }
+
+    @Test
+    fun `leaves Checking when the check ends in an error it does not know`() = runBlocking {
+        responses[RELEASES_URL] = { throw IllegalStateException("unexpected") }
 
         val service = service()
-        service.check()
+        assertFailsWith<IllegalStateException> { service.check() }
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable("no route to host")), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.NotChecked, service.stateFlow.value.status)
     }
 
     @Test
@@ -225,6 +239,37 @@ class DefaultHostUpdateServiceTest {
 
         assertIs<HostUpdateStatus.Failed>(outcome)
         assertEquals(emptyList(), versions.installedVersions())
+        assertStagingEmpty()
+    }
+
+    @Test
+    fun `discards a download whose asset host cannot be resolved`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        responses[jarUrl("1.0.0-alpha14")] = { throw UnresolvedAddressException() }
+
+        val outcome = checkAndDownload(service())
+
+        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable("")), outcome)
+        assertEquals(emptyList(), versions.installedVersions())
+        assertStagingEmpty()
+    }
+
+    @Test
+    fun `offers the release again after a download ends in an error it does not know`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        val requested = CompletableDeferred<Unit>()
+        responses[jarUrl("1.0.0-alpha14")] = {
+            requested.complete(Unit)
+            throw IllegalStateException("unexpected")
+        }
+        val service = service()
+        service.check()
+
+        service.download()
+        withTimeout(10.seconds) { requested.await() }
+
+        val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
+        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
         assertStagingEmpty()
     }
 
