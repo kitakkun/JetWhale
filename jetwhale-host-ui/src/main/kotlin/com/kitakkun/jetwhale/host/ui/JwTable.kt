@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -158,6 +160,7 @@ public fun JwTableCellText(
  * @param key a stable identity per item, so selection and scroll position survive reordering.
  * @param isSelected whether the row for an item is the current one.
  * @param onClick what selecting a row does; null for a read-only table.
+ * @param contextMenuItems what right-clicking a row offers for its item; null for no context menu.
  * @param state the list's scroll state; hoist it to scroll programmatically.
  * @param contentPadding padding around the rows, inside the scrolling area.
  * @param emptyContent what to show instead of rows while [items] is empty — a [JwEmptyState].
@@ -170,6 +173,7 @@ public fun <T> JwTable(
     key: ((item: T) -> Any)? = null,
     isSelected: (item: T) -> Boolean = { false },
     onClick: ((item: T) -> Unit)? = null,
+    contextMenuItems: ((item: T) -> List<ContextMenuItem>)? = null,
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     emptyContent: (@Composable () -> Unit)? = null,
@@ -212,10 +216,17 @@ public fun <T> JwTable(
                         Cell(column) { column.cell(item) }
                     }
                 }
-                if (onClick == null) {
-                    ReadOnlyRow(selected = isSelected(item), content = cells)
+                val row: @Composable () -> Unit = {
+                    if (onClick == null) {
+                        ReadOnlyRow(selected = isSelected(item), content = cells)
+                    } else {
+                        JwListItem(selected = isSelected(item), onClick = { onClick(item) }, content = cells)
+                    }
+                }
+                if (contextMenuItems == null) {
+                    row()
                 } else {
-                    JwListItem(selected = isSelected(item), onClick = { onClick(item) }, content = cells)
+                    ContextMenuArea(items = { contextMenuItems(item) }, content = row)
                 }
             }
         }

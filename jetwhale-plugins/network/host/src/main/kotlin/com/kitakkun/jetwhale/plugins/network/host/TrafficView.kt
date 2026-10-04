@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -163,6 +164,7 @@ private fun TrafficList(
         key = HttpTransaction::txId,
         isSelected = { it.txId == selectedTxId },
         onClick = { onSelectTx(it.txId) },
+        contextMenuItems = ::transactionContextMenuItems,
         state = listState,
         modifier = modifier
             .fillMaxSize()
@@ -187,6 +189,17 @@ private fun TrafficList(
                 }
             },
     )
+}
+
+private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuItem> = buildList {
+    add(ContextMenuItem("Copy as cURL") { copyToClipboard(buildCurlCommand(tx.request)) })
+    add(ContextMenuItem("Copy URL") { copyToClipboard(tx.request.url) })
+    tx.request.body?.takeIf { tx.request.bodyEncoding == BodyEncoding.TEXT }?.let { body ->
+        add(ContextMenuItem("Copy request body") { copyToClipboard(body) })
+    }
+    tx.response?.takeIf { it.bodyEncoding == BodyEncoding.TEXT }?.body?.let { body ->
+        add(ContextMenuItem("Copy response body") { copyToClipboard(body) })
+    }
 }
 
 @Composable
