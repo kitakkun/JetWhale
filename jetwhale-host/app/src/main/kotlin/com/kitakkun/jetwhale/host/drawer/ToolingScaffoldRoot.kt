@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -347,6 +348,7 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
  * instances are unloaded, so there is nothing to show, and navigating to some other app instead
  * would surprise the caller.
  */
+@VisibleForTesting
 internal fun navigationTargetSession(
     requestedSessionId: String?,
     selectedSession: DebugSession?,

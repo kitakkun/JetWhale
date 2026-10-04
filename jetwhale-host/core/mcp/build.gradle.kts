@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.kotlinxSerializationJson)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.logbackClassic)
+    compileOnly(libs.androidxAnnotation)
 
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxCoroutinesTest)

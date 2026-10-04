@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.agent.gradle
 
+import androidx.annotation.VisibleForTesting
+
 /**
  * The Kotlin versions the compiler plugin is built and tested against.
  *
@@ -36,6 +38,7 @@ internal data class KotlinMinor(val major: Int, val minor: Int) : Comparable<Kot
  * appear. Only the first two numbers are needed, and null for anything unparseable is the right
  * answer — an unrecognised version is a reason to stay quiet, not to guess.
  */
+@VisibleForTesting
 internal fun parseKotlinMinor(version: String): KotlinMinor? {
     val parts = version.split('.')
     if (parts.size < 2) return null

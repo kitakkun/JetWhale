@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -344,6 +345,7 @@ private fun TileCaption(device: DeviceListing, thumbnail: DeviceThumbnail, liven
 }
 
 /** "Updated 3 s ago", or what the tile is waiting for. */
+@VisibleForTesting
 internal fun freshness(thumbnail: DeviceThumbnail, nowMillis: Long): String {
     val updated = thumbnail.updatedAtMillis ?: return "Capturing…"
     val seconds = ((nowMillis - updated) / 1_000).coerceAtLeast(0)

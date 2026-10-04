@@ -27,6 +27,7 @@ dependencies {
     api(compose.foundation)
     api(compose.ui)
     api(projects.jetwhaleHostSdk)
+    compileOnly(libs.androidxAnnotation)
     "previewImplementation"(compose.runtime)
     "previewImplementation"(compose.foundation)
     "previewImplementation"(compose.ui)

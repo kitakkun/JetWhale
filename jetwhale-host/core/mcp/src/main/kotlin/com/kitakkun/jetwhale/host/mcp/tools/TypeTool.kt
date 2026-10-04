@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.input.key.Key
@@ -102,7 +103,8 @@ class TypeMcpTool(
  *
  * @return true if an editable node was found and the text was inserted, false otherwise.
  */
-fun dispatchTyping(scene: PluginComposeScene, text: String): Boolean {
+@VisibleForTesting
+internal fun dispatchTyping(scene: PluginComposeScene, text: String): Boolean {
     val insertable = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::insertableNodes)
     val target = insertable.firstOrNull { it.config.getOrNull(SemanticsProperties.Focused) == true }
         ?: insertable.firstOrNull()
@@ -128,7 +130,8 @@ private fun insertableNodes(node: SemanticsNode): List<SemanticsNode> = buildLis
  * @param isShiftPressed Whether the Shift modifier is held.
  */
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
-fun dispatchSpecialKey(
+@VisibleForTesting
+internal fun dispatchSpecialKey(
     scene: PluginComposeScene,
     key: Key,
     isAltPressed: Boolean = false,
@@ -162,7 +165,8 @@ fun dispatchSpecialKey(
  * Maps a human-readable special key name to the corresponding Compose [Key].
  * Used by the MCP tool to accept string-based key names from the AI agent.
  */
-fun specialKeyToComposeKey(name: String): Key? = when (name.uppercase()) {
+@VisibleForTesting
+internal fun specialKeyToComposeKey(name: String): Key? = when (name.uppercase()) {
     "ENTER" -> Key.Enter
     "BACKSPACE" -> Key.Backspace
     "DELETE" -> Key.Delete

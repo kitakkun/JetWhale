@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Long enough to read a file name and reach Open, short enough that the notice is gone before the next one. */
+@VisibleForTesting
 internal const val SUCCESS_NOTICE_MILLIS = 6_000L
 
 /** What a button on a notice does. */

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.update
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import dev.hydraulic.conveyor.control.SoftwareUpdateController
@@ -80,14 +81,16 @@ class UpdateCheckService(
          * publishes. Must mirror the mapping in jetwhale-host/app/build.gradle.kts
          * (e.g. 1.0.0-alpha08 -> 1.0.0.8).
          */
-        fun numericVersionOf(version: String): String {
+        @VisibleForTesting
+        internal fun numericVersionOf(version: String): String {
             val base = version.substringBefore("-")
             val preReleaseNumber = version.substringAfter("-", "").filter(Char::isDigit).toIntOrNull()
             return if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
         }
 
         /** Compares dotted numeric versions; missing segments count as zero. */
-        fun isNewer(candidate: String, current: String): Boolean {
+        @VisibleForTesting
+        internal fun isNewer(candidate: String, current: String): Boolean {
             val candidateSegments = candidate.split('.').map { it.toIntOrNull() ?: 0 }
             val currentSegments = current.split('.').map { it.toIntOrNull() ?: 0 }
             val length = maxOf(candidateSegments.size, currentSegments.size)

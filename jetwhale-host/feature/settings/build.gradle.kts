@@ -9,6 +9,7 @@ dependencies {
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.kotlinxDatetime)
     implementation(libs.aboutLibrariesCore)
+    compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)

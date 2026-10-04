@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.settings.logviewer.components
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ fun LogEntryRow(
 }
 
 /** [this] in [zone] as logcat's default format prints it: `MM-dd HH:mm:ss.SSS`, with no year. */
+@VisibleForTesting
 internal fun Instant.logTimestampIn(zone: TimeZone): String = LOGCAT_TIMESTAMP_FORMAT.format(toLocalDateTime(zone))
 
 private val LOGCAT_TIMESTAMP_FORMAT = LocalDateTime.Format {

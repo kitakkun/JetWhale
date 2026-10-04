@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -143,9 +144,11 @@ internal class NodeHighlightController(
  * Long enough that a user reading a row is never left without the box, short enough that a host that
  * crashed does not leave one in the app for the rest of the session.
  */
+@VisibleForTesting
 internal const val HIGHLIGHT_TTL_MILLIS: Long = 30_000
 
 /** Renewed well inside the TTL so a slow round trip cannot let it lapse while the row is still selected. */
+@VisibleForTesting
 internal const val HIGHLIGHT_RENEWAL_MILLIS: Long = HIGHLIGHT_TTL_MILLIS / 3
 
 /**
@@ -154,4 +157,5 @@ internal const val HIGHLIGHT_RENEWAL_MILLIS: Long = HIGHLIGHT_TTL_MILLIS / 3
  * Without it, running the pointer down the tree would send a request per row it crossed, each one a
  * hop to the app's main thread.
  */
+@VisibleForTesting
 internal const val HIGHLIGHT_HOVER_DEBOUNCE_MILLIS: Long = 80
