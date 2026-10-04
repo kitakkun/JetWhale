@@ -19,12 +19,11 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * A host the launcher started, as the one host of its app data directory. It holds `instance.lock`
- * from its start, and takes requests to bring its window forward on a loopback port that it
- * publishes with a token in `instance.json` once it is up.
+ * from its start until the process ends, and takes requests to bring its window forward on a
+ * loopback port that it publishes with a token in `instance.json` once it is up.
  */
 class HostInstance private constructor(
     private val versions: HostVersionsDirectory,
-    private val instanceLock: HeldLock,
     private val server: ServerSocket,
     private val token: String,
 ) {
@@ -52,18 +51,25 @@ class HostInstance private constructor(
         private val logger = LoggerFactory.getLogger(HostInstance::class.java)
 
         /**
+         * Never closed: the OS releases it when the process ends. A lock whose channel is collected
+         * is released too, so it is kept reachable here for the whole process.
+         */
+        @Volatile
+        private var processInstanceLock: HeldLock? = null
+
+        /**
          * Takes `instance.lock` for this process and starts taking requests; [publish] makes them
          * reachable. When another host holds the lock, asks that one to bring its window forward
          * instead.
          */
         fun claim(versions: HostVersionsDirectory, locks: LockFiles): HostInstanceClaim {
-            val lock = locks.tryLock(versions.instanceLock)
+            processInstanceLock = locks.tryLock(versions.instanceLock)
                 ?: return HostInstanceClaim.HeldByAnother(
                     activated = HostInstanceRecord.requestActivation(versions, timeout = 5.seconds),
                 )
             val server = ServerSocket(0, 8, InetAddress.getLoopbackAddress())
             val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
-            val instance = HostInstance(versions, lock, server, token)
+            val instance = HostInstance(versions, server, token)
             instance.serve()
             return HostInstanceClaim.Claimed(instance)
         }
@@ -71,17 +77,14 @@ class HostInstance private constructor(
 
     private fun serve() {
         thread(isDaemon = true, name = "host-instance-activation") {
-            try {
-                while (!server.isClosed) {
-                    val connection = try {
-                        server.accept()
-                    } catch (_: IOException) {
-                        break
-                    }
-                    connection.use(::answer)
+            while (!server.isClosed) {
+                val connection = try {
+                    server.accept()
+                } catch (e: IOException) {
+                    logger.warn("Stopped taking requests to bring the window forward", e)
+                    break
                 }
-            } finally {
-                instanceLock.close()
+                connection.use(::answer)
             }
         }
     }

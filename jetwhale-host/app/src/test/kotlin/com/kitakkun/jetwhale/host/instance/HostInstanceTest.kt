@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.net.InetAddress
+import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Files
 import java.nio.file.Path
@@ -81,6 +82,18 @@ class HostInstanceTest {
 
         assertEquals("denied", answer)
         assertEquals(true, HostInstanceRecord.requestActivation(versions, 2.seconds))
+    }
+
+    @Test
+    fun `keeps the instance lock when it stops taking requests`() {
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance
+        instance.publish()
+        val server = HostInstance::class.java.getDeclaredField("server").apply { isAccessible = true }.get(instance) as ServerSocket
+
+        server.close()
+
+        assertEquals(false, HostInstanceRecord.requestActivation(versions, 1.seconds))
+        assertNull(locks.tryLock(versions.instanceLock))
     }
 
     /** OS file locks as two processes would see them, for two hosts in one test JVM. */
