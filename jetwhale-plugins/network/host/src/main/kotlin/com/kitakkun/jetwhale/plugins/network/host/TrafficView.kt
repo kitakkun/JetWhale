@@ -210,7 +210,7 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
                 overflow = JwColumnOverflow.Scroll,
                 style = urlStyle,
             ) { it.request.url },
-            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
+            JwTableColumn(header = "Mock", width = JwColumnWidth.Fixed(MockColumnWidth)) {
                 if (it.response?.fromMock == true) MockChip()
             },
             JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {

@@ -25,6 +25,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -84,7 +85,9 @@ private fun rememberPersistedSplitPaneState(): JwSplitPaneState {
 
 /**
  * The traffic table's column widths the user dragged, kept across host restarts, mirrored both ways
- * for the same reason as [rememberPersistedSplitPaneState]. Stored as plain numbers of dp.
+ * for the same reason as [rememberPersistedSplitPaneState]. Stored as plain numbers of dp. Only
+ * changes to the table's widths are written back, not the empty map it starts with, so the stored
+ * widths survive whichever direction starts collecting first.
  */
 @Composable
 private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
@@ -96,6 +99,7 @@ private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
                 .collect { stored -> columnState.widths = stored.mapValues { (_, width) -> width.dp } }
         }
         snapshotFlow { columnState.widths }
+            .drop(1)
             .collect { widths -> storedWidths = widths.mapValues { (_, width) -> width.value } }
     }
     return columnState
