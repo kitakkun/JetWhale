@@ -1,5 +1,8 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.desktop.application.tasks.AbstractJLinkTask
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 
 plugins {
     alias(libs.plugins.jvm)
@@ -111,7 +114,14 @@ tasks.withType<AbstractJLinkTask>().configureEach {
             .filter(File::isFile)
             .forEach { executable ->
                 val copy = executable.copyTo(bin.resolve(executable.name), overwrite = true)
-                copy.setExecutable(true)
+                copy.setReadable(true, false)
+                copy.setExecutable(true, false)
+                if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+                    val permissions = Files.getPosixFilePermissions(copy.toPath())
+                    check(permissions.containsAll(PosixFilePermissions.fromString("r-xr-xr-x"))) {
+                        "$copy is ${PosixFilePermissions.toString(permissions)}, so other accounts cannot start a host with it"
+                    }
+                }
             }
     }
 }
