@@ -98,15 +98,62 @@ class DefaultPluginInstanceServiceVersionTest {
 
     @Test
     fun `a reload of a session's version keeps the session on that version`() {
-        factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null))
+        val unbounded = version("1.2.0", minAgent = null, maxAgent = null)
+        factoryRepository.load(unbounded)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+        factoryRepository.load(unbounded, forNewAgents)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
         val instanceBefore = service.getPluginInstanceForSession(pluginId, "app")
 
+        service.unloadPluginInstancesForJar(unbounded.jarPath)
         factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null), forNewAgents)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
 
         assertEquals("1.2.0", service.boundVersionsFlow.value.versionOf("app", pluginId))
         assertNotSame(instanceBefore, service.getPluginInstanceForSession(pluginId, "app"))
+    }
+
+    @Test
+    fun `a session still on a replaced factory is rebuilt from the same version`() {
+        factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null))
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null), forNewAgents)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        assertEquals("1.2.0", service.boundVersionsFlow.value.versionOf("app", pluginId))
+    }
+
+    @Test
+    fun `a session that disconnects during a reload binds afresh when it returns`() {
+        val unbounded = version("1.2.0", minAgent = null, maxAgent = null)
+        factoryRepository.load(unbounded)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+        factoryRepository.load(unbounded, forNewAgents)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        service.unloadPluginInstancesForJar(unbounded.jarPath)
+        service.unloadPluginInstanceForSession("app")
+        factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null), forNewAgents)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        assertEquals("1.3.0", service.boundVersionsFlow.value.versionOf("app", pluginId))
+    }
+
+    @Test
+    fun `a plugin disabled during a reload binds afresh when it is enabled again`() {
+        val unbounded = version("1.2.0", minAgent = null, maxAgent = null)
+        factoryRepository.load(unbounded)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+        factoryRepository.load(unbounded, forNewAgents)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        service.unloadPluginInstancesForJar(unbounded.jarPath)
+        service.unloadPluginInstancesForPlugin(pluginId)
+        factoryRepository.load(version("1.2.0", minAgent = null, maxAgent = null), forNewAgents)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf("app" to "1.3.0"))
+
+        assertEquals("1.3.0", service.boundVersionsFlow.value.versionOf("app", pluginId))
     }
 
     @Test

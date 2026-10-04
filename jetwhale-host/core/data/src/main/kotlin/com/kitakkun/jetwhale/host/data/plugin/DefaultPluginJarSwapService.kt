@@ -26,8 +26,8 @@ import java.util.logging.Logger
  *    which calls each instance's `onDispose`) and close their plugins' compose scenes,
  * 2. reload the factory from a fresh classloader (the old classloader is dropped — see
  *    [PluginFactoryRepository.reloadPlugin]),
- * 3. re-create instances for active sessions that have the plugin installed, each bound to a version
- *    that fits it, and
+ * 3. re-create instances for active sessions that have the plugin installed, each on the version it
+ *    ran while that is still loaded, otherwise on the newest that fits it, and
  * 4. emit [pluginReloadedFlow] so the open plugin screen re-creates its scene from the new code.
  */
 @Inject

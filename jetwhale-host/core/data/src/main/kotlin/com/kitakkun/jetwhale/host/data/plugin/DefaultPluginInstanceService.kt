@@ -81,6 +81,13 @@ class DefaultPluginInstanceService(
 
     private val loadedPlugins: ConcurrentHashMap<PluginInstanceKey, LoadedInstance> = ConcurrentHashMap()
 
+    /**
+     * The version each app instance ran when it was disposed to be rebuilt from new code, until the
+     * session gets an instance again. A reload disposes before it loads the jar again, so by the time
+     * the instance is rebuilt nothing else records which version the session was on.
+     */
+    private val versionsBeforeRebuild: ConcurrentHashMap<PluginInstanceKey, String> = ConcurrentHashMap()
+
     // Unbounded: the server stopping disposes every app session's instances in one burst, and a
     // dropped Disposed would leave that instance's MCP tools listed.
     private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = Channel.UNLIMITED)
@@ -105,7 +112,6 @@ class DefaultPluginInstanceService(
         // Instances of a reloaded or removed version hold classes from a closed classloader, so they go
         // and the loop below rebuilds them; an app keeps a version that is still loaded. The host
         // session lasts as long as the host, so it moves to the newest at once rather than on restart.
-        val previousVersions = mutableMapOf<String, String>()
         loadedPlugins.entries
             .filter { (key, instance) ->
                 key.pluginId == pluginId &&
@@ -115,15 +121,16 @@ class DefaultPluginInstanceService(
                         versions.none { it.factory === instance.loaded.factory }
                     }
             }
-            .forEach { (key, instance) ->
-                if (key.sessionId != HostSession.ID) previousVersions[key.sessionId] = instance.loaded.manifest.version
-                disposeInstance(key)
-            }
+            .forEach { (key, instance) -> disposeForRebuild(key, instance) }
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for ((sessionId, agentVersion) in sessions) {
-            val loaded = versions.bindingFor(agentVersion, previousVersions[sessionId]) ?: continue
-            if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
+            val key = PluginInstanceKey(pluginId, sessionId)
+            val loaded = versions.bindingFor(agentVersion, versionsBeforeRebuild[key]) ?: continue
+            if (createInstanceIfAbsent(pluginId, sessionId, loaded)) {
+                versionsBeforeRebuild.remove(key)
+                newlyInitializedSessions += sessionId
+            }
         }
 
         publishInstanceState()
@@ -256,19 +263,27 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
+        versionsBeforeRebuild.keys.removeIf { it.sessionId == sessionId }
         loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach(::disposeInstance)
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
+        versionsBeforeRebuild.keys.removeIf { it.pluginId == pluginId }
         loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach(::disposeInstance)
     }
 
     override fun unloadPluginInstancesForJar(jarPath: String) {
-        loadedPlugins.entries.filter { (_, instance) -> instance.loaded.jarPath == jarPath }.forEach { disposeInstance(it.key) }
+        loadedPlugins.entries.filter { (_, instance) -> instance.loaded.jarPath == jarPath }.forEach { (key, instance) -> disposeForRebuild(key, instance) }
     }
 
     override fun clearAppSessionPluginInstances() {
+        versionsBeforeRebuild.clear()
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
+    }
+
+    private fun disposeForRebuild(key: PluginInstanceKey, instance: LoadedInstance) {
+        if (!HostSession.isHost(key.sessionId)) versionsBeforeRebuild[key] = instance.loaded.manifest.version
+        disposeInstance(key)
     }
 
     private fun disposeInstance(key: PluginInstanceKey) {

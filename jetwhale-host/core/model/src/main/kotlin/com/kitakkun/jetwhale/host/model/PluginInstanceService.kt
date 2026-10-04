@@ -38,7 +38,11 @@ interface PluginInstanceService {
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
 
-    /** Disposes the instances created from the plugin versions [jarPath] provides. */
+    /**
+     * Disposes the instances created from the plugin versions [jarPath] provides, for the jar to be
+     * reloaded or removed. An app among them gets the same version again when its instance is next
+     * created, while that version is still loaded.
+     */
     fun unloadPluginInstancesForJar(jarPath: String)
 
     /**
@@ -52,7 +56,7 @@ interface PluginInstanceService {
      * [sessions] maps each target session id to the version of the plugin its agent advertised, or to
      * null for [HostSession]; each session gets the newest loaded version that version accepts (see
      * [newestFor]). A session keeps a version it is already bound to while that version stays loaded,
-     * and gets no instance when no loaded version fits it. Each new instance is wired to its own
+     * across a reload of that version's jar too, and gets no instance when no loaded version fits it. Each new instance is wired to its own
      * messaging peer.
      *
      * A new instance of a plugin that requires an agent does not run its `onPrepare` until
