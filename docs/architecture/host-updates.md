@@ -283,8 +283,11 @@ manager sees the host's lifetime.
 - **Later crashes.** A version that has completed a start before is never set aside. Its later
   crashes go to the host's crash recovery and its safe mode. Once the host has run on this machine,
   a plugin is the likelier cause.
-- **Run markers.** #293's run markers should record the host version. Otherwise the host the
-  launcher falls back to counts the failed version's crashes as its own and starts in safe mode.
+- **#293's crash recovery.** Its run markers should record the host version. Otherwise the host
+  the launcher falls back to counts the failed version's crashes as its own and starts in safe
+  mode. Its grace should also count from the process's start
+  (`ProcessHandle.current().info().startInstant()`), as the launcher's window does, rather than
+  from when crash recovery starts, so the two windows end together.
 - **Nothing left.** If no candidate remains, the launcher shows its only UI: a dialog with the log
   location and the release page.
 
@@ -562,8 +565,8 @@ every user who accepts the update.
      `bin/java` and the extra modules, `LSUIElement` on macOS, and today's package identity.
    - The MSI version scheme. It can also go earlier on its own, because it already fixes installing
      over an earlier alpha.
-   - On the host side: the launcher properties, the instance lock and activation, `--after`, and
-     the version in #293's run markers.
+   - On the host side: the launcher properties, the locks and activation, and `--after`. In #293's
+     crash recovery: the version in its run markers, and a grace counted from the process's start.
 3. **Host update service and UI.** `HostUpdateService`, the version repository, the Updates section,
    the startup setting and the banner, and the set-aside and refusal messages. All of it is hidden
    in the IDE.
