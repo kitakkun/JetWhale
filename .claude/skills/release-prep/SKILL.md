@@ -9,8 +9,8 @@ Follow `agents/release.md`. It holds the procedure and the changelog criteria; t
 how to run it.
 
 1. Take the version from the request, and the previous release tag as `agents/release.md` finds
-   it: fetch the tags, then take the newest one that matches the release pattern. Snapshot tags and
-   local-only tags are not releases.
+   it: fetch the tags, then take the newest tag on the remote that matches the release pattern.
+   Snapshot tags and tags that were never pushed are not releases.
 2. Read every PR merged since the previous tag and draft the `CHANGELOG.md` section by the criteria
    in `agents/release.md`. List the PRs you left out, and any entry whose Breaking status you were
    unsure of.

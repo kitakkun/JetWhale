@@ -6,12 +6,14 @@ only when preparing a release.
 ## Finding what goes in
 
 The previous tag is the newest release tag on the remote. Release tags are bare versions such as
-`1.0.0-alpha12`; the Publish Snapshot workflow also pushes `<version>-SNAPSHOT` tags, and a clone can
-hold local-only tags, so fetch first and match the release pattern:
+`1.0.0-alpha12`. The Publish Snapshot workflow also pushes a `<version>-SNAPSHOT` tag and moves it
+on every run, which is why the fetch needs `--force`. A clone can hold tags that were never pushed,
+so list the remote's tags and match the release pattern; the date sort needs the fetched tag
+objects.
 
 ```shell
-git fetch --tags origin
-git tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)[0-9]+)?$' | head -1
+git fetch --tags --force origin
+git ls-remote --tags --refs --sort=-creatordate origin | sed 's|.*refs/tags/||' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)[0-9]+)?$' | head -1
 ```
 
 List what reached `main` since then, and read each pull request with its diff:
