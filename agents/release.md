@@ -19,7 +19,7 @@ git ls-remote --tags --refs --sort=-creatordate origin | sed 's|.*refs/tags/||' 
 List what reached `main` since then, and read each pull request with its diff:
 
 ```shell
-gh pr list --state merged --base main --search "merged:>=<prev-tag date>" --limit 200
+gh pr list --state merged --base main --search "merged:>=<prev-tag date>" --limit 1000
 git log --first-parent --format='%h %s' <prev-tag>..origin/main
 gh pr view <N>
 gh pr diff <N>
