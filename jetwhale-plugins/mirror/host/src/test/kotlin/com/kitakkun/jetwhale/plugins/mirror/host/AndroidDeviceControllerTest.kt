@@ -2,17 +2,24 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.runBlocking
+import okhttp3.Protocol
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class AndroidDeviceControllerTest {
     private val folder: File = Files.createTempDirectory("mirror-android").toFile()
     private val commands = File(folder, "commands.txt")
     private val dumpsysDisplay = File(folder, "dumpsys-display.txt")
+    private val dumpsysDeviceState = File(folder, "dumpsys-device-state.txt")
 
     private val fakeAdb = File(folder, "adb").apply {
         writeText(
@@ -21,6 +28,7 @@ class AndroidDeviceControllerTest {
             echo "$*" >> '${commands.path}'
             case "$*" in
               *"dumpsys display"*) cat '${dumpsysDisplay.path}' ;;
+              *"dumpsys device_state"*) cat '${dumpsysDeviceState.path}' ;;
               *"wm size"*) echo 'Physical size: 1080x2364' ;;
             esac
             """.trimIndent() + "\n",
@@ -122,6 +130,58 @@ class AndroidDeviceControllerTest {
     }
 
     @Test
+    fun `a posture set through device_state is told from the one the hardware reports`() {
+        assertTrue(isPostureOverridden(dumpsysDeviceStateOf("folded-by-override")))
+        assertFalse(isPostureOverridden(dumpsysDeviceStateOf("folded")))
+        assertFalse(isPostureOverridden(dumpsysDeviceStateOf("unfolded")))
+        assertFalse(isPostureOverridden(""))
+    }
+
+    @Test
+    fun `an emulator folded through device_state is mirrored through screenrecord rather than its own stream`() = runBlocking {
+        dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
+        emulatorWithStream(FOLDED) { emulator, server ->
+            assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).process.waitFor()
+
+            assertEquals(0, server.requestCount)
+            assertEquals("-s emulator-5554 exec-out screenrecord --output-format=h264 --display-id $COVER_PANEL --time-limit 180 -", commands.readLines().last())
+        }
+    }
+
+    @Test
+    fun `an emulator folded by its own posture is mirrored through its own stream`() = runBlocking {
+        dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded"))
+        emulatorWithStream(FOLDED) { emulator, server ->
+            assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
+
+            assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test
+    fun `an emulator with one panel opens its own stream without asking for its posture`() = runBlocking {
+        dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
+        emulatorWithStream(ONE_PANEL) { emulator, server ->
+            assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
+
+            assertEquals(1, server.requestCount)
+            assertTrue(commands.readLines().none { "device_state" in it })
+        }
+    }
+
+    private suspend fun emulatorWithStream(display: String, check: suspend (AndroidDeviceController, MockWebServer) -> Unit) {
+        dumpsysDisplay.writeText(display)
+        MockWebServer().use { server ->
+            server.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
+            server.enqueue(MockResponse().setHeader("content-type", "application/grpc"))
+            server.start()
+            val running = File(folder, "running").apply { mkdirs() }
+            File(running, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\n")
+            check(AndroidDeviceController(adbPath = fakeAdb.path, serial = "emulator-5554", emulatorScreens = EmulatorScreens(listOf(running)), ffmpegPath = "ffmpeg"), server)
+        }
+    }
+
+    @Test
     fun `reading the screen size follows a fold to the panel that is on`() = runBlocking {
         dumpsysDisplay.writeText(UNFOLDED)
         controller.captureScreenshot()
@@ -142,6 +202,9 @@ private const val COVER_PANEL = "4619827551948147201"
 
 /** What `dumpsys display`, filtered as the controller asks, printed on a foldable emulator in [state]. */
 private fun dumpsysDisplayOf(state: String): String = checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-display/$state.txt")).readText()
+
+/** What `dumpsys device_state`, filtered as the controller asks, printed on a foldable emulator in [state]. */
+private fun dumpsysDeviceStateOf(state: String): String = checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-device-state/$state.txt")).readText()
 
 private val FOLDED = dumpsysDisplayOf("folded")
 
