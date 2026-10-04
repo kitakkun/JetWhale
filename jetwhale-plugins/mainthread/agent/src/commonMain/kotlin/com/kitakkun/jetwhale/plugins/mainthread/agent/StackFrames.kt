@@ -11,6 +11,9 @@ private val PLATFORM_FRAME_PREFIXES = listOf(
     "com.kitakkun.jetwhale.agent.", "com.kitakkun.jetwhale.plugins.", "com.kitakkun.jetwhale.protocol.",
 )
 
+/** Deeper frames are the thread's entry and the event loop, the same on every main-thread stack. */
+internal const val MAX_STACK_FRAMES = 64
+
 /** How many of the app's innermost frames name a hotspot: enough to tell call sites apart. */
 private const val SIGNATURE_FRAMES = 3
 

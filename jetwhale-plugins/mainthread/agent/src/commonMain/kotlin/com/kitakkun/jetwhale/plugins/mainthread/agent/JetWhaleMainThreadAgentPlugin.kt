@@ -8,11 +8,13 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.ResetMainThreadStats
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.UpdateMonitorSettings
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
+import kotlin.concurrent.Volatile
 
 /**
- * Names what the main thread is running right now in the app's own terms — the coroutine being
- * resumed, the screen being drawn. Whatever it returns when a long task starts is added to that
- * task's label. Returning null adds nothing.
+ * Names the app's state as a main-thread task starts — the screen shown, the feature in use. It is
+ * asked on the main thread before each task runs, for every task, so it must be cheap, and it sees
+ * the state the task started in, not what the task goes on to do. Whatever it returns is added to
+ * the label of a task that turns out long; returning null adds nothing.
  */
 fun interface MainThreadLabelProvider {
     fun currentLabel(): String?
@@ -20,7 +22,7 @@ fun interface MainThreadLabelProvider {
 
 /**
  * Agent plugin that finds what blocks the main thread: tasks that run long and where their stacks
- * were while they did, StrictMode's disk and network violations, and janky frames. It needs no
+ * were while they did, StrictMode's disk and slow-call violations, and janky frames. It needs no
  * code in the app beyond registering it:
  *
  * ```kotlin
@@ -34,7 +36,7 @@ class JetWhaleMainThreadAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = MAIN_THREAD_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    /** Adds the app's own name for the running work to each long task; see [MainThreadLabelProvider]. */
+    /** Adds the app's state when each long task started to its label; see [MainThreadLabelProvider]. */
     var labelProvider: MainThreadLabelProvider? = null
 
     private val recorder = MainThreadRecorder(
@@ -46,7 +48,11 @@ class JetWhaleMainThreadAgentPlugin : JetWhaleAgentPlugin() {
         ),
     )
 
-    private val probe: MainThreadProbe by lazy { createMainThreadProbe(recorder) { labelProvider?.currentLabel() } }
+    @Volatile private var hostConnected = false
+
+    private val probe: MainThreadProbe by lazy {
+        createMainThreadProbe(recorder, labels = { labelProvider?.currentLabel() }, hostConnected = { hostConnected })
+    }
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: GetMainThreadReport -> reply(recorder.report(probe.capabilities)) }
@@ -60,6 +66,14 @@ class JetWhaleMainThreadAgentPlugin : JetWhaleAgentPlugin() {
     override fun onActivate() {
         recorder.reset()
         probe.start()
+    }
+
+    override suspend fun onPrepare() {
+        hostConnected = true
+    }
+
+    override suspend fun onDisconnected() {
+        hostConnected = false
     }
 
     override fun onDeactivate() {

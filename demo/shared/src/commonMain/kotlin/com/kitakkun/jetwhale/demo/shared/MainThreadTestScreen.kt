@@ -57,8 +57,8 @@ private fun MainThreadTestScreenPreview() {
 
 /** Work the sampler can see in a named frame, rather than a wait. */
 private fun busyLoop(millis: Long) {
-    val end = TimeSource.Monotonic.markNow()
+    val start = TimeSource.Monotonic.markNow()
     var sink = 0L
-    while (end.elapsedNow().inWholeMilliseconds < millis) sink += sink xor 31
+    while (start.elapsedNow().inWholeMilliseconds < millis) sink += sink xor 31
     check(sink != 1L)
 }

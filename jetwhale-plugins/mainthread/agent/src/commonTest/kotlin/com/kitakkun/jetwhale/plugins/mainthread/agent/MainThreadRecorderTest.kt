@@ -234,6 +234,18 @@ class MainThreadRecorderTest {
     }
 
     @Test
+    fun `a violation keeps only the innermost frames of its stack but finds its call site in all of them`() {
+        val platformFrames = (1..100).map { "android.os.Frame$it.call(Frame.java:1)" }
+        val stack = platformFrames + "com.example.Deep.write(Deep.kt:9)"
+
+        recorder.violation(ViolationKind.DiskWrite, "write", stack)
+
+        val group = recorder.report(capabilities).violations.single()
+        assertEquals(platformFrames.take(MAX_STACK_FRAMES), group.stack)
+        assertEquals("com.example.Deep.write(Deep.kt:9)", group.callSite)
+    }
+
+    @Test
     fun `frames longer than one and a half refresh intervals are janky`() {
         listOf(10.0, 16.0, 24.0, 26.0, 80.0).forEach { recorder.frame(it, refreshIntervalMillis = 16.67) }
 

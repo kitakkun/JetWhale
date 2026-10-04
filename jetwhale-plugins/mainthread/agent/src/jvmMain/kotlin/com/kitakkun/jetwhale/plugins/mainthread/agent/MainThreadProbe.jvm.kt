@@ -7,7 +7,7 @@ import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 import java.awt.event.InvocationEvent
 
-internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?): MainThreadProbe = if (GraphicsEnvironment.isHeadless()) {
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe = if (GraphicsEnvironment.isHeadless()) {
     UnsupportedMainThreadProbe(platform = "JVM", reason = "This JVM is headless: it has no AWT event dispatch thread to watch.")
 } else {
     EventDispatchThreadProbe(recorder, labels)

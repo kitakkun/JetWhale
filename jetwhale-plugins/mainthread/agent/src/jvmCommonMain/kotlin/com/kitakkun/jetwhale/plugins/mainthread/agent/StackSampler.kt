@@ -1,8 +1,5 @@
 package com.kitakkun.jetwhale.plugins.mainthread.agent
 
-/** Deeper frames are the thread's entry and the event loop, the same in every sample. */
-private const val MAX_SAMPLED_FRAMES = 64
-
 /** The sampler never ticks more often than this, whatever the sample interval is set to. */
 private const val MIN_TICK_MILLIS = 5L
 
@@ -39,7 +36,7 @@ internal class StackSampler(
             onTick()
             val target = mainThread()
             if (target != null) {
-                recorder.sampleIfDue { target.stackTrace.take(MAX_SAMPLED_FRAMES).map(::frameText) }
+                recorder.sampleIfDue { target.stackTrace.take(MAX_STACK_FRAMES).map(::frameText) }
             }
             try {
                 Thread.sleep((recorder.currentSettings.sampleIntervalMillis / 2).coerceAtLeast(MIN_TICK_MILLIS))

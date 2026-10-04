@@ -42,7 +42,7 @@ internal fun ViolationsPane(violations: List<ViolationGroup>, unavailableReason:
         if (violations.isEmpty()) {
             JwEmptyState(
                 title = if (unavailableReason == null) "No StrictMode violations" else "StrictMode is not collected",
-                description = unavailableReason ?: "Disk and network access on the main thread shows up here, grouped by the code that did it.",
+                description = unavailableReason ?: "Disk access and slow calls on the main thread show up here, grouped by the code that did it.",
             )
             return@Box
         }

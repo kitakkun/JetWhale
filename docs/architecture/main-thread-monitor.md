@@ -1,8 +1,8 @@
 # Main Thread Monitor — design
 
 What blocks the main thread, found from inside the app without code in it: which task ran long,
-where its stack was while it did, the disk and network access StrictMode sees on the main thread,
-and the frames that missed their deadline.
+where its stack was while it did, the disk access StrictMode sees on the main thread, and the
+frames that missed their deadline.
 
 ## Shape
 
@@ -24,7 +24,7 @@ it replaced.
 | Signal | Hook | Restored on stop |
 |--------|------|------------------|
 | Task timing | `Looper.getMainLooper().setMessageLogging` — the `>>>>> Dispatching` / `<<<<< Finished` lines bracket each message | The app's own printer, read reflectively from `Looper.mLogging` and chained to while we run |
-| Work outside messages | A heartbeat posted with `postAtFrontOfQueue` from the sampler thread; if it has waited past the threshold while no message runs, the main thread is busy outside a message | Heartbeat no longer posted |
+| Work outside messages | A heartbeat posted with `postAtFrontOfQueue` from the sampler thread while a host is connected; if it has waited past the threshold while no message runs, the main thread is busy outside a message | Heartbeat no longer posted |
 | Stack samples | A daemon thread reads `Looper.getMainLooper().thread.stackTrace` while a task runs past the threshold | Thread stopped |
 | StrictMode | `ThreadPolicy.Builder(previous)` + detections + `penaltyListener` (API 28+), set on the main thread | The previous policy |
 | Frames | `Window.addOnFrameMetricsAvailableListener` per resumed activity (API 24+), via `ActivityLifecycleCallbacks` and, for activities already resumed, ActivityThread's records | Listeners and callbacks removed |
@@ -45,6 +45,11 @@ The platform's default thread policy is not `LAX`: ActivityThread enables death-
 app. That policy is recognized (by its string form — policies have no `equals`) and extended; any
 other policy belongs to the app and is left alone, because extending it would apply its penalties to
 violations it never asked for.
+
+Under death-on-network, `onNetwork()` throws `NetworkOnMainThreadException` before the violation
+reaches the penalty listener, so network access on the main thread is never recorded, and
+`capabilities.note` says so. Recording it would mean dropping death-on-network, which would let the
+call go through: the app would behave differently while it is watched.
 
 ### JVM desktop
 
@@ -70,27 +75,30 @@ in this first version.
   (`android.`, `java.`, `kotlin.`, `kotlinx.`, `okhttp3.`, …); a stack with none is named by its
   innermost frames. Blocked time is samples × interval — an estimate, not a measurement.
 - Bounds: 200 long tasks, 100 hotspots (the least-sampled one is evicted, never the one just
-  sampled), 100 violation groups, the last 1000 frame durations and 100 janky frames.
+  sampled), 100 violation groups, the last 1000 frame durations and 100 janky frames. Sampled and
+  violation stacks keep their 64 innermost frames.
 
 ## Overhead
 
 Estimated from what each hook does; not profiled on a physical device:
 
 - Per main-thread message on Android: one prefix check, a lock, two clock reads.
-- While no task is long: the sampler wakes every 10 ms (default) for a lock and a comparison, and on
-  Android posts one heartbeat at a time to the front of the main queue.
+- While no task is long: the sampler wakes every 10 ms (default) for a lock and a comparison. On
+  Android it also posts one heartbeat at a time to the front of the main queue, so the main thread
+  handles a message per tick even while the app is idle; it does so only while a host is connected.
 - While a task is long: one `Thread.getStackTrace()` of the main thread per 20 ms — a safepoint for
   the main thread, typically tens to hundreds of microseconds.
-- StrictMode detections add the platform's own bookkeeping to disk and network calls on the main
-  thread, which is what they are for.
+- StrictMode detections add the platform's own bookkeeping to disk calls on the main thread, which
+  is what they are for.
 
 ## Relation to the Coroutine Inspector
 
 Complementary, not overlapping: this plugin attributes stalls to platform messages and stack frames;
-the Coroutine Inspector names coroutines and measures dispatcher latency. The seam between them is
-`JetWhaleMainThreadAgentPlugin.labelProvider`: whatever it returns when a long task starts is added
-to the task's label, so a dispatcher wrapper can name the coroutine it is resuming without this
-module depending on it.
+the Coroutine Inspector names coroutines and measures dispatcher latency. A coroutine resumed on the
+main thread runs inside the dispatcher's message, so its frames show up in that task's samples.
+`JetWhaleMainThreadAgentPlugin.labelProvider` adds the app's own state when a task starts (the
+screen shown, say). It is asked before the task runs, for every task, so it cannot name the
+coroutine about to be resumed.
 
 ## Not done yet
 

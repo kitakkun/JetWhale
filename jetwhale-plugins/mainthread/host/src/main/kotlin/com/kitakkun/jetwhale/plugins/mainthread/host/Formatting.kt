@@ -12,6 +12,4 @@ internal fun formatMillis(millis: Long): String = when {
     else -> String.format(Locale.ROOT, "%.2f s", millis / 1_000.0)
 }
 
-internal fun formatFrameMillis(millis: Double): String = String.format(Locale.ROOT, "%.1f ms", millis)
-
 internal fun formatTimeOfDay(epochMillis: Long): String = TimeOfDay.format(Instant.ofEpochMilli(epochMillis))

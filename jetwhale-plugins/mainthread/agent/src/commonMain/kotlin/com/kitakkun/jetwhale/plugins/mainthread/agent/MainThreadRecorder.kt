@@ -172,7 +172,7 @@ internal class MainThreadRecorder(
             kind = kind,
             callSite = callSite,
             message = message,
-            stack = stack,
+            stack = stack.take(MAX_STACK_FRAMES),
             count = (previous?.count ?: 0) + 1,
             lastEpochMillis = clock.epochMillis(),
         )

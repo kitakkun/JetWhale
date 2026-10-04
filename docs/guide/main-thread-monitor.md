@@ -1,10 +1,10 @@
 # Main Thread Monitor
 
 The Main Thread Monitor finds what blocks the main thread of the app you are debugging: tasks that
-run long and where their stacks were while they did, disk and network access that StrictMode catches
-on the main thread, and janky frames. It needs no code in the app beyond registering it, and an AI
-agent can read everything over MCP — "find the disk writes on the main thread and move them off"
-becomes a task it can check its own work on.
+run long and where their stacks were while they did, disk access and slow calls that StrictMode
+catches on the main thread, and janky frames. It needs no code in the app beyond registering it,
+and an AI agent can read everything over MCP — "find the disk writes on the main thread and move
+them off" becomes a task it can check its own work on.
 
 ## Setup
 
@@ -32,7 +32,9 @@ startJetWhale {
 ```
 
 The agent hooks the main thread only while the plugin is enabled in the host, and puts back
-whatever the app had in place when it is disabled.
+whatever the app had in place when it is disabled. It keeps recording while the host is
+disconnected, except for work Android runs between messages, which it watches only while a host is
+connected.
 
 ## What each platform reports
 
@@ -57,8 +59,9 @@ neither says what the work was.
   red once it reached the unresponsive threshold (5 s by default, the time after which Android
   reports an ANR), and each janky frame a tick below, so a stutter lines up with its cause. Below
   it, every long task with what was dispatched and frame percentiles.
-- **StrictMode.** Disk reads and writes, network access, custom slow calls and unbuffered I/O on the
-  main thread, grouped by kind and by the app code that caused them, with the latest stack.
+- **StrictMode.** Disk reads and writes, unbuffered I/O and custom slow calls on the main thread,
+  grouped by kind and by the app code that caused them, with the latest stack. Network access is
+  not listed in most apps; see below.
 - **Thresholds.** The long-task threshold, sample interval and unresponsive threshold, changed live.
 
 **Clear** starts a fresh recording, so an interaction can be measured on its own.
@@ -66,9 +69,10 @@ neither says what the work was.
 ### StrictMode and apps with their own policy
 
 StrictMode is collected by extending the main thread's policy. Every Android app starts with the
-platform's policy, which makes network access on the main thread throw; the monitor builds on it,
-so that still happens as before (and a network call that throws is not reported as a violation,
-because Android throws before it reports).
+platform's policy, which makes network access on the main thread throw
+`NetworkOnMainThreadException`; the monitor builds on it, so that still happens as before. Android
+throws before StrictMode reports anything, so network access on the main thread is not listed, and
+the host says so above the report.
 
 An app that sets its **own** thread policy keeps it untouched: adding detections to it would apply
 its penalties — `penaltyDeath` included — to violations it never asked about. The host then says
@@ -80,7 +84,7 @@ its violations as before.
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.mainthread.getHotspots` | Where the main thread was stuck, most blocking first, with stacks |
-| `com.kitakkun.jetwhale.mainthread.getViolations` | StrictMode violations by kind and call site (`kind` narrows it) |
+| `com.kitakkun.jetwhale.mainthread.getViolations` | StrictMode violations by kind and call site, most frequent first (`kind` and `limit` narrow it) |
 | `com.kitakkun.jetwhale.mainthread.getLongTasks` | Long tasks, latest last (`minDurationMillis` narrows it) |
 | `com.kitakkun.jetwhale.mainthread.getFrameStats` | Frame counts, percentiles and the latest janky frames |
 | `com.kitakkun.jetwhale.mainthread.resetStats` | Clears everything recorded |
@@ -95,5 +99,6 @@ This plugin sees the main thread from the platform's side: which message or even
 which frames it was in. A coroutine resumed on the main thread shows up here as the dispatcher's
 message, with the coroutine's own frames in the stack. Naming the coroutine itself — and measuring
 dispatcher queue latency — is the Coroutine Inspector's job; the two are meant to be used together.
-An app can also add its own name for the running work to each long task by setting
-`JetWhaleMainThreadAgentPlugin.labelProvider`.
+An app can also add its own state — the screen shown, say — to each long task's label by setting
+`JetWhaleMainThreadAgentPlugin.labelProvider`. It is asked as each task starts, before the task
+runs, so it cannot name the coroutine that task is about to resume.

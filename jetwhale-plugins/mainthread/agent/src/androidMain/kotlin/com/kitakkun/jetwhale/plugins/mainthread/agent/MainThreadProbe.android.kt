@@ -16,7 +16,7 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?): MainThreadProbe = AndroidMainThreadProbe(recorder, labels)
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe = AndroidMainThreadProbe(recorder, labels, hostConnected)
 
 private const val OUTSIDE_MESSAGE_LABEL = "Outside a Looper message (input dispatch or a native callback)"
 
@@ -26,12 +26,13 @@ private const val LOOPER_FINISHED = "<<<<<"
 /**
  * Watches Android's main thread through the platform's own hooks, each put back as it was on [stop]:
  * the main Looper's message logging times every message, a sampler thread reads the main thread's
- * stack while one runs long, a StrictMode thread policy reports disk and network access on the main
- * thread, and FrameMetrics reports each frame of the resumed activities.
+ * stack while one runs long, a StrictMode thread policy reports disk access and slow calls on the
+ * main thread, and FrameMetrics reports each frame of the resumed activities.
  */
 private class AndroidMainThreadProbe(
     private val recorder: MainThreadRecorder,
     private val labels: () -> String?,
+    private val hostConnected: () -> Boolean,
 ) : MainThreadProbe {
     private val mainLooper = Looper.getMainLooper()
     private val mainHandler = Handler(mainLooper)
@@ -44,6 +45,8 @@ private class AndroidMainThreadProbe(
     private var previousPolicy: StrictMode.ThreadPolicy? = null
 
     @Volatile private var appOwnsStrictMode = false
+
+    @Volatile private var networkThrowsBeforeReport = false
 
     private var violationExecutor: ExecutorService? = null
 
@@ -59,6 +62,7 @@ private class AndroidMainThreadProbe(
             note = when {
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.P -> "StrictMode violations need Android 9 (API 28) or later."
                 appOwnsStrictMode -> "The app sets its own StrictMode thread policy, so it is left alone and its violations are not collected here."
+                networkThrowsBeforeReport -> "Network access on the main thread is not listed: Android's default policy throws NetworkOnMainThreadException before StrictMode reports it."
                 else -> null
             },
         )
@@ -99,10 +103,14 @@ private class AndroidMainThreadProbe(
      * poll, not as a message, so the printer never brackets it. A heartbeat posted at the front of
      * the main queue runs as soon as the thread gets back to its queue; when it has waited past the
      * threshold with no message running, the main thread is busy outside a message.
+     *
+     * Each heartbeat wakes the main thread, a tick apart even while the app is idle, so none is
+     * posted while no host is connected; work outside messages goes unrecorded until one is.
      */
     private fun checkHeartbeat() {
         val postedAt = heartbeatPostedAt
         if (postedAt == null) {
+            if (!hostConnected()) return
             heartbeatPostedAt = SystemClock.uptimeMillis()
             mainHandler.postAtFrontOfQueue {
                 heartbeatPostedAt = null
@@ -121,12 +129,14 @@ private class AndroidMainThreadProbe(
     private fun installStrictMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         val previous = StrictMode.getThreadPolicy()
+        val previousText = previous.toString()
         // A policy's penalties, penaltyDeath included, apply to every violation it detects, so
         // detecting more under the app's own policy would punish violations it never asked about.
-        if (previous.toString() !in platformDefaultPolicies) {
+        if (previousText !in platformDefaultPolicyTexts) {
             appOwnsStrictMode = true
             return
         }
+        networkThrowsBeforeReport = previousText == deathOnNetworkPolicyText
         previousPolicy = previous
         val executor = Executors.newSingleThreadExecutor().also { violationExecutor = it }
         StrictMode.setThreadPolicy(
@@ -152,6 +162,7 @@ private class AndroidMainThreadProbe(
         previousPolicy?.let(StrictMode::setThreadPolicy)
         previousPolicy = null
         appOwnsStrictMode = false
+        networkThrowsBeforeReport = false
         violationExecutor?.shutdown()
         violationExecutor = null
     }
@@ -209,6 +220,11 @@ private class FrameTimingSession(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || closed) return
         val window = activity.window ?: return
         if (window in windows) return
+        // A window drawn in software reports no frames: Android ignores a listener added to one
+        // already attached, then throws when that listener is removed.
+        val decor = window.peekDecorView()
+        if (decor != null && decor.isAttachedToWindow && !decor.isHardwareAccelerated) return
+        // Its replacement, Context.getDisplay(), needs API 30, and the agent runs from API 23.
         @Suppress("DEPRECATION")
         val refreshIntervalMillis = 1000.0 / activity.windowManager.defaultDisplay.refreshRate
         val listener = Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
@@ -226,15 +242,17 @@ private class FrameTimingSession(
 }
 
 /**
- * The thread policies an app has when it sets none: LAX, or the death-on-network policy
- * ActivityThread installs for every app since Android 3.0. Compared as strings, since a policy has
- * no equals and its mask is hidden.
+ * The policy ActivityThread installs for every app since Android 3.0, which makes network access on
+ * the main thread throw. Policies are compared as strings, since a policy has no equals and its mask
+ * is hidden.
  */
-private val platformDefaultPolicies: Set<String> by lazy {
-    setOf(
-        StrictMode.ThreadPolicy.LAX.toString(),
-        StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString(),
-    )
+private val deathOnNetworkPolicyText: String by lazy {
+    StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString()
+}
+
+/** The thread policies an app has when it sets none: LAX, or [deathOnNetworkPolicyText]. */
+private val platformDefaultPolicyTexts: Set<String> by lazy {
+    setOf(StrictMode.ThreadPolicy.LAX.toString(), deathOnNetworkPolicyText)
 }
 
 /**

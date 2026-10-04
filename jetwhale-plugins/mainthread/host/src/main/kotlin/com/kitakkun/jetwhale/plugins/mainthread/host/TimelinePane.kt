@@ -26,6 +26,7 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.FrameStats
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.JankyFrame
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.LongTask
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MainThreadReport
+import java.util.Locale
 
 /** The span the timeline shows, ending at the latest thing recorded: the last minute of use. */
 private const val TIMELINE_WINDOW_MILLIS = 60_000L
@@ -39,6 +40,10 @@ private val DurationColumnWidth = 88.dp
 @Composable
 internal fun TimelinePane(report: MainThreadReport, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize()) {
+        if (!report.capabilities.taskTiming) {
+            JwEmptyState(title = "Tasks are not timed on ${report.capabilities.platform}", description = report.capabilities.note)
+            return@Column
+        }
         MainThreadTimeline(
             tasks = report.longTasks,
             jankyFrames = report.frames.recentJankyFrames,
@@ -115,3 +120,5 @@ private fun FrameSummary(frames: FrameStats, frameTiming: Boolean) {
         JwText(text = text, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
     }
 }
+
+private fun formatFrameMillis(millis: Double): String = String.format(Locale.ROOT, "%.1f ms", millis)

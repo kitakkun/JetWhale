@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.mainthread.agent
 
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
+import org.junit.Assume.assumeFalse
 import java.awt.EventQueue
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
@@ -13,18 +14,20 @@ import kotlin.test.assertTrue
 class EventDispatchThreadProbeTest {
     @Test
     fun `a slow event on the dispatch thread is recorded with samples and the queue is put back`() {
-        if (GraphicsEnvironment.isHeadless()) return
+        assumeFalse("A headless JVM has no event dispatch thread to watch.", GraphicsEnvironment.isHeadless())
         val recorder = MainThreadRecorder(
             clock = SystemMonitorClock(),
             initialSettings = MonitorSettings(longTaskThresholdMillis = 50, sampleIntervalMillis = 10, unresponsiveThresholdMillis = 10_000),
         )
-        val probe = createMainThreadProbe(recorder) { "label" }
+        val probe = createMainThreadProbe(recorder, labels = { "label" }, hostConnected = { true })
         EventQueue.invokeAndWait { }
         val before = Toolkit.getDefaultToolkit().systemEventQueue
 
         probe.start()
         EventQueue.invokeAndWait { busyFor(millis = 200) }
         probe.stop()
+        // invokeAndWait returns once the Runnable has run, before the probe's dispatchEvent
+        // finishes the task; this empty event waits until it has.
         EventQueue.invokeAndWait { }
 
         assertSame(before, Toolkit.getDefaultToolkit().systemEventQueue)

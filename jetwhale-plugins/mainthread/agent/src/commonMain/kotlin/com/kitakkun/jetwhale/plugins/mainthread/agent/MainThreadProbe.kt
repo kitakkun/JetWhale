@@ -12,7 +12,8 @@ internal interface MainThreadProbe {
     fun stop()
 }
 
-internal expect fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?): MainThreadProbe
+/** @param hostConnected Whether a host is connected now: a probe may skip work that only pays off while one is. */
+internal expect fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe
 
 /** Maps a StrictMode violation's class name (`DiskReadViolation`, …) to what the host shows. */
 internal fun violationKindOf(className: String): ViolationKind = when (className.substringAfterLast('.')) {

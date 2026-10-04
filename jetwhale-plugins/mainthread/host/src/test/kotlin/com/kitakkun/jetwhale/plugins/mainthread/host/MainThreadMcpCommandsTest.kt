@@ -68,6 +68,18 @@ class MainThreadMcpCommandsTest {
     }
 
     @Test
+    fun `getViolations returns no more groups than the limit`() {
+        val result = GetViolationsCommand(client).run(buildJsonObject { put("limit", 1) })
+
+        assertEquals(listOf("com.example.Prefs.save"), result.getValue("violations").jsonArray.map { it.jsonObject.getValue("callSite").jsonPrimitive.content })
+    }
+
+    @Test
+    fun `getViolations refuses a limit below one`() {
+        assertFailsWith<JetWhaleMcpArgumentException> { GetViolationsCommand(client).run(buildJsonObject { put("limit", 0) }) }
+    }
+
+    @Test
     fun `getLongTasks filters by minimum duration`() {
         val result = GetLongTasksCommand(client).run(buildJsonObject { put("minDurationMillis", 1_000) })
 
