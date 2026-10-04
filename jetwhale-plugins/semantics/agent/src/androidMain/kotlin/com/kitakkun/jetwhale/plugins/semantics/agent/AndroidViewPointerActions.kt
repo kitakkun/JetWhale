@@ -17,7 +17,8 @@ internal object AndroidViewPointerActions {
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
             if (!view.isClickable) return NodeActionResult.notSupported("the view is not clickable")
-            // CompoundButton.performClick() toggles, then returns false without an OnClickListener.
+            // CompoundButton.performClick() toggles, then returns false when no OnClickListener is
+            // set.
             val checkedBefore = (view as? Checkable)?.isChecked
             val clickHandled = view.performClick()
             val toggled = (view as? Checkable)?.isChecked != checkedBefore
