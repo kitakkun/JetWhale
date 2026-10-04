@@ -25,6 +25,7 @@
     <string name="update_available_hint">Nothing is installed until you download it. Afterwards, restart to update or keep working; the next start runs the new version.</string>
     <string name="download_update">Download</string>
     <string name="downloading_update">Downloading %1$s… %2$s of %3$s MB</string>
+    <string name="verifying_update">Verifying %1$s…</string>
     <string name="cancel_download">Cancel</string>
     <string name="update_ready">Version %1$s is ready</string>
     <string name="update_ready_hint">Restart now, or keep working; the next start runs it.</string>

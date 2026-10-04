@@ -35,6 +35,9 @@ sealed interface HostUpdateStatus {
 
     data class Downloading(val version: String, val downloadedBytes: Long, val totalBytes: Long) : HostUpdateStatus
 
+    /** The download is complete and is checked against the SHA-256 its release pins before it is installed. */
+    data class Verifying(val version: String) : HostUpdateStatus
+
     /** A newer version is installed; the next start runs it. */
     data class ReadyToRestart(val version: String) : HostUpdateStatus
 

@@ -34,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assume
@@ -362,6 +363,25 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `installs nothing when the download is cancelled as it is verified`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        val service = service()
+        service.check()
+        val cancelOnVerifying = launch(Dispatchers.Unconfined) {
+            service.stateFlow.first { it.status is HostUpdateStatus.Verifying }
+            service.cancelDownload()
+        }
+
+        service.download()
+        withTimeout(10.seconds) { cancelOnVerifying.join() }
+
+        val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Verifying }.status }
+        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertEquals(emptyList(), versions.installedVersions())
+        assertStagingEmpty()
+    }
+
+    @Test
     fun `a host the launcher did not start looks nothing up`() = runBlocking {
         val service = service(hostLaunch = HostLaunch.Standalone)
         service.check()
@@ -420,7 +440,9 @@ class DefaultHostUpdateServiceTest {
         assertIs<HostUpdateStatus.Available>(service.stateFlow.value.status)
         service.download()
         return withTimeout(10.seconds) {
-            service.stateFlow.first { it.status !is HostUpdateStatus.Available && it.status !is HostUpdateStatus.Downloading }.status
+            service.stateFlow.first {
+                it.status !is HostUpdateStatus.Available && it.status !is HostUpdateStatus.Downloading && it.status !is HostUpdateStatus.Verifying
+            }.status
         }
     }
 

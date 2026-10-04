@@ -25,6 +25,7 @@
     <string name="update_available_hint">ダウンロードするまで何もインストールされません。ダウンロード後に再起動してアップデートするか、そのまま作業を続けてください。次回の起動時に新しいバージョンが実行されます。</string>
     <string name="download_update">ダウンロード</string>
     <string name="downloading_update">%1$s をダウンロード中… %2$s / %3$s MB</string>
+    <string name="verifying_update">%1$s を検証中…</string>
     <string name="cancel_download">キャンセル</string>
     <string name="update_ready">バージョン %1$s の準備ができました</string>
     <string name="update_ready_hint">今すぐ再起動するか、そのまま作業を続けてください。次回の起動時に実行されます。</string>

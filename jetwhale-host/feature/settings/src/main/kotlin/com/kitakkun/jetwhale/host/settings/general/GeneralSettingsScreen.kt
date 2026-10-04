@@ -79,6 +79,7 @@ import com.kitakkun.jetwhale.host.settings.update_ready_hint
 import com.kitakkun.jetwhale.host.settings.update_up_to_date
 import com.kitakkun.jetwhale.host.settings.updates
 import com.kitakkun.jetwhale.host.settings.updates_not_managed
+import com.kitakkun.jetwhale.host.settings.verifying_update
 import com.kitakkun.jetwhale.host.settings.view_application_logs
 import com.kitakkun.jetwhale.host.settings.view_host_log
 import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
@@ -357,7 +358,10 @@ private fun UpdatesSection(
                 )
             }
         }
-        if (updates.status !is HostUpdateStatus.Checking && updates.status !is HostUpdateStatus.Downloading) {
+        if (updates.status !is HostUpdateStatus.Checking &&
+            updates.status !is HostUpdateStatus.Downloading &&
+            updates.status !is HostUpdateStatus.Verifying
+        ) {
             JwButton(
                 text = stringResource(Res.string.check_for_updates),
                 onClick = onClickCheckForUpdates,
@@ -420,6 +424,15 @@ private fun HostUpdateStatusView(
                     megabytes(status.totalBytes),
                 ),
             )
+            JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancelUpdateDownload, style = JwButtonStyle.Secondary)
+        }
+
+        is HostUpdateStatus.Verifying -> Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            JwProgressIndicator()
+            JwText(stringResource(Res.string.verifying_update, status.version))
             JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancelUpdateDownload, style = JwButtonStyle.Secondary)
         }
 

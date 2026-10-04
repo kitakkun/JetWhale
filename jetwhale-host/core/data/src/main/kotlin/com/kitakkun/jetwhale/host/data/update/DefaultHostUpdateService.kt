@@ -278,6 +278,7 @@ class DefaultHostUpdateService(
         }
         val jar = staging.resolve(hostJarName(version, offer.platformKey))
         downloadJar(offer, jar)?.let { return HostUpdateStatus.DownloadFailed(it) }
+        setStatus(HostUpdateStatus.Verifying(version))
         val check = onLocalFiles { offer.platform.check(jar) }
         if (check != HostJarCheck.Matches) {
             logger.warn("Discarded the download of host {}: {}", version, check)
