@@ -118,6 +118,25 @@ class WorkManagerSourceTest {
     }
 
     @Test
+    fun `run now copies work without running its worker class's static initializer`() {
+        val request = OneTimeWorkRequest.Builder(StaticInitFailingWorker::class.java).setConstraints(needsCharging).build()
+        workManager.enqueue(request).result.get()
+
+        val result = runBlocking { source.runNow(request.id.toString()) }
+
+        assertTrue(result.startsWith("Enqueued"), result)
+    }
+
+    @Test
+    fun `work tagged with another worker's class name cannot be run now`() {
+        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(needsCharging).addTag(FailingWorker::class.java.name).build()
+        workManager.enqueue(request).result.get()
+
+        assertEquals(false, items().single { it.id == request.id.toString() }.canRunNow)
+        assertFailsWith<IllegalStateException> { runBlocking { source.runNow(request.id.toString()) } }
+    }
+
+    @Test
     fun `failed work reports its output data`() {
         val request = OneTimeWorkRequest.Builder(FailingWorker::class.java).build()
         workManager.enqueue(request).result.get()
@@ -184,6 +203,16 @@ class SucceedingWorker(context: Context, parameters: WorkerParameters) : Worker(
 
 class FailingWorker(context: Context, parameters: WorkerParameters) : Worker(context, parameters) {
     override fun doWork(): Result = Result.failure(Data.Builder().putString("reason", "demo failure").build())
+}
+
+class StaticInitFailingWorker(context: Context, parameters: WorkerParameters) : Worker(context, parameters) {
+    override fun doWork(): Result = Result.success()
+
+    companion object {
+        init {
+            error("static initializer failed")
+        }
+    }
 }
 
 class ArrayOutputWorker(context: Context, parameters: WorkerParameters) : Worker(context, parameters) {

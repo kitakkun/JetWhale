@@ -87,11 +87,11 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
     override suspend fun runNow(id: String): String {
         val info = workManager.getWorkInfoByIdFlow(parseWorkId(id)).first()
             ?: throw IllegalArgumentException("no work has id $id")
-        val workerClassName = info.tags.firstOrNull(::isWorkerClass)
-            ?: throw IllegalStateException("the worker class of $id cannot be loaded, so it cannot be copied")
+        val workerClassName = info.tags.singleOrNull(::isWorkerClass)
+            ?: throw IllegalStateException("the worker class of $id cannot be told from its tags, so it cannot be copied")
 
         @Suppress("UNCHECKED_CAST")
-        val workerClass = Class.forName(workerClassName) as Class<out ListenableWorker>
+        val workerClass = Class.forName(workerClassName, false, ListenableWorker::class.java.classLoader) as Class<out ListenableWorker>
         val copy = OneTimeWorkRequest.Builder(workerClass)
             .apply { info.tags.filterNot { it == workerClassName }.forEach(::addTag) }
             .addTag(RUN_NOW_TAG)
@@ -113,11 +113,12 @@ private fun parseWorkId(id: String): UUID = try {
 
 /**
  * [info] as the host shows it. [isWorkerClass] picks the tag WorkManager added for the worker
- * class, which WorkInfo does not otherwise expose.
+ * class, which WorkInfo does not otherwise expose. Tags are the app's own too, and unordered, so
+ * when more than one names a worker class the class is unknown rather than guessed.
  */
 @VisibleForTesting
 internal fun workInfoToItem(info: WorkInfo, isWorkerClass: (String) -> Boolean): BackgroundWorkItem {
-    val workerClass = info.tags.firstOrNull(isWorkerClass)
+    val workerClass = info.tags.singleOrNull(isWorkerClass)
     val periodicity = info.periodicityInfo
     return BackgroundWorkItem(
         source = SOURCE_NAME,
