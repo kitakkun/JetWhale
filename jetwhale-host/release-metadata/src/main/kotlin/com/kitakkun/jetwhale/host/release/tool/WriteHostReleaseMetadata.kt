@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.release.tool
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.release.HostJarCheck
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
@@ -40,6 +41,7 @@ fun main(args: Array<String>) {
 }
 
 /** Returns the problems that kept the metadata from being written or from verifying; none on success. */
+@VisibleForTesting
 internal fun writeHostReleaseMetadata(arguments: List<String>): List<String> {
     val request = try {
         HostReleaseMetadataRequest.parse(arguments)

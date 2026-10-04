@@ -4,5 +4,6 @@ plugins {
 }
 
 dependencies {
+    compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
 }
