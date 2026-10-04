@@ -40,8 +40,35 @@ class LoadedHostPluginVersionsTest {
     @Test
     fun `versions compare numerically component by component`() {
         assertEquals(1, PluginVersionOrder.compare("1.10.0", "1.9.2"))
-        assertEquals(0, PluginVersionOrder.compare("1.2", "1.2.0"))
         assertEquals(-1, PluginVersionOrder.compare("1.2.0", "1.3.0-alpha01"))
+    }
+
+    @Test
+    fun `a release comes after its pre-releases`() {
+        assertEquals(listOf("1.0.0-alpha02", "1.0.0"), listOf("1.0.0", "1.0.0-alpha02").sortedWith(PluginVersionOrder))
+    }
+
+    @Test
+    fun `pre-releases compare their numbers as numbers and their words alphabetically`() {
+        val ordered = listOf("1.0.0-alpha1", "1.0.0-alpha02", "1.0.0-alpha10", "1.0.0-beta1", "1.0.0-rc.2", "1.0.0-rc.10", "1.0.0-SNAPSHOT")
+
+        assertEquals(ordered, ordered.reversed().sortedWith(PluginVersionOrder))
+    }
+
+    @Test
+    fun `the newest of versions that rank the same does not depend on their order`() {
+        val short = version("1.2", minAgent = null, maxAgent = null)
+        val long = version("1.2.0", minAgent = null, maxAgent = null)
+
+        assertEquals(listOf(short, long).newestFor(null), listOf(long, short).newestFor(null))
+    }
+
+    @Test
+    fun `a range bound compares release numbers only`() {
+        val fromRelease = version("2.0.0", minAgent = "1.3.0", maxAgent = "1.4")
+
+        assertEquals(fromRelease, listOf(fromRelease).newestFor("1.3.0-alpha01"))
+        assertEquals(fromRelease, listOf(fromRelease).newestFor("1.4.0"))
     }
 
     private fun version(version: String, minAgent: String?, maxAgent: String?) = LoadedHostPlugin(

@@ -81,6 +81,14 @@ class DefaultPluginStorageServiceTest {
     }
 
     @Test
+    fun `a pre-release upgrade starts from a copy of the previous pre-release's data`() = runBlocking {
+        val service = newService()
+        service.storageFor(version("1.0.0-alpha01")).put("filter", "errors-only")
+
+        assertEquals("errors-only", newService().storageFor(version("1.0.0-alpha02")).get<String>("filter"))
+    }
+
+    @Test
     fun `a version older than every stored one starts empty`() = runBlocking {
         val service = newService()
         service.storageFor(version("1.3.0")).put("filter", "from 1.3.0")

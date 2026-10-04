@@ -20,8 +20,13 @@ it.
 - **Which jar replaces which.** A jar replaces another only when both provide the same
   `(pluginId, version)`. Different versions coexist. Overwriting a jar file in place is still a
   replacement of what that file provided.
-- **Ordering.** Versions compare numerically dot by dot (`1.10.0` > `1.9.2`); a non-numeric
-  component counts as 0, as `agentVersionRange` checks already did.
+- **Ordering.** The release part compares numerically dot by dot (`1.10.0` > `1.9.2`); a
+  non-numeric component counts as 0, as `agentVersionRange` checks already did. A release comes after
+  its pre-releases (`1.0.0-alpha02` < `1.0.0`), and pre-releases compare their numbers as numbers
+  (`alpha9` < `alpha10`) and their words alphabetically. Versions that still rank the same (`1.2`
+  and `1.2.0`) are ordered by their text, so which one is newest never depends on load order. An
+  `agentVersionRange` bound compares release numbers only: a pre-release of `1.3.0` is inside a range
+  that starts at `1.3.0`.
 
 ## Binding a session to a version
 
