@@ -43,11 +43,13 @@ prerelease.
   `1.0.0~alpha13`.
 
 **macOS signing.** The 1.0.0-alpha12 app bundle and every library in it are signed ad hoc
-(`flags=0x2(adhoc)`, no Team ID). The bundle has no hardened runtime and no entitlements, and it is
-not notarized, so `spctl` rejects it. A copy downloaded with a browser is quarantined, and its first
-launch is blocked until the user allows it. Since macOS 15, Control-click → Open no longer allows
-it. The user has to go to System Settings → Privacy & Security → Open Anyway, which the
-getting-started guide does not mention.
+(`flags=0x2(adhoc)`, no Team ID). The bundle has no hardened runtime and no entitlements. Compose
+signs its app image ad hoc with the hardened runtime and its default entitlements,
+`disable-library-validation` among them, but jpackage builds the DMG from that image and signs it
+again ad hoc, which drops both. The bundle is not notarized, so `spctl` rejects it. A copy
+downloaded with a browser is quarantined, and its first launch is blocked until the user allows it.
+Since macOS 15, Control-click → Open no longer allows it. The user has to go to System Settings →
+Privacy & Security → Open Anyway, which the getting-started guide does not mention.
 
 Without the hardened runtime, library validation is off, so the JVM loads native libraries that
 someone else signed. This was checked on the alpha12 bundle's own runtime, started through its own
@@ -162,13 +164,15 @@ adopted, `jetwhale-host-<version>.json.sig` comes with it.
 - `platforms` uses the same `os-arch` keys as the Gradle plugin. Each `url` is exactly the asset
   `downloadJetWhaleHost` fetches, so the Gradle plugin and the update service read the same asset
   names, and the names do not change.
-- Readers ignore unknown fields and refuse a `format` higher than they know.
+- Readers ignore unknown fields, treat a `format` below 1 as malformed, and refuse one higher than
+  they know.
 
-A Gradle task in the host build writes everything except the jars' `url`, `size` and `sha256`:
-version, main class, toolchain version, modules, and the JVM arguments of every platform. The
-metadata and the runtime image are then described in one place. The release job adds `url`, `size`
-and `sha256` from the jars it collected, and also attaches `SHA256SUMS` for every asset, for people
-who download installers by hand.
+One task in the release job writes the whole file from the jars it collected: their `url`, `size`
+and `sha256`, and from the build the version, main class, Java version, modules and the JVM
+arguments of every platform. The build keeps those values in one place, which the packaged app's
+arguments and both kinds of metadata (the release's and the bundled one below) are written from, so
+an argument added there reaches every host that runs. The release job also attaches `SHA256SUMS`
+for every asset, for people who download installers by hand.
 
 ## Version order
 
@@ -179,8 +183,9 @@ numbers, then by stage (alpha, then beta, then rc, then no stage), then on N as 
 `1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0-beta1` < `1.0.0-rc1` < `1.0.0` < `1.0.1-alpha1`
 
 `alpha09` and `alpha9` are the same version, since the early tags are zero-padded. A tag that ends
-in `-SNAPSHOT`, or that does not parse, is never a candidate, and the release job refuses to build
-a tag that does not parse.
+in `-SNAPSHOT`, or that does not parse, is never a candidate. The release job refuses to build a
+tag that does not parse, or that is not the version catalog's `jetwhale` version, which is the
+version the host reports.
 
 Strict SemVer compares `alpha10` and `alpha9` as text and gets them backwards. A comparison of
 dotted numbers drops the suffix altogether. The order is therefore defined here and implemented
@@ -193,7 +198,10 @@ once, in a module shared by the host, the launcher and the release job.
 - **The runtime.** Corretto 21 as today, plus `bin/java` (`java.exe` and `javaw.exe` on Windows)
   to start the host with. Compose's jlink step has no switch to keep it, so the launcher build
   copies it into the image Compose produces, from the same JDK the image was made from. If that
-  proves brittle, the launcher build makes the image itself.
+  proves brittle, the launcher build makes the image itself. The copy is readable and executable
+  by every account, not only its owner, and the build fails when the file system does not keep
+  that: otherwise no other account could start a host, for instance from an app another user
+  dragged into `/Applications`.
 - **Room for later hosts.** The runtime cannot change until a reinstall, so it carries modules a
   later host may need: `java.net.http`, `java.management`, `jdk.management`, `jdk.attach`,
   `jdk.zipfs`, `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`,
@@ -202,9 +210,9 @@ once, in a module shared by the host, the launcher and the release job.
 - **The launcher's main.** A small Kotlin module whose only dependency is the shared metadata
   module.
 - **The host jar of the same release, with its metadata.** The jar is the file attached to the
-  release, built in the same job. The metadata is the part the host build writes: it lacks the
-  jars' `url`, `size` and `sha256`, which exist only once every platform's jar is collected, and
-  the bundled version does not need them, since it is not verified.
+  release, built in the same job. Its `release.json` is written by the same tool as the release's
+  metadata, from the same build values, with this platform's entry only, including the jar's `url`,
+  `size` and `sha256`. One model therefore reads both.
 
 ### Choosing a version
 
@@ -277,15 +285,16 @@ whole file. Entries for versions no longer on disk are ignored.
 
 ### Startup window and rollback
 
-The window runs N seconds from launch. Inside it, the host publishes `instance.json` once its main
-window shows, or with `--headless` once its servers are bound (see *Single instance, reopen and
-restart*). The launcher judges the start from that and from how the host exits:
+The window runs N seconds from launch, and the launcher judges the start by the host's exit:
 - **Completed.** The host is still running at the end of the window.
-- **Failed.** The host exits inside the window before publishing, whatever its status, or after
-  publishing with a non-zero status or a signal.
-- **Neither.** The host exits cleanly after publishing, as when the user quits or restarts to
-  update, or it exits before publishing while another process holds `instance.lock`, having handed
-  the reopen to that running host.
+- **Failed.** The host exits inside the window with a non-zero status or a signal.
+- **Neither.** The host exits inside the window with status 0. The user quit, even before the main
+  window shows, from the Dock tile or the app menu that the host sets up first; or the user
+  restarted to update or chose *Try again*; or the host handed the reopen to a running host.
+
+A host that exits with status 0 inside the window for any other reason is therefore not retried or
+set aside; the next launch starts it again. Whether the host has published `instance.json` (see
+*Single instance, reopen and restart*) does not enter the judgment.
 
 N is 30 seconds, the startup grace of #293's crash recovery, so the launcher and the host count the
 same crashes as startup crashes. The launcher waits out the window and then exits. With
@@ -308,6 +317,10 @@ manager sees the host's lifetime.
   from when crash recovery starts, so the two windows end together.
 - **Nothing left.** If no candidate remains, the launcher shows its only UI: a dialog with the log
   location and the release page.
+- **Unexpected errors.** An error the launcher did not expect, such as a runtime `java` that cannot
+  be started or a file under `host/` that cannot be opened or written, goes to
+  `logs/launcher.log` with its stack trace and to the same dialog (to stderr with `--headless`),
+  and the launcher exits with status 1.
 
 ### Single instance, reopen and restart
 
@@ -319,14 +332,15 @@ the host as a child process, the launcher has to provide that. It uses two OS fi
   holds it. It keeps it until a host it started has published `instance.json` or used up its
   window, or until the launcher exits; a retry or a fallback to the next candidate happens under
   the same lock. Two launches at once therefore start one host.
-- **Reopen.** A host started by the launcher takes `instance.lock` as it starts and holds it while
-  it runs. Once its main window shows, or with `--headless` once its servers are bound, it writes a
-  loopback endpoint, its process ID and a token to a temporary file, and renames that to
-  `instance.json`, so a reader sees a whole record or none. A launcher that finds `instance.lock`
-  held asks that host to bring its window forward, then exits. If the record is missing or its
-  endpoint does not answer, it reads it again for a few seconds, then logs the failure and exits. A
-  host that cannot take `instance.lock` does the same and exits normally. On Windows and Linux this
-  is new: today a second start runs a second host, which silently loses the race for the ports.
+- **Reopen.** A host started by the launcher takes `instance.lock` as it starts and holds it until
+  its process ends, even if its reopen endpoint stops, so a later launch never starts a second host.
+  Once its main window shows, or with `--headless` once its servers are bound, it writes a loopback
+  endpoint, its process ID and a token to a temporary file, and renames that to `instance.json`, so
+  a reader sees a whole record or none. A launcher that finds `instance.lock` held asks that host to
+  bring its window forward, then exits. If the record is missing or its endpoint does not answer, it
+  reads it again for a few seconds, then logs the failure and exits. A host that cannot take
+  `instance.lock` does the same and exits with status 0. On Windows and Linux this is new: today a
+  second start runs a second host, which silently loses the race for the ports.
 - **Reopen during the window.** For its 30 seconds, the launcher is the process macOS ties to the
   app bundle, so a reopen reaches the launcher. It forwards the request to its host the same way.
 - **Restart to update.** The host starts `jetwhale.launcher.executable` with `--after <pid>` and its
@@ -349,15 +363,17 @@ The launcher does not start a version, and tries the next candidate, when:
 The host checks the same conditions before it offers a download. It runs on the launcher's runtime
 and reads the contract from the system property, so a refusal at start is rare; it happens, for
 instance, when versions are left in the cache from a newer install. When the newest release is one
-this launcher cannot run, the host does not download it. It says the release needs a new installer
-and links the release page. A reinstall is the only fix for the runtime and the contract: the
-launcher never replaces itself.
+this launcher cannot run, the host does not download it. A release with no jar for this platform is
+reported as having no build for this computer. One that needs a higher contract, Java version or a
+missing module, or asks for a JVM argument outside the contract, needs a new installer, and the host
+says so and links the release page. A reinstall is the only fix for the runtime and the contract:
+the launcher never replaces itself.
 
 ## Host update service
 
-A `HostUpdateService` (release lookup, download, verification) and a repository for the version
-directories replace `UpdateCheckService`, as `agents/rules/jetwhale-host-architecture.md` asks. The
-UI reaches them through soil keys.
+A `HostUpdateService` (release lookup and selection, download, verification) and a repository for
+the version directories replace `UpdateCheckService`, as
+`agents/rules/jetwhale-host-architecture.md` asks. The UI reaches them through soil keys.
 
 - **When.** On startup when the startup check is on, and when the user asks. The setting comes back
   with this service, after the Conveyor removal takes it out.
@@ -372,12 +388,31 @@ UI reaches them through soil keys.
 - **Check.** The service fetches the metadata and its signature, verifies them, and checks the
   release against the running launcher (see above).
 - **Download.** It starts on the user's click, after the versions it supersedes are deleted (see
-  *Choosing a version*), and shows progress and a cancel button. The jar goes into `host/staging/`
-  and is checked on size first, then on SHA-256. The finished directory is renamed into
-  `host/<version>/`, so the launcher never sees half a version.
+  *Choosing a version*), and shows progress and a cancel button. The jar goes into `host/staging/`.
+  The download stops at the first byte past the metadata's `size` and is discarded as corrupted, so
+  a wrong or endless answer cannot fill the disk. While the SHA-256 is checked, the section shows
+  *Verifying*, still with Cancel, and a cancel then installs nothing. The finished directory is
+  renamed into `host/<version>/`, so the launcher never sees half a version.
 - **Offer.** The user can restart to update, or keep working; the next start runs the new version.
-- **Failures.** A rate limit, no network, or a hash mismatch shows in the Updates section and never
-  blocks startup.
+  When *Restart to update* or *Try again* cannot start the launcher, because the launcher gave no
+  path or its executable was moved, the host keeps running and a banner says to quit and open the
+  app again.
+- **Failures.** A failed check and a failed download are reported apart, and neither blocks
+  startup. The kinds:
+  - GitHub's rate limit: a 403 or 429 with `x-ratelimit-remaining: 0`, or with `Retry-After`, which
+    is how GitHub's secondary limit answers;
+  - GitHub unreachable: the engine's `IOException`, or the `UnresolvedAddressException` that Ktor's
+    CIO engine throws when a host name does not resolve, as it does offline;
+  - an unexpected HTTP status;
+  - metadata that does not verify, or whose `version` is not the release's tag;
+  - a size or SHA-256 mismatch;
+  - a download that could not be saved: an `IOException` from this computer's files, such as a full
+    disk, is this kind, not unreachable.
+- **Every end is defined.** Whatever ends a check or a download, the section leaves *Checking* or
+  *Downloading*. A check that ends in an error the service does not know goes back to not checked,
+  and a download that is cancelled or ends in such an error offers the release again. `staging/` is
+  cleared in every case. One that cannot be cleared, such as a file another program holds on
+  Windows, fails the download as not saved, and the next download tries again.
 
 Without `jetwhale.launcher.contract`, the host was not started by the launcher, and the service
 downloads nothing. In the IDE (`LocalEmbeddedInIde`) the Updates section and the banner are hidden,
@@ -542,20 +577,27 @@ every user who accepts the update.
 - **Shared module.**
   - The version order: the chain above, `alpha09` = `alpha9`, and no snapshot, unparseable tag or
     N outside 1–199 as a candidate.
-  - Metadata parsing: unknown fields, a higher `format`, and the bundled copy without the jars'
-    `url`, `size` and `sha256`.
+  - Metadata parsing: unknown fields, a `format` of 0 or below and one higher than known, and
+    deeply nested JSON.
   - Signature checks with a test key pair: valid, tampered, and wrong key.
   - The JVM argument forms.
-  - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
-    platform, and installed or set-aside versions.
 - **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0 or 1
   before or after publishing `instance.json`, crash after the window, or sleep. The tests cover
-  selection, setting aside, the bundled floor, `--after`, `--retry`, the locks with two launchers
-  started at once, and pruning. Processes, file locks and renames behave differently on Windows, so
-  this module's tests run on all three runners.
-- **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today. The
-  cases: rate limits, redirects to the asset host, size and hash mismatches, an interrupted
-  download, and the rename out of staging.
+  selection, the judgment of a start (an exit 0 before publishing is neither), setting aside, the
+  bundled floor, `--after`, `--retry`, unexpected errors, and pruning. For the locks they cover two
+  launchers started at once, a second launch while a host has yet to take `instance.lock`, and a
+  record an earlier host left behind. Processes, file locks and renames behave differently on
+  Windows, so this module's tests run on all three runners.
+- **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today.
+  - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
+    platform, and installed or set-aside versions.
+  - Failures: both rate limits, offline from the releases URL and from the jar URL, an unexpected
+    status, metadata for another version than its tag, size and hash mismatches, a body past the
+    pinned size, an unwritable host directory, an undeletable leftover in `staging/`, and an error
+    the service does not know.
+  - The flow: redirects to the asset host, an interrupted download, a cancel while verifying, a
+    check or a second download while one runs, the rename out of staging, and a launcher that
+    cannot be started.
 - **Release job.** Before attaching anything, the job checks the metadata it just wrote with the
   launcher's own verifier.
 - **Packages, by hand on each OS,** built by a manual run of *Distribute Desktop Application* as a
@@ -575,9 +617,10 @@ every user who accepts the update.
 
 1. **Release metadata and checksums in CI.**
    - The shared module: the metadata model, the version order and the verifier.
-   - The host-build task for everything but the jars' `url`, `size` and `sha256`.
-   - The release job adds those, writes `SHA256SUMS`, signs if that is decided, verifies, and
-     attaches.
+   - One place in the build for the host's runtime values: Java version, modules and JVM
+     arguments.
+   - In the release job: the tag check, one task that writes the whole metadata from the collected
+     jars, `SHA256SUMS`, signing if that is decided, verification, and attaching.
 
    Nothing reads the metadata yet, so this phase can ship on its own. It gives users `SHA256SUMS`
    and runs the release path before anything depends on it.
@@ -589,8 +632,8 @@ every user who accepts the update.
    - On the host side: the launcher properties, the locks and activation, and `--after`. In #293's
      crash recovery: the version in its run markers, and a grace counted from the process's start.
 3. **Host update service and UI.** `HostUpdateService`, the version repository, the Updates section,
-   the startup setting and the banner, and the set-aside and refusal messages. All of it is hidden
-   in the IDE.
+   the startup setting and the banner, and the set-aside, refusal and failure messages. All of it is
+   hidden in the IDE.
 4. **Conveyor removal.** As described above.
 
 Phases 2 and 3 ship in the same release. A launcher whose host cannot download updates would force
