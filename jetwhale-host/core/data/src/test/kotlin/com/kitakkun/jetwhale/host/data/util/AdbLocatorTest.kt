@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.data.util
 
+import com.kitakkun.jetwhale.host.model.HostOs
+import org.junit.Assume.assumeFalse
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
@@ -11,6 +13,7 @@ class AdbLocatorTest {
     private val folder: File = Files.createTempDirectory("adb-locator").toFile()
     private val home = File(folder, "home").apply { mkdirs() }
     private val emptyDirectory = File(folder, "empty").apply { mkdirs() }
+    private val onWindows = HostOs.current == HostOs.WINDOWS
 
     @AfterTest
     fun cleanUp() {
@@ -19,7 +22,7 @@ class AdbLocatorTest {
 
     @Test
     fun `no Android SDK and no adb on PATH means adb is not found`() {
-        val locator = locator(environment = mapOf("PATH" to emptyDirectory.path), isWindows = false)
+        val locator = locator(environment = mapOf("PATH" to emptyDirectory.path), isWindows = onWindows)
 
         assertNull(locator.find())
     }
@@ -28,7 +31,7 @@ class AdbLocatorTest {
     fun `adb on PATH is found`() {
         val adb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(":")), isWindows = false)
+        val locator = locator(environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(File.pathSeparator)), isWindows = onWindows)
 
         assertEquals(adb, locator.find())
     }
@@ -38,7 +41,7 @@ class AdbLocatorTest {
         val sdkAdb = executableAdbIn(File(folder, "sdk/platform-tools"))
         val pathAdb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent), isWindows = false)
+        val locator = locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent), isWindows = onWindows)
 
         assertEquals(sdkAdb, locator.find())
     }
@@ -57,6 +60,7 @@ class AdbLocatorTest {
 
     @Test
     fun `an adb file that cannot be executed is not taken`() {
+        assumeFalse("Windows has no execute permission for java.io.File to clear", onWindows)
         val notExecutable = File(File(folder, "bin").apply { mkdirs() }, "adb").apply {
             writeText("")
             setExecutable(false)
@@ -74,7 +78,7 @@ class AdbLocatorTest {
         fixedDirectories = emptyList(),
     )
 
-    private fun executableAdbIn(directory: File): File = File(directory.apply { mkdirs() }, "adb").apply {
+    private fun executableAdbIn(directory: File): File = File(directory.apply { mkdirs() }, if (onWindows) "adb.exe" else "adb").apply {
         writeText("#!/bin/sh\n")
         setExecutable(true)
     }

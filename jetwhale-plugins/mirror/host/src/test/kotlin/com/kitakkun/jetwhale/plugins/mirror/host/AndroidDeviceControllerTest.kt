@@ -78,6 +78,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `a foldable's panel is named to screencap and screenrecord and its display to input`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDisplay.writeText(FOLDED)
 
         controller.screenSize()
@@ -104,6 +105,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `a device with one panel is given the commands without a display`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDisplay.writeText(ONE_PANEL)
 
         controller.screenSize()
@@ -116,6 +118,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `a turned screen has its size turned, as taps and screenshots use it`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDisplay.writeText(dumpsysDisplayOf("folded-turned"))
 
         assertEquals(IntSize(2364, 1080), controller.screenSize())
@@ -123,6 +126,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `a display reading without a size asks wm for that display's size`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDisplay.writeText(FOLDED.replace(Regex("""real \d+ x \d+, """), ""))
 
         assertEquals(IntSize(1080, 2364), controller.screenSize())
@@ -183,6 +187,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `reading the screen size follows a fold to the panel that is on`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDisplay.writeText(UNFOLDED)
         controller.captureScreenshot()
         dumpsysDisplay.writeText(FOLDED)

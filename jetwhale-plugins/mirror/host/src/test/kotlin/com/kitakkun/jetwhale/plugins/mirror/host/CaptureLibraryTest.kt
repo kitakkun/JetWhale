@@ -33,7 +33,7 @@ class CaptureLibraryTest {
     fun `a capture goes under its device folder and the day it was taken`() {
         val file = library.newFile(pixel, CaptureKind.Screenshot, noon)
 
-        assertEquals("2026-09-25/123005-screenshot.png", file.relativeTo(library.deviceFolder(pixel)).path)
+        assertEquals("2026-09-25/123005-screenshot.png", file.relativeTo(library.deviceFolder(pixel)).invariantSeparatorsPath)
         assertTrue(library.deviceFolder(pixel).name.startsWith("Pixel-9-Pro-"))
     }
 
@@ -134,6 +134,7 @@ class CaptureLibraryTest {
 
     @Test
     fun `a sidecar that cannot be read is left out of the list instead of failing it`() {
+        assumePosixPermissions()
         val kept = save(pixel, CaptureKind.Screenshot, noon)
         val unreadable = save(pixel, CaptureKind.Screenshot, noon.plusSeconds(60))
         File("${unreadable.file.path}.json").setReadable(false)

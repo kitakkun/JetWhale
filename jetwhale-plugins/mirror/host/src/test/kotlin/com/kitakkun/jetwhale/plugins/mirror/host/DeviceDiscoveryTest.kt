@@ -46,6 +46,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
+        assumeShellScriptsLaunch()
         val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
@@ -55,6 +56,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that fails keeps the devices it listed before with their controllers`() = runBlocking {
+        assumeShellScriptsLaunch()
         val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         val before = discovery.discover().devices.single()
         fakeAdb.writeText("#!/bin/sh\necho 'daemon not running' >&2\nexit 1\n")
@@ -66,6 +68,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a listing that succeeds without a device drops it`() = runBlocking {
+        assumeShellScriptsLaunch()
         val discovery = DeviceDiscovery(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         discovery.discover()
         fakeAdb.writeText("#!/bin/sh\nprintf 'List of devices attached\\n'\n")
@@ -75,6 +78,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `iPhones are listed by idb_companion without running idb`() = runBlocking {
+        assumeShellScriptsLaunch()
         companionPrints("""{"udid":"00008150-LISTED-BY-COMPANION","name":"iPhone","os_version":"iOS 26.0","type":"Device","state":"Booted"}""")
 
         val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
@@ -85,6 +89,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a companion that lists nothing means no iPhone, without asking idb`() = runBlocking {
+        assumeShellScriptsLaunch()
         companionPrints("")
 
         val listed = iosDeviceDiscovery().discover().devices
@@ -95,6 +100,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a companion that fails leaves the listing to idb`() = runBlocking {
+        assumeShellScriptsLaunch()
         fakeCompanion.writeText("#!/bin/sh\necho 'no such option' >&2\nexit 1\n")
         fakeCompanion.setExecutable(true)
 
@@ -105,6 +111,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a companion whose answer is not a list of targets leaves the listing to idb`() = runBlocking {
+        assumeShellScriptsLaunch()
         companionPrints("Usage: idb_companion [options]")
 
         val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)

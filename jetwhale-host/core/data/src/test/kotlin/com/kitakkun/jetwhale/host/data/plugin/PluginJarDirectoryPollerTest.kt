@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.HostOs
+import org.junit.Assume.assumeFalse
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -77,6 +79,7 @@ class PluginJarDirectoryPollerTest {
 
     @Test
     fun `a jar replaced by a rename that keeps its size and time is reported`() {
+        assumeFalse("Windows reports no file key, so there such a replacement looks unchanged", HostOs.current == HostOs.WINDOWS)
         val installed = jar("installed.jar", byteArrayOf(1, 2), modifiedAt = 1_000)
         val poller = PluginJarDirectoryPoller(directory)
         val replacement = File(directory, "replacement.tmp").apply {

@@ -39,11 +39,12 @@ class FfmpegDecodingTest {
             setExecutable(true)
         }
 
-        assertEquals(found.path, findToolPath("ffmpeg", listOf(first.path, second.path)))
+        assertEquals(found, findToolPath("ffmpeg", listOf(first.path, second.path))?.let(::File))
     }
 
     @Test
     fun `a file that is not executable is not taken for the tool`() {
+        assumePosixPermissions()
         File(folder, "ffmpeg").writeText("not a program")
 
         assertNull(findToolPath("ffmpeg", listOf(folder.path)))
