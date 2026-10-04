@@ -22,6 +22,7 @@ on:
       - 'jetwhale-plugins/storage/**'
       - 'jetwhale-plugins/actions/**'
       - 'jetwhale-plugins/mirror/**'
+      - 'jetwhale-plugins/permissions/**'
       # Adding or removing a target here rewrites the `// Targets: [...]` header of every klib dump,
       # so a change confined to the convention would otherwise slip past unchecked.
       - 'gradle-conventions/**'
