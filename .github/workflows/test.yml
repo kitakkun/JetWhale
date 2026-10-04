@@ -23,6 +23,9 @@ jobs:
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # A check from an empty Gradle cache takes about 17 minutes; without a limit, a hung browser test
+    # holds the runner for six hours.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -32,6 +35,14 @@ jobs:
 
       - name: Run tests
         run: ./gradlew check
+
+      # Taken while the Gradle and Kotlin daemons are still up, so it shows how close the build
+      # comes to the runner's 16 GB.
+      - name: Report memory and disk
+        if: ${{ !cancelled() }}
+        run: |
+          free -m
+          df -h /
 
   # A job of its own rather than a second step in `test`. `check` on the root build does not descend
   # into included builds — it pulls in the agent plugin's jar, because the demo consumes it, but none
