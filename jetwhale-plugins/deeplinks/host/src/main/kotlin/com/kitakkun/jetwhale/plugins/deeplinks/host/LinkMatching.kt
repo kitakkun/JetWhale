@@ -97,34 +97,164 @@ internal fun pathMatches(matcher: PathMatcher, path: String): Boolean = when (ma
     PathMatchKind.Exact -> path == matcher.value
     PathMatchKind.Prefix -> path.startsWith(matcher.value)
     PathMatchKind.Suffix -> path.endsWith(matcher.value)
-    PathMatchKind.Pattern -> simpleGlobToRegex(matcher.value).matches(path)
-    PathMatchKind.AdvancedPattern -> runCatching { Regex(matcher.value).matches(path) }.getOrDefault(false)
+    PathMatchKind.Pattern -> matchesGlobPattern(matcher.value, path)
+    PathMatchKind.AdvancedPattern -> matchesAdvancedPattern(matcher.value, path)
 }
 
 /**
- * Android's `pathPattern`: `.` is any character, a `*` after a character repeats it zero or more
- * times, and `\` escapes the next character. Everything else, including a `*` that follows no
- * character (a leading one, or the second of `**`), is literal.
+ * Android's `pathPattern`, ported from `PatternMatcher.matchGlobPattern` (android-36): `.` is any
+ * character, a `*` repeats the character before it, and `\` escapes the next one. A repetition never
+ * gives back what it took: `.*` stops at the first occurrence of the character after it, so
+ * `.*\.pdf` does not match `report.v2.pdf`, and `c*` takes every `c` in a row.
  */
-private fun simpleGlobToRegex(pattern: String): Regex {
-    val regex = StringBuilder()
-    var index = 0
-    while (index < pattern.length) {
-        val escaped = pattern[index] == '\\' && index + 1 < pattern.length
-        val char = if (escaped) pattern[index + 1] else pattern[index]
-        if (!escaped && char == '.') regex.append('.') else regex.appendLiteral(char)
-        index += if (escaped) 2 else 1
-        if (pattern.getOrNull(index) == '*') {
-            regex.append('*')
-            index++
+private fun matchesGlobPattern(pattern: String, match: String): Boolean {
+    if (pattern.isEmpty()) return match.isEmpty()
+    var ip = 0
+    var im = 0
+    var nextChar = pattern[0]
+    while (ip < pattern.length && im < match.length) {
+        var c = nextChar
+        ip++
+        nextChar = pattern.getOrElse(ip) { PATTERN_END }
+        val escaped = c == '\\'
+        if (escaped) {
+            c = nextChar
+            ip++
+            nextChar = pattern.getOrElse(ip) { PATTERN_END }
+        }
+        if (nextChar == '*') {
+            if (!escaped && c == '.') {
+                if (ip >= pattern.length - 1) return true
+                ip++
+                nextChar = pattern[ip]
+                if (nextChar == '\\') {
+                    ip++
+                    nextChar = pattern.getOrElse(ip) { PATTERN_END }
+                }
+                while (im < match.length && match[im] != nextChar) im++
+                if (im == match.length) return false
+                ip++
+                nextChar = pattern.getOrElse(ip) { PATTERN_END }
+                im++
+            } else {
+                while (im < match.length && match[im] == c) im++
+                ip++
+                nextChar = pattern.getOrElse(ip) { PATTERN_END }
+            }
+        } else {
+            // Android does not consult the escape here either, so `\.` matches any character.
+            if (c != '.' && match[im] != c) return false
+            im++
         }
     }
-    return Regex(regex.toString())
+    if (ip >= pattern.length && im >= match.length) return true
+    return ip == pattern.length - 2 && pattern[ip] == '.' && pattern[ip + 1] == '*'
 }
 
-private fun StringBuilder.appendLiteral(char: Char) {
-    if (!char.isLetterOrDigit()) append('\\')
-    append(char)
+private const val PATTERN_END = '\u0000'
+
+/**
+ * Android's `pathAdvancedPattern`, ported from `PatternMatcher` (android-36): `.` is any character,
+ * `[...]` a set with `a-z` ranges and `[^...]` its complement, `\` escapes the next character, and `*`,
+ * `+`, `{n}`, `{n,}` and `{n,m}` repeat the token before them. Anything else, `(`, `|` and `?`
+ * included, is literal. Each token takes as many characters as it can and never gives one back, so
+ * `.*\.pdf` matches nothing. False for a pattern Android refuses, which no installed app declares.
+ */
+private fun matchesAdvancedPattern(pattern: String, match: String): Boolean {
+    val tokens = AdvancedPatternParser(pattern).parse() ?: return false
+    var im = 0
+    for (token in tokens) {
+        val repetition = token.repetition ?: 1..1
+        var matched = 0
+        while (matched < repetition.last && im + matched < match.length && token.matches(match[im + matched])) matched++
+        if (matched < repetition.first) return false
+        im += matched
+    }
+    return im >= match.length
+}
+
+/** @property repetition Null when no modifier follows the token, which then matches once. */
+private class AdvancedToken(val repetition: IntRange?, val matches: (Char) -> Boolean)
+
+/** Reads a `pathAdvancedPattern` into tokens the way `PatternMatcher.parseAndVerifyAdvancedPattern` does. */
+private class AdvancedPatternParser(private val pattern: String) {
+    private val tokens = mutableListOf<AdvancedToken>()
+    private var ip = 0
+
+    /** Null where Android refuses the pattern. */
+    fun parse(): List<AdvancedToken>? {
+        while (ip < pattern.length) {
+            val accepted = when (val c = pattern[ip]) {
+                '[' -> addSet()
+
+                '{' -> repeatLast(countedRepetition() ?: return null)
+
+                '*' -> repeatLast(0..Int.MAX_VALUE)
+
+                '+' -> repeatLast(1..Int.MAX_VALUE)
+
+                // A `}` that closes no range is dropped, not matched.
+                '}' -> true
+
+                '.' -> tokens.add(AdvancedToken(repetition = null) { true })
+
+                '\\' -> addLiteral(pattern.getOrNull(++ip) ?: return null)
+
+                else -> addLiteral(c)
+            }
+            if (!accepted) return null
+            ip++
+        }
+        return tokens
+    }
+
+    private fun addLiteral(literal: Char): Boolean = tokens.add(AdvancedToken(repetition = null) { it == literal })
+
+    /** Reads the set from its `[` to its `]`, with `a-z` ranges and a leading `^` for its complement. */
+    private fun addSet(): Boolean {
+        val inverse = (pattern.getOrNull(ip + 1) ?: return false) == '^'
+        ip += if (inverse) 2 else 1
+        val ranges = mutableListOf<CharRange>()
+        while (pattern.getOrNull(ip) != ']') {
+            val lower = setMember() ?: return false
+            val isRange = ip + 2 < pattern.length && pattern[ip + 1] == '-' && pattern[ip + 2] != ']'
+            if (isRange) ip += 2
+            val upper = if (isRange) setMember() ?: return false else lower
+            ranges += lower..upper
+            ip++
+        }
+        if (ranges.isEmpty()) return false
+        val matches: (Char) -> Boolean = if (inverse) { char -> ranges.none { char in it } } else { char -> ranges.any { char in it } }
+        return tokens.add(AdvancedToken(repetition = null, matches = matches))
+    }
+
+    /** The set member at [ip] with its `\` escape removed, leaving [ip] on its last character. */
+    private fun setMember(): Char? {
+        val c = pattern.getOrNull(ip) ?: return null
+        return if (c == '\\') pattern.getOrNull(++ip) else c
+    }
+
+    /** The `{n}`, `{n,}` or `{n,m}` at [ip], leaving [ip] on its `}`. */
+    private fun countedRepetition(): IntRange? {
+        val end = pattern.indexOf('}', ip + 1).takeIf { it >= 0 } ?: return null
+        val bounds = pattern.substring(ip + 1, end)
+        val comma = bounds.indexOf(',')
+        val min = (if (comma < 0) bounds else bounds.substring(0, comma)).toIntOrNull() ?: return null
+        val max = when {
+            comma < 0 -> min
+            comma == bounds.lastIndex -> Int.MAX_VALUE
+            else -> bounds.substring(comma + 1).toIntOrNull() ?: return null
+        }
+        ip = end
+        return min..max
+    }
+
+    /** False when there is no token to repeat, or a modifier already follows it. */
+    private fun repeatLast(repetition: IntRange): Boolean {
+        val last = tokens.lastOrNull()?.takeIf { it.repetition == null } ?: return false
+        tokens[tokens.lastIndex] = AdvancedToken(repetition, last.matches)
+        return true
+    }
 }
 
 /**
@@ -160,8 +290,9 @@ private fun samplePathOf(matcher: PathMatcher): String? = when (matcher.kind) {
 }
 
 /**
- * A path that Android's `pathPattern` [pattern] matches: every repeated character is taken zero
- * times, every other `.` becomes a letter, and literals are kept.
+ * A path to try against the `pathPattern` [pattern]: every repeated character is taken zero times,
+ * every other `.` becomes a letter, and literals are kept. Some patterns, like `a*a`, match no path at
+ * all, so the caller checks it.
  */
 private fun sampleOfGlob(pattern: String): String {
     val sample = StringBuilder()

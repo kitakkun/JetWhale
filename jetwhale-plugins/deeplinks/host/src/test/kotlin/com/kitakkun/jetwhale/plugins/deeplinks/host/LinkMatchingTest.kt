@@ -162,6 +162,61 @@ class LinkMatchingTest {
         assertFalse(pathMatches(pattern, "/shop/shoes/list"))
         assertTrue(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a*b"), "/aaab"))
         assertFalse(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a*b"), "/axb"))
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.Pattern, "/item/.*"), "/item/"))
+    }
+
+    @Test
+    fun `a pathPattern repetition never gives back what it took as on Android`() {
+        val shopDetail = PathMatcher(PathMatchKind.Pattern, "/shop/.*/detail")
+        val pdf = PathMatcher(PathMatchKind.Pattern, ".*\\.pdf")
+        val items = PathMatcher(PathMatchKind.Pattern, "/items/*")
+
+        assertFalse(pathMatches(shopDetail, "/shop/men/shoes/detail"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.Pattern, "/.*/product/.*"), "/en/us/product/42"))
+        assertFalse(pathMatches(pdf, "/docs/report.v2.pdf"))
+        assertTrue(pathMatches(pdf, "/docs/report.pdf"))
+        assertFalse(pathMatches(items, "/items"))
+        assertTrue(pathMatches(items, "/items/"))
+        assertEquals(emptyList(), declarationsMatching("https://example.com/shop/men/shoes/detail", listOf(declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(shopDetail)))))
+    }
+
+    @Test
+    fun `an escaped dot in a pathPattern matches any character unless it follows a dot star as on Android`() {
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.Pattern, "/file\\.txt"), "/fileXtxt"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.Pattern, "/.*\\.txt"), "/fileXtxt"))
+    }
+
+    @Test
+    fun `a pathAdvancedPattern supports sets and counted repetition`() {
+        val digits = PathMatcher(PathMatchKind.AdvancedPattern, "/item/[0-9]+")
+
+        assertTrue(pathMatches(digits, "/item/42"))
+        assertFalse(pathMatches(digits, "/item/"))
+        assertFalse(pathMatches(digits, "/item/4a"))
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/[^/]+/detail"), "/shoes/detail"))
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/v{2}"), "/vv"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/v{2}"), "/v"))
+    }
+
+    @Test
+    fun `a pathAdvancedPattern is matched the way Android matches it and not as a regex`() {
+        val noBacktracking = PathMatcher(PathMatchKind.AdvancedPattern, "/shop/.*/detail")
+        val escapedLetter = PathMatcher(PathMatchKind.AdvancedPattern, "/item/\\d+")
+        val alternation = PathMatcher(PathMatchKind.AdvancedPattern, "/(a|b)")
+
+        assertFalse(pathMatches(noBacktracking, "/shop/shoes/detail"))
+        assertFalse(pathMatches(escapedLetter, "/item/42"))
+        assertTrue(pathMatches(escapedLetter, "/item/dd"))
+        assertFalse(pathMatches(alternation, "/a"))
+        assertTrue(pathMatches(alternation, "/(a|b)"))
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/a}"), "/a"))
+    }
+
+    @Test
+    fun `a pathAdvancedPattern that Android refuses matches nothing`() {
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/[^]"), "/x"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/a**"), "/aa"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.AdvancedPattern, "/a{3,1}"), "/aa"))
     }
 
     @Test
