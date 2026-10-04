@@ -46,7 +46,8 @@ internal fun CoroutineTestScreen() {
                 OutlinedButton(onClick = demo::stopAll, enabled = running.values.any(Set<*>::isNotEmpty)) { Text("Stop everything") }
             }
         }
-        // First, so that it is composed — and its panel's coroutines run — without scrolling to it.
+        // LazyColumn composes only the items in view; placed first, the panel's coroutines run
+        // without scrolling to it.
         item { ScreenWorkCard() }
         items(CoroutineScenario.entries) { scenario ->
             ScenarioCard(

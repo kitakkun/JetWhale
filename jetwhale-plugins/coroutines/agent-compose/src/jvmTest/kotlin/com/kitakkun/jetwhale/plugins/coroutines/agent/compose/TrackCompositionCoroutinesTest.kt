@@ -59,7 +59,6 @@ class TrackCompositionCoroutinesTest {
         composing({ ScreenWithCoroutines(tracked = true) }) {
             val root = inspector.registeredRoots()["Compose"]
 
-            // The screen's LaunchedEffect and its remembered scope; no helper coroutine of the tracking.
             assertEquals(2, root?.children?.count())
         }
     }
@@ -175,6 +174,8 @@ private fun Job.descendants(): List<Job> = children.flatMap { listOf(it) + it.de
 private fun JetWhaleCoroutineInspectorAgentPlugin.registeredRoots(): Map<String, Job?> {
     val field = JetWhaleCoroutineInspectorAgentPlugin::class.java.getDeclaredField("roots").apply { isAccessible = true }
     val roots = field.get(this)
+    // On the JVM, Kotlin's AtomicReference is java.util.concurrent.atomic.AtomicReference, so
+    // load() is get().
     val map = roots.javaClass.getMethod("get").invoke(roots) as Map<*, *>
     return map.entries.associate { (name, root) ->
         val reference = checkNotNull(root).javaClass.getDeclaredField("job").apply { isAccessible = true }.get(root)

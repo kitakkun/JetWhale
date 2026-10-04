@@ -38,15 +38,15 @@ import kotlin.coroutines.coroutineContext
  */
 @Composable
 fun JetWhaleCoroutineInspectorAgentPlugin.TrackCompositionCoroutines(name: String) {
-    // The effect's own coroutine is a child of the composition's effect job; reading its parent
-    // and returning at once leaves nothing of it behind in the tree.
     var trackedJob by remember(this, name) { mutableStateOf<Job?>(null) }
+    // A LaunchedEffect's coroutine is a child of the composition's effect job; this one returns at
+    // once so nothing of it stays in the tree.
     LaunchedEffect(this, name) {
         @OptIn(ExperimentalCoroutinesApi::class)
         trackedJob = coroutineContext[Job]?.parent?.also { register(it, name) }
     }
-    // The effect job outlives this call (it belongs to the Recomposer), so it is unregistered here;
-    // only this call's own registration, since another window may reuse the name.
+    // The effect job belongs to the Recomposer and outlives this call, so leaving composition does
+    // not complete it.
     DisposableEffect(this, name) {
         onDispose { trackedJob?.let { unregister(it, name) } }
     }

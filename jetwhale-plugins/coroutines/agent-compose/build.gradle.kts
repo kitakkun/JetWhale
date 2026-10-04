@@ -20,7 +20,6 @@ kotlin {
 
 dependencies {
     commonMainApi(projects.jetwhalePlugins.coroutines.agent)
-    // A separate module so that the core agent stays free of the Compose runtime.
     commonMainApi(libs.jetbrainsComposeRuntime)
     commonMainImplementation(libs.kotlinxCoroutinesCore)
 
