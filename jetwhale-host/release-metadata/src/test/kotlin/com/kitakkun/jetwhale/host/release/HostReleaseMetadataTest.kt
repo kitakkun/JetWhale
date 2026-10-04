@@ -61,6 +61,18 @@ class HostReleaseMetadataTest {
     }
 
     @Test
+    fun `answers deeply nested JSON with a result instead of overflowing the stack`() {
+        val nested = "[".repeat(10_000) + "]".repeat(10_000)
+        val metadata = sampleMetadata()
+
+        assertEquals(
+            HostReleaseMetadataResult.Read(metadata),
+            reader.read(metadata.encode().replaceFirst("{", """{ "x": $nested,""").toByteArray(), null),
+        )
+        assertIs<HostReleaseMetadataResult.Malformed>(reader.read("""{ "format": 1, "jvmArgs": $nested }""".toByteArray(), null))
+    }
+
+    @Test
     fun `reads nothing that the signature verifier does not trust`() {
         val metadata = sampleMetadata().encode().toByteArray()
         val signature = byteArrayOf(1, 2, 3)

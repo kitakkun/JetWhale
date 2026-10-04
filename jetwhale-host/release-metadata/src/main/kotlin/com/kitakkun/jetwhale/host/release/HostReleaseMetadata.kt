@@ -3,9 +3,6 @@ package com.kitakkun.jetwhale.host.release
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.intOrNull
 
 /**
  * The `jetwhale-host-<version>.json` asset of a release: what the launcher needs to verify and start
@@ -71,17 +68,10 @@ data class HostReleaseMetadata(
          * whose `format` is higher than [FORMAT] is refused instead of read with fields missing.
          */
         internal fun decode(text: String): HostReleaseMetadataResult {
-            val tree = try {
-                json.parseToJsonElement(text) as? JsonObject
-            } catch (e: SerializationException) {
-                return HostReleaseMetadataResult.Malformed(e.message.orEmpty())
-            } ?: return HostReleaseMetadataResult.Malformed("not a JSON object")
-            val format = (tree["format"] as? JsonPrimitive)?.intOrNull
-                ?: return HostReleaseMetadataResult.Malformed("no format number")
-            if (format > FORMAT) return HostReleaseMetadataResult.NewerFormat(format)
-
             val metadata = try {
-                json.decodeFromJsonElement(serializer(), tree)
+                val format = json.decodeFromString(MetadataFormat.serializer(), text).format
+                if (format > FORMAT) return HostReleaseMetadataResult.NewerFormat(format)
+                json.decodeFromString(serializer(), text)
             } catch (e: SerializationException) {
                 return HostReleaseMetadataResult.Malformed(e.message.orEmpty())
             } catch (e: IllegalArgumentException) {
@@ -101,6 +91,9 @@ data class HostReleaseMetadata(
             return HostReleaseMetadataResult.Read(metadata)
         }
     }
+
+    @Serializable
+    private class MetadataFormat(val format: Int)
 }
 
 /**
