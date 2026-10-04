@@ -31,7 +31,9 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
     /** Remembers that [job] was registered now, so its age counts from here. */
     fun registered(job: Job) {
         val registeredAt = timeSource.markNow()
-        registrations.updateAndGet { it + (WeakReference(job) to registeredAt) }
+        // No walk runs until a host activates the plugin, so registering is also where the jobs
+        // that finished or were collected before any walk reached them are let go.
+        registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.isCompleted == false } + (WeakReference(job) to registeredAt) }
     }
 
     fun walk(roots: Map<String, Job>, capturedAtEpochMillis: Long): CoroutineTree {

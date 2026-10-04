@@ -121,6 +121,20 @@ class JobTreeWalkerTest {
     }
 
     @Test
+    fun `a registration whose job completed before any walk is let go at the next registration`() = runTest {
+        val finished = Job()
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
+        walker.registered(finished)
+        finished.cancel()
+
+        clock += AGE_WAIT
+        walker.registered(Job())
+        val age = walker.walk(mapOf("finished" to finished), capturedAtEpochMillis = 0).roots.single().observedMillis
+
+        assertEquals(0L, age)
+    }
+
+    @Test
     fun `a coroutine noted by a sighting keeps that age when the tree is first asked for`() = runTest {
         val root = Job()
         val gate = CompletableDeferred<Unit>()
