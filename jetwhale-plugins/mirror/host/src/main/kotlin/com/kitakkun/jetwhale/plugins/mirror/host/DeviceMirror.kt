@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -564,7 +565,8 @@ internal class DeviceMirror(
     }
 
     /** Starts recording each of [targets] at once; one that fails to start leaves the others recording. */
-    suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
+    @VisibleForTesting
+    internal suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
         targets.map { device ->
             async {
                 try {

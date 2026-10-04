@@ -142,6 +142,7 @@ private const val PACE_WINDOW_NANOS = 2_000_000_000L
  * [KEPT_PACE_SHARE] of [requestedFps] over [windowNanos] mean the source is producing more than can
  * be passed on, and the backlog only grows.
  */
+@VisibleForTesting
 internal class ArrivalPace(private val requestedFps: Int, private val windowNanos: Long) {
     private var windowStart = -1L
     private var arrived = 0

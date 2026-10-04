@@ -129,12 +129,14 @@ private fun nodeToInfo(node: SemanticsNode): NodeInfo {
 }
 
 @Serializable
-data class AccessibilityTreeResult(
+@VisibleForTesting
+internal data class AccessibilityTreeResult(
     val nodes: List<NodeInfo>,
 )
 
 @Serializable
-data class NodeInfo(
+@VisibleForTesting
+internal data class NodeInfo(
     val id: Int,
     val role: String? = null,
     val text: String? = null,
@@ -150,7 +152,8 @@ data class NodeInfo(
 )
 
 @Serializable
-data class BoundsInfo(
+@VisibleForTesting
+internal data class BoundsInfo(
     val left: Float,
     val top: Float,
     val right: Float,

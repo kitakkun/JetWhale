@@ -90,6 +90,7 @@ internal fun ImageBodyBlock(body: String, mediaType: String?, url: String, trunc
 }
 
 /** A decoded image body: the original bytes (what gets saved) alongside the bitmap to draw. */
+@VisibleForTesting
 internal class DecodedImage(val bytes: ByteArray, val bitmap: ImageBitmap)
 
 /** Decodes a Base64 image body, or null when it is not Base64 or not a format Skia can read. */

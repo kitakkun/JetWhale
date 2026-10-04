@@ -144,6 +144,7 @@ private const val DISPLAY_READING_MAX_AGE_NANOS = 2_000_000_000L
  * One of an Android device's displays, by the two ids its tools take: `input` and `wm` its logical
  * id, and screencap and screenrecord the id of the panel behind it.
  */
+@VisibleForTesting
 internal data class AndroidDisplay(val logicalId: Int, val physicalId: String)
 
 /**

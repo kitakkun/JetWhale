@@ -16,6 +16,7 @@ import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 /** Where a running emulator's gRPC endpoint listens, and the token it accepts. */
+@VisibleForTesting
 internal class EmulatorEndpoint(val port: Int, val token: String?)
 
 /**

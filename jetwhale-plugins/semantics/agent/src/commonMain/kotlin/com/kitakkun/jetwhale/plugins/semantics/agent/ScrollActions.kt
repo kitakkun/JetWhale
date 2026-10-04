@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
@@ -120,6 +121,7 @@ internal object ScrollActions {
          * smaller of the two moves that would align either edge, and nothing on an axis where the
          * target already fits or overhangs the viewport on both sides.
          */
+        @VisibleForTesting
         internal fun scrollDeltaToReveal(target: Rect, viewport: Rect): Offset = Offset(
             x = leastAligningDelta(target.left - viewport.left, target.right - viewport.right),
             y = leastAligningDelta(target.top - viewport.top, target.bottom - viewport.bottom),
