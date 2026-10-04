@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.deeplinks.host
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatchKind
@@ -43,6 +44,7 @@ private fun hostMatches(declared: String, host: String): Boolean = when {
     else -> declared == host
 }
 
+@VisibleForTesting
 internal fun pathMatches(matcher: PathMatcher, path: String): Boolean = when (matcher.kind) {
     PathMatchKind.Exact -> path == matcher.value
 
