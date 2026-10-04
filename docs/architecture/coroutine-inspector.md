@@ -22,7 +22,8 @@ kotlinx.coroutines API.
 
 The agent pushes nothing. The host asks for the visible tab once a second while it is shown, so an
 app no one is inspecting pays only for what tracking itself costs: a clock read and a few atomic
-counter updates per dispatch or emission.
+counter updates per dispatch or emission, plus the `toString()` of each value a tracked flow emits,
+on the thread that collects it.
 
 ### Detail on request
 

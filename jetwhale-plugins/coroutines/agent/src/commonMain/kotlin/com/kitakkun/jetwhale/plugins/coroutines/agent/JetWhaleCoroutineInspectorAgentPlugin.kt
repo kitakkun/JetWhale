@@ -47,7 +47,8 @@ import kotlin.time.TimeSource
  * ```
  *
  * The host asks for everything while someone is looking; when no one is, tracking costs a clock
- * read and a few counter updates per dispatch or emission. While a host has the plugin active, the
+ * read and a few counter updates per dispatch or emission, plus the `toString()` of each value a
+ * tracked flow emits, on the thread that collects it. While a host has the plugin active, the
  * plugin also notes new coroutines every couple of seconds, so their ages are right by the time
  * someone opens the tree.
  */
