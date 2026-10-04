@@ -36,21 +36,28 @@ fun main(args: Array<String>) {
     val appDataOverride = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf(String::isNotBlank)
     val appData = appDataOverride?.let(Path::of) ?: Path.of(System.getProperty("user.home"), ".jetwhale")
     val versions = HostVersionsDirectory(appData.resolve("host"))
-    val launcher = createHostLauncher(arguments, versions, appDataOverride)
+    val log = FileLauncherLog(versions.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless)
 
-    val exitStatus = when (val outcome = launcher.launch(arguments.afterPid, arguments.retryVersion)) {
-        is LaunchOutcome.Started -> if (arguments.headless) outcome.process.waitForExit() else 0
+    val exitStatus = try {
+        val launcher = createHostLauncher(arguments, versions, appDataOverride, log)
+        when (val outcome = launcher.launch(arguments.afterPid, arguments.retryVersion)) {
+            is LaunchOutcome.Started -> if (arguments.headless) outcome.process.waitForExit() else 0
 
-        is LaunchOutcome.Neither, is LaunchOutcome.ActivatedRunningHost -> 0
+            is LaunchOutcome.Neither, is LaunchOutcome.ActivatedRunningHost -> 0
 
-        is LaunchOutcome.RunningHostUnreachable -> 1
+            is LaunchOutcome.RunningHostUnreachable -> 1
 
-        is LaunchOutcome.Crashed -> outcome.exitStatus
+            is LaunchOutcome.Crashed -> outcome.exitStatus
 
-        is LaunchOutcome.NothingLeft -> {
-            showNothingLeft(versions.logsDirectory, arguments.headless)
-            1
+            is LaunchOutcome.NothingLeft -> {
+                showError("JetWhale Debugger could not start any of its host versions.", versions.logsDirectory, arguments.headless)
+                1
+            }
         }
+    } catch (e: Throwable) {
+        log.write("Stopped by an unexpected error: ${e.stackTraceToString()}")
+        showError("JetWhale Debugger could not start: $e", versions.logsDirectory, arguments.headless)
+        1
     }
     exitProcess(exitStatus)
 }
@@ -59,6 +66,7 @@ private fun createHostLauncher(
     arguments: LauncherArguments,
     versions: HostVersionsDirectory,
     appDataOverride: String?,
+    log: LauncherLog,
 ): HostLauncher {
     val platformKey = checkNotNull(hostPlatformKey(System.getProperty("os.name"), System.getProperty("os.arch"))) {
         "JetWhale has no host for ${System.getProperty("os.name")} on ${System.getProperty("os.arch")}"
@@ -96,7 +104,7 @@ private fun createHostLauncher(
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
         ),
-        log = FileLauncherLog(versions.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless),
+        log = log,
         waitForProcessExit = ::waitForProcessExit,
     )
 }
@@ -130,9 +138,8 @@ private fun forwardReopensToHost(runningHost: RunningHostChannel) {
     )
 }
 
-private fun showNothingLeft(logs: Path, headless: Boolean) {
-    val message = "JetWhale Debugger could not start any of its host versions.\n\n" +
-        "Its logs are in $logs.\nThe latest release is at $RELEASES_PAGE."
+private fun showError(problem: String, logs: Path, headless: Boolean) {
+    val message = "$problem\n\nIts logs are in $logs.\nThe latest release is at $RELEASES_PAGE."
     if (headless || GraphicsEnvironment.isHeadless()) {
         System.err.println(message)
     } else {
