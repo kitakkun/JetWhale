@@ -19,9 +19,48 @@ internal fun interface ProcessLauncher {
 
 internal val SystemProcessLauncher = ProcessLauncher { command ->
     try {
-        ProcessBuilder(command).start()
+        ProcessBuilder(if (runsOnWindows) command.take(1) + command.drop(1).map(::windowsCommandLineArgument) else command).start()
     } catch (e: IOException) {
         throw DeviceControlException("failed to launch '${command.first()}': ${e.message}", e)
+    }
+}
+
+private val runsOnWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
+
+/**
+ * [argument] written so that a Windows program parsing its command line with the C runtime's
+ * rules, as adb and ffmpeg do, reads it back unchanged.
+ *
+ * On Windows the JDK joins the arguments into one command line and passes an argument holding a
+ * double quote as it is, so the program reads `\"` as an escaped quote and drops the backslash:
+ * the text that `adb shell input text` gets for `say "hi"` would reach the device shell with bare
+ * quotes, which it then removes. An argument with a quote is therefore quoted here, with each quote
+ * and the backslashes before it escaped; the JDK passes an argument that is already quoted as it is.
+ */
+internal fun windowsCommandLineArgument(argument: String): String {
+    if ('"' !in argument) return argument
+    return buildString {
+        append('"')
+        var backslashes = 0
+        for (character in argument) {
+            when (character) {
+                '\\' -> backslashes++
+
+                '"' -> {
+                    repeat(backslashes * 2 + 1) { append('\\') }
+                    append('"')
+                    backslashes = 0
+                }
+
+                else -> {
+                    repeat(backslashes) { append('\\') }
+                    append(character)
+                    backslashes = 0
+                }
+            }
+        }
+        repeat(backslashes * 2) { append('\\') }
+        append('"')
     }
 }
 
