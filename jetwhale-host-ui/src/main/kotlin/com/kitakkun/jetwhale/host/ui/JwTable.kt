@@ -217,8 +217,6 @@ public fun <T> JwTable(
 ) {
     FitColumnEffect(columns, columnState)
     val density = LocalDensity.current
-    // The row's width is read from the constraints, in the same composition that sizes the cells:
-    // one recorded after layout would lag a resize by a frame, and header and rows would disagree.
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val columnLayout = TableColumnLayout(columns = columns, state = columnState, rowWidth = maxWidth - JwSpacing.medium * 2)
         TableContent(
@@ -263,8 +261,6 @@ private fun <T> TableContent(
                     columnLayout = columnLayout,
                     modifier = Modifier.onSizeChanged { onHeaderCellSized(column.header, it.width) },
                 ) {
-                    // The handle overlaps the header's end rather than taking width from it: it is
-                    // invisible until hovered, and a narrow column needs every dp for its name.
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = column.contentAlignment()) {
                         JwText(
                             text = column.header,
@@ -431,8 +427,6 @@ private fun <T> RowScope.Cell(
         is JwColumnWidth.Fixed -> Modifier.width(width.width)
         is JwColumnWidth.Weight -> Modifier.weight(width.weight)
     }
-    // Reads the content's natural width only while this column is being fitted, so ordinary layout
-    // pays nothing for it.
     val columnState = columnLayout.state
     val fitProbe = Modifier.layout { measurable, constraints ->
         if (columnState.fitting == column.header) {
