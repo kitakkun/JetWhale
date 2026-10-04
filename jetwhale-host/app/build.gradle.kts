@@ -82,6 +82,11 @@ compose.desktop {
             }
             linux {
                 iconFile.set(file("src/main/resources/icon.png"))
+                // Debian sorts `~` below everything, even the end of the string, so 1.0.0~alpha13 <
+                // 1.0.0~alpha14 < 1.0.0 and apt upgrades from one pre-release to the next.
+                debPackageVersion = libs.versions.jetwhale.get().replace('-', '~')
+                menuGroup = "Development;Debugger;"
+                appCategory = "devel"
             }
         }
     }
