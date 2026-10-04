@@ -30,7 +30,7 @@ internal class ListTransactionsCommand(
         "Only include transactions whose request timestampMs is <= this epoch-millisecond value.",
     )
     private val urlContains by stringOrNull(
-        "Only include transactions whose URL contains this substring.",
+        "Only include transactions whose URL, as this tool returns it, contains this substring.",
     )
     private val method by stringOrNull(
         "Only include transactions with this HTTP method (case-insensitive).",
@@ -75,9 +75,9 @@ internal class ListTransactionsCommand(
         }
 
         return all.drop(afterIndex + 1)
-            .filter { urlContains == null || it.request.url.contains(urlContains) }
             .filter { method == null || it.request.method.equals(method, ignoreCase = true) }
             .filter { sinceTimestampMs == null || it.request.timestampMs >= sinceTimestampMs }
             .filter { untilTimestampMs == null || it.request.timestampMs <= untilTimestampMs }
+            .filter { urlContains == null || redactForMcp(it).request.url.contains(urlContains) }
     }
 }
