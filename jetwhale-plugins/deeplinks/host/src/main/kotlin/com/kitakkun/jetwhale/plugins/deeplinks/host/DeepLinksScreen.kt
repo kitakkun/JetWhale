@@ -153,5 +153,5 @@ private fun describe(matcher: PathMatcher): String = when (matcher.kind) {
     PathMatchKind.Prefix -> "${matcher.value}…"
     PathMatchKind.Suffix -> "…${matcher.value}"
     PathMatchKind.Pattern -> "pattern ${matcher.value}"
-    PathMatchKind.AdvancedPattern -> "regex ${matcher.value}"
+    PathMatchKind.AdvancedPattern -> "advanced pattern ${matcher.value}"
 }
