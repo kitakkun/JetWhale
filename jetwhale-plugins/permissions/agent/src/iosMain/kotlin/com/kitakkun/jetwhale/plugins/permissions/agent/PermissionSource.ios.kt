@@ -18,6 +18,7 @@ import platform.AVFoundation.authorizationStatusForMediaType
 import platform.AVFoundation.requestAccessForMediaType
 import platform.Contacts.CNAuthorizationStatusAuthorized
 import platform.Contacts.CNAuthorizationStatusDenied
+import platform.Contacts.CNAuthorizationStatusLimited
 import platform.Contacts.CNAuthorizationStatusNotDetermined
 import platform.Contacts.CNAuthorizationStatusRestricted
 import platform.Contacts.CNContactStore
@@ -206,13 +207,9 @@ private suspend fun locationStatus(): PermissionStatus = when (CLLocationManager
 
 private suspend fun contactsStatus(): PermissionStatus = when (CNContactStore.authorizationStatusForEntityType(CNEntityType.CNEntityTypeContacts)) {
     CNAuthorizationStatusAuthorized -> PermissionStatus.Granted
-
+    CNAuthorizationStatusLimited -> PermissionStatus.Limited
     CNAuthorizationStatusDenied -> PermissionStatus.Denied
-
     CNAuthorizationStatusRestricted -> PermissionStatus.Restricted
-
     CNAuthorizationStatusNotDetermined -> PermissionStatus.NotDetermined
-
-    // CNAuthorizationStatusLimited, iOS 18's limited access.
-    else -> PermissionStatus.Limited
+    else -> PermissionStatus.Denied
 }

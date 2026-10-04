@@ -212,7 +212,7 @@ private val SPECIAL_ACCESSES: Map<String, SpecialAccess> = mapOf(
     ),
     "android.permission.PACKAGE_USAGE_STATS" to SpecialAccess(
         isGranted = { appOpMode(it, AppOpsManager.OPSTR_GET_USAGE_STATS) == AppOpsManager.MODE_ALLOWED },
-        // ACTION_USAGE_ACCESS_SETTINGS documents no input, so it is not given the package Uri.
+        // ACTION_USAGE_ACCESS_SETTINGS documents no input, so it gets no package Uri.
         settingsIntent = { Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
     ),
     "android.permission.USE_FULL_SCREEN_INTENT" to SpecialAccess(
@@ -223,8 +223,8 @@ private val SPECIAL_ACCESSES: Map<String, SpecialAccess> = mapOf(
         isGranted = { Build.VERSION.SDK_INT < Build.VERSION_CODES.O || it.packageManager.canRequestPackageInstalls() },
         settingsIntent = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUriOf(it)) else null },
     ),
-    // Normal by protection level, so granted at install; the exemption it stands for is a switch
-    // the user toggles in the settings.
+    // A normal permission, so granted at install; the exemption it stands for is a switch the user
+    // toggles in the settings.
     "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" to SpecialAccess(
         isGranted = { it.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(it.packageName) },
         settingsIntent = { Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUriOf(it)) },

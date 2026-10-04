@@ -10,7 +10,7 @@ plugins {
 }
 
 // Gradle takes projects with the same group and name for one module and substitutes one for the
-// other, and every plugin has a `protocol` module, so each plugin has its own group.
+// other; every plugin has a `protocol` module, so each plugin has its own group.
 group = "com.kitakkun.jetwhale.plugins.permissions"
 
 kotlin {
