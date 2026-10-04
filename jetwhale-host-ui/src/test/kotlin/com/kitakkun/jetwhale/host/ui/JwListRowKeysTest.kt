@@ -100,6 +100,35 @@ class JwListRowKeysTest {
     }
 
     @Test
+    fun `the arrow keys walk onto and past a command row without running it, and Enter runs it`() = runComposeUiTest {
+        var selected by mutableStateOf<String?>(null)
+        var commandRuns = 0
+        setContent {
+            JwTheme(darkTheme = false) {
+                LazyColumn {
+                    item { JwListItem(text = "first", selected = selected == "first", onClick = { selected = "first" }) }
+                    item { JwListItem(text = "command", onClick = { commandRuns++ }) }
+                    item { JwListItem(text = "last", selected = selected == "last", onClick = { selected = "last" }) }
+                }
+            }
+        }
+
+        onNodeWithText("first").performClick()
+        press(Key.DirectionDown)
+        onNodeWithText("command").assertIsFocused()
+        press(Key.DirectionDown)
+        assertEquals("last", selected)
+        press(Key.DirectionUp)
+        press(Key.DirectionUp)
+        assertEquals("first", selected)
+        assertEquals(0, commandRuns)
+
+        press(Key.DirectionDown)
+        press(Key.Enter)
+        assertEquals(1, commandRuns)
+    }
+
+    @Test
     fun `right expands a collapsed tree row and left collapses an expanded one`() = runComposeUiTest {
         val collapsed = mutableStateListOf("parent")
         var selected by mutableStateOf<String?>(null)

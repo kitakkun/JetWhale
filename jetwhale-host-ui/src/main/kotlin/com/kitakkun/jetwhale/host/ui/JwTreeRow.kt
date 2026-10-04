@@ -62,8 +62,9 @@ private val ChevronSize = 14.dp
  * @param expandable whether the node has children to show.
  * @param expanded whether its children are showing; ignored when not [expandable].
  * @param selected whether this is the current node.
- * @param onClick what selecting the row does.
- * @param onToggleExpanded called when the chevron is clicked.
+ * @param onClick what selecting the row does. ↑/↓ moving onto the row runs it too, so it must select
+ * rather than act.
+ * @param onToggleExpanded called when the chevron is clicked, and on → or ← while the row has focus.
  * @param enabled false fades the row and ignores clicks, including the chevron's.
  * @param muted draws the row in the secondary text color while keeping it fully interactive — for
  * a node that exists but is not currently shown, say. Distinct from [enabled], which removes the
