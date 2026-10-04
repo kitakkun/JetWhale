@@ -1,0 +1,531 @@
+# Host updates — design
+
+The desktop host ships as a jpackage installer (`.dmg`, `.msi`, `.deb`), and it has no working way
+to update itself. This design makes the installer a launcher that is installed once, and moves
+updates to the host jar. The host finds a newer release, downloads its jar and verifies it. The
+launcher starts the newest good jar, and goes back to the previous one when a new one does not
+start.
+
+These points are decided: the launcher with a bundled runtime and a downloadable host jar, the
+update check and download in the host, the removal of Conveyor, and no Apple Developer ID. Two
+questions stay open: signing and channels. They are at the end, each with a recommendation.
+
+## Where things stand
+
+**Release assets.** A tag runs *Distribute Desktop Application*. It builds on three runners and
+attaches the results to a draft release, which is published by hand:
+
+| Platform | Installer | Host jar |
+|---|---|---|
+| macOS, Apple Silicon | `jetwhale-debugger-<version>-macos-arm64.dmg` | `jetwhale-host-<version>-macos-arm64.jar` |
+| Linux x64 | `jetwhale-debugger-<version>-linux-x64.deb` | `jetwhale-host-<version>-linux-x64.jar` |
+| Windows x64 | `jetwhale-debugger-<version>-windows-x64.msi` | `jetwhale-host-<version>-windows-x64.jar` |
+
+The jars are `packageUberJarForCurrentOS` uber jars of about 120 MB, each with `Main-Class` set and
+its own platform's skiko build. No checksum file is published; the API reports a
+`sha256:` digest for each asset, which GitHub computes on upload. There is no Intel macOS build.
+Every release is a prerelease, so `releases/latest` does not exist and the API answers 404.
+*Publish Snapshot* attaches the same three jars to a `<version>-SNAPSHOT` prerelease and
+overwrites them on each run.
+
+**Packaging.** `:jetwhale-host:app` is packaged by the Compose plugin's `nativeDistributions`.
+- The runtime image is Corretto 21 (the toolchain's vendor pin), with the modules Compose adds plus
+  `jdk.unsupported`, `java.naming`, `java.sql` and `java.instrument`. On macOS it is 79 MB.
+- It has no `bin/java`: Compose's jlink step passes `--strip-native-commands` and has no public
+  switch for it.
+- The packaged app runs with `-Dcompose.application.configure.swing.globals=true`,
+  `-Dapple.awt.application.appearance=system` and `-Dskiko.library.path=$APPDIR`, plus `-Xdock:name`
+  on macOS. There is no `--add-opens`.
+- `packageVersion` is the base version, because a DMG takes only `MAJOR[.MINOR][.PATCH]` and an MSI
+  only `MAJOR.MINOR.BUILD` (at most 255.255.65535). Every installer so far is therefore `1.0.0`.
+  [#389](https://github.com/kitakkun/JetWhale/pull/389) gives the `.deb` versions like
+  `1.0.0~alpha13`.
+
+**macOS signing.** The 1.0.0-alpha12 app bundle and every library in it are signed ad hoc
+(`flags=0x2(adhoc)`, no Team ID). The bundle has no hardened runtime and no entitlements, and it is
+not notarized, so `spctl` rejects it. A copy downloaded with a browser is quarantined, and its first
+launch is blocked until the user allows it. Since macOS 15, Control-click → Open no longer allows
+it. The user has to go to System Settings → Privacy & Security → Open Anyway, which the
+getting-started guide does not mention.
+
+Without the hardened runtime, library validation is off, so the JVM loads native libraries that
+someone else signed. This was checked on the alpha12 bundle's own runtime, started through its own
+launcher, with the alpha12 macOS jar on the class path and no `skiko.library.path`:
+- Skiko extracted its dylib, which carries JetBrains' Developer ID signature, into its data
+  directory and loaded it.
+- `ProcessBuilder` started a child process.
+
+The same bundle, re-signed ad hoc with the hardened runtime, got the JIT entitlements but not
+`disable-library-validation`. It refused to load even its runtime's own `libjli.dylib`: *mapping
+process and mapped file (non-platform) have different Team IDs*.
+
+**Update check.** `UpdateCheckService` reads Conveyor's `metadata.properties` from
+`releases/latest/download`, which fails for two reasons:
+- Nothing has built that file since [#160](https://github.com/kitakkun/JetWhale/pull/160) moved the
+  release workflow to jpackage.
+- There is no latest release.
+
+Its numeric mapping (`1.0.0-alpha08` → `1.0.0.8`) exists only for Conveyor.
+
+**Gradle plugin.** `downloadJetWhaleHost` builds the asset URL from `jetwhalePlugin.hostVersion`
+and the machine's `os-arch`. It caches the jar in `~/.jetwhale/dev-host/<version>/` and checks a
+snapshot again by ETag. It checks no hash.
+
+**App data.** `AppDataDirectoryProvider` roots everything at `~/.jetwhale`: `plugins/`,
+`dataStorePreferences/`, `plugin-data/`, `ssl/` and `trusted-plugins.json`. The Gradle tasks
+override the root with `jetwhale.appDataDir` for their sandboxes.
+
+**IDE plugin.** `idea-plugin` bundles the host's classes and runs them inside the IDE through
+`idea-host`. It is an IDE plugin (not published yet) and gets its updates the way IDE plugins do.
+It uses neither the installer nor the launcher, and nothing in this design affects it.
+
+## Goals
+
+- **An update takes one click and one restart.** No reinstall, no admin rights, no OS installer.
+- **No update is applied behind the user's back.** Some users keep an older host to match an older
+  agent SDK. The host offers an update, and the user downloads it and restarts.
+- **A bad update does not lock the user out.** A version that fails to start is set aside, and the
+  previous one runs.
+- **Only what a release published runs.** Every jar is checked against its release's metadata
+  before it is installed and before every start.
+- **No Apple Developer ID or Windows code-signing certificate is needed.**
+
+## Non-goals
+
+- **Updating the OS package.** The launcher, its runtime and its installer change only through a
+  reinstall. No installer runs silently.
+- **Delta updates.** Each version is a whole jar.
+- **Background downloads.** A download starts on the user's click.
+- **Plugin updates.** Plugins keep their own install and trust flow.
+- **Picking an older installed version from the UI.** An older release still runs with `java -jar`.
+
+## Shape
+
+```
+GitHub Releases: jetwhale-host-<v>.json (+ .sig), jetwhale-host-<v>-<os-arch>.jar
+      │ releases API, then download and verify
+      ▼
+host (child JVM) ── HostUpdateService ──▶ ~/.jetwhale/host/<v>/
+      ▲                                         │
+      │ starts the newest good jar,             │ verifies before each start
+      │ watches the startup window              ▼
+launcher (the OS package: runtime, launcher main, bundled host jar)
+```
+
+## Release metadata
+
+Each release carries `jetwhale-host-<version>.json`, written by the release job. If signing is
+adopted, `jetwhale-host-<version>.json.sig` comes with it.
+
+```json
+{
+  "format": 1,
+  "version": "1.0.0-alpha14",
+  "mainClass": "com.kitakkun.jetwhale.host.MainKt",
+  "launcherContract": 1,
+  "runtime": {
+    "javaFeatureVersion": 21,
+    "modules": ["java.desktop", "java.instrument", "java.naming", "java.sql", "jdk.unsupported"]
+  },
+  "jvmArgs": ["-Dcompose.application.configure.swing.globals=true"],
+  "platforms": {
+    "macos-arm64": {
+      "url": "https://github.com/kitakkun/JetWhale/releases/download/1.0.0-alpha14/jetwhale-host-1.0.0-alpha14-macos-arm64.jar",
+      "size": 125156159,
+      "sha256": "…",
+      "jvmArgs": ["-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"]
+    },
+    "linux-x64": { "url": "…", "size": 119133124, "sha256": "…", "jvmArgs": [] },
+    "windows-x64": { "url": "…", "size": 117418030, "sha256": "…", "jvmArgs": [] }
+  }
+}
+```
+
+- `version` equals the tag.
+- `launcherContract` is the launcher contract the host relies on: the system properties it reads,
+  the JVM argument forms, and the restart protocol. A launcher with a lower contract refuses the
+  version.
+- `runtime` gives the lowest Java feature version and the modules the host needs, which is the list
+  the build already declares for its runtime image.
+- `jvmArgs` holds the common arguments; each platform entry adds its own. Only the forms the
+  contract names are allowed: `-D…`, `--add-opens`, `--add-exports`, `--enable-native-access`,
+  `-Xdock:name` and `-Xmx`. Agents, `-XX:OnError`-style hooks, argument files and class-path options
+  are refused, so what a version can ask of the launcher stays explicit. A host on a newer JDK will
+  need `--enable-native-access=ALL-UNNAMED` for skiko and JNA, and this field is where that goes.
+- `platforms` uses the same `os-arch` keys as the Gradle plugin. Each `url` is exactly the asset
+  `downloadJetWhaleHost` fetches, so the Gradle plugin and the update service now read the same
+  asset names, and the names do not change. `downloadJetWhaleHost` could check the same hash later;
+  this design does not need it to.
+- Readers ignore unknown fields and refuse a `format` higher than they know.
+
+A Gradle task in the host build writes the part that is the same on every platform: version, main
+class, toolchain version, modules and JVM arguments. The metadata and the runtime image are then
+described in one place. The release job adds the platform entries from the jars it collected, and
+also attaches `SHA256SUMS` for every asset, for people who download installers by hand.
+
+## Version order
+
+A tag is `MAJOR.MINOR.PATCH`, optionally followed by `-alphaN`, `-betaN` or `-rcN`. Versions are
+compared on the three numbers, then by stage (alpha < beta < rc < no stage), then on N as a number:
+
+`1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0-beta1` < `1.0.0-rc1` < `1.0.0` < `1.0.1-alpha1`
+
+`alpha09` and `alpha9` are the same version, since the early tags are zero-padded. A tag that ends
+in `-SNAPSHOT`, or that does not parse, is never a candidate.
+
+Strict SemVer compares `alpha10` and `alpha9` as text and gets them backwards. A comparison of
+dotted numbers drops the suffix altogether. The order is therefore defined here and implemented
+once, in a module shared by the host, the launcher and the release job.
+
+## Launcher
+
+### What the package holds
+
+- **The runtime.** Corretto 21 as today, plus `bin/java` (`javaw.exe` on Windows) to start the
+  host with. Compose's jlink step has no switch to keep it, so the launcher build adds it to the
+  image Compose produces. If that proves brittle, the launcher build makes the image itself.
+- **Room for later hosts.** The runtime cannot change until a reinstall, so it carries modules a
+  later host may need: `java.net.http`, `java.management`, `jdk.management`, `jdk.attach`,
+  `jdk.zipfs`, `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`,
+  `java.scripting`, `java.security.jgss` and `jdk.httpserver`. With Corretto 21 on macOS they take
+  the image from 79 MB to 87 MB. All of `java.se` would make it 107 MB.
+- **The launcher's main.** A small Kotlin module whose only dependency is the shared metadata
+  module.
+- **The host jar of the same release, with its metadata.** It is the file attached to the release,
+  built in the same job.
+
+### Choosing a version
+
+On each start, the launcher goes through the bundled version and the directories under
+`~/.jetwhale/host/`, newest first:
+
+1. It skips a version that is set aside (see below) or that it refuses (see below).
+2. It verifies the rest: the metadata's signature, if signing is adopted, then the jar's size and
+   SHA-256 against the metadata. It deletes and logs a version that fails.
+3. It starts the first version that passes.
+
+The bundled version is part of the package the user installed and is not verified again, so the
+signing key is needed only in the release job. The bundled version is also the floor: it cannot be
+deleted, and its own launcher always runs it.
+
+```
+~/.jetwhale/host/
+  1.0.0-alpha15/         jetwhale-host-1.0.0-alpha15-macos-arm64.jar, release.json, release.json.sig
+  1.0.0-alpha14/         …
+  staging/               downloads in progress; the launcher never reads it
+  launcher-state.json    which versions completed a start, and startup failures
+  instance.lock, instance.json
+```
+
+After a version completes a start, the launcher keeps that version and the last one that completed
+a start before it. It deletes the other downloaded versions and everything older than the bundled
+version. On Windows a running host keeps its jar open, so a version still in use is deleted at a
+later start.
+
+### Starting the host
+
+```
+<runtime>/bin/java                      (javaw.exe on Windows, so no console window opens)
+  <jvmArgs from the metadata, common then platform>
+  -XX:ErrorFile=<app data>/logs/hs_err_pid%p.log
+  -Djetwhale.launcher.contract=1
+  -Djetwhale.launcher.executable=<path of the launcher>
+  -Djetwhale.launcher.hostDir=<app data>/host
+  [-Djetwhale.launcher.setAside=<version>]
+  -cp <jar> <mainClass> <the arguments the launcher received>
+```
+
+- `-XX:ErrorFile` writes native crash logs to the directory that the host's crash recovery
+  ([#293](https://github.com/kitakkun/JetWhale/pull/293), open) reads.
+- The launcher does not pass on the `skiko.library.path` that Compose's packaging sets for it. With
+  the property set, skiko loads its dylib from that directory only, and the launcher's directory
+  holds no dylib, or one from another skiko version. Without it, skiko extracts the dylib that
+  matches the jar into `~/.skiko/` and loads it (checked above).
+- `--headless`, `--plugin-dir` and the port options pass through.
+- The host's stdout and stderr go to files under `<app data>/logs/`, not to pipes, so the launcher
+  can exit while the host runs. The launcher writes its own decisions to `logs/launcher.log`, and a
+  failed start leaves its output behind.
+
+### Startup window and rollback
+
+A start fails when the host exits within N seconds of launch with a non-zero status or a signal.
+N is 30 seconds, the startup grace of #293's crash recovery, so the launcher and the host count the
+same crashes as startup crashes. The launcher waits out the window and then exits. With
+`--headless` it stays attached and returns the host's exit status, so a terminal or a service
+manager sees the host's lifetime.
+
+- **First starts.** A version that has never completed a start on this machine and fails two starts
+  in a row is set aside. The launcher starts the next candidate with `jetwhale.launcher.setAside`.
+  That host names the version that failed, links the log, and offers to try it again, which clears
+  the mark.
+- **Later crashes.** A version that has completed a start before is never set aside. Its later
+  crashes go to the host's crash recovery and its safe mode. Once the host has run on this machine,
+  a plugin is the likelier cause.
+- **Run markers.** #293's run markers should record the host version. Otherwise the host the
+  launcher falls back to counts the failed version's crashes as its own and starts in safe mode.
+- **Nothing left.** If no candidate remains, the launcher shows its only UI: a dialog with the log
+  location and the release page.
+
+### Single instance, reopen and restart
+
+Today the app's process is the host, so reopening the app on macOS brings its window forward. With
+the host as a child process, the launcher has to provide that:
+
+- **Reopen.** A host started by the launcher holds `instance.lock`, and writes a loopback endpoint
+  and a token to `instance.json`. A launcher that finds the lock held asks that host to bring its
+  window forward, then exits. On Windows and Linux this is new: today a second start runs a second
+  host, which silently loses the race for the ports.
+- **Restart to update.** The host starts `jetwhale.launcher.executable` with `--after <pid>`, then
+  exits normally. The new launcher waits for that process to end, so the lock and the ports are
+  free, and then chooses as usual. The new version is the newest one.
+- **No restart.** If the user does not restart, the next normal start runs the new version.
+
+The launcher could stay alive instead. On macOS it would then be the process the system ties to the
+app bundle, so a reopen would reach the launcher rather than the window, and it would keep a second
+JVM resident.
+
+### What the launcher refuses
+
+The launcher does not start a version, and tries the next candidate, when:
+- its `launcherContract` is higher than the launcher's;
+- it needs a higher Java feature version than the runtime has, or a module the runtime lacks;
+- it has no entry for this platform, or asks for a JVM argument outside the contract's forms;
+- its signature or hash does not verify.
+
+The host checks the same conditions before it offers a download. It runs on the launcher's runtime
+and reads the contract from the system property, so a refusal at start is rare; it happens, for
+instance, when versions are left in the cache from a newer install. When the newest release is one
+this launcher cannot run, the host does not download it. It says the release needs a new installer
+and links the release page. A reinstall is the only fix for the runtime and the contract: the
+launcher never replaces itself.
+
+## Host update service
+
+A `HostUpdateService` (release lookup, download, verification) and a repository for the version
+directories replace `UpdateCheckService`, as `agents/rules/jetwhale-host-architecture.md` asks. The
+UI reaches them through soil keys, as it does today.
+
+- **When.** On startup when *Check for updates on startup* is on, and when the user asks.
+- **Lookup.** `GET https://api.github.com/repos/kitakkun/JetWhale/releases?per_page=30`,
+  unauthenticated. Each check is one request, well under GitHub's limit of 60 an hour per address.
+  The candidate is the highest release above the running version that is not a draft, whose tag
+  parses, and that carries the metadata asset. Snapshots, and releases from before this design,
+  have no metadata and drop out.
+- **Check.** The service fetches the metadata and its signature, verifies them, and checks the
+  release against the running launcher (see above).
+- **Download.** It starts on the user's click and shows progress and a cancel button. The jar goes
+  into `host/staging/` and is checked on size first, then on SHA-256. The finished directory is
+  renamed into `host/<version>/`, so the launcher never sees half a version.
+- **Offer.** The user can restart to update, or keep working; the next start runs the new version.
+- **Failures.** A rate limit, no network, or a hash mismatch shows in the Updates section and never
+  blocks startup.
+
+Without `jetwhale.launcher.contract`, the host was not started by the launcher, and the service
+downloads nothing. In the IDE the Updates section and the banner are hidden, because the plugin is
+updated as an IDE plugin. For `java -jar` and the Gradle tasks, the service only links to the
+release page.
+
+## Verification and security
+
+- **The metadata decides what runs.** The jar must match the metadata's size and SHA-256 after the
+  download and before every start. Hashing the 125 MB macOS jar took 0.1–0.2 s here, which is small
+  next to the host's own start.
+- **A hash without a signature** proves the jar is the one the release lists, with no corruption or
+  truncation. It does not prove that the release is ours.
+- **GitHub's per-asset digest** is computed from whatever was uploaded. It guards the transfer, not
+  against a replaced asset. The metadata's hash is the one that counts.
+- **Immutable releases are off** (`immutable: false` on 1.0.0-alpha12). With GitHub's immutable
+  releases on, assets and tags cannot change once a release is published. The draft flow works
+  with it, because CI attaches everything before the release is published.
+- **The launcher's reach is limited.** It never writes into the installed package and needs no
+  elevation. It runs only the bundled jar or a verified version directory under
+  `~/.jetwhale/host/`, with paths resolved canonically, as `isManagedPluginJarPath` does for
+  plugins.
+- **The OS does not check downloads.** The host writes them, not a browser, so on macOS they carry
+  no quarantine attribute and on Windows no Mark of the Web. Gatekeeper and SmartScreen never see
+  them; the JVM reads a jar as data.
+
+## Platform notes
+
+### macOS without a Developer ID
+
+- The package stays signed ad hoc without the hardened runtime, as today. After each reinstall, the
+  first launch needs Open Anyway once.
+- A downloaded jar's native libraries load as they do today (checked above), and the rule that
+  keeps it so is about the hardened runtime. With an ad-hoc signature, the hardened runtime needs
+  `com.apple.security.cs.disable-library-validation`, or nothing loads, not even the runtime's own
+  libraries. Compose's default entitlements include it, along with `allow-jit` and
+  `allow-unsigned-executable-memory`, for the day the build is signed.
+- The host runs as `Contents/runtime/Contents/Home/bin/java`. That is the same nested runtime bundle
+  as `jspawnhelper`, which today's host already executes, under the app's Gatekeeper approval,
+  every time it starts a child process such as `adb`. Phase 2 confirms that `bin/java` gets the
+  same treatment, with an install downloaded through a browser.
+- The launcher's bundle is `LSUIElement`, so the launcher has no Dock tile. The host's tile belongs
+  to the host's own process. The host already sets its name and icon at runtime
+  (`configureAppMetadata`), and the metadata's `-Xdock:name` sets the name from the first frame. A
+  pinned JetWhale Debugger tile and the running host are therefore two tiles (see Risks).
+
+### Windows
+
+- **The MSI version matters only for reinstalls.** The MSI is installed once, so its version comes
+  into play only when one MSI is installed over another: a launcher reinstall, or a user who
+  prefers installers. jpackage derives the ProductCode from the vendor, name and version, so to
+  Windows Installer two MSIs of the same version are the same product. The second one stops with
+  *Another version of this product is already installed*. Every MSI so far is `1.0.0`, so today a
+  Windows user has to uninstall before installing the next alpha.
+- **Proposed scheme.** jpackage's template allows both upgrades and downgrades between different
+  versions, so a distinct version per release is enough, and an ordered one costs nothing more.
+  Compose's `msiPackageVersion` would be `MAJOR.MINOR.(PATCH × 1000 + S)`, where S is 100 + N for
+  alphaN, 300 + N for betaN, 500 + N for rcN and 900 for a final release. `1.0.0-alpha14` becomes
+  `1.0.114`, `1.0.0` becomes `1.0.900`, and `1.0.1-alpha1` becomes `1.0.1101`. This stays within
+  MSI's limit of 65535 up to patch 64. The first MSI on this scheme is the first one not at
+  `1.0.0`, and it replaces an old install instead of failing.
+- The MSI installs per machine into Program Files, so all mutable state lives in the user's
+  `~/.jetwhale`.
+- SmartScreen warns about the unsigned MSI at install, as it does today.
+
+### Linux
+
+- The `.deb` keeps #389's version: the catalog version with `~` (`1.0.0~alpha13`), and no epoch.
+  apt sees a new `.deb` only when the launcher is reinstalled. #389's order still makes that an
+  upgrade, and #389's reasons against an epoch only get stronger. The one-time downgrade prompt for
+  users of a `1.0.0`-versioned alpha comes with the first release that carries the new version.
+- The package is installed under `/opt` and owned by root, so state lives in `~/.jetwhale`.
+
+## Migration
+
+Hosts installed from today's packages cannot hear about the launcher, because their update check
+never succeeds. The release that introduces the launcher asks for one reinstall, in its notes, the
+README and the getting-started guide:
+- **macOS.** Replace the app in Applications from the new `.dmg`, then use Open Anyway once.
+- **Windows.** Install the new `.msi`. With the version scheme above it replaces the old install;
+  without it, the user has to uninstall first.
+- **Linux.** Run `sudo apt install ./jetwhale-debugger-<version>-linux-x64.deb`. Coming from a
+  `1.0.0`-versioned alpha, the user confirms the downgrade prompt once (#389).
+
+Settings, plugins and the trust registry in `~/.jetwhale` stay untouched, and `~/.jetwhale/host/`
+is new. `runJetWhale` and the IDE plugin are not affected.
+
+## Removing Conveyor
+
+Conveyor has been dead code since #160. Its removal is a separate PR and can land first. It removes:
+- `conveyor.conf` and the Conveyor Gradle plugin;
+- the numeric project version in `jetwhale-host/app/build.gradle.kts`, which exists for Conveyor
+  and also names today's app jar (`app-1.0.0.12-….jar`);
+- the four platform dependencies that only Conveyor resolves (`linuxAmd64`, `macAmd64`,
+  `macAarch64`, `windowsAmd64`);
+- `conveyor` and `conveyorControl` from the version catalog, and `conveyor-control` from
+  `core:data`;
+- the update check built on Conveyor: `UpdateCheckService` and its numeric mapping, the check and
+  install mutation keys, the startup check and its setting, the banner, and the Updates section.
+  Phase 3 brings the section back on the new service.
+
+The Corretto vendor pin stays, because it still chooses the runtime that jpackage bundles. Only its
+comment mentions Conveyor.
+
+## Open decisions
+
+### Signing the release metadata
+
+**Recommendation: Ed25519, minisign-style.**
+- **What is signed.** CI signs the metadata file with a detached Ed25519 signature. The jar hashes
+  inside it extend the signature to the jars, so each release signs one small file.
+- **The keys.** The private key is a CI secret in an environment that only tag builds can use, and
+  only the release job reads it. The public keys are compiled into the launcher and the host. The
+  signature names its key, so a second key, kept offline, can be embedded from the start. It takes
+  over without a reinstall if the first key is lost or leaked.
+- **Verification.** The JDK verifies Ed25519 itself with `Signature.getInstance("Ed25519")`, so the
+  launcher needs no crypto library. On JDK 21 the provider is in `jdk.crypto.ec`, which the runtime
+  already includes.
+- **Tooling.** By default, minisign signs a BLAKE2b prehash, which the JDK cannot compute. Signing
+  the file itself keeps verification inside the JDK; minisign's legacy mode or
+  `openssl pkeyutl -rawin` does that.
+
+What it buys: a replaced release asset, a leaked token with `contents: write`, or a jar placed in
+`~/.jetwhale/host/` by local software no longer runs, because the launcher refuses metadata without
+a valid signature.
+
+**Alternative: SHA-256 only.** There is no key to guard, rotate or lose. But the hashes come from
+the same release as the jars, so they catch corruption and truncated downloads, not someone who can
+change the release. Anyone who can publish a release can then make every launcher run their code at
+its next restart.
+
+### Channels
+
+**Recommendation: all releases now, stages later.**
+- **Now.** Every release is a prerelease, so there is nothing to choose between yet, and GitHub's
+  prerelease flag tells nothing apart.
+- **Later.** Once a final release exists, the channel follows from the version's stage, and the
+  metadata needs no field for it. A setting with *Stable*, *Beta and stable* and *All* then
+  defaults to the stage of the installed version, so a user on a stable release stays on stable.
+
+## Testing
+
+- **Shared module.**
+  - The version order: the chain above, `alpha09` = `alpha9`, and no snapshot or unparseable tag
+    as a candidate.
+  - Metadata parsing: unknown fields, and a higher `format`.
+  - Signature checks with a test key pair: valid, tampered, and wrong key.
+  - The JVM argument forms.
+  - Release selection from recorded API responses: drafts, snapshots, missing metadata, and a
+    missing platform.
+- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0, exit
+  1 at once, crash after the window, or sleep. The tests cover selection, setting aside, the
+  bundled floor, `--after`, the instance lock and pruning. Processes, file locks and renames behave
+  differently on Windows, so this module's tests run on all three runners.
+- **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today. The
+  cases: rate limits, redirects to the asset host, size and hash mismatches, an interrupted
+  download, and the rename out of staging.
+- **Release job.** Before attaching anything, the job checks the metadata it just wrote with the
+  launcher's own verifier.
+- **Packages, by hand on each OS,** from a build-only run of *Distribute Desktop Application*:
+  - a fresh install;
+  - an update from a local release source signed with a test key;
+  - restart to update;
+  - a rollback with a jar that fails on purpose;
+  - a refusal for a version that needs a newer runtime;
+  - reopening while the host runs;
+  - on macOS, an install downloaded through a browser.
+
+  A system property points the release source elsewhere for these runs. The production public key
+  is compiled in, and the test key exists only in test builds.
+
+## Plan
+
+1. **Release metadata and checksums in CI.**
+   - The shared module: the metadata model, the version order and the verifier.
+   - The host-build task for the part that is the same on every platform.
+   - The release job adds the platform entries, writes `SHA256SUMS`, signs if that is decided,
+     verifies, and attaches.
+
+   Nothing reads the metadata yet, so this phase can ship on its own, and the releases it covers
+   become the first update targets.
+2. **Launcher.**
+   - The launcher module, and the packages built from it: the bundled uber jar and its metadata,
+     `bin/java` and the extra modules, and `LSUIElement` on macOS.
+   - The MSI version scheme. It can also go earlier on its own, because it already fixes installing
+     over an earlier alpha.
+   - On the host side: the launcher properties, the instance lock and activation, `--after`, and
+     the version in #293's run markers.
+3. **Host update service and UI.** `HostUpdateService`, the version repository, the Updates section
+   and the banner, and the set-aside and refusal messages. All of it is hidden in the IDE.
+4. **Conveyor removal.** As described above. It can go first.
+
+Phases 2 and 3 ship in the same release. A launcher whose host cannot download updates would force
+its users to reinstall a second time to get phase 3. The merge order is 1 → 2 → 3, with the release
+after 3; phase 4 can land at any point, first included.
+
+## Risks
+
+- **Two Dock tiles on macOS.** A pinned tile belongs to the launcher and shows no running indicator,
+  while the host gets a tile of its own. Windows has the same split: the host's window groups under
+  `javaw.exe`, apart from a pinned shortcut. Phase 2 judges this on real machines.
+- **A rollback runs an older host on data a newer one wrote.** DataStore Preferences ignores
+  unknown keys. The JSON stores (the trust registry, plugin data) have to decode with unknown keys
+  ignored, and a file format change needs a version guard rather than a rewrite in place.
+- **The runtime is fixed at install.** A host that needs a newer Java, or a module the runtime
+  lacks, needs a reinstall. The extra modules make that rare, and the check before download makes
+  it clear.
+- **GitHub API limits.** 60 unauthenticated requests an hour per address can run out behind a
+  shared NAT. A failed check is shown and changes nothing.
+- **Disk.** Up to three host versions of about 120 MB each: the bundled one and two downloaded.
