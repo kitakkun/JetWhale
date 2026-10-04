@@ -29,7 +29,6 @@ private class DeepLinkHostPlugin :
 
     private val browser by lazy { DeepLinkBrowser(client = this, scope = pluginScope) }
 
-    // The catalog changes only when the app is rebuilt, so one fetch per connection is enough.
     override suspend fun onPrepare() {
         browser.load()
     }

@@ -8,15 +8,12 @@ import android.content.res.XmlResourceParser
 import android.os.Build
 import org.xmlpull.v1.XmlPullParser
 
-// PackageManager cannot list intent filters: GET_INTENT_FILTERS is documented as unsupported for
-// installed packages and ActivityInfo carries none. The app's own compiled manifest is readable
-// in-process, though, and holds every filter exactly as merged at build time.
 internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
     val context = currentApplicationOrNull()
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's Context was not reachable, so its manifest could not be read."))
     val verification = appLinkVerificationStates(context)
-    // openXmlResourceParser(String) is API 1 and XmlResourceParser is AutoCloseable from API 19, both
-    // within minSdk 23.
+    // PackageManager exposes no intent filters (ActivityInfo carries none), so they are read from
+    // the app's compiled manifest, which holds them as merged at build time.
     val links = context.assets.openXmlResourceParser("AndroidManifest.xml").use { parser ->
         declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), verificationOf = verification::get)
     }
@@ -38,8 +35,8 @@ private fun manifestEvents(parser: XmlResourceParser, context: Context): Sequenc
 
 private fun attributesOf(parser: XmlResourceParser, context: Context): Map<String, String> = (0 until parser.attributeCount).associate { index ->
     val value = parser.getAttributeValue(index)
-    // A `@string/...` reference arrives as "@<id>"; the link needs the string it names.
     val resourceId = parser.getAttributeResourceValue(index, 0)
+    // The compiled manifest gives a `@string/...` reference as "@<id>", not the string it names.
     val resolved = if (value.startsWith("@") && resourceId != 0) {
         runCatching { context.resources.getString(resourceId) }.getOrDefault(value)
     } else {

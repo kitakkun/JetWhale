@@ -23,9 +23,9 @@ internal fun declarationsMatching(url: String, declared: List<DeclaredDeepLink>)
         throw IllegalArgumentException("'$url' is not a valid URL: ${e.reason}", e)
     }
     val scheme = requireNotNull(uri.scheme) { "'$url' has no scheme" }.lowercase()
+    // java.net.URI reads the first segment of a custom-scheme link like myapp://item/42 as its
+    // host, as Android does.
     val host = uri.host?.lowercase()
-    // A custom scheme URL like myapp://item/42 parses its first segment as the host, as Android does.
-    // Android matches paths after decoding, so /item/%66oo is /item/foo.
     val path = uri.path.orEmpty()
     return declared.filter { link ->
         scheme in link.schemes.map(String::lowercase) &&
@@ -36,25 +36,16 @@ internal fun declarationsMatching(url: String, declared: List<DeclaredDeepLink>)
 
 private fun hostMatches(declared: String, host: String): Boolean = when {
     declared == "*" -> true
-
-    // As Android's AuthorityEntry: the text after `*` must end the host, so `*.example.com` does not
-    // match example.com itself.
     declared.startsWith("*") -> host.endsWith(declared.removePrefix("*"))
-
     else -> declared == host
 }
 
 @VisibleForTesting
 internal fun pathMatches(matcher: PathMatcher, path: String): Boolean = when (matcher.kind) {
     PathMatchKind.Exact -> path == matcher.value
-
     PathMatchKind.Prefix -> path.startsWith(matcher.value)
-
     PathMatchKind.Suffix -> path.endsWith(matcher.value)
-
     PathMatchKind.Pattern -> simpleGlobToRegex(matcher.value).matches(path)
-
-    // Close enough to a regular expression for checking a draft; the device has the final word.
     PathMatchKind.AdvancedPattern -> runCatching { Regex(matcher.value).matches(path) }.getOrDefault(false)
 }
 
@@ -84,7 +75,6 @@ private fun simpleGlobToRegex(pattern: String): Regex {
     return Regex(regex.toString())
 }
 
-// One character at a time rather than Regex.escape's \Q...\E, so a following `*` repeats exactly it.
 private fun StringBuilder.appendLiteral(char: Char) {
     if (!char.isLetterOrDigit()) append('\\')
     append(char)
@@ -97,11 +87,8 @@ private fun StringBuilder.appendLiteral(char: Char) {
  */
 internal fun sampleUrlOf(link: DeclaredDeepLink): String? {
     val scheme = link.schemes.first()
-    // A declaration without hosts accepts any, but a link still needs one to be a link.
     val host = link.hosts.firstOrNull()?.let { it.concreteHost() + (it.port?.let { port -> ":$port" } ?: "") } ?: "example"
     val paths = if (link.paths.isEmpty()) listOf("") else link.paths.mapNotNull(::samplePathOf)
-    // Every candidate is checked against the declaration itself, so a sample is never shown that
-    // the declaration rejects.
     return paths.map { "$scheme://$host$it" }.firstOrNull { candidate ->
         try {
             link in declarationsMatching(candidate, listOf(link))
@@ -111,7 +98,6 @@ internal fun sampleUrlOf(link: DeclaredDeepLink): String? {
     }
 }
 
-// `*` matches any host and `*.example.com` only its subdomains, so neither can stand for itself.
 private fun DeepLinkHost.concreteHost(): String = when {
     host == "*" -> "example.com"
     host.startsWith("*.") -> "www" + host.removePrefix("*")
@@ -121,12 +107,8 @@ private fun DeepLinkHost.concreteHost(): String = when {
 
 private fun samplePathOf(matcher: PathMatcher): String? = when (matcher.kind) {
     PathMatchKind.Exact, PathMatchKind.Prefix -> matcher.value
-
     PathMatchKind.Suffix -> "/" + matcher.value.removePrefix("/")
-
     PathMatchKind.Pattern -> sampleOfGlob(matcher.value)
-
-    // A regular expression has no general sample; its literal start is tried and kept only if it matches.
     PathMatchKind.AdvancedPattern -> matcher.value.takeWhile { it.isLetterOrDigit() || it in "/-_~" }.takeIf { pathMatches(matcher, it) }
 }
 

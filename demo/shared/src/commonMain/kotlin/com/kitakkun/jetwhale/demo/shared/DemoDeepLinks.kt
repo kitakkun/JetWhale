@@ -35,7 +35,6 @@ object DemoDeepLinks {
 fun navKeyForDeepLink(url: String): NavKey? {
     val scheme = url.substringBefore("://", missingDelimiterValue = "")
     val segments = url.substringAfter("://").substringBefore('?').split('/').filter(String::isNotEmpty)
-    // A custom scheme's first segment is the route; an https link's first segment is its host.
     val route = if (scheme == "https") segments.drop(1) else segments
     return when (route.firstOrNull()) {
         "item" -> route.getOrNull(1)?.let { DemoDetailKey(itemId = it) }

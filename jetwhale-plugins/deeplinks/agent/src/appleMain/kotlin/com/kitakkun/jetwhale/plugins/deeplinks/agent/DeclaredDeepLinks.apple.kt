@@ -18,8 +18,6 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
             autoVerify = false,
         )
     }
-    // Associated domains live in the code signature's entitlements, which an app cannot read about
-    // itself at runtime.
     return DeclaredDeepLinks(
         links = links,
         notes = listOf("Universal links are not listed: associated domains cannot be read at runtime. Register them as templates."),

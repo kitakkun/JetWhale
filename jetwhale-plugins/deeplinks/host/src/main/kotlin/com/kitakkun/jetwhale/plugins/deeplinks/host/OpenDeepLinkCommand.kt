@@ -22,7 +22,6 @@ internal class OpenDeepLinkCommand(
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val link = arguments[url]
         val declared = client.catalog().declared
-        // A link that is not even a URL is still sent: the platform's own refusal is the answer.
         val matched = try {
             declarationsMatching(link, declared)
         } catch (_: IllegalArgumentException) {

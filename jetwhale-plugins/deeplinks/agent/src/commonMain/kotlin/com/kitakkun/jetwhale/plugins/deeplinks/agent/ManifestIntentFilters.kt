@@ -45,7 +45,7 @@ internal fun declaredDeepLinksOf(
                 "intent-filter" -> filter = component?.let { FilterBuilder(handler = it, autoVerify = event.attributes["autoVerify"] == "true") }
                 "action" -> event.attributes["name"]?.let { filter?.actions?.add(it) }
                 "category" -> event.attributes["name"]?.let { filter?.categories?.add(it) }
-                "data" -> filter?.add(event.attributes)
+                "data" -> filter?.addData(event.attributes)
             }
 
             is ManifestEvent.End -> when (event.tag) {
@@ -75,8 +75,7 @@ private class FilterBuilder(private val handler: String, private val autoVerify:
     private val hosts = mutableListOf<Pair<String, String?>>()
     private val paths = mutableListOf<PathMatcher>()
 
-    // Android merges every <data> element of a filter, whichever attributes each one carries.
-    fun add(attributes: Map<String, String>) {
+    fun addData(attributes: Map<String, String>) {
         attributes["scheme"]?.let(schemes::add)
         attributes["host"]?.let { hosts += it to attributes["port"] }
         PATH_ATTRIBUTES.forEach { (attribute, kind) -> attributes[attribute]?.let { paths += PathMatcher(kind, it) } }

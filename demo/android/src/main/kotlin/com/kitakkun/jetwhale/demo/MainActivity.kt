@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    // singleTask: a link opened while the demo runs arrives here instead of starting a second copy.
+    // singleTask: a link opened while the demo runs arrives here, not in a second copy.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.data?.let { DemoDeepLinks.handle(it.toString()) }

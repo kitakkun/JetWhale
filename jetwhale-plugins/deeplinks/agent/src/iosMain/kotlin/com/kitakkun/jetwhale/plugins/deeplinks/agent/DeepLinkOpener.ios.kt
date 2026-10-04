@@ -17,7 +17,7 @@ private object IosDeepLinkOpener : DeepLinkOpener {
     override suspend fun open(url: String): DeepLinkOpenResult {
         val nsUrl = NSURL.URLWithString(url) ?: return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "'$url' is not a valid URL")
         // An https link would otherwise open in Safari; universal-links-only routes it to the app
-        // that claims the domain, and fails instead when none does.
+        // that claims the domain, and fails when none does.
         val options: Map<Any?, *> = if (nsUrl.scheme == "https" || nsUrl.scheme == "http") mapOf(UIApplicationOpenURLOptionUniversalLinksOnly to true) else emptyMap<Any?, Any>()
         val opened = withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { continuation ->

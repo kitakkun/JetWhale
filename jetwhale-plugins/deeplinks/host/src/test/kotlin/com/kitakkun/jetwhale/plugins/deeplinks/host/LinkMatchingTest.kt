@@ -107,7 +107,6 @@ class LinkMatchingTest {
 
         assertTrue(pathMatches(pattern, "/shop/shoes/detail"))
         assertFalse(pathMatches(pattern, "/shop/shoes/list"))
-        // `*` repeats only the character before it, so `a*` is not "a followed by anything".
         assertTrue(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a*b"), "/aaab"))
         assertFalse(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a*b"), "/axb"))
     }

@@ -14,8 +14,8 @@ private object AndroidDeepLinkOpener : DeepLinkOpener {
     override suspend fun open(url: String): DeepLinkOpenResult {
         val context = currentApplicationOrNull()
             ?: return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "the app's Context was not reachable")
-        // Restricted to this app, so a link another app also claims never opens a chooser or leaves;
-        // BROWSABLE, as a browser adds, so a filter the app keeps internal is not reached from here.
+        // Without setPackage a link another app also claims opens a chooser; BROWSABLE is what a
+        // browser adds, so a filter the app keeps internal stays unreachable from here.
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             .addCategory(Intent.CATEGORY_BROWSABLE)
             .setPackage(context.packageName)
