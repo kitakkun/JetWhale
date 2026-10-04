@@ -7,8 +7,11 @@ import androidx.compose.runtime.Composition
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -18,6 +21,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -38,6 +42,15 @@ class TrackCompositionCoroutinesTest {
             val names = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::nameOrNull)
 
             assertEquals(setOf("polling", "button-work"), names.toSet())
+        }
+    }
+
+    @Test
+    fun `coroutines that state producers and subcompositions start are listed under the registered name`() = runTest {
+        composing({ ScreenWithStateProducersAndSubcomposition() }) {
+            val names = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::nameOrNull)
+
+            assertEquals(setOf("produced", "collected", "item-poll"), names.toSet())
         }
     }
 
@@ -96,6 +109,14 @@ class TrackCompositionCoroutinesTest {
         LaunchedEffect(Unit) { withContext(CoroutineName("polling")) { awaitCancellation() } }
         val scope = rememberCoroutineScope()
         LaunchedEffect(scope) { scope.launch(CoroutineName("button-work")) { awaitCancellation() } }
+    }
+
+    @Composable
+    private fun ScreenWithStateProducersAndSubcomposition() {
+        inspector.TrackCompositionCoroutines(name = "Compose")
+        produceState(0) { withContext(CoroutineName("produced")) { awaitCancellation() } }
+        remember { MutableStateFlow(0) }.collectAsState(context = CoroutineName("collected"))
+        Subcomposition { LaunchedEffect(Unit) { withContext(CoroutineName("item-poll")) { awaitCancellation() } } }
     }
 
     private suspend fun TestScope.composing(content: @Composable () -> Unit, check: suspend (FrameDriver) -> Unit) {
