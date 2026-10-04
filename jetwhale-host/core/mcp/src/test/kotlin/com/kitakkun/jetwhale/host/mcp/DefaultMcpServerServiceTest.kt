@@ -252,6 +252,31 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    fun `a plugin tool called without a sessionId answers with the sessions it runs in`() = runBlocking {
+        val testPluginId = "com.example.test"
+        val testSessionId = "test-session-listed"
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin()),
+        )
+
+        service.start(host, port)
+        try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val result = client.callTool("com.example.test.greet", mapOf("name" to "World"))
+
+                val text = result.content.filterIsInstance<TextContent>().first().text
+                assertTrue("'sessionId' is required" in text, text)
+                assertTrue(testSessionId in text, text)
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
         val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 1)
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
