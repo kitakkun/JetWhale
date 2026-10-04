@@ -75,9 +75,11 @@ internal class ListTransactionsCommand(
         }
 
         return all.drop(afterIndex + 1)
+            // Only the URL is matched, so the bodies are left out: redacting one parses and
+            // re-serializes it.
+            .filter { urlContains == null || redactForMcp(HttpTransaction(it.request.copy(body = null))).request.url.contains(urlContains) }
             .filter { method == null || it.request.method.equals(method, ignoreCase = true) }
             .filter { sinceTimestampMs == null || it.request.timestampMs >= sinceTimestampMs }
             .filter { untilTimestampMs == null || it.request.timestampMs <= untilTimestampMs }
-            .filter { urlContains == null || redactForMcp(it).request.url.contains(urlContains) }
     }
 }
