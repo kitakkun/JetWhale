@@ -74,7 +74,7 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
 
     private fun remember(sightings: Map<Job, Sighting>) {
         seen = sightings.map { (job, sighting) -> WeakReference(job) to sighting }
-        registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.let { it !in sightings } == true } }
+        registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.let { !it.isCompleted && it !in sightings } == true } }
     }
 
     private fun newSighting(job: Job): Sighting {
