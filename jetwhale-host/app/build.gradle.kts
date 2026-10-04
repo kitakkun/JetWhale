@@ -33,6 +33,7 @@ val generateBuildConfig by tasks.registering {
 compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
+        jvmArgs("-Dapple.awt.application.appearance=system")
         nativeDistributions {
             packageName = "JetWhale Debugger"
             copyright = "© 2026 kitakkun"
@@ -55,10 +56,6 @@ compose.desktop {
                 TargetFormat.Msi,
                 TargetFormat.Deb,
             )
-            jvmArgs(
-                "-Dapple.awt.application.appearance=system",
-            )
-
             macOS {
                 iconFile.set(file("src/main/resources/icon.icns"))
             }
@@ -75,9 +72,9 @@ compose.desktop {
 // The Compose Gradle plugin adds -Dcompose.application.configure.swing.globals=true, and
 // -Xdock:name on macOS, to the packaged app's launcher by itself. A host jar the JetWhale launcher
 // starts gets neither unless it is listed here.
-val hostReleaseJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true")
+val hostReleaseJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true") + compose.desktop.application.jvmArgs
 val hostReleasePlatforms = mapOf(
-    "macos-arm64" to listOf("-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"),
+    "macos-arm64" to listOf("-Xdock:name=${compose.desktop.application.nativeDistributions.packageName}"),
     "linux-x64" to emptyList(),
     "windows-x64" to emptyList(),
 )
