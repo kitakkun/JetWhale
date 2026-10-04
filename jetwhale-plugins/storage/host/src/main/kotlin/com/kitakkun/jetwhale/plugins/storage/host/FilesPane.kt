@@ -116,10 +116,16 @@ private fun FileTreeSplit(
                         onClick = { if (altPressed && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
                         onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
                         // The row's click callbacks carry no keyboard modifiers, so whether Alt is
-                        // held is read from the press that starts the click.
-                        modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
-                            altPressed = it.keyboardModifiers.isAltPressed
-                        },
+                        // held is read from the press that starts the click, and forgotten once its
+                        // release has run the click: the arrow keys run the same callbacks with no
+                        // press behind them.
+                        modifier = Modifier
+                            .onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
+                                altPressed = it.keyboardModifiers.isAltPressed
+                            }
+                            .onPointerEvent(PointerEventType.Release, PointerEventPass.Final) {
+                                altPressed = false
+                            },
                         trailingContent = row.entry?.takeUnless(FileEntry::isDirectory)?.let { entry ->
                             {
                                 JwText(
