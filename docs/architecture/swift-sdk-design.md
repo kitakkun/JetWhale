@@ -43,11 +43,15 @@ boundary yet; see the Kotlin-side façade.
 ## Distribution
 
 Ship as a **Swift Package with a binary `.xcframework`** target
-(`.binaryTarget(name:url:checksum:)`, zip on GitHub Releases). The repo already builds an
-XCFramework for the demo (the `XCFramework("shared")` block in `demo/shared/build.gradle.kts`), and
-`agent-runtime` targets `iosArm64` / `iosSimulatorArm64` / `macosArm64`. The framework is
-**dynamic**, for the reasons in the packaging section of the iOS native views design. Build it from
-the **Obj-C interop** path today; swap to Swift Export later without changing the Swift API.
+(`.binaryTarget(name:url:checksum:)`, zip on GitHub Releases). The binary target carries the Kotlin
+framework under its own module name, `JetWhaleKotlin`; the Swift wrapper is the package's `JetWhale`
+source target, which depends on it and is what apps import. The two cannot share a name: a package
+holds one target per name, and the binary's module would clash with the Swift one. The repo
+already builds an XCFramework for the demo (the `XCFramework("shared")` block in
+`demo/shared/build.gradle.kts`), and `agent-runtime` targets `iosArm64` / `iosSimulatorArm64` /
+`macosArm64`. The framework is **dynamic**, for the reasons in the packaging section of the iOS
+native views design. Build it from the **Obj-C interop** path today; swap to Swift Export later
+without changing the Swift API.
 
 ## Swift-facing API (consumer view)
 
@@ -79,6 +83,7 @@ struct Pong: Codable { let ok: Bool }
 final class MyPlugin: JetWhalePlugin {
     let pluginId = "com.example.myplugin"
     let pluginVersion = "1.0.0"
+    let offlineEventBufferCapacity = 64          // lets sendOrQueue buffer while offline
 
     func configure(_ handlers: JetWhaleHandlers) {
         handlers.onEvent(ButtonClicked.self) { event in
@@ -112,8 +117,10 @@ Key Swift types:
 - `JetWhaleEvent` / `JetWhaleRequest` — Swift protocols refining `Codable` with a `static var
   messageType: String`. `JetWhaleRequest` adds `associatedtype Reply: Codable`.
 - `JetWhalePlugin` — a Swift protocol (backed by an Obj-C protocol from Kotlin) with `pluginId`,
-  `pluginVersion`, `configure` and the lifecycle callbacks. `pluginVersion` is sent during session
-  negotiation, as it is for every Kotlin agent plugin.
+  `pluginVersion`, `offlineEventBufferCapacity`, `configure` and the lifecycle callbacks.
+  `pluginVersion` is sent during session negotiation, as it is for every Kotlin agent plugin, and the
+  capacity defaults to `0` in a protocol extension, so `sendOrQueue` buffers only when a plugin opts
+  in, as in Kotlin.
 - `JetWhaleHandlers` — closure registry: `onEvent(_:_:)`, `onRequest(_:_:)`; request handlers are
   `async throws`, and a thrown error goes back to the host as the request's failure, as an exception
   from a Kotlin request handler does.
@@ -155,6 +162,7 @@ section, as `ssl { }` is in Kotlin; it does not pick the scheme, the endpoints d
    interface SwiftPluginBridge {
        val pluginId: String
        val pluginVersion: String
+       val offlineEventBufferCapacity: Int
        fun onActivate(messenger: RawMessenger)
        fun onPrepare(messenger: RawMessenger, done: (failure: String?) -> Unit)
        fun onDisconnected(done: () -> Unit)
@@ -176,17 +184,18 @@ section, as `ssl { }` is in Kotlin; it does not pick the scheme, the endpoints d
    `SwiftBackedAgentPlugin(bridge) : JetWhaleAgentPlugin` adapts it: its `configure` registers the raw
    fallback from (1) and dispatches `(messageType, json)` to `bridge.handleEvent/handleRequest`,
    suspending until `reply` or `fail` is called; its `onPrepare` and `onDisconnected` suspend the
-   same way until `done` runs, and its other hooks and `pluginVersion` forward to the bridge
-   directly. The Swift side implements `SwiftPluginBridge` inside a wrapper around the developer's
-   `JetWhalePlugin`.
+   same way until `done` runs, and its other hooks, `pluginVersion` and
+   `offlineEventBufferCapacity` forward to the bridge directly; without the capacity,
+   `sendOrQueueRaw` would drop offline events as `trySendRaw` does. The Swift side implements
+   `SwiftPluginBridge` inside a wrapper around the developer's `JetWhalePlugin`.
 
 4. **`RawMessenger`** — a narrow export of the raw messenger: `trySendRaw(type, json): Bool`,
    `sendOrQueueRaw`, `sendOrFailRaw`, and `suspend requestRaw(type, json): String`. The Swift
    `JetWhaleMessenger` wraps it and does `Codable` on both sides.
 
-The Swift wrapper layer (in the Swift package, not Kotlin) owns: the `Codable` encode/decode, the
-`messageType`→handler map, and turning `SwiftPluginBridge` callbacks into calls on the developer's
-`JetWhalePlugin`.
+The Swift wrapper layer (the package's `JetWhale` target, not Kotlin) owns: the `Codable`
+encode/decode, the `messageType`→handler map, and turning `SwiftPluginBridge` callbacks into calls
+on the developer's `JetWhalePlugin`.
 
 ## Wire-format compatibility (the load-bearing risk)
 

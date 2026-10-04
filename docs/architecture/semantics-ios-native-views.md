@@ -182,11 +182,13 @@ the start API; this section covers packaging.
 
 ### One framework, one package
 
-Ship a single Swift Package with one binary target, `JetWhale.xcframework`, built from a small
-Kotlin **umbrella module** (`jetwhale-swift-sdk`) that depends on `jetwhale-agent-runtime`, the
+Ship a single Swift Package with one binary target, `JetWhaleKotlin.xcframework`, built from a
+small Kotlin **umbrella module** (`jetwhale-swift-sdk`) that depends on `jetwhale-agent-runtime`, the
 official plugins' agent modules, and a `commonMain` façade with an export-clean surface. The
 umbrella exports those modules into the framework (`export(...)` in the `framework { }` block), so
-Swift sees one module, `JetWhale`, rather than one framework per Gradle module.
+Swift sees one Kotlin module, `JetWhaleKotlin`, rather than one framework per Gradle module. Apps
+import the package's Swift target, `JetWhale`, which wraps it (below); the two need different names,
+since a package holds one target per name and the binary's module would clash with the Swift one.
 
 One framework rather than one per plugin, because Kotlin/Native frameworks do not compose: two
 frameworks built from separate Kotlin compilations each carry their own copy of the Kotlin runtime
