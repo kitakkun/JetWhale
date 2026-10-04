@@ -102,8 +102,7 @@ internal class MirrorToolPaths(
     companion object {
         fun locate(): MirrorToolPaths {
             val home = System.getProperty("user.home")
-            val isWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
-            val adbFileName = if (isWindows) "adb.exe" else "adb"
+            val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
             val sdkDirectories = listOfNotNull(
                 System.getenv("ANDROID_HOME"),
                 System.getenv("ANDROID_SDK_ROOT"),
@@ -117,7 +116,7 @@ internal class MirrorToolPaths(
                 idbPath = findToolPath("idb", searchDirectories),
                 idbCompanionPath = findToolPath("idb_companion", searchDirectories),
                 xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
-                ffmpegPath = findToolPath(if (isWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
+                ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
             )
         }
     }

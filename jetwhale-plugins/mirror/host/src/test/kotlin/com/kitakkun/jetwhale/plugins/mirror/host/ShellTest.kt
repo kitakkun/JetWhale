@@ -34,7 +34,7 @@ class ShellTest {
 }
 
 /** Prints its arguments, so a test can see what a launched program read from its command line. */
-object EchoArguments {
+internal object EchoArguments {
     const val SEPARATOR = "\u0000"
 
     @JvmStatic
