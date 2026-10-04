@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
-import androidx.annotation.VisibleForTesting
 import platform.UIKit.UIAccessibilityTraitAdjustable
 import platform.UIKit.UIAccessibilityTraitAllowsDirectInteraction
 import platform.UIKit.UIAccessibilityTraitButton
@@ -25,7 +24,6 @@ import platform.UIKit.UIAccessibilityTraits
 internal infix fun UIAccessibilityTraits.has(trait: UIAccessibilityTraits): Boolean = this and trait != 0uL
 
 /** The public trait names for the bits set, with any bit outside the public set kept as its number. */
-@VisibleForTesting
 internal fun UIAccessibilityTraits.names(): List<String> {
     if (this == 0uL) return emptyList()
     val named = NAMED_TRAITS.filter { (trait, _) -> this has trait }.map { (_, name) -> name }
