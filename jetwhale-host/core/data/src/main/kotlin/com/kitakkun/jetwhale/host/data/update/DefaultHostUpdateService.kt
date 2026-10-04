@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
+import com.kitakkun.jetwhale.host.release.HostReleaseRefusal
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.InstalledHostVersion
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
@@ -211,9 +212,14 @@ class DefaultHostUpdateService(
             modules = hostRuntime.modules,
             platformKey = platformKey,
         )
-        if (metadata.refusalOn(capabilities) != null) {
+        val refusal = metadata.refusalOn(capabilities)
+        if (refusal != null) {
             offer = null
-            return HostUpdateStatus.NeedsNewInstaller(release.tagName)
+            return if (refusal is HostReleaseRefusal.NoBuildForPlatform) {
+                HostUpdateStatus.NoBuildForThisComputer(release.tagName)
+            } else {
+                HostUpdateStatus.NeedsNewInstaller(release.tagName)
+            }
         }
         val platform = metadata.platforms.getValue(platformKey)
         offer = HostReleaseOffer(metadata, metadataBytes, signatureBytes, platform, platformKey)

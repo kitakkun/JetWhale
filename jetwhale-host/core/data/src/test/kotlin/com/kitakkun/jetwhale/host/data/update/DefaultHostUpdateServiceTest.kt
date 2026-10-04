@@ -131,13 +131,13 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
-    fun `says that a release without a build for this machine needs a new installer`() = runBlocking {
+    fun `says that a release has no build for this machine`() = runBlocking {
         serveReleases(release("1.0.0-alpha14", edit = { it.copy(platforms = emptyMap()) }))
 
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.NeedsNewInstaller("1.0.0-alpha14"), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.NoBuildForThisComputer("1.0.0-alpha14"), service.stateFlow.value.status)
     }
 
     @Test

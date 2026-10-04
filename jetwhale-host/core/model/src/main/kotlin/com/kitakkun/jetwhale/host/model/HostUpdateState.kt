@@ -38,6 +38,9 @@ sealed interface HostUpdateStatus {
     /** The newest release needs a newer launcher or runtime than this install has. */
     data class NeedsNewInstaller(val version: String) : HostUpdateStatus
 
+    /** The newest release has no host jar for this operating system and processor. */
+    data class NoBuildForThisComputer(val version: String) : HostUpdateStatus
+
     /** Looking up the newest release failed. */
     data class CheckFailed(val failure: HostUpdateFailure) : HostUpdateStatus
 

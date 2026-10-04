@@ -31,6 +31,8 @@
     <string name="restart_to_update">再起動してアップデート</string>
     <string name="update_needs_new_installer">バージョン %1$s には新しいインストーラーが必要です</string>
     <string name="update_needs_new_installer_hint">このインストールより新しい launcher または Java runtime が必要です。リリースページからインストーラーをダウンロードして再インストールしてください。</string>
+    <string name="update_no_build_for_this_computer">バージョン %1$s にはこのコンピューター向けのビルドがありません</string>
+    <string name="update_no_build_for_this_computer_hint">このリリースにはこの OS とプロセッサ向けのホストが含まれていないため、このインストールは現在のバージョンのままです。</string>
     <string name="open_release_page">リリースページを開く</string>
     <string name="update_check_failed">更新の確認に失敗しました: %1$s</string>
     <string name="update_failed">アップデートに失敗しました: %1$s</string>

@@ -72,6 +72,8 @@ import com.kitakkun.jetwhale.host.settings.update_failure_unexpected_response
 import com.kitakkun.jetwhale.host.settings.update_failure_unreachable
 import com.kitakkun.jetwhale.host.settings.update_needs_new_installer
 import com.kitakkun.jetwhale.host.settings.update_needs_new_installer_hint
+import com.kitakkun.jetwhale.host.settings.update_no_build_for_this_computer
+import com.kitakkun.jetwhale.host.settings.update_no_build_for_this_computer_hint
 import com.kitakkun.jetwhale.host.settings.update_ready
 import com.kitakkun.jetwhale.host.settings.update_ready_hint
 import com.kitakkun.jetwhale.host.settings.update_up_to_date
@@ -438,6 +440,18 @@ private fun HostUpdateStatusView(
                 text = stringResource(Res.string.open_release_page),
                 onClick = { onClickOpenReleasePage(status.version) },
                 style = JwButtonStyle.Primary,
+            )
+        }
+
+        is HostUpdateStatus.NoBuildForThisComputer -> UpdateNotice(
+            title = stringResource(Res.string.update_no_build_for_this_computer, status.version),
+            hint = stringResource(Res.string.update_no_build_for_this_computer_hint),
+            tone = JwTone.Warning,
+        ) {
+            JwButton(
+                text = stringResource(Res.string.open_release_page),
+                onClick = { onClickOpenReleasePage(status.version) },
+                style = JwButtonStyle.Secondary,
             )
         }
 

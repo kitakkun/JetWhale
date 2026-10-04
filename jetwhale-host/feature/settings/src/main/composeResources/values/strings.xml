@@ -31,6 +31,8 @@
     <string name="restart_to_update">Restart to Update</string>
     <string name="update_needs_new_installer">Version %1$s needs a new installer</string>
     <string name="update_needs_new_installer_hint">It needs a newer launcher or Java runtime than this installation has. Download its installer from the release page and reinstall.</string>
+    <string name="update_no_build_for_this_computer">Version %1$s has no build for this computer</string>
+    <string name="update_no_build_for_this_computer_hint">Its release does not include a host for this operating system and processor, so this installation stays on its current version.</string>
     <string name="open_release_page">Open Release Page</string>
     <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="update_failed">Update failed: %1$s</string>
