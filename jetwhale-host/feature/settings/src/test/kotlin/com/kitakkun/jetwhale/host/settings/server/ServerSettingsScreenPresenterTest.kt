@@ -145,6 +145,7 @@ class ServerSettingsScreenPresenterTest {
 
 private val storedSettings = DebuggerBehaviorSettings(
     adbAutoPortMappingEnabled = true,
+    checkForUpdatesOnStartup = true,
     persistData = false,
     serverPort = 5080,
     mcpServerPort = 7080,

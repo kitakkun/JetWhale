@@ -18,6 +18,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleProtocol.core)
+    implementation(projects.jetwhaleHost.releaseMetadata)
 
     implementation(compose.desktop.currentOs)
 
