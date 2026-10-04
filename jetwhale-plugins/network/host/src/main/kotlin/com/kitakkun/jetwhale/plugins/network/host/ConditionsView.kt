@@ -245,10 +245,11 @@ internal fun AppliedNetworkCondition.summary(): String = listOfNotNull(
     injectedFailure?.let { "injected $it" },
 ).joinToString(" • ").ifEmpty { "no change" }
 
-private fun formatRate(bytesPerSecond: Long): String = if (bytesPerSecond >= BYTES_PER_KB * BYTES_PER_KB) {
-    "${bytesPerSecond / (BYTES_PER_KB * BYTES_PER_KB)} MB/s"
-} else {
-    "${bytesPerSecond / BYTES_PER_KB} KB/s"
+/** The rate in the largest unit that shows it exactly, so a rate set over MCP never reads as rounded. */
+private fun formatRate(bytesPerSecond: Long): String = when {
+    bytesPerSecond % (BYTES_PER_KB * BYTES_PER_KB) == 0L -> "${bytesPerSecond / (BYTES_PER_KB * BYTES_PER_KB)} MB/s"
+    bytesPerSecond % BYTES_PER_KB == 0L -> "${bytesPerSecond / BYTES_PER_KB} KB/s"
+    else -> "$bytesPerSecond B/s"
 }
 
 private fun blankConditionRule(): NetworkConditionRule = NetworkConditionRule(
