@@ -201,8 +201,10 @@ once, in a module shared by the host, the launcher and the release job.
   the image from 79 MB to 87 MB. All of `java.se` would make it 107 MB.
 - **The launcher's main.** A small Kotlin module whose only dependency is the shared metadata
   module.
-- **The host jar of the same release, with its metadata.** It is the file attached to the release,
-  built in the same job.
+- **The host jar of the same release, with its metadata.** The jar is the file attached to the
+  release, built in the same job. The metadata is the part the host build writes: it lacks the
+  jars' `url`, `size` and `sha256`, which exist only once every platform's jar is collected, and
+  the bundled version does not need them, since it is not verified.
 
 ### Choosing a version
 
@@ -232,9 +234,14 @@ The directory keeps at most two versions: the one running and one newer one.
   Of the newer ones it keeps only the newest, which is set aside or finished downloading during
   the start, so the user can try it again or restart to it.
 - When a download finishes, the host deletes every downloaded version except the new one and the
-  one running. A set-aside version therefore lasts until *Try again* or a newer download.
+  one running. A set-aside version therefore stays until a newer download replaces it.
 - On Windows a running host keeps its jar open, so a version still in use is deleted at a later
   start.
+
+Only launchers write `launcher-state.json`, and only while they hold `launch.lock` (see *Single
+instance, reopen and restart*); a launcher takes it again to record a completed start at the end of
+the window. Each write replaces the file through a rename, so the host, which only reads it, sees a
+whole file. Entries for versions no longer on disk are ignored.
 
 ### Starting the host
 
@@ -246,7 +253,7 @@ The directory keeps at most two versions: the one running and one newer one.
   -Djetwhale.launcher.executable=<path of the launcher>
   -Djetwhale.launcher.hostDir=<app data>/host
   [-Djetwhale.launcher.setAside=<version>]
-  -cp <jar> <mainClass> <the arguments the launcher received, without --after>
+  -cp <jar> <mainClass> <the arguments the launcher received, without --after and --retry>
 ```
 
 - `-XX:ErrorFile` writes native crash logs to the directory that the host's crash recovery
@@ -279,7 +286,9 @@ manager sees the host's lifetime.
 - **First starts.** When a version that has never completed a start on this machine fails, the
   launcher starts it once more right away. If that fails too, the version is set aside, and the
   same launch goes on to the next candidate with `jetwhale.launcher.setAside`. That host names the
-  version that failed, links the log, and offers to try it again, which clears the mark.
+  version that failed, links the log, and offers to try it again. *Try again* restarts as
+  *Restart to update* does, adding `--retry <version>`; the new launcher clears the mark and
+  chooses as usual.
 - **Later crashes.** A version that has completed a start before is never set aside. Its later
   crashes go to the host's crash recovery and its safe mode. Once the host has run on this machine,
   a plugin is the likelier cause.
@@ -522,14 +531,15 @@ every user who accepts the update.
 - **Shared module.**
   - The version order: the chain above, `alpha09` = `alpha9`, and no snapshot, unparseable tag or
     N outside 1–199 as a candidate.
-  - Metadata parsing: unknown fields, and a higher `format`.
+  - Metadata parsing: unknown fields, a higher `format`, and the bundled copy without the jars'
+    `url`, `size` and `sha256`.
   - Signature checks with a test key pair: valid, tampered, and wrong key.
   - The JVM argument forms.
   - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
     platform, and installed or set-aside versions.
-- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0, exit
-  1 at once, crash after the window, or sleep. The tests cover selection, setting aside, the
-  bundled floor, `--after`, the locks with two launchers started at once, and pruning. Processes,
+- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0, exit 1
+  at once, crash after the window, or sleep. The tests cover selection, setting aside, the bundled
+  floor, `--after`, `--retry`, the locks with two launchers started at once, and pruning. Processes,
   file locks and renames behave differently on Windows, so this module's tests run on all three
   runners.
 - **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today. The
