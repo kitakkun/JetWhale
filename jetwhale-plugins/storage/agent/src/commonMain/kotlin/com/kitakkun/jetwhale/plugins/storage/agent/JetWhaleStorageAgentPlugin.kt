@@ -109,7 +109,6 @@ class JetWhaleStorageAgentPlugin(
     // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun writeFileChunk(request: WriteFileChunk): StorageOperationResult = try {
-        // Checked on the encoded text, so an oversized chunk is refused before it is decoded.
         require(request.contentBase64.length <= MAX_CHUNK_BASE64_LENGTH) { "a chunk may carry at most $MAX_FILE_READ_BYTES bytes" }
         val paths = fileRoot(request.rootName).uploadPaths(request.path, request.uploadId)
         receiveUploadChunk(

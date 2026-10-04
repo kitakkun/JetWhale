@@ -234,7 +234,6 @@ internal class StorageBrowser(
     override fun requestUpload(target: FileLocation, source: File) = launchReporting {
         val parent = FileLocation(target.rootName, target.path.dropLast(1))
         val listing = client.listDirectory(parent)
-        // Without a listing there is no telling whether the upload would replace a file unasked.
         listing.error?.let { error ->
             status = StorageStatus(message = error, isError = true)
             return@launchReporting

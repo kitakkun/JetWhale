@@ -24,9 +24,8 @@ internal expect fun moveReplacing(source: String, target: String)
  * [targetPath] as it was and has to start again from offset 0.
  */
 internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
-    // Refused before the try: the cleanup below may only ever remove a plain file this upload
-    // created, never a link (writing would follow it), a directory, or a FIFO, socket or device
-    // (opening one can block, and writing reaches whatever is behind it).
+    // Refused before the try, so the cleanup below never removes a link, a directory, or a FIFO,
+    // socket or device. Writing would follow a link, and opening a FIFO can block.
     require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }
     require(!existsAsNonRegularFile(stagingPath)) { "the upload's staging path already exists and is not a regular file" }
     try {

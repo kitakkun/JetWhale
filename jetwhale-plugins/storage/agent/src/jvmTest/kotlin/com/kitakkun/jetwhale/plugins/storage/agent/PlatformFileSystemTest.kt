@@ -218,8 +218,8 @@ class PlatformFileSystemTest {
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
         check(ProcessBuilder("mkfifo", staging.path).start().waitFor() == 0) { "mkfifo failed" }
 
-        // Opening a FIFO for writing blocks until a reader appears, so without the guard this call
-        // would never return; the timeout turns that hang into a failure.
+        // Opening a FIFO for writing blocks until a reader appears; the timeout turns a
+        // regression's hang into a failure.
         val outcome = CompletableFuture.supplyAsync {
             runCatching { receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true) }
         }.get(10, TimeUnit.SECONDS)

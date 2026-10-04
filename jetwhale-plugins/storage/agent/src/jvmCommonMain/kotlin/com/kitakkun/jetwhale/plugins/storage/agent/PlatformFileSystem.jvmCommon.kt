@@ -56,8 +56,8 @@ internal actual fun moveReplacing(source: String, target: String) {
     val targetFile = File(target)
     if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
     if (File(source).renameTo(targetFile)) return
-    // POSIX systems replace the target atomically above; Windows refuses to rename over a file, so
-    // the target is moved aside first and put back if the replacement still fails.
+    // File.renameTo replaces the target atomically on POSIX but fails on Windows when the target
+    // exists, so there the target is moved aside first and put back if the move still fails.
     val backup = File("$source.replaced")
     if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
     if (!File(source).renameTo(targetFile)) {
@@ -98,7 +98,7 @@ private fun File.isSymbolicLinkIn(canonicalParent: File): Boolean {
     // down to API 23.
     val inCanonicalParent = File(canonicalParent, name)
     if (inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile) return true
-    // Canonicalization leaves a link whose target is missing unresolved, and exists() follows it.
-    // An entry the directory lists but that does not exist can only be such a link.
+    // canonicalFile leaves a link to a missing target unresolved, and exists() follows the link, so
+    // a listed name that does not exist can only be such a link.
     return !exists() && canonicalParent.list().orEmpty().contains(name)
 }
