@@ -35,7 +35,8 @@ the foreground from the next resume, and a request needs one.
 
 Every permission in the app's merged manifest, with:
 
-- **Status**: granted or denied, from `checkSelfPermission`.
+- **Status**: granted or denied. Runtime and install-time permissions are read with
+  `checkSelfPermission`; special accesses and other app-op permissions are read as described below.
 - **Category**: *Runtime* for dangerous permissions, *Special access* for permissions the user
   grants on a settings screen of their own, *Install time* for everything else.
 - **Protection level** as Android defines it (`normal`, `dangerous`, `signature|appop`, …).
@@ -52,12 +53,18 @@ nothing to show a dialog or a settings screen from, and the request says so. A r
 Android versions from 12 on show an app that targets 12 or later no dialog for fine location alone,
 and the request's reply says so when the app does not declare coarse location.
 
+`ACCESS_BACKGROUND_LOCATION` can be requested only once fine or coarse location is granted; until
+then Android shows nothing, so the request is refused. From Android 11, an app that targets 11 or
+later gets background location on its location settings page instead of a dialog: the request
+opens that page, and the note says so.
+
 ::: tip Permanently denied or never asked?
 Android tells these apart only after the app asks. The note under a denied permission says which
 it is when it can: *Denied once* while the dialog would still appear, *Denied permanently* once a
 permission seen denied once no longer offers it, and *Never asked, or denied permanently*
 otherwise. A permanently denied permission can no longer be requested; change it in the app's
-settings.
+settings. Background location in an app that targets Android 11 or later is the exception from
+Android 11 on: Android does not report its denials, and its note says what a request opens instead.
 :::
 
 ### iOS
@@ -79,8 +86,9 @@ permissions are not queried.
 
 The agent reads the permissions once a second while the host is connected and pushes every change
 to the host, which lists them newest first. A change made in the system settings shows up the same
-way as one made through the plugin. On Android a denial often leaves the status at *Denied*; it is
-recorded all the same, with the note that says what a request would now do.
+way as one made through the plugin. On Android a denial often leaves the status at *Denied*; a
+denial that changes what a request would do is recorded all the same, with the note that says what
+a request would now do.
 
 Android ends the app's process when a permission is revoked, so a revocation is not recorded as a
 change: the app reports the new state when it connects again.

@@ -74,10 +74,10 @@ private class AndroidPermissionSource(private val application: Application) : Pe
         if (category != PermissionCategory.Runtime) return failure("$id is decided at install; it cannot be requested while the app runs")
         if (application.checkSelfPermission(id) == PackageManager.PERMISSION_GRANTED) return failure("${labelOf(id)} is already granted")
         val activity = foreground.current ?: return failure("no activity of the app is in the foreground to show the permission dialog")
-        if (denialOf(id, activity) == RuntimeDenial.Permanently) {
-            return failure("${labelOf(id)} is denied permanently, so Android no longer shows the dialog; change it in the app's settings")
+        val runtimeRequest = when (val request = runtimeRequestFor(id, outlookOf(id, activity), declared.keys)) {
+            is RuntimeRequest.Refused -> return failure("${labelOf(id)} cannot be requested: ${request.reason}")
+            is RuntimeRequest.Ask -> request
         }
-        val runtimeRequest = runtimeRequestFor(id, declared.keys)
         onMainThread { activity.requestPermissions(runtimeRequest.permissions.toTypedArray(), REQUEST_CODE) }
         val message = "Asked for ${labelOf(id)}; the user's choice arrives as a change."
         return PermissionActionResult(message = listOfNotNull(message, runtimeRequest.caveat).joinToString(" "), error = null)
@@ -102,17 +102,17 @@ private class AndroidPermissionSource(private val application: Application) : Pe
         }
         val runtime = protection?.category == PermissionCategory.Runtime
         val status = statusOf(permission, runtime)
-        val denial = if (runtime && status != PermissionStatus.Granted) denialOf(permission, activity) else null
+        val outlook = if (runtime && status != PermissionStatus.Granted) outlookOf(permission, activity) else null
         return PermissionState(
             id = permission,
             label = labelOf(permission),
             category = protection?.category ?: PermissionCategory.InstallTime,
             protection = protection?.label ?: "unknown to this Android version",
             status = status,
-            requestable = denial != null && denial != RuntimeDenial.Permanently,
+            requestable = outlook?.requestable == true,
             note = when {
                 status == PermissionStatus.Granted -> null
-                denial != null -> denial.note
+                outlook != null -> outlook.note
                 protection?.category == PermissionCategory.SpecialAccess -> "Changed under Special app access in the system settings; this plugin has no screen to open for it."
                 else -> "Not granted at install; it cannot be requested while the app runs."
             },
@@ -130,8 +130,14 @@ private class AndroidPermissionSource(private val application: Application) : Pe
             ?: if (application.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) PermissionStatus.Granted else PermissionStatus.Denied
     }
 
-    /** Asks [activity] what a request would do, or recalls the last answer when none is in the foreground. */
-    private fun denialOf(permission: String, activity: Activity?): RuntimeDenial {
+    /**
+     * What a request for the denied runtime [permission] would do. A denial is read by asking
+     * [activity], or recalled from the last answer when none is in the foreground.
+     */
+    private fun outlookOf(permission: String, activity: Activity?): RequestOutlook {
+        val targetSdk = application.applicationInfo.targetSdkVersion
+        backgroundLocationOf(permission, Build.VERSION.SDK_INT, targetSdk) { application.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+            ?.let { return it }
         val denial = (denials[permission] ?: RuntimeDenial.Unknown).after(activity?.shouldShowRequestPermissionRationale(permission))
         denials[permission] = denial
         return denial
