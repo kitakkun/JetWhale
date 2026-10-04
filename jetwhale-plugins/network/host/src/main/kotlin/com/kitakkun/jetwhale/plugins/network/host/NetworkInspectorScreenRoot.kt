@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTableColumnKey
 import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
@@ -27,6 +28,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -85,25 +87,29 @@ private fun rememberPersistedSplitPaneState(): JwSplitPaneState {
 
 /**
  * The traffic table's column widths the user dragged, kept across host restarts, mirrored both ways
- * for the same reason as [rememberPersistedSplitPaneState]. Stored as plain numbers of dp. Only
- * changes to the table's widths are written back, not the empty map it starts with, so the stored
- * widths survive whichever direction starts collecting first.
+ * for the same reason as [rememberPersistedSplitPaneState]. Only changes to the table's widths are
+ * written back, not the empty map it starts with, so the stored widths survive whichever direction
+ * starts collecting first.
  */
 @Composable
 private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
-    var storedWidths by rememberPersistent(COLUMN_WIDTHS_KEY, emptyMap<String, Float>())
+    var storedWidths by rememberPersistent(COLUMN_WIDTHS_KEY, emptyList<StoredColumnWidth>())
     val columnState = rememberJwTableColumnState()
     LaunchedEffect(columnState) {
         launch {
             snapshotFlow { storedWidths }
-                .collect { stored -> columnState.widths = stored.mapValues { (_, width) -> width.dp } }
+                .collect { stored -> columnState.widths = stored.associate { JwTableColumnKey(it.index, it.header) to it.width.dp } }
         }
         snapshotFlow { columnState.widths }
             .drop(1)
-            .collect { widths -> storedWidths = widths.mapValues { (_, width) -> width.value } }
+            .collect { widths -> storedWidths = widths.map { (column, width) -> StoredColumnWidth(column.index, column.header, width.value) } }
     }
     return columnState
 }
+
+/** A traffic-table column width as stored: the column's [JwTableColumnKey], and the width in dp. */
+@Serializable
+private data class StoredColumnWidth(val index: Int, val header: String, val width: Float)
 
 private const val SPLIT_POSITION_KEY = "traffic.splitPosition"
 

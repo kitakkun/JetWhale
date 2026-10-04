@@ -24,6 +24,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.float
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -32,7 +37,7 @@ import kotlin.test.assertTrue
 class NetworkInspectorScreenRootTest {
     @Test
     fun `the traffic table restores its column widths from the plugin's storage and stores a dragged one`() = runComposeUiTest {
-        val storage = InMemoryPluginStorage(mapOf("traffic.columnWidths" to """{"URL":200.0}"""))
+        val storage = InMemoryPluginStorage(mapOf("traffic.columnWidths" to """[{"index":2,"header":"URL","width":200.0}]"""))
         setContent {
             CompositionLocalProvider(LocalJetWhalePluginStorage provides storage) {
                 JwTheme(darkTheme = false) {
@@ -59,9 +64,10 @@ class NetworkInspectorScreenRootTest {
         waitForIdle()
 
         assertClose(160.dp, urlColumnWidth())
-        val stored = Json.decodeFromString<Map<String, Float>>(checkNotNull(storage.values.value["traffic.columnWidths"]))
-        assertEquals(setOf("URL"), stored.keys)
-        assertClose(160.dp, stored.getValue("URL").dp)
+        val stored = Json.parseToJsonElement(checkNotNull(storage.values.value["traffic.columnWidths"])).jsonArray.single().jsonObject
+        assertEquals(2, stored.getValue("index").jsonPrimitive.int)
+        assertEquals("URL", stored.getValue("header").jsonPrimitive.content)
+        assertClose(160.dp, stored.getValue("width").jsonPrimitive.float.dp)
     }
 
     /** The URL column ends where its resize handle ends, and starts one gap after the method column's handle. */

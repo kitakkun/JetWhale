@@ -19,6 +19,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.dragAndDrop
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
@@ -41,7 +42,7 @@ class JwTableColumnResizeTest {
     ) { state ->
         drag("Name", by = 40f)
 
-        assertClose(140.dp, state.widths.getValue("Name"))
+        assertClose(140.dp, state.widths.getValue(NAME_COLUMN))
     }
 
     @Test
@@ -50,20 +51,20 @@ class JwTableColumnResizeTest {
     ) { state ->
         drag("Name", by = -500f)
 
-        assertEquals(JwTableDefaults.minColumnWidth, state.widths.getValue("Name"))
+        assertEquals(JwTableDefaults.minColumnWidth, state.widths.getValue(NAME_COLUMN))
     }
 
     @Test
     fun `a resized weight column becomes fixed and the other weight column takes the rest`() = runTable(
         columns = listOf(textColumn("Name", JwColumnWidth.Weight(1f)), textColumn("Value", JwColumnWidth.Weight(1f))),
     ) { state ->
-        val valueBefore = state.laidOutWidths.getValue("Value")
+        val valueBefore = state.laidOutWidths.getValue(VALUE_COLUMN)
 
         drag("Name", by = 50f)
 
-        assertClose(state.laidOutWidths.getValue("Name"), state.widths.getValue("Name"))
-        assertNull(state.widths["Value"], "the other column still shares the width by weight")
-        assertClose(valueBefore - 50.dp, state.laidOutWidths.getValue("Value"))
+        assertClose(state.laidOutWidths.getValue(NAME_COLUMN), state.widths.getValue(NAME_COLUMN))
+        assertNull(state.widths[VALUE_COLUMN], "the other column still shares the width by weight")
+        assertClose(valueBefore - 50.dp, state.laidOutWidths.getValue(VALUE_COLUMN))
     }
 
     @Test
@@ -72,8 +73,8 @@ class JwTableColumnResizeTest {
     ) { state ->
         drag("Name", by = 1_000f)
 
-        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
-        assertClose(state.laidOutWidths.getValue("Name"), state.widths.getValue("Name"), "nothing past the edge is stored, so dragging back moves at once")
+        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue(VALUE_COLUMN))
+        assertClose(state.laidOutWidths.getValue(NAME_COLUMN), state.widths.getValue(NAME_COLUMN), "nothing past the edge is stored, so dragging back moves at once")
     }
 
     @Test
@@ -86,8 +87,8 @@ class JwTableColumnResizeTest {
     ) { state ->
         drag("Type", by = 1_000f)
 
-        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Key"))
-        assertClose(JwTableDefaults.minColumnWidth * 2, state.laidOutWidths.getValue("Value"))
+        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue(JwTableColumnKey(0, "Key")))
+        assertClose(JwTableDefaults.minColumnWidth * 2, state.laidOutWidths.getValue(JwTableColumnKey(2, "Value")))
     }
 
     @Test
@@ -105,7 +106,7 @@ class JwTableColumnResizeTest {
 
     @Test
     fun `a dragged width gives way when the table gets narrower`() = runComposeUiTest {
-        val state = JwTableColumnState(mapOf("Name" to 300.dp))
+        val state = JwTableColumnState(mapOf(NAME_COLUMN to 300.dp))
         var tableWidth by mutableStateOf(TABLE_WIDTH)
         setContent {
             JwTheme(darkTheme = false) {
@@ -123,13 +124,13 @@ class JwTableColumnResizeTest {
         tableWidth = 200.dp
         waitForIdle()
 
-        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
-        assertEquals(300.dp, state.widths.getValue("Name"), "the user's width is kept for when the table is wide again")
+        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue(VALUE_COLUMN))
+        assertEquals(300.dp, state.widths.getValue(NAME_COLUMN), "the user's width is kept for when the table is wide again")
     }
 
     @Test
     fun `two dragged widths share a narrower table in column order without leaving part of the row empty`() = runComposeUiTest {
-        val state = JwTableColumnState(mapOf("Name" to 300.dp, "Value" to 300.dp))
+        val state = JwTableColumnState(mapOf(NAME_COLUMN to 300.dp, VALUE_COLUMN to 300.dp))
         setContent {
             JwTheme(darkTheme = false) {
                 Box(Modifier.requiredSize(width = TABLE_WIDTH, height = 300.dp)) {
@@ -146,9 +147,9 @@ class JwTableColumnResizeTest {
         val rowPadding = JwSpacing.medium * 2
         val gapBetweenColumns = JwSpacing.medium
         val widthForColumns = TABLE_WIDTH - rowPadding - gapBetweenColumns
-        assertClose(300.dp, state.laidOutWidths.getValue("Name"))
-        assertClose(widthForColumns - 300.dp, state.laidOutWidths.getValue("Value"))
-        assertEquals(mapOf("Name" to 300.dp, "Value" to 300.dp), state.widths, "the user's widths are kept for when the table is wide again")
+        assertClose(300.dp, state.laidOutWidths.getValue(NAME_COLUMN))
+        assertClose(widthForColumns - 300.dp, state.laidOutWidths.getValue(VALUE_COLUMN))
+        assertEquals(mapOf(NAME_COLUMN to 300.dp, VALUE_COLUMN to 300.dp), state.widths, "the user's widths are kept for when the table is wide again")
     }
 
     @OptIn(InternalComposeUiApi::class)
@@ -169,10 +170,10 @@ class JwTableColumnResizeTest {
             val canvas = Canvas(ImageBitmap(SCENE_WIDTH_PX, SCENE_HEIGHT_PX))
             scene.render(canvas, 0L)
 
-            state.fitting = "Name"
+            state.fitting = NAME_COLUMN
             repeat(3) { frame -> scene.render(canvas, (frame + 1) * FRAME_NANOS) }
 
-            val fitted = state.widths["Name"]
+            val fitted = state.widths[NAME_COLUMN]
             assertTrue(fitted != null && fitted > 150.dp, "the column grew to the long name, now $fitted")
         } finally {
             scene.close()
@@ -187,7 +188,7 @@ class JwTableColumnResizeTest {
         onNodeWithContentDescription("Resize Name").performMouseInput { doubleClick(center) }
         waitForIdle()
 
-        val fitted = state.widths.getValue("Name")
+        val fitted = state.widths.getValue(NAME_COLUMN)
         assertTrue(fitted > 150.dp, "the column grew to the long name, now $fitted")
     }
 
@@ -216,7 +217,7 @@ class JwTableColumnResizeTest {
         handle.performMouseInput { doubleClick(center) }
         waitForIdle()
 
-        val fitted = second.widths["Name"]
+        val fitted = second.widths[NAME_COLUMN]
         assertTrue(fitted != null && fitted > 150.dp, "the column grew to the long name, now $fitted")
         assertEquals(emptyMap(), first.widths)
     }
@@ -238,13 +239,28 @@ class JwTableColumnResizeTest {
         onNodeWithContentDescription("Resize Name").performMouseInput { doubleClick(center) }
         waitForIdle()
 
-        val fitted = state.widths.getValue("Name")
+        val fitted = state.widths.getValue(NAME_COLUMN)
         assertTrue(fitted > 150.dp, "the column grew to the long name, now $fitted")
     }
 
     @Test
+    fun `columns that share a header resize independently`() = runTable(
+        columns = listOf(textColumn("", JwColumnWidth.Fixed(60.dp)), textColumn("", JwColumnWidth.Fixed(60.dp)), textColumn("Value", JwColumnWidth.Weight(1f))),
+    ) { state ->
+        val px = with(density) { 40.dp.toPx() }
+        onAllNodesWithContentDescription("Resize ")[0].performMouseInput {
+            dragAndDrop(start = center, end = center + Offset(px, 0f))
+        }
+        waitForIdle()
+
+        assertClose(100.dp, state.widths.getValue(JwTableColumnKey(0, "")))
+        assertNull(state.widths[JwTableColumnKey(1, "")])
+        assertClose(60.dp, state.laidOutWidths.getValue(JwTableColumnKey(1, "")))
+    }
+
+    @Test
     fun `the saver restores the dragged widths`() {
-        val state = JwTableColumnState(mapOf("Name" to 140.dp, "Value" to 80.dp))
+        val state = JwTableColumnState(mapOf(NAME_COLUMN to 140.dp, VALUE_COLUMN to 80.dp))
 
         val saved = with(JwTableColumnState.Saver) { SaverScope { true }.save(state) }
         val restored = JwTableColumnState.Saver.restore(checkNotNull(saved))
@@ -285,6 +301,10 @@ class JwTableColumnResizeTest {
 }
 
 private val TABLE_WIDTH = 400.dp
+
+private val NAME_COLUMN = JwTableColumnKey(0, "Name")
+
+private val VALUE_COLUMN = JwTableColumnKey(1, "Value")
 
 private const val BOX_WITH_CONSTRAINTS_ROW = "box"
 
