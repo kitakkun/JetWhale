@@ -70,15 +70,11 @@ private class JetWhaleNetworkOkHttpInterceptor(
         val started = TimeSource.Monotonic.markNow()
 
         recordRequest(request, txId)
-        // The condition shapes the network and the mock stands in for the server, so a mocked
-        // response still travels through the simulated network.
         val condition = agent.planNetworkCondition(request.method, request.url.toString())
         val mock = agent.findMock(request.method, request.url.toString())
 
         val response = exchange(chain, request, condition, mock, txId, started)
         recordResponse(response, fromMock = mock != null, condition = condition, txId = txId, started = started)
-        // Captured before pacing, so the capture does not wait on the throttle; the caller still
-        // reads the body at the capped rate.
         return condition?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
     }
 

@@ -51,7 +51,7 @@ private fun InjectedFailure.toException(url: String, ruleName: String): IOExcept
  * This call with its response body paced to [bytesPerSecond]. A WebSocket upgrade is left alone:
  * its body is the live frame stream, which pacing here would corrupt.
  */
-@OptIn(InternalAPI::class) // rawContent is the undecoded body replaceResponse expects to wrap.
+@OptIn(InternalAPI::class) // replaceResponse wraps the raw, still-encoded body, which only the internal rawContent exposes.
 internal fun HttpClientCall.withResponseBodyPacedTo(bytesPerSecond: Long): HttpClientCall {
     if (response.isWebSocketUpgrade()) return this
     return replaceResponse {
@@ -85,7 +85,7 @@ private fun OutgoingContent.pacedTo(bytesPerSecond: Long): OutgoingContent? {
 }
 
 /** Copies [source] to [destination] no faster than [bytesPerSecond], in the pacer's chunks. */
-internal suspend fun copyPaced(source: ByteReadChannel, destination: ByteWriteChannel, bytesPerSecond: Long, timeSource: TimeSource) {
+private suspend fun copyPaced(source: ByteReadChannel, destination: ByteWriteChannel, bytesPerSecond: Long, timeSource: TimeSource) {
     val pacer = BandwidthPacer(bytesPerSecond, timeSource)
     val buffer = ByteArray(pacer.chunkSize)
     while (true) {

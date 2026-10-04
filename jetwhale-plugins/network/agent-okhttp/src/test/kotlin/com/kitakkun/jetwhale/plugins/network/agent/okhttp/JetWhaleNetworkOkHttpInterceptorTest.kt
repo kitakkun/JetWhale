@@ -348,7 +348,6 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
     @Test
     fun `a WebSocket upgrade is not paced by a download cap`() {
-        // One byte a second would starve the frame stream if the upgrade's body were paced.
         applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = 1))))
         server.enqueue(
             MockResponse().withWebSocketUpgrade(

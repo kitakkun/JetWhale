@@ -59,7 +59,6 @@ internal fun ConditionsTab(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             JwText(text = "Presets", style = JwTheme.textStyles.label)
-            // A preset replaces the set: two catch-all rules would only ever apply the first.
             NetworkConditionPreset.entries.forEach { preset ->
                 JwButton(text = preset.label, onClick = { onChanged(listOf(preset.toRule())) })
             }

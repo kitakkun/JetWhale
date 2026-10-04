@@ -80,9 +80,8 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
             condition = exchange.condition?.applied(),
         ),
     )
-    // Paced only now: capture buffers the body with save(), so a call paced before it would reach
-    // the app already buffered. The transaction's duration therefore ends at capture, not at the
-    // app's last paced byte.
+    // Paced after capture: save() reads the whole body into memory, so a body paced before it would
+    // reach the app already buffered.
     return exchange.condition?.downloadBytesPerSecond?.let(capturedCall::withResponseBodyPacedTo) ?: capturedCall
 }
 

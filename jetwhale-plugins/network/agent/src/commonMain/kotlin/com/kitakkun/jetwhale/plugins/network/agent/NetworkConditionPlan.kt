@@ -54,8 +54,6 @@ internal fun NetworkConditionRule.plan(random: Random): NetworkConditionPlan {
             uploadBytesPerSecond = null,
         )
     }
-    // The host rejects out-of-range numbers, but a rule is still clamped here: an unchecked value
-    // would otherwise overflow or throw while planning, before any transaction records the failure.
     val maxJitterMs = condition.jitterMs.coerceIn(0, MAX_SIMULATED_DELAY_MS)
     val jitterMs = if (maxJitterMs > 0) random.nextLong(maxJitterMs + 1) else 0L
     val fails = condition.failureRate > 0.0 && random.nextDouble() < condition.failureRate

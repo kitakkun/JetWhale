@@ -64,8 +64,6 @@ class NetworkConditionKtorTest {
     fun `a download cap paces the body as the app reads it`() = runBlocking {
         agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_RATE), matcher = null)))
 
-        // Timed from the moment the app holds the response, so a body buffered during the send and
-        // then handed over at once would read in no time and fail this.
         val (bytes, readMs) = client.prepareGet("https://example.com/large").execute { response ->
             val reading = TimeSource.Monotonic.markNow()
             response.readRawBytes() to reading.elapsedNow().inWholeMilliseconds
@@ -89,14 +87,13 @@ class NetworkConditionKtorTest {
     }
 
     @Test
-    fun `a rule for one endpoint leaves the others alone`() = runBlocking {
+    fun `a rule for one endpoint leaves the others alone`() = runBlocking<Unit> {
         agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(offline = true), matcher = MockMatcher(urlPattern = "/images/"))))
 
         client.get("https://example.com/items")
 
         assertNull(events.filterIsInstance<ResponseReceived>().single().response.condition)
         assertFailsWith<IOException> { client.get("https://example.com/images/a.png") }
-        Unit
     }
 
     @OptIn(InternalJetWhaleApi::class)

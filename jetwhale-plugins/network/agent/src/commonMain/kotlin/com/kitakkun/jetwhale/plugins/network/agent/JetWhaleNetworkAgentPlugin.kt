@@ -54,8 +54,6 @@ class JetWhaleNetworkAgentPlugin(
     private val mockingEnabled = MutableStateFlow(true)
     private val mockRules = MutableStateFlow(emptyList<MockRule>())
 
-    // Unlike mocks, conditions do not outlive the host: a forgotten "Offline" must not keep the app
-    // offline after the debugger has gone away. The host pushes its set again on every connection.
     private val conditionRules = MutableStateFlow(emptyList<NetworkConditionRule>())
     private val conditionRandom = Random.Default
 

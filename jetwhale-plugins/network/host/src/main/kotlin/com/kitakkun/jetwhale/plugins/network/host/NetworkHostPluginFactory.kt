@@ -49,8 +49,6 @@ private class NetworkHostPlugin :
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
 
-    // The host owns the conditions: the agent drops them on disconnect, and they are pushed again
-    // on every connection, so what this list shows is what the app gets.
     private val conditionRules: SnapshotStateList<NetworkConditionRule> = mutableStateListOf()
 
     private var mcpRedactionRules: List<RedactionRule> = emptyList()
