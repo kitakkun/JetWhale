@@ -84,7 +84,9 @@ class DefaultPluginInstallJobService(
 
     override suspend fun cancelAll() {
         jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
-        runningJobs.values.toList().joinAll()
+        // Not toList(): for a single job it reads the size and then the element, and throws when
+        // the job removes itself in between. toMutableList() copies in a single pass.
+        runningJobs.values.toMutableList().joinAll()
     }
 
     private suspend fun run(job: PluginInstallJob) {
