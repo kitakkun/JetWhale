@@ -56,6 +56,18 @@ the build with metadata-version errors. Check it now (`grep -n 'kotlin' gradle/l
 — if the project is older, stop and say so. `-Xskip-metadata-version-check` exists but is an
 unsupported escape hatch, not a plan.
 
+**Targets.** JetWhale publishes `jvm`, `android`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`,
+`macosArm64`, `mingwX64`, `linuxX64` and `linuxArm64`: no `iosX64`, no `macosX64`, no watchOS or
+tvOS. A KMP project that declares one of those cannot depend on JetWhale from `commonMain`, or from
+any source set such a target compiles. Check the targets, including those a convention plugin
+declares:
+
+```bash
+grep -rniE 'iosX64|macosX64|watchos|tvos' --include='*.gradle.kts' --include='*.kt' . | head
+```
+
+If any turn up, wire JetWhale only through source sets of supported targets, or stop and say so.
+
 ## 2. Ride an existing seam before building one
 
 Most apps that already carry debug-only tooling — Chucker, Flipper, LeakCanary, an internal debug
@@ -122,11 +134,18 @@ JetWhale-backed implementation that displaces it on the debug classpath only.
 Every DI shape was verified by building and running a project, not reasoned about. See
 [Verified against](#verified-against) for versions and evidence.
 
-Whichever you follow, two JetWhale-side facts hold:
+Whichever you follow, three JetWhale-side facts hold:
 
 - **`startJetWhale { }` is called once**, as early as the app can — `Application.onCreate()`, the
   first line of `main()`, or the SwiftUI `App` init. It returns a session handle that a
   connect-once app can ignore.
+- **The endpoint must be reachable from where the app runs.** The references declare
+  `ws("localhost", 5080)`, which reaches the host from emulators, simulators, the desktop app, the
+  browser and ADB-forwarded Android devices. A physical iPhone, or any device on Wi-Fi without
+  `adb reverse`, cannot reach `localhost`. Add a candidate after it: `discoverWss { }` (on iOS it
+  also needs `_jetwhale._tcp` under `NSBonjourServices`), or `buildMachineWss(port)` with the
+  `com.kitakkun.jetwhale.agent` Gradle plugin applied to the module that declares it. Set either up
+  as [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) describes.
 - **One `JetWhaleNetworkAgentPlugin` instance serves two call sites** — installed into the HTTP
   client, and registered in `plugins { register(...) }`. Two instances is the classic mistake: the
   app connects, the host lists the session, and no traffic ever appears. Give it a singleton
@@ -137,15 +156,18 @@ Whichever you follow, two JetWhale-side facts hold:
 The wiring compiling proves nothing about release builds. Check the artifact:
 
 ```bash
-# Android: nothing at all should come back
+# Android: nothing at all should come back from either
+./gradlew :app:dependencies --configuration releaseCompileClasspath | grep -i jetwhale
 ./gradlew :app:dependencies --configuration releaseRuntimeClasspath | grep -i jetwhale
 
 # Both variants must still compile — release is the one that catches a leaked reference
 ./gradlew assembleDebug assembleRelease      # or the KMP equivalents
 ```
 
-An empty grep and a green release build together mean the seam holds. Then confirm the debug side
-actually works, because a perfectly isolated integration that never connects is the other failure:
+Empty greps and a green release build together mean the seam holds: the compile classpath is what
+proves no release call site can name JetWhale, since a `compileOnly` dependency would compile one
+and still be absent at runtime. Then confirm the debug side actually works, because a perfectly
+isolated integration that never connects is the other failure:
 
 1. Launch the JetWhale host (default port **5080**).
 2. Android only — the host's ADB auto port mapping forwards the port by default; if it is turned
@@ -153,8 +175,9 @@ actually works, because a perfectly isolated integration that never connects is 
 3. Launch the debug build. It appears as a session in the host within a second or two.
 4. If the Network Inspector is wired, make one request and watch it land.
 
-Nothing in the host means the agent never connected: wrong port, no port forwarding, or
-`startJetWhale` not reached. Session present but no traffic means two agent instances — see §4.
+Nothing in the host means the agent never connected: wrong port, no port forwarding, a physical
+device left with only `localhost` (see §4), or `startJetWhale` not reached. Session present but no
+traffic means two agent instances — see §4.
 
 ## 6. Report what you did
 

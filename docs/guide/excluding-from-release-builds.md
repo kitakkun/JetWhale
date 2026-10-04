@@ -240,11 +240,14 @@ than trusting the wiring:
 
 ```shell
 # Android
+./gradlew :app:dependencies --configuration releaseCompileClasspath | grep jetwhale
 ./gradlew :app:dependencies --configuration releaseRuntimeClasspath | grep jetwhale
 ```
 
-No output means no JetWhale — no classes for R8 to process, no keep rules to write, and no way for
-a stray `startJetWhale` call to reach production.
+No output from either means no JetWhale — nothing in release can compile against it, so no stray
+`startJetWhale` call can reach production, and there are no classes for R8 to process and no keep
+rules to write. The compile classpath is the one that proves the first part: a `compileOnly`
+dependency would let a call compile and still be missing from the runtime classpath.
 
 ## Pitfalls
 

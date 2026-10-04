@@ -47,11 +47,11 @@ val debugToolingModule = module {
 
 ```kotlin
 // src/main — unchanged between variants
-startKoin {
+val koin = startKoin {
     modules(appModule, networkModule, debugToolingModule)
-}
+}.koin
 
-get<DebugToolingInitializer>().initialize()
+koin.get<DebugToolingInitializer>().initialize()
 ```
 
 `single { }` — not `factory { }` — is what keeps one `JetWhaleNetworkAgentPlugin` across the HTTP

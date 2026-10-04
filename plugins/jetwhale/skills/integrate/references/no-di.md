@@ -12,7 +12,7 @@ avoided one is a far larger change than the integration it would serve, and it i
 ```kotlin
 // src/main — production code, no JetWhale anywhere
 interface DebugTooling {
-    fun start()
+    fun initialize()
 }
 
 object DebugToolingHolder {
@@ -25,7 +25,7 @@ object DebugToolingHolder {
 ```kotlin
 // src/release
 internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
-    override fun start() = Unit
+    override fun initialize() = Unit
 }
 ```
 
@@ -34,7 +34,7 @@ internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
 internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
     private val networkAgent = JetWhaleNetworkAgentPlugin()
 
-    override fun start() {
+    override fun initialize() {
         startJetWhale {
             connection { endpoints { ws("localhost", 5080) } }
             plugins { register(networkAgent) }
@@ -48,7 +48,7 @@ internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
 Call it once, from `Application.onCreate()`:
 
 ```kotlin
-DebugToolingHolder.instance.start()
+DebugToolingHolder.instance.initialize()
 ```
 
 The Gradle side is the runtime plus the network agent this sample registers:
@@ -74,7 +74,7 @@ implement it on both sides:
 ```kotlin
 // src/main
 interface DebugTooling {
-    fun start()
+    fun initialize()
     fun decorate(client: HttpClient)
 }
 ```
@@ -82,7 +82,7 @@ interface DebugTooling {
 ```kotlin
 // src/release
 internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
-    override fun start() = Unit
+    override fun initialize() = Unit
     override fun decorate(client: HttpClient) = Unit
 }
 ```
@@ -92,7 +92,7 @@ internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
 internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
     private val networkAgent = JetWhaleNetworkAgentPlugin()
 
-    override fun start() {
+    override fun initialize() {
         startJetWhale {
             connection { endpoints { ws("localhost", 5080) } }
             plugins { register(networkAgent) }
@@ -113,7 +113,7 @@ val client = HttpClient().also { DebugToolingHolder.instance.decorate(it) }
 `HttpClient` here is Ktor's type, which production code already depends on — that is what makes it
 safe to name in the seam. The rule is only that **JetWhale** types stay out of it.
 
-The debug implementation holds the agent as a field, so `start()` and `decorate()` share one
+The debug implementation holds the agent as a field, so `initialize()` and `decorate()` share one
 instance. Two instances is the classic mistake: the session connects and no traffic ever appears.
 
 ## KMP — no variant source sets
@@ -154,5 +154,5 @@ already tiny. Option 1 fits when the entry point is shared and platform-specific
 |---|---|
 | Release build cannot resolve `createDebugTooling` | Only the debug source set defines it — both variants need one |
 | Unresolved JetWhale reference in release | A JetWhale type reached the seam or `src/main` |
-| Session connects, no traffic | `start()` and `decorate()` are using different agent instances |
+| Session connects, no traffic | `initialize()` and `decorate()` are using different agent instances |
 | Nothing appears in the host | The holder was never touched, so `by lazy` never ran — confirm the call site is actually reached |
