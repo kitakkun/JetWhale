@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.androiddevice.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
 
 /** The space a pointer tool's coordinates are given in. */
 internal enum class CoordinateUnit { PX, DP }
@@ -12,7 +13,8 @@ internal const val UNIT_DESCRIPTION =
 
 /**
  * What the device says its screen is, as far as it could be read. Any part can be missing on a
- * device whose window manager does not answer, which costs validation rather than the whole call.
+ * device whose window manager does not answer: `deviceInfo` then reports it as unknown, and a
+ * pointer tool, which cannot check its point without the size, fails.
  *
  * @property size The screen as it is currently rotated, which is the space `input` takes its
  *   coordinates in. Unknown when either the size or the rotation could not be read.
@@ -52,13 +54,15 @@ internal fun CoordinateSpace.toPixels(value: Int, unit: CoordinateUnit): Int = w
 }
 
 /**
- * Rejects a point that is not on the screen. An off-screen tap is accepted silently by
- * `input tap` and simply does nothing, which is the failure mode this check exists to turn into an
- * answer.
+ * Rejects a point that is not on the screen, or that cannot be checked because the screen's size is
+ * unknown. An off-screen tap is accepted silently by `input tap` and simply does nothing, which is
+ * the failure mode this check exists to turn into an answer.
  */
 @OptIn(ExperimentalJetWhaleApi::class)
 internal fun CoordinateSpace.requireOnScreen(xName: String, x: Int, yName: String, y: Int) {
-    val size = size ?: return
+    val size = size ?: throw JetWhaleMcpException(
+        "$xName=$x, $yName=$y cannot be checked against the screen, because `wm size` or the display's rotation could not be read",
+    )
     if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
         throw JetWhaleMcpArgumentException(
             "$xName=$x, $yName=$y is outside the screen, which is ${size.width}x${size.height} pixels",

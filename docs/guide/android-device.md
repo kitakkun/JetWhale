@@ -104,7 +104,7 @@ so a coordinate read off it has to be doubled — or capture at full size and sk
 
 | Tool | Arguments | What it does |
 |---|---|---|
-| `tap` | `serial?`, `x`, `y`, `unit?` | Taps a point. Rejected if it is not on the screen as it is currently rotated, with the size in the message. |
+| `tap` | `serial?`, `x`, `y`, `unit?` | Taps a point. Rejected if it is not on the screen as it is currently rotated, with the size in the message, or if the screen's size cannot be read. |
 | `longPress` | `serial?`, `x`, `y`, `unit?`, `durationMs?` | Presses and holds. Defaults to 800 ms, which clears every platform long-press timeout (400–500 ms) with margin. |
 | `swipe` | `serial?`, `fromX`, `fromY`, `toX`, `toY`, `unit?`, `durationMs?` | Drags between two points; both ends are checked. Defaults to 300 ms, which the platform reads as a drag rather than a fling. |
 | `type` | `serial?`, `text` | Types into whatever has focus — tap the field first. Spaces and shell metacharacters are escaped for you. |

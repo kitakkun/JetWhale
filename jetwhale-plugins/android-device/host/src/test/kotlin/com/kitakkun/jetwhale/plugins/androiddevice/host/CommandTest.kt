@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -271,6 +272,28 @@ class PointerInputTest {
 
         assertTrue(adb.commands.any { it.endsWith("input tap 1800 500") })
         assertContains(error.message.orEmpty(), "2400x1080")
+    }
+
+    @Test
+    fun `refuses to tap when the screen size cannot be read, rather than tapping unchecked`() {
+        val adb = FakeAdb(
+            listOf(
+                devicesRule(),
+                reply("wm size", exitCode = 1, errorOutput = "Error: unable to read the display size\n"),
+                reply("wm density", "Physical density: 440\n"),
+                reply("dumpsys window displays", "  mCurrentRotation=ROTATION_0\n"),
+            ),
+        )
+
+        val error = assertFailsWith<JetWhaleMcpException> {
+            TapCommand(adb).call {
+                put("x", 10)
+                put("y", 20)
+            }
+        }
+
+        assertContains(error.message.orEmpty(), "cannot be checked")
+        assertFalse(adb.commands.any { it.contains("input tap") })
     }
 
     @Test
