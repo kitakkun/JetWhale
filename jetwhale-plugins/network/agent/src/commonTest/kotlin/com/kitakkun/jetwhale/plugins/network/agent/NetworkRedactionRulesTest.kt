@@ -264,6 +264,35 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `a failure message hides a redacted query value whatever the scheme of the URL`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        listOf("ws", "wss", "HTTPS").forEach { scheme ->
+            val message = "Connect timeout has expired [url=$scheme://api.example.com/socket?token=abc&page=2, connect_timeout=unknown ms]"
+            val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+            assertFalse("abc" in redacted.message, redacted.message)
+            assertTrue("page=2" in redacted.message, redacted.message)
+        }
+    }
+
+    @Test
+    fun `a failure message hides a redacted query value in a URL quoted right after another`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val message = """{"origin":"https://api.example.com/a?page=2","url":"https://api.example.com/a?token=abc"}"""
+        val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+        assertFalse("abc" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
+    fun `a redacted query value in a failure message that runs into another redacted name is hidden whole`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token", "sig") }
+        val message = "Connect timeout has expired [url=wss://api.example.com/socket?token=abc?sig=def&page=2, connect_timeout=unknown ms]"
+        val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+        assertFalse("abc" in redacted.message || "def" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
     fun `a query parameter whose name is percent-encoded is still redacted`() {
         val rules = NetworkRedactionRules { urlQueryParam("token") }
         val redacted = rules.redactAtCapture(request(url = "https://api.example.com/a?tok%65n=abc&page=2"))

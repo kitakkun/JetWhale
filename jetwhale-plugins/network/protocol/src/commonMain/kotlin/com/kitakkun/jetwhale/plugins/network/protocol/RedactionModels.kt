@@ -73,15 +73,28 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
 }
 
 /**
- * Applies the URL query rules to the URLs inside a failure's message: client exceptions such as
- * Ktor's timeouts quote the request URL in full.
+ * Applies the URL query rules to a failure's message, which may quote the request URL in full, as
+ * Ktor's timeout exceptions do. The value after every `?name=` or `&name=` in the message is hidden
+ * up to the next `&`, `#` or whitespace, whatever the URL's scheme (WebSocket URLs included) and
+ * wherever the URL seems to end.
  */
 fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure {
     if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return failure
-    return failure.copy(message = failure.message.replace(URL_IN_TEXT) { redactUrl(it.value) })
+    val message = failure.message
+    val redacted = StringBuilder()
+    var copiedUpTo = 0
+    for (name in QUERY_PARAM_NAME_IN_TEXT.findAll(message)) {
+        if (name.range.first < copiedUpTo) continue
+        val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name.groupValues[1].formUrlDecode()) ?: continue
+        val value = checkNotNull(QUERY_PARAM_VALUE.matchAt(message, name.range.last + 1))
+        redacted.appendRange(message, copiedUpTo, value.range.first).append(strategy.render(value.value))
+        copiedUpTo = value.range.last + 1
+    }
+    return failure.copy(message = redacted.appendRange(message, copiedUpTo, message.length).toString())
 }
 
-private val URL_IN_TEXT = Regex("""https?://\S+""")
+private val QUERY_PARAM_NAME_IN_TEXT = Regex("""[?&]([^?&#=\s]*)=""")
+private val QUERY_PARAM_VALUE = Regex("""[^&#\s]*""")
 
 private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
     when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {

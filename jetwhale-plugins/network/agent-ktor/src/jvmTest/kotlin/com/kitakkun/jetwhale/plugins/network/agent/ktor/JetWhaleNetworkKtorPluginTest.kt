@@ -13,6 +13,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.ConnectTimeoutException
 import io.ktor.client.plugins.api.ClientPlugin
 import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
@@ -277,11 +278,11 @@ class JetWhaleNetworkKtorPluginTest {
     @Test
     fun `a failed call's message never carries a redacted query value`() = runBlocking {
         val (agent, events) = agentWithEvents(NetworkRedactionRules { urlQueryParam("token") })
-        val client = HttpClient(MockEngine { request -> throw IOException("Connection refused [url=${request.url}]") }) {
+        val client = HttpClient(MockEngine { request -> throw ConnectTimeoutException(request) }) {
             install(agent.ktorClientPlugin())
         }
 
-        assertFailsWith<IOException> { client.get("https://api.example.com/a?token=secret-value&page=2") }
+        assertFailsWith<IOException> { client.get("wss://api.example.com/socket?token=secret-value&page=2") }
 
         val failure = (events.last() as RequestFailed).failure
         assertFalse("secret-value" in failure.message, failure.message)
