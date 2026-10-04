@@ -81,6 +81,14 @@ class LinkMatchingTest {
     }
 
     @Test
+    fun `a host is compared case-insensitively`() {
+        val wildcard = declared(schemes = listOf("https"), hosts = listOf("*.example.com"), paths = emptyList())
+
+        assertEquals(listOf(itemLink), declarationsMatching("https://Example.COM/item/42", listOf(itemLink)))
+        assertEquals(listOf(wildcard), declarationsMatching("https://Shop.EXAMPLE.com/", listOf(wildcard)))
+    }
+
+    @Test
     fun `a scheme is compared case-sensitively`() {
         val mixedCase = declared(schemes = listOf("MyApp"), hosts = emptyList(), paths = emptyList())
 
