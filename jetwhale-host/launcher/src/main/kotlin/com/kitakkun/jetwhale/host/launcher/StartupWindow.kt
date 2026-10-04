@@ -39,15 +39,12 @@ sealed interface StartupOutcome {
     data object Completed : StartupOutcome
 
     /**
-     * Neither failed nor completed: the host exited normally after it published its instance record,
-     * as it does when the user quits or restarts it, or it exited before publishing because another
-     * host holds the instance and was asked to come forward instead.
+     * Neither failed nor completed: the host exited normally within the window, as it does when the
+     * user quits or restarts it, before its window has shown or after, or when it handed the launch
+     * to a host that already runs.
      */
     data object Neither : StartupOutcome
 
-    /**
-     * Exited within the window before it published its instance record, whatever its status, or
-     * after publishing with a non-zero status or by a signal.
-     */
+    /** Exited within the window with a non-zero status or by a signal. */
     data class Failed(val exitStatus: Int) : StartupOutcome
 }

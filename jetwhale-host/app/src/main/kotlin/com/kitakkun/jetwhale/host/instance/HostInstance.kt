@@ -38,8 +38,8 @@ class HostInstance private constructor(
 
     /**
      * Publishes the record that marks this host as up: once its main window shows, or, with
-     * `--headless`, once its servers are bound. The launcher judges the start by it, and reaches the
-     * host through it.
+     * `--headless`, once its servers are bound. The launcher lets the next launch go on once it
+     * sees it, and reaches the host through it.
      */
     fun publish() {
         HostInstanceRecord.publish(

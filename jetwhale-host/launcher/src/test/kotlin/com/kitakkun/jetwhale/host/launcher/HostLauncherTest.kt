@@ -207,14 +207,15 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `counts a normal exit before publishing as a failed start`() {
+    fun `counts a normal exit before the host has published as neither failed nor completed`() {
         download("1.0.0-alpha15")
-        processes.script("1.0.0-alpha15", FakeHostBehavior.ExitsBeforePublishing(0), FakeHostBehavior.ExitsBeforePublishing(0))
+        processes.script("1.0.0-alpha15", FakeHostBehavior.ExitsBeforePublishing(0))
 
         val outcome = launcher().launch(afterPid = null, retryVersion = null)
 
-        assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
-        assertEquals(setOf("1.0.0-alpha15"), versions.readLauncherState().setAside)
+        assertEquals(LaunchOutcome.Neither, outcome)
+        assertEquals(1, processes.starts.size)
+        assertEquals(LauncherState.EMPTY, versions.readLauncherState())
     }
 
     @Test
@@ -423,12 +424,13 @@ class HostLauncherTest {
     fun `does not take a record an earlier host left behind for the new host's`() {
         download("1.0.0-alpha15")
         HostInstanceRecord.publish(versions, HostInstanceRecord(port = 0, pid = processes.nextPid, token = "stale"))
-        processes.script("1.0.0-alpha15", FakeHostBehavior.ExitsBeforePublishing(0), FakeHostBehavior.ExitsBeforePublishing(0))
+        processes.script("1.0.0-alpha15", FakeHostBehavior.ClaimsTheInstanceLate(runningPolls = 1))
 
-        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+        val (first, second) = launchAgainWhileTheHostComesUp()
 
-        assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
-        assertEquals(setOf("1.0.0-alpha15"), versions.readLauncherState().setAside)
+        assertEquals(1, processes.starts.size)
+        assertIs<LaunchOutcome.Started>(first)
+        assertEquals(LaunchOutcome.ActivatedRunningHost, second)
     }
 
     @Test

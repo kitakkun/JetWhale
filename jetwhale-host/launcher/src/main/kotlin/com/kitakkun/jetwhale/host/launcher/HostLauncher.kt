@@ -227,14 +227,9 @@ class HostLauncher(
                 launchLock.release()
             }
         }
-        val outcome = when {
-            exitStatus == null -> StartupOutcome.Completed
-
-            published || runningHost.isPublishedBy(process.pid) ->
-                if (exitStatus == 0) StartupOutcome.Neither else StartupOutcome.Failed(exitStatus)
-
-            isInstanceHeldElsewhere() -> StartupOutcome.Neither
-
+        val outcome = when (exitStatus) {
+            null -> StartupOutcome.Completed
+            0 -> StartupOutcome.Neither
             else -> StartupOutcome.Failed(exitStatus)
         }
         if (outcome is StartupOutcome.Failed) {
