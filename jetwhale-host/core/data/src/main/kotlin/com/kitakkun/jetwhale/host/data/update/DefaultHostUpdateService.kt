@@ -302,8 +302,12 @@ class DefaultHostUpdateService(
                 while (true) {
                     val read = body.readAvailable(buffer, 0, buffer.size)
                     if (read < 0) break
-                    onLocalFiles { output.write(buffer, 0, read) }
                     downloaded += read
+                    if (downloaded > offer.platform.size) {
+                        logger.warn("Stopped the download of host {}: it ran past the {} bytes its metadata pins", version, offer.platform.size)
+                        return@execute HostUpdateFailure.Corrupted
+                    }
+                    onLocalFiles { output.write(buffer, 0, read) }
                     setStatus(HostUpdateStatus.Downloading(version, downloaded, offer.platform.size))
                 }
             }

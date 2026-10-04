@@ -226,6 +226,25 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `stops a download that runs past the size its metadata pins`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        responses[jarUrl("1.0.0-alpha14")] = {
+            val body = bodyWriters.writer {
+                channel.writeFully(jarBytes("1.0.0-alpha14") + "and more".toByteArray())
+                channel.flush()
+                awaitCancellation()
+            }.channel
+            respond(body, HttpStatusCode.OK)
+        }
+
+        val outcome = checkAndDownload(service())
+
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
+        assertEquals(emptyList(), versions.installedVersions())
+        assertStagingEmpty()
+    }
+
+    @Test
     fun `discards an interrupted download`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
         responses[jarUrl("1.0.0-alpha14")] = {
