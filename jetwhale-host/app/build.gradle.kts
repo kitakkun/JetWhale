@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.aboutLibrariesCore)
 
     implementation(libs.jetbrainsComposeMaterialIconsExtended)
+    compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 

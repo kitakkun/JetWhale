@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import org.jetbrains.skia.ColorType
 import java.io.InputStream
@@ -101,6 +102,7 @@ private const val RAW_ROW_ALIGNMENT = 64
 /** What idb's client keeps up with alone, measured at 90–134 MB/s, with room to spare. */
 private const val RAW_BYTES_PER_SECOND = 90_000_000L
 
+@VisibleForTesting
 internal const val MIN_RAW_FPS = 5
 
 internal const val MAX_RAW_FPS = 60

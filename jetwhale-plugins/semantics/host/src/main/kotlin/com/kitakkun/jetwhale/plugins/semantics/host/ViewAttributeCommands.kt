@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
@@ -160,6 +161,7 @@ internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
 }
 
 /** The `type` an agent sees, and the name [parseViewAttributeValue] reads a string under. */
+@VisibleForTesting
 internal val ViewAttributeValue.typeName: String get() = type.wireName
 
 /** The value as the string an agent both reads and writes it as. */
@@ -227,6 +229,7 @@ internal fun parseViewAttributeValue(attributeId: String, current: ViewAttribute
 }
 
 /** `#AARRGGBB` or `#RRGGBB`, the notation a `View`'s colors are written in; the short form is opaque. */
+@VisibleForTesting
 internal fun parseArgb(text: String): Int? {
     val digits = text.trim().removePrefix("#")
     if (digits.any { it !in HEX_DIGITS }) return null
@@ -237,6 +240,7 @@ internal fun parseArgb(text: String): Int? {
     }
 }
 
+@VisibleForTesting
 internal fun formatArgb(argb: Int): String = "#" + (argb.toLong() and 0xFFFFFFFFL).toString(radix = 16).padStart(8, '0').uppercase()
 
 private const val OPAQUE_ALPHA = 0xFF shl 24

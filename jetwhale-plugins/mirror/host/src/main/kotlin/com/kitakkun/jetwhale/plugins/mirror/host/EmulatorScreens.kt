@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -70,6 +71,7 @@ internal fun emulatorRunningDirectories(osName: String, home: File, temp: File, 
 }
 
 /** The gRPC endpoint of the emulator with [serial], from the files in [directories], or null. */
+@VisibleForTesting
 internal fun findEmulatorEndpoint(serial: String, directories: List<File>): EmulatorEndpoint? {
     val consolePort = serial.removePrefix("emulator-").toIntOrNull() ?: return null
     return directories.asSequence()
@@ -87,6 +89,7 @@ private fun File.readTextOrNull(): String? = try {
 }
 
 /** The console port and gRPC endpoint in the text of an emulator's discovery file, or null without a gRPC port. */
+@VisibleForTesting
 internal fun parseEmulatorDiscovery(text: String): Pair<Int, EmulatorEndpoint>? {
     val values = text.lineSequence().mapNotNull { line -> line.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim() to it[1].trim() } }.toMap()
     val consolePort = values["port.serial"]?.toIntOrNull() ?: return null

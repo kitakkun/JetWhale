@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -91,6 +92,7 @@ internal fun closedSessions(
  * "Connected" is what the diff is on, not "present": a disconnected session keeps its entry in the
  * list, so an id reappearing as active is a genuine arrival and is announced — a reconnect included.
  */
+@VisibleForTesting
 internal fun newlyConnectedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
@@ -255,12 +257,14 @@ private val MIN_SIDEBAR_WIDTH = 200.dp
 private val MAX_SIDEBAR_WIDTH = 480.dp
 
 /** [width] kept within what the sidebar can usefully be; a stored width is clamped the same way. */
+@VisibleForTesting
 internal fun clampSidebarWidth(width: Dp): Dp = width.coerceIn(MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
 
 /**
  * The tool's name without its plugin id's package: `com.kitakkun.jetwhale.mirror.tap` reads as
  * `mirror.tap`. A host tool, which belongs to no plugin, keeps its own short name (`jetwhale.click`).
  */
+@VisibleForTesting
 internal fun McpToolInvocation.shortToolName(): String {
     val pluginId = pluginId ?: return toolName
     if (!toolName.startsWith("$pluginId.")) return toolName

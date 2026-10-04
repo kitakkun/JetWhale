@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import java.io.FilterInputStream
 import java.io.IOException
@@ -150,6 +151,7 @@ private class FfmpegLog(log: InputStream, onInputResized: () -> Unit) {
  * The frame size in ffmpeg's description of a [codec] stream, as in
  * `Video: rawvideo (BGRA …), 1080x2400 [SAR …]` for its output or `Video: h264 (High), …, 1080x2400, 30 fps` for its input.
  */
+@VisibleForTesting
 internal fun parseStreamSize(line: String, codec: String): IntSize? {
     if (!line.contains("Video: $codec")) return null
     val match = Regex("""[ ,](\d{2,5})x(\d{2,5})[ ,\[]""").find(line) ?: return null
@@ -162,6 +164,7 @@ internal fun parseStreamSize(line: String, codec: String): IntSize? {
  * to yuv420p(…), 240x320, …`; earlier versions `… frame changed from size:320x240 fmt:yuv420p to
  * size:240x320 fmt:yuv420p`.
  */
+@VisibleForTesting
 internal fun parseChangedSize(line: String): IntSize? {
     val match = Regex("""changed.* to .*?(\d{2,5})x(\d{2,5})""").find(line) ?: return null
     return IntSize(match.groupValues[1].toInt(), match.groupValues[2].toInt())

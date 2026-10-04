@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.viewport
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
@@ -52,6 +53,7 @@ internal fun PluginComposeScene.renderDiscardingPixels() {
 }
 
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun applyViewport(scene: PluginComposeScene, viewport: McpViewport) {
     try {
         scene.composeScene.density = viewport.density

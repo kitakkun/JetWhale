@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.bouncyCastleBcprov)
     implementation(libs.bouncyCastleBcpkix)
     implementation(libs.jmdns)
+    compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
 }

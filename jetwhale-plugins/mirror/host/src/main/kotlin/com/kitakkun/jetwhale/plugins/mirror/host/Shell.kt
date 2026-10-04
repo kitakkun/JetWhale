@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
@@ -88,9 +89,11 @@ internal class MirrorToolPaths(
  * then Homebrew's. A GUI app on macOS does not inherit the login shell's PATH, so Homebrew's
  * directories are searched even when PATH lacks them.
  */
+@VisibleForTesting
 internal fun toolDirectories(pathVariable: String?): List<String> = pathVariable.orEmpty().split(File.pathSeparator).filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
 
 /** The path of the first executable file named [name] in [directories], or null. */
+@VisibleForTesting
 internal fun findToolPath(name: String, directories: List<String>): String? = directories.map { "$it/$name" }.firstOrNull(::isExecutable)
 
 private fun isExecutable(path: String): Boolean = File(path).let { it.isFile && it.canExecute() }

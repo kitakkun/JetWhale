@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -154,6 +155,7 @@ internal data class AndroidDisplay(val logicalId: Int, val physicalId: String)
  * off. The panel's state decides because a logical display's own can lag behind it: a folded
  * device's default display reads OFF while the cover panel behind it is on.
  */
+@VisibleForTesting
 internal fun parseActiveAndroidDisplay(dumpsysDisplay: String): AndroidDisplay? {
     val lines = dumpsysDisplay.lines()
     val panelIsOn = lines.filter { "DisplayDeviceInfo{" in it }.mapNotNull { line ->
@@ -202,6 +204,7 @@ private val DISPLAY_REAL_SIZE = Regex("""real (\d+) x (\d+)""")
  * in that shell and start another, and no escape carries it through, so control characters are
  * refused.
  */
+@VisibleForTesting
 internal fun escapeForAdbInputText(text: String): String {
     if (text.any(Char::isISOControl)) throw deviceControlError("text with a line break, tab or other control character cannot be typed on an Android device; type each line separately")
     return text
@@ -215,6 +218,7 @@ internal fun escapeForAdbInputText(text: String): String {
  * wakefulness line. `Awake` and `Dreaming` (a screensaver) have the screen on; `Asleep` and
  * `Dozing` (an always-on display) show nothing the mirror can use.
  */
+@VisibleForTesting
 internal fun parseScreenPower(output: String): ScreenPower? {
     val wakefulness = Regex("""mWakefulness=(\w+)""").find(output)?.groupValues?.get(1) ?: return null
     val locked = Regex("""isKeyguardShowing=(\w+)""").find(output)?.groupValues?.get(1) == "true"
@@ -222,6 +226,7 @@ internal fun parseScreenPower(output: String): ScreenPower? {
 }
 
 /** The `input keyevent` code that presses [button] on an Android device. */
+@VisibleForTesting
 internal fun androidKeycodeOf(button: DeviceButton): String = when (button) {
     DeviceButton.Home -> "KEYCODE_HOME"
     DeviceButton.Back -> "KEYCODE_BACK"

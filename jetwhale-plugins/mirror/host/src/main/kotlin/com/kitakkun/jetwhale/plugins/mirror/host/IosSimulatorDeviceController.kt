@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -133,6 +134,7 @@ internal const val IDB_MISSING = "iOS input and live streaming need idb (https:/
  * switcher on two HOME presses in quick succession; two idb calls in a row land about 0.3 s apart,
  * well inside that window.
  */
+@VisibleForTesting
 internal fun iosSimulatorPressesOf(button: DeviceButton): List<String>? = when (button) {
     DeviceButton.Home -> listOf("HOME")
     DeviceButton.Recents -> listOf("HOME", "HOME")
