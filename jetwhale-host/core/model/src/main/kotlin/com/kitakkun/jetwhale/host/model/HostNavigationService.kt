@@ -26,17 +26,21 @@ enum class HostSettingsSection { GENERAL, SERVER, AI_AGENTS, PLUGINS }
  * MCP_TOOLS is reported but cannot be requested: the tool browser exists so a person can watch what
  * an agent is doing, so an agent has no reason to send itself there.
  */
-enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, LICENSES, LOG_VIEWER, MCP_TOOLS }
+enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, LICENSES, MCP_TOOLS }
 
 data class PoppedOutPlugin(val pluginId: String, val sessionId: String)
 
-/** What the main host window currently shows. Popped-out plugins live in their own windows and are listed separately. */
+/**
+ * What the main host window currently shows. Popped-out plugins and the log viewer live in windows
+ * of their own and are reported separately.
+ */
 data class HostDestination(
     val kind: HostDestinationKind,
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: HostSettingsSection? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
+    val logViewerOpen: Boolean,
 )
 
 data class HostViewState(

@@ -74,6 +74,7 @@ class HostNavigationCommand(
                 sessionId = applied.sessionId,
                 settingsSection = applied.settingsSection?.name,
                 poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+                logViewerOpen = applied.logViewerOpen,
             ),
         )
     }
@@ -126,7 +127,7 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
 
     is HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
-    is HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
+    is HostNavigationRequest.LogViewer -> destination.logViewerOpen
 
     is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
 
@@ -144,5 +145,6 @@ data class NavigateResult(
     val sessionId: String? = null,
     val settingsSection: String? = null,
     val poppedOut: Boolean = false,
+    val logViewerOpen: Boolean = false,
     val reason: String? = null,
 )
