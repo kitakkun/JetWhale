@@ -42,8 +42,10 @@ startJetWhale {
 
 How the Android list is read: `PackageManager` cannot report intent filters for an installed app —
 `GET_INTENT_FILTERS` is not supported for them and `ActivityInfo` carries none. The agent reads the
-app's own compiled manifest in-process instead (`AssetManager.openXmlResourceParser("AndroidManifest.xml")`),
-which holds every filter exactly as the build merged it, and resolves `@string/` references.
+app's own compiled manifest in-process instead, which holds every filter exactly as the build merged
+it, and resolves `@string/` references. It opens the base APK's manifest by its asset cookie
+(`AssetManager.openXmlResourceParser(cookie, "AndroidManifest.xml")`): opened by name alone, the
+manifest can come from a split APK, or from WebView once the app has shown one.
 
 What is not listed:
 

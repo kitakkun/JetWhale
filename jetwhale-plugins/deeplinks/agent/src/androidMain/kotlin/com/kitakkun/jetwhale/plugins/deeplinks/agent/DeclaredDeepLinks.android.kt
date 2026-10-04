@@ -7,20 +7,44 @@ import android.content.pm.verify.domain.DomainVerificationUserState
 import android.content.res.XmlResourceParser
 import android.os.Build
 import org.xmlpull.v1.XmlPullParser
+import java.io.FileNotFoundException
 
 internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
     val context = currentApplicationOrNull()
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's Context was not reachable, so its manifest could not be read."))
-    val verification = appLinkVerificationStates(context)
     // PackageManager exposes no intent filters (ActivityInfo carries none), so they are read from
     // the app's compiled manifest, which holds them as merged at build time.
-    val links = context.assets.openXmlResourceParser("AndroidManifest.xml").use { parser ->
+    val manifest = openBaseManifest(context)
+        ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's own manifest was not among its loaded APKs, so its links could not be read."))
+    val verification = appLinkVerificationStates(context)
+    val links = manifest.use { parser ->
         declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), verificationOf = verification::get)
     }
     val notes = buildList {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) add("App Links verification states are reported from Android 12.")
     }
     return DeclaredDeepLinks(links = links, notes = notes)
+}
+
+/**
+ * A parser of the base APK's manifest, on its root element. Opened without a cookie, the manifest is
+ * looked up from the last loaded APK back, which is a split's or a shared library's (WebView's, once
+ * the app has shown one) whenever the app has those. The framework and its overlays load before the
+ * base APK and all have a manifest, so the first cookie without one is past the app's APKs.
+ */
+private fun openBaseManifest(context: Context): XmlResourceParser? {
+    var cookie = 1
+    while (true) {
+        val parser = try {
+            context.assets.openXmlResourceParser(cookie, "AndroidManifest.xml")
+        } catch (_: FileNotFoundException) {
+            return null
+        }
+        parser.nextTag()
+        if (parser.getAttributeValue(null, "package") == context.packageName && parser.getAttributeValue(null, "split") == null) return parser
+        parser.close()
+        cookie++
+    }
 }
 
 private fun manifestEvents(parser: XmlResourceParser, context: Context): Sequence<ManifestEvent> = sequence {
