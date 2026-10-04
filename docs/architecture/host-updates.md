@@ -385,8 +385,8 @@ the version directories replace `UpdateCheckService`, as
 - **Installed but not running.** A version that is installed and newer than the running one is
   offered as *Restart to update*. A set-aside one is offered as *Try again*, never as a new
   download.
-- **Check.** The service fetches the metadata and its signature, verifies them, and checks the
-  release against the running launcher (see above).
+- **Check.** The service fetches the metadata, and its signature when the release has one,
+  verifies them, and checks the release against the running launcher (see above).
 - **Download.** It starts on the user's click, after the versions it supersedes are deleted (see
   *Choosing a version*), and shows progress and a cancel button. The jar goes into `host/staging/`.
   The download stops at the first byte past the metadata's `size` and is discarded as corrupted, so
@@ -603,15 +603,16 @@ every user who accepts the update.
 - **Packages, by hand on each OS,** built by a manual run of *Distribute Desktop Application* as a
   test build:
   - a fresh install;
-  - an update from a local release source signed with a test key;
+  - an update from a local release source, signed with a test key if signing is adopted;
   - restart to update;
   - a rollback with a jar that fails on purpose;
   - a refusal for a version that needs a newer runtime;
   - reopening while the host runs;
   - on macOS, an install downloaded through a browser.
 
-  A test build embeds the test public key and reads the release source from an environment
-  variable, which the host inherits from the launcher. Production builds have neither.
+  A test build reads the release source from an environment variable, which the host inherits
+  from the launcher, and embeds the test public key if signing is adopted. Production builds have
+  neither.
 
 ## Plan
 
