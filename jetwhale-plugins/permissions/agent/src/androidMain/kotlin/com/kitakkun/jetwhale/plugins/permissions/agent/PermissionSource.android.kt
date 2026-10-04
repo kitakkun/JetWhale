@@ -24,7 +24,6 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
-import java.util.concurrent.ConcurrentHashMap
 
 /** The id of the app-wide notification switch, which is not a manifest permission. */
 private const val NOTIFICATIONS_ID = "android.notifications"
@@ -53,7 +52,7 @@ private class AndroidPermissionSource(private val application: Application) : Pe
         requested.orEmpty().associateWith(::protectionOf)
     }
 
-    private val denials: MutableMap<String, RuntimeDenial> = ConcurrentHashMap()
+    private val denials: MutableMap<String, RuntimeDenial> = HashMap()
 
     override suspend fun read(): List<PermissionState> {
         val activity = foreground.current
@@ -132,15 +131,18 @@ private class AndroidPermissionSource(private val application: Application) : Pe
 
     /**
      * What a request for the denied runtime [permission] would do. A denial is read by asking
-     * [activity], or recalled from the last answer when none is in the foreground.
+     * [activity], or recalled from the last answer when none is in the foreground. The poll and the
+     * host's requests read concurrently, so each update of the denials is atomic.
      */
     private fun outlookOf(permission: String, activity: Activity?): RequestOutlook {
         val targetSdk = application.applicationInfo.targetSdkVersion
         backgroundLocationOf(permission, Build.VERSION.SDK_INT, targetSdk) { application.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
             ?.let { return it }
-        val denial = (denials[permission] ?: RuntimeDenial.Unknown).after(activity?.shouldShowRequestPermissionRationale(permission))
-        denials[permission] = denial
-        return denial
+        return synchronized(denials) {
+            val denial = (denials[permission] ?: RuntimeDenial.Unknown).after(activity?.shouldShowRequestPermissionRationale(permission))
+            denials[permission] = denial
+            denial
+        }
     }
 
     private fun notificationSwitchState(): PermissionState? {
