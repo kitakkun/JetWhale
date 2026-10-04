@@ -66,8 +66,11 @@ data class HostReleaseMetadata(
         /**
          * Reads a metadata file. Unknown fields are ignored, so a later release can add some; a file
          * whose `format` is higher than [FORMAT] is refused instead of read with fields missing.
+         *
+         * It checks no signature, so it is only for the metadata that came inside the installed
+         * package. A downloaded release's metadata is read through [HostReleaseMetadataReader].
          */
-        internal fun decode(text: String): HostReleaseMetadataResult {
+        fun decode(text: String): HostReleaseMetadataResult {
             val metadata = try {
                 val format = json.decodeFromString(MetadataFormat.serializer(), text).format
                 if (format < 1) return HostReleaseMetadataResult.Malformed("format $format is not a metadata format")
