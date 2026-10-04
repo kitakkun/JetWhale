@@ -99,7 +99,7 @@ internal class FlowRecorder(val name: String) {
             failures = failures.load(),
             emissions = emissions.load(),
             emissionsPerSecond = rateBuckets.load().filter { it.second > now / 1000 - RATE_WINDOW_SECONDS }.sumOf(RateBucket::count).toDouble() / RATE_WINDOW_SECONDS,
-            recentValues = recentValues.load(),
+            recentValues = recentValues.load().sortedByDescending(FlowValue::atEpochMillis),
         )
     }
 }

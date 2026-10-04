@@ -100,6 +100,23 @@ class FlowRecorderTest {
     }
 
     @Test
+    fun `values are listed newest first even when an older one is recorded last`() {
+        val recorder = FlowRecorder("prices")
+        val formattedWhileAnotherCollectorEmits = object {
+            override fun toString(): String {
+                val formattingStartedAt = nowEpochMillis()
+                while (nowEpochMillis() == formattingStartedAt) {}
+                recorder.onEmission("newer")
+                return "older"
+            }
+        }
+
+        recorder.onEmission(formattedWhileAnotherCollectorEmits)
+
+        assertEquals(listOf("newer", "older"), recorder.snapshot().recentValues.map(FlowValue::text))
+    }
+
+    @Test
     fun `an emission committed out of order joins its own second instead of adding a bucket`() {
         val buckets = emptyList<RateBucket>()
             .countingEmissionAt(100)
