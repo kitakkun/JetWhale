@@ -72,10 +72,11 @@ compose.desktop {
     }
 }
 
-// The JVM arguments the launcher passes to the host, per release platform. Compose adds the
-// swing-globals and -Xdock:name arguments to a packaged app by itself, so they are spelled out here.
+// The Compose Gradle plugin adds -Dcompose.application.configure.swing.globals=true, and
+// -Xdock:name on macOS, to the packaged app's launcher by itself. A host jar the JetWhale launcher
+// starts gets neither unless it is listed here.
 val hostReleaseJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true")
-val hostReleasePlatformJvmArgs = mapOf(
+val hostReleasePlatforms = mapOf(
     "macos-arm64" to listOf("-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"),
     "linux-x64" to emptyList(),
     "windows-x64" to emptyList(),
@@ -104,8 +105,8 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
     val hostMainClass = compose.desktop.application.mainClass
     val runtimeModules = compose.desktop.application.nativeDistributions.modules.toList()
     val javaFeatureVersion = java.toolchain.languageVersion.map { it.asInt() }
-    val jvmArgs = hostReleaseJvmArgs
-    val platformJvmArgs = hostReleasePlatformJvmArgs
+    val hostJvmArgs = hostReleaseJvmArgs
+    val releasePlatforms = hostReleasePlatforms
     argumentProviders.add(
         CommandLineArgumentProvider {
             val version = releaseVersion.get()
@@ -123,11 +124,11 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
                     add("--module")
                     add(it)
                 }
-                jvmArgs.forEach {
+                hostJvmArgs.forEach {
                     add("--jvm-arg")
                     add(it)
                 }
-                platformJvmArgs.forEach { (platform, arguments) ->
+                releasePlatforms.forEach { (platform, arguments) ->
                     arguments.forEach {
                         add("--platform-jvm-arg")
                         add("$platform=$it")
