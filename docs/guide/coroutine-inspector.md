@@ -71,6 +71,10 @@ A coroutine leaves the tree when its Composable leaves composition, so navigatin
 shows at once whether its work stopped with it. The root goes away when `TrackCompositionCoroutines`
 itself leaves composition.
 
+On Android, the `ComposeView`s of one window share a `Recomposer`, and with it that effect job, so a
+call in any of them shows all of them. Give those calls the same name: the root then stays while any
+of them is in composition.
+
 Expect company under that root: Material and foundation components start coroutines of their own
 (ripples, tab indicators, scrolling), and on a real screen they outnumber yours. Yours have no name of
 their own either and are listed as `StandaloneCoroutine`, so name the ones you want to recognize and

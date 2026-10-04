@@ -85,7 +85,9 @@ once, a `CompositionContext` hands the same context to its subcompositions, and 
 in it. The Compose runtime exposes that context only as `@InternalComposeApi`, so the adapter reads it from a
 `LaunchedEffect`'s own job through `Job.parent` (`@ExperimentalCoroutinesApi`) and returns at once;
 the probing coroutine completes and leaves no node behind. The effect job belongs to the Recomposer
-and outlives the call, so it is unregistered when the call leaves composition.
+and outlives the call, so it is unregistered when the call leaves composition. Every composition of
+one Recomposer (on Android, every `ComposeView` in a window) registers that same job, so the agent
+counts the registrations of a job under a name and drops the root only when the last is withdrawn.
 
 ## Findings
 

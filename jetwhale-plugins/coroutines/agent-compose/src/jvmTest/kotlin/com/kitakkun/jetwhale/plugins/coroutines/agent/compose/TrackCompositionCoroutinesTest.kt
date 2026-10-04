@@ -4,10 +4,12 @@ import androidx.compose.runtime.AbstractApplier
 import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
@@ -23,6 +25,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -73,6 +76,20 @@ class TrackCompositionCoroutinesTest {
         otherWindow.cancel()
     }
 
+    @Test
+    fun `leaving composition keeps the root while another composition of the same Recomposer tracks it`() = runTest {
+        var otherViewShown by mutableStateOf(true)
+        composing({
+            inspector.TrackCompositionCoroutines(name = "Compose")
+            if (otherViewShown) Subcomposition { inspector.TrackCompositionCoroutines(name = "Compose") }
+        }) {
+            Snapshot.withMutableSnapshot { otherViewShown = false }
+            it.settle()
+
+            assertNotNull(inspector.registeredRoots()["Compose"])
+        }
+    }
+
     @Composable
     private fun ScreenWithCoroutines(tracked: Boolean) {
         if (tracked) inspector.TrackCompositionCoroutines(name = "Compose")
@@ -98,6 +115,17 @@ class TrackCompositionCoroutinesTest {
                 runner.join()
             }
         }
+    }
+}
+
+/** Composes [content] the way a lazy list item or a `ComposeView` inside `AndroidView` is: under this composition's context. */
+@Composable
+private fun Subcomposition(content: @Composable () -> Unit) {
+    val parent = rememberCompositionContext()
+    DisposableEffect(parent) {
+        val subcomposition = Composition(UnitApplier, parent)
+        subcomposition.setContent(content)
+        onDispose(subcomposition::dispose)
     }
 }
 
@@ -127,7 +155,10 @@ private fun JetWhaleCoroutineInspectorAgentPlugin.registeredRoots(): Map<String,
     val field = JetWhaleCoroutineInspectorAgentPlugin::class.java.getDeclaredField("roots").apply { isAccessible = true }
     val roots = field.get(this)
     val map = roots.javaClass.getMethod("get").invoke(roots) as Map<*, *>
-    return map.entries.associate { (name, reference) -> name as String to reference?.let { it.javaClass.getMethod("get").invoke(it) as Job? } }
+    return map.entries.associate { (name, root) ->
+        val reference = checkNotNull(root).javaClass.getDeclaredField("job").apply { isAccessible = true }.get(root)
+        name as String to reference.javaClass.getMethod("get").invoke(reference) as Job?
+    }
 }
 
 private object UnitApplier : AbstractApplier<Unit>(Unit) {

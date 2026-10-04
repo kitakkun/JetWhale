@@ -57,7 +57,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = COROUTINES_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    private val roots = AtomicReference(emptyMap<String, WeakReference<Job>>())
+    private val roots = AtomicReference(emptyMap<String, RegisteredRoot>())
     private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
     private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
     private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES, timeSource = TimeSource.Monotonic)
@@ -80,7 +80,10 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     /** Shows the coroutines below [job] under [name]; see the scope overload. */
     fun register(job: Job, name: String) {
         walker.registered(job)
-        roots.updateAndGet { it + (name to WeakReference(job)) }
+        roots.updateAndGet { current ->
+            val registrations = current[name]?.takeIf { it.job.get() === job }?.registrations ?: 0
+            current + (name to RegisteredRoot(WeakReference(job), registrations + 1))
+        }
         job.invokeOnCompletion { unregister(job, name) }
     }
 
@@ -89,11 +92,19 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     /**
-     * Stops showing [job] under [name], unless [name] has since been registered to another job: a
-     * caller that registered a name another caller may reuse removes only its own registration.
+     * Withdraws one registration of [job] under [name]. [job] stops showing once every registration
+     * of it under [name] is withdrawn, and nothing changes when [name] has since been registered to
+     * another job, so callers that share a job or reuse a name each remove only their own.
      */
     fun unregister(job: Job, name: String) {
-        roots.updateAndGet { current -> if (current[name]?.get() === job) current - name else current }
+        roots.updateAndGet { current ->
+            val root = current[name]
+            when {
+                root == null || root.job.get() !== job -> current
+                root.registrations > 1 -> current + (name to RegisteredRoot(root.job, root.registrations - 1))
+                else -> current - name
+            }
+        }
     }
 
     /**
@@ -161,8 +172,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         capturedAtEpochMillis = nowEpochMillis(),
     )
 
-    private fun liveRoots(): Map<String, Job> = roots.updateAndGet { current -> current.filterValues { it.get() != null } }
-        .mapNotNull { (name, reference) -> reference.get()?.let { name to it } }
+    private fun liveRoots(): Map<String, Job> = roots.updateAndGet { current -> current.filterValues { it.job.get() != null } }
+        .mapNotNull { (name, root) -> root.job.get()?.let { name to it } }
         .toMap()
 
     /** What can be told about the coroutine the last tree gave [id]; see [GetCoroutineDetail]. */
@@ -186,6 +197,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         onRequest { request: GetCoroutineDetail -> reply(coroutineDetail(request.id)) }
         onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatchers.load().sumOf(DispatcherRecorder::clearLongRuns))) }
     }
+
+    private class RegisteredRoot(val job: WeakReference<Job>, val registrations: Int)
 }
 
 /** Enough to show every coroutine of an ordinary app, few enough that a runaway leak cannot flood the connection. */

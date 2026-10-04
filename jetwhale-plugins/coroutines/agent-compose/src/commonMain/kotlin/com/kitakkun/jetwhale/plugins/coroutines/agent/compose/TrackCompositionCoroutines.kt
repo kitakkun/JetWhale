@@ -29,6 +29,10 @@ import kotlin.coroutines.coroutineContext
  * }
  * ```
  *
+ * The compositions one `Recomposer` drives share that job — on Android, every `ComposeView` in a
+ * window — so a call in any of them shows all of them. Give such calls one name: the root then stays
+ * while any of them is in composition.
+ *
  * The coroutines have no name of their own, so they are listed as `StandaloneCoroutine`; give one a
  * `CoroutineName` to tell it apart, e.g. `LaunchedEffect(key) { withContext(CoroutineName("poll")) { ... } }`.
  */
