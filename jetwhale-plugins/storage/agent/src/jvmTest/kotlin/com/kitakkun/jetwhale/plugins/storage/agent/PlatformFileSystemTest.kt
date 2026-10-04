@@ -109,6 +109,16 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a listing marks a symbolic link whose target is missing`() {
+        Files.createSymbolicLink(File(directory, "dangling").toPath(), File(directory, "missing.txt").toPath())
+
+        val entry = listDirectoryEntries(directory.path).single()
+
+        assertEquals("dangling", entry.name)
+        assertEquals(true, entry.isSymbolicLink)
+    }
+
+    @Test
     fun `measuring counts everything below and does not follow links`() {
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "big.bin").writeBytes(ByteArray(1000))
