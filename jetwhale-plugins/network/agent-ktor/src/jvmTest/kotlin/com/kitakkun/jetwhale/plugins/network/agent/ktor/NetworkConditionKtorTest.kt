@@ -17,6 +17,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.prepareGet
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readRawBytes
+import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.content.OutgoingContent
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.IOException
 import kotlin.test.Test
@@ -87,6 +89,18 @@ class NetworkConditionKtorTest {
     }
 
     @Test
+    fun `an upload cap paces a wrapped request body through its wrapper`() = runBlocking {
+        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_RATE), matcher = null)))
+
+        val started = TimeSource.Monotonic.markNow()
+        client.post("https://example.com/upload") { setBody(WrappedContent(ByteArrayContent(ByteArray(PACED_BODY_BYTES)))) }
+        val elapsed = started.elapsedNow().inWholeMilliseconds
+
+        assertEquals(PACED_BODY_BYTES, uploadedBytes)
+        assertTrue(elapsed >= PACED_MIN_MS, "upload took ${elapsed}ms")
+    }
+
+    @Test
     fun `a rule for one endpoint leaves the others alone`() = runBlocking<Unit> {
         agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(offline = true), matcher = MockMatcher(urlPattern = "/images/"))))
 
@@ -105,6 +119,10 @@ class NetworkConditionKtorTest {
         client.get("https://example.com/items")
 
         assertEquals(1, engineCalls)
+    }
+
+    private class WrappedContent(delegate: OutgoingContent) : OutgoingContent.ContentWrapper(delegate) {
+        override fun copy(delegate: OutgoingContent): ContentWrapper = WrappedContent(delegate)
     }
 
     private fun conditionRule(condition: NetworkCondition, matcher: MockMatcher?) = NetworkConditionRule(id = "rule", name = "Test network", enabled = true, matcher = matcher, condition = condition)

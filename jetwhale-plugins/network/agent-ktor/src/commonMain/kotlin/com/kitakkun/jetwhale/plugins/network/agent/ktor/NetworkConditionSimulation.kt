@@ -62,7 +62,7 @@ internal fun HttpClientCall.withResponseBodyPacedTo(bytesPerSecond: Long): HttpC
 
 /**
  * This request body paced to [bytesPerSecond], or null for a body that has no bytes to pace (no
- * content, a protocol upgrade).
+ * content, a protocol upgrade). A wrapper keeps wrapping its content, now paced.
  */
 private fun OutgoingContent.pacedTo(bytesPerSecond: Long): OutgoingContent? {
     val original = this
@@ -70,6 +70,7 @@ private fun OutgoingContent.pacedTo(bytesPerSecond: Long): OutgoingContent? {
         is OutgoingContent.ByteArrayContent -> { _ -> ByteReadChannel(original.bytes()) }
         is OutgoingContent.ReadChannelContent -> { _ -> original.readFrom() }
         is OutgoingContent.WriteChannelContent -> { scope -> scope.writer { original.writeTo(channel) }.channel }
+        is OutgoingContent.ContentWrapper -> return original.delegate().pacedTo(bytesPerSecond)?.let(original::copy)
         else -> return null
     }
     return object : OutgoingContent.WriteChannelContent() {
