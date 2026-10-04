@@ -229,12 +229,14 @@ deleted or set aside, and its own launcher always runs it.
   launch.lock, instance.lock, instance.json
 ```
 
-The directory keeps at most two versions: the one running and one newer one.
+The directory keeps at most two versions, a download under way included: the one running and one
+newer one.
 - After a version completes a start, the launcher deletes every downloaded version older than it.
   Of the newer ones it keeps only the newest, which is set aside or finished downloading during
   the start, so the user can try it again or restart to it.
-- When a download finishes, the host deletes every downloaded version except the new one and the
-  one running. A set-aside version therefore stays until a newer download replaces it.
+- When a download starts, the host deletes every downloaded version except the one running. The
+  new version supersedes a set-aside one, or one waiting for a restart, so a set-aside version
+  stays until the user downloads a newer one.
 - On Windows a running host keeps its jar open, so a version still in use is deleted at a later
   start.
 
@@ -275,11 +277,18 @@ whole file. Entries for versions no longer on disk are ignored.
 
 ### Startup window and rollback
 
-A start fails when the host exits within N seconds of launch with a non-zero status or a signal,
-and it completes when the host is still running at the end of the window. An exit with status 0
-inside the window, such as the hand-off to a running host below, is neither. N is 30 seconds, the
-startup grace of #293's crash recovery, so the launcher and the host count the same crashes as
-startup crashes. The launcher waits out the window and then exits. With
+The window runs N seconds from launch. Inside it, the host publishes `instance.json` once its main
+window shows, or with `--headless` once its servers are bound (see *Single instance, reopen and
+restart*). The launcher judges the start from that and from how the host exits:
+- **Completed.** The host is still running at the end of the window.
+- **Failed.** The host exits inside the window before publishing, whatever its status, or after
+  publishing with a non-zero status or a signal.
+- **Neither.** The host exits cleanly after publishing, as when the user quits or restarts to
+  update, or it exits before publishing while another process holds `instance.lock`, having handed
+  the reopen to that running host.
+
+N is 30 seconds, the startup grace of #293's crash recovery, so the launcher and the host count the
+same crashes as startup crashes. The launcher waits out the window and then exits. With
 `--headless` it stays attached and returns the host's exit status, so a terminal or a service
 manager sees the host's lifetime.
 
@@ -307,16 +316,17 @@ the host as a child process, the launcher has to provide that. It uses two OS fi
 `~/.jetwhale/host/`, which the OS releases when their process ends, so a crash leaves none behind:
 
 - **One launcher at a time.** A launcher first takes `launch.lock`, and waits while another launcher
-  holds it. It keeps it until the host it started has published `instance.json`, has exited, or has
-  used up the startup window. Two launches at once therefore start one host.
-- **Reopen.** A host started by the launcher takes `instance.lock` and holds it while it runs. It
-  then writes a loopback endpoint, its process ID and a token to a temporary file, and renames that
-  to `instance.json`, so a reader sees a whole record or none. A launcher that finds
-  `instance.lock` held asks that host to bring its window forward, then exits. If the record is
-  missing or its endpoint does not answer, it reads it again for a few seconds, then logs the
-  failure and exits. A host that cannot take `instance.lock` does the same and exits normally. On
-  Windows and Linux this is new: today a second start runs a second host, which silently loses the
-  race for the ports.
+  holds it. It keeps it until a host it started has published `instance.json` or used up its
+  window, or until the launcher exits; a retry or a fallback to the next candidate happens under
+  the same lock. Two launches at once therefore start one host.
+- **Reopen.** A host started by the launcher takes `instance.lock` as it starts and holds it while
+  it runs. Once its main window shows, or with `--headless` once its servers are bound, it writes a
+  loopback endpoint, its process ID and a token to a temporary file, and renames that to
+  `instance.json`, so a reader sees a whole record or none. A launcher that finds `instance.lock`
+  held asks that host to bring its window forward, then exits. If the record is missing or its
+  endpoint does not answer, it reads it again for a few seconds, then logs the failure and exits. A
+  host that cannot take `instance.lock` does the same and exits normally. On Windows and Linux this
+  is new: today a second start runs a second host, which silently loses the race for the ports.
 - **Reopen during the window.** For its 30 seconds, the launcher is the process macOS ties to the
   app bundle, so a reopen reaches the launcher. It forwards the request to its host the same way.
 - **Restart to update.** The host starts `jetwhale.launcher.executable` with `--after <pid>` and its
@@ -361,9 +371,10 @@ UI reaches them through soil keys.
   download.
 - **Check.** The service fetches the metadata and its signature, verifies them, and checks the
   release against the running launcher (see above).
-- **Download.** It starts on the user's click and shows progress and a cancel button. The jar goes
-  into `host/staging/` and is checked on size first, then on SHA-256. The finished directory is
-  renamed into `host/<version>/`, so the launcher never sees half a version.
+- **Download.** It starts on the user's click, after the versions it supersedes are deleted (see
+  *Choosing a version*), and shows progress and a cancel button. The jar goes into `host/staging/`
+  and is checked on size first, then on SHA-256. The finished directory is renamed into
+  `host/<version>/`, so the launcher never sees half a version.
 - **Offer.** The user can restart to update, or keep working; the next start runs the new version.
 - **Failures.** A rate limit, no network, or a hash mismatch shows in the Updates section and never
   blocks startup.
@@ -537,11 +548,11 @@ every user who accepts the update.
   - The JVM argument forms.
   - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
     platform, and installed or set-aside versions.
-- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0, exit 1
-  at once, crash after the window, or sleep. The tests cover selection, setting aside, the bundled
-  floor, `--after`, `--retry`, the locks with two launchers started at once, and pruning. Processes,
-  file locks and renames behave differently on Windows, so this module's tests run on all three
-  runners.
+- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0 or 1
+  before or after publishing `instance.json`, crash after the window, or sleep. The tests cover
+  selection, setting aside, the bundled floor, `--after`, `--retry`, the locks with two launchers
+  started at once, and pruning. Processes, file locks and renames behave differently on Windows, so
+  this module's tests run on all three runners.
 - **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today. The
   cases: rate limits, redirects to the asset host, size and hash mismatches, an interrupted
   download, and the rename out of staging.
@@ -599,5 +610,5 @@ after 3; phase 4 can land at any point, first included.
   it clear.
 - **GitHub API limits.** 60 unauthenticated requests an hour per address can run out behind a
   shared NAT. A failed check is shown and changes nothing.
-- **Disk.** Up to three host versions of about 120 MB each: the bundled one, the running one, and a
-  newer one that is downloaded or set aside.
+- **Disk.** Up to three host jars of about 120 MB each: the bundled one, the running one, and one
+  newer one that is set aside, waiting for a restart, or being downloaded.
