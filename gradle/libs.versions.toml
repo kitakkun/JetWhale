@@ -26,6 +26,7 @@ navigation3 = "1.1.1"
 lifecycle = "2.11.0"
 soil = "1.0.0-alpha15"
 
+androidxAnnotation = "1.9.1"
 androidxDatastore = "1.3.0-alpha10"
 metro = "1.4.0"
 mokkery = "3.4.2"
@@ -72,6 +73,7 @@ javaKeyring = { module = "com.github.javakeyring:java-keyring", version.ref = "j
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 # androidx
+androidxAnnotation = { module = "androidx.annotation:annotation", version.ref = "androidxAnnotation" }
 androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
 androidxActivityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }

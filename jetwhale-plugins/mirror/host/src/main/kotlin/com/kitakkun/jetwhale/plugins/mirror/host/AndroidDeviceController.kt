@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -206,6 +207,7 @@ private val DISPLAY_REAL_SIZE = Regex("""real (\d+) x (\d+)""")
  * device in a posture other than its hardware's, as `cmd device_state state` puts it in; false
  * when they do not say.
  */
+@VisibleForTesting
 internal fun isPostureOverridden(dumpsysDeviceState: String): Boolean {
     val states = DEVICE_STATE.findAll(dumpsysDeviceState).associate { it.groupValues[1] to it.groupValues[2] }
     val base = states["mBaseState"] ?: return false
