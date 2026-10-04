@@ -490,7 +490,6 @@ private fun failureMessage(failure: HostUpdateFailure): String = when (failure) 
     is HostUpdateFailure.CouldNotSave -> stringResource(Res.string.update_failure_could_not_save)
 }
 
-/** A tinted box with a title, an optional hint and a row of buttons. */
 @Composable
 private fun UpdateNotice(
     title: String,

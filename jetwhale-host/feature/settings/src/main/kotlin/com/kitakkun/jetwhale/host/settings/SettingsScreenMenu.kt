@@ -61,7 +61,7 @@ enum class SettingsScreenPage(
 ) {
     Appearance(SettingsScreenSection.General, Res.string.appearance, SettingsScreenPageOwner.General),
 
-    /** Version, the app data directory and the log viewer: this install of the host. */
+    /** Version, updates, the app data directory and the log viewer: this install of the host. */
     Application(SettingsScreenSection.General, Res.string.settings_page_application, SettingsScreenPageOwner.General),
 
     DebugServer(SettingsScreenSection.Connection, Res.string.debug_server_label, SettingsScreenPageOwner.Server),

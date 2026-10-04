@@ -49,7 +49,8 @@ is downloaded or applied without a click.
 - **Check for Updates** — look now. A newer release can be **Downloaded**; once it is, **Restart to
   Update**, or keep working and the next start runs it.
 - A release that needs a newer launcher or Java runtime than your install has says so, and links to
-  its release page: install its package to get it.
+  its release page: install its package to get it. A release with no build for your operating
+  system and processor says that instead.
 - When a new version fails to start twice, the app goes back to the previous one and sets the new
   one aside. This section then names it, with **View Log** for the output of its failed start and
   **Try Again**.

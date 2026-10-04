@@ -53,7 +53,6 @@ import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
@@ -290,14 +289,14 @@ private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
     var isSetAsideBannerDismissed by remember { mutableStateOf(false) }
     var isUpdateBannerDismissed by remember { mutableStateOf(false) }
 
-    val setAsideVersion = hostLaunch.setAsideVersion?.takeIf { it == updateState?.setAside?.version }
-    AnimatedVisibility(visible = setAsideVersion != null && !isSetAsideBannerDismissed) {
-        if (setAsideVersion != null) {
+    val setAside = updateState?.setAside?.takeIf { it.version == hostLaunch.setAsideVersion }
+    AnimatedVisibility(visible = setAside != null && !isSetAsideBannerDismissed) {
+        if (setAside != null) {
             HostSetAsideBanner(
-                setAsideVersion = setAsideVersion,
+                setAsideVersion = setAside.version,
                 runningVersion = BuildConfig.VERSION,
-                onClickViewLog = { openFile(HostVersionsDirectory(hostLaunch.hostDirectory).hostLog(setAsideVersion)) },
-                onClickTryAgain = { coroutineScope.launch { tryAgainMutation.mutateAsync(setAsideVersion) } },
+                onClickViewLog = { openFile(setAside.log) },
+                onClickTryAgain = { coroutineScope.launch { tryAgainMutation.mutateAsync(setAside.version) } },
                 onDismiss = { isSetAsideBannerDismissed = true },
             )
         }
