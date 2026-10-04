@@ -48,13 +48,15 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
     private val workerClassTags = ConcurrentHashMap<String, Boolean>()
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = workManager.getWorkInfosFlow(WorkQuery.fromStates(WorkInfo.State.entries)).map { infos ->
+        workerClassTags.keys.retainAll(infos.flatMapTo(HashSet(), WorkInfo::tags))
         infos.map { workInfoToItem(it, ::isWorkerClass) }
     }
 
     /**
      * WorkManager tags every request with its worker's class name; this finds that tag. The class is
      * looked up without being initialized, so listing work never runs an app class's static code.
-     * Each tag's answer is kept, since looking up a tag that names no class throws.
+     * Each tag's answer is kept while WorkManager holds work with that tag, since looking up a tag
+     * that names no class throws.
      */
     private fun isWorkerClass(tag: String): Boolean = workerClassTags.getOrPut(tag) {
         try {
