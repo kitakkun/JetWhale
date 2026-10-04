@@ -100,8 +100,8 @@ public fun Modifier.jwFocusRing(
  * within that tree's scene, so no other move can start in between.
  */
 internal class ArrowKeyRowMove {
-    /** True only while a row moves focus to its neighbor. */
-    var inProgress = false
+    /** True from the start of a move until the first row it reaches takes it, or the move ends. */
+    var awaitingRow = false
 
     /** Set by the row that receives the move; still false afterwards when the move left the rows. */
     var reachedRow = false
@@ -135,10 +135,8 @@ public fun Modifier.jwListRowKeys(
     val focusManager = LocalFocusManager.current
     return focusRequester(focusRequester).onFocusChanged { state ->
         focused = state.isFocused
-        if (state.isFocused && move.inProgress) {
-            // Taken by the first row to receive the move, so an onSelect that moves focus itself
-            // does not make another row select as well.
-            move.inProgress = false
+        if (state.isFocused && move.awaitingRow) {
+            move.awaitingRow = false
             move.reachedRow = true
             currentOnSelect()
         }
@@ -149,15 +147,15 @@ public fun Modifier.jwListRowKeys(
             Key.DirectionUp -> FocusDirection.Up
             else -> return@onKeyEvent currentOnKey(event.key)
         }
-        move.inProgress = true
+        move.awaitingRow = true
         move.reachedRow = false
         val moved = try {
             focusManager.moveFocus(direction)
         } finally {
-            move.inProgress = false
+            move.awaitingRow = false
         }
-        // The focus search spans the whole screen, not just this list: past its first or last row
-        // it lands on a neighboring control, such as a filter field above a table.
+        // moveFocus searches the whole scene, not just this list: past the first or last row it
+        // lands on a neighboring control, such as a filter field above a table.
         if (moved && !move.reachedRow) focusRequester.requestFocus()
         moved && move.reachedRow
     }
