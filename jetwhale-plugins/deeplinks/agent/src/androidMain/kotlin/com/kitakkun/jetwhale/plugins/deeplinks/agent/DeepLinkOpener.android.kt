@@ -8,6 +8,11 @@ import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkOpenResult
 
 actual fun DeepLinkOpener.Companion.platformDefault(): DeepLinkOpener = AndroidDeepLinkOpener
 
+/**
+ * Opens a link as a browser would, restricted to this app. The result names the activity the platform
+ * routes it to, or every candidate when several match equally and the platform lets the user choose:
+ * `resolveActivity` then returns its own chooser, an activity of another package.
+ */
 private object AndroidDeepLinkOpener : DeepLinkOpener {
     override val canOpen: Boolean get() = true
 
@@ -20,10 +25,12 @@ private object AndroidDeepLinkOpener : DeepLinkOpener {
             .addCategory(Intent.CATEGORY_BROWSABLE)
             .setPackage(context.packageName)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val handlers = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).map { it.activityInfo.name }
-        if (handlers.isEmpty()) {
+        val candidates = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).map { it.activityInfo.name }
+        if (candidates.isEmpty()) {
             return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "no browsable activity of this app handles $url")
         }
+        val routedTo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo
+        val handlers = if (routedTo != null && routedTo.packageName == context.packageName) listOf(routedTo.name) else candidates
         return try {
             context.startActivity(intent)
             DeepLinkOpenResult(opened = true, handledBy = handlers, error = null)

@@ -37,7 +37,8 @@ data class OpenDeepLink(val url: String) : JetWhaleRequest<DeepLinkOpenResult>
 /**
  * Reply to [OpenDeepLink].
  *
- * @property handledBy The screens the platform routed the link to (Android activity names), when it says.
+ * @property handledBy The screen the platform routed the link to (an Android activity name), or every
+ *   candidate when it let the user choose; empty when the platform does not say.
  * @property error Why the link was not opened; null when [opened].
  */
 @SerialName("deeplinks/open_result")
