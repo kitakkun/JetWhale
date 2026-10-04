@@ -66,11 +66,11 @@ internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb
             throw JetWhaleAdbUnavailableException("adb could not be launched from ${executable.path}: ${e.message}", e)
         }
         val timedOut = AtomicBoolean(false)
-        // A read from adb's output ignores cancellation, so adb is ended from here: at the
-        // deadline, on cancellation, and once the body is done. A coroutine cancelled before it is
-        // dispatched never runs its block, so this one starts undispatched to reach its `finally`
-        // whatever the timing.
-        val lifetime = launch(start = CoroutineStart.UNDISPATCHED) {
+        // A blocking read of adb's output ignores cancellation, so adb is ended from this
+        // coroutine. A coroutine cancelled before it is dispatched never runs its block, so this
+        // one starts undispatched to always reach its finally. It resumes on Default because the
+        // reads it ends can hold every IO thread.
+        val lifetime = launch(Dispatchers.Default, start = CoroutineStart.UNDISPATCHED) {
             try {
                 delay(timeout)
                 timedOut.set(true)
@@ -82,7 +82,8 @@ internal class DefaultJetWhaleAdb(private val locator: AdbLocator) : JetWhaleAdb
             try {
                 process.errorStream.bufferedReader().readText().trim()
             } catch (_: IOException) {
-                // The read fails only once adb has been ended, and stderr is not used after that.
+                // Ending adb closes stderr under this read, and stderr is not used once adb has
+                // been ended.
                 ""
             }
         }

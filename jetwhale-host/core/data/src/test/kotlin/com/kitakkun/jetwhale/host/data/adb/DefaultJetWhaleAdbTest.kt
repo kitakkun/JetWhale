@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
@@ -87,6 +88,32 @@ class DefaultJetWhaleAdbTest {
             adb.runStreaming("hang", timeout = 200.milliseconds) { stream ->
                 stream.readBytes()
                 throw IllegalStateException("not a PNG")
+            }
+        }
+        Unit
+    }
+
+    @Test
+    fun `a call times out while every IO thread is blocked`() = runBlocking {
+        installFakeAdb()
+        supervisorScope {
+            val reading = CompletableDeferred<Unit>()
+            val call = async {
+                adb.runStreaming("hang", timeout = 1.seconds) { stream ->
+                    reading.complete(Unit)
+                    stream.readBytes()
+                }
+            }
+            reading.await()
+            val released = CountDownLatch(1)
+            repeat(maxOf(DEFAULT_IO_PARALLELISM, Runtime.getRuntime().availableProcessors())) {
+                launch(Dispatchers.IO) { released.await() }
+            }
+
+            try {
+                assertFailsWith<JetWhaleAdbTimeoutException> { withTimeout(10.seconds) { call.await() } }
+            } finally {
+                released.countDown()
             }
         }
         Unit
@@ -280,3 +307,5 @@ class DefaultJetWhaleAdbTest {
         }
     }
 }
+
+private const val DEFAULT_IO_PARALLELISM = 64
