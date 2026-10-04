@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.permissions.agent
 
-import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
 import android.app.AppOpsManager
@@ -78,11 +77,10 @@ private class AndroidPermissionSource(private val application: Application) : Pe
         if (denialOf(id, activity) == RuntimeDenial.Permanently) {
             return failure("${labelOf(id)} is denied permanently, so Android no longer shows the dialog; change it in the app's settings")
         }
-        // For an app targeting Android 12 or later, the system shows no dialog for fine location
-        // requested without coarse location.
-        val permissions = if (id == Manifest.permission.ACCESS_FINE_LOCATION) arrayOf(id, Manifest.permission.ACCESS_COARSE_LOCATION) else arrayOf(id)
-        onMainThread { activity.requestPermissions(permissions, REQUEST_CODE) }
-        return PermissionActionResult(message = "Asked for ${labelOf(id)}; the user's choice arrives as a change.", error = null)
+        val runtimeRequest = runtimeRequestFor(id, declared.keys)
+        onMainThread { activity.requestPermissions(runtimeRequest.permissions.toTypedArray(), REQUEST_CODE) }
+        val message = "Asked for ${labelOf(id)}; the user's choice arrives as a change."
+        return PermissionActionResult(message = listOfNotNull(message, runtimeRequest.caveat).joinToString(" "), error = null)
     }
 
     override suspend fun openAppSettings(): PermissionActionResult = startSettings(

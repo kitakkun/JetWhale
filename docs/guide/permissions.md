@@ -48,8 +48,9 @@ notification switch. Any other permission with an app op is read from that op.
 **Request** shows the runtime permission dialog in the app's foreground activity; for a special
 access it opens that access's settings screen instead. With no activity in the foreground there is
 nothing to show a dialog or a settings screen from, and the request says so. A request for
-`ACCESS_FINE_LOCATION` asks for `ACCESS_COARSE_LOCATION` with it: Android 12 shows no dialog for
-fine location alone to an app that targets it.
+`ACCESS_FINE_LOCATION` asks for `ACCESS_COARSE_LOCATION` with it when the app declares it: some
+Android versions from 12 on show an app that targets 12 or later no dialog for fine location alone,
+and the request's reply says so when the app does not declare coarse location.
 
 ::: tip Permanently denied or never asked?
 Android tells these apart only after the app asks. The note under a denied permission says which
