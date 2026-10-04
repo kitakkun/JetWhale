@@ -11,20 +11,34 @@ internal const val UNIT_DESCRIPTION =
         "reports) or DP, converted with the device's density."
 
 /**
- * What the device says its screen is, as far as it could be read. Either half can be missing on a
+ * What the device says its screen is, as far as it could be read. Any part can be missing on a
  * device whose window manager does not answer, which costs validation rather than the whole call.
+ *
+ * @property size The screen as it is currently rotated, which is the space `input` takes its
+ *   coordinates in. Unknown when either the size or the rotation could not be read.
+ * @property rotation The `Surface.ROTATION_*` index of the default display.
  */
 internal class CoordinateSpace(
     val size: ScreenSize?,
     val density: Int?,
+    val rotation: Int?,
 )
 
-/** Reads `wm size` and `wm density` from the device. */
+/**
+ * Reads `wm size`, `wm density` and the current rotation from the device. `wm size` reports the
+ * screen in its natural orientation whatever the rotation, so a quarter turn swaps its sides.
+ */
 @OptIn(ExperimentalJetWhaleApi::class)
 internal suspend fun DeviceTarget.readCoordinateSpace(): CoordinateSpace {
-    val size = shell("wm", "size", timeout = AdbTimeouts.QUICK).let { if (it.exitCode == 0) parseWmSize(it.output) else null }
+    val naturalSize = shell("wm", "size", timeout = AdbTimeouts.QUICK).let { if (it.exitCode == 0) parseWmSize(it.output) else null }
     val density = shell("wm", "density", timeout = AdbTimeouts.QUICK).let { if (it.exitCode == 0) parseWmDensity(it.output) else null }
-    return CoordinateSpace(size = size, density = density)
+    val rotation = shell("dumpsys", "window", "displays", timeout = AdbTimeouts.SHELL).let { if (it.exitCode == 0) parseRotation(it.output) else null }
+    val size = when (rotation) {
+        null -> null
+        1, 3 -> naturalSize?.let { ScreenSize(width = it.height, height = it.width) }
+        else -> naturalSize
+    }
+    return CoordinateSpace(size = size, density = density, rotation = rotation)
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

@@ -20,20 +20,22 @@ class ShellQuotingTest {
 class InputTextEscapingTest {
     @Test
     fun `turns spaces into the escape input text splits on`() {
-        assertEquals("hello%sworld", escapeForInputText("hello world"))
+        assertEquals("'hello%sworld'", escapeForInputText("hello world"))
     }
 
     @Test
-    fun `escapes the characters the device shell would otherwise act on`() {
-        assertEquals("a\\&b", escapeForInputText("a&b"))
-        assertEquals("a\\|b\\;c", escapeForInputText("a|b;c"))
-        assertEquals("\\\$HOME", escapeForInputText("\$HOME"))
-        assertEquals("it\\'s%s\\\"quoted\\\"", escapeForInputText("it's \"quoted\""))
+    fun `single-quotes the argument so the device shell acts on none of it`() {
+        assertEquals("'a&b|c;d'", escapeForInputText("a&b|c;d"))
+        assertEquals("'*'", escapeForInputText("*"))
+        assertEquals("'#tag'", escapeForInputText("#tag"))
+        assertEquals("'~/{a,b}'", escapeForInputText("~/{a,b}"))
+        assertEquals("'\$HOME'", escapeForInputText("\$HOME"))
     }
 
     @Test
-    fun `escapes a backslash so it arrives as one`() {
-        assertEquals("a\\\\b", escapeForInputText("a\\b"))
+    fun `carries quotes and a backslash through as themselves`() {
+        assertEquals("'it'\\''s%s\"quoted\"'", escapeForInputText("it's \"quoted\""))
+        assertEquals("'a\\b'", escapeForInputText("a\\b"))
     }
 
     @Test

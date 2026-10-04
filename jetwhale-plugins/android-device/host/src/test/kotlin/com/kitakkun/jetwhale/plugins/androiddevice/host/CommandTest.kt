@@ -32,6 +32,7 @@ import kotlin.test.assertTrue
 private val SCREEN_RULES = listOf(
     reply("wm size", "Physical size: 1080x2400\n"),
     reply("wm density", "Physical density: 440\n"),
+    reply("dumpsys window displays", "  mCurrentRotation=ROTATION_0\n"),
 )
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -162,6 +163,25 @@ class WaitForDeviceCommandTest {
     }
 
     @Test
+    fun `refuses to pick one of several devices that are connected once it is done waiting`() {
+        val adb = FakeAdb(
+            listOf(
+                devicesRule(
+                    "List of devices attached\n" +
+                        "emulator-5554          device transport_id:1\n" +
+                        "emulator-5556          device transport_id:2\n",
+                ),
+                reply("sys.boot_completed", "1\n"),
+            ),
+        )
+
+        val error = assertFailsWith<JetWhaleMcpArgumentException> { WaitForDeviceCommand(adb).call() }
+
+        assertContains(error.message.orEmpty(), "several devices")
+        assertFalse(adb.commands.any { it.contains("getprop") })
+    }
+
+    @Test
     fun `fails when the device never finishes booting within the timeout`() {
         val adb = FakeAdb(listOf(devicesRule(), reply("sys.boot_completed", "0\n")))
 
@@ -215,6 +235,56 @@ class PointerInputTest {
     }
 
     @Test
+    fun `checks a tap against the screen as it is rotated, not as wm size reports it`() {
+        val adb = FakeAdb(
+            listOf(
+                devicesRule(),
+                reply("wm size", "Physical size: 1080x2400\n"),
+                reply("wm density", "Physical density: 440\n"),
+                reply("dumpsys window displays", "  mCurrentRotation=ROTATION_90\n"),
+            ),
+        )
+
+        TapCommand(adb).call {
+            put("x", 1800)
+            put("y", 500)
+        }
+        val error = assertFailsWith<JetWhaleMcpArgumentException> {
+            TapCommand(adb).call {
+                put("x", 500)
+                put("y", 1800)
+            }
+        }
+
+        assertTrue(adb.commands.any { it.endsWith("input tap 1800 500") })
+        assertContains(error.message.orEmpty(), "2400x1080")
+    }
+
+    @Test
+    fun `rejects a dp coordinate too large to convert, instead of wrapping it onto the screen`() {
+        val adb = FakeAdb(listOf(devicesRule()) + SCREEN_RULES)
+
+        assertFailsWith<JetWhaleMcpArgumentException> {
+            TapCommand(adb).call {
+                put("x", 1_073_741_824)
+                put("y", 10)
+                put("unit", "DP")
+            }
+        }
+
+        assertFalse(adb.commands.any { it.contains("input tap") })
+    }
+
+    @Test
+    fun `sends DEL as Android's backspace key code`() {
+        val adb = FakeAdb(listOf(devicesRule()))
+
+        KeyCommand(adb).call { put("key", "DEL") }
+
+        assertTrue(adb.commands.any { it.endsWith("shell input keyevent KEYCODE_DEL") })
+    }
+
+    @Test
     fun `checks both ends of a swipe`() {
         val adb = FakeAdb(listOf(devicesRule()) + SCREEN_RULES)
 
@@ -239,7 +309,19 @@ class TypeCommandTest {
 
         TypeCommand(adb).call { put("text", "it's a test") }
 
-        assertTrue(adb.commands.any { it.endsWith("shell input text it\\'s%sa%stest") })
+        assertTrue(adb.commands.any { it.endsWith("shell input text 'it'\\''s%sa%stest'") })
+    }
+
+    @Test
+    fun `refuses a literal percent-s, which input text would type as a space`() {
+        val adb = FakeAdb(listOf(devicesRule()) + SCREEN_RULES)
+
+        val error = assertFailsWith<JetWhaleMcpArgumentException> {
+            TypeCommand(adb).call { put("text", "100%sure") }
+        }
+
+        assertContains(error.message.orEmpty(), "two calls")
+        assertFalse(adb.commands.any { it.contains("input text") })
     }
 
     @Test
@@ -397,6 +479,34 @@ class AppCommandTest {
         val adb = FakeAdb(listOf(devicesRule()))
 
         assertFailsWith<JetWhaleMcpArgumentException> { StartActivityCommand(adb).call() }
+    }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+class ReversePortCommandTest {
+    @Test
+    fun `removes a mapping given only its device port`() {
+        val adb = FakeAdb(listOf(devicesRule()))
+
+        val result = ReversePortCommand(adb).call {
+            put("devicePort", 8080)
+            put("remove", true)
+        }
+
+        assertFalse(result.isError)
+        assertTrue(adb.commands.any { it == "-s $TEST_SERIAL reverse --remove tcp:8080" })
+    }
+
+    @Test
+    fun `needs a host port to create a mapping`() {
+        val adb = FakeAdb(listOf(devicesRule()))
+
+        val error = assertFailsWith<JetWhaleMcpArgumentException> {
+            ReversePortCommand(adb).call { put("devicePort", 8080) }
+        }
+
+        assertContains(error.message.orEmpty(), "hostPort is required")
+        assertFalse(adb.commands.any { it.contains("reverse") })
     }
 }
 

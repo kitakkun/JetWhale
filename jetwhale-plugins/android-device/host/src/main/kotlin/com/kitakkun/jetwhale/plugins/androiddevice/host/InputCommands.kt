@@ -122,9 +122,11 @@ internal class TypeCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     override val description =
         "Types text into whatever currently has focus — tap the field first. Spaces and shell " +
             "metacharacters are escaped for you. Only printable ASCII can be typed: `input text` " +
-            "writes through the key character map, so anything else is rejected rather than sent as garbage."
+            "writes through the key character map, so anything else is rejected rather than sent as garbage. " +
+            "A literal %s cannot be typed in one call, because `input text` turns it into a space; type " +
+            "the text up to and including the %, then the rest, in two calls."
 
-    private val text by string("The text to type. Printable ASCII only.")
+    private val text by string("The text to type. Printable ASCII only, with no %s in it.")
 
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val text = arguments[text]
@@ -133,6 +135,12 @@ internal class TypeCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
             throw JetWhaleMcpArgumentException(
                 "invalid text: `input text` can only type printable ASCII, and this contains " +
                     unsupported.joinToString(", ") { "'$it' (U+%04X)".format(it.code) },
+            )
+        }
+        if (INPUT_TEXT_SPACE in text) {
+            throw JetWhaleMcpArgumentException(
+                "invalid text: `input text` turns every $INPUT_TEXT_SPACE into a space, so it cannot type one; " +
+                    "type the text up to and including the %, then the rest, in two calls",
             )
         }
 
@@ -145,13 +153,16 @@ internal class TypeCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     }
 }
 
-/** The key events a QA run reaches for; anything else goes through keyCode. */
+/**
+ * The key events a QA run reaches for, each named as in `KEYCODE_<name>`; anything else goes through
+ * keyCode. Backspace is [DEL].
+ */
 internal enum class DeviceKey {
     BACK,
     HOME,
     ENTER,
     TAB,
-    DELETE,
+    DEL,
     ESCAPE,
     APP_SWITCH,
     POWER,
@@ -174,7 +185,7 @@ internal class KeyCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     override val name = "$TOOL_PREFIX.key"
     override val description = "Sends one of the key events a QA run needs by name. For anything outside this list, use keyCode."
 
-    private val key by enum("The key to send; it is sent as KEYCODE_<name>.", DeviceKey.entries)
+    private val key by enum("The key to send; it is sent as KEYCODE_<name>, so backspace is DEL.", DeviceKey.entries)
 
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val keyCode = "KEYCODE_${arguments[key].name}"

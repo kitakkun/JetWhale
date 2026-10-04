@@ -45,7 +45,7 @@ internal fun parseGetProps(output: String): Map<String, String> = GETPROP_PATTER
     .associate { match -> match.groupValues[1] to match.groupValues[2] }
 
 /** Converts a density-independent coordinate to screen pixels the way the platform does. */
-internal fun dpToPixels(value: Int, density: Int): Int = (value * density / DEFAULT_DENSITY.toDouble()).roundToInt()
+internal fun dpToPixels(value: Int, density: Int): Int = (value.toDouble() * density / DEFAULT_DENSITY).roundToInt()
 
 /** The density at which one dp is one pixel. */
 private const val DEFAULT_DENSITY = 160

@@ -67,17 +67,21 @@ internal class ReversePortCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) 
             "here. Needed when the debug tool listens on a non-default port, or for any other local service."
 
     private val devicePort by int("Port the app connects to on the device.")
-    private val hostPort by int("Port the traffic is forwarded to on the machine running the debug tool.")
-    private val remove by booleanOrNull("Remove the mapping for devicePort instead of creating one. Defaults to false; hostPort is ignored when it is true.")
+    private val hostPort by intOrNull("Port the traffic is forwarded to on the machine running the debug tool. Required unless remove is true, when it is ignored.")
+    private val remove by booleanOrNull("Remove the mapping for devicePort instead of creating one. Defaults to false.")
 
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val devicePort = arguments[devicePort]
-        val hostPort = arguments[hostPort]
         requirePort("devicePort", devicePort)
-        requirePort("hostPort", hostPort)
         val remove = arguments[remove] ?: false
+        val hostPort = if (remove) {
+            null
+        } else {
+            (arguments[hostPort] ?: throw JetWhaleMcpArgumentException("hostPort is required unless remove is true"))
+                .also { requirePort("hostPort", it) }
+        }
 
-        val result = if (remove) {
+        val result = if (hostPort == null) {
             target.adb("reverse", "--remove", "tcp:$devicePort", timeout = AdbTimeouts.QUICK)
         } else {
             target.adb("reverse", "tcp:$devicePort", "tcp:$hostPort", timeout = AdbTimeouts.QUICK)
@@ -85,7 +89,7 @@ internal class ReversePortCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) 
         target.requireSuccess(result, if (remove) "adb reverse --remove failed" else "adb reverse failed")?.let { return it }
         return target.successResult {
             put("devicePort", devicePort)
-            put("hostPort", if (remove) null else hostPort)
+            put("hostPort", hostPort)
             put("removed", remove)
         }
     }

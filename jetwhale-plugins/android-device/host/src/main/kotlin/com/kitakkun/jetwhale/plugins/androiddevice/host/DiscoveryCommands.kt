@@ -78,8 +78,6 @@ internal class DeviceInfoCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val properties = target.shell("getprop", timeout = AdbTimeouts.QUICK).let { if (it.exitCode == 0) parseGetProps(it.output) else emptyMap() }
         val space = target.readCoordinateSpace()
-        val rotation = target.shell("dumpsys", "window", "displays", timeout = AdbTimeouts.SHELL)
-            .let { if (it.exitCode == 0) parseRotation(it.output) else null }
 
         return JetWhaleMcpResult.json(
             target.resultJson {
@@ -94,7 +92,7 @@ internal class DeviceInfoCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
                     put("height", space.size?.height)
                     put("density", space.density)
                 }
-                put("rotation", rotation)
+                put("rotation", space.rotation)
             },
         )
     }
@@ -109,7 +107,8 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
     override val description =
         "Waits for a device to be connected and finished booting (sys.boot_completed=1), then " +
             "returns its serial. Use it after starting an emulator or rebooting a device, before " +
-            "installing or launching anything."
+            "installing or launching anything. Without a serial it waits for any device, and fails " +
+            "if more than one is connected once it is done waiting."
 
     private val serial by stringOrNull(SERIAL_DESCRIPTION)
     private val timeoutSeconds by intOrNull(
@@ -123,9 +122,9 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
         val startedAt = TimeSource.Monotonic.markNow()
 
         val run = AdbRun(adb)
-        val serialArgs = if (serial == null) emptyArray() else arrayOf("-s", serial)
         try {
             val budget = timeoutSeconds.seconds
+            val serialArgs = if (serial == null) emptyArray() else arrayOf("-s", serial)
             val connected = run.exec(*serialArgs, "wait-for-device", timeout = budget)
             if (connected.exitCode != 0) {
                 return JetWhaleMcpResult.error(
@@ -140,8 +139,9 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
                 )
             }
 
+            val device = resolveDevice(run, serial)
             while (true) {
-                val booted = run.exec(*serialArgs, "shell", "getprop", "sys.boot_completed", timeout = AdbTimeouts.QUICK)
+                val booted = run.exec("-s", device.serial, "shell", "getprop", "sys.boot_completed", timeout = AdbTimeouts.QUICK)
                 if (booted.exitCode == 0 && booted.output == "1") break
                 if (startedAt.elapsedNow() >= budget) {
                     return JetWhaleMcpResult.error(
@@ -155,12 +155,10 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
                 delay(BOOT_POLL_INTERVAL)
             }
 
-            val devices = run.exec("devices", "-l", timeout = AdbTimeouts.QUICK).let { parseAdbDevices(it.output) }
-            val resolved = serial ?: devices.singleOrNull(AdbDevice::isUsable)?.serial
             return JetWhaleMcpResult.json(
                 buildJsonObject {
                     put("ok", true)
-                    put("serial", resolved)
+                    put("serial", device.serial)
                     put("waitedMs", startedAt.elapsedNow().inWholeMilliseconds)
                     put("adb", run.invocations.toJson())
                 },

@@ -84,7 +84,7 @@ converted with the device's density.
 |---|---|---|
 | `listDevices` | — | Lists every device adb can see: `serial`, `state`, `model`, `product`, `transportId`, `isEmulator`. Start here. |
 | `deviceInfo` | `serial?` | Model, manufacturer, Android release and SDK level, screen size and density, current rotation. |
-| `waitForDevice` | `serial?`, `timeoutSeconds?` | Waits for the device to connect and finish booting (`sys.boot_completed=1`). Defaults to 60 seconds, because adb's own wait has no timeout at all. |
+| `waitForDevice` | `serial?`, `timeoutSeconds?` | Waits for the device to connect and finish booting (`sys.boot_completed=1`). Defaults to 60 seconds, because adb's own wait has no timeout at all. Without `serial` it waits for any device, then follows the same rule as every other tool: several connected devices are an error. |
 | `wake` | `serial?` | Wakes the screen and dismisses the keyguard, so a screenshot shows the app. |
 | `setRotation` | `serial?`, `rotation` | Pins the screen to `PORTRAIT`, `LANDSCAPE`, `REVERSE_PORTRAIT` or `REVERSE_LANDSCAPE`, or hands it back to the sensor with `AUTO`. |
 | `setAnimations` | `serial?`, `enabled` | Turns the three system animation scales on or off. Off makes a QA run stable — a screenshot taken mid-transition otherwise catches a half-drawn screen. |
@@ -104,11 +104,11 @@ so a coordinate read off it has to be doubled — or capture at full size and sk
 
 | Tool | Arguments | What it does |
 |---|---|---|
-| `tap` | `serial?`, `x`, `y`, `unit?` | Taps a point. Rejected if it is not on the screen, with the size in the message. |
+| `tap` | `serial?`, `x`, `y`, `unit?` | Taps a point. Rejected if it is not on the screen as it is currently rotated, with the size in the message. |
 | `longPress` | `serial?`, `x`, `y`, `unit?`, `durationMs?` | Presses and holds. Defaults to 800 ms, which clears every platform long-press timeout (400–500 ms) with margin. |
 | `swipe` | `serial?`, `fromX`, `fromY`, `toX`, `toY`, `unit?`, `durationMs?` | Drags between two points; both ends are checked. Defaults to 300 ms, which the platform reads as a drag rather than a fling. |
 | `type` | `serial?`, `text` | Types into whatever has focus — tap the field first. Spaces and shell metacharacters are escaped for you. |
-| `key` | `serial?`, `key` | Sends a named key: `BACK`, `HOME`, `ENTER`, `TAB`, `DELETE`, `ESCAPE`, `APP_SWITCH`, `POWER`, `VOLUME_UP`, `VOLUME_DOWN`, `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`, `DPAD_CENTER`, `MENU`, `SEARCH`, `CAMERA`, `WAKEUP`, `SLEEP`. |
+| `key` | `serial?`, `key` | Sends a named key, as `KEYCODE_<name>`: `BACK`, `HOME`, `ENTER`, `TAB`, `DEL` (backspace), `ESCAPE`, `APP_SWITCH`, `POWER`, `VOLUME_UP`, `VOLUME_DOWN`, `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`, `DPAD_CENTER`, `MENU`, `SEARCH`, `CAMERA`, `WAKEUP`, `SLEEP`. |
 | `keyCode` | `serial?`, `code` | Sends a raw Android key code, for keys `key` does not name. |
 
 ### Apps
@@ -139,7 +139,7 @@ so a coordinate read off it has to be doubled — or capture at full size and sk
 |---|---|---|
 | `pushFile` | `serial?`, `hostPath`, `devicePath` | Copies a file onto the device — a fixture, a database, a config. |
 | `pullFile` | `serial?`, `devicePath`, `hostPath` | Copies a file off the device. |
-| `reversePort` | `serial?`, `devicePort`, `hostPort`, `remove?` | Maps a device port to one on this machine, for when the debug tool listens on a non-default port. |
+| `reversePort` | `serial?`, `devicePort`, `hostPort?`, `remove?` | Maps a device port to one on this machine, for when the debug tool listens on a non-default port. `hostPort` is required unless `remove` is `true`. |
 
 ## A QA pass, end to end
 
@@ -192,6 +192,8 @@ default, so revoke the ones an agent should not run:
   anything else is rejected with a message naming the characters rather than sent as garbage. For
   non-ASCII input, set the text through the app — the Compose Semantics Inspector's
   `performNodeAction` has a `SetText` action.
+- **`type` cannot send a literal `%s` in one call**, because `input text` turns every `%s` into a
+  space. Such text is rejected; type it up to and including the `%`, then the rest.
 - **There is no `shell` tool.** An arbitrary shell reintroduces exactly the class of mistake this
   plugin exists to remove. `startActivity` covers the intent case; anything else is a missing tool,
   not a missing escape hatch.
