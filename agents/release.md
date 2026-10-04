@@ -19,7 +19,7 @@ git ls-remote --tags --refs --sort=-creatordate origin | sed 's|.*refs/tags/||' 
 List what reached `main` since then, and read each pull request with its diff:
 
 ```shell
-gh pr list --state merged --base main --search "merged:>=<prev-tag date>" --limit 1000
+gh pr list --state merged --base main --search "merged:>$(git log -1 --format=%cI <prev-tag>)" --limit 1000
 git log --first-parent --format='%h %s' <prev-tag>..origin/main
 gh pr view <N>
 gh pr diff <N>
@@ -27,7 +27,9 @@ gh pr diff <N>
 
 The repository allows merge, squash and rebase merges, so the pull request list is the inventory;
 the first-parent log shows what the tag actually contains and catches commits pushed without a pull
-request. Judge each change by its description and diff, not its title alone.
+request. The search starts at the moment the tagged commit landed, not at its date: pull requests
+merged earlier that day are already in the previous release. Judge each change by its description
+and diff, not its title alone.
 
 ## What belongs in the changelog
 
