@@ -18,7 +18,7 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's own manifest was not among its loaded APKs, so its links could not be read."))
     val verification = appLinkVerificationStates(context)
     val links = manifest.use { parser ->
-        declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), verificationOf = verification::get)
+        declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), apiLevel = Build.VERSION.SDK_INT, verificationOf = verification::get)
     }
     val notes = buildList {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) add("App Links verification states are reported from Android 12.")

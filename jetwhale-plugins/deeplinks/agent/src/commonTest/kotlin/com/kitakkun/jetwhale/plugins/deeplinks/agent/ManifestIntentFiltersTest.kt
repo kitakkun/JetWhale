@@ -24,7 +24,7 @@ class ManifestIntentFiltersTest {
             }
         }
 
-        val links = declaredDeepLinksOf("com.example.app", events, verificationOf = { if (it == "example.com") "verified" else null })
+        val links = declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { if (it == "example.com") "verified" else null })
 
         assertEquals(
             listOf(
@@ -60,7 +60,68 @@ class ManifestIntentFiltersTest {
             }
         }
 
-        assertEquals(emptyList(), declaredDeepLinksOf("com.example.app", events, verificationOf = { null }))
+        assertEquals(emptyList(), declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { null }))
+    }
+
+    @Test
+    fun `a filter with a MIME type is not a deep link`() {
+        val events = manifest {
+            element("activity", "name" to ".PdfViewer") {
+                element("intent-filter") {
+                    element("action", "name" to "android.intent.action.VIEW")
+                    element("category", "name" to "android.intent.category.BROWSABLE")
+                    element("data", "scheme" to "https", "host" to "example.com")
+                    element("data", "mimeType" to "application/pdf")
+                }
+            }
+        }
+
+        assertEquals(emptyList(), declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { null }))
+    }
+
+    @Test
+    fun `pathSuffix and pathAdvancedPattern are left out before Android 12 as it ignores them`() {
+        val events = manifest {
+            element("activity", "name" to ".Main") {
+                element("intent-filter") {
+                    element("action", "name" to "android.intent.action.VIEW")
+                    element("data", "scheme" to "https", "host" to "example.com")
+                    element("data", "pathPrefix" to "/item/")
+                    element("data", "pathSuffix" to ".json")
+                    element("data", "pathAdvancedPattern" to "/user/[0-9]+")
+                }
+            }
+        }
+
+        assertEquals(
+            listOf(PathMatcher(PathMatchKind.Prefix, "/item/")),
+            declaredDeepLinksOf("com.example.app", events, apiLevel = 30, verificationOf = { null }).single().paths,
+        )
+        assertEquals(
+            listOf(PathMatcher(PathMatchKind.Prefix, "/item/"), PathMatcher(PathMatchKind.Suffix, ".json"), PathMatcher(PathMatchKind.AdvancedPattern, "/user/[0-9]+")),
+            declaredDeepLinksOf("com.example.app", events, apiLevel = 31, verificationOf = { null }).single().paths,
+        )
+    }
+
+    @Test
+    fun `the data of a uri-relative-filter-group is not taken for the filter's own`() {
+        val events = manifest {
+            element("activity", "name" to ".Main") {
+                element("intent-filter") {
+                    element("action", "name" to "android.intent.action.VIEW")
+                    element("data", "scheme" to "https", "host" to "example.com")
+                    element("uri-relative-filter-group", "allow" to "false") {
+                        element("data", "path" to "/private")
+                    }
+                    element("data", "pathPrefix" to "/item/")
+                }
+            }
+        }
+
+        assertEquals(
+            listOf(PathMatcher(PathMatchKind.Prefix, "/item/")),
+            declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { null }).single().paths,
+        )
     }
 
     @Test
@@ -74,7 +135,7 @@ class ManifestIntentFiltersTest {
             }
         }
 
-        val links = declaredDeepLinksOf("com.example.app", events, verificationOf = { null })
+        val links = declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { null })
 
         assertEquals(listOf("com.example.app.Main" to "app", "com.example.app.Alias" to "alias"), links.map { it.handler to it.schemes.single() })
     }
@@ -85,7 +146,7 @@ class ManifestIntentFiltersTest {
             element("activity", "name" to ".Main") { viewFilter("internal") }
         }
 
-        assertEquals(false, declaredDeepLinksOf("com.example.app", events, verificationOf = { null }).single().browsable)
+        assertEquals(false, declaredDeepLinksOf("com.example.app", events, apiLevel = 36, verificationOf = { null }).single().browsable)
     }
 }
 

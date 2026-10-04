@@ -26,15 +26,24 @@ private const val CATEGORY_BROWSABLE = "android.intent.category.BROWSABLE"
 
 /**
  * The deep links declared by the activities and activity aliases in [events]: every intent filter
- * with the VIEW action and at least one scheme.
+ * with the VIEW action, at least one scheme and no MIME type. Android matches a filter that names a
+ * MIME type only against an intent that carries one, and a link carries none.
  *
+ * The `<data>` elements of a `<uri-relative-filter-group>` are not the filter's own: Android 14 and
+ * lower skip the group, and Android 15 matches it as an alternative to the filter's paths, with query
+ * and fragment conditions that a declaration does not carry. They are left out.
+ *
+ * @param apiLevel The Android API level the manifest is read on. Path attributes newer than it are
+ *   left out, as the platform ignores them.
  * @param verificationOf The platform's App Links verification state for a host, or null.
  */
 internal fun declaredDeepLinksOf(
     packageName: String,
     events: Sequence<ManifestEvent>,
+    apiLevel: Int,
     verificationOf: (host: String) -> String?,
 ): List<DeclaredDeepLink> {
+    val pathAttributes = PATH_ATTRIBUTES.filter { it.sinceApiLevel <= apiLevel }
     val links = mutableListOf<DeclaredDeepLink>()
     var component: String? = null
     var filter: FilterBuilder? = null
@@ -42,9 +51,10 @@ internal fun declaredDeepLinksOf(
         when (event) {
             is ManifestEvent.Start -> when (event.tag) {
                 "activity", "activity-alias" -> component = event.attributes["name"]?.let { componentName(packageName, it) }
-                "intent-filter" -> filter = component?.let { FilterBuilder(handler = it, autoVerify = event.attributes["autoVerify"] == "true") }
+                "intent-filter" -> filter = component?.let { FilterBuilder(handler = it, autoVerify = event.attributes["autoVerify"] == "true", pathAttributes = pathAttributes) }
                 "action" -> event.attributes["name"]?.let { filter?.actions?.add(it) }
                 "category" -> event.attributes["name"]?.let { filter?.categories?.add(it) }
+                "uri-relative-filter-group" -> filter?.inRelativeFilterGroup = true
                 "data" -> filter?.addData(event.attributes)
             }
 
@@ -55,6 +65,8 @@ internal fun declaredDeepLinksOf(
                     filter?.takeIf(FilterBuilder::isDeepLink)?.let { links += it.build(verificationOf) }
                     filter = null
                 }
+
+                "uri-relative-filter-group" -> filter?.inRelativeFilterGroup = false
             }
         }
     }
@@ -68,20 +80,28 @@ private fun componentName(packageName: String, name: String): String = when {
     else -> name
 }
 
-private class FilterBuilder(private val handler: String, private val autoVerify: Boolean) {
+private class FilterBuilder(
+    private val handler: String,
+    private val autoVerify: Boolean,
+    private val pathAttributes: List<PathAttribute>,
+) {
     val actions = mutableListOf<String>()
     val categories = mutableListOf<String>()
     private val schemes = mutableListOf<String>()
     private val hosts = mutableListOf<Pair<String, String?>>()
     private val paths = mutableListOf<PathMatcher>()
+    private var declaresMimeType = false
+    var inRelativeFilterGroup = false
 
     fun addData(attributes: Map<String, String>) {
+        if (inRelativeFilterGroup) return
         attributes["scheme"]?.let(schemes::add)
         attributes["host"]?.let { hosts += it to attributes["port"] }
-        PATH_ATTRIBUTES.forEach { (attribute, kind) -> attributes[attribute]?.let { paths += PathMatcher(kind, it) } }
+        pathAttributes.forEach { attribute -> attributes[attribute.name]?.let { paths += PathMatcher(attribute.kind, it) } }
+        if ("mimeType" in attributes) declaresMimeType = true
     }
 
-    val isDeepLink: Boolean get() = ACTION_VIEW in actions && schemes.isNotEmpty()
+    val isDeepLink: Boolean get() = ACTION_VIEW in actions && schemes.isNotEmpty() && !declaresMimeType
 
     fun build(verificationOf: (String) -> String?): DeclaredDeepLink = DeclaredDeepLink(
         handler = handler,
@@ -93,10 +113,12 @@ private class FilterBuilder(private val handler: String, private val autoVerify:
     )
 }
 
-private val PATH_ATTRIBUTES: List<Pair<String, PathMatchKind>> = listOf(
-    "path" to PathMatchKind.Exact,
-    "pathPrefix" to PathMatchKind.Prefix,
-    "pathSuffix" to PathMatchKind.Suffix,
-    "pathPattern" to PathMatchKind.Pattern,
-    "pathAdvancedPattern" to PathMatchKind.AdvancedPattern,
+private class PathAttribute(val name: String, val kind: PathMatchKind, val sinceApiLevel: Int)
+
+private val PATH_ATTRIBUTES: List<PathAttribute> = listOf(
+    PathAttribute("path", PathMatchKind.Exact, sinceApiLevel = 1),
+    PathAttribute("pathPrefix", PathMatchKind.Prefix, sinceApiLevel = 1),
+    PathAttribute("pathSuffix", PathMatchKind.Suffix, sinceApiLevel = 31),
+    PathAttribute("pathPattern", PathMatchKind.Pattern, sinceApiLevel = 1),
+    PathAttribute("pathAdvancedPattern", PathMatchKind.AdvancedPattern, sinceApiLevel = 31),
 )
