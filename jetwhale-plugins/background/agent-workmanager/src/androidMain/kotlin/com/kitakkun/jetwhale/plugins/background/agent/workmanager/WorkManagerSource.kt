@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.agent.workmanager
 
+import androidx.annotation.VisibleForTesting
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ListenableWorker
@@ -82,6 +83,7 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
 }
 
 /** Tags a copy [BackgroundWorkSource.runNow] enqueued, so the host can tell it from the original. */
+@VisibleForTesting
 internal const val RUN_NOW_TAG = "jetwhale-run-now"
 
 private fun parseWorkId(id: String): UUID = try {
@@ -106,6 +108,7 @@ private fun isWorkerClass(tag: String): Boolean = try {
  * [info] as the host shows it. [isWorkerClass] picks the tag WorkManager added for the worker
  * class, which WorkInfo does not otherwise expose.
  */
+@VisibleForTesting
 internal fun workInfoToItem(info: WorkInfo, isWorkerClass: (String) -> Boolean): BackgroundWorkItem {
     val workerClass = info.tags.firstOrNull(isWorkerClass)
     val periodicity = info.periodicityInfo

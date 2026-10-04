@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -86,9 +87,11 @@ internal fun WorkDetail(
 }
 
 /** One labelled line of the detail pane. [monospace] suits identifiers that are copied rather than read. */
+@VisibleForTesting
 internal data class WorkFact(val label: String, val value: String, val monospace: Boolean)
 
 /** What the detail pane says about [item] besides its data maps, in reading order. */
+@VisibleForTesting
 internal fun workFactsOf(item: BackgroundWorkItem): List<WorkFact> = buildList {
     add(WorkFact("Class", item.name, monospace = true))
     add(WorkFact("Id", item.id, monospace = true))

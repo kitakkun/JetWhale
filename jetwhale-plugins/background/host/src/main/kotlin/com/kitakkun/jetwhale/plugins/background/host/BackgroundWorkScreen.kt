@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,6 +42,7 @@ private const val LIST_FRACTION = 0.55f
 private val QueryFieldWidth = 280.dp
 
 /** The state groups the filter offers, from the states each one shows. */
+@VisibleForTesting
 internal enum class StateScope(val label: String, val states: Set<WorkState>) {
     All("All", emptySet()),
     Pending("Pending", UNFINISHED_STATES),

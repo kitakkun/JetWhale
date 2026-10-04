@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.host
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkItem
 import com.kitakkun.jetwhale.plugins.background.protocol.WorkState
 
@@ -12,9 +13,11 @@ internal val BackgroundWorkItem.key: WorkKey get() = WorkKey(source, id)
 internal data class StateTransition(val state: WorkState, val atEpochMillis: Long)
 
 /** How many transitions are kept per piece of work; periodic work cycles through states forever. */
+@VisibleForTesting
 internal const val MAX_TRANSITIONS_PER_WORK = 50
 
 /** How many pieces of work that are gone from the app keep their history; an app can create work endlessly. */
+@VisibleForTesting
 internal const val MAX_DEPARTED_WORK = 500
 
 /**
