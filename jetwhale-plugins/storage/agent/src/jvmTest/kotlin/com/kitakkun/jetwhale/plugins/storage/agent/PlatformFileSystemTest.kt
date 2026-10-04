@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
+import org.junit.Assume.assumeTrue
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -13,6 +14,7 @@ import kotlin.test.assertFalse
 
 class PlatformFileSystemTest {
     private val directory: File = Files.createTempDirectory("storage-agent-test").toFile()
+    private val onWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 
     @AfterTest
     fun cleanUp() {
@@ -74,6 +76,30 @@ class PlatformFileSystemTest {
 
         assertFalse(File(directory, "cache").exists())
         assertEquals("keep", File(outside, "keep.txt").readText())
+    }
+
+    @Test
+    fun `deleting a directory removes a junction inside it but not what the junction points to`() {
+        assumeTrue("junctions exist only on Windows", onWindows)
+        val outside = File(directory, "outside").apply { mkdir() }
+        File(outside, "keep.txt").writeText("keep")
+        File(directory, "cache").mkdir()
+        createJunction(File(directory, "cache/junction"), outside)
+
+        deleteRecursively("${directory.path}/cache")
+
+        assertFalse(File(directory, "cache").exists())
+        assertEquals("keep", File(outside, "keep.txt").readText())
+    }
+
+    @Test
+    fun `a junction that leads outside the root is refused`() {
+        assumeTrue("junctions exist only on Windows", onWindows)
+        val root = File(directory, "root").apply { mkdir() }
+        val outside = File(directory, "outside").apply { mkdir() }
+        createJunction(File(root, "escape"), outside)
+
+        assertFailsWith<IllegalArgumentException> { FileRoot(name = "Root", path = root.path).resolve(listOf("escape")) }
     }
 
     @Test
@@ -143,5 +169,11 @@ class PlatformFileSystemTest {
         File(directory, "notes.txt").writeText("hello")
 
         assertFailsWith<IOException> { listDirectoryEntries("${directory.path}/notes.txt") }
+    }
+
+    private fun createJunction(link: File, target: File) {
+        val mklink = ProcessBuilder("cmd", "/c", "mklink", "/J", link.path, target.path).redirectErrorStream(true).start()
+        val output = mklink.inputStream.bufferedReader().readText()
+        check(mklink.waitFor() == 0) { "mklink /J failed: $output" }
     }
 }

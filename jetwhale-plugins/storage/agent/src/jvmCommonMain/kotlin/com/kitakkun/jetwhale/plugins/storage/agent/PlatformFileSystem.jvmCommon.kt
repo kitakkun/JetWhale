@@ -33,7 +33,11 @@ internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
 /** When [file] was created, or null where the platform cannot say. */
 internal expect fun createdEpochMillis(file: File): Long?
 
-/** [file] as an absolute path with every symbolic link in it resolved, as far as the path exists. */
+/**
+ * [file] as an absolute path with every symbolic link in it resolved. A path that does not exist
+ * comes back in its canonical form instead, which on Windows before JDK 24 can still go through a
+ * link, so only an existing path's result shows where it really leads.
+ */
 internal expect fun resolvedFile(file: File): File
 
 internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): ByteArray {
