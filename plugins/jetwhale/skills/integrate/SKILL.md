@@ -26,14 +26,15 @@ Run these before deciding anything. Each answer routes a later step.
 ```bash
 # Targets: is this Android-only, or Kotlin Multiplatform?
 grep -rlE 'kotlin\("multiplatform"\)|kotlin\.multiplatform|kotlin-multiplatform|kotlinMultiplatform' \
-  --include='*.gradle.kts' --include='*.toml' .
+  --include='*.gradle.kts' --include='*.gradle' --include='*.toml' .
 
 # DI framework
 grep -rnE 'dev\.zacsweers\.metro|com\.squareup\.anvil|lastmile\.kotlin\.inject\.anvil|com\.google\.dagger|dagger\.hilt|io\.insert-koin' \
-  --include='*.kts' --include='*.toml' . | head
+  --include='*.kts' --include='*.gradle' --include='*.toml' . | head
 
 # HTTP client
-grep -rnE 'io\.ktor:ktor-client|com\.squareup\.okhttp3' --include='*.kts' --include='*.toml' . | head
+grep -rnE 'io\.ktor:ktor-client|com\.squareup\.okhttp3' --include='*.kts' --include='*.gradle' --include='*.toml' . \
+  | head
 
 # An existing debug seam to ride on
 grep -rn 'BuildConfig.DEBUG' --include='*.kt' . | head
@@ -63,7 +64,8 @@ any source set such a target compiles. Check the targets, including those a conv
 declares:
 
 ```bash
-grep -rniE 'iosX64|macosX64|watchos|tvos' --include='*.gradle.kts' --include='*.kt' . | head
+grep -rniE 'iosX64|macosX64|watchos|tvos' --include='*.gradle.kts' --include='*.gradle' --include='*.kt' . \
+  | head
 ```
 
 If any turn up, wire JetWhale only through source sets of supported targets, or stop and say so.
@@ -142,10 +144,12 @@ Whichever you follow, three JetWhale-side facts hold:
 - **The endpoint must be reachable from where the app runs.** The references declare
   `ws("localhost", 5080)`, which reaches the host from emulators, simulators, the desktop app, the
   browser and ADB-forwarded Android devices. A physical iPhone, or any device on Wi-Fi without
-  `adb reverse`, cannot reach `localhost`. Add a candidate after it: `discoverWss { }` (on iOS it
-  also needs `_jetwhale._tcp` under `NSBonjourServices`), or `buildMachineWss(port)` with the
-  `com.kitakkun.jetwhale.agent` Gradle plugin applied to the module that declares it. Set either up
-  as [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) describes.
+  `adb reverse`, cannot reach `localhost`. Add a candidate after it:
+  `discoverWss { allowHostName("<the host machine's name>") }`, whose block must allow a host, an
+  address or all of them, since an empty one accepts nothing (on iOS it also needs `_jetwhale._tcp`
+  under `NSBonjourServices`); or `buildMachineWss(port)`, with the `com.kitakkun.jetwhale.agent`
+  Gradle plugin applied to the module that declares it. Set either up as
+  [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) describes.
 - **One `JetWhaleNetworkAgentPlugin` instance serves two call sites** — installed into the HTTP
   client, and registered in `plugins { register(...) }`. Two instances is the classic mistake: the
   app connects, the host lists the session, and no traffic ever appears. Give it a singleton
