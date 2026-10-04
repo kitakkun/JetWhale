@@ -10,6 +10,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -25,10 +26,13 @@ import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 @Serializable
@@ -107,6 +111,9 @@ private class BoxSerializer<T>(private val contentSerializer: KSerializer<T>) : 
 
 @Serializable
 private data class HasBox(@Contextual val box: Box<String>)
+
+@Serializable
+private data class HasBoxKeys(val byBox: Map<@Contextual Box<String>, Int>)
 
 private object ContentChosenSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
     override fun selectDeserializer(element: JsonElement) = Payload.Text.serializer()
@@ -251,6 +258,20 @@ class McpJsonSchemaTest {
     fun `a contextual type registered through a provider of its type arguments' serializers admits any value`() {
         val json = Json(from = DefaultArgumentJson) { serializersModule = SerializersModule { contextual(Box::class) { args -> BoxSerializer(args[0]) } } }
         assertEquals(JsonObject(emptyMap()), schemaOf<HasBox>(json).property("box"))
+    }
+
+    @Test
+    fun `a map keyed by a contextual type is an object when its provider gives a primitive without type arguments, as the format writes it`() {
+        val json = Json(from = DefaultArgumentJson) { serializersModule = SerializersModule { contextual(Box::class) { BoxSerializer(String.serializer()) } } }
+
+        assertEquals("object", schemaOf<HasBoxKeys>(json).property("byBox").string("type"))
+        assertIs<JsonObject>(json.encodeToJsonElement(HasBoxKeys(mapOf(Box("key") to 1))).jsonObject["byBox"])
+    }
+
+    @Test
+    fun `a map keyed by a contextual type whose provider needs type arguments admits any value`() {
+        val json = Json(from = DefaultArgumentJson) { serializersModule = SerializersModule { contextual(Box::class) { args -> BoxSerializer(args[0]) } } }
+        assertEquals(JsonObject(emptyMap()), schemaOf<HasBoxKeys>(json).property("byBox"))
     }
 
     @Test

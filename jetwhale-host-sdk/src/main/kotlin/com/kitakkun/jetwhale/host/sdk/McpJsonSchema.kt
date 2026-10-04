@@ -14,6 +14,7 @@ import kotlinx.serialization.descriptors.SerialKind
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.capturedKClass
 import kotlinx.serialization.descriptors.elementNames
+import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.nonNullOriginal
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
@@ -51,7 +52,8 @@ import kotlin.reflect.KClass
  * instead. A map keyed by anything but a primitive or an enum is a flat `[key, value, …]` array in a
  * format with `allowStructuredMapKeys`, and a format without it cannot read or write one at all. Both
  * arrays are advertised with their elements left unconstrained, since describing a tuple takes
- * keywords that differ between JSON Schema drafts.
+ * keywords that differ between JSON Schema drafts. A contextual key is resolved the way Json resolves
+ * it to choose between the two forms: from the module with no type arguments, a provider included.
  *
  * Where the descriptor does not say what is written, the schema admits any value rather than guess:
  * a contextual type is described by the serializer [json]'s module registers for it, and is
@@ -89,7 +91,7 @@ private class SchemaContext(
 )
 
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    // A nullable wrapper's serial name ends in "?", but Json writes the non-null type's name, a
+    // A nullable descriptor's serial name ends in "?", but Json writes the non-null type's name, a
     // class discriminator included.
     val schema = nonNullOriginal.nonNullSchema(context, enclosingTypes)
     return if (isNullable) schema.allowingNull() else schema
@@ -121,11 +123,15 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
 
         // Element 0 is the key descriptor, element 1 the value descriptor.
         is StructureKind.MAP -> {
-            val keyKind = getElementDescriptor(0).carrierDescriptor(context.serializersModule).kind
-            if (keyKind !is PrimitiveKind && keyKind != SerialKind.ENUM) {
-                typeOnly("array")
-            } else {
-                buildJsonObject {
+            // A contextual key's provider that needs type arguments throws when asked without them,
+            // and Json asks the same way, so it cannot read or write such a map at all.
+            val keyKind = runCatching { getElementDescriptor(0).carrierDescriptor(context.serializersModule).kind }.getOrNull()
+            when {
+                keyKind == null -> ANY_VALUE
+
+                keyKind !is PrimitiveKind && keyKind != SerialKind.ENUM -> typeOnly("array")
+
+                else -> buildJsonObject {
                     put("type", "object")
                     put("additionalProperties", getElementDescriptor(1).buildSchema(context, enclosingTypes))
                 }
@@ -148,9 +154,12 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
     return schema.withDescription(classDescription)
 }
 
-/** The descriptor Json keys a map by: a value class's underlying type, or what the module registers for a contextual type. */
+/**
+ * The descriptor Json keys a map by: a value class's underlying type, or what the module gives for a
+ * contextual type when asked with no type arguments, a provider included, which is how Json asks.
+ */
 private fun SerialDescriptor.carrierDescriptor(module: SerializersModule): SerialDescriptor = when {
-    kind == SerialKind.CONTEXTUAL -> module.plainContextualDescriptor(this)?.carrierDescriptor(module) ?: this
+    kind == SerialKind.CONTEXTUAL -> module.getContextualDescriptor(this)?.carrierDescriptor(module) ?: this
     isInline -> getElementDescriptor(0).carrierDescriptor(module)
     else -> this
 }
@@ -243,7 +252,7 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
     val schema = buildSchema(context, enclosingTypes)
     if (discriminator == null) return schema
     if (!context.pinsClassDiscriminatorOnEveryClass) return schema.withDiscriminator(discriminator, serialName)
-    // Inside a sealed value Json writes the base's discriminator key, not the subclass's own.
+    // Inside a sealed value Json writes only the base's discriminator key, not the subclass's own.
     val ownDiscriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     if (ownDiscriminator == discriminator) return schema
     return schema.withoutProperty(ownDiscriminator).withDiscriminator(discriminator, serialName)
@@ -278,7 +287,6 @@ private fun JsonObject.withDiscriminator(discriminator: String, serialName: Stri
     }
 }
 
-// A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
 private fun List<Annotation>.classDiscriminatorOr(default: String): String = filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: default
 
 private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
