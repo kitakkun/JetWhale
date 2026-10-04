@@ -12,6 +12,8 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -89,7 +91,7 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `dispatchTyping returns false when no text field is present`() {
+    fun `dispatchTyping returns false when no text field is present`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         renderTestScene(scene)
 
@@ -100,7 +102,7 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `dispatchTyping inserts text into a text field`() {
+    fun `dispatchTyping inserts text into a text field`(): Unit = runBlocking(Dispatchers.Main) {
         val textState = TextFieldState()
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
@@ -115,7 +117,7 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `dispatchTyping types into the focused field rather than the first one`() {
+    fun `dispatchTyping types into the focused field rather than the first one`(): Unit = runBlocking(Dispatchers.Main) {
         val first = TextFieldState()
         val second = TextFieldState()
         val scene = createTestScene {
@@ -137,7 +139,7 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `dispatchTyping appends text on successive calls`() {
+    fun `dispatchTyping appends text on successive calls`(): Unit = runBlocking(Dispatchers.Main) {
         val textState = TextFieldState()
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
@@ -152,7 +154,7 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
-    fun `dispatchSpecialKey BACKSPACE deletes last character`() {
+    fun `dispatchSpecialKey BACKSPACE deletes last character`(): Unit = runBlocking(Dispatchers.Main) {
         val textState = TextFieldState()
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
