@@ -304,6 +304,22 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `ends a download that cannot clear staging as not saved`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        val leftover = versions.staging.resolve("1.0.0-alpha13")
+        Files.createDirectories(leftover)
+        Files.writeString(leftover.resolve("part.jar"), "part")
+        Assume.assumeTrue("the file system cannot take write permission away", leftover.toFile().setWritable(false) && !Files.isWritable(leftover))
+        try {
+            val outcome = checkAndDownload(service())
+
+            assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.CouldNotSave), outcome)
+        } finally {
+            leftover.toFile().setWritable(true)
+        }
+    }
+
+    @Test
     fun `offers the release again after a download ends in an error it does not know`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
         val requested = CompletableDeferred<Unit>()

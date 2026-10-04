@@ -261,7 +261,11 @@ class DefaultHostUpdateService(
                 HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable)
             }
         } finally {
-            versions.discardStaging()
+            try {
+                versions.discardStaging()
+            } catch (e: IOException) {
+                logger.warn("Could not clear the staging directory of host downloads", e)
+            }
             stateFlow.update { it.copy(status = status, setAside = versions.setAsideVersion()) }
         }
     }
