@@ -141,7 +141,10 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
             hostNavigationService = appGraph.hostNavigationService,
             coroutineScope = coroutineScope,
             quit = appGraph.applicationLifecycleOwner::shutdown,
-            raiseMainWindow = { mainWindow.get()?.toFront() },
+            raiseMainWindow = {
+                windowState.isMinimized = false
+                mainWindow.get()?.toFront()
+            },
         )
     }
     val systemQuitResponse = remember { AtomicReference<QuitResponse?>(null) }
