@@ -13,11 +13,8 @@ plugins {
 // (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.background"
 
-// Every platform an app built with JetWhale runs on. Only Android and
-// iOS have a system scheduler to read; the others report no sources rather than fail to link.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)
@@ -45,7 +42,6 @@ kotlin {
         commonMain.dependencies {
             api(projects.jetwhalePlugins.background.protocol)
             api(projects.jetwhaleAgentSdk)
-            // Flow is part of the BackgroundWorkSource contract an app implements.
             api(libs.kotlinxCoroutinesCore)
         }
         commonTest.dependencies {

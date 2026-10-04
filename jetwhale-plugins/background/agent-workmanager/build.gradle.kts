@@ -6,9 +6,7 @@ plugins {
 
 group = "com.kitakkun.jetwhale.plugins.background"
 
-// WorkManager is Android-only, and a separate artifact so that an app without it is not made to
-// depend on it through the agent. Kotlin's ABI validation does not cover an Android-only target, so
-// this module has no ABI dump.
+// Kotlin's ABI validation does not cover an Android-only target, so this module has no ABI dump.
 kotlin {
     jvmToolchain(17)
 
@@ -17,7 +15,6 @@ kotlin {
         compileSdk = 37
         minSdk = 23
 
-        // Robolectric supplies the Context WorkManager's test driver needs.
         withHostTest {
             isIncludeAndroidResources = true
         }
@@ -40,9 +37,8 @@ kotlin {
     }
 }
 
-// Robolectric loads a whole Android framework into the test JVM; a fixed ceiling keeps it from
-// growing without bound on a busy machine.
 tasks.withType<Test>().configureEach {
+    // Robolectric loads a whole Android framework into the test JVM.
     maxHeapSize = "2g"
 }
 

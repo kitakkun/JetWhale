@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
  * reporting.
  */
 internal fun observeSnapshots(sources: List<BackgroundWorkSource>): Flow<BackgroundWorkSnapshot> {
+    // combine over no flows completes without emitting, which would leave first() with nothing.
     if (sources.isEmpty()) return flowOf(BackgroundWorkSnapshot(sources = emptyList(), items = emptyList()))
     val perSource = sources.map { source ->
         source.observe()

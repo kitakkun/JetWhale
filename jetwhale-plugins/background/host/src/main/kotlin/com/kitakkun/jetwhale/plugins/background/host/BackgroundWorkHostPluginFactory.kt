@@ -37,8 +37,6 @@ private class BackgroundWorkHostPlugin :
         onEvent { event: BackgroundWorkChanged -> browser.accept(event.snapshot, System.currentTimeMillis()) }
     }
 
-    // Changes are pushed, but only from the moment the host is listening; the state before that
-    // is fetched once per connection.
     override suspend fun onPrepare() {
         browser.load()
     }

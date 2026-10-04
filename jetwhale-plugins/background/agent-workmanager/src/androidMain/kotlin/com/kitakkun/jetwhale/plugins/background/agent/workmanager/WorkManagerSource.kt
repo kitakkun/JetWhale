@@ -117,7 +117,6 @@ internal fun workInfoToItem(info: WorkInfo, isWorkerClass: (String) -> Boolean):
         id = info.id.toString(),
         name = workerClass ?: info.id.toString(),
         state = workStateOf(info.state),
-        // The work's own tags first: the run-now marker is not what a reader scans the column for.
         tags = info.tags.filterNot { it == workerClass }.sortedWith(compareBy({ it == RUN_NOW_TAG }, { it })),
         // WorkInfo does not say which unique name, if any, the work was enqueued under.
         uniqueName = null,

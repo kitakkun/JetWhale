@@ -63,7 +63,6 @@ kotlin {
         androidMain.dependencies {
             implementation(projects.jetwhalePlugins.network.agentOkhttp)
             implementation(libs.okhttp)
-            // Background Work demo: WorkManager is Android-only.
             implementation(projects.jetwhalePlugins.background.agentWorkmanager)
             implementation(libs.androidxWorkRuntime)
         }

@@ -37,8 +37,8 @@ class WorkManagerSourceTest {
     private lateinit var workManager: WorkManager
     private lateinit var source: BackgroundWorkSource
 
-    // Charging is never met under the test driver, so work that needs it stays enqueued until a
-    // test acts on it.
+    // The test driver never meets constraints on its own, so work that needs charging stays
+    // enqueued.
     private val needsCharging = Constraints.Builder().setRequiresCharging(true).build()
 
     @Before

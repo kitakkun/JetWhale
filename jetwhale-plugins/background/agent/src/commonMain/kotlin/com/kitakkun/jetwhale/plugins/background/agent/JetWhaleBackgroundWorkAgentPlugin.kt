@@ -46,7 +46,6 @@ class JetWhaleBackgroundWorkAgentPlugin(
 
     private var activeSources: List<BackgroundWorkSource> = emptyList()
 
-    // Non-null exactly while the host has this plugin activated.
     private var observationScope: CoroutineScope? = null
 
     override fun JetWhaleMessageHandlers.configure() {

@@ -18,7 +18,6 @@ class BackgroundWorkBrowserTest {
         ),
     )
 
-    // The fake answers without suspending, so every launched call has finished by the time launch returns.
     private val browser = BackgroundWorkBrowser(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

@@ -35,8 +35,6 @@ internal fun WorkTable(
             JwTableColumn.text(header = "Name", width = JwColumnWidth.Weight(2f)) { shortName(it.name) },
             JwTableColumn(header = "State", width = JwColumnWidth.Fixed(StateColumnWidth)) { item -> StateTag(item.state) },
             JwTableColumn.text(header = "Tags", width = JwColumnWidth.Weight(1f)) { it.tags.joinToString() },
-            // Only the state is fixed: the list pane can be narrow, and fixed columns alone would
-            // leave the name no room at all.
             JwTableColumn.text(header = "Earliest run", width = JwColumnWidth.Weight(0.8f)) { item ->
                 item.nextRunEpochMillis?.let { TimeFormatter.format(Instant.ofEpochMilli(it)) }.orEmpty()
             },

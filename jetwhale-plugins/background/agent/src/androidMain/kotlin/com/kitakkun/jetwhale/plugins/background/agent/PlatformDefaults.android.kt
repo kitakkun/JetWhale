@@ -26,7 +26,7 @@ actual fun BackgroundWorkSource.Companion.platformDefaults(): List<BackgroundWor
 private const val WORK_MANAGER_JOB_SERVICE = "androidx.work.impl.background.systemjob.SystemJobService"
 
 /** The extra WorkManager stores its work id under in the jobs it schedules. */
-private const val WORK_MANAGER_JOB_EXTRA = "EXTRA_WORK_SPEC_ID"
+private const val WORK_MANAGER_WORK_SPEC_ID_EXTRA = "EXTRA_WORK_SPEC_ID"
 
 private class JobSchedulerSource(private val context: Context) : BackgroundWorkSource {
     private val scheduler = context.getSystemService(JobScheduler::class.java)
@@ -55,7 +55,7 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
 
     private fun toItem(namespace: String?, job: JobInfo): BackgroundWorkItem {
         val managedByWorkManager = job.service.className == WORK_MANAGER_JOB_SERVICE
-        val workSpecId = job.extras.getString(WORK_MANAGER_JOB_EXTRA)
+        val workSpecId = job.extras.getString(WORK_MANAGER_WORK_SPEC_ID_EXTRA)
         val namespaceOption = namespace?.let { "-n $it " }.orEmpty()
         return BackgroundWorkItem(
             source = info.name,
@@ -68,7 +68,6 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
             constraints = jobConstraints(job),
             nextRunEpochMillis = null,
             periodMillis = job.intervalMillis.takeIf { job.isPeriodic },
-            // getFlexMillis arrived in API 24, a year after the rest of these accessors.
             flexMillis = if (job.isPeriodic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) job.flexMillis else null,
             progress = emptyMap(),
             output = emptyMap(),
@@ -81,8 +80,8 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
                 if (managedByWorkManager) put("Managed by", "WorkManager")
                 workSpecId?.let { put("WorkManager work id", it) }
             },
-            // Cancelling WorkManager's job behind its back leaves WorkManager believing it is
-            // scheduled; it has to be cancelled through WorkManager.
+            // Cancelling WorkManager's job directly leaves WorkManager believing the work is still
+            // scheduled.
             canCancel = !managedByWorkManager,
             canRunNow = false,
             runNowHint = "adb shell cmd jobscheduler run -f $namespaceOption${context.packageName} ${job.id}",
@@ -94,7 +93,6 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
         val namespace = itemId.substringBeforeLast(NAMESPACE_SEPARATOR, missingDelimiterValue = "").ifEmpty { null }
         val jobId = itemId.substringAfterLast(NAMESPACE_SEPARATOR).toIntOrNull() ?: throw IllegalArgumentException("'$itemId' is not a job id")
         val scoped = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
-        // getPendingJob arrived in API 24; before it, the job is found among all pending ones.
         val job = scoped?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.getPendingJob(jobId) else it.allPendingJobs.firstOrNull { job -> job.id == jobId } }
             ?: throw IllegalArgumentException("no pending job has id $itemId")
         require(job.service.className != WORK_MANAGER_JOB_SERVICE) { "job $itemId belongs to WorkManager; cancel the WorkManager work instead" }
@@ -135,7 +133,7 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
         val next = alarmManager?.nextAlarmClock
-        // The next alarm clock is the device's, not the app's; it is shown only when the app set it.
+        // nextAlarmClock is the user's next alarm clock from any app; only this app's is shown.
         if (next == null || next.showIntent?.creatorPackage != context.packageName) {
             emptyList()
         } else {

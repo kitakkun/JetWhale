@@ -4,9 +4,6 @@ import com.kitakkun.jetwhale.plugins.background.protocol.BACKGROUND_WORK_PLUGIN_
 import com.kitakkun.jetwhale.plugins.background.protocol.WorkOperationResult
 import kotlinx.serialization.json.Json
 
-// Shared by the background work plugin's MCP command classes (one class per file in this package).
-
-// The tool names are namespaced by the pluginId, so they follow it rather than restating it.
 internal const val TOOL_PREFIX = BACKGROUND_WORK_PLUGIN_ID
 
 internal val McpJson: Json = Json { encodeDefaults = true }
