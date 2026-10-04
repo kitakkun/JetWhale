@@ -434,9 +434,8 @@ private class TableColumnLayout<T>(
      * Computed from [state] rather than the last layout, which lags a fast drag.
      */
     fun widest(column: JwTableColumn<T>): Dp {
-        val shown = shownWidths()
-        val others = columns.filter { it !== column }.fold(0.dp) { sum, other -> sum + (shown[other.header] ?: other.keptWidth()) }
-        return rowWidth - gaps - others
+        val otherShown = shownWidths().filterKeys { it != column.header }.values.fold(0.dp, Dp::plus)
+        return rowWidth - gaps - otherShown - unsizedWidth(except = column)
     }
 
     /** The width a user-sized [column] is laid out at; null for a column the user has not sized. */
@@ -444,13 +443,13 @@ private class TableColumnLayout<T>(
 
     /**
      * The width each user-sized column is laid out at, by header. The columns the user has not sized
-     * keep their [keptWidth]; the sized ones share the rest in order, each at most the width it was
+     * keep their [unsizedWidth]; the sized ones share the rest in order, each at most the width it was
      * given and leaving every later one its minimum. A width dragged in a wide window so gives way in
      * a narrow one without pushing other columns out or leaving part of the row empty.
      */
     private fun shownWidths(): Map<String, Dp> {
         val sized = columns.filter { it.header in state.widths }
-        var left = rowWidth - gaps - columns.filter { it.header !in state.widths }.fold(0.dp) { sum, column -> sum + column.keptWidth() }
+        var left = rowWidth - gaps - unsizedWidth(except = null)
         return sized.withIndex().associate { (index, column) ->
             val laterMinimums = JwTableDefaults.minColumnWidth * (sized.size - 1 - index)
             // Not coerceIn: in a row too narrow for every minimum the upper bound falls below the
@@ -461,8 +460,18 @@ private class TableColumnLayout<T>(
         }
     }
 
-    /** What a column the user has not sized takes in any row: a fixed column its width, a weight column its minimum. */
-    private fun JwTableColumn<T>.keptWidth(): Dp = (width as? JwColumnWidth.Fixed)?.width ?: JwTableDefaults.minColumnWidth
+    /**
+     * What the columns the user has not sized, other than [except], take in any row: each fixed
+     * column its width, and the weight columns together as much as gives each its minimum once the
+     * row shares it out by weight.
+     */
+    private fun unsizedWidth(except: JwTableColumn<T>?): Dp {
+        val unsized = columns.filter { it !== except && it.header !in state.widths }.map { it.width }
+        val fixed = unsized.filterIsInstance<JwColumnWidth.Fixed>().fold(0.dp) { sum, width -> sum + width.width }
+        val weights = unsized.filterIsInstance<JwColumnWidth.Weight>().map(JwColumnWidth.Weight::weight)
+        val weightShare = if (weights.isEmpty()) 0.dp else JwTableDefaults.minColumnWidth * (weights.sum() / weights.min())
+        return fixed + weightShare
+    }
 }
 
 /**

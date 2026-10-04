@@ -77,6 +77,20 @@ class JwTableColumnResizeTest {
     }
 
     @Test
+    fun `a drag stops where the weight column with the smallest weight would go below its minimum`() = runTable(
+        columns = listOf(
+            textColumn("Key", JwColumnWidth.Weight(1f)),
+            textColumn("Type", JwColumnWidth.Fixed(80.dp)),
+            textColumn("Value", JwColumnWidth.Weight(2f)),
+        ),
+    ) { state ->
+        drag("Type", by = 1_000f)
+
+        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Key"))
+        assertClose(JwTableDefaults.minColumnWidth * 2, state.laidOutWidths.getValue("Value"))
+    }
+
+    @Test
     fun `the resize handle of a column that scrolls sideways sits at the column's trailing edge`() = runTable(
         columns = listOf(
             JwTableColumn.text<String>(header = "Name", width = JwColumnWidth.Fixed(100.dp), overflow = JwColumnOverflow.Scroll) { it },
