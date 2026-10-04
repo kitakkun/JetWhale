@@ -56,6 +56,12 @@ subprojects {
         }
     }
 
+    // On macOS a test JVM that starts AWT becomes a regular app with a Dock icon and takes keyboard
+    // focus; as a background-only app, AWT still works.
+    tasks.withType<Test>().configureEach {
+        systemProperty("apple.awt.UIElement", "true")
+    }
+
     // The agent compiler plugin warns on purpose whenever it bakes the build machine's address into
     // a buildMachineWss call, which the demo does on every iOS build.
     if (path != ":demo:shared") {
