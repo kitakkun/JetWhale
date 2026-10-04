@@ -43,7 +43,7 @@ class HostNavigationCommand(
     override val name: String = "jetwhale.navigate"
     override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
-        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show."
+        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show. LOG_VIEWER opens the log viewer in a window of its own: the result's destination stays the main window's screen, and logViewerOpen reports the log viewer."
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")

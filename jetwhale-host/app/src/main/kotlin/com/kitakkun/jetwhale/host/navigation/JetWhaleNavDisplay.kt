@@ -85,8 +85,8 @@ fun JetWhaleNavDisplay(
 
 /**
  * Goes back one step in the main window per back event. NavDisplay's own handler calls `onBack`
- * once for every entry its main scene does not show, the windows of their own included, so with a
- * window open it would remove more than the top entry. This handler is registered after it, and a
+ * once for the entry its main scene shows and once more for every dialog or window on top of it, so
+ * with a window open it would remove more than the top entry. This handler is registered after it, and a
  * dispatcher asks the newest handler first; a dialog's handler, newer still, keeps its own back.
  */
 // It only registers a back handler and draws nothing, so a preview would show an empty frame.
