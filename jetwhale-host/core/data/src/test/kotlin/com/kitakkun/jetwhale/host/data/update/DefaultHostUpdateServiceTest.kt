@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assume
 import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
@@ -339,16 +340,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `offers the release again after a cancelled download`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val bodyStarted = CompletableDeferred<Unit>()
-        responses[jarUrl("1.0.0-alpha14")] = {
-            val body = bodyWriters.writer {
-                channel.writeFully(jarBytes("1.0.0-alpha14"), 0, 4)
-                channel.flush()
-                bodyStarted.complete(Unit)
-                awaitCancellation()
-            }.channel
-            respond(body, HttpStatusCode.OK)
-        }
+        val (bodyStarted, _) = serveStalledJar("1.0.0-alpha14")
         val service = service()
         service.check()
 
@@ -379,6 +371,50 @@ class DefaultHostUpdateServiceTest {
         assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
         assertEquals(emptyList(), versions.installedVersions())
         assertStagingEmpty()
+    }
+
+    @Test
+    fun `does not check for updates while a download runs`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        val (bodyStarted, _) = serveStalledJar("1.0.0-alpha14")
+        val service = service()
+        service.check()
+        service.download()
+        withTimeout(10.seconds) { bodyStarted.await() }
+
+        service.check()
+
+        assertIs<HostUpdateStatus.Downloading>(service.stateFlow.value.status)
+        assertEquals(1, requests.count { it == RELEASES_URL })
+        service.cancelDownload()
+    }
+
+    @Test
+    fun `runs one download at a time`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        val (bodyStarted, secondRequest) = serveStalledJar("1.0.0-alpha14")
+        val service = service()
+        service.check()
+        service.download()
+        withTimeout(10.seconds) { bodyStarted.await() }
+
+        service.download()
+
+        assertEquals(null, withTimeoutOrNull(1.seconds) { secondRequest.await() })
+        service.cancelDownload()
+    }
+
+    @Test
+    fun `refuses metadata that names another version than its release`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14", edit = { it.copy(version = "1.0.0-alpha15") }))
+
+        val service = service()
+        service.check()
+
+        assertEquals(
+            HostUpdateStatus.CheckFailed(HostUpdateFailure.BadMetadata("metadata for 1.0.0-alpha15 under 1.0.0-alpha14")),
+            service.stateFlow.value.status,
+        )
     }
 
     @Test
@@ -429,6 +465,27 @@ class DefaultHostUpdateServiceTest {
             assertFalse(service.startLauncherAfterExit(retryVersion = null), "$it")
             assertTrue(service.stateFlow.value.restartFailed, "$it")
         }
+    }
+
+    /**
+     * Answers [version]'s jar with a body that sends a few bytes and then nothing. Returns signals for
+     * the body's start and for a second request of the jar.
+     */
+    private fun serveStalledJar(version: String): Pair<CompletableDeferred<Unit>, CompletableDeferred<Unit>> {
+        val bodyStarted = CompletableDeferred<Unit>()
+        val secondRequest = CompletableDeferred<Unit>()
+        var jarRequests = 0
+        responses[jarUrl(version)] = {
+            if (++jarRequests == 2) secondRequest.complete(Unit)
+            val body = bodyWriters.writer {
+                channel.writeFully(jarBytes(version), 0, 4)
+                channel.flush()
+                bodyStarted.complete(Unit)
+                awaitCancellation()
+            }.channel
+            respond(body, HttpStatusCode.OK)
+        }
+        return bodyStarted to secondRequest
     }
 
     private fun assertStagingEmpty() {
