@@ -1,7 +1,10 @@
 package com.kitakkun.jetwhale.plugins.deeplinks.host
 
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink
+import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkCatalog
+import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkOpenResult
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequestException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -56,5 +59,20 @@ class DeepLinkBrowserTest {
         browser.open("https://elsewhere.example/")
 
         assertEquals(listOf("https://elsewhere.example/" to false, "demo://a" to true), browser.history.map { it.url to it.result.opened })
+    }
+
+    @Test
+    fun `a catalog the app does not send is reported as an error`() {
+        val unreachable = object : DeepLinkClient {
+            override suspend fun catalog(): DeepLinkCatalog = throw JetWhaleRequestException("Request 'GetDeepLinkCatalog' timed out")
+
+            override suspend fun open(url: String): DeepLinkOpenResult = throw JetWhaleRequestException("not opened in this test")
+        }
+        val unreachableBrowser = DeepLinkBrowser(unreachable, CoroutineScope(Dispatchers.Unconfined))
+
+        runBlocking { unreachableBrowser.load() }
+
+        assertNull(unreachableBrowser.catalog)
+        assertEquals("Failed to reach the app: Request 'GetDeepLinkCatalog' timed out", unreachableBrowser.error)
     }
 }

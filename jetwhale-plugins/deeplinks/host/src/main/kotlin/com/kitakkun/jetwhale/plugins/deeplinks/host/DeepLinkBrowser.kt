@@ -42,8 +42,8 @@ internal interface DeepLinkActions {
 }
 
 /**
- * The app's link catalog and the link being composed. Every call goes through [client] on [scope];
- * a failure to reach the app lands in [error] rather than being thrown.
+ * The app's link catalog and the link being composed. Every call goes through [client], launched on
+ * [scope] except [load]; a failure to reach the app lands in [error] rather than being thrown.
  */
 @Stable
 internal class DeepLinkBrowser(
@@ -85,11 +85,13 @@ internal class DeepLinkBrowser(
             }
         }
 
-    suspend fun load() {
+    suspend fun load() = reportingFailure {
         catalog = client.catalog()
     }
 
-    override fun refresh() = launchReporting(::load)
+    override fun refresh() {
+        scope.launch { load() }
+    }
 
     override fun startFrom(link: DeclaredDeepLink) {
         template = null
@@ -110,19 +112,21 @@ internal class DeepLinkBrowser(
         parameters = parameters + (name to value)
     }
 
-    override fun open(url: String) = launchReporting {
-        val result = client.open(url)
-        history = (listOf(OpenedLink(url, result)) + history).take(HISTORY_LIMIT)
+    override fun open(url: String) {
+        scope.launch {
+            reportingFailure {
+                val result = client.open(url)
+                history = (listOf(OpenedLink(url, result)) + history).take(HISTORY_LIMIT)
+            }
+        }
     }
 
-    private fun launchReporting(block: suspend () -> Unit) {
-        scope.launch {
-            try {
-                block()
-                error = null
-            } catch (e: JetWhaleMessagingException) {
-                error = "Failed to reach the app: ${e.message}"
-            }
+    private suspend fun reportingFailure(block: suspend () -> Unit) {
+        try {
+            block()
+            error = null
+        } catch (e: JetWhaleMessagingException) {
+            error = "Failed to reach the app: ${e.message}"
         }
     }
 }
