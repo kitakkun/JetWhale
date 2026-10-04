@@ -13,8 +13,7 @@ plugins {
 }
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     target.compilations.create("preview") {
         associateWith(target.compilations.getByName("main"))

@@ -16,8 +16,7 @@ group = "com.kitakkun.jetwhale.plugins.deeplinks"
 // Linux and mingw are left out: there is no platform registry of the links an app handles there,
 // and no platform way for an app to route a link to itself.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)
