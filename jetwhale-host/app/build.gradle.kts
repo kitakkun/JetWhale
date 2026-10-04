@@ -83,8 +83,10 @@ compose.desktop {
             linux {
                 iconFile.set(file("src/main/resources/icon.png"))
                 // Debian sorts `~` below everything, even the end of the string, so 1.0.0~alpha13 <
-                // 1.0.0~alpha14 < 1.0.0 and apt upgrades from one pre-release to the next.
-                debPackageVersion = libs.versions.jetwhale.get().replace('-', '~')
+                // 1.0.0~alpha14 < 1.0.0 and apt upgrades from one pre-release to the next. Earlier
+                // alpha packages are installed as plain `1.0.0`; the `1:` epoch ranks every version
+                // above them, and since an epoch can never go back down, later versions keep it.
+                debPackageVersion = "1:" + libs.versions.jetwhale.get().replace('-', '~')
                 menuGroup = "Development;Debugger;"
                 appCategory = "devel"
             }
