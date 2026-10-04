@@ -32,12 +32,14 @@
     <string name="update_needs_new_installer">Version %1$s needs a new installer</string>
     <string name="update_needs_new_installer_hint">It needs a newer launcher or Java runtime than this installation has. Download its installer from the release page and reinstall.</string>
     <string name="open_release_page">Open Release Page</string>
+    <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="update_failed">Update failed: %1$s</string>
     <string name="update_failure_rate_limited">GitHub's API rate limit for this network is used up. Try again later.</string>
-    <string name="update_failure_unreachable">GitHub could not be reached (%1$s).</string>
+    <string name="update_failure_unreachable">GitHub could not be reached. Check the network connection and try again.</string>
     <string name="update_failure_unexpected_response">GitHub answered with HTTP %1$s.</string>
-    <string name="update_failure_bad_metadata">the release's metadata could not be verified (%1$s).</string>
-    <string name="update_failure_corrupted">the download did not match the release's SHA-256, so it was discarded.</string>
+    <string name="update_failure_bad_metadata">The release's metadata could not be verified (%1$s).</string>
+    <string name="update_failure_corrupted">The download did not match the release's SHA-256, so it was discarded.</string>
+    <string name="update_failure_could_not_save">The download could not be saved on this computer. Check that its disk has free space, then try again.</string>
     <string name="updates_not_managed">This copy of JetWhale was not started from the installed JetWhale Debugger app, so it does not update itself. New releases are on the release page.</string>
     <string name="set_aside_version">Version %1$s failed to start and was set aside.</string>
     <string name="try_again">Try Again</string>

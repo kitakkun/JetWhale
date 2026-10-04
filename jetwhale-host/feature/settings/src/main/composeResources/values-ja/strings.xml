@@ -32,12 +32,14 @@
     <string name="update_needs_new_installer">バージョン %1$s には新しいインストーラーが必要です</string>
     <string name="update_needs_new_installer_hint">このインストールより新しい launcher または Java runtime が必要です。リリースページからインストーラーをダウンロードして再インストールしてください。</string>
     <string name="open_release_page">リリースページを開く</string>
+    <string name="update_check_failed">更新の確認に失敗しました: %1$s</string>
     <string name="update_failed">アップデートに失敗しました: %1$s</string>
     <string name="update_failure_rate_limited">このネットワークの GitHub API rate limit に達しました。しばらくしてから再試行してください。</string>
-    <string name="update_failure_unreachable">GitHub に接続できませんでした（%1$s）。</string>
+    <string name="update_failure_unreachable">GitHub に接続できませんでした。ネットワーク接続を確認して再試行してください。</string>
     <string name="update_failure_unexpected_response">GitHub が HTTP %1$s を返しました。</string>
     <string name="update_failure_bad_metadata">リリースの metadata を検証できませんでした（%1$s）。</string>
     <string name="update_failure_corrupted">ダウンロードしたファイルがリリースの SHA-256 と一致しないため、破棄しました。</string>
+    <string name="update_failure_could_not_save">ダウンロードをこのコンピューターに保存できませんでした。ディスクの空き容量を確認してから再試行してください。</string>
     <string name="updates_not_managed">この JetWhale はインストールされた JetWhale Debugger アプリから起動されていないため、自動ではアップデートされません。新しいリリースはリリースページにあります。</string>
     <string name="set_aside_version">バージョン %1$s は起動に失敗したため、除外されています。</string>
     <string name="try_again">再試行</string>

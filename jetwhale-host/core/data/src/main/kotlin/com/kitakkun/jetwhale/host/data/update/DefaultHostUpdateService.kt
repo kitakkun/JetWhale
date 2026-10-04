@@ -103,9 +103,11 @@ class DefaultHostUpdateService(
             status = try {
                 lookUp(hostLaunch)
             } catch (e: IOException) {
-                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+                logger.warn("Could not reach GitHub to check for host updates", e)
+                HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable)
             } catch (e: UnresolvedAddressException) {
-                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+                logger.warn("Could not reach GitHub to check for host updates", e)
+                HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable)
             }
             logger.info("Host update check: {}", status)
         } finally {
@@ -160,12 +162,12 @@ class DefaultHostUpdateService(
         val newestKnown = (installed.map(InstalledHostVersion::version) + running).max()
 
         val response = httpClient.get(releaseSource.releasesUrl)
-        if (response.isRateLimited()) return HostUpdateStatus.Failed(HostUpdateFailure.RateLimited)
-        if (!response.status.isSuccess()) return HostUpdateStatus.Failed(HostUpdateFailure.UnexpectedResponse(response.status.value))
+        if (response.isRateLimited()) return HostUpdateStatus.CheckFailed(HostUpdateFailure.RateLimited)
+        if (!response.status.isSuccess()) return HostUpdateStatus.CheckFailed(HostUpdateFailure.UnexpectedResponse(response.status.value))
         val releases = try {
             json.decodeFromString<List<GitHubRelease>>(response.bodyAsText())
         } catch (e: SerializationException) {
-            return HostUpdateStatus.Failed(HostUpdateFailure.BadMetadata(e.message.orEmpty()))
+            return HostUpdateStatus.CheckFailed(HostUpdateFailure.BadMetadata(e.message.orEmpty()))
         }
 
         val candidate = releases
@@ -187,7 +189,7 @@ class DefaultHostUpdateService(
         val metadataAsset = release.asset(HostReleaseMetadata.assetName(release.tagName)) ?: return HostUpdateStatus.UpToDate
         val metadataResponse = httpClient.get(metadataAsset.browserDownloadUrl)
         if (!metadataResponse.status.isSuccess()) {
-            return HostUpdateStatus.Failed(HostUpdateFailure.UnexpectedResponse(metadataResponse.status.value))
+            return HostUpdateStatus.CheckFailed(HostUpdateFailure.UnexpectedResponse(metadataResponse.status.value))
         }
         val metadataBytes = metadataResponse.readRawBytes()
         val signatureBytes = release.asset(HostReleaseMetadata.assetName(release.tagName) + SIGNATURE_SUFFIX)
@@ -197,11 +199,11 @@ class DefaultHostUpdateService(
         val metadata = when (val read = metadataReader.read(metadataBytes, signatureBytes)) {
             is HostReleaseMetadataResult.Read -> read.metadata
             is HostReleaseMetadataResult.NewerFormat -> return HostUpdateStatus.NeedsNewInstaller(release.tagName)
-            is HostReleaseMetadataResult.Untrusted -> return HostUpdateStatus.Failed(HostUpdateFailure.BadMetadata("signature"))
-            is HostReleaseMetadataResult.Malformed -> return HostUpdateStatus.Failed(HostUpdateFailure.BadMetadata(read.reason))
+            is HostReleaseMetadataResult.Untrusted -> return HostUpdateStatus.CheckFailed(HostUpdateFailure.BadMetadata("signature"))
+            is HostReleaseMetadataResult.Malformed -> return HostUpdateStatus.CheckFailed(HostUpdateFailure.BadMetadata(read.reason))
         }
         if (metadata.version != release.tagName) {
-            return HostUpdateStatus.Failed(HostUpdateFailure.BadMetadata("metadata for ${metadata.version} under ${release.tagName}"))
+            return HostUpdateStatus.CheckFailed(HostUpdateFailure.BadMetadata("metadata for ${metadata.version} under ${release.tagName}"))
         }
         val capabilities = LauncherCapabilities(
             contract = launch.launcherContract,
@@ -229,10 +231,15 @@ class DefaultHostUpdateService(
         try {
             status = try {
                 fetchVerifyAndInstall(offer)
+            } catch (e: LocalFileException) {
+                logger.warn("Could not save the download of host {}", version, e.cause)
+                HostUpdateStatus.DownloadFailed(HostUpdateFailure.CouldNotSave)
             } catch (e: IOException) {
-                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+                logger.warn("Could not download host {}", version, e)
+                HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable)
             } catch (e: UnresolvedAddressException) {
-                HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(e.message.orEmpty()))
+                logger.warn("Could not download host {}", version, e)
+                HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable)
             }
         } finally {
             versions.discardStaging()
@@ -242,20 +249,24 @@ class DefaultHostUpdateService(
 
     private suspend fun fetchVerifyAndInstall(offer: HostReleaseOffer): HostUpdateStatus {
         val version = offer.metadata.version
-        versions.clearForDownload(runningVersion = hostVersionInfo.version)
+        val staging = onLocalFiles {
+            versions.clearForDownload(runningVersion = hostVersionInfo.version)
+            versions.newStagingDirectory(version)
+        }
         stateFlow.update { it.copy(setAside = versions.setAsideVersion()) }
-        val staging = versions.newStagingDirectory(version)
-        Files.write(staging.resolve(InstalledHostVersion.METADATA_FILE_NAME), offer.metadataBytes)
-        offer.signatureBytes?.let { Files.write(staging.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
+        onLocalFiles {
+            Files.write(staging.resolve(InstalledHostVersion.METADATA_FILE_NAME), offer.metadataBytes)
+            offer.signatureBytes?.let { Files.write(staging.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
+        }
         val jar = staging.resolve(hostJarName(version, offer.platformKey))
-        downloadJar(offer, jar)?.let { return HostUpdateStatus.Failed(it) }
-        val check = offer.platform.check(jar)
+        downloadJar(offer, jar)?.let { return HostUpdateStatus.DownloadFailed(it) }
+        val check = onLocalFiles { offer.platform.check(jar) }
         if (check != HostJarCheck.Matches) {
             logger.warn("Discarded the download of host {}: {}", version, check)
-            return HostUpdateStatus.Failed(HostUpdateFailure.Corrupted)
+            return HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted)
         }
         currentCoroutineContext().ensureActive()
-        versions.install(staging, version)
+        onLocalFiles { versions.install(staging, version) }
         logger.info("Installed host {} for the next start", version)
         this.offer = null
         return HostUpdateStatus.ReadyToRestart(version)
@@ -267,13 +278,13 @@ class DefaultHostUpdateService(
         return httpClient.prepareGet(offer.platform.url).execute { response ->
             if (!response.status.isSuccess()) return@execute HostUpdateFailure.UnexpectedResponse(response.status.value)
             val body = response.bodyAsChannel()
-            Files.newOutputStream(jar).use { output ->
+            onLocalFiles { Files.newOutputStream(jar) }.use { output ->
                 val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
                 var downloaded = 0L
                 while (true) {
                     val read = body.readAvailable(buffer, 0, buffer.size)
                     if (read < 0) break
-                    output.write(buffer, 0, read)
+                    onLocalFiles { output.write(buffer, 0, read) }
                     downloaded += read
                     setStatus(HostUpdateStatus.Downloading(version, downloaded, offer.platform.size))
                 }
@@ -285,6 +296,15 @@ class DefaultHostUpdateService(
     private fun setStatus(status: HostUpdateStatus) {
         stateFlow.update { it.copy(status = status) }
     }
+
+    /** Runs [block] on this computer's files, so that its [IOException] is not taken for a network failure. */
+    private inline fun <T> onLocalFiles(block: () -> T): T = try {
+        block()
+    } catch (e: IOException) {
+        throw LocalFileException(e)
+    }
+
+    private class LocalFileException(override val cause: IOException) : Exception(cause)
 
     private fun HttpResponse.isRateLimited(): Boolean = (status == HttpStatusCode.Forbidden || status == HttpStatusCode.TooManyRequests) &&
         headers["x-ratelimit-remaining"] == "0"

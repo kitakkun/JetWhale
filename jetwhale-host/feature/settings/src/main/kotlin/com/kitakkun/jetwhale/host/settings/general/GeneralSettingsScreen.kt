@@ -62,9 +62,11 @@ import com.kitakkun.jetwhale.host.settings.theme_option
 import com.kitakkun.jetwhale.host.settings.try_again
 import com.kitakkun.jetwhale.host.settings.update_available
 import com.kitakkun.jetwhale.host.settings.update_available_hint
+import com.kitakkun.jetwhale.host.settings.update_check_failed
 import com.kitakkun.jetwhale.host.settings.update_failed
 import com.kitakkun.jetwhale.host.settings.update_failure_bad_metadata
 import com.kitakkun.jetwhale.host.settings.update_failure_corrupted
+import com.kitakkun.jetwhale.host.settings.update_failure_could_not_save
 import com.kitakkun.jetwhale.host.settings.update_failure_rate_limited
 import com.kitakkun.jetwhale.host.settings.update_failure_unexpected_response
 import com.kitakkun.jetwhale.host.settings.update_failure_unreachable
@@ -439,7 +441,12 @@ private fun HostUpdateStatusView(
             )
         }
 
-        is HostUpdateStatus.Failed -> JwText(
+        is HostUpdateStatus.CheckFailed -> JwText(
+            text = stringResource(Res.string.update_check_failed, failureMessage(status.failure)),
+            color = JwTheme.colors.error,
+        )
+
+        is HostUpdateStatus.DownloadFailed -> JwText(
             text = stringResource(Res.string.update_failed, failureMessage(status.failure)),
             color = JwTheme.colors.error,
         )
@@ -449,10 +456,11 @@ private fun HostUpdateStatusView(
 @Composable
 private fun failureMessage(failure: HostUpdateFailure): String = when (failure) {
     is HostUpdateFailure.RateLimited -> stringResource(Res.string.update_failure_rate_limited)
-    is HostUpdateFailure.Unreachable -> stringResource(Res.string.update_failure_unreachable, failure.message)
+    is HostUpdateFailure.Unreachable -> stringResource(Res.string.update_failure_unreachable)
     is HostUpdateFailure.UnexpectedResponse -> stringResource(Res.string.update_failure_unexpected_response, failure.statusCode.toString())
     is HostUpdateFailure.BadMetadata -> stringResource(Res.string.update_failure_bad_metadata, failure.reason)
     is HostUpdateFailure.Corrupted -> stringResource(Res.string.update_failure_corrupted)
+    is HostUpdateFailure.CouldNotSave -> stringResource(Res.string.update_failure_could_not_save)
 }
 
 /** A tinted box with a title, an optional hint and a row of buttons. */

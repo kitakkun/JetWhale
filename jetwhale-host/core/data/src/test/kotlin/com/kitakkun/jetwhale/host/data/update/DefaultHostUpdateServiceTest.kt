@@ -36,6 +36,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Assume
 import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
 import java.nio.file.Files
@@ -148,7 +149,7 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.RateLimited), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.CheckFailed(HostUpdateFailure.RateLimited), service.stateFlow.value.status)
     }
 
     @Test
@@ -158,7 +159,7 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.UnexpectedResponse(500)), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.CheckFailed(HostUpdateFailure.UnexpectedResponse(500)), service.stateFlow.value.status)
     }
 
     @Test
@@ -169,7 +170,7 @@ class DefaultHostUpdateServiceTest {
             val service = service()
             service.check()
 
-            assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable(failure.message.orEmpty())), service.stateFlow.value.status, "$failure")
+            assertEquals(HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable), service.stateFlow.value.status, "$failure")
         }
     }
 
@@ -207,7 +208,7 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service())
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Corrupted), outcome)
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
         assertEquals(emptyList(), versions.installedVersions())
         assertStagingEmpty()
     }
@@ -219,7 +220,7 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service())
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Corrupted), outcome)
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
         assertEquals(emptyList(), versions.installedVersions())
         assertStagingEmpty()
     }
@@ -237,7 +238,7 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service())
 
-        assertIs<HostUpdateStatus.Failed>(outcome)
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
         assertEquals(emptyList(), versions.installedVersions())
         assertStagingEmpty()
     }
@@ -249,9 +250,24 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service())
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.Unreachable("")), outcome)
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
         assertEquals(emptyList(), versions.installedVersions())
         assertStagingEmpty()
+    }
+
+    @Test
+    fun `reports a download it could not save on this computer apart from a network failure`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        Files.createDirectories(hostDirectory)
+        val host = hostDirectory.toFile()
+        Assume.assumeTrue("the file system cannot take write permission away", host.setWritable(false) && !Files.isWritable(hostDirectory))
+        try {
+            val outcome = checkAndDownload(service())
+
+            assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.CouldNotSave), outcome)
+        } finally {
+            host.setWritable(true)
+        }
     }
 
     @Test
@@ -296,7 +312,7 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service)
 
-        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.UnexpectedResponse(500)), outcome)
+        assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.UnexpectedResponse(500)), outcome)
         assertEquals(null, service.stateFlow.value.setAside)
     }
 

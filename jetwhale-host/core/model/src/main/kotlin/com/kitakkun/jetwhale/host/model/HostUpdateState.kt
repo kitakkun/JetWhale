@@ -38,14 +38,18 @@ sealed interface HostUpdateStatus {
     /** The newest release needs a newer launcher or runtime than this install has. */
     data class NeedsNewInstaller(val version: String) : HostUpdateStatus
 
-    data class Failed(val failure: HostUpdateFailure) : HostUpdateStatus
+    /** Looking up the newest release failed. */
+    data class CheckFailed(val failure: HostUpdateFailure) : HostUpdateStatus
+
+    /** Downloading or installing a release failed; nothing was installed. */
+    data class DownloadFailed(val failure: HostUpdateFailure) : HostUpdateStatus
 }
 
 sealed interface HostUpdateFailure {
     /** GitHub's limit of unauthenticated API requests per address is used up. */
     data object RateLimited : HostUpdateFailure
 
-    data class Unreachable(val message: String) : HostUpdateFailure
+    data object Unreachable : HostUpdateFailure
 
     data class UnexpectedResponse(val statusCode: Int) : HostUpdateFailure
 
@@ -54,4 +58,7 @@ sealed interface HostUpdateFailure {
 
     /** The downloaded jar does not match the size and SHA-256 its release's metadata pins. */
     data object Corrupted : HostUpdateFailure
+
+    /** Writing the download to this computer's disk failed, as it does when the disk is full. */
+    data object CouldNotSave : HostUpdateFailure
 }
