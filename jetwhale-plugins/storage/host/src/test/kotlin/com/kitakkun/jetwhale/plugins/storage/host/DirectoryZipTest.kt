@@ -56,6 +56,8 @@ class DirectoryZipTest {
         assertEquals("a_b", zipSafeSegment("a\\b"))
         assertEquals("C_", zipSafeSegment("C:"))
         assertEquals("_", zipSafeSegment(".."))
+        assertEquals("_", zipSafeSegment(".. "))
+        assertEquals("_", zipSafeSegment(". "))
         assertEquals("_", zipSafeSegment(""))
         assertEquals("cache", zipSafeSegment("cache"))
     }

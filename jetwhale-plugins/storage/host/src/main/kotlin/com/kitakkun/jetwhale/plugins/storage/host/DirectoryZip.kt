@@ -54,9 +54,10 @@ private class DirectoryZipper(
 /**
  * [name] as one ZIP path segment. A root's name comes from the app and is not bound to be a single
  * plain segment, and an entry named "../x" or with a separator would make extraction write outside
- * the destination.
+ * the destination. A name of nothing but dots and spaces becomes `_` too, since Windows drops
+ * trailing dots and spaces, which would leave ".. " as "..".
  */
 internal fun zipSafeSegment(name: String): String {
     val replaced = name.replace('/', '_').replace('\\', '_').replace(':', '_')
-    return if (replaced.isBlank() || replaced == "." || replaced == "..") "_" else replaced
+    return if (replaced.all { it == '.' || it.isWhitespace() }) "_" else replaced
 }
