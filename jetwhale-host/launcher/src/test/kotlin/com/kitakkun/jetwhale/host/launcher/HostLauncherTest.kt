@@ -22,6 +22,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -407,6 +408,18 @@ class HostLauncherTest {
     }
 
     @Test
+    fun `keeps a second launch waiting until the host it started has published its record`() {
+        download("1.0.0-alpha15")
+        processes.script("1.0.0-alpha15", FakeHostBehavior.ClaimsTheInstanceLate(runningPolls = 1))
+
+        val (first, second) = launchAgainWhileTheHostComesUp()
+
+        assertEquals(1, processes.starts.size)
+        assertEquals("1.0.0-alpha15", assertIs<LaunchOutcome.Started>(first).version)
+        assertEquals(LaunchOutcome.ActivatedRunningHost, second)
+    }
+
+    @Test
     fun `does not take a record an earlier host left behind for the new host's`() {
         download("1.0.0-alpha15")
         HostInstanceRecord.publish(versions, HostInstanceRecord(port = 0, pid = processes.nextPid, token = "stale"))
@@ -440,6 +453,43 @@ class HostLauncherTest {
 
         assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
         assertFalse(versionDirectory("1.0.0-alpha15").exists())
+    }
+
+    /**
+     * Launches, and launches again from another thread during the first start's first poll, while its
+     * host has not taken the instance yet. The first launch goes on once the second waits for a lock
+     * or has ended. Returns both outcomes.
+     */
+    private fun launchAgainWhileTheHostComesUp(): Pair<LaunchOutcome, LaunchOutcome> {
+        val secondWaitsOrEnded = CountDownLatch(1)
+        val waitReportingLocks = object : LockFiles by locks {
+            override fun lock(path: Path): HeldLock = locks.tryLock(path) ?: run {
+                secondWaitsOrEnded.countDown()
+                locks.lock(path)
+            }
+        }
+        var second: Thread? = null
+        var secondOutcome: LaunchOutcome? = null
+        val time = TestTimeSource()
+        val startupWindow = StartupWindow(
+            length = 30.seconds,
+            pollInterval = 200.milliseconds,
+            timeSource = time,
+            sleep = {
+                if (second == null) {
+                    second = thread {
+                        secondOutcome = launcher(locks = waitReportingLocks).launch(afterPid = null, retryVersion = null)
+                        secondWaitsOrEnded.countDown()
+                    }
+                    secondWaitsOrEnded.await(10, TimeUnit.SECONDS)
+                }
+                time += it
+            },
+        )
+
+        val first = launcher(startupWindow = startupWindow).launch(afterPid = null, retryVersion = null)
+        second?.join()
+        return first to assertNotNull(secondOutcome)
     }
 
     private fun recordingLaunchLock(events: MutableList<String>) = object : LockFiles by locks {

@@ -89,6 +89,13 @@ sealed interface FakeHostBehavior {
 
     /** Publishes its record and reports running for [runningPolls] polls, then reports an exit. */
     data class EndsRightAfterTheWindow(val runningPolls: Int) : FakeHostBehavior
+
+    /**
+     * Reports running for [runningPolls] polls before it takes the instance and publishes its record,
+     * as a host does while its JVM and window come up. When the instance is taken by then, it exits
+     * normally, as a host that hands the launch to the running one.
+     */
+    data class ClaimsTheInstanceLate(val runningPolls: Int) : FakeHostBehavior
 }
 
 class FakeHostProcesses(
@@ -151,8 +158,35 @@ class FakeHostProcesses(
                 checkNotNull(locks.tryLock(instanceLock)) { "the other host could not take the instance" }
                 FakeHostProcess(pid, 0)
             }
+
+            is FakeHostBehavior.ClaimsTheInstanceLate -> LateClaimingHostProcess(pid, behavior.runningPolls) {
+                if (locks.tryLock(instanceLock) == null) {
+                    0
+                } else {
+                    runningHost.publish(pid)
+                    afterPublishing[start.name]?.invoke()
+                    null
+                }
+            }
         }
     }
+}
+
+/** Reports running for [runningPolls] polls, then runs [claim] once and reports the exit status it returns from then on. */
+class LateClaimingHostProcess(
+    override val pid: Long,
+    private val runningPolls: Int,
+    private val claim: () -> Int?,
+) : HostProcess {
+    private var polls = 0
+    private var exitStatus: Int? = null
+
+    override fun exitStatus(): Int? {
+        if (polls++ == runningPolls) exitStatus = claim()
+        return exitStatus
+    }
+
+    override fun waitForExit(): Int = exitStatus ?: 0
 }
 
 /** Reports running for [runningPolls] polls, then status 0. */
