@@ -31,11 +31,9 @@ import platform.Foundation.create
 import platform.Foundation.fileHandleForReadingAtPath
 import platform.Foundation.fileHandleForWritingAtPath
 import platform.Foundation.readDataOfLength
-import platform.Foundation.seekToEndOfFile
 import platform.Foundation.seekToFileOffset
 import platform.Foundation.stringByResolvingSymlinksInPath
 import platform.Foundation.timeIntervalSince1970
-import platform.Foundation.writeData
 import platform.posix.errno
 import platform.posix.memcpy
 import platform.posix.rename
@@ -96,11 +94,13 @@ internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boole
         return
     }
     val handle = NSFileHandle.fileHandleForWritingAtPath(path) ?: throw IllegalStateException("'$path' cannot be opened for writing")
+    // seekToEndOfFile and writeData(data) report a failure such as a full disk by raising an
+    // Objective-C exception, which Kotlin cannot catch and which ends the app.
     try {
-        handle.seekToEndOfFile()
-        handle.writeData(data)
+        withNSError { error -> handle.seekToEndReturningOffset(null, error) }
+        withNSError { error -> handle.writeData(data, error) }
     } finally {
-        handle.closeFile()
+        handle.closeAndReturnError(null)
     }
 }
 
