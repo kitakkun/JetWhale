@@ -228,8 +228,6 @@ class DefaultMcpServerService(
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
                 val arguments = request.arguments ?: emptyMap()
-                // The tool list is fixed for the life of the connection, so a tool can still be
-                // called after its plugin was disabled or its session went away.
                 val sessionId = arguments["sessionId"]?.jsonContent
                     ?: return@addPluginTool errorResult("Missing required argument: sessionId")
                 toolRegistry.dispatch(toolName, arguments)

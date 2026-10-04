@@ -70,8 +70,8 @@ class PluginScreenRootTest {
 
 @OptIn(ExperimentalTestApi::class)
 private fun ComposeUiTest.showPluginScreenRoot(states: MutableStateFlow<out PluginScreenState>) {
-    // The plugin screen asks for a frame on every frame to drive the plugin's animations, so the
-    // test clock never goes idle on its own; frames are stepped by hand instead.
+    // PluginScreen asks for a frame on every frame, so the test clock never goes idle on its own;
+    // frames are stepped by hand.
     mainClock.autoAdvance = false
     val screenContext = PluginScreenContext(
         pluginId = "com.example.plugin",

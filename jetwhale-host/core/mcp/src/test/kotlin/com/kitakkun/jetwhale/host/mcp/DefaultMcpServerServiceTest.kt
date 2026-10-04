@@ -230,7 +230,6 @@ class DefaultMcpServerServiceTest {
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
             LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin()),
         )
-        // Disposed after the tool was registered, before its Disposed event reached the registry.
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns null
 
         service.start(host, port)
@@ -651,7 +650,6 @@ class DefaultMcpServerServiceTest {
         try {
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
             awaitCapableFor(testSessionId) { testPluginId in it }
-            // The tool list is fixed when the client connects, so it still offers the tool below.
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
             try {
                 eventFlow.emit(PluginInstanceEvent.Disposed(testPluginId, testSessionId))

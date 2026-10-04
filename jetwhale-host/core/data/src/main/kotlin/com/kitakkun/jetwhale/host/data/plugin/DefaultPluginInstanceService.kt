@@ -173,8 +173,6 @@ class DefaultPluginInstanceService(
 
     @OptIn(InternalComposeUiApi::class)
     override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? = withContext(Dispatchers.Main) {
-        // Looked up on the main thread, where slots are closed: a slot leaves the map before its
-        // close is queued, so the one found here is still open.
         loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.sceneSlot?.getOrCreate()
     }
 
@@ -183,7 +181,8 @@ class DefaultPluginInstanceService(
             val replacedSlot = instance.sceneSlot ?: return@mapNotNull null
             val newSlot = sceneSlotFor(instance.plugin) ?: return@mapNotNull null
             instance.sceneSlot = newSlot
-            // Disposed meanwhile, its disposal may have closed the slot it saw before this one.
+            // If the instance was disposed meanwhile, its disposal closed only the slot it saw, not
+            // this new one.
             if (loadedPlugins[key] !== instance) closeOnMainThread(newSlot)
             replacedSlot
         }
@@ -353,8 +352,6 @@ class DefaultPluginInstanceService(
 
     private fun disposeInstance(key: PluginInstanceKey) {
         val removed = loadedPlugins.remove(key) ?: return
-        // Published before onDispose runs plugin code, so a screen stops showing the instance as soon
-        // as it is unreachable.
         publishInstances()
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.

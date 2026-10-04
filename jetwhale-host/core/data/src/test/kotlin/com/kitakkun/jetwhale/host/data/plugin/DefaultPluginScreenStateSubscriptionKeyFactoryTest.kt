@@ -73,7 +73,8 @@ class DefaultPluginScreenStateSubscriptionKeyFactoryTest {
 
         service.unloadPluginInstancesForPlugin(pluginId)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        // Within the five seconds soil keeps a subscription by default after its last screen closes.
+        // Within the five seconds soil keeps a subscription alive by default after its last screen
+        // closes.
         delay(1.seconds)
 
         client.showScene { it !== replacedScene }

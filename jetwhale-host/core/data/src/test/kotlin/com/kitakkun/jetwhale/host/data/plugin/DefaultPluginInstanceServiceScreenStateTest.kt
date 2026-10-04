@@ -229,13 +229,13 @@ class DefaultPluginInstanceServiceScreenStateTest {
         val service = serviceWith(factoryOf { object : JetWhaleHostPlugin() {} })
         val firstPublicationHalfway = CountDownLatch(1)
         val secondChangeDone = CountDownLatch(1)
-        // An unconfined collector runs inside the publishing thread's assignment, holding that thread
-        // after it has read the instances and published the headless set, before it publishes the
-        // screen states.
+        // An unconfined collector runs inside the publishing thread's assignment, holding that
+        // thread after it has published the headless set and before it publishes the screen states.
         val holdFirstPublication = launch(Dispatchers.Unconfined) {
             service.headlessPluginsFlow.first { it.pluginIdsBySession.isNotEmpty() }
             firstPublicationHalfway.countDown()
-            // Bounded, because a publication that waits for the other one to finish never sees it.
+            // Bounded, since the first thread holds the publication lock here and the second change
+            // cannot finish until it is released.
             secondChangeDone.await(500, TimeUnit.MILLISECONDS)
         }
 

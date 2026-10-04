@@ -41,7 +41,7 @@ class DefaultPluginComposeSceneFactoryTest {
 
         withContext(Dispatchers.Main) { assertFailsWith<IllegalStateException> { factory.createScene(boundPlugin()) { error("content broke") } } }
 
-        // A scene that stays open keeps its recomposer running.
+        // A scene that stays open keeps its Recomposer running.
         withTimeout(5_000) { Recomposer.runningRecomposers.first { (it - runningBefore).isEmpty() } }
     }
 

@@ -158,9 +158,9 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     }
 
     LaunchedEffect(backStack) {
-        // Rerun on every back-stack change as well: an entry can be added for a plugin that is
-        // already gone, by an enable that completes after its jar was removed or a navigation that
-        // races the removal.
+        // Rerun on every back-stack change too: an enable that completes after the jar was removed,
+        // or a navigation that races the removal, can add an entry for a plugin that is already
+        // gone.
         combine(appGraph.pluginFactoryRepository.loadedPluginsFlow, snapshotFlow { backStack.toList() }) { loadedPlugins, _ ->
             loadedPlugins.keys
         }.collect { installedPluginIds ->

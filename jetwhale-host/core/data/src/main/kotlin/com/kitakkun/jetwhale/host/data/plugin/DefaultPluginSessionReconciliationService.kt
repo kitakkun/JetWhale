@@ -51,8 +51,9 @@ class DefaultPluginSessionReconciliationService(
                 pluginFactoryRepository.loadedPluginsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
-                    // The disable collector below only runs while this flow is collected, so a plugin
-                    // disabled meanwhile (the debug server restarting) can still have instances.
+                    // The disable collector below runs only while this flow is collected, so a
+                    // plugin disabled meanwhile (while the debug server restarts) can still have
+                    // instances.
                     pluginInstanceService.getLoadedPluginInstances()
                         .map(LoadedPluginInstance::pluginId)
                         .filterNot(enabledPluginIds::contains)
