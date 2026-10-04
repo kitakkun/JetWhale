@@ -8,13 +8,17 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.CancelHostUpdateDownloadMutationKey
 import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.CheckForHostUpdateMutationKey
+import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.DownloadHostUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
@@ -27,8 +31,10 @@ import com.kitakkun.jetwhale.host.model.McpPluginInteractPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
+import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -264,6 +270,12 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     followAiOperationMutationKey = object :
         FollowAiOperationMutationKey,
         MutationKey<Unit, Boolean> by noop("follow_ai_operation") {},
+    checkForUpdatesOnStartupMutationKey = object : CheckForUpdatesOnStartupMutationKey, MutationKey<Unit, Boolean> by noop("startup_check") {},
+    checkForHostUpdateMutationKey = object : CheckForHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("check_for_host_update") {},
+    downloadHostUpdateMutationKey = object : DownloadHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("download_host_update") {},
+    cancelHostUpdateDownloadMutationKey = object : CancelHostUpdateDownloadMutationKey, MutationKey<Unit, Unit> by noop("cancel_download") {},
+    restartToUpdateMutationKey = object : RestartToUpdateMutationKey, MutationKey<Unit, Unit> by noop("restart_to_update") {},
+    tryHostVersionAgainMutationKey = object : TryHostVersionAgainMutationKey, MutationKey<Unit, String> by noop("try_again") {},
     hostVersionInfo = HostVersionInfo("0.0.0-test"),
     generateSslCertificateMutationKey = object :
         GenerateSslCertificateMutationKey,

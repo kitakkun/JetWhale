@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,10 +25,14 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.component.HostSetAsideBanner
+import com.kitakkun.jetwhale.host.component.HostUpdateBanner
 import com.kitakkun.jetwhale.host.component.PluginJarArrivalBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
+import com.kitakkun.jetwhale.host.model.HostLaunch
+import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarRequest
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
@@ -44,6 +52,7 @@ import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
+import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
@@ -52,9 +61,13 @@ import com.kitakkun.jetwhale.host.ui.JwSurface
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
+import org.slf4j.LoggerFactory
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
+import java.awt.Desktop
+import java.io.IOException
+import java.nio.file.Path
 
 // The window's entry point takes its whole dependency graph as a context parameter, which a
 // `@Preview` has no way to build.
@@ -82,6 +95,12 @@ fun JetWhaleApp() {
         onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
+            val checkForHostUpdateMutation = rememberMutation(appGraph.checkForHostUpdateMutationKey)
+            LaunchedEffect(Unit) {
+                if (appGraph.hostLaunch is HostLaunch.ByLauncher && appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                    checkForHostUpdateMutation.mutateAsync(Unit)
+                }
+            }
             SoilDataBoundary(
                 state1 = rememberSubscription(appGraph.themeSubscriptionKey),
                 state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
@@ -212,6 +231,9 @@ private fun ThemedHostWindow(
                             onClickReviewArrivedPlugins = {
                                 backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.PluginSecurity))
                             },
+                            onClickOpenUpdateSettings = {
+                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.Application))
+                            },
                         )
                     }
                 }
@@ -225,6 +247,7 @@ context(appGraph: JetWhaleAppGraph)
 private fun HostWindowContent(
     backStack: NavBackStack<NavKey>,
     onClickReviewArrivedPlugins: () -> Unit,
+    onClickOpenUpdateSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val arrivedJars = rememberSubscription(appGraph.arrivedPluginJarsSubscriptionKey).data?.jars ?: persistentListOf()
@@ -232,6 +255,7 @@ private fun HostWindowContent(
     val postponeMutation = rememberMutation(appGraph.postponeArrivedPluginJarMutationKey)
     val coroutineScope = rememberCoroutineScope()
     Column(modifier = modifier) {
+        HostUpdateNotices(onClickOpenUpdateSettings = onClickOpenUpdateSettings)
         AnimatedVisibility(
             visible = arrivedJars.isNotEmpty(),
             enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
@@ -247,3 +271,65 @@ private fun HostWindowContent(
         JetWhaleNavDisplay(backStack)
     }
 }
+
+/**
+ * The startup notices of the update system: the version this launch set aside, and a newer version
+ * the startup check found. Each goes away for the session once dismissed.
+ */
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
+    val hostLaunch = appGraph.hostLaunch as? HostLaunch.ByLauncher ?: return
+    val status = rememberSubscription(appGraph.hostUpdateStateSubscriptionKey).data?.status
+    val restartMutation = rememberMutation(appGraph.restartToUpdateMutationKey)
+    val tryAgainMutation = rememberMutation(appGraph.tryHostVersionAgainMutationKey)
+    val coroutineScope = rememberCoroutineScope()
+    var isSetAsideBannerDismissed by remember { mutableStateOf(false) }
+    var isUpdateBannerDismissed by remember { mutableStateOf(false) }
+
+    val setAsideVersion = hostLaunch.setAsideVersion
+    AnimatedVisibility(visible = setAsideVersion != null && !isSetAsideBannerDismissed) {
+        if (setAsideVersion != null) {
+            HostSetAsideBanner(
+                setAsideVersion = setAsideVersion,
+                runningVersion = BuildConfig.VERSION,
+                onClickViewLog = { openFile(HostVersionsDirectory(hostLaunch.hostDirectory).hostLog(setAsideVersion)) },
+                onClickTryAgain = { coroutineScope.launch { tryAgainMutation.mutateAsync(setAsideVersion) } },
+                onDismiss = { isSetAsideBannerDismissed = true },
+            )
+        }
+    }
+    val newerVersion = when (status) {
+        is HostUpdateStatus.Available -> status.version
+        is HostUpdateStatus.ReadyToRestart -> status.version
+        else -> null
+    }
+    AnimatedVisibility(visible = newerVersion != null && !isUpdateBannerDismissed) {
+        if (newerVersion != null) {
+            HostUpdateBanner(
+                version = newerVersion,
+                isInstalled = status is HostUpdateStatus.ReadyToRestart,
+                onClickOpenSettings = {
+                    isUpdateBannerDismissed = true
+                    onClickOpenUpdateSettings()
+                },
+                onClickRestart = { coroutineScope.launch { restartMutation.mutateAsync(Unit) } },
+                onDismiss = { isUpdateBannerDismissed = true },
+            )
+        }
+    }
+}
+
+private fun openFile(file: Path) {
+    try {
+        Desktop.getDesktop().open(file.toFile())
+    } catch (e: IOException) {
+        logger.warn("Could not open $file", e)
+    } catch (e: UnsupportedOperationException) {
+        logger.warn("This desktop cannot open $file", e)
+    } catch (e: IllegalArgumentException) {
+        logger.warn("$file does not exist", e)
+    }
+}
+
+private val logger = LoggerFactory.getLogger("com.kitakkun.jetwhale.host.JetWhaleApp")

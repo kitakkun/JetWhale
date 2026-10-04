@@ -11,6 +11,7 @@ import soil.query.compose.rememberSubscription
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
+import java.net.URI
 import java.util.logging.Logger
 
 @Composable
@@ -24,15 +25,18 @@ fun GeneralSettingsScreenRoot(
         state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state2 = rememberSubscription(screenContext.appearanceSettingsSubscriptionKey),
         state3 = rememberQuery(screenContext.diagnosticsQueryKey),
-    ) { debuggerSettings, appearanceSettings, diagnostics ->
+        state4 = rememberSubscription(screenContext.hostUpdateStateSubscriptionKey),
+    ) { debuggerSettings, appearanceSettings, diagnostics, hostUpdateState ->
         val screenChannel = rememberScreenChannel<GeneralSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             generalSettingsScreenPresenter(
                 screenChannel = screenChannel,
                 automaticallyWireADBTransport = debuggerSettings.adbAutoPortMappingEnabled,
                 followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
+                checkForUpdatesOnStartup = debuggerSettings.checkForUpdatesOnStartup,
                 appearanceSettings = appearanceSettings,
                 diagnostics = diagnostics,
+                hostUpdateState = hostUpdateState,
             )
         }
 
@@ -67,7 +71,34 @@ fun GeneralSettingsScreenRoot(
             onFollowAiOperationChange = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangeFollowAiOperation(it))
             },
+            onCheckForUpdatesOnStartupChange = {
+                screenChannel.send(GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup(it))
+            },
+            onClickCheckForUpdates = { screenChannel.send(GeneralSettingsScreenAction.CheckForUpdates) },
+            onClickDownloadUpdate = { screenChannel.send(GeneralSettingsScreenAction.DownloadUpdate) },
+            onClickCancelUpdateDownload = { screenChannel.send(GeneralSettingsScreenAction.CancelUpdateDownload) },
+            onClickRestartToUpdate = { screenChannel.send(GeneralSettingsScreenAction.RestartToUpdate) },
+            onClickTryHostVersionAgain = { screenChannel.send(GeneralSettingsScreenAction.TryHostVersionAgain(it)) },
+            onClickViewHostLog = { hostUpdateState.setAside?.log?.let { openOnDesktop { open(it.toFile()) } } },
+            onClickOpenReleasePage = { version ->
+                val page = if (version == null) RELEASES_PAGE else "$RELEASES_PAGE/tag/$version"
+                openOnDesktop { browse(URI(page)) }
+            },
         )
+    }
+}
+
+private const val RELEASES_PAGE = "https://github.com/kitakkun/JetWhale/releases"
+
+private fun openOnDesktop(action: Desktop.() -> Unit) {
+    try {
+        Desktop.getDesktop().action()
+    } catch (e: IOException) {
+        logger.warning("Could not open it: ${e.message}")
+    } catch (e: UnsupportedOperationException) {
+        logger.warning("This desktop cannot open it: ${e.message}")
+    } catch (e: IllegalArgumentException) {
+        logger.warning("It does not exist: ${e.message}")
     }
 }
 

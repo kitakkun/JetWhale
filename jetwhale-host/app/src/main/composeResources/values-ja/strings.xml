@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">JetWhale Debugger</string>
+    <string name="host_update_banner_available">JetWhale %1$s が利用可能です</string>
+    <string name="host_update_banner_ready">JetWhale %1$s をインストールしました。次回の起動時に実行されます</string>
+    <string name="host_update_banner_open_settings">設定で確認</string>
+    <string name="host_update_banner_restart">再起動してアップデート</string>
+    <string name="host_set_aside_banner">JetWhale %1$s の起動に失敗したため、%2$s で起動しています</string>
+    <string name="host_set_aside_view_log">ログを表示</string>
+    <string name="host_set_aside_try_again">再試行</string>
     <string name="version_format">バージョン %1$s</string>
     <string name="plugin_arrived_new">新しいプラグイン: %1$s · %2$s</string>
     <string name="plugin_arrived_update">新しいバージョン: %1$s · %2$s</string>

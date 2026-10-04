@@ -11,4 +11,16 @@ sealed interface GeneralSettingsScreenAction {
     data class ColorSchemeSelected(val colorSchemeId: JetWhaleColorSchemeId) : GeneralSettingsScreenAction
 
     data class ChangeFollowAiOperation(val enabled: Boolean) : GeneralSettingsScreenAction
+
+    data class ChangeCheckForUpdatesOnStartup(val enabled: Boolean) : GeneralSettingsScreenAction
+
+    data object CheckForUpdates : GeneralSettingsScreenAction
+
+    data object DownloadUpdate : GeneralSettingsScreenAction
+
+    data object CancelUpdateDownload : GeneralSettingsScreenAction
+
+    data object RestartToUpdate : GeneralSettingsScreenAction
+
+    data class TryHostVersionAgain(val version: String) : GeneralSettingsScreenAction
 }
