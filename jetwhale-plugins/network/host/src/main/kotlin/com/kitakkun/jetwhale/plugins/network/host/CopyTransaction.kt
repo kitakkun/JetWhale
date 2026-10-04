@@ -17,6 +17,9 @@ internal fun copyToClipboard(text: String) {
  */
 private val PLACEHOLDER_BODY = Regex("^<[^<>]+>$")
 
+/** [body] as text to copy, or null when it is absent, a binary (Base64) capture or a placeholder. */
+internal fun copyableBody(body: String?, encoding: BodyEncoding): String? = body?.takeUnless { encoding == BodyEncoding.BASE64 || it.matches(PLACEHOLDER_BODY) }
+
 /**
  * Rebuilds the captured request as a shell-pasteable `curl` command.
  *
@@ -27,7 +30,7 @@ private val PLACEHOLDER_BODY = Regex("^<[^<>]+>$")
  */
 internal fun buildCurlCommand(request: CapturedHttpRequest): String {
     val binary = request.bodyEncoding == BodyEncoding.BASE64
-    val body = request.body?.takeUnless { binary || it.matches(PLACEHOLDER_BODY) }
+    val body = copyableBody(request.body, request.bodyEncoding)
     // --globoff: curl expands [] and {} in URLs itself, even inside shell quotes.
     val lines = mutableListOf("curl --globoff")
     // -X GET must be explicit when a body is present, or --data-raw switches the method to POST.

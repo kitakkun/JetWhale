@@ -194,10 +194,10 @@ private fun TrafficList(
 private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuItem> = buildList {
     add(ContextMenuItem("Copy as cURL") { copyToClipboard(buildCurlCommand(tx.request)) })
     add(ContextMenuItem("Copy URL") { copyToClipboard(tx.request.url) })
-    tx.request.body?.takeIf { tx.request.bodyEncoding == BodyEncoding.TEXT }?.let { body ->
+    copyableBody(tx.request.body, tx.request.bodyEncoding)?.let { body ->
         add(ContextMenuItem("Copy request body") { copyToClipboard(body) })
     }
-    tx.response?.takeIf { it.bodyEncoding == BodyEncoding.TEXT }?.body?.let { body ->
+    tx.response?.let { copyableBody(it.body, it.bodyEncoding) }?.let { body ->
         add(ContextMenuItem("Copy response body") { copyToClipboard(body) })
     }
 }

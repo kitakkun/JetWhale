@@ -21,7 +21,7 @@ import kotlin.test.Test
 class TrafficContextMenuTest {
     @Test
     fun `right-clicking a transaction with text bodies offers cURL the URL and both bodies`() = runComposeUiTest {
-        setTraffic(responseEncoding = BodyEncoding.TEXT)
+        setTraffic(request = TEXT_REQUEST, response = TEXT_RESPONSE)
 
         onNodeWithText(URL).performMouseInput { rightClick() }
 
@@ -33,7 +33,7 @@ class TrafficContextMenuTest {
 
     @Test
     fun `a binary response body is not offered as text to copy`() = runComposeUiTest {
-        setTraffic(responseEncoding = BodyEncoding.BASE64)
+        setTraffic(request = TEXT_REQUEST, response = "iVBORw0KGgo=" to BodyEncoding.BASE64)
 
         onNodeWithText(URL).performMouseInput { rightClick() }
 
@@ -41,21 +41,57 @@ class TrafficContextMenuTest {
         onNodeWithText("Copy request body").assertExists()
         onNodeWithText("Copy response body").assertDoesNotExist()
     }
+
+    @Test
+    fun `a binary request body is not offered as text to copy`() = runComposeUiTest {
+        setTraffic(request = "AAECAw==" to BodyEncoding.BASE64, response = TEXT_RESPONSE)
+
+        onNodeWithText(URL).performMouseInput { rightClick() }
+
+        onNodeWithText("Copy as cURL").assertExists()
+        onNodeWithText("Copy request body").assertDoesNotExist()
+        onNodeWithText("Copy response body").assertExists()
+    }
+
+    @Test
+    fun `a body the adapter could not capture is not offered as text to copy`() = runComposeUiTest {
+        setTraffic(
+            request = "<streaming request body>" to BodyEncoding.TEXT,
+            response = "<Content-Encoding: gzip body>" to BodyEncoding.TEXT,
+        )
+
+        onNodeWithText(URL).performMouseInput { rightClick() }
+
+        onNodeWithText("Copy as cURL").assertExists()
+        onNodeWithText("Copy request body").assertDoesNotExist()
+        onNodeWithText("Copy response body").assertDoesNotExist()
+    }
 }
 
 private const val URL = "https://example.com/items"
 
+private val TEXT_REQUEST = """{"name":"item"}""" to BodyEncoding.TEXT
+
+private val TEXT_RESPONSE = """{"id":1}""" to BodyEncoding.TEXT
+
 @OptIn(ExperimentalTestApi::class)
-private fun ComposeUiTest.setTraffic(responseEncoding: BodyEncoding) {
+private fun ComposeUiTest.setTraffic(request: Pair<String, BodyEncoding>, response: Pair<String, BodyEncoding>) {
     val transaction = HttpTransaction(
-        request = CapturedHttpRequest(txId = "tx-1", method = "POST", url = URL, timestampMs = 1L, body = """{"name":"item"}"""),
+        request = CapturedHttpRequest(
+            txId = "tx-1",
+            method = "POST",
+            url = URL,
+            timestampMs = 1L,
+            body = request.first,
+            bodyEncoding = request.second,
+        ),
         response = CapturedHttpResponse(
             txId = "tx-1",
             statusCode = 200,
             statusDescription = "OK",
             durationMs = 12L,
-            body = if (responseEncoding == BodyEncoding.BASE64) "iVBORw0KGgo=" else """{"id":1}""",
-            bodyEncoding = responseEncoding,
+            body = response.first,
+            bodyEncoding = response.second,
         ),
     )
     setContent {
