@@ -100,6 +100,32 @@ class JwListRowKeysTest {
     }
 
     @Test
+    fun `arrow keys pressed on a focused tag inside a row leave the selection and focus alone`() = runComposeUiTest {
+        var selected by mutableStateOf<String?>("row 1")
+        setContent {
+            JwTheme(darkTheme = false) {
+                JwTable(
+                    items = rows.take(5),
+                    columns = listOf(
+                        JwTableColumn.text(header = "Name", width = JwColumnWidth.Weight(1f)) { it },
+                        JwTableColumn(header = "Pin", width = JwColumnWidth.Fixed(80.dp)) { row -> JwTag(text = "Pin $row", onClick = {}) },
+                    ),
+                    key = { it },
+                    isSelected = { it == selected },
+                    onClick = { selected = it },
+                    modifier = Modifier.height(200.dp),
+                )
+            }
+        }
+
+        onNodeWithText("Pin row 1").performClick().assertIsFocused()
+        press(Key.DirectionDown)
+
+        assertEquals("row 1", selected)
+        onNodeWithText("Pin row 1").assertIsFocused()
+    }
+
+    @Test
     fun `the arrow keys walk onto and past a command row without running it, and Enter runs it`() = runComposeUiTest {
         var selected by mutableStateOf<String?>(null)
         var commandRuns = 0

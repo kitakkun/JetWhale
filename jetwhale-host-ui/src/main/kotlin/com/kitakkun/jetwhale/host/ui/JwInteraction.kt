@@ -114,10 +114,11 @@ internal val LocalArrowKeyRowMove = staticCompositionLocalOf<ArrowKeyRowMove> { 
  * that receives focus that way calls [onSelect], so the selection follows the keyboard. A lazy list
  * composes and scrolls to the next row when it is off screen.
  *
- * Keys are handled only while the row itself holds focus, so a text field inside it keeps its
- * arrows, and a key the row does not use passes on to its ancestors. So does ↑ on the first row and
- * ↓ on the last: focus stays on the row rather than jumping to whatever control sits beyond the
- * list. Place it before the row's `clickable` in the modifier chain.
+ * Keys are handled only while the row itself holds focus, so a button or tag focused inside the
+ * row keeps the arrows instead of moving to the next row; a text field consumes ↑/↓ before they
+ * reach the row anyway. A key the row does not use passes on to its ancestors. So does ↑ on the
+ * first row and ↓ on the last: focus stays on the row rather than jumping to whatever control sits
+ * beyond the list. Place it before the row's `clickable` in the modifier chain.
  *
  * @param onSelect what selecting the row does; the same action as its click.
  * @param onKey any further key the row handles, such as ←/→ on a tree row; true when consumed.
