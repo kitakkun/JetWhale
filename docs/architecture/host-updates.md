@@ -89,8 +89,10 @@ UI stays hidden in the IDE.
 - **A bad update does not lock the user out.** A version that fails to start is set aside, and the
   previous one runs.
 - **Only what a release published runs.** Every jar is checked against its release's metadata
-  before it is installed and before every start. How much that proves depends on the signing
-  decision below.
+  before it is installed and before every start. Only signed metadata proves that the release job
+  built the jar; with SHA-256 alone, the check catches corruption and truncated downloads (see
+  *Signing the release metadata*). A process that can write to `~/.jetwhale` is out of scope (see
+  *Verification and security*).
 - **No Apple Developer ID or Windows code-signing certificate is needed.**
 
 ## Non-goals
@@ -170,14 +172,15 @@ who download installers by hand.
 
 ## Version order
 
-A tag is `MAJOR.MINOR.PATCH`, optionally followed by `-alphaN`, `-betaN` or `-rcN`. Versions are
-compared on the three numbers, then by stage (alpha, then beta, then rc, then no stage), then on N
-as a number:
+A tag is `MAJOR.MINOR.PATCH`, optionally followed by `-alphaN`, `-betaN` or `-rcN`, where N is
+1 to 199; the Windows version scheme below relies on that bound. Versions are compared on the three
+numbers, then by stage (alpha, then beta, then rc, then no stage), then on N as a number:
 
 `1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0-beta1` < `1.0.0-rc1` < `1.0.0` < `1.0.1-alpha1`
 
 `alpha09` and `alpha9` are the same version, since the early tags are zero-padded. A tag that ends
-in `-SNAPSHOT`, or that does not parse, is never a candidate.
+in `-SNAPSHOT`, or that does not parse, is never a candidate, and the release job refuses to build
+a tag that does not parse.
 
 Strict SemVer compares `alpha10` and `alpha9` as text and gets them backwards. A comparison of
 dotted numbers drops the suffix altogether. The order is therefore defined here and implemented
@@ -187,10 +190,10 @@ once, in a module shared by the host, the launcher and the release job.
 
 ### What the package holds
 
-- **The runtime.** Corretto 21 as today, plus `bin/java` (`javaw.exe` on Windows) to start the
-  host with. Compose's jlink step has no switch to keep it, so the launcher build copies it into the
-  image Compose produces, from the same JDK the image was made from. If that proves brittle, the
-  launcher build makes the image itself.
+- **The runtime.** Corretto 21 as today, plus `bin/java` (`java.exe` and `javaw.exe` on Windows)
+  to start the host with. Compose's jlink step has no switch to keep it, so the launcher build
+  copies it into the image Compose produces, from the same JDK the image was made from. If that
+  proves brittle, the launcher build makes the image itself.
 - **Room for later hosts.** The runtime cannot change until a reinstall, so it carries modules a
   later host may need: `java.net.http`, `java.management`, `jdk.management`, `jdk.attach`,
   `jdk.zipfs`, `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`,
@@ -221,18 +224,22 @@ deleted or set aside, and its own launcher always runs it.
   1.0.0-alpha14/         …
   staging/               downloads in progress; the launcher never reads it
   launcher-state.json    which versions completed a start, and which are set aside
-  instance.lock, instance.json
+  launch.lock, instance.lock, instance.json
 ```
 
-After a version completes a start, the launcher deletes the downloaded versions older than it, and
-everything older than the bundled version. Newer versions stay: one set aside, so that the user can
-try it again, and one downloaded while this start was under way. On Windows a running host keeps
-its jar open, so a version still in use is deleted at a later start.
+The directory keeps at most two versions: the one running and one newer one.
+- After a version completes a start, the launcher deletes every downloaded version older than it.
+  Of the newer ones it keeps only the newest, which is set aside or finished downloading during
+  the start, so the user can try it again or restart to it.
+- When a download finishes, the host deletes every downloaded version except the new one and the
+  one running. A set-aside version therefore lasts until *Try again* or a newer download.
+- On Windows a running host keeps its jar open, so a version still in use is deleted at a later
+  start.
 
 ### Starting the host
 
 ```
-<runtime>/bin/java                      (javaw.exe on Windows, so no console window opens)
+<runtime>/bin/java                      (on Windows javaw.exe, or java.exe with --headless)
   <jvmArgs from the metadata, common then platform>
   -XX:ErrorFile=<app data>/logs/hs_err_pid%p.log
   -Djetwhale.launcher.contract=1
@@ -249,9 +256,15 @@ its jar open, so a version still in use is deleted at a later start.
   holds no dylib, or one from another skiko version. Without it, skiko extracts the dylib that
   matches the jar into `~/.skiko/` and loads it (checked above).
 - For a GUI start, the host's stdout and stderr go to files under `<app data>/logs/`, not to pipes,
-  so the launcher can exit while the host runs, and a failed start leaves its output behind. With
-  `--headless` the host inherits the launcher's terminal. The launcher writes its own decisions to
-  `logs/launcher.log`.
+  so the launcher can exit while the host runs, and a failed start leaves its output behind. On
+  Windows it runs under `javaw.exe`, so no console window opens.
+- With `--headless` the host inherits the launcher's standard streams, so it writes to the terminal
+  or the service manager that started the launcher. On Windows it runs under `java.exe`, the
+  console variant, but the Windows launcher is a GUI program, as today's is, and has no console to
+  share: a headless host started through it writes only to streams its caller redirected. A
+  headless run in a Windows terminal uses `java -jar` on the host jar, or `runJetWhale`, as it does
+  today.
+- The launcher writes its own decisions to `logs/launcher.log`.
 
 ### Startup window and rollback
 
@@ -278,18 +291,26 @@ manager sees the host's lifetime.
 ### Single instance, reopen and restart
 
 Today the app's process is the host, so reopening the app on macOS brings its window forward. With
-the host as a child process, the launcher has to provide that:
+the host as a child process, the launcher has to provide that. It uses two OS file locks under
+`~/.jetwhale/host/`, which the OS releases when their process ends, so a crash leaves none behind:
 
-- **Reopen.** A host started by the launcher holds `instance.lock`, and writes a loopback endpoint
-  and a token to `instance.json`. A launcher that finds the lock held asks that host to bring its
-  window forward, then exits. A host that cannot take the lock, because another launcher's host got
-  there first, does the same and exits normally. On Windows and Linux this is new: today a second
-  start runs a second host, which silently loses the race for the ports.
+- **One launcher at a time.** A launcher first takes `launch.lock`, and waits while another launcher
+  holds it. It keeps it until the host it started has published `instance.json`, has exited, or has
+  used up the startup window. Two launches at once therefore start one host.
+- **Reopen.** A host started by the launcher takes `instance.lock` and holds it while it runs. It
+  then writes a loopback endpoint, its process ID and a token to a temporary file, and renames that
+  to `instance.json`, so a reader sees a whole record or none. A launcher that finds
+  `instance.lock` held asks that host to bring its window forward, then exits. If the record is
+  missing or its endpoint does not answer, it reads it again for a few seconds, then logs the
+  failure and exits. A host that cannot take `instance.lock` does the same and exits normally. On
+  Windows and Linux this is new: today a second start runs a second host, which silently loses the
+  race for the ports.
 - **Reopen during the window.** For its 30 seconds, the launcher is the process macOS ties to the
   app bundle, so a reopen reaches the launcher. It forwards the request to its host the same way.
 - **Restart to update.** The host starts `jetwhale.launcher.executable` with `--after <pid>` and its
-  own arguments, then exits normally. The new launcher waits for that process to end, so the lock
-  and the ports are free, and then chooses as usual. The new version is the newest one.
+  own arguments, then exits normally. The new launcher takes `launch.lock`, waits for that process
+  to end, so `instance.lock` and the ports are free, and then chooses as usual. The new version is
+  the newest one.
 - **No restart.** If the user does not restart, the next normal start runs the new version.
 
 A launcher that stayed alive would have to handle reopens for the whole session and would keep a
@@ -359,6 +380,11 @@ only links to the release page.
 - **The OS does not check downloads.** The host writes them, not a browser, so on macOS they carry
   no quarantine attribute and on Windows no Mark of the Web. Gatekeeper and SmartScreen never see
   them; the JVM reads a jar as data.
+- **A local writer is out of scope.** `~/.jetwhale/host/` belongs to the user, like the rest of
+  `~/.jetwhale`. A process that can write there runs as the user, and can already start code in
+  their session without JetWhale, for instance from their login items or shell startup files. The
+  check before each start catches a corrupted or truncated jar; it is not meant to stop such a
+  process.
 
 ## Platform notes
 
@@ -390,10 +416,12 @@ only links to the release page.
 - **Proposed scheme.** jpackage's template allows both upgrades and downgrades between different
   versions, so a distinct version per release is enough, and an ordered one costs nothing more.
   Compose's `msiPackageVersion` would be `MAJOR.MINOR.(PATCH × 1000 + S)`, where S is 100 + N for
-  alphaN, 300 + N for betaN, 500 + N for rcN and 900 for a final release. `1.0.0-alpha14` becomes
-  `1.0.114`, `1.0.0` becomes `1.0.900`, and `1.0.1-alpha1` becomes `1.0.1101`. This stays within
-  MSI's limit of 65535 up to patch 64. The first MSI on this scheme is the first one not at
-  `1.0.0`, and it replaces an old install instead of failing.
+  alphaN, 300 + N for betaN, 500 + N for rcN and 900 for a final release. Since N is at most 199
+  (see *Version order*), the stages' ranges do not overlap, and the build stops on a larger N
+  rather than produce a version another release has. `1.0.0-alpha14` becomes `1.0.114`, `1.0.0`
+  becomes `1.0.900`, and `1.0.1-alpha1` becomes `1.0.1101`. This stays within MSI's limit of 65535
+  up to patch 64. The first MSI on this scheme is the first one not at `1.0.0`, and it replaces an
+  old install instead of failing.
 - The MSI installs per machine into Program Files, so all mutable state lives in the user's
   `~/.jetwhale`.
 - SmartScreen warns about the unsigned MSI at install, as it does today.
@@ -454,8 +482,8 @@ toolchain, so the removal PR decides whether the pin still earns its place.
 - **The keys.** The private key is a CI secret in an environment that only tag builds can use, and
   only the release job reads it. The public keys are compiled into the launcher and the host. The
   signature names its key, so a second key, kept offline, can be embedded from the start. If the
-  first key is lost, releases switch to the second without a reinstall. A leaked key stays trusted
-  until a launcher sees metadata, signed with the second key, that revokes the first.
+  first key is lost, releases switch to the second without a reinstall. Revoking a leaked key is
+  designed along with signing, if signing is adopted.
 - **Verification.** The JDK verifies Ed25519 itself with `Signature.getInstance("Ed25519")`, so the
   launcher needs no crypto library. On JDK 21 the provider is in `jdk.crypto.ec`, which the runtime
   already includes.
@@ -489,8 +517,8 @@ every user who accepts the update.
 ## Testing
 
 - **Shared module.**
-  - The version order: the chain above, `alpha09` = `alpha9`, and no snapshot or unparseable tag
-    as a candidate.
+  - The version order: the chain above, `alpha09` = `alpha9`, and no snapshot, unparseable tag or
+    N outside 1–199 as a candidate.
   - Metadata parsing: unknown fields, and a higher `format`.
   - Signature checks with a test key pair: valid, tampered, and wrong key.
   - The JVM argument forms.
@@ -498,8 +526,9 @@ every user who accepts the update.
     platform, and installed or set-aside versions.
 - **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0, exit
   1 at once, crash after the window, or sleep. The tests cover selection, setting aside, the
-  bundled floor, `--after`, the instance lock and pruning. Processes, file locks and renames behave
-  differently on Windows, so this module's tests run on all three runners.
+  bundled floor, `--after`, the locks with two launchers started at once, and pruning. Processes,
+  file locks and renames behave differently on Windows, so this module's tests run on all three
+  runners.
 - **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today. The
   cases: rate limits, redirects to the asset host, size and hash mismatches, an interrupted
   download, and the rename out of staging.
