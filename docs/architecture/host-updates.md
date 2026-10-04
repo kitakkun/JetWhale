@@ -212,8 +212,8 @@ On each start, the launcher goes through the bundled version and the directories
 3. It starts the first version that passes.
 
 The bundled version is part of the package the user installed and is not verified again, so the
-signing key is needed only in the release job. The bundled version is also the floor: it cannot be
-deleted, and its own launcher always runs it.
+signing key is needed only in the release job. The bundled version is also the floor: it is never
+deleted or set aside, and its own launcher always runs it.
 
 ```
 ~/.jetwhale/host/
@@ -255,9 +255,11 @@ its jar open, so a version still in use is deleted at a later start.
 
 ### Startup window and rollback
 
-A start fails when the host exits within N seconds of launch with a non-zero status or a signal.
-N is 30 seconds, the startup grace of #293's crash recovery, so the launcher and the host count the
-same crashes as startup crashes. The launcher waits out the window and then exits. With
+A start fails when the host exits within N seconds of launch with a non-zero status or a signal,
+and it completes when the host is still running at the end of the window. An exit with status 0
+inside the window, such as the hand-off to a running host below, is neither. N is 30 seconds, the
+startup grace of #293's crash recovery, so the launcher and the host count the same crashes as
+startup crashes. The launcher waits out the window and then exits. With
 `--headless` it stays attached and returns the host's exit status, so a terminal or a service
 manager sees the host's lifetime.
 
@@ -461,11 +463,14 @@ toolchain, so the removal PR decides whether the pin still earns its place.
   the file itself keeps verification inside the JDK; minisign's legacy mode or
   `openssl pkeyutl -rawin` does that.
 
-What it buys: a release that did not come out of the release job no longer runs. That covers a
-release created or edited with a leaked token that has `contents: write`. Immutable releases alone
-stop an asset from being replaced, but not a new release from being published. Signing does not
-cover someone who can push a tag and so get the release job to run; protected tags, and a required
-reviewer on the signing environment, narrow that.
+What it buys: a release that did not come out of the release job no longer runs. Whoever can get
+the release job to run on a tag of their choice still gets a signed build, so the cover is:
+- an asset replaced or edited on an existing release;
+- a release made with a leaked workflow `GITHUB_TOKEN`, whose tag pushes start no workflow;
+- a release made with a leaked personal token, but only when a tag ruleset stops that token from
+  creating tags, or the signing environment requires a reviewer it cannot stand in for.
+
+Immutable releases alone stop the first, not the other two.
 
 **Alternative: SHA-256 only.** There is no key to guard, rotate or lose. But the hashes come from
 the same release as the jars, so they catch corruption and truncated downloads, not someone who can
