@@ -24,15 +24,11 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
     private var seen: List<Pair<WeakReference<Job>, Sighting>> = emptyList()
     private var nextId = 1L
 
-    // Registered jobs no walk has reached yet, with when they were registered: a root's age then
-    // counts from its registration rather than from the first time someone looked.
     private val registrations = AtomicReference(emptyList<Pair<WeakReference<Job>, TimeMark>>())
 
     /** Remembers that [job] was registered now, so its age counts from here. */
     fun registered(job: Job) {
         val registeredAt = timeSource.markNow()
-        // No walk runs until a host activates the plugin, so registering is also where the jobs
-        // that finished or were collected before any walk reached them are let go.
         registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.isCompleted == false } + (WeakReference(job) to registeredAt) }
     }
 
@@ -95,7 +91,7 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
             count++
             val sighting = sightings.getOrPut(job) { previous[job] ?: newSighting(job) }
             // A coroutine started by launch or async is its own CoroutineScope, which is how its
-            // context — name and dispatcher — is reachable from the Job.
+            // name and dispatcher are reachable from the Job.
             val context = (job as? CoroutineScope)?.coroutineContext
             val children = mutableListOf<CoroutineNode>()
             for (child in job.children) {

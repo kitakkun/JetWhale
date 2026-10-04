@@ -112,8 +112,6 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
                 }
             }
 
-            // One name for all, as a real app's uploads would share one: the long runs then group
-            // into a single row.
             CoroutineScenario.QueuedUploads -> repeat(6) {
                 launch(scenario, "upload", uploads) { busyFor(500.milliseconds) }
             }

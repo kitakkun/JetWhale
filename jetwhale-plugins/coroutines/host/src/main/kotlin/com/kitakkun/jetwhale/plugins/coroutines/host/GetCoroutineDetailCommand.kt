@@ -23,8 +23,6 @@ internal class GetCoroutineDetailCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val requested = arguments[id]
-        // Reading the tree first both finds the coroutine and has the agent walk it, so the id is
-        // one the agent can still resolve to its Job.
         val location = findCoroutine(client.coroutineTree().roots, requested)
             ?: return buildJsonObject {
                 put("found", false)

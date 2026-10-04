@@ -42,9 +42,9 @@ internal class TrackedDispatcher(
                 },
             )
         } catch (e: Throwable) {
-            // A task the delegate refused was never queued. (An executor-backed dispatcher that
-            // rejects a task does not throw: the coroutines library runs it elsewhere, which still
-            // goes through the wrapped task and is counted as started.)
+            // Only a delegate that throws refuses a task: when an executor-backed dispatcher's
+            // executor rejects one, the coroutines library runs the wrapped task elsewhere, so it
+            // is still counted as started.
             recorder.onRejected()
             throw e
         }

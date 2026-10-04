@@ -125,8 +125,6 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
         JwTable(
             items = dispatchers,
             columns = listOf(
-                // The threshold rides with the name rather than in a column of its own, so the name
-                // keeps some width when the pane is narrow.
                 JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f)) { "${it.name} · long ≥ ${it.longRunThresholdMillis} ms" },
                 number("Waiting") { it.queued.toString() },
                 number("Running") { it.running.toString() },
@@ -137,7 +135,6 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
                 number("Run max") { millis(it.maxRunMillis) },
             ),
             key = DispatcherStats::name,
-            // Sized to its rows rather than half the pane: an app tracks a handful of dispatchers.
             modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (dispatchers.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
         )
         MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold next to the dispatcher's name; on Main, one past 16 ms drops a frame. The app keeps only its most recent long runs, so Times counts those.")
@@ -177,7 +174,6 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
                 emptyContent = emptyContent,
             )
         }
-        // Last, so the long runs stay next to the tracked dispatchers they belong to.
         if (untracked.isNotEmpty()) UntrackedDispatchers(untracked)
     }
 }

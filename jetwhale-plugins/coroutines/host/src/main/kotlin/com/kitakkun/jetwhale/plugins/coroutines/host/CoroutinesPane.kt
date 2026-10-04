@@ -173,8 +173,6 @@ private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () 
         onClick = onSelect,
         onToggleExpanded = onToggle,
         muted = node.name == null,
-        // State first: it is what a reader scans the tree for. The dispatcher, often the same down
-        // a whole scope, comes last.
         trailingContent = {
             JwTooltip(text = node.state.explanation) {
                 JwTag(text = node.state.label, tone = node.state.tone)

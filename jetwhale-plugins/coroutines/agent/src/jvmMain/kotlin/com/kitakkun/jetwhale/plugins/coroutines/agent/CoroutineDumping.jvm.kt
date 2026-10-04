@@ -11,7 +11,6 @@ import java.io.PrintStream
 
 private const val NOT_INSTALLED = "DebugProbes are not installed; call DebugProbes.install() when the app starts"
 
-// The library is compileOnly here: an app that did not add kotlinx-coroutines-debug has no DebugProbes class.
 private const val NOT_ON_CLASSPATH = "kotlinx-coroutines-debug is not on the app's classpath"
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,8 +37,8 @@ internal actual fun describeCoroutine(id: String, job: Job): CoroutineDetail {
     }
     val info = coroutines.firstOrNull { it.job === job }
         ?: return unavailable(
-            // DebugProbes follow a coroutine's own body, so they drop one whose body has returned
-            // while its children still run. Only a coroutine is its own CoroutineScope.
+            // DebugProbes stop listing a coroutine once its own body returns, even while its
+            // children still run. Only a coroutine, not a plain Job, is a CoroutineScope.
             if (job is CoroutineScope) {
                 "its own body has finished and it is waiting for its children, which have stacks of their own (or it started before DebugProbes were installed)"
             } else {

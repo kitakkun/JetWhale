@@ -72,7 +72,6 @@ class FlowRecorderTest {
 
         trackedFlow((1..3_000).asFlow(), recorder).toList()
 
-        // All 3,000 land in the last ten seconds, so the rate is at least 300 per second.
         assertTrue(recorder.snapshot().emissionsPerSecond >= 300.0, recorder.snapshot().emissionsPerSecond.toString())
     }
 

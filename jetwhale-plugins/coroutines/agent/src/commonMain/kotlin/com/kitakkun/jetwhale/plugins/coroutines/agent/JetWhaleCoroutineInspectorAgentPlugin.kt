@@ -57,8 +57,6 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = COROUTINES_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    // Held weakly: a scope dropped without being cancelled leaves coroutines that only its Job
-    // still reaches, and the inspector must not be what keeps them — and all they capture — alive.
     private val roots = AtomicReference(emptyMap<String, WeakReference<Job>>())
     private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
     private val flows = AtomicReference(emptyMap<String, FlowRecorder>())

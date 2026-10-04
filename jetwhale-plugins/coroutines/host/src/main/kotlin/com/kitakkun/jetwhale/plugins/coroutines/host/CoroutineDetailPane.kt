@@ -68,7 +68,6 @@ private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: Co
             JwTag(text = node.state.label, tone = node.state.tone)
             stacks?.debugState?.let { JwTag(text = debugStateLabel(it), tone = JwTone.Neutral) }
         }
-        // With DebugProbes' own state at hand, the stack says more than the Job state's caveats.
         JwText(text = stacks?.debugState?.let(::debugStateExplanation) ?: node.state.explanation, color = JwTheme.colors.textSecondary)
 
         JwSectionHeader(

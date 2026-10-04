@@ -7,7 +7,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `agent`.
+// Distinct group: Gradle resolves projects with the same group and name as one module, and every
+// plugin has an `agent` module.
 group = "com.kitakkun.jetwhale.plugins.coroutines"
 
 kotlin {
@@ -20,10 +21,9 @@ kotlin {
 dependencies {
     commonMainApi(projects.jetwhalePlugins.coroutines.protocol)
     commonMainApi(projects.jetwhaleAgentSdk)
-    // CoroutineScope, Job, CoroutineDispatcher and Flow are in this module's public API.
     commonMainApi(libs.kotlinxCoroutinesCore)
-    // The dump reads DebugProbes only when the app has put kotlinx-coroutines-debug on its classpath
-    // and installed them; the agent must not bring the library (and its bytecode agent) along.
+    // The app adds kotlinx-coroutines-debug only if it wants stacks: the library brings ByteBuddy
+    // and a JVM agent along.
     "jvmMainCompileOnly"(libs.kotlinxCoroutinesDebug)
 
     commonTestImplementation(libs.kotlinTest)

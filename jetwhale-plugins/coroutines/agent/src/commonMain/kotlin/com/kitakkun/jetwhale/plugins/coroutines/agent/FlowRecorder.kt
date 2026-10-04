@@ -118,8 +118,6 @@ internal fun List<RateBucket>.countingEmissionAt(second: Long): List<RateBucket>
     } else {
         this + RateBucket(second, 1)
     }
-    // The window ends at the newest second seen, so a late commit for an old second cannot keep
-    // the list from shrinking.
     val newest = maxOf(second, maxOfOrNull(RateBucket::second) ?: second)
     return counted.filter { it.second > newest - RATE_WINDOW_SECONDS }
 }

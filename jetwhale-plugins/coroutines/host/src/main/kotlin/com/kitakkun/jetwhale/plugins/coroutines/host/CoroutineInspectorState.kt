@@ -84,13 +84,9 @@ internal class CoroutineInspectorState(
 
     private val refreshes = mutableMapOf<InspectorTab, Job>()
 
-    // Bumped when the dispatcher report changes under a read already in flight (clearing long
-    // runs), so that read's older answer is dropped instead of undoing the change.
-    private var dispatcherGeneration = 0
+    private var longRunClears = 0
 
     override fun refresh(tab: InspectorTab) {
-        // A read slower than the refresh timer is left to finish rather than joined by another;
-        // queued reads could only land out of order.
         if (refreshes[tab]?.isActive == true) return
         refreshes[tab] = launchReporting { read(tab) }
     }
@@ -104,16 +100,15 @@ internal class CoroutineInspectorState(
             }
 
             InspectorTab.Dispatchers -> {
-                val generation = dispatcherGeneration
+                val clearsBeforeRead = longRunClears
                 val report = client.dispatcherStats()
-                if (generation == dispatcherGeneration) dispatchers = report
+                if (clearsBeforeRead == longRunClears) dispatchers = report
             }
 
             InspectorTab.Flows -> flows = client.trackedFlows()
 
             InspectorTab.Dump -> dump = client.dump()
         }
-        // A read that succeeds clears an earlier connection error rather than leaving it up.
         if (status?.isError == true) status = null
     }
 
@@ -135,7 +130,6 @@ internal class CoroutineInspectorState(
     private fun readDetail(id: String) {
         launchReporting {
             val read = client.coroutineDetail(id)
-            // Another coroutine may have been selected while this one was read.
             if (selectedId == id) detail = read
         }
     }
@@ -143,7 +137,7 @@ internal class CoroutineInspectorState(
     override fun clearLongRuns() {
         launchReporting {
             val cleared = client.clearLongRuns().cleared
-            dispatcherGeneration++
+            longRunClears++
             dispatchers = client.dispatcherStats()
             status = InspectorStatus(message = "Cleared $cleared long runs.", isError = false)
         }

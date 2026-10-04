@@ -85,7 +85,6 @@ class JetWhaleCoroutineInspectorAgentPluginTest {
             runBlocking { childStarted.await() }
             val parent = runBlocking { inspector.coroutineTree() }.roots.single().children.single()
 
-            // The parent's body returns right after launching the child, on another thread.
             val deadline = TimeSource.Monotonic.markNow() + 5.seconds
             var detail = runBlocking { inspector.coroutineDetail(parent.id) }
             while (detail.stackUnavailableReason == null && deadline.hasNotPassedNow()) {

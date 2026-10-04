@@ -55,7 +55,6 @@ class CoroutineInspectorStateTest {
 
     private val client = FlakyClient()
 
-    // The fake answers without suspending, so every launched read has finished when refresh returns.
     private val state = CoroutineInspectorState(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test
