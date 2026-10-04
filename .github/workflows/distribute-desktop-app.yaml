@@ -35,6 +35,19 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
+      # The host reports the catalog version and orders releases by its own parser, so a tag that
+      # differs from the catalog, or does not parse, would leave hosts offering the wrong update.
+      - name: Check the release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          catalog_version="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)"
+          if [ "${GITHUB_REF_NAME}" != "${catalog_version}" ]; then
+            echo "The tag ${GITHUB_REF_NAME} is not the version the host is built as (${catalog_version})." >&2
+            exit 1
+          fi
+          ./gradlew :jetwhale-host:app:checkHostReleaseVersion -PhostReleaseVersion="${GITHUB_REF_NAME}"
       - name: Build installer and runnable uber jar
         run: ./gradlew :jetwhale-host:app:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
       # Rename assets to a predictable scheme that includes the FULL tag version (e.g. -alpha08),
@@ -74,18 +87,9 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      # The metadata pins the hashes of the very jars attached below, and the host reports the
-      # catalog version, so a tag that differs from it would make every host offer itself an update.
+      # Written from, and checked against, the very jars attached below.
       - name: Write the host release metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          catalog_version="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)"
-          if [ "${GITHUB_REF_NAME}" != "${catalog_version}" ]; then
-            echo "The tag ${GITHUB_REF_NAME} is not the version the host was built as (${catalog_version})." >&2
-            exit 1
-          fi
-          ./gradlew :jetwhale-host:app:writeHostReleaseMetadata -PhostReleaseVersion="${GITHUB_REF_NAME}" -PhostReleaseDir="${PWD}/dist"
+        run: ./gradlew :jetwhale-host:app:writeHostReleaseMetadata -PhostReleaseVersion="${GITHUB_REF_NAME}" -PhostReleaseDir="${PWD}/dist"
       - name: Write SHA256SUMS
         working-directory: dist
         run: sha256sum -- * > SHA256SUMS

@@ -91,6 +91,16 @@ dependencies {
     hostReleaseMetadataWriter(projects.jetwhaleHost.releaseMetadata)
 }
 
+tasks.register<JavaExec>("checkHostReleaseVersion") {
+    group = "distribution"
+    description = "Fails unless -PhostReleaseVersion is a release version the launcher and the host can order."
+
+    classpath = hostReleaseMetadataWriter
+    mainClass.set("com.kitakkun.jetwhale.host.release.tool.CheckHostReleaseVersionKt")
+    val releaseVersion = providers.gradleProperty("hostReleaseVersion")
+    argumentProviders.add(CommandLineArgumentProvider { listOf(releaseVersion.get()) })
+}
+
 tasks.register<JavaExec>("writeHostReleaseMetadata") {
     group = "distribution"
     description = "Writes jetwhale-host-<version>.json for the host jars of every release platform in " +
