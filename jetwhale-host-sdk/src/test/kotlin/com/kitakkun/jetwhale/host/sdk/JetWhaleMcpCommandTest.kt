@@ -38,6 +38,8 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -130,6 +132,43 @@ private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
             nothing = JsonNull,
             inner = Inner(value = "x"),
             outcome = Outcome.Ok(value = 1),
+        ),
+    )
+}
+
+@JvmInline
+@Serializable
+private value class Code(val value: String)
+
+private enum class Phase { Started }
+
+private interface Tag
+
+@Serializable
+private data class NamedTag(val name: String) : Tag
+
+@Serializable
+private data class Ledger(
+    val outcome: Outcome,
+    val tag: Tag,
+    val byInner: Map<Inner, Int>,
+    val byCode: Map<Code, Int>,
+    val byStamp: Map<@Contextual Stamp, Int>,
+    val byPhase: Map<Phase, Int>,
+)
+
+private class LedgerCommand(json: Json) : JetWhaleMcpCommand(json) {
+    override val name = "test.ledger"
+    override val description = "answers with a ledger"
+    private val ledger = serializableOutput<Ledger>()
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = ledger.result(
+        Ledger(
+            outcome = Outcome.Ok(value = 1),
+            tag = NamedTag(name = "a"),
+            byInner = mapOf(Inner(value = "x") to 1),
+            byCode = mapOf(Code("c") to 2),
+            byStamp = mapOf(Stamp(epochSeconds = 5) to 3),
+            byPhase = mapOf(Phase.Started to 4),
         ),
     )
 }
@@ -368,6 +407,22 @@ class JetWhaleMcpCommandTest {
             val schema = assertNotNull(command.toDescriptor().outputSchema)
             assertConforms(assertNotNull(runBlocking { command.run(noArguments) }.structuredContent), schema)
         }
+    }
+
+    @Test
+    fun `a declared output's answer conforms to the schema it advertises under a format that writes polymorphic values and structured map keys as arrays`() {
+        val json = Json(from = DefaultArgumentJson) {
+            useArrayPolymorphism = true
+            allowStructuredMapKeys = true
+            serializersModule = SerializersModule {
+                contextual(Stamp::class, StampAsStringSerializer)
+                polymorphic(Tag::class) { subclass(NamedTag::class) }
+            }
+        }
+        val command = LedgerCommand(json)
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+
+        assertConforms(assertNotNull(runBlocking { command.run(noArguments) }.structuredContent), schema)
     }
 
     private fun assertConforms(value: JsonElement, schema: JsonObject) {

@@ -47,6 +47,12 @@ import kotlin.reflect.KClass
  * tells the variants apart, it is an `anyOf`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
+ * A format with `useArrayPolymorphism` writes a polymorphic value as a `[serialName, value]` pair
+ * instead. A map keyed by anything but a primitive or an enum is a flat `[key, value, …]` array in a
+ * format with `allowStructuredMapKeys`, and a format without it cannot read or write one at all. Both
+ * arrays are advertised with their elements left unconstrained, since describing a tuple takes
+ * keywords that differ between JSON Schema drafts.
+ *
  * Where the descriptor does not say what is written, the schema admits any value rather than guess:
  * a contextual type is described by the serializer [json]'s module registers for it, and is
  * unconstrained when none is registered, or only a provider that needs the type arguments'
@@ -66,6 +72,7 @@ internal fun SerialDescriptor.toJsonSchema(json: Json, describesOutput: Boolean)
         pinsClassDiscriminatorOnEveryClass = describesOutput && json.configuration.classDiscriminatorMode == ClassDiscriminatorMode.ALL_JSON_OBJECTS,
         namingStrategy = json.configuration.namingStrategy,
         explicitNulls = json.configuration.explicitNulls,
+        writesPolymorphismAsArrays = json.configuration.useArrayPolymorphism,
         serializersModule = json.serializersModule,
     ),
     mutableSetOf(),
@@ -77,6 +84,7 @@ private class SchemaContext(
     val pinsClassDiscriminatorOnEveryClass: Boolean,
     val namingStrategy: JsonNamingStrategy?,
     val explicitNulls: Boolean,
+    val writesPolymorphismAsArrays: Boolean,
     val serializersModule: SerializersModule,
 )
 
@@ -112,9 +120,16 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
         }
 
         // Element 0 is the key descriptor, element 1 the value descriptor.
-        is StructureKind.MAP -> buildJsonObject {
-            put("type", "object")
-            put("additionalProperties", getElementDescriptor(1).buildSchema(context, enclosingTypes))
+        is StructureKind.MAP -> {
+            val keyKind = getElementDescriptor(0).carrierDescriptor(context.serializersModule).kind
+            if (keyKind !is PrimitiveKind && keyKind != SerialKind.ENUM) {
+                typeOnly("array")
+            } else {
+                buildJsonObject {
+                    put("type", "object")
+                    put("additionalProperties", getElementDescriptor(1).buildSchema(context, enclosingTypes))
+                }
+            }
         }
 
         // Only these kinds can contain themselves, so only these are guarded against recursion.
@@ -124,13 +139,20 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
 
         is PolymorphicKind.SEALED -> guarded(enclosingTypes) { sealedSchema(context, enclosingTypes) }
 
-        is PolymorphicKind.OPEN -> typeOnly("object")
+        is PolymorphicKind.OPEN -> typeOnly(if (context.writesPolymorphismAsArrays) "array" else "object")
 
         is SerialKind.CONTEXTUAL -> context.serializersModule.plainContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE
     }
 
     val classDescription = annotations.mcpDescription() ?: return schema
     return schema.withDescription(classDescription)
+}
+
+/** The descriptor Json keys a map by: a value class's underlying type, or what the module registers for a contextual type. */
+private fun SerialDescriptor.carrierDescriptor(module: SerializersModule): SerialDescriptor = when {
+    kind == SerialKind.CONTEXTUAL -> module.plainContextualDescriptor(this)?.carrierDescriptor(module) ?: this
+    isInline -> getElementDescriptor(0).carrierDescriptor(module)
+    else -> this
 }
 
 /**
@@ -193,10 +215,12 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * discriminator pinned to a constant; exactly one variant matches a value, and they form a `oneOf`.
  * A format that writes no discriminator leaves two variants of the same shape matching the same
  * value, so there they form an `anyOf`. A sealed descriptor of another shape, such as a
- * `JsonContentPolymorphicSerializer`'s, which lists no subclasses, says nothing of what is written.
+ * `JsonContentPolymorphicSerializer`'s, which lists no subclasses, says nothing of what is written:
+ * that serializer writes the subclass' own form even under array polymorphism.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     if (elementsCount != 2 || getElementDescriptor(1).kind != SerialKind.CONTEXTUAL) return ANY_VALUE
+    if (context.writesPolymorphismAsArrays) return typeOnly("array")
     val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {

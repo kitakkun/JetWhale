@@ -501,8 +501,11 @@ registered, one registered through a provider of its type arguments' serializers
 hierarchy is an `anyOf`, since nothing tells two variants of the same shape apart. Under
 `ClassDiscriminatorMode.ALL_JSON_OBJECTS` an output schema pins the discriminator on every object,
 because the format writes it there, while a parameter schema leaves it out, because the format does
-not read it back. The format is also available to `execute` as the protected `json` property, for
-encoding the result.
+not read it back. Under `useArrayPolymorphism` a polymorphic value is advertised as an array, since
+that format writes it as a `[serialName, value]` pair. A map keyed by a class is an array too: only a
+format with `allowStructuredMapKeys` can write one, as a flat `[key, value, …]` array. Neither
+array's elements are described. The format is also available to `execute` as the protected `json`
+property, for encoding the result.
 
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
 example — see `jetwhale-plugins/network/host`.
