@@ -503,8 +503,14 @@ private fun <T> RowScope.Cell(
     val columnState = columnLayout.state
     val fitProbe = Modifier.layout { measurable, constraints ->
         if (columnState.fitting == column.header) {
-            val natural = measurable.maxIntrinsicWidth(constraints.maxHeight).toDp()
-            if (natural > columnState.fittedContentWidth) columnState.fittedContentWidth = natural
+            // Content built on SubcomposeLayout, such as BoxWithConstraints or a lazy list, throws
+            // when asked for its intrinsic width; such a cell is left out of the fit.
+            val natural = try {
+                measurable.maxIntrinsicWidth(constraints.maxHeight).toDp()
+            } catch (_: IllegalStateException) {
+                null
+            }
+            if (natural != null && natural > columnState.fittedContentWidth) columnState.fittedContentWidth = natural
         }
         val placeable = measurable.measure(constraints)
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }

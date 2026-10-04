@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.SaverScope
@@ -176,6 +178,27 @@ class JwTableColumnResizeTest {
     }
 
     @Test
+    fun `a fit leaves out cells that cannot report their width and fits the others`() = runTable(
+        columns = listOf(
+            JwTableColumn<String>(header = "Name", width = JwColumnWidth.Fixed(60.dp)) { name ->
+                when (name) {
+                    BOX_WITH_CONSTRAINTS_ROW -> BoxWithConstraints { JwText(name) }
+                    LAZY_LIST_ROW -> LazyRow { item { JwText(name) } }
+                    else -> JwTableCellText(name)
+                }
+            },
+            textColumn("Value", JwColumnWidth.Weight(1f)),
+        ),
+        names = listOf(BOX_WITH_CONSTRAINTS_ROW, LAZY_LIST_ROW, "a considerably longer name than the column"),
+    ) { state ->
+        onNodeWithContentDescription("Resize Name").performMouseInput { doubleClick(center) }
+        waitForIdle()
+
+        val fitted = state.widths.getValue("Name")
+        assertTrue(fitted > 150.dp, "the column grew to the long name, now $fitted")
+    }
+
+    @Test
     fun `the saver restores the dragged widths`() {
         val state = JwTableColumnState(mapOf("Name" to 140.dp, "Value" to 80.dp))
 
@@ -218,6 +241,10 @@ class JwTableColumnResizeTest {
 }
 
 private val TABLE_WIDTH = 400.dp
+
+private const val BOX_WITH_CONSTRAINTS_ROW = "box"
+
+private const val LAZY_LIST_ROW = "list"
 
 /** The scene runs at density 1, so these are also its size in dp. */
 private const val SCENE_WIDTH_PX = 400
