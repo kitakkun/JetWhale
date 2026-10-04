@@ -109,6 +109,10 @@ parameter to set:
 
 ```kotlin
 // src/main
+fun interface HttpClientDecorator {
+    fun decorate(client: HttpClient)
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class HttpClientDecoratorModule {
@@ -117,15 +121,26 @@ abstract class HttpClientDecoratorModule {
 }
 ```
 
+The element comes from the debug module that already provides the agents:
+
 ```kotlin
 // src/debug
-@Provides
-@IntoSet
-fun jetwhaleDecorator(agents: JetWhaleAgents): HttpClientDecorator =
-    HttpClientDecorator { client ->
-        client.plugin(HttpSend).intercept(agents.network.ktorSendInterceptor(client))
-    }
+@Module
+@InstallIn(SingletonComponent::class)
+object JetWhaleModule {
+    // agents() and initializer() as above
+
+    @Provides
+    @IntoSet
+    fun jetwhaleDecorator(agents: JetWhaleAgents): HttpClientDecorator =
+        HttpClientDecorator { client ->
+            client.plugin(HttpSend).intercept(agents.network.ktorSendInterceptor(client))
+        }
+}
 ```
+
+With plain Dagger, drop `@InstallIn`, list `HttpClientDecoratorModule` in
+`@Component(modules = [...])`, and put the `@IntoSet` provider in the debug `DebugToolingModule`.
 
 The production `HttpClient` / `OkHttpClient` provider injects `Set<HttpClientDecorator>` and applies
 every element. In release the set is empty and the provider is unchanged.

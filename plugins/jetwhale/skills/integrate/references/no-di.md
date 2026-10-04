@@ -41,7 +41,7 @@ internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
         }
     }
 
-    // expose the agent if the HTTP client needs it — see below
+    // HTTP client capture adds decorate(); see below
 }
 ```
 
@@ -68,13 +68,40 @@ APK's dex carried the debug-only class and the `"jetwhale:"` marker, while the r
 
 ## HTTP client capture
 
-The client is built in production code, so give the seam a method that can do nothing:
+The client is built in production code, so give the seam a method that can do nothing, and
+implement it on both sides:
 
 ```kotlin
 // src/main
 interface DebugTooling {
     fun start()
-    fun decorate(client: HttpClient)   // release: empty body
+    fun decorate(client: HttpClient)
+}
+```
+
+```kotlin
+// src/release
+internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
+    override fun start() = Unit
+    override fun decorate(client: HttpClient) = Unit
+}
+```
+
+```kotlin
+// src/debug
+internal fun createDebugTooling(): DebugTooling = object : DebugTooling {
+    private val networkAgent = JetWhaleNetworkAgentPlugin()
+
+    override fun start() {
+        startJetWhale {
+            connection { endpoints { ws("localhost", 5080) } }
+            plugins { register(networkAgent) }
+        }
+    }
+
+    override fun decorate(client: HttpClient) {
+        client.plugin(HttpSend).intercept(networkAgent.ktorSendInterceptor(client))
+    }
 }
 ```
 

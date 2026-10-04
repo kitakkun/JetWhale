@@ -97,7 +97,7 @@ guess it, and do not copy a version out of an older document.
 | Project shape | How the dependency stays out of release |
 |---|---|
 | Android app or module | `debugImplementation`, on the module that will hold the JetWhale wiring |
-| KMP, no Android variants | No variant concept exists. Gate the dependency on a Gradle property (`if (providers.gradleProperty("jetwhale.enabled").orNull.toBoolean())`), or keep two thin entry-point modules |
+| KMP, no Android variants | No variant concept exists. Prefer two thin entry-point modules (`:app-debug` / `:app-release`). A Gradle property gate (`if (providers.gradleProperty("jetwhale.enabled").orNull.toBoolean())`) is lighter, but it switches the whole invocation, release binaries included, so it must be passed on debug runs only and never set in a `gradle.properties` file |
 | A dedicated debug-only module | The module itself is added with `debugImplementation`; inside it, plain `implementation` is correct |
 
 If the answer is "the shared module everything depends on, with plain `implementation`", stop.

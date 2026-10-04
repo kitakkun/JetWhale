@@ -76,7 +76,8 @@ session is the same one installed into the HTTP client.
 appGraph.debugToolingInitializer.initialize()
 ```
 
-Add the accessor to the graph interface. In release this calls an empty method that R8 removes.
+Add the accessor to the graph interface. In release this calls an empty method, which R8 removes
+from a minified Android build.
 
 ## 4. HTTP client capture — a multibinding, not a replacement
 
@@ -140,8 +141,12 @@ dependencies {
 }
 ```
 
+KMP has no variants. Two thin entry-point modules, `:app-debug` and `:app-release`, each declaring
+its own graph, keep a release clean however the build is invoked. The lighter alternative gates the
+dependency on a property:
+
 ```kotlin
-// KMP — no variants, so gate on a property
+// KMP — gate on a property
 val jetwhaleEnabled = providers.gradleProperty("jetwhale.enabled").orNull.toBoolean()
 
 kotlin {
@@ -154,8 +159,10 @@ kotlin {
 }
 ```
 
-Run debug builds with `-Pjetwhale.enabled=true`; release CI omits it. Flipping the property changes
-the compile classpath, so the graph module recompiles.
+The property switches the whole invocation, not a build type: while it is set, every compilation in
+that run gets `:debug-jetwhale`, release binaries included. Pass `-Pjetwhale.enabled=true` on debug
+runs only, never from a `gradle.properties` file, and build releases in runs that leave it out.
+Flipping it changes the compile classpath, so the graph module recompiles.
 
 ## Failure modes
 

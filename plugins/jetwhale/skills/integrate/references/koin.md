@@ -64,6 +64,10 @@ variants:
 
 ```kotlin
 // src/main — production
+fun interface HttpClientDecorator {
+    fun decorate(client: HttpClient)
+}
+
 val networkModule = module {
     single { HttpClient().also { client -> getAll<HttpClientDecorator>().forEach { it.decorate(client) } } }
 }
@@ -71,13 +75,18 @@ val networkModule = module {
 
 `getAll<T>()` returns every definition of the type and is empty when none are declared, which is
 exactly the release case — verified on Koin 4.2.2: the release side resolved an empty decorator list,
-while the debug side resolved the decorator. Declare the decorator only in `src/debug`:
+while the debug side resolved the decorator. Declare the decorator only in `src/debug`, in the
+same `debugToolingModule` that holds the agent:
 
 ```kotlin
 // src/debug
-single<HttpClientDecorator> {
-    val agent: JetWhaleNetworkAgentPlugin = get()
-    HttpClientDecorator { client -> client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client)) }
+val debugToolingModule = module {
+    single { JetWhaleNetworkAgentPlugin() }
+    single<DebugToolingInitializer> { /* as above */ }
+    single<HttpClientDecorator> {
+        val agent: JetWhaleNetworkAgentPlugin = get()
+        HttpClientDecorator { client -> client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client)) }
+    }
 }
 ```
 

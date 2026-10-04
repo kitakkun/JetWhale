@@ -132,7 +132,8 @@ Your app calls the seam, never JetWhale:
 appGraph.debugToolingInitializer.initialize()
 ```
 
-In a release build this is a call to an empty method, which R8 removes outright.
+In a release build this is a call to an empty method, which R8 removes outright from a minified
+Android build.
 
 ## 4. Attach the Network Inspector to your HTTP client
 
@@ -206,7 +207,11 @@ dependencies {
 
 ### Kotlin Multiplatform
 
-KMP has no build variants, so gate the dependency on a Gradle property:
+KMP has no build variants to hang the dependency on. The shape that keeps a release clean however
+the build is invoked is two thin entry-point modules — `:app-debug` and `:app-release` — each
+declaring its own graph and depending on the appropriate set of modules.
+
+The lighter alternative gates the dependency on a Gradle property:
 
 ```kotlin
 // :app/build.gradle.kts
@@ -222,13 +227,11 @@ kotlin {
 }
 ```
 
-Run your debug builds with `-Pjetwhale.enabled=true` (or set it in `~/.gradle/gradle.properties`); release CI omits it and gets the no-op. Flipping the property changes the
-compile classpath, so the graph module recompiles — expected, and cheap enough for a switch you
-throw once per session.
-
-If you would rather not thread a property through the build, the alternative is two thin entry-point
-modules — `:app-debug` and `:app-release` — each declaring its own graph and depending on the
-appropriate set of modules.
+A property switches the whole invocation, not a build type: while it is set, every compilation in
+that run gets `:debug-jetwhale`, release and distribution binaries included. So pass
+`-Pjetwhale.enabled=true` on debug runs only, never from a `gradle.properties` file, and build
+releases in runs that leave it out. Flipping the property changes the compile classpath, so the
+graph module recompiles — expected, and cheap enough for a switch you throw once per session.
 
 ## Verify it
 
