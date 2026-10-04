@@ -9,6 +9,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -120,6 +121,11 @@ private object NoWindow : WindowInfoUpdater {
     override val currentDpSize: DpSize = DpSize.Zero
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) = Unit
+
+    @OptIn(InternalComposeUiApi::class)
+    override fun saveWindowInfo(): WindowInfo = PlatformContext.Empty().windowInfo
+
+    override fun restoreWindowInfo(saved: WindowInfo) = Unit
 }
 
 private object NoJarSwaps : PluginJarSwapService {

@@ -72,6 +72,67 @@ class DefaultPluginComposeSceneFactoryTest {
         }
     }
 
+    @Test
+    fun `a scene no window has shown yet reports the size it gets once the window shows it`() = runBlocking {
+        val pluginArea = IntSize(1998, 1544)
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        factory.updateHostPluginArea(intSize = pluginArea, dpSize = DpSize(999.dp, 772.dp))
+        withContext(Dispatchers.Main) {
+            val scene = factory.createScene(boundPlugin()) {}
+            val sizeBeforeShown = scene.windowInfoUpdater.currentIntSize
+            val dpSizeBeforeShown = scene.windowInfoUpdater.currentDpSize
+
+            scene.showAt(pluginArea)
+
+            assertEquals(scene.windowInfoUpdater.currentIntSize, sizeBeforeShown)
+            assertEquals(DpSize(999.dp, 772.dp), dpSizeBeforeShown)
+        }
+    }
+
+    @Test
+    fun `a scene no window has shown yet follows the plugin area as the window resizes`() = runBlocking {
+        val plugin = WindowSizeReadingPlugin().apply { bindStorage(mock()) }
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        withContext(Dispatchers.Main) {
+            val scene = factory.createScene(plugin) { plugin.Content() }
+
+            factory.updateHostPluginArea(intSize = IntSize(800, 600), dpSize = DpSize(400.dp, 300.dp))
+            Snapshot.sendApplyNotifications()
+            scene.render(Canvas(ImageBitmap(1, 1)))
+
+            assertEquals(IntSize(800, 600), plugin.observedContainerSize)
+        }
+    }
+
+    @Test
+    fun `a scene no window has shown yet still follows the plugin area after a capture at another size`() = runBlocking {
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        factory.updateHostPluginArea(intSize = IntSize(800, 600), dpSize = DpSize(400.dp, 300.dp))
+        withContext(Dispatchers.Main) {
+            val scene = factory.createScene(boundPlugin()) {}
+            val beforeCapture = scene.windowInfoUpdater.saveWindowInfo()
+            scene.windowInfoUpdater.updateWindowSize(intSize = IntSize(320, 240), dpSize = DpSize(320.dp, 240.dp))
+            scene.windowInfoUpdater.restoreWindowInfo(beforeCapture)
+
+            factory.updateHostPluginArea(intSize = IntSize(1200, 900), dpSize = DpSize(600.dp, 450.dp))
+
+            assertEquals(IntSize(1200, 900), scene.windowInfoUpdater.currentIntSize)
+        }
+    }
+
+    @Test
+    fun `a window that shows a scene keeps its own size when the plugin area changes`() = runBlocking {
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        withContext(Dispatchers.Main) {
+            val scene = factory.createScene(boundPlugin()) {}
+            scene.showAt(IntSize(400, 300))
+
+            factory.updateHostPluginArea(intSize = IntSize(800, 600), dpSize = DpSize(800.dp, 600.dp))
+
+            assertEquals(IntSize(400, 300), scene.windowInfoUpdater.currentIntSize)
+        }
+    }
+
     private fun PluginComposeScene.showAt(size: IntSize) {
         composeScene.size = size
         windowInfoUpdater.updateWindowSize(intSize = size, dpSize = DpSize(size.width.dp, size.height.dp))
