@@ -195,6 +195,18 @@ set.
 
 ## 5. Wire the variants in Gradle
 
+The debug module implements the seam and names `NoOpInitializer`, so it depends on `:core:debug`
+itself; the app depending on both does not put one on the other's classpath:
+
+```kotlin
+// :debug-jetwhale/build.gradle.kts (in a KMP module, inside commonMain.dependencies { })
+dependencies {
+    implementation(projects.core.debug)
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
+}
+```
+
 ### Android
 
 ```kotlin
@@ -285,6 +297,10 @@ not inferred from the annotations:
   class that only exists in `src/debug`. Here you do need the same fully-qualified module in both
   source sets, empty in release. Note that Dagger's `@Multibinds` allows an empty set by default —
   there is no `allowEmpty` to pass.
-- **Koin / manual DI** — resolution is at runtime, so nothing fails the release build for you.
-  Declare the same `debugToolingModule` in both source sets, a no-op in release, and give the HTTP
-  client `getAll<HttpClientDecorator>()`, which is empty when release declares no decorator.
+- **Koin** — resolution is at runtime, so nothing fails the release build for you. Declare the same
+  `debugToolingModule` in both source sets, a no-op in release, and give the HTTP client
+  `getAll<HttpClientDecorator>()`, which is empty when release declares no decorator.
+- **Manual DI** — no container is needed. Declare the seam in `src/main` and one factory with the
+  same signature in each variant's source set: a no-op in `src/release`, the JetWhale-backed
+  implementation in `src/debug`. Production code calls the factory once, through a holder, and the
+  release variant compiles without ever seeing JetWhale.

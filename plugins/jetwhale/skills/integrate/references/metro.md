@@ -133,8 +133,20 @@ interceptor.
 
 ## Gradle
 
+`:debug-jetwhale` implements `DebugToolingInitializer` and names `NoOpInitializer`, so it depends on
+`:core:debug` itself; `:app` depending on both does not put one on the other's classpath:
+
 ```kotlin
-// Android
+// :debug-jetwhale (in a KMP module, inside commonMain.dependencies { })
+dependencies {
+    implementation(projects.core.debug)
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
+}
+```
+
+```kotlin
+// :app, Android
 dependencies {
     implementation(projects.core.debug)
     debugImplementation(projects.debugJetwhale)
@@ -146,7 +158,7 @@ its own graph, keep a release clean however the build is invoked. The lighter al
 dependency on a property:
 
 ```kotlin
-// KMP — gate on a property
+// :app, KMP — gate on a property
 val jetwhaleEnabled = providers.gradleProperty("jetwhale.enabled").orNull.toBoolean()
 
 kotlin {

@@ -96,12 +96,19 @@ the plain-interface version in `references/no-di.md`, not a new dependency in it
 dependencies {
     // `implementation` here only because this block belongs in a debug-only module.
     // In an Android app module it is `debugImplementation` — see the table below.
+    // The always-present module that declares the seam this module implements
+    // (`:core:debug` in the references):
+    implementation(projects.core.debug)
     implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
     // only if capturing HTTP traffic — match the app's client:
     implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
     implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-okhttp:<version>")
 }
 ```
+
+A debug-only module needs the seam module itself: the app depending on both does not put one on
+the other's classpath. When the wiring instead lives in the app module's `src/debug`, the seam in
+`src/main` is already visible and that line goes away.
 
 Take `<version>` from the [releases page](https://github.com/kitakkun/JetWhale/releases) — do not
 guess it, and do not copy a version out of an older document.

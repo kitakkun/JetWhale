@@ -151,12 +151,15 @@ every element. In release the set is empty and the provider is unchanged.
 dependencies {
     implementation("com.google.dagger:hilt-android:2.60.1")
     ksp("com.google.dagger:hilt-compiler:2.60.1")
-    debugImplementation(project(":tooling"))   // or the JetWhale artifacts directly
+    debugImplementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    debugImplementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
 }
 ```
 
-Verified on the built artifacts of a sample app, with a stand-in class (`FakeAgents`) in place of
-JetWhale's agents, so it shows the classpath isolation and the DI shape rather than a live session:
+The seam and `JetWhaleModule` both live in the app module, so only the JetWhale artifacts are
+debug-only. Verified on the built artifacts of a sample app in which a `:tooling` module holding a
+stand-in class (`FakeAgents`) took the place of those artifacts, so it shows the classpath isolation
+and the DI shape rather than a live session:
 
 ```
 :app:dependencies --configuration releaseRuntimeClasspath   → no :tooling
