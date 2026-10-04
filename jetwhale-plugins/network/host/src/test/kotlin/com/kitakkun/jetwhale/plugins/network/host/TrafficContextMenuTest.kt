@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.rightClick
@@ -16,6 +17,8 @@ import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class TrafficContextMenuTest {
@@ -54,17 +57,32 @@ class TrafficContextMenuTest {
     }
 
     @Test
-    fun `a body the adapter could not capture is not offered as text to copy`() = runComposeUiTest {
-        setTraffic(
-            request = "<streaming request body>" to BodyEncoding.TEXT,
-            response = "<Content-Encoding: gzip body>" to BodyEncoding.TEXT,
-        )
+    fun `a body that was not captured is not offered as text to copy`() {
+        UNCAPTURED_BODY_MARKERS.forEach { marker ->
+            runComposeUiTest {
+                setTraffic(request = marker to BodyEncoding.TEXT, response = marker to BodyEncoding.TEXT)
 
-        onNodeWithText(URL).performMouseInput { rightClick() }
+                onNodeWithText(URL).performMouseInput { rightClick() }
 
-        onNodeWithText("Copy as cURL").assertExists()
-        onNodeWithText("Copy request body").assertDoesNotExist()
-        onNodeWithText("Copy response body").assertDoesNotExist()
+                onNodeWithText("Copy as cURL").assertExists()
+                assertTrue(onAllNodesWithText("Copy request body").fetchSemanticsNodes().isEmpty(), marker)
+                assertTrue(onAllNodesWithText("Copy response body").fetchSemanticsNodes().isEmpty(), marker)
+            }
+        }
+    }
+
+    @Test
+    fun `a body that is a single XML or HTML element is offered as text to copy`() {
+        SINGLE_ELEMENT_BODIES.forEach { body ->
+            runComposeUiTest {
+                setTraffic(request = body to BodyEncoding.TEXT, response = body to BodyEncoding.TEXT)
+
+                onNodeWithText(URL).performMouseInput { rightClick() }
+
+                assertEquals(1, onAllNodesWithText("Copy request body").fetchSemanticsNodes().size, body)
+                assertEquals(1, onAllNodesWithText("Copy response body").fetchSemanticsNodes().size, body)
+            }
+        }
     }
 }
 
