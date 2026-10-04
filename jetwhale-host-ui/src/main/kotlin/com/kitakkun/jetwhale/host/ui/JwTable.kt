@@ -404,7 +404,7 @@ private fun <T> ResizeHandle(
             .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
             .draggable(state = dragState, orientation = Orientation.Horizontal, interactionSource = interactionSource)
             .semantics { contentDescription = "Resize ${column.header}" }
-            .pointerInput(column.header) {
+            .pointerInput(column.header, columnState) {
                 detectTapGestures(
                     onDoubleTap = {
                         columnState.fittedContentWidth = 0.dp

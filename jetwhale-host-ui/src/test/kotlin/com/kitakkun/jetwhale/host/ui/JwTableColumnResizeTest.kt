@@ -192,6 +192,36 @@ class JwTableColumnResizeTest {
     }
 
     @Test
+    fun `a double-click fits the column in the column state the table was given last`() = runComposeUiTest {
+        val first = JwTableColumnState(emptyMap())
+        val second = JwTableColumnState(emptyMap())
+        var columnState by mutableStateOf(first)
+        setContent {
+            JwTheme(darkTheme = false) {
+                Box(Modifier.requiredSize(width = TABLE_WIDTH, height = 300.dp)) {
+                    JwTable(
+                        items = listOf("short", "a considerably longer name than the column"),
+                        columns = listOf(textColumn("Name", JwColumnWidth.Fixed(60.dp)), textColumn("Value", JwColumnWidth.Weight(1f))),
+                        columnState = columnState,
+                    )
+                }
+            }
+        }
+        val handle = onNodeWithContentDescription("Resize Name")
+        handle.performMouseInput { moveTo(center) }
+        waitForIdle()
+
+        columnState = second
+        waitForIdle()
+        handle.performMouseInput { doubleClick(center) }
+        waitForIdle()
+
+        val fitted = second.widths["Name"]
+        assertTrue(fitted != null && fitted > 150.dp, "the column grew to the long name, now $fitted")
+        assertEquals(emptyMap(), first.widths)
+    }
+
+    @Test
     fun `a fit leaves out cells that cannot report their width and fits the others`() = runTable(
         columns = listOf(
             JwTableColumn<String>(header = "Name", width = JwColumnWidth.Fixed(60.dp)) { name ->
