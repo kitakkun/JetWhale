@@ -118,7 +118,6 @@ internal fun StorageInspectorScreen(
             title = "Download ${download.location.name}?",
             message = buildString {
                 append("${download.location.name} holds ")
-                // A truncated walk counted only part of the tree, so both figures are lower bounds.
                 val atLeast = if (measurement.truncated) "at least " else ""
                 append("$atLeast${measurement.fileCount} files, $atLeast${formatByteSize(measurement.totalSizeBytes)}. ")
                 append("Every byte is read from the app over the debug connection, so this can take a while.")

@@ -32,8 +32,6 @@ private const val PREVIEW_BYTES = 256 * 1024
  */
 private const val SUBTREE_ENTRY_LIMIT = 500
 
-// Every byte of a ZIP download crosses the debug connection and every file costs at least one
-// request, so past either size the download takes long enough to be worth confirming first.
 private const val ZIP_CONFIRM_BYTES = 100L * 1024 * 1024
 private const val ZIP_CONFIRM_FILES = 10_000
 
@@ -351,11 +349,9 @@ internal class StorageBrowser(
      */
     private suspend fun zipTo(location: FileLocation, target: File) {
         var partial: File? = null
-        var finished = false
+        var movedIntoPlace = false
         try {
             partial = File.createTempFile(".${target.name}.", ".part", target.absoluteFile.parentFile)
-            // The measured file count includes symbolic links, which the ZIP leaves out, so it
-            // cannot serve as the denominator of the progress.
             val error = ZipOutputStream(partial.outputStream()).use { zip ->
                 client.zipDirectory(location, zip) { zipped ->
                     status = StorageStatus(message = "Zipping ${location.name}: $zipped files so far", isError = false)
@@ -363,7 +359,7 @@ internal class StorageBrowser(
             }
             if (error == null) {
                 Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                finished = true
+                movedIntoPlace = true
             }
             status = when (error) {
                 null -> StorageStatus(message = "Saved ${location.name} to ${target.absolutePath}.", isError = false)
@@ -372,7 +368,7 @@ internal class StorageBrowser(
         } catch (e: IOException) {
             status = StorageStatus(message = "Could not write ${target.absolutePath}: ${e.message}", isError = true)
         } finally {
-            if (!finished) partial?.delete()
+            if (!movedIntoPlace) partial?.delete()
         }
     }
 

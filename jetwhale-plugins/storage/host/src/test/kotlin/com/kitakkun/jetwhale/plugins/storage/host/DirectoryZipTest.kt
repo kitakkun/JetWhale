@@ -92,7 +92,7 @@ class DirectoryZipTest {
         val time = ZipInputStream(ByteArrayInputStream(zip)).use { input ->
             generateSequence { input.nextEntry }.first { it.name == "cache/a.txt" }.time
         }
-        // DOS timestamps keep two-second precision.
+        // A ZIP entry stores its time as a DOS timestamp, which has two-second precision.
         assertTrue(abs(time - 1_700_000_000_000) < 2_000, "time was $time")
     }
 

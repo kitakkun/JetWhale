@@ -165,7 +165,6 @@ private fun EntryDetail(
             JwText(text = row.location.name, style = JwTheme.textStyles.title, modifier = Modifier.weight(1f))
             if (row.isDirectory) {
                 JwButton(text = "Calculate size", onClick = { actions.measureDirectory(row.location) })
-                // A ZIP never follows a link, so a linked directory has nothing of its own to archive.
                 if (row.entry?.isSymbolicLink != true) {
                     JwButton(text = "Download as ZIP…", onClick = { chooseSaveTarget("${row.location.name}.zip") { actions.requestZipDownload(row.location, it) } })
                 }
