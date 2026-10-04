@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
+import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 
 internal expect fun listDirectoryEntries(path: String): List<FileEntry>
 
@@ -19,9 +20,9 @@ internal expect fun writeFileBytes(path: String, bytes: ByteArray, append: Boole
 internal expect fun moveReplacing(source: String, target: String)
 
 /**
- * Takes one chunk of an upload: collects it in [stagingPath] and, on the [isLast] chunk, moves the
- * staged file over [targetPath]. Any failure removes the staged file, so a broken upload leaves
- * [targetPath] as it was and has to start again from offset 0.
+ * Takes one chunk of an upload, at most [MAX_FILE_READ_BYTES] long: collects it in [stagingPath]
+ * and, on the [isLast] chunk, moves the staged file over [targetPath]. Any failure removes the
+ * staged file, so a broken upload leaves [targetPath] as it was and has to start again from offset 0.
  */
 internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
     // Refused before the try, so the cleanup below never removes a link, a directory, or a FIFO,
@@ -29,6 +30,7 @@ internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset:
     require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }
     require(!existsAsNonRegularFile(stagingPath)) { "the upload's staging path already exists and is not a regular file" }
     try {
+        require(bytes.size <= MAX_FILE_READ_BYTES) { "a chunk may carry at most $MAX_FILE_READ_BYTES bytes, not ${bytes.size}" }
         if (offset != 0L) {
             val received = fileSize(stagingPath)
             require(received == offset) { "the upload expected a chunk at offset $received, not $offset; start it again" }

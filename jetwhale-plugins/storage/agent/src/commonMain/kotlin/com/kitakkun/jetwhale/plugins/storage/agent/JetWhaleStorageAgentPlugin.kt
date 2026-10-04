@@ -109,7 +109,6 @@ class JetWhaleStorageAgentPlugin(
     // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun writeFileChunk(request: WriteFileChunk): StorageOperationResult = try {
-        require(request.contentBase64.length <= MAX_CHUNK_BASE64_LENGTH) { "a chunk may carry at most $MAX_FILE_READ_BYTES bytes" }
         val paths = fileRoot(request.rootName).uploadPaths(request.path, request.uploadId)
         receiveUploadChunk(
             stagingPath = paths.staging,
@@ -123,6 +122,7 @@ class JetWhaleStorageAgentPlugin(
         StorageOperationResult(error = e.describe())
     }
 
+    // The app's file system can fail in any way; the failure goes back in the reply.
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun measureDirectory(request: MeasureDirectory): DirectoryMeasurement = try {
         measureDirectoryTree(resolve(request.rootName, request.path), entryLimit = MEASURED_ENTRY_LIMIT)
@@ -169,5 +169,3 @@ class JetWhaleStorageAgentPlugin(
 }
 
 private fun Exception.describe(): String = message ?: this::class.simpleName ?: "unknown error"
-
-private const val MAX_CHUNK_BASE64_LENGTH = (MAX_FILE_READ_BYTES + 2) / 3 * 4

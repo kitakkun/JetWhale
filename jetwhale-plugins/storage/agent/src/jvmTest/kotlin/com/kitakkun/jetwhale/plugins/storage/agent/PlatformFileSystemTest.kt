@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
+import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -236,6 +237,20 @@ class PlatformFileSystemTest {
 
         assertFailsWith<IllegalArgumentException> {
             receiveUploadChunk(staging.path, target.path, offset = 7, bytes = byteArrayOf(4), isLast = true)
+        }
+
+        assertEquals("old", target.readText())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `a chunk over the size bound discards the upload and keeps the target`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = ByteArray(MAX_FILE_READ_BYTES), isLast = false)
+
+        assertFailsWith<IllegalArgumentException> {
+            receiveUploadChunk(staging.path, target.path, offset = MAX_FILE_READ_BYTES.toLong(), bytes = ByteArray(MAX_FILE_READ_BYTES + 1), isLast = true)
         }
 
         assertEquals("old", target.readText())
