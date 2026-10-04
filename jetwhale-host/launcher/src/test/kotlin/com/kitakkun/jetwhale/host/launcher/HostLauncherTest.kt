@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.hostJarName
+import org.junit.Assume
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -415,6 +416,30 @@ class HostLauncherTest {
 
         assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
         assertEquals(setOf("1.0.0-alpha15"), versions.readLauncherState().setAside)
+    }
+
+    @Test
+    fun `clears a set-aside mark another launcher put on a version that then completed its start`() {
+        download("1.0.0-alpha15")
+        processes.whenPublished("1.0.0-alpha15") {
+            versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = setOf("1.0.0-alpha15")))
+        }
+
+        launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals(LauncherState(completedStarts = setOf("1.0.0-alpha15"), setAside = emptySet()), versions.readLauncherState())
+    }
+
+    @Test
+    fun `deletes a version whose jar cannot be read and starts the next`() {
+        download("1.0.0-alpha15")
+        val jar = versionDirectory("1.0.0-alpha15").resolve(hostJarName("1.0.0-alpha15", PLATFORM)).toFile()
+        Assume.assumeTrue("the file system cannot take read permission away", jar.setReadable(false) && !jar.canRead())
+
+        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
+        assertFalse(versionDirectory("1.0.0-alpha15").exists())
     }
 
     private fun recordingLaunchLock(events: MutableList<String>) = object : LockFiles by locks {

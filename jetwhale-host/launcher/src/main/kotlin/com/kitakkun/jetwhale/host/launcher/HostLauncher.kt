@@ -126,12 +126,13 @@ class HostLauncher(
 
     /**
      * Records the start on what is on disk now, which another launcher may have changed while
-     * `launch.lock` was released. Pruning keeps what the running version needs, so it is skipped
-     * once that host has ended: another launch may run another version by now.
+     * `launch.lock` was released, and clears a set-aside mark it may have put on this version
+     * meanwhile. Pruning keeps what the running version needs, so it is skipped once that host has
+     * ended: another launch may run another version by now.
      */
     private fun recordCompletedStart(start: HostStart, process: HostProcess) {
         val state = versions.readLauncherState()
-        val recorded = state.copy(completedStarts = state.completedStarts + start.name)
+        val recorded = state.copy(completedStarts = state.completedStarts + start.name, setAside = state.setAside - start.name)
         versions.writeLauncherState(if (process.exitStatus() == null) pruneAfterStart(start, recorded) else recorded)
     }
 
@@ -195,7 +196,11 @@ class HostLauncher(
         }
         val jar = installed.jar(capabilities.platformKey)
         if (!versions.contains(jar)) return discard(installed, "its jar resolves outside ${versions.root}")
-        val check = metadata.platforms.getValue(capabilities.platformKey).check(jar)
+        val check = try {
+            metadata.platforms.getValue(capabilities.platformKey).check(jar)
+        } catch (e: IOException) {
+            return discard(installed, "its jar cannot be read (${e.message})")
+        }
         if (check != HostJarCheck.Matches) return discard(installed, "its jar does not match its metadata ($check)")
         return HostStart(name = name, version = installed.version, metadata = metadata, jar = jar, isBundled = false)
     }
