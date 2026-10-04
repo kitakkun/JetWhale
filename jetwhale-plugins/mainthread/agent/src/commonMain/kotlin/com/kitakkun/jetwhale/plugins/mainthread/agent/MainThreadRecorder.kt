@@ -61,6 +61,7 @@ internal class MainThreadRecorder(
 
     private var running: RunningTask? = null
     private var nextTaskId = 0L
+    private var lastTaskEndMonotonic = Long.MIN_VALUE
 
     val currentSettings: MonitorSettings get() = lock.withLock { settings }
 
@@ -90,17 +91,21 @@ internal class MainThreadRecorder(
     /**
      * The main thread has been busy for [busyForMillis] without the probe seeing a task start —
      * work the platform runs outside its task hooks, such as Android's input dispatch. It is recorded
-     * as a task that began [busyForMillis] ago and ends at [stallEnded] or when the next task starts.
-     * While a task is running, the stall is that task and nothing changes.
+     * as a task that began [busyForMillis] ago, or when the last task finished if that was later: a
+     * probe that began waiting during a task counts that task's time too, but the work outside it
+     * began only once it ended. The stall ends at [stallEnded] or when the next task starts. While a
+     * task is running, the stall is that task and nothing changes.
      */
     fun stallDetected(description: String, busyForMillis: Long) = lock.withLock {
         if (running != null) return@withLock
+        val now = clock.monotonicMillis()
+        val startMonotonic = maxOf(now - busyForMillis, lastTaskEndMonotonic)
         running = RunningTask(
             id = nextTaskId++,
             description = description,
             extraLabel = null,
-            startMonotonic = clock.monotonicMillis() - busyForMillis,
-            startEpoch = clock.epochMillis() - busyForMillis,
+            startMonotonic = startMonotonic,
+            startEpoch = clock.epochMillis() - (now - startMonotonic),
             isStall = true,
         )
     }
@@ -112,7 +117,9 @@ internal class MainThreadRecorder(
     private fun finishRunning() {
         val task = running ?: return
         running = null
-        val duration = clock.monotonicMillis() - task.startMonotonic
+        val now = clock.monotonicMillis()
+        lastTaskEndMonotonic = now
+        val duration = now - task.startMonotonic
         if (duration < settings.longTaskThresholdMillis) return
         longTasks.addBounded(
             LongTask(

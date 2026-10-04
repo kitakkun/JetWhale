@@ -118,6 +118,33 @@ class MainThreadRecorderTest {
     }
 
     @Test
+    fun `work outside a task is timed from the end of the task before it`() {
+        recorder.taskStarted("message", extraLabel = null)
+        clock.advance(70)
+        recorder.taskFinished()
+        val messageEndEpoch = clock.epochMillis()
+        clock.advance(150)
+        recorder.stallDetected("outside", busyForMillis = 220)
+        recorder.stallEnded()
+
+        val task = recorder.report(capabilities).longTasks.single()
+        assertEquals(messageEndEpoch, task.startEpochMillis)
+        assertEquals(150, task.durationMillis)
+    }
+
+    @Test
+    fun `a short task followed by short work outside it is not one long task`() {
+        recorder.taskStarted("message", extraLabel = null)
+        clock.advance(70)
+        recorder.taskFinished()
+        clock.advance(40)
+        recorder.stallDetected("outside", busyForMillis = 110)
+        recorder.stallEnded()
+
+        assertTrue(recorder.report(capabilities).longTasks.isEmpty())
+    }
+
+    @Test
     fun `the next task ends a stall`() {
         recorder.stallDetected("outside", busyForMillis = 200)
         recorder.taskStarted("next", extraLabel = null)

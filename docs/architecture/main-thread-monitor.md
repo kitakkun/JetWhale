@@ -37,9 +37,10 @@ inside `MessageQueue.next()`'s native poll, not as a message, so a click handler
 main thread runs between messages. On the emulator, a 400 ms sleep in a Compose `onClick` produced a
 407 ms frame and no long task. The heartbeat closes that gap: it cannot run until the main thread
 returns to its queue, so a heartbeat left waiting with no message running means work outside a
-message. That work is recorded from the moment the heartbeat was posted (so it reads slightly short
-— 393 ms for the 400 ms sleep), sampled like any task, marked unresponsive past the threshold, and
-ends when the heartbeat or the next message runs.
+message. That work is recorded from the moment the heartbeat was posted, or from the end of the
+last message if the heartbeat was posted while it ran (so it can read slightly short — 393 ms for
+the 400 ms sleep). It is sampled like any task, marked unresponsive past the threshold, and ends
+when the heartbeat or the next message runs.
 
 The platform's default thread policy is not `LAX`: ActivityThread enables death-on-network for every
 app. That policy is recognized (by its string form — policies have no `equals`) and extended; any
