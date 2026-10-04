@@ -250,9 +250,9 @@ public fun <T> JwTable(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     emptyContent: (@Composable () -> Unit)? = null,
 ) {
-    // A separate overload rather than a defaulted parameter on the one above: plugins built against
-    // an earlier host-ui link to that exact JVM signature, and a new parameter changes it even with
-    // a default.
+    // A separate overload rather than a defaulted parameter on the one above: plugins compiled
+    // against an earlier jetwhale-host-ui link to that exact JVM signature, and a new parameter
+    // changes it even with a default.
     TableContent(
         items = items,
         columns = columns,
@@ -457,8 +457,8 @@ private class TableColumnLayout<T>(
         var left = rowWidth - gaps - unsizedWidth(except = null)
         return sized.withIndex().associate { (position, key) ->
             val laterMinimums = JwTableDefaults.minColumnWidth * (sized.size - 1 - position)
-            // Not coerceIn: in a row too narrow for every minimum the upper bound falls below the
-            // lower, where coerceIn throws; the minimum wins.
+            // Not coerceIn: in a row too narrow for every minimum the cap falls below the minimum,
+            // where coerceIn throws; the minimum wins.
             val shown = state.widths.getValue(key).coerceAtMost(left - laterMinimums).coerceAtLeast(JwTableDefaults.minColumnWidth)
             left -= shown
             key to shown
