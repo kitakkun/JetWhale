@@ -153,20 +153,23 @@ private fun ChangeTimeline(timeline: List<PermissionChange>) {
         }
         LazyColumn(Modifier.fillMaxSize()) {
             items(timeline) { change ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
-                ) {
-                    JwText(
-                        text = TimeFormatter.format(Instant.ofEpochMilli(change.observedAtEpochMillis)),
-                        style = JwTheme.textStyles.labelSmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                    JwText(text = change.label, modifier = Modifier.weight(1f))
-                    StatusTag(change.from)
-                    JwText(text = "→", color = JwTheme.colors.textSecondary)
-                    StatusTag(change.to)
+                Column(Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.small)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
+                    ) {
+                        JwText(
+                            text = TimeFormatter.format(Instant.ofEpochMilli(change.observedAtEpochMillis)),
+                            style = JwTheme.textStyles.labelSmall,
+                            color = JwTheme.colors.textSecondary,
+                        )
+                        JwText(text = change.label, modifier = Modifier.weight(1f))
+                        StatusTag(change.from)
+                        JwText(text = "→", color = JwTheme.colors.textSecondary)
+                        StatusTag(change.to)
+                    }
+                    change.note?.let { JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary) }
                 }
             }
         }

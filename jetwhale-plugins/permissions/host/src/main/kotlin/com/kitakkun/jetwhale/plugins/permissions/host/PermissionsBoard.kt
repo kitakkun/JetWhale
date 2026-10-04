@@ -47,6 +47,9 @@ internal class PermissionsBoard(
 
     private val loadGeneration = AtomicInteger()
 
+    /** Loads the first report; a failure lands in [status] instead of leaving the screen waiting. */
+    suspend fun prepare() = reportingFailures(::load)
+
     suspend fun load() {
         val generation = loadGeneration.incrementAndGet()
         val loaded = client.report()
@@ -79,12 +82,14 @@ internal class PermissionsBoard(
     }
 
     private fun launchReporting(block: suspend () -> Unit) {
-        scope.launch {
-            try {
-                block()
-            } catch (e: JetWhaleMessagingException) {
-                status = PermissionsStatus(message = "Failed to reach the app: ${e.message}", isError = true)
-            }
+        scope.launch { reportingFailures(block) }
+    }
+
+    private suspend fun reportingFailures(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: JetWhaleMessagingException) {
+            status = PermissionsStatus(message = "Failed to reach the app: ${e.message}", isError = true)
         }
     }
 }

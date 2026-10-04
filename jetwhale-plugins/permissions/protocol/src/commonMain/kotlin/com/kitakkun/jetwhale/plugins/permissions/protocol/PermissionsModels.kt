@@ -24,7 +24,8 @@ data class PermissionReport(
  * @property label A short human-readable name.
  * @property protection The Android protection level ("normal", "dangerous", "signature", ...);
  *   null where the platform has none.
- * @property requestable Whether [RequestPermission] can do anything for it right now.
+ * @property requestable Whether [RequestPermission] can do anything for it. On Android the
+ *   request also needs one of the app's activities in the foreground, and says so when none is.
  * @property note What the state cannot tell on its own, or why it cannot be requested.
  */
 @Serializable
@@ -65,12 +66,18 @@ enum class PermissionStatus {
     Restricted,
 }
 
-/** A state the agent saw change, with the state before it. */
+/**
+ * A state the agent saw change, with the status before it.
+ *
+ * @property note The permission's note after the change. When [from] and [to] are the same, the
+ *   note is what changed: on Android a denial leaves a never-asked permission at Denied.
+ */
 @Serializable
 data class PermissionChange(
     val id: String,
     val label: String,
     val from: PermissionStatus?,
     val to: PermissionStatus?,
+    val note: String?,
     val observedAtEpochMillis: Long,
 )

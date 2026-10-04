@@ -72,7 +72,7 @@ final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionR
 }
 
 final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange|null[0]
-    constructor <init>(kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, kotlin/Long) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.<init>|<init>(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.Long){}[0]
+    constructor <init>(kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, kotlin/String?, kotlin/Long) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.<init>|<init>(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.String?;kotlin.Long){}[0]
 
     final val from // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.from|{}from[0]
         final fun <get-from>(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.from.<get-from>|<get-from>(){}[0]
@@ -80,6 +80,8 @@ final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange 
         final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.id.<get-id>|<get-id>(){}[0]
     final val label // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.label|{}label[0]
         final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.label.<get-label>|<get-label>(){}[0]
+    final val note // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.note|{}note[0]
+        final fun <get-note>(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.note.<get-note>|<get-note>(){}[0]
     final val observedAtEpochMillis // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.observedAtEpochMillis|{}observedAtEpochMillis[0]
         final fun <get-observedAtEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.observedAtEpochMillis.<get-observedAtEpochMillis>|<get-observedAtEpochMillis>(){}[0]
     final val to // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.to|{}to[0]
@@ -89,8 +91,9 @@ final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange 
     final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component2|component2(){}[0]
     final fun component3(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component3|component3(){}[0]
     final fun component4(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component4|component4(){}[0]
-    final fun component5(): kotlin/Long // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component5|component5(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.copy|copy(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.Long){}[0]
+    final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component5|component5(){}[0]
+    final fun component6(): kotlin/Long // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., kotlin/String? = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.copy|copy(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.String?;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.toString|toString(){}[0]

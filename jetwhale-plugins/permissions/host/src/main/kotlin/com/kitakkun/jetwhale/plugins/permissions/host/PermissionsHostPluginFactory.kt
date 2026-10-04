@@ -37,7 +37,7 @@ private class PermissionsHostPlugin :
     }
 
     override suspend fun onPrepare() {
-        board.load()
+        board.prepare()
     }
 
     override suspend fun report(): PermissionReport = messenger.request(GetPermissions)

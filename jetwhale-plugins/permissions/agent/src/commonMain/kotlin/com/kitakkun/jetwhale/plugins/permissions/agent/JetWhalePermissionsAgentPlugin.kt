@@ -5,7 +5,6 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.GetPermissions
 import com.kitakkun.jetwhale.plugins.permissions.protocol.OpenAppSettings
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PERMISSIONS_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport
-import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionsChanged
 import com.kitakkun.jetwhale.plugins.permissions.protocol.RequestPermission
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
@@ -13,18 +12,19 @@ import com.kitakkun.jetwhale.protocol.messaging.reply
 import com.kitakkun.jetwhale.protocol.messaging.trySend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * How often the agent re-reads the permissions to notice a change. Nothing notifies an app when
- * the user flips a permission in the system settings, so the agent looks; one read is a handful
- * of cheap platform calls.
+ * How often the agent re-reads the permissions while a host is connected, to notice a change.
+ * Nothing notifies an app when the user flips a permission in the system settings, so the agent
+ * looks; one read is a handful of cheap platform calls.
  */
 private val PollInterval = 1.seconds
 
@@ -45,7 +45,10 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginVersion: String get() = "1.0.0"
 
     private val source: PermissionSource = platformPermissionSource()
-    private var watchScope: CoroutineScope? = null
+    private val watchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    @Volatile
+    private var watch: Job? = null
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: GetPermissions -> reply(report()) }
@@ -53,10 +56,9 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
         onRequest { _: OpenAppSettings -> reply(source.openAppSettings()) }
     }
 
-    override fun onActivate() {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        watchScope = scope
-        scope.launch {
+    override suspend fun onPrepare() {
+        watch?.cancel()
+        watch = watchScope.launch {
             var previous = source.read()
             while (isActive) {
                 delay(PollInterval)
@@ -68,9 +70,12 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
         }
     }
 
+    override suspend fun onDisconnected() {
+        watch?.cancel()
+    }
+
     override fun onDeactivate() {
-        watchScope?.cancel()
-        watchScope = null
+        watch?.cancel()
     }
 
     private suspend fun report(): PermissionReport = PermissionReport(

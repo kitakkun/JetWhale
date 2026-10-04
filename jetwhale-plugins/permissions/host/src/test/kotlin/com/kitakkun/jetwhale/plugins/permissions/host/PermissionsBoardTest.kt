@@ -1,51 +1,23 @@
 package com.kitakkun.jetwhale.plugins.permissions.host
 
-import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionActionResult
-import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionCategory
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionChange
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport
-import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
-@OptIn(ExperimentalJetWhaleApi::class)
-class PermissionsHostTest {
+class PermissionsBoardTest {
     private val client = FakePermissionsClient()
 
     // On Dispatchers.Unconfined a launch runs until its first suspension, and the fake never
     // suspends, so every launched call has finished by the time launch returns.
     private val board = PermissionsBoard(client, CoroutineScope(Dispatchers.Unconfined))
-
-    @Test
-    fun `listPermissions returns the app's report`() {
-        val result = ListPermissionsCommand(client).run(buildJsonObject { })
-
-        val ids = result.getValue("permissions").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }
-        assertEquals(listOf("android.permission.CAMERA"), ids)
-    }
-
-    @Test
-    fun `requestPermission passes the id through and reports what was started`() {
-        val result = RequestPermissionCommand(client).run(buildJsonObject { put("id", "android.permission.CAMERA") })
-
-        assertEquals(listOf("android.permission.CAMERA"), client.requests)
-        assertEquals("asked", result.getValue("message").jsonPrimitive.content)
-    }
 
     @Test
     fun `a refused request lands in the status as an error`() {
@@ -54,6 +26,19 @@ class PermissionsHostTest {
         board.request("android.permission.CAMERA")
 
         assertEquals(PermissionsStatus("no activity of the app is in the foreground", isError = true), board.status)
+    }
+
+    @Test
+    fun `a first load that cannot reach the app lands in the status as an error`() {
+        val unreachable = object : PermissionsClient by client {
+            override suspend fun report(): PermissionReport = throw JetWhaleMessagingException("timed out")
+        }
+        val failingBoard = PermissionsBoard(unreachable, CoroutineScope(Dispatchers.Unconfined))
+
+        runBlocking { failingBoard.prepare() }
+
+        assertNull(failingBoard.report)
+        assertEquals(PermissionsStatus("Failed to reach the app: timed out", isError = true), failingBoard.status)
     }
 
     @Test
@@ -66,6 +51,15 @@ class PermissionsHostTest {
 
         assertEquals(listOf("third", "second", "first"), board.timeline.map(PermissionChange::id))
         assertEquals(PermissionStatus.Granted, board.report?.permissions?.single()?.status)
+    }
+
+    @Test
+    fun `a denial that leaves the status at Denied is recorded with its note`() {
+        val denial = PermissionChange("camera", "camera", PermissionStatus.Denied, PermissionStatus.Denied, "Denied once; a request shows the dialog again.", observedAtEpochMillis = 0)
+
+        board.onChanged(listOf(denial))
+
+        assertEquals(listOf(denial), board.timeline)
     }
 
     @Test
@@ -91,31 +85,5 @@ class PermissionsHostTest {
         assertEquals("fresh", slowBoard.report?.platform)
     }
 
-    private fun change(id: String) = PermissionChange(id = id, label = id, from = PermissionStatus.Denied, to = PermissionStatus.Granted, observedAtEpochMillis = 0)
-}
-
-private class FakePermissionsClient : PermissionsClient {
-    var cameraStatus = PermissionStatus.Denied
-    var nextError: String? = null
-    val requests = mutableListOf<String>()
-
-    override suspend fun report() = PermissionReport(
-        platform = "Android",
-        unsupportedReason = null,
-        permissions = listOf(
-            PermissionState("android.permission.CAMERA", "CAMERA", PermissionCategory.Runtime, "dangerous", cameraStatus, requestable = true, note = null),
-        ),
-    )
-
-    override suspend fun request(id: String): PermissionActionResult {
-        requests += id
-        return PermissionActionResult(message = "asked", error = nextError)
-    }
-
-    override suspend fun openAppSettings() = PermissionActionResult(message = "opened", error = null)
-}
-
-@OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    private fun change(id: String) = PermissionChange(id = id, label = id, from = PermissionStatus.Denied, to = PermissionStatus.Granted, note = null, observedAtEpochMillis = 0)
 }

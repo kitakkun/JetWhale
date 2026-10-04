@@ -52,11 +52,7 @@ import kotlin.coroutines.resume
 
 internal actual fun platformPermissionSource(): PermissionSource = IosPermissionSource()
 
-/**
- * The privacy permissions of the frameworks an app most often asks for. App Tracking Transparency
- * is left out: linking it into an app that does not use it invites App Store review questions, for
- * a status that is rarely what a debugging session is about.
- */
+/** The privacy permissions of the frameworks an app most often asks for. */
 private class IosPermissionSource : PermissionSource {
     override val platform: String get() = "iOS"
     override val unsupportedReason: String? get() = null
