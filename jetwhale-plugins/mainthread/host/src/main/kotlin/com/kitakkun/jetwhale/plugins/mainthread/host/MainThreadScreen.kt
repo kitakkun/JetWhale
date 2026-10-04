@@ -41,7 +41,7 @@ internal fun MainThreadScreenRoot(monitor: MainThreadMonitor, modifier: Modifier
     LaunchedEffect(monitor) {
         while (true) {
             delay(REFRESH_INTERVAL)
-            // A missed beat is retried on the next one; the toolbar's Refresh reports the error.
+            // A missed beat is retried on the next one; Refresh reports the error.
             try {
                 monitor.load()
             } catch (_: JetWhaleMessagingException) {

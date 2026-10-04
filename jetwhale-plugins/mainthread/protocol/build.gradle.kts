@@ -9,12 +9,12 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `protocol`.
+// Gradle substitutes projects that share a group and name for each other, and every plugin has
+// protocol, agent and host modules.
 group = "com.kitakkun.jetwhale.plugins.mainthread"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.mainthread.protocol"
 }

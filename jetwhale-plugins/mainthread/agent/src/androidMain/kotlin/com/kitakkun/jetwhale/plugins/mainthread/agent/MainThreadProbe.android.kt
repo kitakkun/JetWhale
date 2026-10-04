@@ -37,17 +37,14 @@ private class AndroidMainThreadProbe(
     private val mainHandler = Handler(mainLooper)
     private val sampler = StackSampler(recorder, mainThread = { mainLooper.thread }, onTick = ::checkHeartbeat)
 
-    // Uptime at which the pending heartbeat was posted, or null when none is waiting to run.
     @Volatile private var heartbeatPostedAt: Long? = null
 
     private var started = false
     private var previousPrinter: Printer? = null
     private var previousPolicy: StrictMode.ThreadPolicy? = null
 
-    // Written on the main thread when the policy is installed, read by the host's report request.
     @Volatile private var appOwnsStrictMode = false
 
-    // Delivers StrictMode violations to the recorder; shut down with the policy it belongs to.
     private var violationExecutor: ExecutorService? = null
 
     private var frameTiming: FrameTimingSession? = null
@@ -89,7 +86,6 @@ private class AndroidMainThreadProbe(
         frameTiming = null
     }
 
-    // Called for every message the main thread handles, so it does no more than a prefix check.
     private fun onLooperLine(line: String) {
         previousPrinter?.println(line)
         when {
@@ -120,14 +116,13 @@ private class AndroidMainThreadProbe(
         }
     }
 
-    // A thread policy is per thread, so this runs on the main thread.
+    // A thread policy applies only to the thread that sets it, so this and restoreStrictMode run on
+    // the main thread.
     private fun installStrictMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         val previous = StrictMode.getThreadPolicy()
-        // Detecting more on top of an app's own policy would apply its penalties — penaltyDeath
-        // included — to violations it never asked about, so an app with a policy keeps it untouched.
-        // Every app starts with the platform's policy instead, which only makes network access on
-        // the main thread throw; building on it keeps that behavior as it was.
+        // A policy's penalties, penaltyDeath included, apply to every violation it detects, so
+        // detecting more under the app's own policy would punish violations it never asked about.
         if (previous.toString() !in platformDefaultPolicies) {
             appOwnsStrictMode = true
             return
@@ -157,7 +152,6 @@ private class AndroidMainThreadProbe(
         previousPolicy?.let(StrictMode::setThreadPolicy)
         previousPolicy = null
         appOwnsStrictMode = false
-        // Violations already queued are still delivered; none can arrive once the policy is gone.
         violationExecutor?.shutdown()
         violationExecutor = null
     }
@@ -176,7 +170,7 @@ private class FrameTimingSession(
     private val thread = HandlerThread("jetwhale-frame-metrics").apply { start() }
     private val handler = Handler(thread.looper)
 
-    // Touched only on the main thread, where lifecycle callbacks and the posted work below run.
+    // Touched only on the main thread, where Android delivers activity lifecycle callbacks.
     private val windows = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
     private var closed = false
 
@@ -198,8 +192,6 @@ private class FrameTimingSession(
 
     init {
         application.registerActivityLifecycleCallbacks(callbacks)
-        // The plugin is usually enabled after the first screen is up; it is picked up here rather
-        // than on its next resume.
         mainHandler.post { resumedActivitiesOrEmpty().forEach(::attach) }
     }
 

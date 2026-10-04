@@ -74,7 +74,6 @@ internal class MainThreadRecorder(
      * if the task turns out long: most tasks are short, and this runs for every one of them.
      */
     fun taskStarted(description: String, extraLabel: String?) = lock.withLock {
-        // A stall ends when the main thread gets back to its queue, which is where this message came from.
         if (running?.isStall == true) finishRunning()
         running = RunningTask(
             id = nextTaskId++,
@@ -145,24 +144,18 @@ internal class MainThreadRecorder(
         }
         val stack = readStack()
         lock.withLock {
-            // The task may have finished while the stack was being read; a stack from the next task
-            // must not be attributed to it.
             if (running !== task || stack.isEmpty()) return
             task.samples++
             val signature = stackSignature(stack)
             val accumulator = hotspots.getOrPut(signature) { HotspotAccumulator() }
             accumulator.samples++
-            // Weighted by the interval in force now, so that changing it later leaves this estimate alone.
             accumulator.blockedMillis += settings.sampleIntervalMillis
             accumulator.frames = stack
-            // Task ids only grow and samples arrive in task order, so a new id is a new task.
             if (accumulator.lastTaskId != task.id) {
                 accumulator.lastTaskId = task.id
                 accumulator.taskCount++
             }
             if (hotspots.size > HOTSPOT_CAPACITY) {
-                // The rarest hotspot matters least; the one just sampled is never the one dropped,
-                // or a full table could never take in anything new.
                 val weakest = hotspots.entries.filter { it.key != signature }.minBy { it.value.samples }.key
                 hotspots.remove(weakest)
             }
@@ -172,6 +165,8 @@ internal class MainThreadRecorder(
     fun violation(kind: ViolationKind, message: String, stack: List<String>) = lock.withLock {
         val callSite = callSiteOf(stack)
         val key = kind to callSite
+        // LinkedHashMap keeps a replaced key's position; removing and re-adding moves the group to
+        // the end, so the eviction below drops the call site seen least recently.
         val previous = violations.remove(key)
         violations[key] = ViolationGroup(
             kind = kind,
@@ -196,7 +191,6 @@ internal class MainThreadRecorder(
 
     fun reset() = lock.withLock {
         recordingSince = clock.epochMillis()
-        // A task in progress began before the boundary; it must not reappear in the fresh recording.
         running = null
         longTasks.clear()
         hotspots.clear()

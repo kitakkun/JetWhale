@@ -15,7 +15,8 @@ import kotlin.test.assertTrue
 class MainThreadMonitorTest {
     private val client = FakeMainThreadClient(report(hotspots = emptyList(), violations = listOf(violation(ViolationKind.DiskRead, "x")), longTasks = emptyList()))
 
-    // The fake answers without suspending, so every launched call has finished when launch returns.
+    // Unconfined runs a launched call in place and the fake never suspends, so each call has
+    // finished when the action returns.
     private val monitor = MainThreadMonitor(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

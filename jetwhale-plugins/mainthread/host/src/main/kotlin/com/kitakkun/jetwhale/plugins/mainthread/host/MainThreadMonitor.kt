@@ -39,7 +39,6 @@ internal class MainThreadMonitor(
     /** Fetches the report; the screen calls this on a beat while it is shown. */
     suspend fun load() {
         report = client.report()
-        // A stale connection error is no longer true once a report arrives.
         if (status?.isError == true) status = null
     }
 

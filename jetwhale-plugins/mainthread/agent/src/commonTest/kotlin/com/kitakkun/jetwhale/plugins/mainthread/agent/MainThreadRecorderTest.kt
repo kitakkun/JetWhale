@@ -49,17 +49,17 @@ class MainThreadRecorderTest {
             reads++
             appStack
         }
-        clock.advance(60) // 110 ms: past the threshold
+        clock.advance(60)
         recorder.sampleIfDue {
             reads++
             appStack
         }
-        clock.advance(10) // only 10 ms since the last sample
+        clock.advance(10)
         recorder.sampleIfDue {
             reads++
             appStack
         }
-        clock.advance(10) // 20 ms since the last sample
+        clock.advance(10)
         recorder.sampleIfDue {
             reads++
             appStack

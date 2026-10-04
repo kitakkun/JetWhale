@@ -90,7 +90,6 @@ private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFra
         shown.forEach { task ->
             val left = x(task.startEpochMillis).coerceAtLeast(0f)
             val width = (x(task.startEpochMillis + task.durationMillis) - left).coerceAtLeast(2f)
-            // The shortest recorded task still reads as a bar beside a much longer one.
             val height = barArea * (task.durationMillis / longest).coerceAtLeast(MIN_BAR_FRACTION)
             drawRect(
                 color = if (task.unresponsive) unresponsiveColor else taskColor,

@@ -8,7 +8,6 @@ package com.kitakkun.jetwhale.plugins.mainthread.agent
 private val PLATFORM_FRAME_PREFIXES = listOf(
     "android.", "androidx.", "com.android.", "dalvik.", "libcore.", "java.", "javax.", "jdk.", "sun.",
     "kotlin.", "kotlinx.", "okio.", "okhttp3.", "io.ktor.", "org.jetbrains.skiko.", "org.jetbrains.skia.",
-    // JetWhale's own agent code, but not an app that happens to share the namespace (the demo).
     "com.kitakkun.jetwhale.agent.", "com.kitakkun.jetwhale.plugins.", "com.kitakkun.jetwhale.protocol.",
 )
 

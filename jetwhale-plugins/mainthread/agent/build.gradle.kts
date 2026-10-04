@@ -11,15 +11,12 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Gradle substitutes projects that share a group and name for each other, and every plugin has
+// protocol, agent and host modules.
 group = "com.kitakkun.jetwhale.plugins.mainthread"
 
-// The same targets as the other agents. Android and the JVM share their thread and stack code;
-// Apple and web targets report that they cannot watch their main thread yet.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)
@@ -43,12 +40,12 @@ kotlin {
         minSdk = 23
     }
 
-    // JVM and Android share java.lang.Thread stacks and locks. The Android library target is not
-    // matched by withAndroidTarget(), so it is picked by platform type instead.
     applyDefaultHierarchyTemplate {
         common {
             group("jvmCommon") {
                 withJvm()
+                // withAndroidTarget() does not match the Android KMP library target, so it is
+                // matched by platform type.
                 withCompilations { it.platformType == KotlinPlatformType.androidJvm }
             }
         }

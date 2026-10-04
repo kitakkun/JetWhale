@@ -29,7 +29,7 @@ internal fun SettingsPane(settings: MonitorSettings, onApply: (MonitorSettings) 
     var unresponsive by remember(settings) { mutableStateOf(settings.unresponsiveThresholdMillis.toString()) }
     val edited = validSettingsOf(longTask = longTask, interval = interval, unresponsive = unresponsive)
     Column(
-        // fillMaxHeight, not fillMaxSize: a width fixed to the pane would leave widthIn nothing to narrow.
+        // Not fillMaxSize: a width fixed to the pane would leave widthIn nothing to narrow.
         modifier = modifier.fillMaxHeight().padding(JwSpacing.large).widthIn(max = FormWidth),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {

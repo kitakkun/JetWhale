@@ -9,9 +9,6 @@ import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-// Shared by the main thread plugin's MCP command classes (one class per file in this package).
-
-// The tool names are namespaced by the pluginId, so they follow it rather than restating it.
 internal const val TOOL_PREFIX = MAIN_THREAD_PLUGIN_ID
 
 internal val McpJson: Json = Json { encodeDefaults = true }

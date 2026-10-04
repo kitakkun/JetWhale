@@ -23,7 +23,6 @@ actual val platformMainThreadBlockers: List<MainThreadBlocker> = listOf(
         "Slept 400 ms on the main thread."
     },
     MainThreadBlocker("Network call on main (guarded)") {
-        // Android throws for network access on the main thread; the demo shows that rather than crash.
         try {
             (URL("http://127.0.0.1:1/").openConnection() as HttpURLConnection).responseCode.toString()
         } catch (e: NetworkOnMainThreadException) {

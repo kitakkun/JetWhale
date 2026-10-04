@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
 class EventDispatchThreadProbeTest {
     @Test
     fun `a slow event on the dispatch thread is recorded with samples and the queue is put back`() {
-        // Without a display there is no dispatch thread to watch; the probe says so instead.
         if (GraphicsEnvironment.isHeadless()) return
         val recorder = MainThreadRecorder(
             clock = SystemMonitorClock(),

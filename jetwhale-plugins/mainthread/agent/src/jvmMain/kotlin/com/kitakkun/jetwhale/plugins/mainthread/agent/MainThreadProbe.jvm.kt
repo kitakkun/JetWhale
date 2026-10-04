@@ -34,7 +34,7 @@ private class EventDispatchThreadProbe(
     @Volatile private var dispatchThread: Thread? = null
     private var queue: TimingEventQueue? = null
 
-    // Every event the dispatch thread handles passes through the timing queue, so there is no work
+    // Everything the dispatch thread runs passes through the timing queue, so there is no work
     // outside a task for a heartbeat to find.
     private val sampler = StackSampler(recorder, mainThread = { dispatchThread }, onTick = {})
 
@@ -77,6 +77,8 @@ private class EventDispatchThreadProbe(
 
 /** An event by its kind and, for a posted Runnable, the Runnable's class: what posted the work. */
 private fun describe(event: AWTEvent): String = when (event) {
+    // InvocationEvent has no getter for its Runnable; paramString() is the only place it shows.
     is InvocationEvent -> "InvocationEvent " + event.paramString().substringAfter("runnable=", "").substringBefore(',').substringBefore('@').let(::withoutHiddenClassAddress)
+
     else -> "${event.javaClass.simpleName} on ${event.source?.javaClass?.simpleName}"
 }
