@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -87,9 +88,7 @@ class HostInstance private constructor(
 
     private fun answer(connection: Socket) {
         try {
-            connection.soTimeout = 2_000
-            val request = connection.getInputStream().bufferedReader().readLine()
-            val accepted = request == "${HostInstanceRecord.ACTIVATE_REQUEST} $token"
+            val accepted = readRequest(connection) == "${HostInstanceRecord.ACTIVATE_REQUEST} $token"
             connection.getOutputStream().write("${if (accepted) HostInstanceRecord.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
             if (accepted) mutableActivationRequests.tryEmit(Unit)
         } catch (e: IOException) {
@@ -97,6 +96,27 @@ class HostInstance private constructor(
         }
     }
 }
+
+/**
+ * Reads one request line, or null when the client sends more than a request can be or takes longer
+ * than [REQUEST_DEADLINE_NANOS] in all, so no client holds the one thread that answers.
+ */
+private fun readRequest(connection: Socket): String? {
+    val deadline = System.nanoTime() + REQUEST_DEADLINE_NANOS
+    connection.soTimeout = REQUEST_DEADLINE_MILLIS
+    val input = connection.getInputStream()
+    val request = ByteArrayOutputStream()
+    while (request.size() < MAX_REQUEST_BYTES && System.nanoTime() < deadline) {
+        val byte = input.read()
+        if (byte < 0 || byte == '\n'.code) return request.toString(Charsets.UTF_8)
+        request.write(byte)
+    }
+    return null
+}
+
+private const val MAX_REQUEST_BYTES = 128
+private const val REQUEST_DEADLINE_MILLIS = 2_000
+private const val REQUEST_DEADLINE_NANOS = REQUEST_DEADLINE_MILLIS * 1_000_000L
 
 sealed interface HostInstanceClaim {
     data class Claimed(val instance: HostInstance) : HostInstanceClaim

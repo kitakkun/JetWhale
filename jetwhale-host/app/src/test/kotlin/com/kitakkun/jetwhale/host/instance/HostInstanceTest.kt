@@ -69,6 +69,20 @@ class HostInstanceTest {
         assertEquals("denied", answer)
     }
 
+    @Test
+    fun `refuses a request longer than any it takes, and still answers the next`() {
+        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance.publish()
+        val record = assertNotNull(HostInstanceRecord.read(versions))
+
+        val answer = Socket(InetAddress.getLoopbackAddress(), record.port).use { socket ->
+            socket.getOutputStream().write("activate ${"x".repeat(4096)}".toByteArray())
+            socket.getInputStream().bufferedReader().readLine()
+        }
+
+        assertEquals("denied", answer)
+        assertEquals(true, HostInstanceRecord.requestActivation(versions, 2.seconds))
+    }
+
     /** OS file locks as two processes would see them, for two hosts in one test JVM. */
     private class InProcessLocks : LockFiles {
         private val held: MutableSet<Path> = ConcurrentHashMap.newKeySet()
