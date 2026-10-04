@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mainthread.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -51,6 +52,7 @@ internal fun SettingsPane(settings: MonitorSettings, onApply: (MonitorSettings) 
 }
 
 /** The form's values as settings, or null while any of them is not a positive whole number. */
+@VisibleForTesting
 internal fun validSettingsOf(longTask: String, interval: String, unresponsive: String): MonitorSettings? {
     val longTaskMillis = longTask.toLongOrNull()?.takeIf { it > 0 } ?: return null
     val intervalMillis = interval.toLongOrNull()?.takeIf { it > 0 } ?: return null

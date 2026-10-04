@@ -43,6 +43,7 @@ dependencies {
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
+    compileOnly(libs.androidxAnnotation)
     api(projects.jetwhalePlugins.mainthread.protocol)
     "previewImplementation"(projects.jetwhaleHostUi)
     "previewImplementation"(compose.desktop.currentOs)
