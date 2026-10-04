@@ -74,10 +74,10 @@ class HostLauncher(
     }
 
     private fun chooseAndStart(launchLock: LaunchLock): LaunchOutcome {
-        val progress = LaunchProgress(versions.readLauncherState())
+        val progress = LaunchProgress()
         for (candidate in candidates()) {
             val start = when (candidate) {
-                is Candidate.Downloaded -> verify(candidate.installed, progress.state) ?: continue
+                is Candidate.Downloaded -> verify(candidate.installed, versions.readLauncherState()) ?: continue
                 is Candidate.Bundled -> candidate.host.start
             }
             return tryCandidate(start, progress, launchLock) ?: continue
@@ -91,9 +91,8 @@ class HostLauncher(
      * launch ends, or null when it goes on to the next candidate.
      */
     private fun tryCandidate(start: HostStart, progress: LaunchProgress, launchLock: LaunchLock): LaunchOutcome? {
-        val completedBefore = start.name in progress.state.completedStarts
         val first = attempt(start, progress.setAsideThisLaunch, launchLock)
-        val last = if (first.outcome is StartupOutcome.Failed && !completedBefore) {
+        val last = if (first.outcome is StartupOutcome.Failed && !hasCompletedBefore(start, launchLock)) {
             log.write("${start.name} has never completed a start here; starting it once more")
             attempt(start, progress.setAsideThisLaunch, launchLock)
         } else {
@@ -103,8 +102,7 @@ class HostLauncher(
             is StartupOutcome.Completed -> {
                 log.write("${start.name} completed its start")
                 launchLock.ensureHeld()
-                val state = progress.state.copy(completedStarts = progress.state.completedStarts + start.name)
-                versions.writeLauncherState(pruneAfterStart(start, state))
+                recordCompletedStart(start, last.process)
                 LaunchOutcome.Started(start.name, last.process)
             }
 
@@ -113,21 +111,38 @@ class HostLauncher(
                 LaunchOutcome.Neither
             }
 
-            is StartupOutcome.Failed -> {
-                launchLock.ensureHeld()
-                afterFailedStart(start, completedBefore, outcome, progress)
-            }
+            is StartupOutcome.Failed -> afterFailedStart(start, outcome, progress, launchLock)
         }
+    }
+
+    /**
+     * Reads the record under `launch.lock`: while it was released, another launcher may have
+     * recorded a start of this version.
+     */
+    private fun hasCompletedBefore(start: HostStart, launchLock: LaunchLock): Boolean {
+        launchLock.ensureHeld()
+        return start.name in versions.readLauncherState().completedStarts
+    }
+
+    /**
+     * Records the start on what is on disk now, which another launcher may have changed while
+     * `launch.lock` was released. Pruning keeps what the running version needs, so it is skipped
+     * once that host has ended: another launch may run another version by now.
+     */
+    private fun recordCompletedStart(start: HostStart, process: HostProcess) {
+        val state = versions.readLauncherState()
+        val recorded = state.copy(completedStarts = state.completedStarts + start.name)
+        versions.writeLauncherState(if (process.exitStatus() == null) pruneAfterStart(start, recorded) else recorded)
     }
 
     private fun afterFailedStart(
         start: HostStart,
-        completedBefore: Boolean,
         failure: StartupOutcome.Failed,
         progress: LaunchProgress,
+        launchLock: LaunchLock,
     ): LaunchOutcome? {
         when {
-            completedBefore -> {
+            hasCompletedBefore(start, launchLock) -> {
                 log.write("${start.name} has completed a start before, so it is not set aside; its crash recovery takes over")
                 return LaunchOutcome.Crashed(start.name, failure.exitStatus)
             }
@@ -136,8 +151,8 @@ class HostLauncher(
 
             else -> {
                 log.write("Setting ${start.name} aside")
-                progress.state = progress.state.copy(setAside = progress.state.setAside + start.name)
-                versions.writeLauncherState(progress.state)
+                val state = versions.readLauncherState()
+                versions.writeLauncherState(state.copy(setAside = state.setAside + start.name))
                 progress.setAsideThisLaunch = progress.setAsideThisLaunch ?: start.name
             }
         }
@@ -197,6 +212,7 @@ class HostLauncher(
 
     private fun attempt(start: HostStart, setAside: String?, launchLock: LaunchLock): HostAttempt {
         launchLock.ensureHeld()
+        if (!isInstanceHeldElsewhere()) versions.deleteInstanceRecord()
         log.write("Starting ${start.name}${if (start.isBundled) " (bundled)" else ""}")
         val process = hostProcesses.start(start, setAside)
         var published = false
@@ -262,8 +278,7 @@ class HostLauncher(
 
     private class HostAttempt(val process: HostProcess, val outcome: StartupOutcome)
 
-    /** What one launch has recorded so far. */
-    private class LaunchProgress(var state: LauncherState) {
+    private class LaunchProgress {
         /** The first version this launch set aside, which the host it starts next names. */
         var setAsideThisLaunch: String? = null
     }

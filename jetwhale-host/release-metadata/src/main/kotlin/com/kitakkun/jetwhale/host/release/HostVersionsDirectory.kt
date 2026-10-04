@@ -92,6 +92,14 @@ class HostVersionsDirectory(val root: Path) {
         false
     }
 
+    /**
+     * Deletes the instance record a host left behind when it ended. A later host can get the same
+     * process ID, and the old record would then pass for its own.
+     */
+    fun deleteInstanceRecord() {
+        Files.deleteIfExists(instanceRecord)
+    }
+
     /** Whether [file] resolves, through any links, to a place inside this directory. */
     fun contains(file: Path): Boolean = try {
         file.toRealPath().startsWith(root.toRealPath())

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HeldLock
+import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.InstalledHostVersion
@@ -30,7 +31,7 @@ class HostLauncherTest {
     private val versions = HostVersionsDirectory(appData.resolve("host"))
     private val bundledDirectory = appData.resolve("package/host")
     private val locks = FakeLocks()
-    private val runningHost = FakeRunningHost(answers = true)
+    private val runningHost = FakeRunningHost(versions, answers = true)
     private val processes = FakeHostProcesses(locks, versions.instanceLock, runningHost)
     private val logLines = CopyOnWriteArrayList<String>()
     private val waitedFor = CopyOnWriteArrayList<Long>()
@@ -286,7 +287,7 @@ class HostLauncherTest {
     fun `reports a running host that does not answer`() {
         locks.lock(versions.instanceLock)
 
-        val outcome = launcher(runningHost = FakeRunningHost(answers = false)).launch(afterPid = null, retryVersion = null)
+        val outcome = launcher(runningHost = FakeRunningHost(versions, answers = false)).launch(afterPid = null, retryVersion = null)
 
         assertEquals(LaunchOutcome.RunningHostUnreachable, outcome)
         assertTrue(processes.starts.isEmpty())
@@ -360,6 +361,60 @@ class HostLauncherTest {
         launcher(locks = recordingLaunchLock(launchLockEvents)).launch(afterPid = null, retryVersion = null)
 
         assertEquals(listOf("lock", "release", "lock", "release"), launchLockEvents)
+    }
+
+    @Test
+    fun `keeps a change another launcher made to the record while this one let go of the lock`() {
+        download("1.0.0-alpha15")
+        download("1.0.0-alpha16")
+        versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = setOf("1.0.0-alpha16")))
+        processes.whenPublished("1.0.0-alpha15") {
+            versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = emptySet()))
+        }
+
+        launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals(LauncherState(completedStarts = setOf("1.0.0-alpha15"), setAside = emptySet()), versions.readLauncherState())
+    }
+
+    @Test
+    fun `does not set aside a version another launcher recorded as completed while this one let go of the lock`() {
+        download("1.0.0-alpha15")
+        processes.script("1.0.0-alpha15", FakeHostBehavior.ExitsAfterPublishing(1))
+        processes.whenPublished("1.0.0-alpha15") {
+            versions.writeLauncherState(LauncherState(completedStarts = setOf("1.0.0-alpha15"), setAside = emptySet()))
+        }
+
+        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals(LaunchOutcome.Crashed("1.0.0-alpha15", exitStatus = 1), outcome)
+        assertEquals(1, processes.starts.size)
+        assertEquals(emptySet(), versions.readLauncherState().setAside)
+    }
+
+    @Test
+    fun `records a start but prunes nothing once that host has ended`() {
+        download("1.0.0-alpha14")
+        download("1.0.0-alpha15")
+        processes.script("1.0.0-alpha15", FakeHostBehavior.EndsRightAfterTheWindow(runningPolls = 151))
+
+        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals("1.0.0-alpha15", assertIs<LaunchOutcome.Started>(outcome).version)
+        assertEquals(setOf("1.0.0-alpha15"), versions.readLauncherState().completedStarts)
+        assertTrue(versionDirectory("1.0.0-alpha14").exists())
+    }
+
+    @Test
+    fun `does not take a record an earlier host left behind for the new host's`() {
+        download("1.0.0-alpha15")
+        HostInstanceRecord.publish(versions, HostInstanceRecord(port = 0, pid = processes.nextPid, token = "stale"))
+        processes.script("1.0.0-alpha15", FakeHostBehavior.ExitsBeforePublishing(0), FakeHostBehavior.ExitsBeforePublishing(0))
+
+        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals("1.0.0-alpha13", assertIs<LaunchOutcome.Started>(outcome).version)
+        assertEquals(setOf("1.0.0-alpha15"), versions.readLauncherState().setAside)
     }
 
     private fun recordingLaunchLock(events: MutableList<String>) = object : LockFiles by locks {

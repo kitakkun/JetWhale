@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HeldLock
+import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
+import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.hostJarName
@@ -84,6 +86,9 @@ sealed interface FakeHostBehavior {
 
     /** Finds the instance taken by another host as it starts, and exits normally without publishing. */
     data object LosesTheInstance : FakeHostBehavior
+
+    /** Publishes its record and reports running for [runningPolls] polls, then reports an exit. */
+    data class EndsRightAfterTheWindow(val runningPolls: Int) : FakeHostBehavior
 }
 
 class FakeHostProcesses(
@@ -93,6 +98,18 @@ class FakeHostProcesses(
 ) : HostProcesses {
     private val pids = AtomicLong(1000)
     private val scripts = ConcurrentHashMap<String, MutableList<FakeHostBehavior>>()
+    private val afterPublishing = ConcurrentHashMap<String, () -> Unit>()
+
+    /** The process ID the next start gets. */
+    val nextPid: Long get() = pids.get() + 1
+
+    /**
+     * Runs [action] once [version]'s host has published its record, while the launcher has let go
+     * of `launch.lock`: what another launcher could do in between.
+     */
+    fun whenPublished(version: String, action: () -> Unit) {
+        afterPublishing[version] = action
+    }
 
     /** Every start, as the version name and the set-aside version it was told about. */
     val starts: List<Pair<String, String?>> get() = recordedStarts
@@ -112,6 +129,7 @@ class FakeHostProcesses(
             is FakeHostBehavior.Runs -> {
                 checkNotNull(locks.tryLock(instanceLock)) { "a started host found the instance taken" }
                 runningHost.publish(pid)
+                afterPublishing[start.name]?.invoke()
                 FakeHostProcess(pid, null)
             }
 
@@ -119,7 +137,14 @@ class FakeHostProcesses(
 
             is FakeHostBehavior.ExitsAfterPublishing -> {
                 runningHost.publish(pid)
+                afterPublishing[start.name]?.invoke()
                 FakeHostProcess(pid, behavior.status)
+            }
+
+            is FakeHostBehavior.EndsRightAfterTheWindow -> {
+                checkNotNull(locks.tryLock(instanceLock)) { "a started host found the instance taken" }
+                runningHost.publish(pid)
+                EndingHostProcess(pid, runningPolls = behavior.runningPolls)
             }
 
             is FakeHostBehavior.LosesTheInstance -> {
@@ -130,22 +155,37 @@ class FakeHostProcesses(
     }
 }
 
+/** Reports running for [runningPolls] polls, then status 0. */
+class EndingHostProcess(override val pid: Long, private val runningPolls: Int) : HostProcess {
+    private var polls = 0
+
+    override fun exitStatus(): Int? = if (polls++ < runningPolls) null else 0
+
+    override fun waitForExit(): Int = 0
+}
+
 class FakeHostProcess(override val pid: Long, private val exitStatus: Int?) : HostProcess {
     override fun exitStatus(): Int? = exitStatus
 
     override fun waitForExit(): Int = exitStatus ?: 0
 }
 
-class FakeRunningHost(private val answers: Boolean) : RunningHostChannel {
-    private val published: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+/**
+ * Publication goes through the real `instance.json`, as a host's would; a request to come forward
+ * only counts and answers.
+ */
+class FakeRunningHost(
+    private val versions: HostVersionsDirectory,
+    private val answers: Boolean,
+) : RunningHostChannel {
     var activationRequests = 0
         private set
 
     fun publish(pid: Long) {
-        published += pid
+        HostInstanceRecord.publish(versions, HostInstanceRecord(port = 0, pid = pid, token = "token"))
     }
 
-    override fun isPublishedBy(pid: Long): Boolean = pid in published
+    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(versions)?.pid == pid
 
     override fun requestActivation(): Boolean {
         activationRequests++
