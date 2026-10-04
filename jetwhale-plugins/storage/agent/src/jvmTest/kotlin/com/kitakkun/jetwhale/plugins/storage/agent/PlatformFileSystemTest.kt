@@ -130,6 +130,13 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a link that loops does not fail the listing of its directory`() {
+        Files.createSymbolicLink(File(directory, "loop").toPath(), File("loop").toPath())
+
+        assertEquals(listOf("loop"), listDirectoryEntries(directory.path).map(FileEntry::name))
+    }
+
+    @Test
     fun `measuring counts everything below and does not follow links`() {
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "big.bin").writeBytes(ByteArray(1000))

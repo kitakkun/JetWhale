@@ -34,9 +34,10 @@ internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
 internal expect fun createdEpochMillis(file: File): Long?
 
 /**
- * [file] as an absolute path with every symbolic link in it resolved. A path that does not exist
- * comes back in its canonical form instead, which on Windows before JDK 24 can still go through a
- * link, so only an existing path's result shows where it really leads.
+ * [file] as an absolute path with every symbolic link in it resolved. A path that cannot be
+ * resolved, because it does not exist or a link in it loops or leads where the app may not look,
+ * comes back in its canonical form instead; on Windows before JDK 24 that form can still go through
+ * a link, so only a resolvable path's result shows where it really leads.
  */
 internal expect fun resolvedFile(file: File): File
 

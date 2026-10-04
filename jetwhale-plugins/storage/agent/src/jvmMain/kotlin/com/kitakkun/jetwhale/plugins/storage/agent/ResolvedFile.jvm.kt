@@ -7,5 +7,7 @@ import java.io.IOException
 internal actual fun resolvedFile(file: File): File = try {
     file.toPath().toRealPath().toFile()
 } catch (_: IOException) {
+    // toRealPath fails not only for a missing path but also for a link that loops or leads into a
+    // directory the app cannot search.
     file.canonicalFile
 }
