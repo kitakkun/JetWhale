@@ -41,7 +41,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class, InternalComposeUiApi::class)
 class PluginScreenRootTest {
     @Test
-    fun `a click the plugin throws on shows its crash screen until Reload`() = runComposeUiTest {
+    fun `a plugin click handler that throws shows the crash screen until Reload`() = runComposeUiTest {
         showPluginScreenRoot(MutableStateFlow(PluginScreenState.Ready(throwingOnClickScene())))
 
         onRoot().performMouseInput { click(center) }
