@@ -19,13 +19,20 @@ import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -42,7 +49,7 @@ import kotlin.test.assertTrue
  * A plugin screen follows one state, published by the service that owns the plugin's instance and
  * the scene composing it, so the scene can never outlive the instance it belongs to.
  */
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, ExperimentalCoroutinesApi::class)
 class DefaultPluginInstanceServiceScreenStateTest {
     private val pluginId = "com.example.plugin"
     private val sessionId = "session-1"
@@ -125,6 +132,23 @@ class DefaultPluginInstanceServiceScreenStateTest {
 
         awaitClosed(scene)
         assertNull(service.getOrCreatePluginScene(pluginId, sessionId))
+    }
+
+    @Test
+    fun `a scene request that reaches the main thread after its instance is unloaded gets no scene`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val service = serviceWith(factoryOf { UiPlugin() })
+            service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+            val requested = async(start = CoroutineStart.UNDISPATCHED) { service.getOrCreatePluginScene(pluginId, sessionId) }
+
+            service.unloadPluginInstanceForSession(sessionId)
+
+            assertNull(requested.await())
+            assertTrue(sceneFactory.created.isEmpty())
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

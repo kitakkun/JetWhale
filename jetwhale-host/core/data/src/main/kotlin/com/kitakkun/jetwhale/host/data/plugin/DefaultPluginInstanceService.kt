@@ -172,9 +172,10 @@ class DefaultPluginInstanceService(
         }
 
     @OptIn(InternalComposeUiApi::class)
-    override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? {
-        val sceneSlot = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.sceneSlot ?: return null
-        return withContext(Dispatchers.Main) { sceneSlot.getOrCreate() }
+    override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene? = withContext(Dispatchers.Main) {
+        // Looked up on the main thread, where slots are closed: a slot leaves the map before its
+        // close is queued, so the one found here is still open.
+        loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.sceneSlot?.getOrCreate()
     }
 
     override fun recreatePluginScenes(pluginId: String) {
