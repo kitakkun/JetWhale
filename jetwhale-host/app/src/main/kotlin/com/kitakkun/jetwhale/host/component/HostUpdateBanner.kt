@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
+import com.kitakkun.jetwhale.host.host_restart_failed_banner
 import com.kitakkun.jetwhale.host.host_set_aside_banner
 import com.kitakkun.jetwhale.host.host_set_aside_try_again
 import com.kitakkun.jetwhale.host.host_set_aside_view_log
@@ -74,6 +75,12 @@ fun HostSetAsideBanner(
     )
 }
 
+/** Says that *Restart to update* or *Try again* could not restart the host, and how to restart it by hand. */
+@Composable
+fun HostRestartFailedBanner(modifier: Modifier = Modifier) {
+    JwBanner(text = stringResource(Res.string.host_restart_failed_banner), modifier = modifier, tone = JwTone.Error)
+}
+
 @Preview
 @Composable
 private fun HostUpdateBannerPreview() {
@@ -99,5 +106,13 @@ private fun HostSetAsideBannerPreview() {
             onClickTryAgain = {},
             onDismiss = {},
         )
+    }
+}
+
+@Preview
+@Composable
+private fun HostRestartFailedBannerPreview() {
+    JwTheme(darkTheme = false) {
+        HostRestartFailedBanner()
     }
 }

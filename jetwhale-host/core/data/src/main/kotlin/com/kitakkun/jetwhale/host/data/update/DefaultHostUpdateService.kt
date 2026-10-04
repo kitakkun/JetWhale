@@ -93,6 +93,7 @@ class DefaultHostUpdateService(
             HostUpdateState(
                 status = if (hostLaunch is HostLaunch.ByLauncher) HostUpdateStatus.NotChecked else HostUpdateStatus.NotManaged,
                 setAside = versions.setAsideVersion(),
+                restartFailed = false,
             ),
         )
 
@@ -112,7 +113,7 @@ class DefaultHostUpdateService(
             }
             logger.info("Host update check: {}", status)
         } finally {
-            stateFlow.update { HostUpdateState(status = status, setAside = versions.setAsideVersion()) }
+            stateFlow.update { it.copy(status = status, setAside = versions.setAsideVersion()) }
         }
     }
 
@@ -127,12 +128,23 @@ class DefaultHostUpdateService(
     }
 
     override fun startLauncherAfterExit(retryVersion: String?): Boolean {
-        val command = launcherCommand(retryVersion) ?: return false
+        val command = launcherCommand(retryVersion)
+        if (command == null) {
+            logger.warn("Cannot restart: the launcher that started this host did not give its own path")
+            stateFlow.update { it.copy(restartFailed = true) }
+            return false
+        }
         logger.info("Starting the launcher to run after this host: {}", command)
-        ProcessBuilder(command)
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD)
-            .start()
+        try {
+            ProcessBuilder(command)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
+        } catch (e: IOException) {
+            logger.warn("Cannot restart: the launcher {} did not start", command.first(), e)
+            stateFlow.update { it.copy(restartFailed = true) }
+            return false
+        }
         return true
     }
 
@@ -249,7 +261,7 @@ class DefaultHostUpdateService(
             }
         } finally {
             versions.discardStaging()
-            stateFlow.update { HostUpdateState(status = status, setAside = versions.setAsideVersion()) }
+            stateFlow.update { it.copy(status = status, setAside = versions.setAsideVersion()) }
         }
     }
 

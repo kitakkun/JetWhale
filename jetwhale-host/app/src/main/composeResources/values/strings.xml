@@ -4,6 +4,7 @@
     <string name="host_update_banner_ready">JetWhale %1$s is installed and starts next time</string>
     <string name="host_update_banner_open_settings">View in Settings</string>
     <string name="host_update_banner_restart">Restart to Update</string>
+    <string name="host_restart_failed_banner">JetWhale could not restart itself. Quit it and open JetWhale Debugger again.</string>
     <string name="host_set_aside_banner">JetWhale %1$s failed to start, so %2$s is running</string>
     <string name="host_set_aside_view_log">View Log</string>
     <string name="host_set_aside_try_again">Try Again</string>

@@ -25,6 +25,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.component.HostRestartFailedBanner
 import com.kitakkun.jetwhale.host.component.HostSetAsideBanner
 import com.kitakkun.jetwhale.host.component.HostUpdateBanner
 import com.kitakkun.jetwhale.host.component.PluginJarArrivalBanner
@@ -273,8 +274,9 @@ private fun HostWindowContent(
 }
 
 /**
- * The startup notices of the update system: the version this launch set aside, and a newer version
- * the startup check found. Each goes away for the session once dismissed.
+ * The notices of the update system: the version this launch set aside, a restart that could not
+ * happen, and a newer version a check found. The first and the last go away for the session once
+ * dismissed.
  */
 @Composable
 context(appGraph: JetWhaleAppGraph)
@@ -299,6 +301,9 @@ private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
                 onDismiss = { isSetAsideBannerDismissed = true },
             )
         }
+    }
+    AnimatedVisibility(visible = updateState?.restartFailed == true) {
+        HostRestartFailedBanner()
     }
     val newerVersion = when (status) {
         is HostUpdateStatus.Available -> status.version

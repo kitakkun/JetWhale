@@ -5,10 +5,13 @@ import java.nio.file.Path
 /**
  * @property setAside An installed version the launcher set aside after it failed its first starts.
  * It is offered as *Try again*, never downloaded again.
+ * @property restartFailed *Restart to update* or *Try again* could not start the launcher, so this
+ * host kept running.
  */
 data class HostUpdateState(
     val status: HostUpdateStatus,
     val setAside: SetAsideHostVersion?,
+    val restartFailed: Boolean,
 )
 
 /** @property log The output of the version's last start, which shows why it failed. */

@@ -19,7 +19,8 @@ interface HostUpdateService {
 
     /**
      * Starts the launcher to choose a version once this process has ended. When it returns true, the
-     * caller shuts the host down; false means no launcher can be started, and the host stays.
+     * caller shuts the host down; false means no launcher could be started, the host stays, and
+     * [HostUpdateState.restartFailed] says so.
      *
      * @param retryVersion A set-aside version for the launcher to try again.
      */

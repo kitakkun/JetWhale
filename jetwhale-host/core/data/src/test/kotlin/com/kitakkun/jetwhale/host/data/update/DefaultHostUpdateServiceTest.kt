@@ -115,7 +115,7 @@ class DefaultHostUpdateServiceTest {
         service.check()
 
         assertEquals(
-            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion("1.0.0-alpha14", versions.hostLog("1.0.0-alpha14"))),
+            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion("1.0.0-alpha14", versions.hostLog("1.0.0-alpha14")), restartFailed = false),
             service.stateFlow.value,
         )
     }
@@ -372,6 +372,24 @@ class DefaultHostUpdateServiceTest {
         )
         assertEquals(null, service(hostLaunch = launch.copy(launcherExecutable = null)).launcherCommand(retryVersion = null))
         assertEquals(null, service(hostLaunch = HostLaunch.Standalone).launcherCommand(retryVersion = null))
+    }
+
+    @Test
+    fun `says so when the launcher to restart through cannot be started`() {
+        val launch = HostLaunch.ByLauncher(
+            launcherContract = 1,
+            launcherExecutable = hostDirectory.resolve("moved launcher").toString(),
+            hostDirectory = hostDirectory,
+            setAsideVersion = null,
+            arguments = emptyList(),
+        )
+
+        listOf(launch, launch.copy(launcherExecutable = null)).forEach {
+            val service = service(hostLaunch = it)
+
+            assertFalse(service.startLauncherAfterExit(retryVersion = null), "$it")
+            assertTrue(service.stateFlow.value.restartFailed, "$it")
+        }
     }
 
     private fun assertStagingEmpty() {
