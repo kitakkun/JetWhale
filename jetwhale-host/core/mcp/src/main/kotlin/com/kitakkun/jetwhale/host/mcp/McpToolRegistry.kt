@@ -28,8 +28,8 @@ import kotlinx.serialization.json.put
 class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
 
     /**
-     * Maps a tool name to its descriptor and the set of (sessionId → pluginId) pairs
-     * that currently have the tool active.
+     * Maps a tool name to the descriptor of its most recently registered instance and the set of
+     * (sessionId → pluginId) pairs that currently have the tool active.
      *
      * Readers take no lock: every change builds a new map and swaps it in with one write, so a
      * reader sees the tools from before a change or after it, never a plugin halfway through being
@@ -149,8 +149,8 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         commands: List<JetWhaleMcpCommand>,
     ): Map<String, PluginToolEntry> = toMutableMap().apply {
         commands.forEach { command ->
-            val entry = get(command.name) ?: PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = emptyMap())
-            put(command.name, entry.copy(sessionToPlugin = entry.sessionToPlugin + (sessionId to pluginId)))
+            val owners = get(command.name)?.sessionToPlugin.orEmpty()
+            put(command.name, PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = owners + (sessionId to pluginId)))
         }
     }
 

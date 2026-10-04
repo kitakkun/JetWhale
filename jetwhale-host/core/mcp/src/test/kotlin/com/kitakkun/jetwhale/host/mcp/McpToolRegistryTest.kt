@@ -80,6 +80,17 @@ class McpToolRegistryTest {
     }
 
     @Test
+    fun `a replacement's tool description is advertised while another session still offers the tool`() {
+        registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
+        registry.register("com.example.a", "session-2", FakeTooledPlugin("a.greet"))
+
+        registry.replace("com.example.a", "session-1", RevisedToolPlugin("a.greet", "Revised greeting"))
+
+        assertEquals("Revised greeting", registry.allRegistrations().single().second.description)
+        assertEquals("com.example.a", registry.pluginIdFor("a.greet", "session-2"))
+    }
+
+    @Test
     fun `a plugin declaring no MCP commands is not reported as capable`() {
         registry.register("com.example.empty", "session-1", FakeTooledPlugin())
 
@@ -150,6 +161,20 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
     JetWhaleMcpCapablePlugin {
 
     override val mcpCommands: List<JetWhaleMcpCommand> = toolNames.map(::fakeCommand)
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class RevisedToolPlugin(toolName: String, toolDescription: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = toolDescription
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = "ok"
+        },
+    )
 }
 
 /** Holds whoever reads [mcpCommands] until [released], after telling [read] that it got there. */
