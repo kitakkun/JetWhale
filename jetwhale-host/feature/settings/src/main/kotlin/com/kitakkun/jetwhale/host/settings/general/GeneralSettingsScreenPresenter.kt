@@ -13,7 +13,6 @@ context(presenterContext: SettingsPresenterContext)
 fun generalSettingsScreenPresenter(
     screenChannel: ScreenChannel<GeneralSettingsScreenAction, Nothing>,
     automaticallyWireADBTransport: Boolean,
-    checkForUpdatesOnStartup: Boolean,
     followAiOperationEnabled: Boolean,
     appearanceSettings: AppearanceSettings,
     diagnostics: DebuggingToolsDiagnostics,
@@ -21,9 +20,6 @@ fun generalSettingsScreenPresenter(
     val appLanguageMutation = rememberMutation(presenterContext.appLanguageMutationKey)
     val appColorSchemeMutation = rememberMutation(presenterContext.appColorSchemeMutationKey)
     val adbAutoPortMappingMutation = rememberMutation(presenterContext.adbAutoPortMappingMutationKey)
-    val updateCheckMutation = rememberMutation(presenterContext.updateCheckMutationKey)
-    val updateInstallMutation = rememberMutation(presenterContext.updateInstallMutationKey)
-    val checkForUpdatesOnStartupMutation = rememberMutation(presenterContext.checkForUpdatesOnStartupMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
 
     ActionEffect(screenChannel) { action ->
@@ -40,18 +36,6 @@ fun generalSettingsScreenPresenter(
                 appColorSchemeMutation.mutateAsync(action.colorSchemeId)
             }
 
-            is GeneralSettingsScreenAction.CheckForUpdates -> {
-                updateCheckMutation.mutateAsync(Unit)
-            }
-
-            is GeneralSettingsScreenAction.InstallUpdate -> {
-                updateInstallMutation.mutateAsync(Unit)
-            }
-
-            is GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup -> {
-                checkForUpdatesOnStartupMutation.mutateAsync(action.enabled)
-            }
-
             is GeneralSettingsScreenAction.ChangeFollowAiOperation -> {
                 followAiOperationMutation.mutateAsync(action.enabled)
             }
@@ -66,10 +50,6 @@ fun generalSettingsScreenPresenter(
         appDataPath = diagnostics.appDataPath,
         adbPath = diagnostics.adbPath,
         currentVersion = presenterContext.hostVersionInfo.version,
-        checkForUpdatesOnStartup = checkForUpdatesOnStartup,
         followAiOperation = followAiOperationEnabled,
-        isCheckingForUpdates = updateCheckMutation.isPending,
-        updateCheckResult = updateCheckMutation.data,
-        updateCheckError = updateCheckMutation.error?.message,
     )
 }

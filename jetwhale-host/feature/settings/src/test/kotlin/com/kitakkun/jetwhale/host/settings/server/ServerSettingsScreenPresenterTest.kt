@@ -9,7 +9,6 @@ import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
-import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
@@ -146,7 +145,6 @@ class ServerSettingsScreenPresenterTest {
 
 private val storedSettings = DebuggerBehaviorSettings(
     adbAutoPortMappingEnabled = true,
-    checkForUpdatesOnStartup = true,
     persistData = false,
     serverPort = 5080,
     mcpServerPort = 7080,
@@ -262,11 +260,6 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},
-    updateCheckMutationKey = unexercised("update_check"),
-    updateInstallMutationKey = noop("update_install"),
-    checkForUpdatesOnStartupMutationKey = object :
-        CheckForUpdatesOnStartupMutationKey,
-        MutationKey<Unit, Boolean> by noop("check_for_updates_on_startup") {},
     followAiOperationMutationKey = object :
         FollowAiOperationMutationKey,
         MutationKey<Unit, Boolean> by noop("follow_ai_operation") {},

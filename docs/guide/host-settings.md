@@ -33,17 +33,10 @@ Everything about *this install* of the host.
 
 **Maintenance**
 
+- **Current Version** — the running host version.
 - **Application Data Directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
   shortcut to open it in your file manager.
 - **View Application Logs** — opens the built-in [log viewer](/guide/host-window#the-log-viewer).
-
-**Updates**
-
-- **Current Version** — the running host version.
-- **Check for updates on startup (notify only)** — toggle the automatic check. Updates are never
-  applied automatically.
-- **Check for Updates** — check immediately. When one is found you can **Install and Relaunch** (on
-  the platforms that support in-app updates) or **Open Download Page**.
 
 ## Connection
 

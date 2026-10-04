@@ -147,7 +147,6 @@ Every argument is optional; only the ones you supply are touched.
 | `wssEnabled` | boolean | Whether the wss connector is exposed at all. |
 | `mcpServerPort` | integer | This server's port. Persisted only — see the warning below. |
 | `adbAutoPortMappingEnabled` | boolean | [ADB auto port mapping](/guide/adb-auto-port-mapping). |
-| `checkForUpdatesOnStartup` | boolean | The startup update check. |
 | `persistData` | boolean | Whether captured debug data survives a host restart. |
 | `restartDebugServer` | boolean | Whether to restart the debug server now. Defaults to `true` when any of `serverPort`, `wssPort`, `wssEnabled` or `adbAutoPortMappingEnabled` changed. |
 

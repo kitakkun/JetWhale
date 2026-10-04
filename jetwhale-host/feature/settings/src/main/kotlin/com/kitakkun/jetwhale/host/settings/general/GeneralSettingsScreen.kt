@@ -1,14 +1,9 @@
 package com.kitakkun.jetwhale.host.settings.general
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,14 +13,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
-import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
@@ -35,9 +28,6 @@ import com.kitakkun.jetwhale.host.settings.adb_unavailable
 import com.kitakkun.jetwhale.host.settings.appearance
 import com.kitakkun.jetwhale.host.settings.application_data_directory
 import com.kitakkun.jetwhale.host.settings.automatically_wire_adb_transport
-import com.kitakkun.jetwhale.host.settings.check_for_updates
-import com.kitakkun.jetwhale.host.settings.check_for_updates_on_startup
-import com.kitakkun.jetwhale.host.settings.checking_for_updates
 import com.kitakkun.jetwhale.host.settings.component.DropdownSettingsItemView
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SettingsItemRow
@@ -46,28 +36,18 @@ import com.kitakkun.jetwhale.host.settings.current_version
 import com.kitakkun.jetwhale.host.settings.follow_ai_operation
 import com.kitakkun.jetwhale.host.settings.follow_ai_operation_description
 import com.kitakkun.jetwhale.host.settings.health_check
-import com.kitakkun.jetwhale.host.settings.install_update
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
-import com.kitakkun.jetwhale.host.settings.open_download_page
 import com.kitakkun.jetwhale.host.settings.settings_page_ai_activity
 import com.kitakkun.jetwhale.host.settings.theme_option
-import com.kitakkun.jetwhale.host.settings.update_available
-import com.kitakkun.jetwhale.host.settings.update_available_hint
-import com.kitakkun.jetwhale.host.settings.update_check_failed
-import com.kitakkun.jetwhale.host.settings.update_up_to_date
-import com.kitakkun.jetwhale.host.settings.updates
 import com.kitakkun.jetwhale.host.settings.view_application_logs
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
-import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
-import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -80,11 +60,7 @@ fun GeneralSettingsScreen(
     onSelectColorScheme: (JetWhaleColorSchemeId) -> Unit,
     onClickOpenAppDataPath: () -> Unit,
     onClickOpenLogViewer: () -> Unit,
-    onClickCheckForUpdates: () -> Unit,
-    onCheckForUpdatesOnStartupChange: (Boolean) -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
-    onClickInstallUpdate: () -> Unit,
-    onClickOpenDownloadPage: (url: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -122,24 +98,10 @@ fun GeneralSettingsScreen(
         if (page == SettingsScreenPage.Application) {
             item {
                 MaintenanceSection(
+                    currentVersion = uiState.currentVersion,
                     appDataPath = uiState.appDataPath,
                     onClickOpenAppDataPath = onClickOpenAppDataPath,
                     onClickOpenLogViewer = onClickOpenLogViewer,
-                )
-            }
-        }
-        if (page == SettingsScreenPage.Application) {
-            item {
-                UpdatesSection(
-                    currentVersion = uiState.currentVersion,
-                    checkForUpdatesOnStartup = uiState.checkForUpdatesOnStartup,
-                    isCheckingForUpdates = uiState.isCheckingForUpdates,
-                    updateCheckResult = uiState.updateCheckResult,
-                    updateCheckError = uiState.updateCheckError,
-                    onCheckForUpdatesOnStartupChange = onCheckForUpdatesOnStartupChange,
-                    onClickCheckForUpdates = onClickCheckForUpdates,
-                    onClickInstallUpdate = onClickInstallUpdate,
-                    onClickOpenDownloadPage = onClickOpenDownloadPage,
                 )
             }
         }
@@ -222,6 +184,7 @@ private fun AiActivitySection(
 
 @Composable
 private fun MaintenanceSection(
+    currentVersion: String,
     appDataPath: String,
     onClickOpenAppDataPath: () -> Unit,
     onClickOpenLogViewer: () -> Unit,
@@ -231,6 +194,12 @@ private fun MaintenanceSection(
         label = stringResource(Res.string.maintenance),
         modifier = modifier,
     ) {
+        SettingsItemRow(stringResource(Res.string.current_version)) {
+            JwText(
+                text = currentVersion,
+                style = JwTheme.textStyles.code,
+            )
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -261,50 +230,6 @@ private fun MaintenanceSection(
 }
 
 @Composable
-private fun UpdatesSection(
-    currentVersion: String,
-    checkForUpdatesOnStartup: Boolean,
-    isCheckingForUpdates: Boolean,
-    updateCheckResult: UpdateCheckResult?,
-    updateCheckError: String?,
-    onCheckForUpdatesOnStartupChange: (Boolean) -> Unit,
-    onClickCheckForUpdates: () -> Unit,
-    onClickInstallUpdate: () -> Unit,
-    onClickOpenDownloadPage: (url: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SettingOptionView(
-        label = stringResource(Res.string.updates),
-        modifier = modifier,
-    ) {
-        SettingsItemRow(stringResource(Res.string.current_version)) {
-            JwText(
-                text = currentVersion,
-                style = JwTheme.textStyles.code,
-            )
-        }
-        SwitchSettingsItemView(
-            label = stringResource(Res.string.check_for_updates_on_startup),
-            isChecked = checkForUpdatesOnStartup,
-            onCheckedChange = onCheckForUpdatesOnStartupChange,
-        )
-        UpdateCheckStatusView(
-            isChecking = isCheckingForUpdates,
-            result = updateCheckResult,
-            error = updateCheckError,
-            onClickInstallUpdate = onClickInstallUpdate,
-            onClickOpenDownloadPage = onClickOpenDownloadPage,
-        )
-        JwButton(
-            text = stringResource(Res.string.check_for_updates),
-            onClick = onClickCheckForUpdates,
-            enabled = !isCheckingForUpdates,
-            style = JwButtonStyle.Primary,
-        )
-    }
-}
-
-@Composable
 private fun AdbHealthCheckSection(
     adbPath: String,
     modifier: Modifier = Modifier,
@@ -327,88 +252,6 @@ private fun AdbHealthCheckSection(
     }
 }
 
-@Composable
-private fun UpdateCheckStatusView(
-    isChecking: Boolean,
-    result: UpdateCheckResult?,
-    error: String?,
-    onClickInstallUpdate: () -> Unit,
-    onClickOpenDownloadPage: (url: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        when {
-            isChecking -> {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    JwProgressIndicator()
-                    JwText(stringResource(Res.string.checking_for_updates))
-                }
-            }
-
-            error != null -> {
-                JwText(
-                    text = stringResource(Res.string.update_check_failed, error),
-                    color = JwTheme.colors.error,
-                )
-            }
-
-            result == null -> Unit
-
-            result.updateAvailable -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(JwTone.Info.containerColor, JwShapes.small)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CompositionLocalProvider(LocalJwContentColor provides JwTone.Info.onContainerColor) {
-                        JwText(
-                            text = stringResource(Res.string.update_available, result.latestVersion),
-                            style = JwTheme.textStyles.subtitle,
-                        )
-                        JwText(
-                            text = stringResource(Res.string.update_available_hint),
-                            style = JwTheme.textStyles.bodySmall,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (result.canInstallInApp) {
-                                JwButton(
-                                    text = stringResource(Res.string.install_update),
-                                    onClick = onClickInstallUpdate,
-                                    style = JwButtonStyle.Primary,
-                                )
-                            }
-                            JwButton(
-                                text = stringResource(Res.string.open_download_page),
-                                onClick = { onClickOpenDownloadPage(result.downloadPageUrl) },
-                                style = JwButtonStyle.Secondary,
-                            )
-                        }
-                    }
-                }
-            }
-
-            else -> {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    JwIcon(
-                        imageVector = Icons.Default.Check,
-                        tint = JwTone.Success.color,
-                        contentDescription = null,
-                    )
-                    JwText(stringResource(Res.string.update_up_to_date))
-                }
-            }
-        }
-    }
-}
-
 @Preview
 @Composable
 private fun GeneralSettingsScreenPreview() {
@@ -423,22 +266,14 @@ private fun GeneralSettingsScreenPreview() {
                 appDataPath = "~/.jetwhale",
                 adbPath = "/path/to/adb",
                 currentVersion = "1.0.0-alpha08",
-                checkForUpdatesOnStartup = true,
                 followAiOperation = true,
-                isCheckingForUpdates = false,
-                updateCheckResult = null,
-                updateCheckError = null,
             ),
             onAutomaticallyWireADBTransportChange = {},
             onSelectLanguage = {},
             onSelectColorScheme = {},
             onClickOpenAppDataPath = {},
             onClickOpenLogViewer = {},
-            onClickCheckForUpdates = {},
-            onCheckForUpdatesOnStartupChange = {},
             onFollowAiOperationChange = {},
-            onClickInstallUpdate = {},
-            onClickOpenDownloadPage = {},
         )
     }
 }

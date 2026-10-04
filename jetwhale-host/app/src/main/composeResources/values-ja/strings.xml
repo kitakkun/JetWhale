@@ -1,8 +1,6 @@
 <resources>
     <string name="app_name">JetWhale Debugger</string>
     <string name="version_format">バージョン %1$s</string>
-    <string name="update_banner_message">新しいバージョン %1$s が利用可能です</string>
-    <string name="update_banner_open_settings">設定で確認</string>
     <string name="plugin_arrived_new">新しいプラグイン: %1$s · %2$s</string>
     <string name="plugin_arrived_update">新しいバージョン: %1$s · %2$s</string>
     <string name="plugin_arrived_unreadable">plugin manifest を読めない JAR · %1$s</string>

@@ -11,8 +11,6 @@ import soil.query.compose.rememberSubscription
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
-import java.net.URI
-import java.net.URISyntaxException
 import java.util.logging.Logger
 
 @Composable
@@ -32,7 +30,6 @@ fun GeneralSettingsScreenRoot(
             generalSettingsScreenPresenter(
                 screenChannel = screenChannel,
                 automaticallyWireADBTransport = debuggerSettings.adbAutoPortMappingEnabled,
-                checkForUpdatesOnStartup = debuggerSettings.checkForUpdatesOnStartup,
                 followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                 appearanceSettings = appearanceSettings,
                 diagnostics = diagnostics,
@@ -67,30 +64,8 @@ fun GeneralSettingsScreenRoot(
                 }
             },
             onClickOpenLogViewer = onOpenLogViewer,
-            onClickCheckForUpdates = {
-                screenChannel.send(GeneralSettingsScreenAction.CheckForUpdates)
-            },
-            onCheckForUpdatesOnStartupChange = {
-                screenChannel.send(GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup(it))
-            },
             onFollowAiOperationChange = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangeFollowAiOperation(it))
-            },
-            onClickInstallUpdate = {
-                screenChannel.send(GeneralSettingsScreenAction.InstallUpdate)
-            },
-            onClickOpenDownloadPage = { url ->
-                try {
-                    Desktop.getDesktop().browse(URI(url))
-                } catch (e: IOException) {
-                    logger.warning("Could not open $url: ${e.message}")
-                } catch (e: UnsupportedOperationException) {
-                    logger.warning("This desktop cannot open links: ${e.message}")
-                } catch (e: URISyntaxException) {
-                    logger.warning("$url is not a valid link: ${e.message}")
-                } catch (e: SecurityException) {
-                    logger.warning("Not allowed to open $url: ${e.message}")
-                }
             },
         )
     }

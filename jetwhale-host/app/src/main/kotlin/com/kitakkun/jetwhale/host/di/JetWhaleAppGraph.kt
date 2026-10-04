@@ -11,7 +11,6 @@ import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ArrivedPluginJarsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FollowAiOperationService
 import com.kitakkun.jetwhale.host.model.HostNavigationService
@@ -26,7 +25,6 @@ import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
-import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.screen.DisabledPluginScreenContext
@@ -68,8 +66,6 @@ interface JetWhaleAppGraph : ScreenContext {
     val pluginTrustService: PluginTrustService
     val logCaptureService: LogCaptureService
     val enabledPluginsRepository: EnabledPluginsRepository
-    val debuggerSettingsRepository: DebuggerSettingsRepository
-    val updateCheckMutationKey: UpdateCheckMutationKey
     val arrivedPluginJarsSubscriptionKey: ArrivedPluginJarsSubscriptionKey
     val trustPluginMutationKey: TrustPluginMutationKey
     val postponeArrivedPluginJarMutationKey: PostponeArrivedPluginJarMutationKey
