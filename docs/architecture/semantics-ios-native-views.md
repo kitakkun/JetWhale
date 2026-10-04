@@ -246,7 +246,7 @@ first package, which ships the official plugins only.
 ### What has to exist before this ships
 
 1. The Kotlin façade: `JetWhaleSwiftConfig`, `startJetWhaleFromConfig`, and per-plugin registration
-   methods. Swift SDK design, items 1 and 3.
+   methods. Swift SDK design, item 2.
 2. The umbrella module and its dynamic XCFramework build.
 3. The release workflow step that publishes the zip and rewrites `Package.swift`.
 4. The Compose split above, if the first consumers are Swift-only apps.
