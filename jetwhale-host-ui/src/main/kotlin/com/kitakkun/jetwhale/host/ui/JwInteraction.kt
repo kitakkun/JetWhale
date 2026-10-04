@@ -155,8 +155,8 @@ public fun Modifier.jwListRowKeys(
         } finally {
             move.awaitingRow = false
         }
-        // moveFocus searches the whole scene, not just this list: past the first or last row it
-        // lands on a neighboring control, such as a filter field above a table.
+        // moveFocus searches the whole scene, not just this list, so past the first or last row it
+        // lands on a neighboring control such as a filter field.
         if (moved && !move.reachedRow) focusRequester.requestFocus()
         moved && move.reachedRow
     }
