@@ -25,8 +25,13 @@ import com.kitakkun.jetwhale.host.cli.JetWhaleLogLevel
 import com.kitakkun.jetwhale.host.component.InitializingDialog
 import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.instance.HostInstance
+import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
+import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.LauncherContract
+import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
@@ -37,7 +42,9 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.awt.Desktop
 import java.awt.Taskbar
+import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
 import ch.qos.logback.classic.Logger as LogbackLogger
@@ -46,6 +53,7 @@ private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 fun main(args: Array<String>) = runBlocking {
     val cliOptions = CommandLineArgumentsParser().parse(args)
+    val hostInstance = claimLauncherInstance()
 
     if (cliOptions.headless) {
         // AWT reads this once, when its first class is loaded, so it has to be set before anything
@@ -69,13 +77,27 @@ fun main(args: Array<String>) = runBlocking {
     appGraph.applicationLifecycleOwner.initialize()
 
     if (cliOptions.headless) {
-        exitProcess(appGraph.headlessHostRunner.run())
+        exitProcess(appGraph.headlessHostRunner.run(onReady = { hostInstance?.publish() }))
     }
 
     val windowState = appGraph.windowStateRepository.loadWindowState().toWindowState()
 
     awaitApplication {
-        JetWhaleMainWindow(appGraph = appGraph, windowState = windowState)
+        JetWhaleMainWindow(appGraph = appGraph, windowState = windowState, hostInstance = hostInstance)
+    }
+}
+
+/**
+ * Makes a host the launcher started the only one of its app data directory: it takes
+ * `instance.lock`, or asks the host that holds it to bring its window forward and exits. Null for a
+ * host started any other way.
+ */
+private fun claimLauncherInstance(): HostInstance? {
+    if (System.getProperty(LauncherContract.CONTRACT_PROPERTY) == null) return null
+    val hostDirectory = System.getProperty(LauncherContract.HOST_DIRECTORY_PROPERTY) ?: return null
+    return when (val claim = HostInstance.claim(HostVersionsDirectory(Path.of(hostDirectory)), LockFiles.Os)) {
+        is HostInstanceClaim.Claimed -> claim.instance
+        is HostInstanceClaim.HeldByAnother -> exitProcess(0)
     }
 }
 
@@ -115,7 +137,11 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
 
 @OptIn(FlowPreview::class)
 @Composable
-private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, windowState: WindowState) {
+private fun ApplicationScope.JetWhaleMainWindow(
+    appGraph: JetWhaleAppGraph,
+    windowState: WindowState,
+    hostInstance: HostInstance?,
+) {
     val applicationState by appGraph
         .applicationLifecycleOwner
         .applicationStateFlow
@@ -173,6 +199,18 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
             }
         },
     ) {
+        LaunchedEffect(hostInstance) {
+            hostInstance?.publish()
+            hostInstance?.activationRequests?.collect {
+                windowState.isMinimized = false
+                window.toFront()
+                window.requestFocus()
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
+                    Desktop.getDesktop().requestForeground(true)
+                }
+            }
+        }
+
         JwTheme(darkTheme = isSystemInDarkTheme()) {
             when (applicationState) {
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
