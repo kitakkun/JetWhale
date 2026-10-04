@@ -30,6 +30,10 @@ SDK modules) is designed for its callers outside the module, and its extensions 
    function in that file named for the type it builds. A reader looking for "how do I build one of
    these" finds it by the type's name.
 
+A test that has to reach a function directly widens it to `internal`, no further, and the function
+says so with `@VisibleForTesting` (androidx; `otherwise =` only when it would not have been
+`private`). The usual case is a parser of an external tool's output, tested against captured output.
+
 ## Not allowed
 
 - An `internal` or public top-level helper whose callers are one or two distant classes. Move it to
