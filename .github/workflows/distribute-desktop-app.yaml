@@ -18,17 +18,17 @@ jobs:
           - os: macOS-latest
             osArch: macos-arm64
             installerTask: packageDmg
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/dmg/*.dmg
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/dmg/*.dmg
             installerExt: dmg
           - os: ubuntu-latest
             osArch: linux-x64
             installerTask: packageDeb
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/deb/*.deb
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/deb/*.deb
             installerExt: deb
           - os: windows-latest
             osArch: windows-x64
             installerTask: packageMsi
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/msi/*.msi
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/msi/*.msi
             installerExt: msi
     runs-on: ${{ matrix.os }}
     steps:
@@ -48,8 +48,9 @@ jobs:
             exit 1
           fi
           ./gradlew :jetwhale-host:app:checkHostReleaseVersion -PhostReleaseVersion="${GITHUB_REF_NAME}"
+      # The installer is the launcher's, and it carries the same uber jar that is attached below.
       - name: Build installer and runnable uber jar
-        run: ./gradlew :jetwhale-host:app:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
+        run: ./gradlew :jetwhale-host:launcher:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
       # Rename assets to a predictable scheme that includes the FULL tag version (e.g. -alpha08),
       # which the installer's own packageVersion drops. No manual renaming needed afterwards, and the
       # uber-jar name matches what the `downloadJetWhaleHost` Gradle task expects. On a manual

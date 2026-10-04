@@ -1,5 +1,4 @@
 import org.gradle.process.CommandLineArgumentProvider
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.jvm)
@@ -33,44 +32,6 @@ val generateBuildConfig by tasks.registering {
 compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
-        jvmArgs("-Dapple.awt.application.appearance=system")
-        nativeDistributions {
-            packageName = "JetWhale Debugger"
-            copyright = "© 2026 kitakkun"
-            // The DMG and MSI formats take only a numeric MAJOR.MINOR.PATCH, so the pre-release
-            // suffix is dropped.
-            packageVersion = libs.versions.jetwhale.get().substringBefore("-")
-            licenseFile = rootProject.rootDir.resolve("LICENSE")
-
-            // The packaged app's runtime image lacks these modules unless they are listed, which
-            // shows up only there as a NoClassDefFoundError.
-            modules("jdk.unsupported")
-            modules("java.naming")
-            modules("java.sql")
-            // java.lang.instrument.Instrumentation (ByteBuddy self-attach for plugin hot-reload)
-            // lives in java.instrument; without it the packaged app crashes on startup.
-            modules("java.instrument")
-
-            targetFormats(
-                TargetFormat.Dmg,
-                TargetFormat.Msi,
-                TargetFormat.Deb,
-            )
-            macOS {
-                iconFile.set(file("src/main/resources/icon.icns"))
-            }
-            windows {
-                iconFile.set(file("src/main/resources/icon.ico"))
-            }
-            linux {
-                iconFile.set(file("src/main/resources/icon.png"))
-                // Debian sorts `~` below everything, even the end of the string, so 1.0.0~alpha13 <
-                // 1.0.0~alpha14 < 1.0.0 and apt upgrades from one pre-release to the next.
-                debPackageVersion = libs.versions.jetwhale.get().replace('-', '~')
-                menuGroup = "Development;Debugger;"
-                appCategory = "devel"
-            }
-        }
     }
 }
 
@@ -105,17 +66,6 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
     val releaseDir = providers.gradleProperty("hostReleaseDir").map { rootDirectory.dir(it).asFile }
     val releaseVersion = providers.gradleProperty("hostReleaseVersion")
     val hostMainClass = compose.desktop.application.mainClass
-    val runtimeModules = compose.desktop.application.nativeDistributions.modules.toList()
-    val javaFeatureVersion = java.toolchain.languageVersion.map { it.asInt() }
-    // The Compose Gradle plugin adds -Dcompose.application.configure.swing.globals=true, and
-    // -Xdock:name on macOS, to the packaged app's launcher by itself. A host jar the JetWhale
-    // launcher starts gets neither unless it is listed here.
-    val hostJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true") + compose.desktop.application.jvmArgs
-    val releasePlatforms = mapOf(
-        "macos-arm64" to listOf("-Xdock:name=${compose.desktop.application.nativeDistributions.packageName}"),
-        "linux-x64" to emptyList(),
-        "windows-x64" to emptyList(),
-    )
     argumentProviders.add(
         CommandLineArgumentProvider {
             val version = releaseVersion.get()
@@ -128,16 +78,16 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
                 add("--main-class")
                 add(checkNotNull(hostMainClass))
                 add("--java-feature-version")
-                add(javaFeatureVersion.get().toString())
-                runtimeModules.forEach {
+                add(JetWhaleHostRuntime.JAVA_FEATURE_VERSION.toString())
+                JetWhaleHostRuntime.modules.forEach {
                     add("--module")
                     add(it)
                 }
-                hostJvmArgs.forEach {
+                JetWhaleHostRuntime.jvmArgs.forEach {
                     add("--jvm-arg")
                     add(it)
                 }
-                releasePlatforms.forEach { (platform, arguments) ->
+                JetWhaleHostRuntime.platformJvmArgs.forEach { (platform, arguments) ->
                     arguments.forEach {
                         add("--platform-jvm-arg")
                         add("$platform=$it")
@@ -148,6 +98,82 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
             }
         },
     )
+}
+
+val currentPlatformKey: Provider<String> = providers.systemProperty("os.name")
+    .zip(providers.systemProperty("os.arch")) { osName, osArch ->
+        val os = when {
+            osName.startsWith("Mac") -> "macos"
+            osName.startsWith("Windows") -> "windows"
+            else -> "linux"
+        }
+        val arch = if (osArch == "aarch64" || osArch == "arm64") "arm64" else "x64"
+        "$os-$arch"
+    }
+val uberJar: FileCollection = files(tasks.matching { it.name == "packageUberJarForCurrentOS" })
+
+val writeBundledHostMetadata = tasks.register<JavaExec>("writeBundledHostMetadata") {
+    classpath = hostReleaseMetadataWriter
+    mainClass.set("com.kitakkun.jetwhale.host.release.tool.WriteHostReleaseMetadataKt")
+
+    val metadataFile = layout.buildDirectory.file("bundled-host-metadata/release.json")
+    val hostVersion = libs.versions.jetwhale.get()
+    val hostMainClass = compose.desktop.application.mainClass
+    val platformKey = currentPlatformKey
+    val hostJar = uberJar
+    inputs.files(hostJar)
+    outputs.file(metadataFile)
+    argumentProviders.add(
+        CommandLineArgumentProvider {
+            buildList {
+                add("--output")
+                add(metadataFile.get().asFile.path)
+                add("--version")
+                add(hostVersion)
+                add("--main-class")
+                add(checkNotNull(hostMainClass))
+                add("--java-feature-version")
+                add(JetWhaleHostRuntime.JAVA_FEATURE_VERSION.toString())
+                JetWhaleHostRuntime.modules.forEach {
+                    add("--module")
+                    add(it)
+                }
+                JetWhaleHostRuntime.jvmArgs.forEach {
+                    add("--jvm-arg")
+                    add(it)
+                }
+                JetWhaleHostRuntime.platformJvmArgs[platformKey.get()].orEmpty().forEach {
+                    add("--platform-jvm-arg")
+                    add("${platformKey.get()}=$it")
+                }
+                add("--jar")
+                add("${platformKey.get()}=${hostJar.singleFile.path}")
+            }
+        },
+    )
+}
+
+val bundledHostDirectory = layout.buildDirectory.dir("bundled-host")
+val bundledHost = tasks.register<Sync>("bundledHost") {
+    description = "Collects the host jar and release metadata that the launcher's package carries."
+
+    val hostVersion = libs.versions.jetwhale.get()
+    val hostJarName = currentPlatformKey.map { "jetwhale-host-$hostVersion-$it.jar" }
+    val hostJar = uberJar
+    from(hostJar) { rename { hostJarName.get() } }
+    from(writeBundledHostMetadata)
+    into(bundledHostDirectory)
+}
+
+val bundledHostElements: Configuration by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add(bundledHostElements.name, bundledHostDirectory) {
+        builtBy(bundledHost)
+    }
 }
 
 // Merging signed dependency jars (e.g. BouncyCastle) into an uber jar invalidates their
@@ -183,9 +209,7 @@ tasks.register<JavaExec>("runHeadless") {
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
 
 kotlin {
-    // 21, not the repo-wide 17: app-only dependencies such as aboutlibraries-core ship Java 21
-    // bytecode. Published SDK and agent modules stay on 17 for their consumers.
-    jvmToolchain(21)
+    jvmToolchain(JetWhaleHostRuntime.JAVA_FEATURE_VERSION)
 
     compilerOptions {
         freeCompilerArgs.add("-opt-in=soil.query.annotation.ExperimentalSoilQueryApi")
@@ -212,6 +236,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.ui)
+    implementation(projects.jetwhaleHost.releaseMetadata)
 
     implementation(libs.bundles.navigation3)
     implementation(libs.kotlinxSerializationJson)
