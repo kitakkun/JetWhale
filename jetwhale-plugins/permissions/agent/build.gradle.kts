@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Gradle takes projects with the same group and name for one module and substitutes one for the
+// other, and every plugin has an `agent` module, so each plugin has its own group.
 group = "com.kitakkun.jetwhale.plugins.permissions"
 
 kotlin {

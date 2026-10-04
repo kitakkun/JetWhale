@@ -15,8 +15,8 @@ import kotlin.test.assertNull
 class PermissionsBoardTest {
     private val client = FakePermissionsClient()
 
-    // On Dispatchers.Unconfined a launch runs until its first suspension, and the fake never
-    // suspends, so every launched call has finished by the time launch returns.
+    // Dispatchers.Unconfined runs a launch in place until its first suspension; the fake never
+    // suspends, so each launched call has finished when launch returns.
     private val board = PermissionsBoard(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

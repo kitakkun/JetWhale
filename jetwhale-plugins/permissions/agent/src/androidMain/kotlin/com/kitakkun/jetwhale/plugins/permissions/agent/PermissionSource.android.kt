@@ -225,8 +225,8 @@ private val SPECIAL_ACCESSES: Map<String, SpecialAccess> = mapOf(
         isGranted = { Build.VERSION.SDK_INT < Build.VERSION_CODES.O || it.packageManager.canRequestPackageInstalls() },
         settingsIntent = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUriOf(it)) else null },
     ),
-    // A normal permission by its protection level, but the exemption it stands for is a switch the
-    // user toggles in the settings.
+    // Normal by protection level, so granted at install; the exemption it stands for is a switch
+    // the user toggles in the settings.
     "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" to SpecialAccess(
         isGranted = { it.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(it.packageName) },
         settingsIntent = { Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUriOf(it)) },

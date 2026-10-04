@@ -9,7 +9,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `protocol`.
+// Gradle takes projects with the same group and name for one module and substitutes one for the
+// other, and every plugin has a `protocol` module, so each plugin has its own group.
 group = "com.kitakkun.jetwhale.plugins.permissions"
 
 kotlin {

@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-// Mode values as android.app.AppOpsManager defines them.
 private const val MODE_ALLOWED = 0
 private const val MODE_IGNORED = 1
 private const val MODE_ERRORED = 2

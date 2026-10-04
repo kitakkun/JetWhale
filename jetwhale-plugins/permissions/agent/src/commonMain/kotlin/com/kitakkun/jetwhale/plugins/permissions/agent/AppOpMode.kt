@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.plugins.permissions.agent
 
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
 
-// The values of android.app.AppOpsManager's public MODE_ constants, which never change.
+// The values of AppOpsManager's public MODE_ constants, which Android never changes.
 private const val MODE_ALLOWED = 0
 private const val MODE_DEFAULT = 3
 private const val MODE_FOREGROUND = 4
