@@ -5,39 +5,91 @@ import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatchKind
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatcher
-import java.net.URI
-import java.net.URISyntaxException
+import java.io.ByteArrayOutputStream
 
 /**
- * The declarations [url] matches, following Android's rules: the scheme must be declared; when the
- * declaration names hosts the host must be one of them (a leading `*` matches subdomains, not the
- * domain itself) on its port when one is declared; when it names paths, one of them must match the
- * decoded path.
+ * The declarations [url] matches, following Android's rules: the scheme must be declared, compared
+ * case-sensitively; when the declaration names hosts the host must be one of them (a leading `*`
+ * matches subdomains, not the domain itself) on its port when one is declared, and one of its paths,
+ * if it names any, must match the decoded path. A declaration without hosts matches on the scheme
+ * alone: Android ignores its paths.
  *
- * @throws IllegalArgumentException when [url] is not a URL with a scheme.
+ * @throws IllegalArgumentException when [url] has no scheme.
  */
 internal fun declarationsMatching(url: String, declared: List<DeclaredDeepLink>): List<DeclaredDeepLink> {
-    val uri = try {
-        URI(url)
-    } catch (e: URISyntaxException) {
-        throw IllegalArgumentException("'$url' is not a valid URL: ${e.reason}", e)
+    val link = splitLink(url)
+    return declared.filter(link::isMatchedBy)
+}
+
+/**
+ * The parts of a link that intent filters match, with host and path decoded.
+ *
+ * @property host Null when the link has no `//` authority.
+ * @property port -1 when the link names none.
+ */
+private class SplitLink(val scheme: String, val host: String?, val port: Int, val path: String) {
+    fun isMatchedBy(declaration: DeclaredDeepLink): Boolean {
+        if (scheme !in declaration.schemes) return false
+        if (declaration.hosts.isEmpty()) return true
+        val host = host ?: return false
+        if (declaration.hosts.none { matchesHost(it, host) }) return false
+        return declaration.paths.isEmpty() || declaration.paths.any { pathMatches(it, path) }
     }
-    val scheme = requireNotNull(uri.scheme) { "'$url' has no scheme" }.lowercase()
-    // java.net.URI reads the first segment of a custom-scheme link like myapp://item/42 as its
-    // host, as Android does.
-    val host = uri.host?.lowercase()
-    val path = uri.path.orEmpty()
-    return declared.filter { link ->
-        scheme in link.schemes.map(String::lowercase) &&
-            (link.hosts.isEmpty() || (host != null && link.hosts.any { hostMatches(it.host.lowercase(), host) && (it.port == null || it.port == uri.port.toString()) })) &&
-            (link.paths.isEmpty() || link.paths.any { pathMatches(it, path) })
+
+    private fun matchesHost(declared: DeepLinkHost, host: String): Boolean {
+        val nameMatches = if (declared.host.startsWith("*")) {
+            host.endsWith(declared.host.removePrefix("*"), ignoreCase = true)
+        } else {
+            host.equals(declared.host, ignoreCase = true)
+        }
+        val declaredPort = declared.port ?: return nameMatches
+        return nameMatches && declaredPort.toIntOrNull() == port
     }
 }
 
-private fun hostMatches(declared: String, host: String): Boolean = when {
-    declared == "*" -> true
-    declared.startsWith("*") -> host.endsWith(declared.removePrefix("*"))
-    else -> declared == host
+/**
+ * Splits [url] the way `android.net.Uri.parse` does, which takes any character and any host a manifest
+ * can declare. `java.net.URI` gives no host for one like `item_detail` and rejects a space or `{` in a
+ * query, both of which Android routes.
+ */
+private fun splitLink(url: String): SplitLink {
+    val schemeEnd = url.indexOf(':')
+    require(schemeEnd > 0) { "'$url' has no scheme" }
+    val scheme = url.substring(0, schemeEnd)
+    val hierarchicalPart = url.substring(schemeEnd + 1).takeIf { it.startsWith("//") }?.substring(2)
+        ?: return SplitLink(scheme = scheme, host = null, port = -1, path = "")
+    val authorityEnd = hierarchicalPart.indexOfFirst { it in "/\\?#" }.takeIf { it >= 0 } ?: hierarchicalPart.length
+    val hostAndPort = hierarchicalPart.substring(0, authorityEnd).substringAfterLast('@')
+    val lastNonDigit = hostAndPort.indexOfLast { it !in '0'..'9' }
+    val hasPort = lastNonDigit >= 0 && hostAndPort[lastNonDigit] == ':'
+    return SplitLink(
+        scheme = scheme,
+        host = percentDecoded(if (hasPort) hostAndPort.substring(0, lastNonDigit) else hostAndPort),
+        port = if (hasPort) hostAndPort.substring(lastNonDigit + 1).toIntOrNull() ?: -1 else -1,
+        path = percentDecoded(hierarchicalPart.substring(authorityEnd).takeWhile { it != '?' && it != '#' }),
+    )
+}
+
+/** Decodes `%XX` escapes as UTF-8 and leaves `+` and a malformed escape as they are. */
+private fun percentDecoded(encoded: String): String {
+    if ('%' !in encoded) return encoded
+    val decoded = StringBuilder()
+    val escapedBytes = ByteArrayOutputStream()
+    var index = 0
+    while (index < encoded.length) {
+        val high = encoded.getOrNull(index + 1)?.digitToIntOrNull(16)
+        val low = encoded.getOrNull(index + 2)?.digitToIntOrNull(16)
+        if (encoded[index] == '%' && high != null && low != null) {
+            escapedBytes.write(high * 16 + low)
+            index += 3
+        } else {
+            decoded.append(escapedBytes.toByteArray().decodeToString())
+            escapedBytes.reset()
+            decoded.append(encoded[index])
+            index++
+        }
+    }
+    return decoded.append(escapedBytes.toByteArray().decodeToString()).toString()
 }
 
 @VisibleForTesting
