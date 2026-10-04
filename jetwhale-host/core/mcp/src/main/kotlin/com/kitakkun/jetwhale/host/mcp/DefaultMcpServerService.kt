@@ -79,8 +79,9 @@ class DefaultMcpServerService(
 
         lifecycleObserverJob = coroutineScope.launch {
             pluginInstanceService.pluginInstanceEventFlow.collect { event ->
-                // A Disposed for a replaced instance can arrive after its successor's Ready (disposal
-                // runs the plugin's onDispose first), so either event syncs to the instance live now.
+                // A Disposed for a replaced instance can arrive after its successor's Ready,
+                // because disposal runs the plugin's onDispose before reporting it, so either event
+                // syncs to the instance live now.
                 val (pluginId, sessionId) = when (event) {
                     is PluginInstanceEvent.Ready -> event.pluginId to event.sessionId
                     is PluginInstanceEvent.Disposed -> event.pluginId to event.sessionId

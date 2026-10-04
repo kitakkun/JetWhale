@@ -313,7 +313,8 @@ class DefaultMcpServerServiceTest {
         try {
             eventFlow.emit(PluginInstanceEvent.Ready(pluginId, sessionId))
             eventFlow.emit(PluginInstanceEvent.Disposed(pluginId, sessionId))
-            // Drain: a third, unrelated plugin's Ready proves both events above were handled.
+            // Events are handled in order, so once this unrelated plugin's Ready shows, the Ready
+            // and Disposed above have been handled.
             every { pluginInstanceService.getPluginInstanceForSession("com.example.marker", sessionId) } returns
                 FakeMcpCapablePlugin(toolName = "com.example.marker.greet")
             eventFlow.emit(PluginInstanceEvent.Ready("com.example.marker", sessionId))
