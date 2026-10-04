@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Gradle treats projects with the same group and name as one module during resolution, and every
+// plugin has protocol, agent and host projects.
 group = "com.kitakkun.jetwhale.plugins.background"
 
 kotlin {
@@ -36,6 +36,10 @@ kotlin {
         namespace = "com.kitakkun.jetwhale.plugins.background.agent"
         compileSdk = 37
         minSdk = 23
+
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
     }
 
     sourceSets {
@@ -48,7 +52,17 @@ kotlin {
             implementation(libs.kotlinTest)
             implementation(libs.kotlinxCoroutinesTest)
         }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.robolectric)
+            implementation(libs.androidxTestCore)
+            implementation(libs.junit)
+        }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric loads a whole Android framework into the test JVM.
+    maxHeapSize = "2g"
 }
 
 jetwhalePublish {

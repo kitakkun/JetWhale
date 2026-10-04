@@ -63,8 +63,8 @@ private object BackgroundTaskSource : BackgroundWorkSource {
         ),
         canCancel = true,
         canRunNow = false,
-        // Launching a task early takes a private selector meant for the debugger; the agent shows
-        // the command instead of calling private API itself.
+        // _simulateLaunchForTaskWithIdentifier: is a private selector meant for the debugger; the
+        // agent shows the command instead of calling private API itself.
         runNowHint = "e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@\"${request.identifier}\"]",
     )
 

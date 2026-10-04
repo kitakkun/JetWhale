@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.agent.workmanager
 
+import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.work.Constraints
 import androidx.work.Data
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * The work [workManager] holds, live, as a [BackgroundWorkSource]: every state, including finished
@@ -43,8 +45,25 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
         supportsCancelByUniqueName = true,
     )
 
+    private val workerClassTags = ConcurrentHashMap<String, Boolean>()
+
     override fun observe(): Flow<List<BackgroundWorkItem>> = workManager.getWorkInfosFlow(WorkQuery.fromStates(WorkInfo.State.entries)).map { infos ->
         infos.map { workInfoToItem(it, ::isWorkerClass) }
+    }
+
+    /**
+     * WorkManager tags every request with its worker's class name; this finds that tag. The class is
+     * looked up without being initialized, so listing work never runs an app class's static code.
+     * Each tag's answer is kept, since looking up a tag that names no class throws.
+     */
+    private fun isWorkerClass(tag: String): Boolean = workerClassTags.getOrPut(tag) {
+        try {
+            ListenableWorker::class.java.isAssignableFrom(Class.forName(tag, false, ListenableWorker::class.java.classLoader))
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: LinkageError) {
+            false
+        }
     }
 
     override suspend fun cancel(target: CancelTarget): String {
@@ -90,18 +109,6 @@ private fun parseWorkId(id: String): UUID = try {
     UUID.fromString(id)
 } catch (e: IllegalArgumentException) {
     throw IllegalArgumentException("'$id' is not a WorkManager work id", e)
-}
-
-/**
- * WorkManager tags every request with its worker's class name; this finds that tag. The class is
- * looked up without being initialized, so listing work never runs an app class's static code.
- */
-private fun isWorkerClass(tag: String): Boolean = try {
-    ListenableWorker::class.java.isAssignableFrom(Class.forName(tag, false, ListenableWorker::class.java.classLoader))
-} catch (_: ClassNotFoundException) {
-    false
-} catch (_: LinkageError) {
-    false
 }
 
 /**
@@ -154,7 +161,7 @@ private fun constraintsOf(constraints: Constraints): List<String> = buildList {
     if (constraints.requiresBatteryNotLow()) add("battery not low")
     if (constraints.requiresDeviceIdle()) add("device idle")
     if (constraints.requiresStorageNotLow()) add("storage not low")
-    if (constraints.hasContentUriTriggers()) add("content URI triggers")
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && constraints.contentUriTriggers.isNotEmpty()) add("content URI triggers")
 }
 
 private fun dataOf(data: Data): Map<String, String> = data.keyValueMap.mapValues { (_, value) ->
@@ -163,6 +170,9 @@ private fun dataOf(data: Data): Map<String, String> = data.keyValueMap.mapValues
         else -> value.toString()
     }
 }
+
+/** `WorkInfo.STOP_REASON_FOREGROUND_SERVICE_TIMEOUT`, which WorkManager added after the oldest version this adapter supports. */
+private const val STOP_REASON_FOREGROUND_SERVICE_TIMEOUT = -128
 
 private fun stopReasonOf(reason: Int): String? = when (reason) {
     WorkInfo.STOP_REASON_NOT_STOPPED -> null
@@ -181,6 +191,6 @@ private fun stopReasonOf(reason: Int): String? = when (reason) {
     WorkInfo.STOP_REASON_USER -> "stopped by the user"
     WorkInfo.STOP_REASON_SYSTEM_PROCESSING -> "system processing"
     WorkInfo.STOP_REASON_ESTIMATED_APP_LAUNCH_TIME_CHANGED -> "estimated launch time changed"
-    WorkInfo.STOP_REASON_FOREGROUND_SERVICE_TIMEOUT -> "foreground service timed out"
+    STOP_REASON_FOREGROUND_SERVICE_TIMEOUT -> "foreground service timed out"
     else -> "unknown ($reason)"
 }

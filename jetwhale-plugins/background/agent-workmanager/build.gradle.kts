@@ -6,7 +6,7 @@ plugins {
 
 group = "com.kitakkun.jetwhale.plugins.background"
 
-// Kotlin's ABI validation does not cover an Android-only target, so this module has no ABI dump.
+// Kotlin's ABI validation skips Android targets, so this Android-only module has no ABI dump.
 kotlin {
     jvmToolchain(17)
 

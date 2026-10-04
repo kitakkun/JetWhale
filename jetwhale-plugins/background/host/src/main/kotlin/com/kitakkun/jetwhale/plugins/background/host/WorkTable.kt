@@ -18,9 +18,8 @@ import java.time.format.DateTimeFormatter
 /** Fits "Scheduled", the longest state name, as a tag. */
 private val StateColumnWidth = 104.dp
 
-internal val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
-
-internal val DateTimeFormatterLong: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+/** The date as well as the time: periodic work is often due on another day. */
+private val EarliestRunFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
 
 @Composable
 internal fun WorkTable(
@@ -36,7 +35,7 @@ internal fun WorkTable(
             JwTableColumn(header = "State", width = JwColumnWidth.Fixed(StateColumnWidth)) { item -> StateTag(item.state) },
             JwTableColumn.text(header = "Tags", width = JwColumnWidth.Weight(1f)) { it.tags.joinToString() },
             JwTableColumn.text(header = "Earliest run", width = JwColumnWidth.Weight(0.8f)) { item ->
-                item.nextRunEpochMillis?.let { TimeFormatter.format(Instant.ofEpochMilli(it)) }.orEmpty()
+                item.nextRunEpochMillis?.let { EarliestRunFormatter.format(Instant.ofEpochMilli(it)) }.orEmpty()
             },
             JwTableColumn.text(header = "Source", width = JwColumnWidth.Weight(0.8f), text = BackgroundWorkItem::source),
         ),

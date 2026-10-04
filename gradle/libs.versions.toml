@@ -28,7 +28,9 @@ soil = "1.0.0-alpha15"
 
 androidxAnnotation = "1.9.1"
 androidxDatastore = "1.3.0-alpha10"
-androidxWork = "2.10.5"
+# The WorkManager adapter publishes this as its minimum: the oldest version with the APIs it uses.
+# An app on a newer WorkManager keeps its own; raising this raises every older app's.
+androidxWork = "2.9.0"
 robolectric = "4.16"
 androidxTestCore = "1.7.0"
 junit = "4.13.2"

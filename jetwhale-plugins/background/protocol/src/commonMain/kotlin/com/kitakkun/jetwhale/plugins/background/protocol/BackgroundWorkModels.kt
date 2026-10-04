@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.background.protocol
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Where a piece of background work stands, mapped from each scheduler's own states. */
@@ -90,12 +91,15 @@ data class BackgroundWorkSnapshot(
 /** What [CancelWork] cancels within one source. */
 @Serializable
 sealed interface CancelTarget {
+    @SerialName("background/cancel/by_id")
     @Serializable
     data class ById(val id: String) : CancelTarget
 
+    @SerialName("background/cancel/by_tag")
     @Serializable
     data class ByTag(val tag: String) : CancelTarget
 
+    @SerialName("background/cancel/by_unique_name")
     @Serializable
     data class ByUniqueName(val uniqueName: String) : CancelTarget
 }

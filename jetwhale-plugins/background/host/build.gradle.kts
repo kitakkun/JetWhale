@@ -20,7 +20,8 @@ kotlin {
     }
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `host` modules.
+// Gradle treats projects with the same group and name as one module during resolution, and every
+// plugin has protocol, agent and host projects.
 group = "com.kitakkun.jetwhale.plugins.background"
 
 jetwhalePlugin {
@@ -44,6 +45,7 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(libs.material3)
 }
 

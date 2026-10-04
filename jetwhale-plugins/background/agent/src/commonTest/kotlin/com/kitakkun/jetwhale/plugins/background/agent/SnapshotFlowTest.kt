@@ -58,6 +58,19 @@ class SnapshotFlowTest {
     }
 
     @Test
+    fun `a source that fails to build its flow is reported unavailable and the others keep reporting`() = runTest {
+        val failing = object : FakeSourceBase("Broken") {
+            override fun observe(): Flow<List<BackgroundWorkItem>> = throw IllegalStateException("scheduler missing")
+        }
+        val healthy = FakeSource("Healthy", MutableStateFlow(listOf(item("Healthy", "a"))))
+
+        val snapshot = observeSnapshots(listOf(failing, healthy)).first()
+
+        assertEquals("scheduler missing", snapshot.sources.single { it.name == "Broken" }.unavailableReason)
+        assertEquals(listOf("a"), snapshot.items.map(BackgroundWorkItem::id))
+    }
+
+    @Test
     fun `no sources is an empty snapshot`() = runTest {
         val snapshot = observeSnapshots(emptyList()).first()
 

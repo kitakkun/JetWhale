@@ -92,6 +92,7 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
         val itemId = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("JobScheduler jobs are cancelled by their id")
         val namespace = itemId.substringBeforeLast(NAMESPACE_SEPARATOR, missingDelimiterValue = "").ifEmpty { null }
         val jobId = itemId.substringAfterLast(NAMESPACE_SEPARATOR).toIntOrNull() ?: throw IllegalArgumentException("'$itemId' is not a job id")
+        require(namespace == null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "'$itemId' names a job namespace, which needs Android 14 (API 34)" }
         val scoped = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
         val job = scoped?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.getPendingJob(jobId) else it.allPendingJobs.firstOrNull { job -> job.id == jobId } }
             ?: throw IllegalArgumentException("no pending job has id $itemId")
@@ -103,7 +104,10 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
     override suspend fun runNow(id: String): String = throw UnsupportedOperationException("an app cannot force its own job to run; use the adb command shown for it")
 }
 
-/** Joins a job's namespace and numeric id into one item id; namespaces cannot contain it. */
+/**
+ * Joins a job's namespace and numeric id into one item id. A namespace may contain it too, so an id
+ * is split at its last one: a job id is a number and never does.
+ */
 private const val NAMESPACE_SEPARATOR = "/"
 
 private fun jobConstraints(job: JobInfo): List<String> = buildList {
@@ -133,7 +137,7 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
         val next = alarmManager?.nextAlarmClock
-        // nextAlarmClock is the user's next alarm clock from any app; only this app's is shown.
+        // nextAlarmClock is the next alarm clock of any app; only this app's is shown.
         if (next == null || next.showIntent?.creatorPackage != context.packageName) {
             emptyList()
         } else {
@@ -171,6 +175,13 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
 private class RunningServicesSource(private val context: Context) : BackgroundWorkSource {
     private val activityManager = context.getSystemService(ActivityManager::class.java)
 
+    /**
+     * When the device booted, read once. A service's `activeSince` counts from boot, and reading
+     * both clocks again on every poll would shift the result by a millisecond now and then, making
+     * each poll a new snapshot.
+     */
+    private val bootEpochMillis = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
     override val info = WorkSourceInfo(
         name = "Services",
         available = activityManager != null,
@@ -181,7 +192,7 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
         runningServices().map { service ->
-            val startedAt = System.currentTimeMillis() - (SystemClock.elapsedRealtime() - service.activeSince)
+            val startedAt = bootEpochMillis + service.activeSince
             BackgroundWorkItem(
                 source = info.name,
                 id = service.service.flattenToString(),

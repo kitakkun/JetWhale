@@ -32,8 +32,8 @@ startJetWhale {
 }
 ```
 
-WorkManager is a separate artifact so an app that does not use it does not depend on it. Add it to
-the sources:
+WorkManager is a separate artifact so an app that does not use it does not depend on it. It needs
+WorkManager 2.9.0 or later; an app already on a newer version keeps it. Add it to the sources:
 
 ```kotlin
 JetWhaleBackgroundWorkAgentPlugin(

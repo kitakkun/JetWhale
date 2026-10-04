@@ -30,7 +30,13 @@ import com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkItem
 import com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget
 import com.kitakkun.jetwhale.plugins.background.protocol.WorkSourceInfo
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.milliseconds
+
+private val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
+
+private val DateTimeFormatterLong: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
 
 /** A cancellation the user has asked for and not yet confirmed. */
 private data class PendingCancel(val target: CancelTarget, val description: String)
