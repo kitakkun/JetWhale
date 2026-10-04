@@ -280,14 +280,15 @@ private fun HostWindowContent(
 context(appGraph: JetWhaleAppGraph)
 private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
     val hostLaunch = appGraph.hostLaunch as? HostLaunch.ByLauncher ?: return
-    val status = rememberSubscription(appGraph.hostUpdateStateSubscriptionKey).data?.status
+    val updateState = rememberSubscription(appGraph.hostUpdateStateSubscriptionKey).data
+    val status = updateState?.status
     val restartMutation = rememberMutation(appGraph.restartToUpdateMutationKey)
     val tryAgainMutation = rememberMutation(appGraph.tryHostVersionAgainMutationKey)
     val coroutineScope = rememberCoroutineScope()
     var isSetAsideBannerDismissed by remember { mutableStateOf(false) }
     var isUpdateBannerDismissed by remember { mutableStateOf(false) }
 
-    val setAsideVersion = hostLaunch.setAsideVersion
+    val setAsideVersion = hostLaunch.setAsideVersion?.takeIf { it == updateState?.setAside?.version }
     AnimatedVisibility(visible = setAsideVersion != null && !isSetAsideBannerDismissed) {
         if (setAsideVersion != null) {
             HostSetAsideBanner(

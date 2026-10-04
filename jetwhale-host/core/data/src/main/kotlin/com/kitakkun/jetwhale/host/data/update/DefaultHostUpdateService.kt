@@ -40,6 +40,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -212,6 +214,7 @@ class DefaultHostUpdateService(
         setStatus(HostUpdateStatus.Downloading(version, downloadedBytes = 0, totalBytes = offer.platform.size))
         try {
             versions.clearForDownload(runningVersion = hostVersionInfo.version)
+            stateFlow.update { it.copy(setAside = versions.setAsideVersion()) }
             val staging = versions.newStagingDirectory(version)
             Files.write(staging.resolve(InstalledHostVersion.METADATA_FILE_NAME), offer.metadataBytes)
             offer.signatureBytes?.let { Files.write(staging.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
@@ -229,6 +232,7 @@ class DefaultHostUpdateService(
                 setStatus(HostUpdateStatus.Failed(HostUpdateFailure.Corrupted))
                 return
             }
+            currentCoroutineContext().ensureActive()
             versions.install(staging, version)
             logger.info("Installed host {} for the next start", version)
             this.offer = null

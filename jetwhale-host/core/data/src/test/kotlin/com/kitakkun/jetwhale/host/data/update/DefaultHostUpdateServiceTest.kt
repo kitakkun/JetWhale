@@ -242,6 +242,20 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `stops offering a set-aside version once a download has deleted it, even when the download fails`() = runBlocking {
+        install("1.0.0-alpha14")
+        versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = setOf("1.0.0-alpha14")))
+        serveReleases(release("1.0.0-alpha15"))
+        responses[jarUrl("1.0.0-alpha15")] = { respondError(HttpStatusCode.InternalServerError) }
+        val service = service()
+
+        val outcome = checkAndDownload(service)
+
+        assertEquals(HostUpdateStatus.Failed(HostUpdateFailure.UnexpectedResponse(500)), outcome)
+        assertEquals(null, service.stateFlow.value.setAside)
+    }
+
+    @Test
     fun `offers the release again after a cancelled download`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
         val bodyStarted = CompletableDeferred<Unit>()
