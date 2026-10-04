@@ -94,6 +94,13 @@ class DefaultPluginInstanceService(
     override val pluginFailuresFlow: StateFlow<PluginFailures>
         field = MutableStateFlow(PluginFailures.Empty)
 
+    /**
+     * Held while a failure is checked against its instance's `live` flag and published, and while
+     * disposal clears that flag and the failure, so a failure that found its instance live cannot
+     * land after disposal cleared it.
+     */
+    private val failuresLock = Any()
+
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
     }
@@ -258,20 +265,24 @@ class DefaultPluginInstanceService(
      */
     private fun recordFailure(pluginId: String, sessionId: String, instanceLive: AtomicBoolean, throwable: Throwable) {
         logger.log(Level.WARNING, "Plugin '$pluginId' in session '$sessionId' threw from one of its coroutines", throwable)
-        if (!instanceLive.get()) return
         val failure = PluginFailure(pluginId = pluginId, sessionId = sessionId, message = throwable.toString())
-        pluginFailuresFlow.update { failures ->
-            val session = failures.bySession[sessionId].orEmpty() + (pluginId to failure)
-            PluginFailures(failures.bySession + (sessionId to session))
+        synchronized(failuresLock) {
+            if (!instanceLive.get()) return
+            pluginFailuresFlow.update { failures ->
+                val session = failures.bySession[sessionId].orEmpty() + (pluginId to failure)
+                PluginFailures(failures.bySession + (sessionId to session))
+            }
         }
     }
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
-        removed.live.set(false)
-        pluginFailuresFlow.update { failures ->
-            val session = failures.bySession[key.sessionId].orEmpty() - key.pluginId
-            PluginFailures(if (session.isEmpty()) failures.bySession - key.sessionId else failures.bySession + (key.sessionId to session))
+        synchronized(failuresLock) {
+            removed.live.set(false)
+            pluginFailuresFlow.update { failures ->
+                val session = failures.bySession[key.sessionId].orEmpty() - key.pluginId
+                PluginFailures(if (session.isEmpty()) failures.bySession - key.sessionId else failures.bySession + (key.sessionId to session))
+            }
         }
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.

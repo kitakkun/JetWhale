@@ -22,10 +22,14 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -131,6 +135,43 @@ class DefaultPluginInstanceServiceHeadlessTest {
         assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId))
     }
 
+    @Test
+    fun `a failure recorded concurrently with disposal leaves no failure behind`() = runBlocking {
+        val serviceLogger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
+        val level = serviceLogger.level
+        serviceLogger.level = Level.OFF
+        try {
+            repeat(DISPOSAL_RACE_ITERATIONS) { iteration ->
+                val plugin = KeepsFailingPlugin()
+                val service = serviceWith { plugin }
+                service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+                withTimeout(TIMEOUT_MILLIS) { service.pluginFailuresFlow.first { it.latestFor(sessionId, pluginId) != null } }
+
+                service.unloadPluginInstancesForPlugin(pluginId)
+                withTimeout(TIMEOUT_MILLIS) { plugin.scopeJob.join() }
+
+                assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId), "iteration $iteration")
+            }
+        } finally {
+            serviceLogger.level = level
+        }
+    }
+
+    private class KeepsFailingPlugin : JetWhaleHostPlugin() {
+        lateinit var scopeJob: Job
+
+        override fun onCreate() {
+            scopeJob = pluginScope.coroutineContext.job
+            repeat(FAILING_LOOPS) {
+                pluginScope.launch {
+                    while (isActive) {
+                        pluginScope.launch { error("boom") }.join()
+                    }
+                }
+            }
+        }
+    }
+
     private class FailsWhileDisposedPlugin : JetWhaleHostPlugin() {
         private val disposing = CompletableDeferred<Unit>()
         lateinit var coroutine: Job
@@ -193,5 +234,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
 
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
+        const val DISPOSAL_RACE_ITERATIONS = 200
+        const val FAILING_LOOPS = 4
     }
 }
