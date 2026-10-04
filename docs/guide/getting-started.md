@@ -573,6 +573,7 @@ version as the host release they belong to.
 | `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 | `jetwhale-debug-actions`, `-agent`, `-agent-compose`, `-protocol` | [Debug Actions](/guide/debug-actions). |
 | `jetwhale-device-mirror` | [Device Mirror](/guide/device-mirror); host-only, no app artifact. |
+| `jetwhale-android-device` | [Android Device](/guide/android-device); host-only, no app artifact. |
 
 In each plugin row, the first artifact (the one without an `-agent` or `-protocol` suffix) is the
 **host** plugin jar — you install it into the host rather than into your app; see
@@ -591,5 +592,6 @@ no watchOS/tvOS targets.
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [Compose Semantics Inspector](/guide/compose-semantics-inspector) — browse your app's Compose node tree and
   drive it by node
+- [Android Device](/guide/android-device) — install, launch and drive an Android device over adb
 - [MCP Server](/guide/mcp-server) — let AI agents drive your app
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools

@@ -84,6 +84,7 @@ export default defineConfig({
           { text: 'Storage Inspector', link: '/guide/storage-inspector' },
           { text: 'Debug Actions', link: '/guide/debug-actions' },
           { text: 'Device Mirror', link: '/guide/device-mirror' },
+          { text: 'Android Device', link: '/guide/android-device' },
           { text: 'MCP Server', link: '/guide/mcp-server' },
           { text: 'Host Settings', link: '/guide/host-settings' },
           { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },

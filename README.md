@@ -94,6 +94,10 @@ screens of Android devices and emulators, iOS simulators and iPhones, one at a t
 in a grid, and records screenshots and videos per device. Android devices and simulators also take
 input; an iPhone is view-only. It needs no agent in your app; install it from the host's official plugins.
 
+The **[Android Device](https://kitakkun.github.io/JetWhale/guide/android-device)** plugin hands AI
+agents a connected Android device or emulator over adb, as MCP tools: install, launch, tap, type,
+screenshot and logcat. It needs no agent in your app either.
+
 ## Developing plugins
 
 Plugins are ordinary Gradle projects built against the published SDK. One command gives you a
