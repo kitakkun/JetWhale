@@ -602,13 +602,16 @@ internal class DeviceMirror(
     }
 
     override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = coroutineScope {
-        (deviceIds ?: activeRecordings.keys.toList()).map { id ->
+        // Not toList(): for one recording it reads the size and then the key, and throws when that
+        // recording stops in between. toMutableList() copies in a single pass.
+        (deviceIds ?: activeRecordings.keys.toMutableList()).map { id ->
             async { recordingLockOf(id).withLock { stopResultLocked(id) } }
         }.awaitAll()
     }
 
     private fun soleRecordingDeviceId(): String {
-        val running = activeRecordings.values.toList()
+        // Not toList(), for the same reason as in stopRecordings.
+        val running = activeRecordings.values.toMutableList()
         return when (running.size) {
             0 -> throw deviceControlError("no recording is running")
             1 -> running.single().device.id
