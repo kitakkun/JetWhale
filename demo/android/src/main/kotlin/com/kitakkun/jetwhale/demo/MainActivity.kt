@@ -27,7 +27,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(0, 0))
 
         super.onCreate(savedInstanceState)
-        intent?.data?.let { DemoDeepLinks.handle(it.toString()) }
+        // A recreated activity gets its launch intent again, but its restored back stack already
+        // shows the link's screen.
+        if (savedInstanceState == null) intent?.data?.let { DemoDeepLinks.handle(it.toString()) }
 
         val header = TextView(this).apply {
             id = R.id.demo_view_host_header
