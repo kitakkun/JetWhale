@@ -166,7 +166,7 @@ private fun EntryDetail(
             if (row.isDirectory) {
                 JwButton(text = "Calculate size", onClick = { actions.measureDirectory(row.location) })
                 if (row.entry?.isSymbolicLink != true) {
-                    JwButton(text = "Download as ZIP…", onClick = { chooseSaveTarget("${row.location.name}.zip") { actions.requestZipDownload(row.location, it) } })
+                    JwButton(text = "Download as ZIP…", onClick = { chooseSaveTarget("${zipSafeSegment(row.location.name)}.zip") { actions.requestZipDownload(row.location, it) } })
                 }
                 JwButton(text = "Upload…", onClick = { chooseUploadSource("Upload into ${row.location.name}") { actions.requestUpload(row.location.child(it.name), it) } })
             } else {
