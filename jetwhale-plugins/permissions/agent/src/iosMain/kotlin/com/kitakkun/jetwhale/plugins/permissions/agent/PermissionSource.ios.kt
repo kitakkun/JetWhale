@@ -121,7 +121,6 @@ private class IosPermissionSource : PermissionSource {
             category = PermissionCategory.Runtime,
             protection = null,
             status = status,
-            // iOS shows its dialog only once; after that the answer changes in Settings alone.
             requestable = status == PermissionStatus.NotDetermined && missingKey == null,
             note = when {
                 missingKey != null -> "Info.plist has no $missingKey, so iOS would terminate the app on a request."
@@ -218,6 +217,6 @@ private suspend fun contactsStatus(): PermissionStatus = when (CNContactStore.au
 
     CNAuthorizationStatusNotDetermined -> PermissionStatus.NotDetermined
 
-    // iOS 18's limited access, which older SDK bindings do not name.
+    // CNAuthorizationStatusLimited, iOS 18's limited access.
     else -> PermissionStatus.Limited
 }

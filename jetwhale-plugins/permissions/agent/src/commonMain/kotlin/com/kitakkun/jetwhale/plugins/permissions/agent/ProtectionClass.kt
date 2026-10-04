@@ -8,7 +8,7 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionCategory
  */
 internal data class ProtectionClass(val category: PermissionCategory, val label: String)
 
-// Values of android.content.pm.PermissionInfo, which are part of the public SDK and do not change.
+// The values of android.content.pm.PermissionInfo's public constants, which never change.
 private const val PROTECTION_MASK_BASE = 0xf
 private const val PROTECTION_NORMAL = 0
 private const val PROTECTION_DANGEROUS = 1

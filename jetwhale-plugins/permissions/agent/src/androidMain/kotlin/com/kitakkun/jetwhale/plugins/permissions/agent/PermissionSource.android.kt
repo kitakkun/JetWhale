@@ -46,7 +46,6 @@ private class AndroidPermissionSource(private val application: Application) : Pe
 
     private val foreground = ForegroundActivityTracker(application)
 
-    // Only a request this plugin made tells a permanent denial apart from "never asked".
     private val requestedByPlugin: MutableSet<String> = Collections.synchronizedSet(mutableSetOf())
 
     override suspend fun read(): List<PermissionState> {
@@ -186,14 +185,15 @@ private val SPECIAL_ACCESSES: Map<String, SpecialAccess> = mapOf(
     ),
     "android.permission.PACKAGE_USAGE_STATS" to SpecialAccess(
         isGranted = ::hasUsageStatsAccess,
+        // ACTION_USAGE_ACCESS_SETTINGS documents no input, so it is not given the package Uri.
         settingsIntent = { Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
     ),
     "android.permission.REQUEST_INSTALL_PACKAGES" to SpecialAccess(
         isGranted = { Build.VERSION.SDK_INT < Build.VERSION_CODES.O || it.packageManager.canRequestPackageInstalls() },
         settingsIntent = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, packageUriOf(it)) else null },
     ),
-    // A normal permission by its protection level, but what it unlocks is the battery-optimization
-    // exemption the user toggles in the settings.
+    // A normal permission by its protection level, but the exemption it stands for is a switch the
+    // user toggles in the settings.
     "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" to SpecialAccess(
         isGranted = { it.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(it.packageName) },
         settingsIntent = { Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUriOf(it)) },
@@ -260,7 +260,5 @@ private fun currentApplicationOrNull(): Application? = try {
 } catch (_: ReflectiveOperationException) {
     null
 } catch (_: SecurityException) {
-    // A hidden-API restriction surfaces here rather than as a reflective failure; either way the
-    // plugin reports itself unsupported instead of failing the app's startup.
     null
 }

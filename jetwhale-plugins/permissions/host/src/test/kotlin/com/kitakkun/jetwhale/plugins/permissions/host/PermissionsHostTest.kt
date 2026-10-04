@@ -27,7 +27,8 @@ import kotlin.test.assertEquals
 class PermissionsHostTest {
     private val client = FakePermissionsClient()
 
-    // The fake answers without suspending, so every launched call has finished by the time launch returns.
+    // On Dispatchers.Unconfined a launch runs until its first suspension, and the fake never
+    // suspends, so every launched call has finished by the time launch returns.
     private val board = PermissionsBoard(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

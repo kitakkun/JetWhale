@@ -13,12 +13,8 @@ plugins {
 // (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.permissions"
 
-// Targets are the platforms an app ships on. Desktop and the web have no permission model the
-// agent can read; they are kept so a multiplatform app can register the plugin in common code,
-// and report themselves as unsupported.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)

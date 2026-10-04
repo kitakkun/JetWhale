@@ -45,8 +45,6 @@ internal class PermissionsBoard(
     var status: PermissionsStatus? by mutableStateOf(null)
         private set
 
-    // Reloads overlap when changes arrive quickly; only the latest one started may be shown, or a
-    // slow earlier read would overwrite a newer state.
     private val loadGeneration = AtomicInteger()
 
     suspend fun load() {

@@ -44,8 +44,6 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PERMISSIONS_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    // Created with the plugin rather than on first use: on Android it starts tracking the
-    // foreground activity, which a permission dialog needs.
     private val source: PermissionSource = platformPermissionSource()
     private var watchScope: CoroutineScope? = null
 

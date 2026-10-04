@@ -36,7 +36,6 @@ private class PermissionsHostPlugin :
         onEvent { event: PermissionsChanged -> board.onChanged(event.changes) }
     }
 
-    // Change events carry only what changed, so the full report is fetched once per connection.
     override suspend fun onPrepare() {
         board.load()
     }
