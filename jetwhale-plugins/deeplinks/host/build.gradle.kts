@@ -20,7 +20,8 @@ kotlin {
     }
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `host` modules.
+// Distinct group: the other plugins also have a `host` module, and Gradle substitutes projects that
+// share coordinates during resolution.
 group = "com.kitakkun.jetwhale.plugins.deeplinks"
 
 jetwhalePlugin {

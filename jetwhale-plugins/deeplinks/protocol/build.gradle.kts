@@ -9,7 +9,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so this module's coordinates don't collide with the other plugins' `protocol`.
+// Distinct group: the other plugins also have a `protocol` module, and Gradle substitutes projects
+// that share coordinates during resolution.
 group = "com.kitakkun.jetwhale.plugins.deeplinks"
 
 kotlin {

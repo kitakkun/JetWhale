@@ -27,8 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(0, 0))
 
         super.onCreate(savedInstanceState)
-        // A recreated activity gets its launch intent again, but its restored back stack already
-        // shows the link's screen.
+        // A recreated activity gets its launch intent again.
         if (savedInstanceState == null) intent?.data?.let { DemoDeepLinks.handle(it.toString()) }
 
         val header = TextView(this).apply {
@@ -62,7 +61,8 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    // singleTask: a link opened while the demo runs arrives here, not in a second copy.
+    // Under singleTask, a link opened while the activity exists arrives here rather than in a new
+    // instance.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.data?.let { DemoDeepLinks.handle(it.toString()) }

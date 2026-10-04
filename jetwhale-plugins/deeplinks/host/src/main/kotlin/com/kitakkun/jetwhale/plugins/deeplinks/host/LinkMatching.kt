@@ -142,7 +142,7 @@ private fun matchesGlobPattern(pattern: String, match: String): Boolean {
                 nextChar = pattern.getOrElse(ip) { PATTERN_END }
             }
         } else {
-            // Android does not consult the escape here either, so `\.` matches any character.
+            // AOSP ignores the escape here too, so `\.` matches any character.
             if (c != '.' && match[im] != c) return false
             im++
         }
@@ -193,7 +193,7 @@ private class AdvancedPatternParser(private val pattern: String) {
 
                 '+' -> repeatLast(1..Int.MAX_VALUE)
 
-                // A `}` that closes no range is dropped, not matched.
+                // AOSP drops a `}` that closes no counted repetition instead of matching it.
                 '}' -> true
 
                 '.' -> tokens.add(AdvancedToken(repetition = null) { true })

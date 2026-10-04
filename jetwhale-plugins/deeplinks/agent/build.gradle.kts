@@ -9,12 +9,10 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Distinct group: the other plugins also have an `agent` module, and Gradle substitutes projects
+// that share coordinates during resolution.
 group = "com.kitakkun.jetwhale.plugins.deeplinks"
 
-// Linux and mingw are left out: there is no platform registry of the links an app handles there,
-// and no platform way for an app to route a link to itself.
 kotlin {
     abiValidation()
 

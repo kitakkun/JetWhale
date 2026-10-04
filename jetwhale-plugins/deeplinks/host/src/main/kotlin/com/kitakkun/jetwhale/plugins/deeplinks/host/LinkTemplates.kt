@@ -17,6 +17,6 @@ internal fun fillTemplate(template: String, values: Map<String, String>): String
     val name = match.groupValues[1]
     val value = values[name]
     require(!value.isNullOrEmpty()) { "'$name' needs a value" }
-    // URLEncoder encodes for forms, where a space is '+'; in a path it has to be %20.
+    // URLEncoder encodes for forms, where a space is '+'; a path needs %20.
     URLEncoder.encode(value, Charsets.UTF_8).replace("+", "%20")
 }

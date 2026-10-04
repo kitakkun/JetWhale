@@ -24,8 +24,8 @@ class DeepLinkBrowserTest {
     private val itemTemplate = DeepLinkTemplate(name = "Item", template = "demo://item/{id}", description = null)
     private val client = FakeDeepLinkClient(declared = listOf(demoLink), templates = listOf(itemTemplate))
 
-    // Unconfined runs a launched call in place until it suspends, and the fake never suspends, so
-    // every call has finished by the time launch returns.
+    // Unconfined runs a launched call in place until it first suspends, and the fake never
+    // suspends, so each call has finished when launch returns.
     private val browser = DeepLinkBrowser(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test

@@ -11,8 +11,7 @@ private object MacosDeepLinkOpener : DeepLinkOpener {
 
     override suspend fun open(url: String): DeepLinkOpenResult {
         val nsUrl = NSURL.URLWithString(url) ?: return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "'$url' is not a valid URL")
-        // NSWorkspace hands the link to whichever app is registered for its scheme, which is this
-        // app only when it is the scheme's registered handler.
+        // NSWorkspace opens the link in its scheme's registered handler, which may be another app.
         val opened = NSWorkspace.sharedWorkspace.openURL(nsUrl)
         return DeepLinkOpenResult(opened = opened, handledBy = emptyList(), error = if (opened) null else "macOS did not open $url")
     }

@@ -13,7 +13,7 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
     val context = currentApplicationOrNull()
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's Context was not reachable, so its manifest could not be read."))
     // PackageManager exposes no intent filters (ActivityInfo carries none), so they are read from
-    // the app's compiled manifest, which holds them as merged at build time.
+    // the app's compiled manifest.
     val manifest = openBaseManifest(context.packageName) { cookie -> context.assets.openXmlResourceParser(cookie, "AndroidManifest.xml") }
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's own manifest was not among its loaded APKs, so its links could not be read."))
     val verification = appLinkVerificationStates(context)
@@ -45,7 +45,8 @@ internal fun openBaseManifest(packageName: String, openManifest: (cookie: Int) -
             return null
         }
         val isBase = try {
-            // The platform's parser reports a START_DOCUMENT before the root element, which nextTag() rejects.
+            // This parser returns a synthetic START_DOCUMENT from its first next(), which nextTag()
+            // rejects.
             var event = parser.next()
             while (event != XmlPullParser.START_TAG && event != XmlPullParser.END_DOCUMENT) event = parser.next()
             event == XmlPullParser.START_TAG && parser.getAttributeValue(null, "package") == packageName && parser.getAttributeValue(null, "split") == null
@@ -72,7 +73,7 @@ private fun manifestEvents(parser: XmlResourceParser, context: Context): Sequenc
 private fun attributesOf(parser: XmlResourceParser, context: Context): Map<String, String> = (0 until parser.attributeCount).associate { index ->
     val value = parser.getAttributeValue(index)
     val resourceId = parser.getAttributeResourceValue(index, 0)
-    // The compiled manifest gives a `@string/...` reference as "@<id>", not the string it names.
+    // A compiled manifest gives a resource reference as "@<id>", not the value it names.
     val resolved = if (value.startsWith("@") && resourceId != 0) {
         runCatching { context.resources.getString(resourceId) }.getOrDefault(value)
     } else {
