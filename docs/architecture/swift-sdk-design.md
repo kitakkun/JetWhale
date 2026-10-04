@@ -19,9 +19,9 @@ to Swift today (whether via Obj-C interop or the still-Alpha Swift Export):
 - reified generics (`request<R>()`, `JetWhaleRequest<R>`), which the handler registry is built on,
 - `@Serializable` message types (no `Codable` bridging),
 - sealed marker interfaces,
-- a plugin base class whose lifecycle hooks are `protected`. Swift can subclass exported Kotlin
-  classes over Obj-C interop, but `protected` members are not exported, so a Swift subclass has
-  nothing to override.
+- a plugin base class to subclass. Obj-C export carries its `protected` hooks, so a Swift subclass
+  can override them, but the handler registry its `configure` receives offers only the reified
+  registration above, so the subclass has no way to say which messages it handles.
 
 So we do **not** try to export the Kotlin authoring surface. Instead we add a thin **façade layer in
 `commonMain`** whose public shape is export-clean, and design a Swift wrapper on top of it. The
@@ -95,7 +95,7 @@ final class MyPlugin: JetWhalePlugin {
         let cfg: MockConfig = try await messenger.request(GetMockConfig())
         apply(cfg)
     }
-    func onDisconnected() {}
+    func onDisconnected() async {}
     func onDeactivate() {}
 
     private var messenger: JetWhaleMessenger?
@@ -115,7 +115,8 @@ Key Swift types:
   `pluginVersion`, `configure` and the lifecycle callbacks. `pluginVersion` is sent during session
   negotiation, as it is for every Kotlin agent plugin.
 - `JetWhaleHandlers` — closure registry: `onEvent(_:_:)`, `onRequest(_:_:)`; request handlers are
-  `async`.
+  `async throws`, and a thrown error goes back to the host as the request's failure, as an exception
+  from a Kotlin request handler does.
 - `JetWhaleMessenger` — `trySend`, `sendOrQueue`, `sendOrFail`, and `async` `request`.
 - `JetWhale.start(_:)` — trailing-closure builder over a `JetWhaleConfig` value type.
 
@@ -133,14 +134,16 @@ section, as `ssl { }` is in Kotlin; it does not pick the scheme, the endpoints d
 
 ## Kotlin-side façade (what backs it)
 
-1. **A public raw-dispatch path in `jetwhale-protocol`** — the prerequisite. Today
-   `JetWhaleMessageHandlers` only accepts the reified `onEvent<E>` / `onRequest<REQ, R>`, keyed by
-   the serializer's `descriptor.serialName`; its constructor and registration functions are
-   `internal`, and the inbound dispatcher looks up only those typed entries. There is no raw shape
-   to register a catch-all against (the QA agent's `WireLevelQaPlugin` is send-only for the same
-   reason). Add a raw fallback — e.g. `onRawEvent { messageType, json -> }` and
-   `onRawRequest { messageType, json -> replyJson }` — that the dispatcher consults when no typed
-   entry matches. This is the one addition to the Kotlin-facing API.
+1. **A public raw-dispatch path in `jetwhale-protocol`** — the prerequisite. Today the only public
+   way to register on `JetWhaleMessageHandlers` is the reified, inline `onEvent<E>` /
+   `onRequest<REQ, R>`, keyed by the serializer's `descriptor.serialName`. The non-reified
+   `registerEvent` / `registerRequest` they expand to are `@PublishedApi internal` and still take a
+   `KSerializer`, the constructor is `internal`, and the inbound dispatcher looks up only those typed
+   entries. There is no raw shape to register a catch-all against (the QA agent's
+   `WireLevelQaPlugin` is send-only for the same reason). Add a raw fallback — e.g.
+   `onRawEvent { messageType, json -> }` and `onRawRequest { messageType, json -> replyJson }` — that
+   the dispatcher consults when no typed entry matches. This is the one addition to the
+   Kotlin-facing API.
 
 2. **`JetWhaleSwiftConfig`** — a plain class with settable properties (`appName`, `logLevel`), an
    ordered endpoint list (`ws`, `wss`, `discoverWss`), an `ssl` section, and a `plugins` section with
@@ -153,19 +156,29 @@ section, as `ssl { }` is in Kotlin; it does not pick the scheme, the endpoints d
        val pluginId: String
        val pluginVersion: String
        fun onActivate(messenger: RawMessenger)
-       fun onPrepare(messenger: RawMessenger, done: () -> Unit)
-       fun onDisconnected()
+       fun onPrepare(messenger: RawMessenger, done: (failure: String?) -> Unit)
+       fun onDisconnected(done: () -> Unit)
        fun onDeactivate()
        fun handleEvent(messageType: String, payloadJson: String)
-       fun handleRequest(messageType: String, payloadJson: String, reply: (String) -> Unit)
+       fun handleRequest(
+           messageType: String,
+           payloadJson: String,
+           reply: (String) -> Unit,
+           fail: (String) -> Unit,
+       )
    }
    ```
-   `onPrepare` and `handleRequest` take a callback rather than returning, so the Swift side can
-   answer from an `async` context. A Kotlin `SwiftBackedAgentPlugin(bridge) : JetWhaleAgentPlugin`
-   adapts it: its `configure` registers the raw fallback from (1) and dispatches
-   `(messageType, json)` to `bridge.handleEvent/handleRequest`, suspending until `reply` is called;
-   its lifecycle hooks and `pluginVersion` forward to the bridge. The Swift side implements
-   `SwiftPluginBridge` inside a wrapper around the developer's `JetWhalePlugin`.
+   The members that back a Kotlin `suspend` call — `onPrepare`, `onDisconnected`, `handleRequest` —
+   take callbacks rather than returning, so the Swift side can finish from an `async` context. A
+   failure travels back through the callbacks too: a message passed to `onPrepare`'s `done` is
+   logged and the plugin goes on unprepared, as when a Kotlin `onPrepare` throws, and `fail` becomes
+   the request's failure reply, as a throwing Kotlin request handler's exception does. A Kotlin
+   `SwiftBackedAgentPlugin(bridge) : JetWhaleAgentPlugin` adapts it: its `configure` registers the raw
+   fallback from (1) and dispatches `(messageType, json)` to `bridge.handleEvent/handleRequest`,
+   suspending until `reply` or `fail` is called; its `onPrepare` and `onDisconnected` suspend the
+   same way until `done` runs, and its other hooks and `pluginVersion` forward to the bridge
+   directly. The Swift side implements `SwiftPluginBridge` inside a wrapper around the developer's
+   `JetWhalePlugin`.
 
 4. **`RawMessenger`** — a narrow export of the raw messenger: `trySendRaw(type, json): Bool`,
    `sendOrQueueRaw`, `sendOrFailRaw`, and `suspend requestRaw(type, json): String`. The Swift
