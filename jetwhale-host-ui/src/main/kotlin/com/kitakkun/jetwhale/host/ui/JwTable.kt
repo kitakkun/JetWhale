@@ -398,6 +398,7 @@ private fun <T> ResizeHandle(
             columnState.widths += key to (current + growth).coerceIn(JwTableDefaults.minColumnWidth, widest)
         },
     )
+    val headerNamesColumn = key.header.isNotBlank() && columnLayout.keys.count { it.header == key.header } == 1
     Box(
         modifier = modifier
             .width(JwTableDefaults.resizeHandleWidth)
@@ -405,7 +406,7 @@ private fun <T> ResizeHandle(
             .hoverable(interactionSource)
             .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
             .draggable(state = dragState, orientation = Orientation.Horizontal, interactionSource = interactionSource)
-            .semantics { contentDescription = "Resize ${key.header}" }
+            .semantics { contentDescription = if (headerNamesColumn) "Resize ${key.header}" else "Resize column ${key.index + 1}" }
             .pointerInput(key, columnState) {
                 detectTapGestures(
                     onDoubleTap = {

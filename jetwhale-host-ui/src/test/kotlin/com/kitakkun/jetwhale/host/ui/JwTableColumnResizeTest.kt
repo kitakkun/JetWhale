@@ -19,7 +19,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.dragAndDrop
 import androidx.compose.ui.test.getBoundsInRoot
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
@@ -247,15 +246,20 @@ class JwTableColumnResizeTest {
     fun `columns that share a header resize independently`() = runTable(
         columns = listOf(textColumn("", JwColumnWidth.Fixed(60.dp)), textColumn("", JwColumnWidth.Fixed(60.dp)), textColumn("Value", JwColumnWidth.Weight(1f))),
     ) { state ->
-        val px = with(density) { 40.dp.toPx() }
-        onAllNodesWithContentDescription("Resize ")[0].performMouseInput {
-            dragAndDrop(start = center, end = center + Offset(px, 0f))
-        }
-        waitForIdle()
+        drag("column 1", by = 40f)
 
         assertClose(100.dp, state.widths.getValue(JwTableColumnKey(0, "")))
         assertNull(state.widths[JwTableColumnKey(1, "")])
         assertClose(60.dp, state.laidOutWidths.getValue(JwTableColumnKey(1, "")))
+    }
+
+    @Test
+    fun `a resize handle is named by its column's position when the header does not tell the column apart`() = runTable(
+        columns = listOf(textColumn("", JwColumnWidth.Fixed(60.dp)), textColumn("Size", JwColumnWidth.Fixed(60.dp)), textColumn("Size", JwColumnWidth.Fixed(60.dp)), textColumn("Value", JwColumnWidth.Weight(1f))),
+    ) { _ ->
+        listOf("Resize column 1", "Resize column 2", "Resize column 3", "Resize Value").forEach { name ->
+            onNodeWithContentDescription(name).assertExists()
+        }
     }
 
     @Test
