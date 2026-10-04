@@ -146,7 +146,7 @@ class HostPluginCommandsTest {
         )
 
         val result = command
-            .execute(arguments("pluginId" to JsonPrimitive("com.example.local"), "enabled" to JsonPrimitive(true)))
+            .executeForText(arguments("pluginId" to JsonPrimitive("com.example.local"), "enabled" to JsonPrimitive(true)))
             .let { Json.decodeFromString<SetPluginEnabledResult>(it) }
 
         assertEquals(listOf("host"), result.instantiatedForSessions)
