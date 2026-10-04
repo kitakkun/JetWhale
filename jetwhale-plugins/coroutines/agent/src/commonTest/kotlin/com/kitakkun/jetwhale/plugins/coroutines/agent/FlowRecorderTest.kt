@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -82,6 +83,21 @@ class FlowRecorderTest {
         trackedFlow(flowOf("x".repeat(1_000)), recorder).toList()
 
         assertEquals(200, recorder.snapshot().recentValues.single().text.length)
+    }
+
+    @Test
+    fun `a value whose toString throws is still delivered and recorded`() = runTest {
+        val recorder = FlowRecorder("unprintable")
+        val unprintable = object {
+            override fun toString(): String = error("not printable")
+        }
+
+        assertSame(unprintable, trackedFlow(flowOf(unprintable), recorder).toList().single())
+
+        val info = recorder.snapshot()
+        assertEquals(1, info.completions)
+        assertEquals(0, info.failures)
+        assertEquals(listOf("<toString() threw IllegalStateException>"), info.recentValues.map(FlowValue::text))
     }
 
     @Test

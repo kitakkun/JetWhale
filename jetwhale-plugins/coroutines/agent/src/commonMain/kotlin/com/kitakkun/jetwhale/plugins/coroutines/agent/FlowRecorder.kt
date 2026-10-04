@@ -26,7 +26,7 @@ internal fun <T> trackedFlow(upstream: Flow<T>, recorder: FlowRecorder): Flow<T>
     recorder.onCollectionStarted()
     try {
         upstream.collect { value ->
-            recorder.onEmission(value.toString())
+            recorder.onEmission(value)
             emit(value)
         }
         recorder.onCompleted()
@@ -56,11 +56,19 @@ internal class FlowRecorder(val name: String) {
         collections.incrementAndFetch()
     }
 
-    fun onEmission(text: String) {
+    fun onEmission(value: Any?) {
         val now = nowEpochMillis()
         emissions.incrementAndFetch()
-        val value = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT))
-        recentValues.updateAndGet { (listOf(value) + it).take(MAX_RECENT_VALUES) }
+        // A value's toString() is the app's code; one that throws costs the record its text,
+        // never the collector its value.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+        val text = try {
+            value.toString()
+        } catch (e: Exception) {
+            "<toString() threw ${e::class.simpleName}>"
+        }
+        val recent = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT))
+        recentValues.updateAndGet { (listOf(recent) + it).take(MAX_RECENT_VALUES) }
         val second = now / 1000
         rateBuckets.updateAndGet { it.countingEmissionAt(second) }
     }
