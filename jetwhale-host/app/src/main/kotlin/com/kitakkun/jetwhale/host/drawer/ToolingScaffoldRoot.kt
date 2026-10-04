@@ -19,6 +19,7 @@ import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginInstallJob
 import com.kitakkun.jetwhale.host.navigation.toPage
+import com.kitakkun.jetwhale.host.plugin_enabled_change_failed_message
 import com.kitakkun.jetwhale.host.session_connected_message
 import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_connected_message
@@ -67,8 +68,7 @@ fun ToolingScaffoldRoot(
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
-                val message = result.sessionChangeMessage() ?: return@ActionResultEffect
-                snackbarHostState.showSnackbar(message = message, duration = JwSnackbarDuration.Short)
+                snackbarHostState.showSnackbar(message = result.snackbarMessage(), duration = JwSnackbarDuration.Short)
             }
             val uiState = context(screenContext.presenterContext) {
                 toolingScaffoldPresenter(
@@ -324,12 +324,13 @@ private fun openInstalledPlugin(
 }
 
 /**
- * What to announce for a session coming or going, or null when the result announces nothing.
+ * What the snackbar announces for this result: a session coming or going, or a plugin that could not
+ * be enabled or disabled.
  *
  * A single disconnect or arrival names the session; a simultaneous batch (the server stopping, say)
  * is collapsed into a count so the snackbar queue stays short enough to read.
  */
-private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): String? = when (this) {
+internal suspend fun ToolingScaffoldScreenActionResult.snackbarMessage(): String = when (this) {
     is ToolingScaffoldScreenActionResult.SessionClosed -> closedSessions.singleOrNull()
         ?.let { getString(Res.string.session_disconnected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_disconnected_message, closedSessions.size)
@@ -338,7 +339,7 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
         ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
 
-    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> null
+    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(Res.string.plugin_enabled_change_failed_message, error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName ?: error.javaClass.name)
 }
 
 /**
