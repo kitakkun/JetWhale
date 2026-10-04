@@ -69,16 +69,6 @@ compose.desktop {
     }
 }
 
-// The Compose Gradle plugin adds -Dcompose.application.configure.swing.globals=true, and
-// -Xdock:name on macOS, to the packaged app's launcher by itself. A host jar the JetWhale launcher
-// starts gets neither unless it is listed here.
-val hostReleaseJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true") + compose.desktop.application.jvmArgs
-val hostReleasePlatforms = mapOf(
-    "macos-arm64" to listOf("-Xdock:name=${compose.desktop.application.nativeDistributions.packageName}"),
-    "linux-x64" to emptyList(),
-    "windows-x64" to emptyList(),
-)
-
 val hostReleaseMetadataWriter: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
@@ -112,8 +102,15 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
     val hostMainClass = compose.desktop.application.mainClass
     val runtimeModules = compose.desktop.application.nativeDistributions.modules.toList()
     val javaFeatureVersion = java.toolchain.languageVersion.map { it.asInt() }
-    val hostJvmArgs = hostReleaseJvmArgs
-    val releasePlatforms = hostReleasePlatforms
+    // The Compose Gradle plugin adds -Dcompose.application.configure.swing.globals=true, and
+    // -Xdock:name on macOS, to the packaged app's launcher by itself. A host jar the JetWhale
+    // launcher starts gets neither unless it is listed here.
+    val hostJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true") + compose.desktop.application.jvmArgs
+    val releasePlatforms = mapOf(
+        "macos-arm64" to listOf("-Xdock:name=${compose.desktop.application.nativeDistributions.packageName}"),
+        "linux-x64" to emptyList(),
+        "windows-x64" to emptyList(),
+    )
     argumentProviders.add(
         CommandLineArgumentProvider {
             val version = releaseVersion.get()
