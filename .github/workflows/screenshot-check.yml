@@ -27,8 +27,10 @@ on:
       - '.github/workflows/screenshot-check.yml'
       - '.github/actions/**'
 
+# A merged pull request's `closed` run reports the base branch as its ref, so a group keyed on the ref
+# alone would put it next to main's baseline run and cancel that run. Pull requests are keyed by number.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
