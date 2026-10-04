@@ -22,8 +22,8 @@ data class RequestFailed(val failure: HttpRequestFailure) : JetWhaleEvent
 data class SetMockRules(val rules: List<MockRule>) : JetWhaleRequest<Ack>
 
 /**
- * Replaces the network conditions the agent applies. The host owns them: the agent drops them when
- * the host disconnects, and the host pushes its current set again on every connection.
+ * Replaces the network conditions the agent applies. The host owns them, and the agent drops them
+ * when the host disconnects or deactivates the plugin, so they end with the debug session.
  */
 @SerialName("network/set_network_conditions")
 @Serializable

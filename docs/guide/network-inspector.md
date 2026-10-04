@@ -247,10 +247,11 @@ offline — and is then answered by a matching mock or by the real server. A moc
 matches it. A mock's own **Delay ms** comes on top of the condition's latency. Download pacing
 applies to mocked bodies too; upload pacing does not, since a mocked request is never sent.
 
-::: warning Conditions do not outlive the host
-Unlike mock rules, conditions are owned by the **host**. The app drops them as soon as the host
-disconnects or the plugin is disabled, so a forgotten **Offline** cannot keep the app offline after
-you close JetWhale; when the host reconnects it sends its conditions again.
+::: warning Conditions end with the session
+Unlike mock rules, conditions are owned by the **host** and last only as long as the debug session.
+The app drops them as soon as the host disconnects or the plugin is disabled, so a forgotten
+**Offline** cannot keep the app offline after you close JetWhale. When the app connects again, the
+new session starts without conditions; set them again there.
 :::
 
 ## MCP tools
