@@ -130,11 +130,7 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     }
     return when {
         element != null -> Json.encodeToString(JsonElement.serializer(), redactFields(element))
-
-        // JSON that does not parse, a truncated body above all, cannot have its fields redacted one by
-        // one, and the value of a field it names may follow the name.
         (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) && namesBodyField(body) -> WITHHELD_BODY
-
         else -> body
     }
 }
@@ -143,24 +139,28 @@ private const val WITHHELD_BODY = "<body withheld: it names a redacted field but
 
 private fun List<RedactionRule>.namesBodyField(text: String): Boolean {
     val names = filter { it.target == RedactionTarget.BODY_FIELD }.map(RedactionRule::name)
-    return jsonStringLiterals(text).any { literal -> names.any { it.equals(literal, ignoreCase = true) } }
+    return textBetweenQuotes(text).any { stretch -> names.any { it.equals(stretch, ignoreCase = true) } }
 }
 
-/** The complete JSON string literals in [text], unescaped; one cut off at the end is left out. */
-private fun jsonStringLiterals(text: String): Sequence<String> = sequence {
+/**
+ * The text between each two consecutive unescaped quotes in [text], unescaped as a JSON string; a
+ * stretch cut off at the end is left out. The stretches between string literals count too, so a
+ * stray quote in malformed JSON cannot shift a field name out of the scan.
+ */
+private fun textBetweenQuotes(text: String): Sequence<String> = sequence {
     var index = text.indexOf('"')
     while (index >= 0) {
-        val literal = StringBuilder()
+        val stretch = StringBuilder()
         var at = index + 1
         while (at < text.length && text[at] != '"') {
             if (text[at] == '\\' && at + 1 < text.length) {
                 val unicode = text.getOrNull(at + 1) == 'u' && at + 6 <= text.length
                 val code = if (unicode) text.substring(at + 2, at + 6).takeIf { it.all(Char::isHexDigit) }?.toInt(radix = 16) else null
                 if (code != null) {
-                    literal.append(code.toChar())
+                    stretch.append(code.toChar())
                     at += 6
                 } else {
-                    literal.append(
+                    stretch.append(
                         when (val escaped = text[at + 1]) {
                             'b' -> '\b'
                             'f' -> '\u000C'
@@ -173,13 +173,13 @@ private fun jsonStringLiterals(text: String): Sequence<String> = sequence {
                     at += 2
                 }
             } else {
-                literal.append(text[at])
+                stretch.append(text[at])
                 at++
             }
         }
         if (at >= text.length) return@sequence
-        yield(literal.toString())
-        index = text.indexOf('"', startIndex = at + 1)
+        yield(stretch.toString())
+        index = at
     }
 }
 

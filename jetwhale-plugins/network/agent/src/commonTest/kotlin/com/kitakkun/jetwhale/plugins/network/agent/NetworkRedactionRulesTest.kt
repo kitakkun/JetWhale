@@ -234,6 +234,13 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `a malformed JSON body with a stray quote before a redacted field never carries its value`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(request(body = """{"name":"5" screen","password":"hunter2"}"""))
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
     fun `a truncated JSON body that names no redacted field is kept as captured`() {
         val rules = NetworkRedactionRules { bodyField("password") }
         val body = """{"user":"alice","items":[1,2,3"""
