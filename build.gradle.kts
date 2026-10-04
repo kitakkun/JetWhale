@@ -1,4 +1,5 @@
 import com.kitakkun.kotrail.gradle.KotrailExtension
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
@@ -42,7 +43,20 @@ allprojects {
         if (rootProject.hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 }
 
+// Each browser test task starts its own Karma, webpack and ChromeHeadless, 1–2 GB together. Several
+// at once, beside the Gradle and Kotlin daemons, run the 16 GB CI runner out of memory and it shuts
+// down mid-build.
+abstract class BrowserTestSlot : BuildService<BuildServiceParameters.None>
+
+val browserTestSlot = gradle.sharedServices.registerIfAbsent("browserTestSlot", BrowserTestSlot::class) {
+    maxParallelUsages = 1
+}
+
 subprojects {
+    tasks.withType<KotlinJsTest>().named { it.endsWith("BrowserTest") }.configureEach {
+        usesService(browserTestSlot)
+    }
+
     val kotlinPluginIds = listOf("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.multiplatform")
     kotlinPluginIds.forEach { kotlinPluginId ->
         pluginManager.withPlugin(kotlinPluginId) {
