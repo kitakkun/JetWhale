@@ -121,32 +121,47 @@ instance. Two instances is the classic mistake: the session connects and no traf
 `src/debug` is an Android Gradle Plugin feature; `expect`/`actual` splits by *platform*, not by
 build type, so neither helps. Two options:
 
-1. **A debug-only Gradle module** holding the JetWhale implementation, with the dependency gated on
-   a Gradle property. Production code then needs a way to find the implementation without naming
-   it — a `ServiceLoader`-style lookup, or an `init` block in the debug module that registers
-   itself into a mutable holder in production code:
+1. **A debug-only Gradle module found at runtime, on JVM targets.** The JetWhale implementation
+   lives in a debug-only module, with the dependency gated on a Gradle property. Production code
+   cannot name that module, so it looks the implementation up with `java.util.ServiceLoader`:
 
    ```kotlin
-   // production
+   // production (jvmMain)
+   interface DebugToolingProvider {
+       fun create(): DebugTooling
+   }
+
+   object NoOpDebugTooling : DebugTooling {
+       override fun initialize() = Unit
+       override fun decorate(client: HttpClient) = Unit
+   }
+
    object DebugToolingHolder {
-       var instance: DebugTooling = NoOpDebugTooling
+       val instance: DebugTooling by lazy {
+           ServiceLoader.load(DebugToolingProvider::class.java).firstOrNull()?.create() ?: NoOpDebugTooling
+       }
    }
    ```
 
    ```kotlin
-   // debug module
-   DebugToolingHolder.instance = JetWhaleDebugTooling()
+   // debug module (jvmMain)
+   class JetWhaleDebugToolingProvider : DebugToolingProvider {
+       override fun create(): DebugTooling = JetWhaleDebugTooling()
+   }
    ```
 
-   Something still has to run that line without production code naming the debug module: on the
-   JVM a `ServiceLoader` entry can; elsewhere it takes a debug-only entry point, at which point
-   option 2 is the simpler shape.
+   `JetWhaleDebugTooling` is the debug implementation from the Android section, written as a class.
+   The debug module registers the provider in
+   `src/jvmMain/resources/META-INF/services/<DebugToolingProvider's fully qualified name>`, a file
+   whose one line is `JetWhaleDebugToolingProvider`'s fully qualified name. Other targets have no
+   `ServiceLoader`: there a debug-only entry point has to hand the implementation over, and option 2
+   is the simpler shape.
 
 2. **Two thin entry-point modules** — `:app-debug` and `:app-release`, each with its own `main()`
-   that wires what it needs. More files, but no mutable global and no reflection.
+   that wires what it needs. More files, but no lookup at runtime.
 
 Option 2 is usually the better fit for a Compose Multiplatform desktop app, where the entry point is
-already tiny. Option 1 fits when the entry point is shared and platform-specific.
+already tiny. Option 1 fits a JVM app whose one entry point serves both builds.
 
 ## Failure modes
 

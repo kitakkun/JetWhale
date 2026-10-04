@@ -144,16 +144,51 @@ Whichever you follow, three JetWhale-side facts hold:
 - **The endpoint must be reachable from where the app runs.** The references declare
   `ws("localhost", 5080)`, which reaches the host from emulators, simulators, the desktop app, the
   browser and ADB-forwarded Android devices. A physical iPhone, or any device on Wi-Fi without
-  `adb reverse`, cannot reach `localhost`. Add a candidate after it:
-  `discoverWss { allowHostName("<the host machine's name>") }`, whose block must allow a host, an
-  address or all of them, since an empty one accepts nothing (on iOS it also needs `_jetwhale._tcp`
-  under `NSBonjourServices`); or `buildMachineWss(port)`, with the `com.kitakkun.jetwhale.agent`
-  Gradle plugin applied to the module that declares it. Set either up as
-  [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) describes.
+  `adb reverse`, cannot reach `localhost`; see [Physical devices](#physical-devices).
 - **One `JetWhaleNetworkAgentPlugin` instance serves two call sites** — installed into the HTTP
   client, and registered in `plugins { register(...) }`. Two instances is the classic mistake: the
   app connects, the host lists the session, and no traffic ever appears. Give it a singleton
   binding and inject it in both places.
+
+### Physical devices
+
+When the app will run on a physical iPhone, or on a device without `adb reverse`, add a wss
+candidate after `localhost` and say what to trust, as the demo app does:
+
+```kotlin
+connection {
+    endpoints {
+        ws("localhost", 5080)
+        buildMachineWss(5443)
+        discoverWss { allowHostName("<the host machine's name>") }
+    }
+    ssl { trustServerCertificate() }
+}
+```
+
+- **`buildMachineWss(port)`** dials the address of the machine that compiled the app. It needs the
+  `com.kitakkun.jetwhale.agent` Gradle plugin applied to the module that declares it.
+- **`discoverWss { }`** finds the host over mDNS. Its block must allow a host (`allowHostName`), an
+  address (`allowAddress`) or `allowAll()`; an empty block accepts nothing.
+- **`ssl { trustServerCertificate() }`** is what lets either connect. Both dial the host's wss port
+  (5443 by default), whose certificate comes from a CA the host issued itself, and no platform trust
+  store holds that CA. With this, the agent fetches the CA from the host's `/jetwhale/ca` before the
+  handshake and pins the connection to it, trusting it on first use. On a LAN you do not trust,
+  `ssl { trustCertificate(pem = "...") }` pins a CA exported from the host's SSL certificate settings
+  instead. With neither, the handshake fails on trust.
+- **iOS `Info.plist`** needs `NSLocalNetworkUsageDescription` for any connection over the LAN, the CA
+  fetch included, and `NSBonjourServices` listing `_jetwhale._tcp` for `discoverWss`:
+
+  ```xml
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>JetWhale connects to the debugger host running on your local network.</string>
+  <key>NSBonjourServices</key>
+  <array>
+      <string>_jetwhale._tcp</string>
+  </array>
+  ```
+
+[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) covers each in full.
 
 ## 5. Verify — the classpath, not the wiring
 
@@ -180,7 +215,8 @@ isolated integration that never connects is the other failure:
 4. If the Network Inspector is wired, make one request and watch it land.
 
 Nothing in the host means the agent never connected: wrong port, no port forwarding, a physical
-device left with only `localhost` (see §4), or `startJetWhale` not reached. Session present but no
+device left with only `localhost` or without `ssl { trustServerCertificate() }` (see
+[Physical devices](#physical-devices)), or `startJetWhale` not reached. Session present but no
 traffic means two agent instances — see §4.
 
 ## 6. Report what you did
