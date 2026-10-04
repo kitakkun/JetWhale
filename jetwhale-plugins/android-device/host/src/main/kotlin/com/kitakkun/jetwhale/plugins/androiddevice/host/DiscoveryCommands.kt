@@ -72,8 +72,9 @@ internal class DeviceInfoCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     override val name = "$TOOL_PREFIX.deviceInfo"
     override val description =
         "Reports what a device is and what its screen is: model, manufacturer, Android release and " +
-            "SDK level, screen size in pixels, density, and current rotation (0=portrait, 1=90° " +
-            "counter-clockwise, 2=180°, 3=270°). The size is what tap/swipe coordinates are validated against."
+            "SDK level, screen size in pixels as currently rotated, density, and current rotation " +
+            "(0 = the natural orientation, which is portrait on a phone and landscape on most tablets; " +
+            "1, 2, 3 = 90°, 180°, 270° from it). The size is what tap/swipe coordinates are validated against."
 
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val properties = target.shell("getprop", timeout = AdbTimeouts.QUICK).let { if (it.exitCode == 0) parseGetProps(it.output) else emptyMap() }
@@ -141,9 +142,8 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
 
             val device = resolveDevice(run, serial)
             while (true) {
-                val booted = run.exec("-s", device.serial, "shell", "getprop", "sys.boot_completed", timeout = AdbTimeouts.QUICK)
-                if (booted.exitCode == 0 && booted.output == "1") break
-                if (startedAt.elapsedNow() >= budget) {
+                val remaining = budget - startedAt.elapsedNow()
+                if (!remaining.isPositive()) {
                     return JetWhaleMcpResult.error(
                         buildJsonObject {
                             put("ok", false)
@@ -152,7 +152,9 @@ internal class WaitForDeviceCommand(private val adb: JetWhaleAdb) : JetWhaleMcpC
                         }.toString(),
                     )
                 }
-                delay(BOOT_POLL_INTERVAL)
+                val booted = run.exec("-s", device.serial, "shell", "getprop", "sys.boot_completed", timeout = minOf(AdbTimeouts.QUICK, remaining))
+                if (booted.exitCode == 0 && booted.output == "1") break
+                delay(minOf(BOOT_POLL_INTERVAL, budget - startedAt.elapsedNow()))
             }
 
             return JetWhaleMcpResult.json(
@@ -189,12 +191,16 @@ internal class WakeCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
     }
 }
 
-/** The rotations `settings put system user_rotation` accepts, plus letting the sensor decide. */
+/**
+ * The rotations `settings put system user_rotation` accepts, plus letting the sensor decide. Each is
+ * relative to the display's natural orientation, which is portrait on a phone and landscape on most
+ * tablets.
+ */
 internal enum class DeviceRotation(val userRotation: Int?) {
-    PORTRAIT(0),
-    LANDSCAPE(1),
-    REVERSE_PORTRAIT(2),
-    REVERSE_LANDSCAPE(3),
+    ROTATION_0(0),
+    ROTATION_90(1),
+    ROTATION_180(2),
+    ROTATION_270(3),
 
     /** Hands rotation back to the accelerometer. */
     AUTO(null),
@@ -208,7 +214,11 @@ internal class SetRotationCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) 
             "keeps a QA run reproducible: an unpinned device rotates under the test and invalidates " +
             "every coordinate taken from an earlier screenshot."
 
-    private val rotation by enum("The rotation to pin the screen to, or AUTO to follow the sensor again.", DeviceRotation.entries)
+    private val rotation by enum(
+        "The rotation to pin the screen to, from the display's natural orientation (portrait on a phone, " +
+            "landscape on most tablets; deviceInfo reports the current one), or AUTO to follow the sensor again.",
+        DeviceRotation.entries,
+    )
 
     override suspend fun executeOnDevice(arguments: JetWhaleMcpArguments, target: DeviceTarget): JetWhaleMcpResult {
         val rotation = arguments[rotation]

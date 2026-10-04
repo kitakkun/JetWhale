@@ -47,6 +47,7 @@ internal class PullFileCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb) {
         val destination = File(arguments[hostPath])
         if (!destination.isAbsolute) throw JetWhaleMcpArgumentException("invalid hostPath: ${destination.path} (expected an absolute path)")
         if (destination.parentFile?.isDirectory != true) throw JetWhaleMcpArgumentException("invalid hostPath: ${destination.path} (its parent directory does not exist)")
+        if (destination.isDirectory) throw JetWhaleMcpArgumentException("invalid hostPath: ${destination.path} (it is a directory; give the path of the file to write)")
 
         val result = target.adb("pull", devicePath, destination.absolutePath, timeout = AdbTimeouts.TRANSFER)
         target.requireSuccess(result, "adb pull failed")?.let { return it }

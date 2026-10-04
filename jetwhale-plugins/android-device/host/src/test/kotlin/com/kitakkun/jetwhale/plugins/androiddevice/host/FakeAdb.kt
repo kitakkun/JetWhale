@@ -35,22 +35,26 @@ internal class FakeAdb(
 ) : JetWhaleAdb {
     val invocations = mutableListOf<List<String>>()
 
+    /** The timeout each call was given, in the order of [invocations]. */
+    val timeouts = mutableListOf<Duration>()
+
     /** The argument vectors run so far, each joined by spaces, for readable assertions. */
     val commands: List<String> get() = invocations.map { it.joinToString(" ") }
 
     override suspend fun run(vararg args: String, timeout: Duration): JetWhaleAdbResult {
-        val rule = record(args)
+        val rule = record(args, timeout)
         rule?.failure?.let { throw it }
         return JetWhaleAdbResult(exitCode = rule?.exitCode ?: 0, output = rule?.output?.trim().orEmpty(), errorOutput = rule?.errorOutput?.trim().orEmpty())
     }
 
     override suspend fun <T> runStreaming(vararg args: String, timeout: Duration, consume: suspend (InputStream) -> T): T {
-        record(args)?.failure?.let { throw it }
+        record(args, timeout)?.failure?.let { throw it }
         return consume(ByteArrayInputStream(streamBytes))
     }
 
-    private fun record(args: Array<out String>): AdbRule? {
+    private fun record(args: Array<out String>, timeout: Duration): AdbRule? {
         invocations += args.toList()
+        timeouts += timeout
         val joined = args.joinToString(" ")
         return rules.firstOrNull { joined.contains(it.contains) }
     }

@@ -317,8 +317,9 @@ internal class StartActivityCommand(adb: JetWhaleAdb) : AndroidDeviceCommand(adb
 
 /**
  * `am start` exits with 0 on many Android versions even when it started nothing, and says so only in
- * an `Error:` line. adb's shell protocol (Android 7.0 and later) puts that line on stderr; an older
- * device puts it on stdout.
+ * a line that starts with `Error:`. adb's shell protocol (Android 7.0 and later) puts that line on
+ * stderr; an older device puts it on stdout, next to the `Starting: Intent { … }` line that echoes
+ * the intent and so can hold `Error:` anywhere in a URL.
  */
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleAdbResult.amStartFailed(): Boolean = exitCode != 0 || "Error:" in output || "Error:" in errorOutput
+private fun JetWhaleAdbResult.amStartFailed(): Boolean = exitCode != 0 || listOf(output, errorOutput).any { stream -> stream.lineSequence().any { it.startsWith("Error:") } }

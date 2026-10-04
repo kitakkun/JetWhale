@@ -83,10 +83,10 @@ converted with the device's density.
 | Tool | Arguments | What it does |
 |---|---|---|
 | `listDevices` | — | Lists every device adb can see: `serial`, `state`, `model`, `product`, `transportId`, `isEmulator`. Start here. |
-| `deviceInfo` | `serial?` | Model, manufacturer, Android release and SDK level, screen size and density, current rotation. |
+| `deviceInfo` | `serial?` | Model, manufacturer, Android release and SDK level, screen size as currently rotated, density, and the current rotation from the natural orientation. |
 | `waitForDevice` | `serial?`, `timeoutSeconds?` | Waits for the device to connect and finish booting (`sys.boot_completed=1`). Defaults to 60 seconds, because adb's own wait has no timeout at all. Without `serial` it waits for any device, then follows the same rule as every other tool: several connected devices are an error. |
 | `wake` | `serial?` | Wakes the screen and dismisses the keyguard, so a screenshot shows the app. |
-| `setRotation` | `serial?`, `rotation` | Pins the screen to `PORTRAIT`, `LANDSCAPE`, `REVERSE_PORTRAIT` or `REVERSE_LANDSCAPE`, or hands it back to the sensor with `AUTO`. |
+| `setRotation` | `serial?`, `rotation` | Pins the screen to `ROTATION_0`, `ROTATION_90`, `ROTATION_180` or `ROTATION_270`, counted from the display's natural orientation (portrait on a phone, landscape on most tablets), or hands it back to the sensor with `AUTO`. |
 | `setAnimations` | `serial?`, `enabled` | Turns the three system animation scales on or off. Off makes a QA run stable — a screenshot taken mid-transition otherwise catches a half-drawn screen. |
 
 ### Screen
@@ -138,7 +138,7 @@ so a coordinate read off it has to be doubled — or capture at full size and sk
 | Tool | Arguments | What it does |
 |---|---|---|
 | `pushFile` | `serial?`, `hostPath`, `devicePath` | Copies a file onto the device — a fixture, a database, a config. |
-| `pullFile` | `serial?`, `devicePath`, `hostPath` | Copies a file off the device. |
+| `pullFile` | `serial?`, `devicePath`, `hostPath` | Copies a file off the device. `hostPath` is the file to write, not a directory. |
 | `reversePort` | `serial?`, `devicePort`, `hostPort?`, `remove?` | Maps a device port to one on this machine, for when the debug tool listens on a non-default port. `hostPort` is required unless `remove` is `true`. |
 
 ## A QA pass, end to end

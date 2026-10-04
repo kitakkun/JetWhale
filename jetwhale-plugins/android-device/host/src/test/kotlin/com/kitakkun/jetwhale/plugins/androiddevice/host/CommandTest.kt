@@ -19,6 +19,7 @@ import kotlinx.serialization.json.put
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.file.Files
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -27,6 +28,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 /** The screen every device fixture reports, so a coordinate assertion has something to be out of. */
 private val SCREEN_RULES = listOf(
@@ -179,6 +181,17 @@ class WaitForDeviceCommandTest {
 
         assertContains(error.message.orEmpty(), "several devices")
         assertFalse(adb.commands.any { it.contains("getprop") })
+    }
+
+    @Test
+    fun `gives no boot probe longer than what is left of the timeout`() {
+        val adb = FakeAdb(listOf(devicesRule(), reply("sys.boot_completed", "0\n")))
+
+        WaitForDeviceCommand(adb).call { put("timeoutSeconds", 1) }
+
+        val probeTimeouts = adb.invocations.zip(adb.timeouts).filter { (args, _) -> "sys.boot_completed" in args }.map { (_, timeout) -> timeout }
+        assertTrue(probeTimeouts.isNotEmpty())
+        assertTrue(probeTimeouts.all { it <= 1.seconds }, "probe timeouts: $probeTimeouts")
     }
 
     @Test
@@ -455,6 +468,30 @@ class AppCommandTest {
     }
 
     @Test
+    fun `does not read Error inside the echoed intent as a failure`() {
+        val adb = FakeAdb(
+            listOf(
+                devicesRule(),
+                reply("am start", "Starting: Intent { act=android.intent.action.VIEW dat=myapp://orders/Error: }\n"),
+            ),
+        )
+
+        val result = OpenUrlCommand(adb).call { put("url", "myapp://orders/Error:") }
+
+        assertFalse(result.isError)
+    }
+
+    @Test
+    fun `pins the rotation by writing both rotation settings`() {
+        val adb = FakeAdb(listOf(devicesRule()))
+
+        SetRotationCommand(adb).call { put("rotation", "ROTATION_90") }
+
+        assertTrue(adb.commands.any { it.endsWith("shell settings put system accelerometer_rotation 0") })
+        assertTrue(adb.commands.any { it.endsWith("shell settings put system user_rotation 1") })
+    }
+
+    @Test
     fun `builds a generic intent from the parts it is given`() {
         val adb = FakeAdb(listOf(devicesRule(), reply("am start", "Starting: Intent { ... }\n")))
 
@@ -495,6 +532,22 @@ class ReversePortCommandTest {
 
         assertFalse(result.isError)
         assertTrue(adb.commands.any { it == "-s $TEST_SERIAL reverse --remove tcp:8080" })
+    }
+
+    @Test
+    fun `refuses to pull onto a directory, whose file it would not report`() {
+        val directory = Files.createTempDirectory("android-device-test").toFile().apply { deleteOnExit() }
+        val adb = FakeAdb(listOf(devicesRule()))
+
+        val error = assertFailsWith<JetWhaleMcpArgumentException> {
+            PullFileCommand(adb).call {
+                put("devicePath", "/sdcard/Download/report.txt")
+                put("hostPath", directory.absolutePath)
+            }
+        }
+
+        assertContains(error.message.orEmpty(), "is a directory")
+        assertFalse(adb.commands.any { it.contains("pull") })
     }
 
     @Test
