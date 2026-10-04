@@ -17,7 +17,7 @@ internal suspend fun StorageClient.writeWholeFile(
 ): String? {
     val uploadId = UUID.randomUUID().toString()
     var offset = 0L
-    // An empty file is still one chunk: the last one, which creates it.
+    // An empty file is still sent as one chunk: the last one, which creates it.
     do {
         val chunk = readChunk(offset, minOf(MAX_FILE_READ_BYTES.toLong(), totalSizeBytes - offset).toInt())
         writeFileChunk(location, uploadId = uploadId, offset = offset, bytes = chunk, isLast = offset + chunk.size >= totalSizeBytes).error?.let { return it }

@@ -104,10 +104,10 @@ internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boole
     }
 }
 
-// rename(2) replaces a file atomically and refuses to put a file over a directory; NSFileManager's
-// moveItemAtPath refuses to replace an existing item at all.
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun moveReplacing(source: String, target: String) {
+    // rename(2) replaces a file atomically and refuses to put a file over a directory;
+    // NSFileManager's moveItemAtPath refuses any existing target.
     check(rename(source, target) == 0) { "'$target' could not be replaced: ${strerror(errno)?.toKString()}" }
 }
 
