@@ -218,6 +218,8 @@ public fun <T> JwTable(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     emptyContent: (@Composable () -> Unit)? = null,
 ) {
+    // A separate overload, not a defaulted parameter on the one above: plugins built against an
+    // earlier host-ui link to that exact JVM signature, and a new parameter changes it even with a default.
     TableContent(
         items = items,
         columns = columns,
