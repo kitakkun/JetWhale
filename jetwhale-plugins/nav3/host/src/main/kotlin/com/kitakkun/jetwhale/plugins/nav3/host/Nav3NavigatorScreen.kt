@@ -320,7 +320,6 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit, modifier
     }
     JwListItem(
         text = type.serialName,
-        selected = false,
         onClick = onClick,
         modifier = modifier,
         trailingContent = {
