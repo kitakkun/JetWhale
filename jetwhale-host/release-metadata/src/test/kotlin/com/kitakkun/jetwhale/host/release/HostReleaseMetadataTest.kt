@@ -51,6 +51,8 @@ class HostReleaseMetadataTest {
             "[]",
             """{ "version": "1.0.0" }""",
             """{ "format": 1, "version": "1.0.0" }""",
+            sampleMetadata().copy(format = 0).encode(),
+            sampleMetadata().copy(format = -1).encode(),
             sampleMetadata().copy(version = "1.0.0-SNAPSHOT").encode(),
             sampleMetadata().withMacJar { copy(sha256 = "A".repeat(64)) }.encode(),
             sampleMetadata().withMacJar { copy(sha256 = "abc") }.encode(),

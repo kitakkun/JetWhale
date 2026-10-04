@@ -70,6 +70,7 @@ data class HostReleaseMetadata(
         internal fun decode(text: String): HostReleaseMetadataResult {
             val metadata = try {
                 val format = json.decodeFromString(MetadataFormat.serializer(), text).format
+                if (format < 1) return HostReleaseMetadataResult.Malformed("format $format is not a metadata format")
                 if (format > FORMAT) return HostReleaseMetadataResult.NewerFormat(format)
                 json.decodeFromString(serializer(), text)
             } catch (e: SerializationException) {
