@@ -83,12 +83,13 @@ git push origin <version>
 
 The tag starts two workflows:
 
-- **Publish** releases the SDKs, the official host plugins and the Gradle plugins to Maven Central.
+- **Publish** releases the SDKs, the official plugins, the Gradle plugins and the agent compiler
+  plugin to Maven Central.
 - **Distribute Desktop Application** builds the host installers and creates a draft GitHub release.
   Its notes are the changelog section, followed by GitHub's list of merged PRs. It fails when the
   changelog has no section for the tag.
 
-The maintainer checks the draft release and publishes it.
+The maintainer checks the draft release and publishes it as a pre-release.
 
 ## After the release
 
