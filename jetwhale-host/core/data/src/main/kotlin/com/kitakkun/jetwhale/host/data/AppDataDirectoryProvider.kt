@@ -49,8 +49,8 @@ class AppDataDirectoryProvider(
                 append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
             }
         }
-        // Sanitizing is lossy, so a hash of the original keeps ids like "a/b" and "a_b" in separate
-        // directories: DataStore allows only one active instance per file.
+        // Sanitizing is lossy, so a hash of the original keeps segments like "a/b" and "a_b" in
+        // separate directories: DataStore allows only one active instance per file.
         val hashSuffix = "_" + segment.hashCode().toUInt().toString(16)
         return when {
             sanitized.isEmpty() || sanitized == "." || sanitized == ".." -> "plugin$hashSuffix"

@@ -102,7 +102,6 @@ class DefaultPluginJarSwapService(
         val pluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
         disposeJars(listOf(jarPath), pluginIds)
         pluginFactoryRepository.unloadPluginJar(jarPath)
-        // Sessions bound to the removed version move to another loaded version that fits them.
         pluginIds.forEach {
             reinitializeInstances(it)
             pluginReloadedFlow.emit(it)

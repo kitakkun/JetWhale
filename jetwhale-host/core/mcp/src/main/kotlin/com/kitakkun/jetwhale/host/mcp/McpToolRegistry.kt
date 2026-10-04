@@ -100,7 +100,6 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         return try {
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
         } catch (e: JetWhaleMcpArgumentException) {
-            // The listed schema may be a newer version's than the one that ran.
             val listedVersion = bindings.values.newest().version
             val versionNote = if (listedVersion == binding.version) "" else " (session '$sessionId' runs ${binding.pluginId} ${binding.version}; the listed schema is from $listedVersion)"
             errorPayload(e.message.orEmpty() + versionNote)

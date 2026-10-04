@@ -35,7 +35,6 @@ class DefaultPluginStorageService(
     private fun seedIfNew(pluginId: String, version: String) {
         val storedVersions = pluginDataStoreRepository.storedVersions(pluginId)
         if (version in storedVersions) return
-        // Null, the unversioned data, is older than every version.
         val olderVersions = storedVersions.filter { stored -> stored == null || PluginVersionOrder.compare(stored, version) < 0 }
         if (olderVersions.isEmpty()) return
         val sourceVersion = olderVersions.last()

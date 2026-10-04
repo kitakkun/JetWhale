@@ -31,8 +31,6 @@ class PluginNegotiationStrategy(
         request.plugins.forEach { requestedPlugin ->
             val versions = loadedVersions[requestedPlugin.pluginId] ?: return@forEach
             if (requestedPlugin.pluginId !in enabledPluginIds) return@forEach
-            // The same rule the instance service binds the session with, so the version reported here
-            // is the one the session gets.
             when (val bound = versions.newestFor(requestedPlugin.pluginVersion)) {
                 null -> incompatiblePlugins += requestedPlugin
 

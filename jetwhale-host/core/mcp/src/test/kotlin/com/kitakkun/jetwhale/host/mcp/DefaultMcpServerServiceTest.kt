@@ -313,7 +313,8 @@ class DefaultMcpServerServiceTest {
                 LoadedPluginInstance(otherPluginId, testSessionId, FakeMcpCapablePlugin(toolName = "com.example.other.greet"), version = "1.0.0"),
             )
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
-            // Handled after the stale one, so once it shows up the stale event has been handled too.
+            // Handled after the stale Ready, so once this plugin shows up the stale event has been
+            // handled too.
             eventFlow.emit(PluginInstanceEvent.Ready(otherPluginId, testSessionId, version = "1.0.0"))
 
             awaitCapableFor(testSessionId) { otherPluginId in it }

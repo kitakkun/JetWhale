@@ -178,8 +178,6 @@ class DefaultMcpServerService(
     }
 
     private fun onPluginInstanceReady(event: PluginInstanceEvent.Ready) {
-        // By the time a Ready is handled its instance may have been replaced by another version, whose
-        // own Ready follows; registering now would file the new instance's tools under the old version.
         val plugin = pluginInstanceService.getLoadedPluginInstances()
             .firstOrNull { it.pluginId == event.pluginId && it.sessionId == event.sessionId && it.version == event.version }
             ?.plugin

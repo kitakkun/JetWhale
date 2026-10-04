@@ -109,7 +109,6 @@ class DefaultPluginStorageServiceTest {
     fun `a version with a newer storage format migrates its copy and leaves the older version's alone`() = runBlocking {
         val service = newService()
         val old = service.storageFor(version("1.2.0"))
-        // Bound as a plugin would be, so the copy carries the storage version stamp.
         StoringPlugin(storageVersion = 1, migrate = {}).apply { bindStorage(old) }.write("draft", "hello")
 
         val newPlugin = StoringPlugin(storageVersion = 2, migrate = { storage ->

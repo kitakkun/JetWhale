@@ -78,7 +78,6 @@ internal suspend fun listPlugins(
         PluginInfo(
             pluginId = manifest.pluginId,
             pluginName = manifest.pluginName,
-            // The version this session runs, which is older than the newest when its app needs that.
             version = boundVersions.versionOf(sessionId, pluginId) ?: manifest.version,
             mcpCapable = instance is JetWhaleMcpCapablePlugin,
         )
