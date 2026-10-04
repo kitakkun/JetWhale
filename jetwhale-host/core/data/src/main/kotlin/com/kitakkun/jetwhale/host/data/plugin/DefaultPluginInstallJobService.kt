@@ -105,13 +105,13 @@ class DefaultPluginInstallJobService(
                 pendingOutcomes.remove(job.id)?.complete(outcome)
             }
         } finally {
-            runningJobs.remove(job.id)
             synchronized(this) {
                 pendingOutcomes.remove(job.id)?.let { outcome ->
                     jobsFlow.update { jobs -> jobs.filterNot { it.id == job.id }.toPersistentList() }
                     outcome.complete(PluginInstallStatus.Failed(reason = "the install was cancelled"))
                 }
             }
+            runningJobs.remove(job.id)
         }
     }
 
