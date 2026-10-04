@@ -102,27 +102,22 @@ internal fun pathMatches(matcher: PathMatcher, path: String): Boolean = when (ma
 }
 
 /**
- * Android's `pathPattern`: `.` is any character, `*` repeats the character before it zero or more
- * times, and `\` escapes the next character. Everything else is literal.
+ * Android's `pathPattern`: `.` is any character, a `*` after a character repeats it zero or more
+ * times, and `\` escapes the next character. Everything else, including a `*` that follows no
+ * character (a leading one, or the second of `**`), is literal.
  */
 private fun simpleGlobToRegex(pattern: String): Regex {
     val regex = StringBuilder()
     var index = 0
     while (index < pattern.length) {
-        val char = pattern[index]
-        when {
-            char == '\\' && index + 1 < pattern.length -> {
-                index++
-                regex.appendLiteral(pattern[index])
-            }
-
-            char == '.' -> regex.append('.')
-
-            char == '*' -> regex.append('*')
-
-            else -> regex.appendLiteral(char)
+        val escaped = pattern[index] == '\\' && index + 1 < pattern.length
+        val char = if (escaped) pattern[index + 1] else pattern[index]
+        if (!escaped && char == '.') regex.append('.') else regex.appendLiteral(char)
+        index += if (escaped) 2 else 1
+        if (pattern.getOrNull(index) == '*') {
+            regex.append('*')
+            index++
         }
-        index++
     }
     return Regex(regex.toString())
 }

@@ -165,6 +165,16 @@ class LinkMatchingTest {
     }
 
     @Test
+    fun `a star that follows no character is literal in a pathPattern`() {
+        val leadingStar = PathMatcher(PathMatchKind.Pattern, "*.pdf")
+
+        assertTrue(pathMatches(leadingStar, "*.pdf"))
+        assertFalse(pathMatches(leadingStar, "/doc.pdf"))
+        assertTrue(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a**"), "/aa*"))
+        assertFalse(pathMatches(PathMatcher(PathMatchKind.Pattern, "/a**"), "/aa"))
+    }
+
+    @Test
     fun `a link without a scheme is refused`() {
         assertFailsWith<IllegalArgumentException> { declarationsMatching("example.com/item", listOf(itemLink)) }
     }
