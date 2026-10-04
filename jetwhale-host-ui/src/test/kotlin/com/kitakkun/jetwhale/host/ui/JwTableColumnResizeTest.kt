@@ -6,17 +6,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.dragAndDrop
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -67,6 +75,19 @@ class JwTableColumnResizeTest {
     }
 
     @Test
+    fun `the resize handle of a column that scrolls sideways sits at the column's trailing edge`() = runTable(
+        columns = listOf(
+            JwTableColumn.text<String>(header = "Name", width = JwColumnWidth.Fixed(100.dp), overflow = JwColumnOverflow.Scroll) { it },
+            textColumn("Value", JwColumnWidth.Weight(1f)),
+        ),
+    ) { _ ->
+        val columnStart = onNodeWithText("Name").getBoundsInRoot().left
+        val handleEnd = onNodeWithContentDescription("Resize Name").getBoundsInRoot().right
+
+        assertClose(100.dp, handleEnd - columnStart)
+    }
+
+    @Test
     fun `a dragged width gives way when the table gets narrower`() = runComposeUiTest {
         val state = JwTableColumnState(mapOf("Name" to 300.dp))
         var tableWidth by mutableStateOf(TABLE_WIDTH)
@@ -88,6 +109,56 @@ class JwTableColumnResizeTest {
 
         assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
         assertEquals(300.dp, state.widths.getValue("Name"), "the user's width is kept for when the table is wide again")
+    }
+
+    @Test
+    fun `two dragged widths share a narrower table in column order without leaving part of the row empty`() = runComposeUiTest {
+        val state = JwTableColumnState(mapOf("Name" to 300.dp, "Value" to 300.dp))
+        setContent {
+            JwTheme(darkTheme = false) {
+                Box(Modifier.requiredSize(width = TABLE_WIDTH, height = 300.dp)) {
+                    JwTable(
+                        items = listOf("alpha"),
+                        columns = listOf(textColumn("Name", JwColumnWidth.Weight(1f)), textColumn("Value", JwColumnWidth.Weight(1f))),
+                        columnState = state,
+                    )
+                }
+            }
+        }
+        waitForIdle()
+
+        val widthForColumns = TABLE_WIDTH - JwSpacing.medium * 3
+        assertClose(300.dp, state.laidOutWidths.getValue("Name"))
+        assertClose(widthForColumns - 300.dp, state.laidOutWidths.getValue("Value"))
+        assertEquals(mapOf("Name" to 300.dp, "Value" to 300.dp), state.widths, "the user's widths are kept for when the table is wide again")
+    }
+
+    @OptIn(InternalComposeUiApi::class)
+    @Test
+    fun `a fit finishes in a scene whose effects start before layout, as a plugin's does`() {
+        val state = JwTableColumnState(emptyMap())
+        val scene = CanvasLayersComposeScene(size = IntSize(SCENE_WIDTH_PX, SCENE_HEIGHT_PX), coroutineContext = Dispatchers.Unconfined)
+        try {
+            scene.setContent {
+                JwTheme(darkTheme = false) {
+                    JwTable(
+                        items = listOf("short", "a considerably longer name than the column"),
+                        columns = listOf(textColumn("Name", JwColumnWidth.Fixed(60.dp)), textColumn("Value", JwColumnWidth.Weight(1f))),
+                        columnState = state,
+                    )
+                }
+            }
+            val canvas = Canvas(ImageBitmap(SCENE_WIDTH_PX, SCENE_HEIGHT_PX))
+            scene.render(canvas, 0L)
+
+            state.fitting = "Name"
+            repeat(3) { frame -> scene.render(canvas, (frame + 1) * FRAME_NANOS) }
+
+            val fitted = state.widths["Name"]
+            assertTrue(fitted != null && fitted > 150.dp, "the column grew to the long name, now $fitted")
+        } finally {
+            scene.close()
+        }
     }
 
     @Test
@@ -145,3 +216,10 @@ class JwTableColumnResizeTest {
 }
 
 private val TABLE_WIDTH = 400.dp
+
+/** The scene runs at density 1, so these are also its size in dp. */
+private const val SCENE_WIDTH_PX = 400
+
+private const val SCENE_HEIGHT_PX = 300
+
+private const val FRAME_NANOS = 16_000_000L
