@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
-import org.junit.Assume.assumeFalse
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -57,7 +56,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `a symbolic link that leads outside the root is refused`() {
-        assumeLinksRecognized()
         val root = File(directory, "root").apply { mkdir() }
         val outside = File(directory, "outside").apply { mkdir() }
         Files.createSymbolicLink(File(root, "escape").toPath(), outside.toPath())
@@ -67,7 +65,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `deleting a directory removes a link inside it but not what the link points to`() {
-        assumeLinksRecognized()
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "keep.txt").writeText("keep")
         File(directory, "cache").mkdir()
@@ -81,7 +78,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `a listing marks a symbolic link and names its target`() {
-        assumeLinksRecognized()
         val target = File(directory, "target.txt").apply { writeText("hello") }
         Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
 
@@ -109,7 +105,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `measuring counts everything below and does not follow links`() {
-        assumeLinksRecognized()
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "big.bin").writeBytes(ByteArray(1000))
         File(directory, "cache/images").mkdirs()
@@ -124,7 +119,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `measuring a link to a directory counts the link and does not follow it`() {
-        assumeLinksRecognized()
         val target = File(directory, "target").apply { mkdir() }
         File(target, "big.bin").writeBytes(ByteArray(1000))
         Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
@@ -150,9 +144,4 @@ class PlatformFileSystemTest {
 
         assertFailsWith<IOException> { listDirectoryEntries("${directory.path}/notes.txt") }
     }
-
-    private fun assumeLinksRecognized() = assumeFalse(
-        "symbolic links are not recognized on Windows yet: java.io canonical paths do not resolve them there before JDK 24",
-        System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true),
-    )
 }
