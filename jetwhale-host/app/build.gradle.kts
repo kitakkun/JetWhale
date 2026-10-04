@@ -72,6 +72,74 @@ compose.desktop {
     }
 }
 
+// The JVM arguments the launcher passes to the host, per release platform. Compose adds the
+// swing-globals and -Xdock:name arguments to a packaged app by itself, so they are spelled out here.
+val hostReleaseJvmArgs = listOf("-Dcompose.application.configure.swing.globals=true")
+val hostReleasePlatformJvmArgs = mapOf(
+    "macos-arm64" to listOf("-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"),
+    "linux-x64" to emptyList(),
+    "windows-x64" to emptyList(),
+)
+
+val hostReleaseMetadataWriter: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    hostReleaseMetadataWriter(projects.jetwhaleHost.releaseMetadata)
+}
+
+tasks.register<JavaExec>("writeHostReleaseMetadata") {
+    group = "distribution"
+    description = "Writes jetwhale-host-<version>.json for the host jars of every release platform in " +
+        "-PhostReleaseDir, named jetwhale-host-<version>-<os-arch>.jar, with -PhostReleaseVersion as the version."
+
+    classpath = hostReleaseMetadataWriter
+    mainClass.set("com.kitakkun.jetwhale.host.release.tool.WriteHostReleaseMetadataKt")
+
+    val rootDirectory = rootProject.layout.projectDirectory
+    val releaseDir = providers.gradleProperty("hostReleaseDir").map { rootDirectory.dir(it).asFile }
+    val releaseVersion = providers.gradleProperty("hostReleaseVersion")
+    val hostMainClass = compose.desktop.application.mainClass
+    val runtimeModules = compose.desktop.application.nativeDistributions.modules.toList()
+    val javaFeatureVersion = java.toolchain.languageVersion.map { it.asInt() }
+    val jvmArgs = hostReleaseJvmArgs
+    val platformJvmArgs = hostReleasePlatformJvmArgs
+    argumentProviders.add(
+        CommandLineArgumentProvider {
+            val version = releaseVersion.get()
+            val dir = releaseDir.get()
+            buildList {
+                add("--output")
+                add(dir.resolve("jetwhale-host-$version.json").path)
+                add("--version")
+                add(version)
+                add("--main-class")
+                add(checkNotNull(hostMainClass))
+                add("--java-feature-version")
+                add(javaFeatureVersion.get().toString())
+                runtimeModules.forEach {
+                    add("--module")
+                    add(it)
+                }
+                jvmArgs.forEach {
+                    add("--jvm-arg")
+                    add(it)
+                }
+                platformJvmArgs.forEach { (platform, arguments) ->
+                    arguments.forEach {
+                        add("--platform-jvm-arg")
+                        add("$platform=$it")
+                    }
+                    add("--jar")
+                    add("$platform=${dir.resolve("jetwhale-host-$version-$platform.jar").path}")
+                }
+            }
+        },
+    )
+}
+
 // Merging signed dependency jars (e.g. BouncyCastle) into an uber jar invalidates their
 // signatures; leftover META-INF signature files then make the JVM reject the jar at launch
 // with "Invalid signature file digest for Manifest main attributes".

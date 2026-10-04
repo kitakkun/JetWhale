@@ -66,12 +66,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
       - name: Take the release notes from the changelog
         run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME}" > release-notes.md
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
+      # The metadata pins the hashes of the very jars attached below, and the host reports the
+      # catalog version, so a tag that differs from it would make every host offer itself an update.
+      - name: Write the host release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          catalog_version="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)"
+          if [ "${GITHUB_REF_NAME}" != "${catalog_version}" ]; then
+            echo "The tag ${GITHUB_REF_NAME} is not the version the host was built as (${catalog_version})." >&2
+            exit 1
+          fi
+          ./gradlew :jetwhale-host:app:writeHostReleaseMetadata -PhostReleaseVersion="${GITHUB_REF_NAME}" -PhostReleaseDir="${PWD}/dist"
+      - name: Write SHA256SUMS
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
       - name: Create draft release and attach artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -79,5 +96,5 @@ jobs:
           # The changelog section comes first; the generated list of merged PRs follows it.
           body_path: release-notes.md
           generate_release_notes: true
-          files: dist/**/*
+          files: dist/*
           fail_on_unmatched_files: true
