@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate
 
 /** The link being composed, as the composer shows it. */
@@ -83,6 +84,7 @@ internal fun LinkComposer(
 @Composable
 private fun DraftStatus(check: DraftCheck) {
     val problem = check.problem
+    val handlers = check.matches.joinToString { it.handler.substringAfterLast('.') }
     when {
         problem != null -> JwText(text = problem, color = JwTheme.colors.textSecondary)
 
@@ -91,7 +93,12 @@ private fun DraftStatus(check: DraftCheck) {
             color = JwTone.Warning.color,
         )
 
-        else -> JwText(text = "Matches ${check.matches.joinToString { it.handler.substringAfterLast('.') }}", color = JwTone.Success.color)
+        check.matches.none(DeclaredDeepLink::browsable) -> JwText(
+            text = "Matches $handlers, but not as BROWSABLE: browsers and Open in app do not reach it.",
+            color = JwTone.Warning.color,
+        )
+
+        else -> JwText(text = "Matches $handlers", color = JwTone.Success.color)
     }
 }
 
