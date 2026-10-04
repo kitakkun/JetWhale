@@ -197,11 +197,12 @@ class DefaultJetWhaleAdbTest {
             val adbPid = CompletableDeferred<Long>()
             val cancelled = CountDownLatch(1)
             val call = async(Dispatchers.IO) {
-                adb.runStreaming("hang-printing-pid", timeout = 100.milliseconds) { stream ->
-                    adbPid.complete(generateSequence { stream.read() }.takeWhile { it != '\n'.code }.map(Int::toChar).joinToString("").toLong())
+                adb.runStreaming("hang-printing-pid", timeout = 500.milliseconds) { stream ->
+                    adbPid.complete(generateSequence { stream.read().takeIf { it != -1 } }.takeWhile { it != '\n'.code }.map(Int::toChar).joinToString("").toLong())
                     cancelled.await()
                 }
             }
+            call.invokeOnCompletion { adbPid.completeExceptionally(it ?: IllegalStateException("the call ended before adb printed its pid")) }
             val pid = adbPid.await()
             withContext(Dispatchers.IO) { ProcessHandle.of(pid).ifPresent { it.onExit().join() } }
 
