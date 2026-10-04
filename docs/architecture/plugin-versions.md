@@ -1,7 +1,5 @@
 # Several versions of one host plugin
 
-Status: implemented in `feat/plugin-multi-version` (stacked on #303).
-
 ## Why
 
 An app pins the agent side of a plugin through its dependencies; the host picks up whatever host
@@ -83,7 +81,7 @@ A version never seeds from a newer one (downgrading starts from the nearest olde
   the session and the bound version. An argument error from an older version names the version too,
   since the listed schema may be the newer one's.
 
-## New jars at runtime (#303's prompt)
+## New jars at runtime
 
 A jar that arrives with a version of an already installed `pluginId` is offered as a second version:
 "New version 1.3.0 of X — **Load alongside** · **Replace 1.2.0** · **Later**". Load alongside keeps
