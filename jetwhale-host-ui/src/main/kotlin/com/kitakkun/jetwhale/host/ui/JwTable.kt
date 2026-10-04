@@ -182,8 +182,8 @@ public fun JwTableCellText(
  * The user resizes a column by dragging the trailing edge of its header, and fits it to the content
  * of the rows on screen by double-clicking that edge. A resized column keeps the width it was given,
  * even if it was a [Weight] column, and the remaining [Weight] columns share what is left; a drag
- * stops where they would go below [JwTableDefaults.minColumnWidth]. The widths last while the table
- * is composed; to keep them longer, use the overload that takes a [JwTableColumnState].
+ * stops where they would go below [JwTableDefaults.minColumnWidth]. The table remembers the widths
+ * itself; to persist them, use the overload that takes a [JwTableColumnState].
  *
  * Rows are one compact control tall unless a column wraps ([JwColumnOverflow.Wrap]), in which
  * case a row grows to its tallest cell.
@@ -250,8 +250,9 @@ public fun <T> JwTable(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     emptyContent: (@Composable () -> Unit)? = null,
 ) {
-    // A separate overload, not a defaulted parameter on the one above: plugins built against an
-    // earlier host-ui link to that exact JVM signature, and a new parameter changes it even with a default.
+    // A separate overload rather than a defaulted parameter on the one above: plugins built against
+    // an earlier host-ui link to that exact JVM signature, and a new parameter changes it even with
+    // a default.
     TableContent(
         items = items,
         columns = columns,
@@ -452,6 +453,8 @@ private class TableColumnLayout<T>(
         var left = rowWidth - gaps - columns.filter { it.header !in state.widths }.fold(0.dp) { sum, column -> sum + column.keptWidth() }
         return sized.withIndex().associate { (index, column) ->
             val laterMinimums = JwTableDefaults.minColumnWidth * (sized.size - 1 - index)
+            // Not coerceIn: in a row too narrow for every minimum the upper bound falls below the
+            // lower, where coerceIn throws; the minimum wins.
             val shown = state.widths.getValue(column.header).coerceAtMost(left - laterMinimums).coerceAtLeast(JwTableDefaults.minColumnWidth)
             left -= shown
             column.header to shown

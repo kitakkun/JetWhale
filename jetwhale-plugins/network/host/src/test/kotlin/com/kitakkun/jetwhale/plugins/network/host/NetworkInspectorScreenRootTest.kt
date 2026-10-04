@@ -55,7 +55,7 @@ class NetworkInspectorScreenRootTest {
 
         val dragPx = with(density) { (-40).dp.toPx() }
         onNodeWithContentDescription("Resize URL").performMouseInput { dragAndDrop(start = center, end = center + Offset(dragPx, 0f)) }
-        mainClock.advanceTimeBy(1_000)
+        mainClock.advanceTimeBy(PAST_PERSIST_DEBOUNCE_MILLIS)
         waitForIdle()
 
         assertClose(160.dp, urlColumnWidth())
@@ -75,6 +75,9 @@ class NetworkInspectorScreenRootTest {
         assertTrue(actual in (expected - 2.dp)..(expected + 2.dp), "expected about $expected, was $actual")
     }
 }
+
+/** Longer than `rememberPersistent` waits after the last change before it stores a value. */
+private const val PAST_PERSIST_DEBOUNCE_MILLIS = 1_000L
 
 /** Plugin storage held in memory, values kept as the JSON the real store would write. */
 private class InMemoryPluginStorage(initial: Map<String, String>) : JetWhalePluginStorage {

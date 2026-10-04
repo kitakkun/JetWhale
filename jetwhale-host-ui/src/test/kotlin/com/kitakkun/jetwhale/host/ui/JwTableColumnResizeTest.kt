@@ -127,7 +127,9 @@ class JwTableColumnResizeTest {
         }
         waitForIdle()
 
-        val widthForColumns = TABLE_WIDTH - JwSpacing.medium * 3
+        val rowPadding = JwSpacing.medium * 2
+        val gapBetweenColumns = JwSpacing.medium
+        val widthForColumns = TABLE_WIDTH - rowPadding - gapBetweenColumns
         assertClose(300.dp, state.laidOutWidths.getValue("Name"))
         assertClose(widthForColumns - 300.dp, state.laidOutWidths.getValue("Value"))
         assertEquals(mapOf("Name" to 300.dp, "Value" to 300.dp), state.widths, "the user's widths are kept for when the table is wide again")
