@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -195,7 +196,7 @@ private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean)
         requiresAgent = requiresAgent,
     ),
     factory = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = throw UnsupportedOperationException()
     },
 )
 
