@@ -78,6 +78,7 @@ sealed interface ToolingScaffoldScreenActionResult {
  * current list alone cannot: a disconnected session stays in it, so every later update would
  * re-report it.
  */
+@VisibleForTesting
 internal fun closedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,

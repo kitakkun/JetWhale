@@ -72,6 +72,7 @@ private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, target
  * Every decoded frame is passed on as it is, without ffmpeg duplicating or dropping frames to hold
  * a frame rate the device never promised.
  */
+@VisibleForTesting
 internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List<String> = buildList {
     addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info")) // info, not error: FfmpegLog reads the frame sizes and size changes from this log.
     addAll(listOf("-flags", "low_delay", "-probesize", "65536", "-analyzeduration", "500000"))

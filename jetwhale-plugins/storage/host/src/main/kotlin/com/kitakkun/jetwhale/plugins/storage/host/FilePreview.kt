@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
+import androidx.annotation.VisibleForTesting
+
 /**
  * The first bytes of a file as read from the agent, with the file's whole size. What the bytes hold
  * is worked out once, where the file is read, rather than again by each view of it.
@@ -51,6 +53,7 @@ private const val HEX_DUMP_WIDTH = 16
  * whitespace. A read cut short may end in the middle of a character, so up to three malformed
  * trailing bytes are dropped rather than failing the whole file.
  */
+@VisibleForTesting
 internal fun decodeTextOrNull(bytes: ByteArray): String? {
     val decoded = (0..minOf(3, bytes.size)).firstNotNullOfOrNull { dropped ->
         try {

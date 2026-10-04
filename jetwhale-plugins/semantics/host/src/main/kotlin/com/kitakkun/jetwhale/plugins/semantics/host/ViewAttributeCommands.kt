@@ -138,6 +138,7 @@ internal class SetViewAttributeCommand(
  * Renders one attribute for an AI agent: the value flattened to a string of the same shape the
  * setter takes, so a value read here can be written back without being reshaped.
  */
+@VisibleForTesting
 internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
     val current = value
     put("id", id)
