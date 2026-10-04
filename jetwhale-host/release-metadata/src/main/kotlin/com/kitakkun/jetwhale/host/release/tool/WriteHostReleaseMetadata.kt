@@ -29,8 +29,9 @@ private const val RELEASE_DOWNLOAD_URL = "https://github.com/kitakkun/JetWhale/r
  * --jar <os-arch>=<path>…
  * ```
  *
- * Each `--jar` becomes a platform entry whose URL is the release asset of that name. Exits with 1 and
- * the problems on stderr when anything is missing, refused or does not verify.
+ * Each `--jar` becomes a platform entry whose URL is the `jetwhale-host-<version>-<os-arch>.jar` asset
+ * of the `<version>` release, whatever the given file is called. Exits with 1 and the problems on
+ * stderr when anything is missing, refused or does not verify.
  */
 fun main(args: Array<String>) {
     val problems = writeHostReleaseMetadata(args.toList())
