@@ -307,6 +307,7 @@ private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
     val newerVersion = when (status) {
         is HostUpdateStatus.Available -> status.version
         is HostUpdateStatus.ReadyToRestart -> status.version
+        is HostUpdateStatus.NeedsNewInstaller -> status.version
         else -> null
     }
     AnimatedVisibility(visible = newerVersion != null && !isUpdateBannerDismissed) {

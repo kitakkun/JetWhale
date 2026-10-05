@@ -156,6 +156,17 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `keeps offering an installed version for a restart when a check fails`() = runBlocking {
+        install("1.0.0-alpha14")
+        responses[RELEASES_URL] = { respondError(HttpStatusCode.InternalServerError) }
+
+        val service = service()
+        service.check()
+
+        assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
+    }
+
+    @Test
     fun `reports a used-up rate limit`() = runBlocking {
         responses[RELEASES_URL] = {
             respond("{}", HttpStatusCode.Forbidden, headersOf("x-ratelimit-remaining", "0"))

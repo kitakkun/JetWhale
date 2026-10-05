@@ -121,6 +121,7 @@ class DefaultHostUpdateService(
                 HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable)
             }
             logger.info("Host update check: {}", status)
+            if (status is HostUpdateStatus.CheckFailed) status = versionAwaitingRestart()?.let(HostUpdateStatus::ReadyToRestart) ?: status
         } finally {
             stateFlow.update { it.copy(status = status, setAside = hostVersionsRepository.newestSetAsideVersion()) }
         }
@@ -158,7 +159,7 @@ class DefaultHostUpdateService(
             // open hands the app to LaunchServices and exits, with a nonzero status when it finds
             // no app to start; a launcher started directly waits for this process to end, so only
             // open is waited for.
-            command.first() != OPEN_COMMAND || !process.waitFor(OPEN_TIMEOUT_SECONDS, TimeUnit.SECONDS) || process.exitValue() == 0
+            command.first() != OPEN_COMMAND || (process.waitFor(OPEN_TIMEOUT_SECONDS, TimeUnit.SECONDS) && process.exitValue() == 0)
         } catch (e: IOException) {
             logger.warn("Cannot restart: {} did not start", command.first(), e)
             false
@@ -228,12 +229,20 @@ class DefaultHostUpdateService(
             .maxByOrNull { it.second }
         if (newerRelease == null) {
             downloadableRelease = null
-            val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
-            val versionAwaitingRestart = installedVersions.firstOrNull { it.version > runningVersion && it.version != setAsideVersion }
-            return versionAwaitingRestart?.let { HostUpdateStatus.ReadyToRestart(it.version) } ?: HostUpdateStatus.UpToDate
+            return versionAwaitingRestart()?.let(HostUpdateStatus::ReadyToRestart) ?: HostUpdateStatus.UpToDate
         }
         val (release, releaseVersion) = newerRelease
         return checkNewerRelease(release, releaseVersion, launch, platformKey)
+    }
+
+    /**
+     * The installed version newer than this host that is not set aside, which the next start runs.
+     * A failed lookup still offers it, since nothing about it depends on the network.
+     */
+    private fun versionAwaitingRestart(): HostVersion? {
+        val runningVersion = runningVersion ?: return null
+        val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
+        return hostVersionsRepository.installedVersions().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
     }
 
     private suspend fun checkNewerRelease(
