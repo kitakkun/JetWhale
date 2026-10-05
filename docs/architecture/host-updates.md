@@ -3,8 +3,8 @@
 The desktop host ships as a jpackage installer (`.dmg`, `.msi`, `.deb`), and it has no working way
 to update itself. This design makes the installer a launcher that is installed once, and moves
 updates to the host jar. The host finds a newer release, downloads its jar and verifies it. The
-launcher starts the newest good jar, and goes back to the previous one when a new one does not
-start.
+launcher runs the newest good jar in its own process, and goes back to the previous one when a new
+one does not start.
 
 These points are decided: the launcher with a bundled runtime and a downloadable host jar, the
 update check and download in the host, the removal of Conveyor, and no Apple Developer ID. Two
@@ -112,12 +112,15 @@ UI stays hidden in the IDE.
 GitHub Releases: jetwhale-host-<v>.json (+ .sig), jetwhale-host-<v>-<os-arch>.jar
       │ releases API, then download and verify
       ▼
-host (child JVM) ── HostUpdateService ──▶ ~/.jetwhale/host/<v>/
+host ── HostUpdateService ──▶ ~/.jetwhale/host/<v>/
       ▲                                         │
-      │ starts the newest good jar,             │ verifies before each start
-      │ watches the startup window              ▼
+      │ loads the newest good jar into          │ verifies before each start
+      │ its own JVM and calls its main          ▼
 launcher (the OS package: runtime, launcher main, bundled host jar)
 ```
+
+The launcher and the host are one process. The launcher chooses and verifies a version, then runs it
+in its own JVM, and the process stays the app until the host ends.
 
 ## Release metadata
 
@@ -141,7 +144,7 @@ adopted, `jetwhale-host-<version>.json.sig` comes with it.
       "url": "https://github.com/kitakkun/JetWhale/releases/download/1.0.0-alpha14/jetwhale-host-1.0.0-alpha14-macos-arm64.jar",
       "size": 125156159,
       "sha256": "…",
-      "jvmArgs": ["-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"]
+      "jvmArgs": ["-Dapple.awt.application.appearance=system"]
     },
     "linux-x64": { "url": "…", "size": 119133124, "sha256": "…", "jvmArgs": [] },
     "windows-x64": { "url": "…", "size": 117418030, "sha256": "…", "jvmArgs": [] }
@@ -156,11 +159,13 @@ adopted, `jetwhale-host-<version>.json.sig` comes with it.
 - `runtime` gives the lowest Java feature version and the modules the host needs: the modules the
   build declares for its runtime image, Compose's defaults included.
 - `jvmArgs` holds the common arguments; each platform entry adds its own. Only the forms the
-  contract names are allowed: `-D…`, `--add-opens`, `--add-exports`, `--enable-native-access`,
-  `-Xdock:name` and `-Xmx`. Agents, `-XX:OnError`-style hooks, argument files and class-path options
-  are refused, so what a version can ask of the launcher stays explicit. A host on JDK 24 or later
-  will want `--enable-native-access=ALL-UNNAMED` for skiko and JNA, or it warns at every start, and
-  this field is where that goes.
+  contract names are allowed: `-D…`, `--add-opens`, `--add-exports`, `--enable-native-access` and
+  `-Xmx`. Agents, `-XX:OnError`-style hooks, argument files and class-path options are refused, so
+  what a version can ask of the launcher stays explicit. The launcher sets a `-D…` argument as a
+  system property; any other form has to be among the arguments its JVM started with (see
+  *Starting the host*). A host on JDK 24 or later will want `--enable-native-access=ALL-UNNAMED`
+  for skiko and JNA, or it warns at every start, so the package that runs it has to start its JVM
+  with it, and this field is where the host says it needs it.
 - `platforms` uses the same `os-arch` keys as the Gradle plugin. Each `url` is exactly the asset
   `downloadJetWhaleHost` fetches, so the Gradle plugin and the update service read the same asset
   names, and the names do not change.
@@ -195,34 +200,32 @@ once, in a module shared by the host, the launcher and the release job.
 
 ### What the package holds
 
-- **The runtime.** Corretto 21 as today, plus `bin/java` (`java.exe` and `javaw.exe` on Windows)
-  to start the host with. Compose's jlink step has no switch to keep it, so the launcher build
-  copies it into the image Compose produces, from the same JDK the image was made from. If that
-  proves brittle, the launcher build makes the image itself. The copy is readable and executable
-  by every account, not only its owner, and the build fails when the file system does not keep
-  that: otherwise no other account could start a host, for instance from an app another user
-  dragged into `/Applications`.
+- **The runtime.** Corretto 21 as today, with no `bin/java`: the host runs in the launcher's JVM.
+  It adds `java.management`, which the launcher reads its JVM's arguments with.
 - **Room for later hosts.** The runtime cannot change until a reinstall, so it carries modules a
-  later host may need: `java.net.http`, `java.management`, `jdk.management`, `jdk.attach`,
-  `jdk.zipfs`, `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`,
-  `java.scripting`, `java.security.jgss` and `jdk.httpserver`. With Corretto 21 on macOS they take
-  the image from 79 MB to 87 MB. All of `java.se` would make it 107 MB.
+  later host may need: `java.net.http`, `jdk.management`, `jdk.attach`, `jdk.zipfs`,
+  `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`, `java.scripting`,
+  `java.security.jgss` and `jdk.httpserver`. With Corretto 21 on macOS they take the image from
+  79 MB to 87 MB. All of `java.se` would make it 107 MB.
 - **The launcher's main.** A small Kotlin module whose only dependency is the shared metadata
   module.
 - **The host jar of the same release, with its metadata.** The jar is the file attached to the
-  release, built in the same job. Its `release.json` is written by the same tool as the release's
-  metadata, from the same build values, with this platform's entry only, including the jar's `url`,
-  `size` and `sha256`. One model therefore reads both.
+  release, built in the same job, and the package holds it as `jetwhale-host.bundled`, so it stays
+  off the launcher's class path. Its `release.json` is written by the same tool as the release's
+  metadata, from the same build values, with this platform's entry only, including the jar's
+  `url`, `size` and `sha256`. One model therefore reads both.
 
 ### Choosing a version
 
-On each start, the launcher goes through the bundled version and the directories under
+On each start, the launcher first settles a start an earlier launch left unjudged (see *Startup
+window and rollback*). It then goes through the bundled version and the directories under
 `~/.jetwhale/host/`, newest first:
 
-1. It skips a version that is set aside (see below) or that it refuses (see below).
+1. It skips a version that is set aside, or that it sets aside now after two failed starts in a
+   row, and a version it refuses (see *What the launcher refuses*).
 2. It verifies the rest: the metadata's signature, if signing is adopted, then the jar's size and
    SHA-256 against the metadata. It deletes and logs a version that fails.
-3. It starts the first version that passes.
+3. It runs the first version that passes.
 
 The bundled version is part of the package the user installed and is not verified again, so the
 signing key is needed only in the release job. The bundled version is also the floor: it is never
@@ -233,7 +236,7 @@ deleted or set aside, and its own launcher always runs it.
   1.0.0-alpha15/         jetwhale-host-1.0.0-alpha15-macos-arm64.jar, release.json, release.json.sig
   1.0.0-alpha14/         …
   staging/               downloads in progress; the launcher never reads it
-  launcher-state.json    which versions completed a start, and which are set aside
+  launcher-state.json    completed and set-aside versions, failed-start counts, the starting host
   launch.lock, instance.lock, instance.json
 ```
 
@@ -248,109 +251,147 @@ newer one.
 - On Windows a running host keeps its jar open, so a version still in use is deleted at a later
   start.
 
-Only launchers write `launcher-state.json`, and only while they hold `launch.lock` (see *Single
-instance, reopen and restart*); a launcher takes it again to record a completed start at the end of
-the window. Each write replaces the file through a rename, so the host, which only reads it, sees a
-whole file. Entries for versions no longer on disk are ignored.
+Only the launcher writes `launcher-state.json`, and only while it holds `launch.lock` (see *Single
+instance, reopen and restart*). Each write replaces the file through a rename, so the host, which
+only reads it, sees a whole file. Entries for versions no longer on disk are ignored. In the one
+JVM, the judgment of a start, pruning and the shutdown hook share one holder of `launch.lock`,
+because a JVM cannot take the same file lock twice.
 
 ### Starting the host
 
-```
-<runtime>/bin/java                      (on Windows javaw.exe, or java.exe with --headless)
-  <jvmArgs from the metadata, common then platform>
-  -XX:ErrorFile=<app data>/logs/hs_err_pid%p.log
-  -Djetwhale.launcher.contract=1
-  -Djetwhale.launcher.executable=<path of the launcher>
-  -Djetwhale.launcher.hostDir=<app data>/host
-  [-Djetwhale.launcher.setAside=<version>]
-  -cp <jar> <mainClass> <the arguments the launcher received, without --after and --retry>
-```
+The launcher loads the chosen jar in a `URLClassLoader` whose parent is the platform class loader,
+so its own Kotlin standard library and metadata classes stay out of the host's sight. It makes that
+loader the thread's context class loader and calls the `main` of the metadata's `mainClass` on its
+own main thread, with the arguments it received, without `--after` and `--retry`.
 
-- `-XX:ErrorFile` writes native crash logs to the directory that the host's crash recovery
-  ([#293](https://github.com/kitakkun/JetWhale/pull/293), open) reads.
-- The launcher does not pass on the `skiko.library.path` that Compose's packaging sets for it. With
-  the property set, skiko loads its dylib from that directory only, and the launcher's directory
-  holds no dylib, or one from another skiko version. Without it, skiko extracts the dylib that
-  matches the jar into `~/.skiko/` and loads it (checked above).
-- For a GUI start, the host's stdout and stderr go to files under `<app data>/logs/`, not to pipes,
-  so the launcher can exit while the host runs, and a failed start leaves its output behind. On
-  Windows it runs under `javaw.exe`, so no console window opens.
-- With `--headless` the host inherits the launcher's standard streams, so it writes to the terminal
-  or the service manager that started the launcher. On Windows it runs under `java.exe`, the
-  console variant, but the Windows launcher is a GUI program, as today's is, and has no console to
-  share: a headless host started through it writes only to streams its caller redirected. A
-  headless run in a Windows terminal uses `java -jar` on the host jar, or `runJetWhale`, as it does
-  today.
+The launcher's process is then the app the OS knows: on macOS `com.kitakkun.jetwhale.host`, with
+the bundle's name and icon, and on Windows `JetWhale Debugger.exe`. A child `java` process would be
+another app to the OS. On macOS it is the runtime's `java`, with its own name and its own Local
+Network permission, which keeps the host's mDNS advertising from working; on Windows it is
+`javaw.exe`. Only the jar changes on an update, so the executable the OS approved, and the
+permissions it granted the app, stay the same.
+
+Before it calls the host, the launcher sets these system properties:
+- each `-D…` argument of the metadata's `jvmArgs`, common then platform;
+- `jetwhale.launcher.contract`, `jetwhale.launcher.executable` and `jetwhale.launcher.hostDir`;
+- `jetwhale.launcher.setAsideVersion`, when this launch set a version aside, and clears it
+  otherwise.
+
+`jetwhale.appDataDir`, when it is set, is already this JVM's own property.
+
+- **Other JVM arguments.** `--add-opens`, `--add-exports`, `--enable-native-access` and `-Xmx`
+  cannot be applied to a JVM that runs. Such an argument has to be among the JVM's input arguments,
+  which means the launcher package's own JVM arguments. The launcher refuses a version that asks
+  for one its JVM did not start with (see *What the launcher refuses*).
+- **Properties read at the JVM's start.** A `-D…` property that the JVM reads only as it starts has
+  no effect when set this way, and it too belongs in the package's JVM arguments. A plugin's
+  in-place hot reload needs one: `jdk.attach.allowAttachSelf`, which allows the self-attach it uses.
+  The metadata format cannot tell such properties apart, and no current host asks for one.
+- **`skiko.library.path`.** The launcher clears the `skiko.library.path` that Compose's packaging
+  sets to the app directory. With the property set, skiko looks for its library in that directory
+  only, which holds none, and fails. Without it, skiko extracts the library that matches the jar
+  into `~/.skiko/` and loads it (checked above).
+- **Modules on the application class loader.** Modules the runtime defines to the application class
+  loader, such as `jdk.attach`, are not visible to host classes directly. ByteBuddy's self-attach
+  loads the attach API through the system class loader and still works; a host that referenced
+  `com.sun.tools.attach` itself would not.
+- **Crash logs.** A JVM fatal error log (hs_err) goes where the JVM puts it by default: the working
+  directory, or the temporary directory when that is not writable. `-XX:ErrorFile` can only be set
+  when the JVM starts, and the package cannot name the user's app data directory.
+- **Output.** For a GUI start, the launcher points `System.out` and `System.err` at
+  `logs/host-<version>.log` under the app data directory, truncated at each start, before it loads
+  the host. Output that the JVM writes to the process's file descriptors itself, such as its crash
+  messages, goes where the OS sends the app's. With `--headless` the host keeps the launcher's
+  streams, so it writes to the terminal or the service manager that started it. The Windows
+  launcher is a GUI program, as today's is, and has no console: a headless run in a Windows
+  terminal uses `java -jar` on the host jar, or `runJetWhale`, as it does today.
 - The launcher writes its own decisions to `logs/launcher.log`.
 
 ### Startup window and rollback
 
-The window runs N seconds from launch, and the launcher judges the start by the host's exit:
-- **Completed.** The host is still running at the end of the window.
-- **Failed.** The host exits inside the window with a non-zero status or a signal.
-- **Neither.** The host exits inside the window with status 0. The user quit, even before the main
-  window shows, from the Dock tile or the app menu that the host sets up first; or the user
-  restarted to update or chose *Try again*; or the host handed the reopen to a running host.
+Before it calls the host, the launcher writes a `startingHost` record into `launcher-state.json`,
+under `launch.lock`: the version, this process's ID, and the process's start time, which tells the
+process from a later one that reuses its ID. The window runs 30 seconds from just before the host's
+`main` is called, and the first of these ends it, recorded once under `launch.lock`:
+- **Completed.** A timer finds the JVM still running at the end of the window. The version is
+  recorded as having completed a start, its failed-start count is dropped, the record is cleared,
+  and pruning runs.
+- **Failed.** The host's `main` throws. The launcher writes the stack trace to the host's log and
+  the failure to `launcher.log`, counts a failed start, clears the record, and exits with status 1.
+  A throw after the window counts nothing, and the launcher still exits with status 1.
+- **Neither.** The JVM shuts down inside the window and `main` did not throw: the user quit, the
+  host ended the JVM with any exit status, the user restarted to update or chose *Try again*, or
+  `main` returned and the host's threads ended. A shutdown hook clears the record.
 
-A host that exits with status 0 inside the window for any other reason is therefore not retried or
-set aside; the next launch starts it again. Whether the host has published `instance.json` (see
-*Single instance, reopen and restart*) does not enter the judgment.
+A crash, a JVM fatal error or a kill leaves the record behind; a SIGTERM runs the shutdown hook and
+is neither. The next launch, before anything else, finds that the record's process no longer runs,
+or runs with another start time, and counts a failed start of that version. A record whose process
+still runs belongs to a host in its window, and the instance check hands the launch to it.
 
-N is 30 seconds, the startup grace of #293's crash recovery, so the launcher and the host count the
-same crashes as startup crashes. The launcher waits out the window and then exits. With
-`--headless` it stays attached and returns the host's exit status, so a terminal or a service
-manager sees the host's lifetime.
+The launcher stays the app until the host ends. With `--headless`, the JVM's exit status is the
+host's own.
 
-- **First starts.** When a version that has never completed a start on this machine fails, the
-  launcher starts it once more right away. If that fails too, the version is set aside, and the
-  same launch goes on to the next candidate with `jetwhale.launcher.setAside`. That host names the
-  version that failed, links the log, and offers to try it again. *Try again* restarts as
-  *Restart to update* does, adding `--retry <version>`; the new launcher clears the mark and
-  chooses as usual.
-- **Later crashes.** A version that has completed a start before is never set aside. Its later
-  crashes go to the host's crash recovery and its safe mode. Once the host has run on this machine,
-  a plugin is the likelier cause.
-- **#293's crash recovery.** Its run markers should record the host version. Otherwise the host
-  the launcher falls back to counts the failed version's crashes as its own and starts in safe
-  mode. Its grace should also count from the process's start
-  (`ProcessHandle.current().info().startInstant()`), as the launcher's window does, rather than
-  from when crash recovery starts, so the two windows end together.
+- **Setting aside.** The launcher counts the failed starts in a row of each version that has never
+  completed a start. While choosing, it sets aside a downloaded version with two of them, and the
+  same launch runs the next candidate with `jetwhale.launcher.setAsideVersion`. A failed start is
+  not retried within its launch: the user's next launch starts the version again, and the one after
+  its second failure falls back, whether that failure was a throw or a crash. The host it falls back
+  to names the version that failed, links the log, and offers to try it again. *Try again* restarts
+  as *Restart to update* does, adding `--retry <version>`; the new launcher clears the version's
+  mark and its count, and chooses as usual. The bundled version is never set aside; it is started
+  again.
+- **Later crashes.** A version that has completed a start before is never set aside, and its
+  failures are not counted. Its later crashes go to the host's crash recovery and its safe mode.
+  Once the host has run on this machine, a plugin is the likelier cause.
+- **#293's crash recovery.** Its run markers should record the host version. Otherwise the host the
+  launcher falls back to counts the failed version's crashes as its own and starts in safe mode.
+  Its 30-second grace should count from when the launcher calls the host's `main`, when this window
+  starts, or accept that the process starts earlier by the launcher's own work: normally well under
+  a second, longer after `--after` waited for the old host. It finds hs_err files where the JVM
+  puts them by default (see *Starting the host*).
 - **Nothing left.** If no candidate remains, the launcher shows its only UI: a dialog with the log
   location and the release page.
-- **Unexpected errors.** An error the launcher did not expect, such as a runtime `java` that cannot
-  be started or a file under `host/` that cannot be opened or written, goes to
-  `logs/launcher.log` with its stack trace and to the same dialog (to stderr with `--headless`),
-  and the launcher exits with status 1.
+- **Unexpected errors.** An error the launcher did not expect, such as a file under `host/` that
+  cannot be opened or written, goes to `logs/launcher.log` with its stack trace and to the same
+  dialog (to stderr with `--headless`), and the launcher exits with status 1.
 
 ### Single instance, reopen and restart
 
-Today the app's process is the host, so reopening the app on macOS brings its window forward. With
-the host as a child process, the launcher has to provide that. It uses two OS file locks under
-`~/.jetwhale/host/`, which the OS releases when their process ends, so a crash leaves none behind:
+The launcher's process is the host's, so macOS delivers a reopen of the app to the host itself, and
+Finder activates the running app rather than starting a second one. Windows and Linux start a new
+process on every launch, and macOS does with `open -n` or a second copy of the app. Two OS file
+locks under `~/.jetwhale/host/` keep that to one host. The OS releases a file lock when its process
+ends, so a crash leaves none behind.
 
-- **One launcher at a time.** A launcher first takes `launch.lock`, and waits while another launcher
-  holds it. It keeps it until a host it started has published `instance.json` or used up its
-  window, or until the launcher exits; a retry or a fallback to the next candidate happens under
-  the same lock. Two launches at once therefore start one host.
-- **Reopen.** A host started by the launcher takes `instance.lock` as it starts and holds it until
-  its process ends, even if its reopen endpoint stops, so a later launch never starts a second host.
-  Once its main window shows, or with `--headless` once its servers are bound, it writes a loopback
-  endpoint, its process ID and a token to a temporary file, and renames that to `instance.json`, so
-  a reader sees a whole record or none. A launcher that finds `instance.lock` held asks that host to
-  bring its window forward, then exits. If the record is missing or its endpoint does not answer, it
-  reads it again for a few seconds, then logs the failure and exits. A host that cannot take
-  `instance.lock` does the same and exits with status 0. On Windows and Linux this is new: today a
-  second start runs a second host, which silently loses the race for the ports.
-- **Reopen during the window.** For its 30 seconds, the launcher is the process macOS ties to the
-  app bundle, so a reopen reaches the launcher. It forwards the request to its host the same way.
-- **Restart to update.** The host starts `jetwhale.launcher.executable` with `--after <pid>` and its
-  own arguments, then exits normally. The new launcher takes `launch.lock`, waits for that process
-  to end, so `instance.lock` and the ports are free, and then chooses as usual. The new version is
-  the newest one.
+- **One launcher at a time.** A launcher takes `launch.lock`, and waits while another launcher
+  holds it. It keeps it until the host it runs has published `instance.json`, its start has been
+  judged, or the JVM ends. Two launches at once therefore start one host.
+- **Reopen.** The host takes `instance.lock` as it starts and holds it until its process ends, even
+  if its reopen endpoint stops, so a later launch never starts a second host. Once its main window
+  shows, or with `--headless` once its servers are bound, it writes a loopback endpoint, its process
+  ID and a token to a temporary file, and renames that to `instance.json`, so a reader sees a whole
+  record or none. It keeps the latest request to come forward until its window takes requests, and
+  takes a request before it answers it. A launcher that finds `instance.lock` held asks that host to
+  bring its window forward, then exits. If the record is missing or its endpoint does not answer,
+  it reads it again for a few seconds, then logs the failure and exits. The launcher probes
+  `instance.lock` with a lock it releases at once, before it calls the host, so the host's own lock
+  in the same JVM never overlaps it. A host that cannot take `instance.lock` asks the running one to
+  come forward in the same way and exits. On Windows and Linux this is new: today a second start
+  runs a second host, which silently loses the race for the ports.
+- **Restart to update.** The host starts the app again with `--after <pid>` and its own arguments,
+  then exits normally.
+  - On macOS it goes through LaunchServices, `open -n <app bundle> --args --after <pid> …`, so the
+    new process is the app and not a child of the old one. LaunchServices starts the app with its
+    own environment, so the host passes on the `JAVA_TOOL_OPTIONS` it started with, and no other
+    variable. The host waits for `open`, and a non-zero exit, or no exit within ten seconds, is a
+    failed restart.
+  - Elsewhere it starts `jetwhale.launcher.executable` directly.
+
+  The new launcher waits for that process to end before it takes `launch.lock`, because a host that
+  restarts inside its window takes `launch.lock` on its way out, to judge its start. It then
+  chooses as usual, and the new version is the newest one. A launch that slips in between finds the
+  newest version or the host it started, so one host still results.
 - **No restart.** If the user does not restart, the next normal start runs the new version.
-
-A launcher that stayed alive would have to handle reopens for the whole session and would keep a
-second JVM resident. Exiting after the window limits both to 30 seconds.
 
 ### What the launcher refuses
 
@@ -358,16 +399,17 @@ The launcher does not start a version, and tries the next candidate, when:
 - its `launcherContract` is higher than the launcher's;
 - it needs a higher Java feature version than the runtime has, or a module the runtime lacks;
 - it has no entry for this platform, or asks for a JVM argument outside the contract's forms;
+- it asks for a JVM argument other than `-D…` that the launcher's JVM did not start with;
 - its signature or hash does not verify.
 
-The host checks the same conditions before it offers a download. It runs on the launcher's runtime
-and reads the contract from the system property, so a refusal at start is rare; it happens, for
+The host checks the same conditions before it offers a download. It runs in the launcher's JVM and
+reads the contract from the system property, so a refusal at start is rare; it happens, for
 instance, when versions are left in the cache from a newer install. When the newest release is one
 this launcher cannot run, the host does not download it. A release with no jar for this platform is
 reported as having no build for this computer. One that needs a higher contract, Java version or a
-missing module, or asks for a JVM argument outside the contract, needs a new installer, and the host
-says so and links the release page. A reinstall is the only fix for the runtime and the contract:
-the launcher never replaces itself.
+missing module, or a JVM argument outside the contract or missing from the JVM's arguments, needs a
+new installer, and the host says so and links the release page. A reinstall is the only fix for the
+runtime, its JVM arguments and the contract: the launcher never replaces itself.
 
 ## Host update service
 
@@ -383,10 +425,14 @@ the version directories replace `UpdateCheckService`, as
   whose tag parses, and that carries the metadata asset. Snapshots, and releases from before this
   design, have no metadata and drop out.
 - **Installed but not running.** A version that is installed and newer than the running one is
-  offered as *Restart to update*. A set-aside one is offered as *Try again*, never as a new
-  download.
+  offered as *Restart to update*, and a failed check leaves that offer in place. A set-aside one is
+  offered as *Try again*, never as a new download.
 - **Check.** The service fetches the metadata, and its signature when the release has one,
-  verifies them, and checks the release against the running launcher (see above).
+  verifies them, and checks the release against the running launcher (see above), including the
+  arguments this JVM started with.
+- **Banner.** At startup, the banner shows a newer release, and also one that needs a new
+  installer, which links to the Updates section. A release with no build for this computer gets no
+  banner.
 - **Download.** It starts on the user's click, after the versions it supersedes are deleted (see
   *Choosing a version*), and shows progress and a cancel button. The jar goes into `host/staging/`.
   The download stops at the first byte past the metadata's `size` and is discarded as corrupted, so
@@ -394,9 +440,9 @@ the version directories replace `UpdateCheckService`, as
   *Verifying*, still with Cancel, and a cancel then installs nothing. The finished directory is
   renamed into `host/<version>/`, so the launcher never sees half a version.
 - **Offer.** The user can restart to update, or keep working; the next start runs the new version.
-  When *Restart to update* or *Try again* cannot start the launcher, because the launcher gave no
-  path or its executable was moved, the host keeps running and a banner says to quit and open the
-  app again.
+  When *Restart to update* or *Try again* cannot start the app again, because the launcher gave no
+  path, the app was moved, or `open` failed or did not finish in time, the host keeps running and a
+  banner says to quit and open the app again.
 - **Failures.** A failed check and a failed download are reported apart, and neither blocks
   startup. The kinds:
   - GitHub's rate limit: a 403 or 429 with `x-ratelimit-remaining: 0`, or with `Retry-After`, which
@@ -452,14 +498,13 @@ only links to the release page.
   first launch needs Open Anyway once.
 - A downloaded jar's native libraries load as they do today (checked above). That holds only while
   the hardened runtime stays off, or comes with `disable-library-validation`.
-- The host runs as `Contents/runtime/Contents/Home/bin/java`. That is the same nested runtime bundle
-  as `jspawnhelper`, which today's host already executes, under the app's Gatekeeper approval,
-  every time it starts a child process such as `adb`. Phase 2 confirms that `bin/java` gets the
-  same treatment, with an install downloaded through a browser.
-- The launcher's bundle is `LSUIElement`, so the launcher has no Dock tile. The host's tile belongs
-  to the host's own process. The host already sets its name and icon at runtime
-  (`configureAppMetadata`), and the metadata's `-Xdock:name` sets the name from the first frame. A
-  pinned JetWhale Debugger tile and the running host are therefore two tiles (see Risks).
+- The host runs in the app's own process, `com.kitakkun.jetwhale.host`, with the bundle's name and
+  icon, its Dock tile and its menu bar, so a pinned JetWhale Debugger tile is the running host's.
+  No separate executable is signed or approved, and what macOS grants the app, such as Local
+  Network access for the host's mDNS advertising, applies to every host version.
+- This was checked with a Finder launch of a test build: the host ran as
+  `com.kitakkun.jetwhale.host` with no child process, and its mDNS service resolved to the host's
+  ports with no Local Network prompt and no `NoRouteToHostException`.
 - Since macOS 14, an app that is not active may not be allowed to bring its window forward on its
   own. Phase 2 checks that the host still comes forward when a launcher asks it to.
 
@@ -482,6 +527,8 @@ only links to the release page.
   old install instead of failing.
 - The MSI installs per machine into Program Files, so all mutable state lives in the user's
   `~/.jetwhale`.
+- The host runs in `JetWhale Debugger.exe`'s process, so the taskbar shows the app, not a
+  `javaw.exe`.
 - SmartScreen warns about the unsigned MSI at install, as it does today.
 
 ### Linux
@@ -581,13 +628,19 @@ every user who accepts the update.
     deeply nested JSON.
   - Signature checks with a test key pair: valid, tampered, and wrong key.
   - The JVM argument forms.
-- **Launcher.** Process tests that start stub host jars with a real `java`. The stubs exit 0 or 1
-  before or after publishing `instance.json`, crash after the window, or sleep. The tests cover
-  selection, the judgment of a start (an exit 0 before publishing is neither), setting aside, the
-  bundled floor, `--after`, `--retry`, unexpected errors, and pruning. For the locks they cover two
-  launchers started at once, a second launch while a host has yet to take `instance.lock`, and a
-  record an earlier host left behind. Processes, file locks and renames behave differently on
-  Windows, so this module's tests run on all three runners.
+- **Launcher.**
+  - Unit tests run launches one after another as separate fake processes, with fake locks that a
+    fake process releases when it ends, a fake process table and a test clock. They cover crash
+    records, a reused process ID, a throw from `main`, a shutdown before and after publication, two
+    failures setting a version aside and the fallback naming it, the bundled version never set
+    aside, `--retry`, the restart waiting without `launch.lock`, two launches at once, and
+    `launch.lock` held until publication and taken again to record a completed start.
+- Process tests run the launcher's real `main` in a child JVM with a stub host jar written in Java,
+    so it needs no Kotlin. They check that the host's class loader sees neither Kotlin nor the
+    launcher, that the contract's properties and the metadata's `-D…` arguments are set and
+    `skiko.library.path` is cleared, that output goes to the host's log, that a throw counts a
+    failed start and exits with status 1, that `System.exit` inside the window is neither, and that
+    the next launch counts a `Runtime.halt` as a failed start.
 - **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today.
   - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
     platform, and installed or set-aside versions.
@@ -613,6 +666,17 @@ every user who accepts the update.
   A test build reads the release source from an environment variable, which the host inherits
   from the launcher, and embeds the test public key if signing is adopted. Production builds have
   neither.
+- **Checked on macOS** with a test-build DMG, a scratch app data directory, a local release source,
+  and every launch through `open -n`. Each host ran as `com.kitakkun.jetwhale.host` with no child
+  process and logged no `NoRouteToHostException`.
+  - The bundled version completed its start, and a second launch handed off to the running host.
+  - An update downloaded, and its restart went through `open -n` with `JAVA_TOOL_OPTIONS` passed on.
+    The new launcher waited for the old host without `launch.lock`, then ran the new version.
+  - A version that halted the JVM and then threw from `main` was counted twice, the halt by the
+    next launch. The third launch set it aside and ran the previous version with the set-aside
+    banner.
+  - Quitting inside the window counted nothing, also for a version that had never completed a start.
+  - A jar changed after install was deleted at start, and the bundled version ran.
 
 ## Plan
 
@@ -627,11 +691,12 @@ every user who accepts the update.
    and runs the release path before anything depends on it.
 2. **Launcher.**
    - The launcher module, and the packages built from it: the bundled uber jar and its metadata,
-     `bin/java` and the extra modules, `LSUIElement` on macOS, and today's package identity.
+     the extra modules, and today's package identity.
    - The MSI version scheme. It can also go earlier on its own, because it already fixes installing
      over an earlier alpha.
-   - On the host side: the launcher properties, the locks and activation, and `--after`. In #293's
-     crash recovery: the version in its run markers, and a grace counted from the process's start.
+   - On the host side: the launcher properties, the locks and activation, and the restart with
+     `--after`, through `open -n` on macOS. In #293's crash recovery: the version in its run
+     markers, a grace counted from the host's `main`, and hs_err files where the JVM puts them.
 3. **Host update service and UI.** `HostUpdateService`, the version repository, the Updates section,
    the startup setting and the banner, and the set-aside, refusal and failure messages. All of it is
    hidden in the IDE.
@@ -643,15 +708,12 @@ after 3; phase 4 can land at any point, first included.
 
 ## Risks
 
-- **Two Dock tiles on macOS.** A pinned tile belongs to the launcher and shows no running indicator,
-  while the host gets a tile of its own. Windows has the same split: the host's window groups under
-  `javaw.exe`, apart from a pinned shortcut. Phase 2 judges this on real machines.
 - **A rollback runs an older host on data a newer one wrote.** DataStore Preferences ignores
   unknown keys. The JSON stores (the trust registry, plugin data) have to decode with unknown keys
   ignored, and a file format change needs a version guard rather than a rewrite in place.
-- **The runtime is fixed at install.** A host that needs a newer Java, or a module the runtime
-  lacks, needs a reinstall. The extra modules make that rare, and the check before download makes
-  it clear.
+- **The runtime and its JVM arguments are fixed at install.** A host that needs a newer Java, a
+  module the runtime lacks, or a JVM argument the package does not start with, needs a reinstall.
+  The extra modules make that rare, and the check before download makes it clear.
 - **GitHub API limits.** 60 unauthenticated requests an hour per address can run out behind a
   shared NAT. A failed check is shown and changes nothing.
 - **Disk.** Up to three host jars of about 120 MB each: the bundled one, the running one, and one
