@@ -34,7 +34,7 @@ class HostLauncherTest {
     private val bundledDirectory = appData.resolve("package/host")
     private val lockFiles = FakeLockFiles()
     private val runningHost = FakeRunningHost(hostVersionsDirectory, answers = true)
-    private val hostProcesses = FakeHostProcesses(lockFiles, hostVersionsDirectory.instanceLockFile, runningHost)
+    private val hostProcesses = FakeHostProcesses(lockFiles, hostVersionsDirectory, runningHost)
     private val logLines = CopyOnWriteArrayList<String>()
     private val waitedFor = CopyOnWriteArrayList<Long>()
 
@@ -284,6 +284,24 @@ class HostLauncherTest {
         assertEquals(1, runningHost.activationRequests)
         assertTrue(hostProcesses.starts.isEmpty())
         runningInstance.close()
+    }
+
+    @Test
+    fun `hands the launch to a host another launcher started before the retry, instead of starting one`() {
+        download("1.0.0-alpha15")
+        hostProcesses.script("1.0.0-alpha15", FakeHostBehavior.ExitsAfterPublishing(1), FakeHostBehavior.ExitsBeforePublishing(0))
+        hostProcesses.whenPublished("1.0.0-alpha15") {
+            lockFiles.lock(hostVersionsDirectory.instanceLockFile)
+            runningHost.publish(pid = 42)
+            Files.writeString(hostVersionsDirectory.hostLogFile(hostVersion("1.0.0-alpha15")), "replacement output")
+        }
+
+        val outcome = launcher().launch(afterPid = null, retryVersion = null)
+
+        assertEquals(LaunchOutcome.ActivatedRunningHost, outcome)
+        assertEquals(1, hostProcesses.starts.size)
+        assertEquals(1, runningHost.activationRequests)
+        assertEquals("replacement output", Files.readString(hostVersionsDirectory.hostLogFile(hostVersion("1.0.0-alpha15"))))
     }
 
     @Test

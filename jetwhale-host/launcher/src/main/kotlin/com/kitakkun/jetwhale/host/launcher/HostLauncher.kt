@@ -51,20 +51,20 @@ class HostLauncher(
                 waitForProcessExit(afterPid)
             }
             if (retryVersion != null) clearSetAside(retryVersion)
-            val instanceProbe = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile)
-            if (instanceProbe == null) {
-                if (runningHost.requestActivation()) {
-                    log.write("A host is already running; asked it to bring its window forward")
-                    return LaunchOutcome.ActivatedRunningHost
-                }
-                log.write("A host holds instance.lock but did not answer the request to bring its window forward")
-                return LaunchOutcome.RunningHostUnreachable
-            }
-            instanceProbe.close()
+            if (isInstanceHeldElsewhere()) return handToRunningHost()
             return chooseAndStart(launchLock)
         } finally {
             launchLock.release()
         }
+    }
+
+    private fun handToRunningHost(): LaunchOutcome {
+        if (runningHost.requestActivation()) {
+            log.write("A host is already running; asked it to bring its window forward")
+            return LaunchOutcome.ActivatedRunningHost
+        }
+        log.write("A host holds instance.lock but did not answer the request to bring its window forward")
+        return LaunchOutcome.RunningHostUnreachable
     }
 
     private fun clearSetAside(version: HostVersion) {
@@ -92,10 +92,10 @@ class HostLauncher(
      * launch ends, or null when it goes on to the next candidate.
      */
     private fun tryCandidate(start: HostStart, progress: LaunchProgress, launchLock: LaunchLock): LaunchOutcome? {
-        val first = attempt(start, progress.firstSetAsideVersion, launchLock)
+        val first = attempt(start, progress.firstSetAsideVersion, launchLock) ?: return handToRunningHost()
         val last = if (first.outcome is StartupOutcome.Failed && !hasCompletedBefore(start, launchLock)) {
             log.write("${start.version} has never completed a start here; starting it once more")
-            attempt(start, progress.firstSetAsideVersion, launchLock)
+            attempt(start, progress.firstSetAsideVersion, launchLock) ?: return handToRunningHost()
         } else {
             first
         }
@@ -216,9 +216,14 @@ class HostLauncher(
         if (!hostVersionsDirectory.delete(installedVersion)) log.write("Could not delete all of ${installedVersion.version}; a later start tries again")
     }
 
-    private fun attempt(start: HostStart, setAsideVersion: HostVersion?, launchLock: LaunchLock): HostAttempt {
+    /**
+     * Starts [start] and watches its startup window, or returns null without starting it when a host
+     * holds `instance.lock`: while `launch.lock` was released, another launcher may have started one.
+     */
+    private fun attempt(start: HostStart, setAsideVersion: HostVersion?, launchLock: LaunchLock): HostAttempt? {
         launchLock.ensureHeld()
-        if (!isInstanceHeldElsewhere()) hostVersionsDirectory.deleteInstanceRecord()
+        if (isInstanceHeldElsewhere()) return null
+        hostVersionsDirectory.deleteInstanceRecord()
         log.write("Starting ${start.version}${if (start.isBundled) " (bundled)" else ""}")
         val process = hostProcesses.start(start, setAsideVersion)
         var published = false

@@ -101,11 +101,13 @@ sealed interface FakeHostBehavior {
     data class ClaimsTheInstanceLate(val runningPolls: Int) : FakeHostBehavior
 }
 
+/** Starts write over the version's host log, as [JavaHostProcesses] does with the host's output. */
 class FakeHostProcesses(
     private val lockFiles: LockFiles,
-    private val instanceLockFile: Path,
+    private val hostVersionsDirectory: HostVersionsDirectory,
     private val runningHost: FakeRunningHost,
 ) : HostProcesses {
+    private val instanceLockFile = hostVersionsDirectory.instanceLockFile
     private val pids = AtomicLong(1000)
     private val scripts = ConcurrentHashMap<String, MutableList<FakeHostBehavior>>()
     private val afterPublishing = ConcurrentHashMap<String, () -> Unit>()
@@ -133,6 +135,8 @@ class FakeHostProcesses(
 
     override fun start(start: HostStart, setAsideVersion: HostVersion?): HostProcess {
         recordedStarts += start.version.name to setAsideVersion?.name
+        Files.createDirectories(hostVersionsDirectory.logsDirectory)
+        Files.write(hostVersionsDirectory.hostLogFile(start.version), byteArrayOf())
         val behavior = scripts[start.version.name]?.removeFirstOrNull() ?: FakeHostBehavior.Runs
         val pid = pids.incrementAndGet()
         return when (behavior) {
