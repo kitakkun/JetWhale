@@ -235,6 +235,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwIcons {
 
 public final class com/kitakkun/jetwhale/host/ui/JwInteractionKt {
 	public static final fun jwFocusRing (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/InteractionSource;Landroidx/compose/ui/graphics/Shape;Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;Landroidx/compose/runtime/Composer;II)Landroidx/compose/ui/Modifier;
+	public static final fun jwListRowKeys (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/Modifier;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwKeyValueRowDefaults {
@@ -248,6 +249,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwKeyValueRowKt {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwListItemKt {
+	public static final fun JwListItem (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun JwListItem (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun JwListItem (ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }

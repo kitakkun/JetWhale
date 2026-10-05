@@ -18,3 +18,8 @@ dependencies {
 compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host.settings"
 }
+
+// aboutlibraries ships Java 21 class files, which the module's Java 17 toolchain cannot load.
+tasks.test {
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) })
+}

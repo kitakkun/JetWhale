@@ -45,6 +45,7 @@ dependencies {
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 }
 
 tasks.named("check") {
