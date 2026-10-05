@@ -4,9 +4,8 @@ import kotlin.time.Duration
 import kotlin.time.TimeSource
 
 /**
- * The time after a host's launch in which an exit counts against the start. It is the startup grace
- * of the host's crash recovery, so the launcher and the host count the same crashes as startup
- * crashes.
+ * The time after a host's start in which a crash counts against the start. It is the startup grace of
+ * the host's crash recovery, so the launcher and the host count the same crashes as startup crashes.
  */
 class StartupWindow(
     private val length: Duration,
@@ -15,36 +14,20 @@ class StartupWindow(
     private val sleep: (Duration) -> Unit,
 ) {
     /**
-     * Watches [process] from now, which is right after it started, until it exits or the window
-     * ends. [whileRunning] runs on every poll while the process is alive.
-     *
-     * @return The exit status when the process exited within the window, or null when it was still
-     * running at the end of it.
+     * Watches [startup] from now, which is right before the host's main is called, to the end of the
+     * window: tells it once [isPublished] says the host has published its record, and then that the
+     * window has ended.
      */
-    fun watch(process: HostProcess, whileRunning: () -> Unit): Int? {
+    fun watch(startup: HostLauncher.HostStartup, isPublished: () -> Boolean) {
         val started = timeSource.markNow()
-        while (true) {
-            val exitStatus = process.exitStatus()
-            if (exitStatus != null) return exitStatus
-            if (started.elapsedNow() >= length) return null
-            whileRunning()
+        var published = false
+        while (started.elapsedNow() < length) {
+            if (!published && isPublished()) {
+                published = true
+                startup.hostPublished()
+            }
             sleep(pollInterval)
         }
+        startup.windowEnded()
     }
-}
-
-/** How the launcher judges one start of a host. */
-sealed interface StartupOutcome {
-    /** Still running at the end of the startup window. */
-    data object Completed : StartupOutcome
-
-    /**
-     * Neither failed nor completed: the host exited normally within the window, as it does when the
-     * user quits or restarts it, before its window has shown or after, or when it handed the launch
-     * to a host that already runs.
-     */
-    data object Neither : StartupOutcome
-
-    /** Exited within the window with a non-zero status or by a signal. */
-    data class Failed(val exitStatus: Int) : StartupOutcome
 }

@@ -21,7 +21,7 @@ import kotlin.io.path.name
  * ```
  * 1.0.0-alpha15/       jetwhale-host-1.0.0-alpha15-macos-arm64.jar, release.json, release.json.sig
  * staging/             downloads in progress; the launcher never reads it
- * launcher-state.json  which versions completed a start, and which are set aside
+ * launcher-state.json  which versions completed a start, failed or are set aside, and the start in progress
  * launch.lock, instance.lock, instance.json
  * ```
  */
@@ -153,13 +153,37 @@ fun hostJarName(version: HostVersion, platformKey: String): String = "jetwhale-h
  * window on this machine. Such a version is never set aside again.
  * @property setAsideVersions The versions that failed their first starts, until the user tries them
  * again. An entry for a version whose directory is gone means nothing.
+ * @property failedStartCounts How many starts in a row each version that has not completed one has
+ * failed.
+ * @property startingHost The host whose start has not been judged yet: it is in its startup window,
+ * or its process ended without the judgment being recorded.
  */
 @Serializable
 data class LauncherState(
     val completedStartVersions: Set<HostVersion>,
     val setAsideVersions: Set<HostVersion>,
+    val failedStartCounts: Map<HostVersion, Int>,
+    val startingHost: StartingHost?,
 ) {
     companion object {
-        val EMPTY = LauncherState(completedStartVersions = emptySet(), setAsideVersions = emptySet())
+        val EMPTY = LauncherState(
+            completedStartVersions = emptySet(),
+            setAsideVersions = emptySet(),
+            failedStartCounts = emptyMap(),
+            startingHost = null,
+        )
     }
 }
+
+/**
+ * A host start the launcher wrote down before running [version] in the process [pid].
+ *
+ * @property processStartMillis When that process started, in milliseconds since the epoch, which
+ * tells it from a later process that got the same ID; null when the OS did not say.
+ */
+@Serializable
+data class StartingHost(
+    val version: HostVersion,
+    val pid: Long,
+    val processStartMillis: Long?,
+)

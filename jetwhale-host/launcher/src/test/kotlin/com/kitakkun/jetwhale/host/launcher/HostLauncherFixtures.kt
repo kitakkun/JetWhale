@@ -4,11 +4,13 @@ import com.kitakkun.jetwhale.host.release.HeldLock
 import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
+import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LockFiles
+import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.hostJarName
 import java.nio.file.Files
 import java.nio.file.Path
@@ -16,15 +18,21 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Semaphore
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TestTimeSource
 
 const val PLATFORM = "macos-arm64"
+
+private const val LOCK_WAIT_LIMIT_SECONDS = 10L
 
 val capableLauncher = LauncherCapabilities(
     contract = 1,
     javaFeatureVersion = 21,
     modules = setOf("java.base", "java.desktop"),
     platformKey = PLATFORM,
+    jvmArguments = listOf("-Dcompose.application.configure.swing.globals=true"),
 )
 
 fun hostVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name)) { name }
@@ -41,7 +49,7 @@ fun hostMetadata(versionName: String, jarBytes: ByteArray) = HostReleaseMetadata
             url = "https://example.com/${hostJarName(hostVersion(versionName), PLATFORM)}",
             size = jarBytes.size.toLong(),
             sha256 = MessageDigest.getInstance("SHA-256").digest(jarBytes).joinToString("") { "%02x".format(it) },
-            jvmArgs = listOf("-Xdock:name=JetWhale Debugger"),
+            jvmArgs = listOf("-Dapple.awt.application.appearance=system"),
         ),
     ),
 )
@@ -58,157 +66,56 @@ fun writeHostVersion(
     Files.writeString(directory.resolve("release.json"), edit(hostMetadata(versionName, jarBytes)).encode())
 }
 
-/** OS file locks as separate processes see them, for launchers and hosts that run as threads. */
-class FakeLockFiles : LockFiles {
+/**
+ * OS file locks as separate processes see them, for launches that run as threads or one after
+ * another. Each process's locks go when [end] says the process ended, as the OS releases them. A
+ * wait for a lock fails after [LOCK_WAIT_LIMIT_SECONDS] rather than hang the test run.
+ */
+class FakeLockFiles {
     private val semaphores = ConcurrentHashMap<Path, Semaphore>()
+    private val heldByProcess = ConcurrentHashMap<Long, MutableList<Semaphore>>()
 
-    override fun lock(path: Path): HeldLock {
-        val semaphore = semaphoreOf(path)
-        semaphore.acquire()
-        return HeldLock(semaphore::release)
+    /** The locks as the process [pid] takes them. */
+    fun of(pid: Long): LockFiles = object : LockFiles {
+        override fun lock(path: Path): HeldLock {
+            val semaphore = semaphoreOf(path)
+            check(semaphore.tryAcquire(LOCK_WAIT_LIMIT_SECONDS, TimeUnit.SECONDS)) { "process $pid waited for ${path.fileName}, which nothing released" }
+            return held(pid, semaphore)
+        }
+
+        override fun tryLock(path: Path): HeldLock? = semaphoreOf(path).takeIf(Semaphore::tryAcquire)?.let { held(pid, it) }
     }
 
-    override fun tryLock(path: Path): HeldLock? {
-        val semaphore = semaphoreOf(path)
-        return if (semaphore.tryAcquire()) HeldLock(semaphore::release) else null
+    /** Releases every lock the process [pid] holds. */
+    fun end(pid: Long) {
+        heldByProcess.remove(pid)?.forEach(Semaphore::release)
+    }
+
+    fun isHeld(path: Path): Boolean = semaphoreOf(path).availablePermits() == 0
+
+    private fun held(pid: Long, semaphore: Semaphore): HeldLock {
+        val locks = heldByProcess.computeIfAbsent(pid) { CopyOnWriteArrayList() }
+        locks += semaphore
+        return HeldLock {
+            if (locks.remove(semaphore)) semaphore.release()
+        }
     }
 
     private fun semaphoreOf(path: Path): Semaphore = semaphores.computeIfAbsent(path) { Semaphore(1) }
 }
 
-/** What a fake host does once started. */
-sealed interface FakeHostBehavior {
-    /** Takes the instance, publishes its record and keeps running. */
-    data object Runs : FakeHostBehavior
+/** Processes by ID: those in [running] run, with the start time [startMillisOf] gives them. */
+class FakeProcessTable(
+    override val currentPid: Long,
+    private val running: Set<Long>,
+    private val startMillisOf: (Long) -> Long?,
+    private val onAwaitExit: (Long) -> Unit,
+) : ProcessTable {
+    override val currentStartMillis: Long? = startMillisOf(currentPid)
 
-    /** Exits with [status] before it has published its record. */
-    data class ExitsBeforePublishing(val status: Int) : FakeHostBehavior
+    override fun isRunning(pid: Long, startMillis: Long?): Boolean = pid in running && (startMillis == null || startMillis == startMillisOf(pid))
 
-    /** Publishes its record, then exits with [status] within the startup window. */
-    data class ExitsAfterPublishing(val status: Int) : FakeHostBehavior
-
-    /** Finds the instance taken by another host as it starts, and exits normally without publishing. */
-    data object LosesTheInstance : FakeHostBehavior
-
-    /** Publishes its record and reports running for [runningPolls] polls, then reports an exit. */
-    data class EndsRightAfterTheWindow(val runningPolls: Int) : FakeHostBehavior
-
-    /**
-     * Reports running for [runningPolls] polls before it takes the instance and publishes its record,
-     * as a host does while its JVM and window come up. When the instance is taken by then, it exits
-     * normally, as a host that hands the launch to the running one.
-     */
-    data class ClaimsTheInstanceLate(val runningPolls: Int) : FakeHostBehavior
-}
-
-/** Starts write over the version's host log, as [JavaHostProcesses] does with the host's output. */
-class FakeHostProcesses(
-    private val lockFiles: LockFiles,
-    private val hostVersionsDirectory: HostVersionsDirectory,
-    private val runningHost: FakeRunningHost,
-) : HostProcesses {
-    private val instanceLockFile = hostVersionsDirectory.instanceLockFile
-    private val pids = AtomicLong(1000)
-    private val scripts = ConcurrentHashMap<String, MutableList<FakeHostBehavior>>()
-    private val afterPublishing = ConcurrentHashMap<String, () -> Unit>()
-
-    /** The process ID the next start gets. */
-    val nextPid: Long get() = pids.get() + 1
-
-    /**
-     * Runs [action] once the host of the version named [versionName] has published its record, while
-     * the launcher has let go of `launch.lock`: what another launcher could do in between.
-     */
-    fun whenPublished(versionName: String, action: () -> Unit) {
-        afterPublishing[versionName] = action
-    }
-
-    /** Every start, as the version's name and the name of the set-aside version it was told about. */
-    val starts: List<Pair<String, String?>> get() = recordedStarts
-
-    private val recordedStarts = CopyOnWriteArrayList<Pair<String, String?>>()
-
-    /** What the next starts of the version named [versionName] do, in order; once they are used up, it runs. */
-    fun script(versionName: String, vararg behaviors: FakeHostBehavior) {
-        scripts[versionName] = behaviors.toMutableList()
-    }
-
-    override fun start(start: HostStart, setAsideVersion: HostVersion?): HostProcess {
-        recordedStarts += start.version.name to setAsideVersion?.name
-        Files.createDirectories(hostVersionsDirectory.logsDirectory)
-        Files.write(hostVersionsDirectory.hostLogFile(start.version), byteArrayOf())
-        val behavior = scripts[start.version.name]?.removeFirstOrNull() ?: FakeHostBehavior.Runs
-        val pid = pids.incrementAndGet()
-        return when (behavior) {
-            is FakeHostBehavior.Runs -> {
-                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "a started host found the instance taken" }
-                runningHost.publish(pid)
-                afterPublishing[start.version.name]?.invoke()
-                FakeHostProcess(pid, null)
-            }
-
-            is FakeHostBehavior.ExitsBeforePublishing -> FakeHostProcess(pid, behavior.status)
-
-            is FakeHostBehavior.ExitsAfterPublishing -> {
-                runningHost.publish(pid)
-                afterPublishing[start.version.name]?.invoke()
-                FakeHostProcess(pid, behavior.status)
-            }
-
-            is FakeHostBehavior.EndsRightAfterTheWindow -> {
-                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "a started host found the instance taken" }
-                runningHost.publish(pid)
-                EndingHostProcess(pid, runningPolls = behavior.runningPolls)
-            }
-
-            is FakeHostBehavior.LosesTheInstance -> {
-                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "the other host could not take the instance" }
-                FakeHostProcess(pid, 0)
-            }
-
-            is FakeHostBehavior.ClaimsTheInstanceLate -> LateClaimingHostProcess(pid, behavior.runningPolls) {
-                if (lockFiles.tryLock(instanceLockFile) == null) {
-                    0
-                } else {
-                    runningHost.publish(pid)
-                    afterPublishing[start.version.name]?.invoke()
-                    null
-                }
-            }
-        }
-    }
-}
-
-/** Reports running for [runningPolls] polls, then runs [claim] once and reports the exit status it returns from then on. */
-class LateClaimingHostProcess(
-    override val pid: Long,
-    private val runningPolls: Int,
-    private val claim: () -> Int?,
-) : HostProcess {
-    private var polls = 0
-    private var exitStatus: Int? = null
-
-    override fun exitStatus(): Int? {
-        if (polls++ == runningPolls) exitStatus = claim()
-        return exitStatus
-    }
-
-    override fun waitForExit(): Int = exitStatus ?: 0
-}
-
-/** Reports running for [runningPolls] polls, then status 0. */
-class EndingHostProcess(override val pid: Long, private val runningPolls: Int) : HostProcess {
-    private var polls = 0
-
-    override fun exitStatus(): Int? = if (polls++ < runningPolls) null else 0
-
-    override fun waitForExit(): Int = 0
-}
-
-class FakeHostProcess(override val pid: Long, private val exitStatus: Int?) : HostProcess {
-    override fun exitStatus(): Int? = exitStatus
-
-    override fun waitForExit(): Int = exitStatus ?: 0
+    override fun awaitExit(pid: Long) = onAwaitExit(pid)
 }
 
 /**
@@ -231,5 +138,87 @@ class FakeRunningHost(
     override fun requestActivation(): Boolean {
         activationRequests++
         return answers
+    }
+}
+
+/**
+ * An app data directory with a bundled `1.0.0-alpha13`, where each launch runs as a process of its
+ * own: [launch] starts one, and the test then ends its host the way the case needs.
+ */
+class LaunchTestBed {
+    val appData: Path = Files.createTempDirectory("launcher-test")
+    val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
+    val bundledDirectory: Path = appData.resolve("package/host")
+    val lockFiles = FakeLockFiles()
+    val runningHost = FakeRunningHost(hostVersionsDirectory, answers = true)
+    val logLines = CopyOnWriteArrayList<String>()
+
+    /** The processes that run, other than those the test has ended. */
+    private val runningPids: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+
+    init {
+        writeHostVersion(bundledDirectory, "1.0.0-alpha13") { it }
+        Files.move(bundledDirectory.resolve(hostJarName(hostVersion("1.0.0-alpha13"), PLATFORM)), bundledDirectory.resolve(BundledHost.JAR_FILE_NAME))
+    }
+
+    fun download(versionName: String) {
+        writeHostVersion(versionDirectory(versionName), versionName) { it }
+    }
+
+    fun versionDirectory(versionName: String): Path = hostVersionsDirectory.root.resolve(versionName)
+
+    fun launcher(
+        pid: Long,
+        lockFiles: LockFiles = this.lockFiles.of(pid),
+        metadataReader: HostReleaseMetadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
+        runningHost: RunningHostChannel = this.runningHost,
+        onAwaitExit: (Long) -> Unit = {},
+        bundled: Boolean = true,
+    ): HostLauncher {
+        runningPids += pid
+        return HostLauncher(
+            hostVersionsDirectory = hostVersionsDirectory,
+            bundledHost = if (bundled) BundledHost.read(bundledDirectory) else null,
+            capabilities = capableLauncher,
+            metadataReader = metadataReader,
+            lockFiles = lockFiles,
+            runningHost = runningHost,
+            processes = FakeProcessTable(currentPid = pid, running = runningPids, startMillisOf = { it * 1000 }, onAwaitExit = onAwaitExit),
+            log = { logLines += it },
+        )
+    }
+
+    /** Launches as the process [pid]. */
+    fun launch(pid: Long, afterPid: Long? = null, retryVersion: HostVersion? = null): LaunchOutcome = launcher(pid).launch(afterPid, retryVersion)
+
+    /** The host of the process [pid] takes `instance.lock` and publishes its record, as a host coming up does. */
+    fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
+        checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
+        runningHost.publish(pid)
+        starting.startup.hostPublished()
+    }
+
+    /** A process that is not a launch runs with the ID [pid]. */
+    fun runOtherProcess(pid: Long) {
+        runningPids += pid
+    }
+
+    /** The process [pid] ends without running anything more, as a crash or a kill ends it. */
+    fun crash(pid: Long) {
+        runningPids -= pid
+        lockFiles.end(pid)
+    }
+
+    /** The process [pid] ends after its shutdown hook has run. */
+    fun shutDown(pid: Long, starting: LaunchOutcome.Starting) {
+        starting.startup.shutDownWithoutFailure()
+        crash(pid)
+    }
+
+    /** Watches a start through its whole window, in test time, as the process [publishedBy] does. */
+    fun watchWindow(starting: LaunchOutcome.Starting, publishedBy: Long) {
+        val time = TestTimeSource()
+        StartupWindow(length = 30.seconds, pollInterval = 200.milliseconds, timeSource = time, sleep = time::plusAssign)
+            .watch(starting.startup) { runningHost.isPublishedBy(publishedBy) }
     }
 }

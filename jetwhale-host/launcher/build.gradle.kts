@@ -1,8 +1,4 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.compose.desktop.application.tasks.AbstractJLinkTask
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermissions
 
 plugins {
     alias(libs.plugins.jvm)
@@ -10,8 +6,8 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
 }
 
-// The launcher has no composables. The Compose Gradle plugin, applied for desktop packaging, fails
-// the build unless the Compose compiler plugin is applied, so it is applied and turned off.
+// The Compose Gradle plugin, applied here only for packaging, fails the build without the Compose
+// compiler plugin; the launcher has no composables, so it is applied and turned off.
 composeCompiler {
     targetKotlinPlatforms.set(emptySet())
 }
@@ -30,16 +26,18 @@ dependencies {
 val bundledHostResources = tasks.register<Sync>("prepareBundledHostResources") {
     from(bundledHost) {
         into("common/host")
-        // jpackage puts every *.jar under the app directory on the launcher's own class path, so
-        // the bundled host jar goes in under another name.
+        // jpackage puts every .jar under the app directory on the launcher's own class path, so the
+        // bundled host jar goes in under another name.
         rename(""".*\.jar""", "jetwhale-host.bundled")
     }
     into(layout.buildDirectory.dir("bundled-host-resources"))
 }
 
+/** What the launcher itself uses beyond the host's modules: it reads the arguments its JVM started with. */
+val launcherModules = listOf("java.management")
+
 val runtimeModulesForLaterHosts = listOf(
     "java.net.http",
-    "java.management",
     "jdk.management",
     "jdk.attach",
     "jdk.zipfs",
@@ -63,7 +61,7 @@ compose.desktop {
             // The DMG format takes only a numeric MAJOR.MINOR.PATCH.
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
-            modules = ArrayList(JetWhaleHostRuntime.modules + runtimeModulesForLaterHosts)
+            modules = ArrayList(JetWhaleHostRuntime.modules + launcherModules + runtimeModulesForLaterHosts)
             appResourcesRootDir.set(layout.dir(bundledHostResources.map { it.destinationDir }))
 
             targetFormats(
@@ -75,11 +73,6 @@ compose.desktop {
             macOS {
                 bundleID = "com.kitakkun.jetwhale.host"
                 iconFile.set(rootProject.file("jetwhale-host/app/src/main/resources/icon.icns"))
-                // LSUIElement keeps the launcher out of the Dock: it exits once the host has
-                // started, and the host shows its own tile.
-                infoPlist {
-                    extraKeysRawXml = "<key>LSUIElement</key><true/>"
-                }
             }
             windows {
                 iconFile.set(rootProject.file("jetwhale-host/app/src/main/resources/icon.ico"))
@@ -99,31 +92,6 @@ compose.desktop {
 
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
     dependsOn(bundledHostResources)
-}
-
-// Compose's jlink step strips the runtime's commands, and the launcher starts hosts with the
-// runtime's own java. Compose's signing covers these copies along with the rest of the runtime.
-tasks.withType<AbstractJLinkTask>().configureEach {
-    val javaHome = javaHome
-    val runtimeImage = destinationDir
-    doLast {
-        val bin = runtimeImage.get().asFile.resolve("bin")
-        bin.mkdirs()
-        listOf("java", "java.exe", "javaw.exe")
-            .map { File(javaHome.get(), "bin/$it") }
-            .filter(File::isFile)
-            .forEach { executable ->
-                val copy = executable.copyTo(bin.resolve(executable.name), overwrite = true)
-                copy.setReadable(true, false)
-                copy.setExecutable(true, false)
-                if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-                    val permissions = Files.getPosixFilePermissions(copy.toPath())
-                    check(permissions.containsAll(PosixFilePermissions.fromString("r-xr-xr-x"))) {
-                        "$copy is ${PosixFilePermissions.toString(permissions)}, so other accounts cannot start a host with it"
-                    }
-                }
-            }
-    }
 }
 
 /**

@@ -95,7 +95,7 @@ class HostReleaseMetadataTest {
         val metadata = sampleMetadata()
 
         assertEquals(
-            listOf("-Dcompose.application.configure.swing.globals=true", "-Xdock:name=JetWhale Debugger"),
+            listOf("-Dcompose.application.configure.swing.globals=true", "-Dapple.awt.application.appearance=system"),
             metadata.jvmArgsFor("macos-arm64"),
         )
         assertEquals(listOf("-Dcompose.application.configure.swing.globals=true"), metadata.jvmArgsFor("linux-x64"))
@@ -133,11 +133,27 @@ class HostReleaseMetadataTest {
         )
     }
 
+    @Test
+    fun `a launcher runs a release that asks for any system property, and for other JVM arguments its JVM started with`() {
+        val metadata = sampleMetadata().withMacJar { copy(jvmArgs = jvmArgs + "--enable-native-access=ALL-UNNAMED" + "-Dnew.property=1") }
+
+        assertNull(metadata.refusalOn(capableLauncher))
+    }
+
+    @Test
+    fun `a launcher refuses a release that needs a JVM argument its own JVM did not start with`() {
+        val metadata = sampleMetadata().withMacJar { copy(jvmArgs = jvmArgs + "-Xmx8g") }
+
+        assertEquals(HostReleaseRefusal.MissingJvmArgument("-Xmx8g"), metadata.refusalOn(capableLauncher))
+        assertNull(metadata.refusalOn(capableLauncher.copy(jvmArguments = capableLauncher.jvmArguments + "-Xmx8g")))
+    }
+
     private val capableLauncher = LauncherCapabilities(
         contract = 1,
         javaFeatureVersion = 21,
         modules = setOf("java.base", "java.desktop", "java.logging"),
         platformKey = "macos-arm64",
+        jvmArguments = listOf("-Dcompose.application.configure.swing.globals=true", "--enable-native-access=ALL-UNNAMED"),
     )
 
     private fun sampleMetadata() = HostReleaseMetadata(
@@ -152,7 +168,7 @@ class HostReleaseMetadataTest {
                 url = "https://example.com/host-macos-arm64.jar",
                 size = 125156159,
                 sha256 = "8b2863effc431681ccf2686981887a2b01180001fc9b01f66a975d63ee3947de",
-                jvmArgs = listOf("-Xdock:name=JetWhale Debugger"),
+                jvmArgs = listOf("-Dapple.awt.application.appearance=system"),
             ),
             "linux-x64" to HostPlatformRelease(
                 url = "https://example.com/host-linux-x64.jar",

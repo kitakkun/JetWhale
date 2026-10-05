@@ -22,12 +22,17 @@ object JetWhaleHostRuntime {
         "java.instrument",
     )
 
-    /** The JVM arguments the launcher passes to the host on every platform. */
+    /**
+     * The JVM arguments the host asks for on every platform. The host runs in the launcher's JVM, and
+     * the launcher sets each `-D` one as a system property before the host starts. An argument of any
+     * other form also has to be in the launcher package's own `jvmArgs`: a launcher refuses a
+     * downloaded version that asks for one its JVM did not start with.
+     */
     val jvmArgs: List<String> = listOf("-Dcompose.application.configure.swing.globals=true")
 
     /** The platforms releases are built for, by `os-arch` key, with the JVM arguments each adds. */
     val platformJvmArgs: Map<String, List<String>> = mapOf(
-        "macos-arm64" to listOf("-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"),
+        "macos-arm64" to listOf("-Dapple.awt.application.appearance=system"),
         "linux-x64" to emptyList(),
         "windows-x64" to emptyList(),
     )

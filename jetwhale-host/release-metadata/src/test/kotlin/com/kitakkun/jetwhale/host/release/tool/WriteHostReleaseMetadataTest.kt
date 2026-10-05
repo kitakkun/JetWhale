@@ -29,7 +29,7 @@ class WriteHostReleaseMetadataTest {
             baseArguments(version = "1.0.0-alpha14") + listOf(
                 "--jvm-arg", "-Dcompose.application.configure.swing.globals=true",
                 "--platform-jvm-arg", "macos-arm64=-Dapple.awt.application.appearance=system",
-                "--platform-jvm-arg", "macos-arm64=-Xdock:name=JetWhale Debugger",
+                "--platform-jvm-arg", "macos-arm64=--enable-native-access=ALL-UNNAMED",
                 "--jar", "macos-arm64=$macJar",
                 "--jar", "linux-x64=$linuxJar",
             ),
@@ -47,7 +47,7 @@ class WriteHostReleaseMetadataTest {
                 url = "https://github.com/kitakkun/JetWhale/releases/download/1.0.0-alpha14/jetwhale-host-1.0.0-alpha14-macos-arm64.jar",
                 size = 3,
                 sha256 = "348a629f5ceed032c3e8706ec47d9bfafb00fb4250b018dd965435ca50cb836e",
-                jvmArgs = listOf("-Dapple.awt.application.appearance=system", "-Xdock:name=JetWhale Debugger"),
+                jvmArgs = listOf("-Dapple.awt.application.appearance=system", "--enable-native-access=ALL-UNNAMED"),
             ),
             metadata.platforms.getValue("macos-arm64"),
         )

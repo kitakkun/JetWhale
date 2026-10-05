@@ -43,9 +43,14 @@ data class HostReleaseMetadata(
         if (launcher.platformKey !in platforms) {
             return HostReleaseRefusal.NoBuildForPlatform(launcher.platformKey)
         }
-        val disallowedArgument = jvmArgsFor(launcher.platformKey).firstOrNull { !isAllowedHostJvmArgument(it) }
+        val jvmArgs = jvmArgsFor(launcher.platformKey)
+        val disallowedArgument = jvmArgs.firstOrNull { !isAllowedHostJvmArgument(it) }
         if (disallowedArgument != null) {
             return HostReleaseRefusal.DisallowedJvmArgument(disallowedArgument)
+        }
+        val missingArgument = jvmArgs.firstOrNull { systemPropertyOf(it) == null && it !in launcher.jvmArguments }
+        if (missingArgument != null) {
+            return HostReleaseRefusal.MissingJvmArgument(missingArgument)
         }
         return null
     }
