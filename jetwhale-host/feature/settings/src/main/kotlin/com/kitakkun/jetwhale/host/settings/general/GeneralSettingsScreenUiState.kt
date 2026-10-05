@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.settings.general
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
+import com.kitakkun.jetwhale.host.release.HostVersion
 import kotlinx.collections.immutable.ImmutableList
 
 data class GeneralSettingsScreenUiState(
@@ -23,6 +24,6 @@ data class GeneralSettingsScreenUiState(
  */
 data class HostUpdatesUiState(
     val status: HostUpdateStatus,
-    val setAsideVersion: String?,
+    val setAsideVersion: HostVersion?,
     val checkForUpdatesOnStartup: Boolean,
 )

@@ -293,9 +293,9 @@ private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
     AnimatedVisibility(visible = setAside != null && !isSetAsideBannerDismissed) {
         if (setAside != null) {
             HostSetAsideBanner(
-                setAsideVersion = setAside.version,
-                runningVersion = BuildConfig.VERSION,
-                onClickViewLog = { openFile(setAside.log) },
+                setAsideVersionName = setAside.version.name,
+                runningVersionName = BuildConfig.VERSION,
+                onClickViewLog = { openFile(setAside.logFile) },
                 onClickTryAgain = { coroutineScope.launch { tryAgainMutation.mutateAsync(setAside.version) } },
                 onDismiss = { isSetAsideBannerDismissed = true },
             )
@@ -312,7 +312,7 @@ private fun HostUpdateNotices(onClickOpenUpdateSettings: () -> Unit) {
     AnimatedVisibility(visible = newerVersion != null && !isUpdateBannerDismissed) {
         if (newerVersion != null) {
             HostUpdateBanner(
-                version = newerVersion,
+                versionName = newerVersion.name,
                 isInstalled = status is HostUpdateStatus.ReadyToRestart,
                 onClickOpenSettings = {
                     isUpdateBannerDismissed = true

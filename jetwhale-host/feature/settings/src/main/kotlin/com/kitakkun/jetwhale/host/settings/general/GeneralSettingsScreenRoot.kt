@@ -79,9 +79,9 @@ fun GeneralSettingsScreenRoot(
             onClickCancelUpdateDownload = { screenChannel.send(GeneralSettingsScreenAction.CancelUpdateDownload) },
             onClickRestartToUpdate = { screenChannel.send(GeneralSettingsScreenAction.RestartToUpdate) },
             onClickTryHostVersionAgain = { screenChannel.send(GeneralSettingsScreenAction.TryHostVersionAgain(it)) },
-            onClickViewHostLog = { hostUpdateState.setAside?.log?.let { openOnDesktop { open(it.toFile()) } } },
+            onClickViewHostLog = { hostUpdateState.setAside?.logFile?.let { openOnDesktop { open(it.toFile()) } } },
             onClickOpenReleasePage = { version ->
-                val page = if (version == null) RELEASES_PAGE else "$RELEASES_PAGE/tag/$version"
+                val page = if (version == null) RELEASES_PAGE else "$RELEASES_PAGE/tag/${version.name}"
                 openOnDesktop { browse(URI(page)) }
             },
         )

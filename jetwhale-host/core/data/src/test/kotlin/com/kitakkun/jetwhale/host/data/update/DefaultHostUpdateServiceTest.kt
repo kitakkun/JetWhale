@@ -11,8 +11,8 @@ import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
-import com.kitakkun.jetwhale.host.release.InstalledHostVersion
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.hostJarName
@@ -59,7 +59,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class DefaultHostUpdateServiceTest {
     private val hostDirectory: Path = Files.createTempDirectory("host-updates").resolve("host")
-    private val versions = HostVersionsDirectory(hostDirectory)
+    private val hostVersionsDirectory = HostVersionsDirectory(hostDirectory)
     private val requests = CopyOnWriteArrayList<String>()
     private val responses = mutableMapOf<String, suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData>()
     private val bodyWriters = CoroutineScope(Dispatchers.IO)
@@ -83,7 +83,7 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.Available("1.0.0-alpha15", jarBytes("1.0.0-alpha15").size.toLong()), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha15"), jarBytes("1.0.0-alpha15").size.toLong()), service.stateFlow.value.status)
     }
 
     @Test
@@ -104,20 +104,20 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.ReadyToRestart("1.0.0-alpha14"), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
     }
 
     @Test
     fun `offers a set-aside version as a retry, never as a download`() = runBlocking {
         install("1.0.0-alpha14")
-        versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = setOf("1.0.0-alpha14")))
+        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha14"))
 
         val service = service()
         service.check()
 
         assertEquals(
-            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion("1.0.0-alpha14", versions.hostLog("1.0.0-alpha14")), restartFailed = false),
+            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion(hostVersion("1.0.0-alpha14"), hostVersionsDirectory.hostLogFile(hostVersion("1.0.0-alpha14"))), restartFailed = false),
             service.stateFlow.value,
         )
     }
@@ -129,7 +129,7 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.NeedsNewInstaller("1.0.0-alpha14"), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.NeedsNewInstaller(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
     }
 
     @Test
@@ -139,7 +139,7 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.NoBuildForThisComputer("1.0.0-alpha14"), service.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.NoBuildForThisComputer(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
     }
 
     @Test
@@ -208,8 +208,8 @@ class DefaultHostUpdateServiceTest {
 
         val outcome = checkAndDownload(service())
 
-        assertEquals(HostUpdateStatus.ReadyToRestart("1.0.0-alpha14"), outcome)
-        assertTrue(hostDirectory.resolve("1.0.0-alpha14").resolve(hostJarName("1.0.0-alpha14", PLATFORM)).exists())
+        assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha14")), outcome)
+        assertTrue(hostDirectory.resolve("1.0.0-alpha14").resolve(hostJarName(hostVersion("1.0.0-alpha14"), PLATFORM)).exists())
         assertTrue(hostDirectory.resolve("1.0.0-alpha14/release.json").exists())
         assertStagingEmpty()
     }
@@ -223,7 +223,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -235,7 +235,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -254,7 +254,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -272,7 +272,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -284,7 +284,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -306,7 +306,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `ends a download that cannot clear staging as not saved`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val leftover = versions.staging.resolve("1.0.0-alpha13")
+        val leftover = hostVersionsDirectory.stagingDirectory.resolve("1.0.0-alpha13")
         Files.createDirectories(leftover)
         Files.writeString(leftover.resolve("part.jar"), "part")
         Assume.assumeTrue("the file system cannot take write permission away", leftover.toFile().setWritable(false) && !Files.isWritable(leftover))
@@ -334,7 +334,7 @@ class DefaultHostUpdateServiceTest {
         withTimeout(10.seconds) { requested.await() }
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
-        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
         assertStagingEmpty()
     }
 
@@ -342,19 +342,19 @@ class DefaultHostUpdateServiceTest {
     fun `deletes every other downloaded version before a download`() = runBlocking {
         install("1.0.0-alpha13")
         install("1.0.0-alpha14")
-        versions.writeLauncherState(LauncherState(completedStarts = setOf("1.0.0-alpha13"), setAside = setOf("1.0.0-alpha14")))
+        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
 
         val outcome = checkAndDownload(service())
 
-        assertEquals(HostUpdateStatus.ReadyToRestart("1.0.0-alpha15"), outcome)
-        assertEquals(listOf("1.0.0-alpha15", "1.0.0-alpha13"), versions.installedVersions().map(InstalledHostVersion::name))
+        assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha15")), outcome)
+        assertEquals(listOf("1.0.0-alpha15", "1.0.0-alpha13"), hostVersionsDirectory.installedVersions().map { it.version.name })
     }
 
     @Test
     fun `stops offering a set-aside version once a download has deleted it, even when the download fails`() = runBlocking {
         install("1.0.0-alpha14")
-        versions.writeLauncherState(LauncherState(completedStarts = emptySet(), setAside = setOf("1.0.0-alpha14")))
+        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
         responses[jarUrl("1.0.0-alpha15")] = { respondError(HttpStatusCode.InternalServerError) }
         val service = service()
@@ -377,8 +377,8 @@ class DefaultHostUpdateServiceTest {
         service.cancelDownload()
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
-        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -393,7 +393,7 @@ class DefaultHostUpdateServiceTest {
         service.cancelDownload()
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
-        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
         assertStagingEmpty()
     }
 
@@ -411,8 +411,8 @@ class DefaultHostUpdateServiceTest {
         withTimeout(10.seconds) { cancelOnVerifying.join() }
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Verifying }.status }
-        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
-        assertEquals(emptyList(), versions.installedVersions())
+        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
         assertStagingEmpty()
     }
 
@@ -451,7 +451,7 @@ class DefaultHostUpdateServiceTest {
 
     @Test
     fun `refuses metadata that names another version than its release`() = runBlocking {
-        serveReleases(release("1.0.0-alpha14", edit = { it.copy(version = "1.0.0-alpha15") }))
+        serveReleases(release("1.0.0-alpha14", edit = { it.copy(version = hostVersion("1.0.0-alpha15")) }))
 
         val service = service()
         service.check()
@@ -488,7 +488,7 @@ class DefaultHostUpdateServiceTest {
         )
         assertEquals(
             listOf("/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger", "--after", pid, "--retry", "1.0.0-alpha15", "--server-port", "5103"),
-            service(hostLaunch = launch).launcherCommand(retryVersion = "1.0.0-alpha15"),
+            service(hostLaunch = launch).launcherCommand(retryVersion = hostVersion("1.0.0-alpha15")),
         )
         assertEquals(null, service(hostLaunch = launch.copy(launcherExecutable = null)).launcherCommand(retryVersion = null))
         assertEquals(null, service(hostLaunch = HostLaunch.Standalone).launcherCommand(retryVersion = null))
@@ -512,12 +512,12 @@ class DefaultHostUpdateServiceTest {
         }
     }
 
-    /** Answers [version]'s jar with a body that sends 4 bytes and then nothing; returns the signal that the body started. */
-    private fun serveStalledJar(version: String): CompletableDeferred<Unit> {
+    /** Answers the jar of the version named [versionName] with a body that sends 4 bytes and then nothing; returns the signal that the body started. */
+    private fun serveStalledJar(versionName: String): CompletableDeferred<Unit> {
         val bodyStarted = CompletableDeferred<Unit>()
-        responses[jarUrl(version)] = {
+        responses[jarUrl(versionName)] = {
             val body = bodyWriters.writer {
-                channel.writeFully(jarBytes(version), 0, 4)
+                channel.writeFully(jarBytes(versionName), 0, 4)
                 channel.flush()
                 bodyStarted.complete(Unit)
                 awaitCancellation()
@@ -528,7 +528,7 @@ class DefaultHostUpdateServiceTest {
     }
 
     private fun assertStagingEmpty() {
-        assertFalse(versions.staging.exists() && versions.staging.listDirectoryEntries().isNotEmpty(), "staging/ still holds a download")
+        assertFalse(hostVersionsDirectory.stagingDirectory.exists() && hostVersionsDirectory.stagingDirectory.listDirectoryEntries().isNotEmpty(), "staging/ still holds a download")
     }
 
     private suspend fun checkAndDownload(service: DefaultHostUpdateService): HostUpdateStatus {
@@ -562,7 +562,7 @@ class DefaultHostUpdateServiceTest {
         hostRuntime = HostRuntime(javaFeatureVersion = 21, modules = setOf("java.base", "java.desktop"), platformKey = PLATFORM),
         releaseSource = HostReleaseSource(RELEASES_URL),
         metadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
-        versions = HostVersionsRepository(hostLaunch),
+        hostVersionsRepository = HostVersionsRepository(hostLaunch),
     )
 
     private fun serveReleases(vararg releases: TestRelease) {
@@ -589,29 +589,29 @@ class DefaultHostUpdateServiceTest {
         return TestRelease(
             tag = tag,
             json = """{"tag_name":"$tag","draft":$draft,"prerelease":true,"assets":$assets}""",
-            metadata = if (withMetadata) edit(metadata(tag)) else null,
+            metadata = if (withMetadata && HostVersion.parse(tag) != null) edit(metadata(tag)) else null,
         )
     }
 
-    private fun install(version: String) {
-        val directory = hostDirectory.resolve(version)
+    private fun install(versionName: String) {
+        val directory = hostDirectory.resolve(versionName)
         Files.createDirectories(directory)
-        Files.write(directory.resolve(hostJarName(version, PLATFORM)), jarBytes(version))
-        Files.writeString(directory.resolve("release.json"), metadata(version).encode())
+        Files.write(directory.resolve(hostJarName(hostVersion(versionName), PLATFORM)), jarBytes(versionName))
+        Files.writeString(directory.resolve("release.json"), metadata(versionName).encode())
     }
 
-    private fun metadata(version: String) = HostReleaseMetadata(
+    private fun metadata(versionName: String) = HostReleaseMetadata(
         format = 1,
-        version = version,
+        version = hostVersion(versionName),
         mainClass = "com.kitakkun.jetwhale.host.MainKt",
         launcherContract = 1,
         runtime = HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base")),
         jvmArgs = emptyList(),
         platforms = mapOf(
             PLATFORM to HostPlatformRelease(
-                url = jarUrl(version),
-                size = jarBytes(version).size.toLong(),
-                sha256 = MessageDigest.getInstance("SHA-256").digest(jarBytes(version)).joinToString("") { "%02x".format(it) },
+                url = jarUrl(versionName),
+                size = jarBytes(versionName).size.toLong(),
+                sha256 = MessageDigest.getInstance("SHA-256").digest(jarBytes(versionName)).joinToString("") { "%02x".format(it) },
                 jvmArgs = emptyList(),
             ),
         ),
@@ -626,8 +626,10 @@ class DefaultHostUpdateServiceTest {
 
         fun metadataUrl(tag: String) = "https://github.com/kitakkun/JetWhale/releases/download/$tag/jetwhale-host-$tag.json"
 
-        fun jarUrl(tag: String) = "https://github.com/kitakkun/JetWhale/releases/download/$tag/${hostJarName(tag, PLATFORM)}"
+        fun jarUrl(tag: String) = "https://github.com/kitakkun/JetWhale/releases/download/$tag/${hostJarName(hostVersion(tag), PLATFORM)}"
 
-        fun jarBytes(version: String) = "host jar of $version".toByteArray()
+        fun jarBytes(versionName: String) = "host jar of $versionName".toByteArray()
+
+        fun hostVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name)) { name }
     }
 }

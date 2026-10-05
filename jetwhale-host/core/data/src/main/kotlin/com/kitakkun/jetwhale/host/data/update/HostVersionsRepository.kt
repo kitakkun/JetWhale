@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.update
 
 import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.SetAsideHostVersion
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.InstalledHostVersion
 import dev.zacsweers.metro.AppScope
@@ -22,48 +23,48 @@ import kotlin.io.path.deleteRecursively
 @Inject
 @SingleIn(AppScope::class)
 class HostVersionsRepository(hostLaunch: HostLaunch) {
-    private val directory = (hostLaunch as? HostLaunch.ByLauncher)?.let { HostVersionsDirectory(it.hostDirectory) }
+    private val hostVersionsDirectory = (hostLaunch as? HostLaunch.ByLauncher)?.let { HostVersionsDirectory(it.hostDirectory) }
 
     /** Newest first. */
-    fun installedVersions(): List<InstalledHostVersion> = directory?.installedVersions().orEmpty()
+    fun installedVersions(): List<InstalledHostVersion> = hostVersionsDirectory?.installedVersions().orEmpty()
 
     /** The newest installed version the launcher has set aside after it failed its first starts. */
-    fun setAsideVersion(): SetAsideHostVersion? {
-        val directory = directory ?: return null
-        val setAside = directory.readLauncherState().setAside
-        val version = directory.installedVersions().firstOrNull { it.name in setAside } ?: return null
-        return SetAsideHostVersion(version = version.name, log = directory.hostLog(version.name))
+    fun newestSetAsideVersion(): SetAsideHostVersion? {
+        val hostVersionsDirectory = hostVersionsDirectory ?: return null
+        val setAsideVersions = hostVersionsDirectory.readLauncherState().setAsideVersions
+        val version = hostVersionsDirectory.installedVersions().firstOrNull { it.version in setAsideVersions }?.version ?: return null
+        return SetAsideHostVersion(version = version, logFile = hostVersionsDirectory.hostLogFile(version))
     }
 
     /**
-     * Deletes every downloaded version but the running one, and any download left half done, before
+     * Deletes every downloaded version but [runningVersion], and any download left half done, before
      * a new download starts. A set-aside version, or one waiting for a restart, is superseded by it.
      */
-    fun clearForDownload(runningVersion: String) {
-        val directory = directory ?: return
-        directory.installedVersions().filter { it.name != runningVersion }.forEach(directory::delete)
+    fun clearForDownload(runningVersion: HostVersion?) {
+        val hostVersionsDirectory = hostVersionsDirectory ?: return
+        hostVersionsDirectory.installedVersions().filter { it.version != runningVersion }.forEach(hostVersionsDirectory::delete)
         discardStaging()
     }
 
     /** An empty directory under `staging/`, which the launcher never reads, to download [version] into. */
-    fun newStagingDirectory(version: String): Path {
-        val staging = checkNotNull(directory) { "Only a host the launcher started downloads versions" }.staging.resolve(version)
-        Files.createDirectories(staging)
-        return staging
+    fun newStagingDirectory(version: HostVersion): Path {
+        val stagingDirectory = checkNotNull(hostVersionsDirectory) { "Only a host the launcher started downloads versions" }.stagingDirectory.resolve(version.name)
+        Files.createDirectories(stagingDirectory)
+        return stagingDirectory
     }
 
     /** Moves a verified download out of `staging/`, so the launcher sees the whole version or none of it. */
-    fun install(staging: Path, version: String) {
-        val target = checkNotNull(directory) { "Only a host the launcher started installs versions" }.root.resolve(version)
+    fun install(stagingDirectory: Path, version: HostVersion) {
+        val target = checkNotNull(hostVersionsDirectory) { "Only a host the launcher started installs versions" }.root.resolve(version.name)
         try {
-            Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE)
+            Files.move(stagingDirectory, target, StandardCopyOption.ATOMIC_MOVE)
         } catch (_: AtomicMoveNotSupportedException) {
-            Files.move(staging, target)
+            Files.move(stagingDirectory, target)
         }
     }
 
     @OptIn(ExperimentalPathApi::class)
     fun discardStaging() {
-        directory?.staging?.deleteRecursively()
+        hostVersionsDirectory?.stagingDirectory?.deleteRecursively()
     }
 }

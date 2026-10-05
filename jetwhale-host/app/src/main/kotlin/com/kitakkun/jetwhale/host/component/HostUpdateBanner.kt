@@ -26,7 +26,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun HostUpdateBanner(
-    version: String,
+    versionName: String,
     isInstalled: Boolean,
     onClickOpenSettings: () -> Unit,
     onClickRestart: () -> Unit,
@@ -34,7 +34,7 @@ fun HostUpdateBanner(
     modifier: Modifier = Modifier,
 ) {
     JwBanner(
-        text = stringResource(if (isInstalled) Res.string.host_update_banner_ready else Res.string.host_update_banner_available, version),
+        text = stringResource(if (isInstalled) Res.string.host_update_banner_ready else Res.string.host_update_banner_available, versionName),
         modifier = modifier,
         tone = JwTone.Info,
         actions = {
@@ -55,15 +55,15 @@ fun HostUpdateBanner(
  */
 @Composable
 fun HostSetAsideBanner(
-    setAsideVersion: String,
-    runningVersion: String,
+    setAsideVersionName: String,
+    runningVersionName: String,
     onClickViewLog: () -> Unit,
     onClickTryAgain: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwBanner(
-        text = stringResource(Res.string.host_set_aside_banner, setAsideVersion, runningVersion),
+        text = stringResource(Res.string.host_set_aside_banner, setAsideVersionName, runningVersionName),
         modifier = modifier,
         tone = JwTone.Warning,
         actions = {
@@ -86,7 +86,7 @@ fun HostRestartFailedBanner(modifier: Modifier = Modifier) {
 private fun HostUpdateBannerPreview() {
     JwTheme(darkTheme = false) {
         HostUpdateBanner(
-            version = "1.0.0-alpha14",
+            versionName = "1.0.0-alpha14",
             isInstalled = false,
             onClickOpenSettings = {},
             onClickRestart = {},
@@ -100,8 +100,8 @@ private fun HostUpdateBannerPreview() {
 private fun HostSetAsideBannerPreview() {
     JwTheme(darkTheme = false) {
         HostSetAsideBanner(
-            setAsideVersion = "1.0.0-alpha15",
-            runningVersion = "1.0.0-alpha14",
+            setAsideVersionName = "1.0.0-alpha15",
+            runningVersionName = "1.0.0-alpha14",
             onClickViewLog = {},
             onClickTryAgain = {},
             onDismiss = {},

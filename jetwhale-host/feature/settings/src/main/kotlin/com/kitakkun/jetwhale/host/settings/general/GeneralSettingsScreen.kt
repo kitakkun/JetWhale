@@ -29,6 +29,7 @@ import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.HostUpdateFailure
 import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
@@ -111,9 +112,9 @@ fun GeneralSettingsScreen(
     onClickDownloadUpdate: () -> Unit,
     onClickCancelUpdateDownload: () -> Unit,
     onClickRestartToUpdate: () -> Unit,
-    onClickTryHostVersionAgain: (version: String) -> Unit,
+    onClickTryHostVersionAgain: (version: HostVersion) -> Unit,
     onClickViewHostLog: () -> Unit,
-    onClickOpenReleasePage: (version: String?) -> Unit,
+    onClickOpenReleasePage: (version: HostVersion?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isEmbeddedInIde = LocalEmbeddedInIde.current
@@ -306,9 +307,9 @@ private fun UpdatesSection(
     onClickDownloadUpdate: () -> Unit,
     onClickCancelUpdateDownload: () -> Unit,
     onClickRestartToUpdate: () -> Unit,
-    onClickTryHostVersionAgain: (version: String) -> Unit,
+    onClickTryHostVersionAgain: (version: HostVersion) -> Unit,
     onClickViewHostLog: () -> Unit,
-    onClickOpenReleasePage: (version: String?) -> Unit,
+    onClickOpenReleasePage: (version: HostVersion?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SettingOptionView(
@@ -342,7 +343,7 @@ private fun UpdatesSection(
         )
         updates.setAsideVersion?.let { version ->
             UpdateNotice(
-                title = stringResource(Res.string.set_aside_version, version),
+                title = stringResource(Res.string.set_aside_version, version.name),
                 hint = null,
                 tone = JwTone.Warning,
             ) {
@@ -377,7 +378,7 @@ private fun HostUpdateStatusView(
     onClickDownloadUpdate: () -> Unit,
     onClickCancelUpdateDownload: () -> Unit,
     onClickRestartToUpdate: () -> Unit,
-    onClickOpenReleasePage: (version: String?) -> Unit,
+    onClickOpenReleasePage: (version: HostVersion?) -> Unit,
 ) {
     when (status) {
         is HostUpdateStatus.NotManaged, is HostUpdateStatus.NotChecked -> Unit
@@ -399,7 +400,7 @@ private fun HostUpdateStatusView(
         }
 
         is HostUpdateStatus.Available -> UpdateNotice(
-            title = stringResource(Res.string.update_available, status.version, megabytes(status.sizeBytes)),
+            title = stringResource(Res.string.update_available, status.version.name, megabytes(status.sizeBytes)),
             hint = stringResource(Res.string.update_available_hint),
             tone = JwTone.Info,
         ) {
@@ -419,7 +420,7 @@ private fun HostUpdateStatusView(
             JwText(
                 stringResource(
                     Res.string.downloading_update,
-                    status.version,
+                    status.version.name,
                     megabytes(status.downloadedBytes),
                     megabytes(status.totalBytes),
                 ),
@@ -432,12 +433,12 @@ private fun HostUpdateStatusView(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             JwProgressIndicator()
-            JwText(stringResource(Res.string.verifying_update, status.version))
+            JwText(stringResource(Res.string.verifying_update, status.version.name))
             JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancelUpdateDownload, style = JwButtonStyle.Secondary)
         }
 
         is HostUpdateStatus.ReadyToRestart -> UpdateNotice(
-            title = stringResource(Res.string.update_ready, status.version),
+            title = stringResource(Res.string.update_ready, status.version.name),
             hint = stringResource(Res.string.update_ready_hint),
             tone = JwTone.Success,
         ) {
@@ -445,7 +446,7 @@ private fun HostUpdateStatusView(
         }
 
         is HostUpdateStatus.NeedsNewInstaller -> UpdateNotice(
-            title = stringResource(Res.string.update_needs_new_installer, status.version),
+            title = stringResource(Res.string.update_needs_new_installer, status.version.name),
             hint = stringResource(Res.string.update_needs_new_installer_hint),
             tone = JwTone.Warning,
         ) {
@@ -457,7 +458,7 @@ private fun HostUpdateStatusView(
         }
 
         is HostUpdateStatus.NoBuildForThisComputer -> UpdateNotice(
-            title = stringResource(Res.string.update_no_build_for_this_computer, status.version),
+            title = stringResource(Res.string.update_no_build_for_this_computer, status.version.name),
             hint = stringResource(Res.string.update_no_build_for_this_computer_hint),
             tone = JwTone.Warning,
         ) {
@@ -590,14 +591,16 @@ private class GeneralSettingsScreenPreviewStates : PreviewParameterProvider<Gene
             SettingsScreenPage.Application,
             uiState.copy(
                 updates = uiState.updates.copy(
-                    status = HostUpdateStatus.Available(version = "1.0.0-alpha14", sizeBytes = 125_156_159),
-                    setAsideVersion = "1.0.0-alpha12",
+                    status = HostUpdateStatus.Available(version = previewVersion("1.0.0-alpha14"), sizeBytes = 125_156_159),
+                    setAsideVersion = previewVersion("1.0.0-alpha12"),
                 ),
             ),
         ),
         GeneralSettingsScreenPreviewState(
             SettingsScreenPage.Application,
-            uiState.copy(updates = uiState.updates.copy(status = HostUpdateStatus.ReadyToRestart(version = "1.0.0-alpha14"))),
+            uiState.copy(updates = uiState.updates.copy(status = HostUpdateStatus.ReadyToRestart(version = previewVersion("1.0.0-alpha14")))),
         ),
     )
+
+    private fun previewVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name))
 }

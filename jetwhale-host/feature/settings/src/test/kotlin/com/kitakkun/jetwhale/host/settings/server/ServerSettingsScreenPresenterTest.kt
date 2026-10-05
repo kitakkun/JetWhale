@@ -35,6 +35,7 @@ import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -275,7 +276,7 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     downloadHostUpdateMutationKey = object : DownloadHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("download_host_update") {},
     cancelHostUpdateDownloadMutationKey = object : CancelHostUpdateDownloadMutationKey, MutationKey<Unit, Unit> by noop("cancel_download") {},
     restartToUpdateMutationKey = object : RestartToUpdateMutationKey, MutationKey<Unit, Unit> by noop("restart_to_update") {},
-    tryHostVersionAgainMutationKey = object : TryHostVersionAgainMutationKey, MutationKey<Unit, String> by noop("try_again") {},
+    tryHostVersionAgainMutationKey = object : TryHostVersionAgainMutationKey, MutationKey<Unit, HostVersion> by noop("try_again") {},
     hostVersionInfo = HostVersionInfo("0.0.0-test"),
     generateSslCertificateMutationKey = object :
         GenerateSslCertificateMutationKey,

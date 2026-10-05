@@ -32,6 +32,7 @@ import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
 import com.kitakkun.jetwhale.host.release.HostDirectory
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
@@ -100,7 +101,7 @@ private fun hostLaunchOf(args: Array<String>): HostLaunch {
         launcherContract = contract,
         launcherExecutable = System.getProperty(LauncherContract.EXECUTABLE_PROPERTY),
         hostDirectory = Path.of(hostDirectory),
-        setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_PROPERTY),
+        setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)?.let(HostVersion::parse),
         arguments = args.toList(),
     )
 }

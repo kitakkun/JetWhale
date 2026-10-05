@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
+import com.kitakkun.jetwhale.host.release.HostVersion
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -24,5 +25,5 @@ interface HostUpdateService {
      *
      * @param retryVersion A set-aside version for the launcher to try again.
      */
-    fun startLauncherAfterExit(retryVersion: String?): Boolean
+    fun startLauncherAfterExit(retryVersion: HostVersion?): Boolean
 }

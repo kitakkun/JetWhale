@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
+import com.kitakkun.jetwhale.host.release.HostVersion
 import java.nio.file.Path
 
 /**
@@ -14,10 +15,10 @@ data class HostUpdateState(
     val restartFailed: Boolean,
 )
 
-/** @property log The output of the version's last start, which shows why it failed. */
+/** @property logFile The output of the version's last start, which shows why it failed. */
 data class SetAsideHostVersion(
-    val version: String,
-    val log: Path,
+    val version: HostVersion,
+    val logFile: Path,
 )
 
 sealed interface HostUpdateStatus {
@@ -31,21 +32,21 @@ sealed interface HostUpdateStatus {
     data object UpToDate : HostUpdateStatus
 
     /** A newer release this launcher can run, offered as a download of [sizeBytes]. */
-    data class Available(val version: String, val sizeBytes: Long) : HostUpdateStatus
+    data class Available(val version: HostVersion, val sizeBytes: Long) : HostUpdateStatus
 
-    data class Downloading(val version: String, val downloadedBytes: Long, val totalBytes: Long) : HostUpdateStatus
+    data class Downloading(val version: HostVersion, val downloadedBytes: Long, val totalBytes: Long) : HostUpdateStatus
 
     /** The download is complete and is checked against the SHA-256 its release pins before it is installed. */
-    data class Verifying(val version: String) : HostUpdateStatus
+    data class Verifying(val version: HostVersion) : HostUpdateStatus
 
     /** A newer version is installed; the next start runs it. */
-    data class ReadyToRestart(val version: String) : HostUpdateStatus
+    data class ReadyToRestart(val version: HostVersion) : HostUpdateStatus
 
     /** The newest release needs a newer launcher or runtime than this install has. */
-    data class NeedsNewInstaller(val version: String) : HostUpdateStatus
+    data class NeedsNewInstaller(val version: HostVersion) : HostUpdateStatus
 
     /** The newest release has no host jar for this operating system and processor. */
-    data class NoBuildForThisComputer(val version: String) : HostUpdateStatus
+    data class NoBuildForThisComputer(val version: HostVersion) : HostUpdateStatus
 
     /** Looking up the newest release failed. */
     data class CheckFailed(val failure: HostUpdateFailure) : HostUpdateStatus

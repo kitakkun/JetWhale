@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.update
 import com.kitakkun.jetwhale.host.ApplicationLifecycleOwner
 import com.kitakkun.jetwhale.host.model.HostUpdateService
 import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
+import com.kitakkun.jetwhale.host.release.HostVersion
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -17,9 +18,9 @@ class DefaultTryHostVersionAgainMutationKey(
     private val hostUpdateService: HostUpdateService,
     private val applicationLifecycleOwner: ApplicationLifecycleOwner,
 ) : TryHostVersionAgainMutationKey,
-    MutationKey<Unit, String> by buildMutationKey(
+    MutationKey<Unit, HostVersion> by buildMutationKey(
         id = MutationId("try_host_version_again"),
-        mutate = { version: String ->
+        mutate = { version: HostVersion ->
             if (hostUpdateService.startLauncherAfterExit(retryVersion = version)) applicationLifecycleOwner.shutdown()
         },
     )

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
+import com.kitakkun.jetwhale.host.release.HostVersion
 import java.nio.file.Path
 
 /** How this host process was started, which decides whether it can update itself. */
@@ -19,7 +20,7 @@ sealed interface HostLaunch {
         val launcherContract: Int,
         val launcherExecutable: String?,
         val hostDirectory: Path,
-        val setAsideVersion: String?,
+        val setAsideVersion: HostVersion?,
         val arguments: List<String>,
     ) : HostLaunch
 
