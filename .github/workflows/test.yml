@@ -23,6 +23,9 @@ jobs:
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # A check from an empty Gradle cache takes about 17 minutes; without a limit, a hung browser test
+    # holds the runner for six hours.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -30,8 +33,33 @@ jobs:
 
       - uses: ./.github/actions/setup-java
 
+      # The Kotlin daemon otherwise inherits the Gradle daemon's -Xmx8G, and the two can claim the
+      # runner's whole 16 GB. The user home reaches every build in the composite: a Kotlin daemon
+      # started with a larger heap would be reused for every smaller request.
+      - name: Cap the Kotlin daemon heap
+        run: echo "kotlin.daemon.jvmargs=-Xmx3g" >> "$GRADLE_USER_HOME/gradle.properties"
+
       - name: Run tests
         run: ./gradlew check
+
+      # Taken while the Gradle and Kotlin daemons are still up, so it shows how close the build
+      # comes to the runner's 16 GB and which process holds it.
+      - name: Report memory and disk
+        if: ${{ !cancelled() }}
+        run: |
+          free -m
+          df -h /
+          ps -eo rss=,args= | sort -rn | head -n 8 | awk '{
+            xmx = ""; main = $2
+            for (i = 2; i <= NF; i++) {
+              if ($i ~ /^-Xmx/) xmx = $i
+              if ($i ~ /(GradleDaemon|KotlinCompileDaemon|GradleWorkerMain)$/) main = $i
+            }
+            printf "%6d MB  %-8s %s\n", $1 / 1024, xmx, main
+          }'
+          for pid in $(pgrep -f 'GradleDaemon|KotlinCompileDaemon'); do
+            jcmd "$pid" GC.heap_info | grep -E '^[0-9]+:|heap|Gen' || true
+          done
 
   # A job of its own rather than a second step in `test`. `check` on the root build does not descend
   # into included builds — it pulls in the agent plugin's jar, because the demo consumes it, but none
