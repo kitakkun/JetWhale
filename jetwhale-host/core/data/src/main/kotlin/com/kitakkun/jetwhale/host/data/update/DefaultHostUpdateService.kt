@@ -321,6 +321,9 @@ class DefaultHostUpdateService(
                     onLocalFiles { output.write(buffer, 0, read) }
                     setStatus(HostUpdateStatus.Downloading(version, downloaded, offer.platform.size))
                 }
+                // readAvailable returns -1 for a channel a failure closed before the call, as it
+                // does for one that ended.
+                body.closedCause?.let { throw it }
             }
             null
         }

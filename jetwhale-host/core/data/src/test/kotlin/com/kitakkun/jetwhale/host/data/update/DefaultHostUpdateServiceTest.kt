@@ -25,6 +25,7 @@ import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.writer
@@ -261,10 +262,10 @@ class DefaultHostUpdateServiceTest {
     fun `discards an interrupted download`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
         responses[jarUrl("1.0.0-alpha14")] = {
-            val body = bodyWriters.writer {
-                channel.writeFully(jarBytes("1.0.0-alpha14"), 0, 4)
-                throw IOException("connection reset")
-            }.channel
+            val body = ByteChannel()
+            body.writeFully(jarBytes("1.0.0-alpha14"), 0, 4)
+            body.flush()
+            body.cancel(IOException("connection reset"))
             respond(body, HttpStatusCode.OK)
         }
 
