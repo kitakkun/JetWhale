@@ -383,6 +383,21 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `leaves Downloading when the download is cancelled right after it is asked for`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14"))
+        serveStalledJar("1.0.0-alpha14")
+        val service = service()
+        service.check()
+
+        service.download()
+        service.cancelDownload()
+
+        val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
+        assertEquals(HostUpdateStatus.Available("1.0.0-alpha14", jarBytes("1.0.0-alpha14").size.toLong()), status)
+        assertStagingEmpty()
+    }
+
+    @Test
     fun `installs nothing when the download is cancelled as it is verified`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
         val service = service()

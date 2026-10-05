@@ -48,7 +48,9 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -122,12 +124,13 @@ class DefaultHostUpdateService(
     override fun download() {
         val offer = offer ?: return
         if (downloadJob?.isActive == true) return
-        setStatus(HostUpdateStatus.Downloading(offer.metadata.version, downloadedBytes = 0, totalBytes = offer.platform.size))
-        // Started only once it is in downloadJob: a collector of the status the job publishes can
-        // cancel it before this thread reaches the assignment.
-        val job = scope.launch(start = CoroutineStart.LAZY) { downloadAndInstall(offer) }
-        downloadJob = job
-        job.start()
+        // Starts undispatched so the job is stored and Downloading published before download()
+        // returns; storing launch's return value instead would miss a cancel that a status
+        // collector makes before launch returns.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            downloadJob = coroutineContext.job
+            downloadAndInstall(offer)
+        }
     }
 
     override fun cancelDownload() {
@@ -251,6 +254,7 @@ class DefaultHostUpdateService(
      */
     private suspend fun downloadAndInstall(offer: HostReleaseOffer) {
         val version = offer.metadata.version
+        setStatus(HostUpdateStatus.Downloading(version, downloadedBytes = 0, totalBytes = offer.platform.size))
         var status: HostUpdateStatus = HostUpdateStatus.Available(version, offer.platform.size)
         try {
             status = try {
@@ -276,6 +280,9 @@ class DefaultHostUpdateService(
     }
 
     private suspend fun fetchVerifyAndInstall(offer: HostReleaseOffer): HostUpdateStatus {
+        // download() starts this coroutine on the caller's thread; yield() moves it to the IO
+        // dispatcher before any blocking file work, and ends a download cancelled right away.
+        yield()
         val version = offer.metadata.version
         val staging = onLocalFiles {
             versions.clearForDownload(runningVersion = hostVersionInfo.version)
@@ -322,7 +329,7 @@ class DefaultHostUpdateService(
                     setStatus(HostUpdateStatus.Downloading(version, downloaded, offer.platform.size))
                 }
                 // readAvailable returns -1 for a channel a failure closed before the call, as it
-                // does for one that ended.
+                // does for one that ended normally.
                 body.closedCause?.let { throw it }
             }
             null
