@@ -66,7 +66,7 @@ compose.desktop {
             // The DMG format takes only a numeric MAJOR.MINOR.PATCH.
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
-            modules = ArrayList(JetWhaleHostRuntime.modules + launcherModules + attachModules + runtimeModulesForLaterHosts)
+            modules = ArrayList((JetWhaleHostRuntime.modules + launcherModules + attachModules + runtimeModulesForLaterHosts).distinct())
             appResourcesRootDir.set(layout.dir(bundledHostResources.map { it.destinationDir }))
 
             targetFormats(

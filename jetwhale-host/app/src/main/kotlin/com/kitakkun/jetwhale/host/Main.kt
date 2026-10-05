@@ -103,6 +103,7 @@ private fun hostLaunchOf(args: Array<String>): HostLaunch {
         hostDirectory = Path.of(hostDirectory),
         setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)?.let(HostVersion::parse),
         arguments = args.toList(),
+        javaToolOptions = System.getenv("JAVA_TOOL_OPTIONS"),
     )
 }
 

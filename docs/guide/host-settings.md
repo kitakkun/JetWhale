@@ -51,9 +51,9 @@ is downloaded or applied without a click.
 - A release that needs a newer launcher or Java runtime than your install has says so, and links to
   its release page: install its package to get it. A release with no build for your operating
   system and processor says that instead.
-- When a new version fails to start twice, the app goes back to the previous one and sets the new
-  one aside. This section then names it, with **View Log** for the output of its failed start and
-  **Try Again**.
+- When a new version fails to start twice in a row, the next start goes back to the previous one
+  and sets the new one aside. This section then names it, with **View Log** for the output of its
+  failed start and **Try Again**.
 
 A host started any other way (`java -jar`, the Gradle tasks) does not update itself; the section
 links to the release page instead. In the IDE plugin the section is hidden.

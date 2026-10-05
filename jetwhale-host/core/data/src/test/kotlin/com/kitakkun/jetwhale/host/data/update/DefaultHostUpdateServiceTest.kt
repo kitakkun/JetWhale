@@ -110,7 +110,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `offers a set-aside version as a retry, never as a download`() = runBlocking {
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha14"))
 
         val service = service()
@@ -130,6 +130,19 @@ class DefaultHostUpdateServiceTest {
         service.check()
 
         assertEquals(HostUpdateStatus.NeedsNewInstaller(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
+    }
+
+    @Test
+    fun `says that a release asking for a JVM argument this install did not start with needs a new installer`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14", edit = { it.copy(jvmArgs = it.jvmArgs + "-Xmx8g") }))
+
+        val refused = service()
+        refused.check()
+        val offered = service(jvmArguments = listOf("-Xmx8g"))
+        offered.check()
+
+        assertIs<HostUpdateStatus.Available>(offered.stateFlow.value.status)
+        assertEquals(HostUpdateStatus.NeedsNewInstaller(hostVersion("1.0.0-alpha14")), refused.stateFlow.value.status)
     }
 
     @Test
@@ -342,7 +355,7 @@ class DefaultHostUpdateServiceTest {
     fun `deletes every other downloaded version before a download`() = runBlocking {
         install("1.0.0-alpha13")
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
 
         val outcome = checkAndDownload(service())
@@ -354,7 +367,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `stops offering a set-aside version once a download has deleted it, even when the download fails`() = runBlocking {
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
         responses[jarUrl("1.0.0-alpha15")] = { respondError(HttpStatusCode.InternalServerError) }
         val service = service()
@@ -402,6 +415,8 @@ class DefaultHostUpdateServiceTest {
         serveReleases(release("1.0.0-alpha14"))
         val service = service()
         service.check()
+        // Unconfined runs this collector inside the update that publishes Verifying, so the cancel
+        // arrives during verification instead of after the install.
         val cancelOnVerifying = launch(Dispatchers.Unconfined) {
             service.stateFlow.first { it.status is HostUpdateStatus.Verifying }
             service.cancelDownload()
@@ -472,22 +487,48 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
-    fun `restarts through the launcher after this process, passing the host's arguments on`() {
+    fun `restarts by opening the app bundle on macOS, passing the host's arguments and JVM options on`() {
         val launch = HostLaunch.ByLauncher(
             launcherContract = 1,
             launcherExecutable = "/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger",
             hostDirectory = hostDirectory,
             setAsideVersion = null,
             arguments = listOf("--server-port", "5103"),
+            javaToolOptions = "-Djetwhale.appDataDir=/tmp/jetwhale data",
         )
         val pid = ProcessHandle.current().pid().toString()
 
         assertEquals(
-            listOf("/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger", "--after", pid, "--server-port", "5103"),
+            listOf(
+                "/usr/bin/open", "-n", "--env", "JAVA_TOOL_OPTIONS=-Djetwhale.appDataDir=/tmp/jetwhale data", "/Applications/JetWhale Debugger.app",
+                "--args", "--after", pid, "--retry", "1.0.0-alpha15", "--server-port", "5103",
+            ),
+            service(hostLaunch = launch).launcherCommand(retryVersion = hostVersion("1.0.0-alpha15")),
+        )
+        assertEquals(
+            listOf("/usr/bin/open", "-n", "/Applications/JetWhale Debugger.app", "--args", "--after", pid, "--server-port", "5103"),
+            service(hostLaunch = launch.copy(javaToolOptions = null)).launcherCommand(retryVersion = null),
+        )
+    }
+
+    @Test
+    fun `restarts by starting the launcher's executable elsewhere`() {
+        val launch = HostLaunch.ByLauncher(
+            launcherContract = 1,
+            launcherExecutable = "/opt/jetwhale-debugger/bin/JetWhale Debugger",
+            hostDirectory = hostDirectory,
+            setAsideVersion = null,
+            arguments = listOf("--server-port", "5103"),
+            javaToolOptions = "-Djetwhale.appDataDir=/tmp/jetwhale",
+        )
+        val pid = ProcessHandle.current().pid().toString()
+
+        assertEquals(
+            listOf("/opt/jetwhale-debugger/bin/JetWhale Debugger", "--after", pid, "--server-port", "5103"),
             service(hostLaunch = launch).launcherCommand(retryVersion = null),
         )
         assertEquals(
-            listOf("/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger", "--after", pid, "--retry", "1.0.0-alpha15", "--server-port", "5103"),
+            listOf("/opt/jetwhale-debugger/bin/JetWhale Debugger", "--after", pid, "--retry", "1.0.0-alpha15", "--server-port", "5103"),
             service(hostLaunch = launch).launcherCommand(retryVersion = hostVersion("1.0.0-alpha15")),
         )
         assertEquals(null, service(hostLaunch = launch.copy(launcherExecutable = null)).launcherCommand(retryVersion = null))
@@ -502,9 +543,12 @@ class DefaultHostUpdateServiceTest {
             hostDirectory = hostDirectory,
             setAsideVersion = null,
             arguments = emptyList(),
+            javaToolOptions = null,
         )
+        val movedApp = launch.copy(launcherExecutable = hostDirectory.resolve("Moved.app/Contents/MacOS/Moved").toString())
+        val launches = listOfNotNull(launch, launch.copy(launcherExecutable = null), movedApp.takeIf { System.getProperty("os.name").startsWith("Mac") })
 
-        listOf(launch, launch.copy(launcherExecutable = null)).forEach {
+        launches.forEach {
             val service = service(hostLaunch = it)
 
             assertFalse(service.startLauncherAfterExit(retryVersion = null), "$it")
@@ -549,7 +593,9 @@ class DefaultHostUpdateServiceTest {
             hostDirectory = hostDirectory,
             setAsideVersion = null,
             arguments = emptyList(),
+            javaToolOptions = null,
         ),
+        jvmArguments: List<String> = emptyList(),
     ) = DefaultHostUpdateService(
         engine = MockEngine { request ->
             val url = request.url.toString()
@@ -559,7 +605,7 @@ class DefaultHostUpdateServiceTest {
         },
         hostLaunch = hostLaunch,
         hostVersionInfo = HostVersionInfo("1.0.0-alpha13"),
-        hostRuntime = HostRuntime(javaFeatureVersion = 21, modules = setOf("java.base", "java.desktop"), platformKey = PLATFORM),
+        hostRuntime = HostRuntime(javaFeatureVersion = 21, modules = setOf("java.base", "java.desktop"), platformKey = PLATFORM, jvmArguments = jvmArguments),
         releaseSource = HostReleaseSource(RELEASES_URL),
         metadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
         hostVersionsRepository = HostVersionsRepository(hostLaunch),

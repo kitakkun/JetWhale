@@ -58,6 +58,7 @@ import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 
 /**
  * Looks up releases through the GitHub API, downloads the one the user asks for into
@@ -114,6 +115,8 @@ class DefaultHostUpdateService(
                 logger.warn("Could not reach GitHub to check for host updates", e)
                 HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable)
             } catch (e: UnresolvedAddressException) {
+                // Ktor's CIO engine throws this for a host name it cannot resolve; it is not an
+                // IOException.
                 logger.warn("Could not reach GitHub to check for host updates", e)
                 HostUpdateStatus.CheckFailed(HostUpdateFailure.Unreachable)
             }
@@ -126,9 +129,9 @@ class DefaultHostUpdateService(
     override fun download() {
         val downloadableRelease = downloadableRelease ?: return
         if (downloadJob?.isActive == true) return
-        // Starts undispatched so the job is stored and Downloading published before download()
-        // returns; storing launch's return value instead would miss a cancel that a status
-        // collector makes before launch returns.
+        // An undispatched launch runs this block up to its first suspension, publishing
+        // Downloading, before launch returns; the job is stored here so that a cancel made on that
+        // status already finds it.
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             downloadJob = coroutineContext.job
             downloadAndInstall(downloadableRelease)
@@ -147,29 +150,37 @@ class DefaultHostUpdateService(
             return false
         }
         logger.info("Starting the launcher to run after this host: {}", command)
-        try {
-            ProcessBuilder(command)
+        val started = try {
+            val process = ProcessBuilder(command)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .redirectError(ProcessBuilder.Redirect.DISCARD)
                 .start()
+            // open hands the app to LaunchServices and exits, with a nonzero status when it finds
+            // no app to start; a launcher started directly waits for this process to end, so only
+            // open is waited for.
+            command.first() != OPEN_COMMAND || !process.waitFor(OPEN_TIMEOUT_SECONDS, TimeUnit.SECONDS) || process.exitValue() == 0
         } catch (e: IOException) {
-            logger.warn("Cannot restart: the launcher {} did not start", command.first(), e)
-            stateFlow.update { it.copy(restartFailed = true) }
-            return false
+            logger.warn("Cannot restart: {} did not start", command.first(), e)
+            false
         }
-        return true
+        if (!started) {
+            logger.warn("Cannot restart: {} did not open the app", command)
+            stateFlow.update { it.copy(restartFailed = true) }
+        }
+        return started
     }
 
     /**
-     * The launcher with `--after` this process, `--retry` when given, and the host's own arguments;
-     * null when no launcher started this host, or it could not tell its own path.
+     * The command that starts the app again once this process has ended: its launcher with `--after`
+     * this process, `--retry` when given, and the host's own arguments. On macOS it opens the app
+     * bundle through LaunchServices, so the new process is the app rather than a child of this one.
+     * Null when no launcher started this host, or it could not tell its own path.
      */
     @VisibleForTesting
     internal fun launcherCommand(retryVersion: HostVersion?): List<String>? {
         val launch = hostLaunch as? HostLaunch.ByLauncher ?: return null
         val launcherExecutable = launch.launcherExecutable ?: return null
-        return buildList {
-            add(launcherExecutable)
+        val launcherArguments = buildList {
             add(LauncherContract.AFTER_ARGUMENT)
             add(ProcessHandle.current().pid().toString())
             if (retryVersion != null) {
@@ -177,6 +188,21 @@ class DefaultHostUpdateService(
                 add(retryVersion.name)
             }
             addAll(launch.arguments)
+        }
+        val appBundle = launcherExecutable.substringBefore(MAC_APP_EXECUTABLE_DIRECTORY, missingDelimiterValue = "")
+        if (!appBundle.endsWith(".app")) return listOf(launcherExecutable) + launcherArguments
+        return buildList {
+            add(OPEN_COMMAND)
+            // Without -n, open only brings the running instance forward, and that instance is this
+            // process.
+            add("-n")
+            launch.javaToolOptions?.let {
+                add("--env")
+                add("JAVA_TOOL_OPTIONS=$it")
+            }
+            add(appBundle)
+            add("--args")
+            addAll(launcherArguments)
         }
     }
 
@@ -240,6 +266,7 @@ class DefaultHostUpdateService(
             javaFeatureVersion = hostRuntime.javaFeatureVersion,
             modules = hostRuntime.modules,
             platformKey = platformKey,
+            jvmArguments = hostRuntime.jvmArguments,
         )
         val refusal = metadata.refusalOn(capabilities)
         if (refusal != null) {
@@ -287,8 +314,9 @@ class DefaultHostUpdateService(
     }
 
     private suspend fun fetchVerifyAndInstall(downloadableRelease: DownloadableRelease): HostUpdateStatus {
-        // download() starts this coroutine on the caller's thread; yield() moves it to the IO
-        // dispatcher before any blocking file work, and ends a download cancelled right away.
+        // download() starts this coroutine on the caller's thread; yield() moves it to
+        // Dispatchers.IO before any blocking file work, and ends a download cancelled right after
+        // download() returns.
         yield()
         val version = downloadableRelease.metadata.version
         val stagingDirectory = onLocalFiles {
@@ -335,8 +363,8 @@ class DefaultHostUpdateService(
                     onLocalFiles { output.write(buffer, 0, read) }
                     setStatus(HostUpdateStatus.Downloading(version, downloaded, downloadableRelease.platform.size))
                 }
-                // readAvailable returns -1 for a channel a failure closed before the call, as it
-                // does for one that ended normally.
+                // readAvailable returns -1 for a channel a failure closed, as it does for one that
+                // ended normally.
                 body.closedCause?.let { throw it }
             }
             null
@@ -371,6 +399,9 @@ class DefaultHostUpdateService(
         private val logger = LoggerFactory.getLogger(DefaultHostUpdateService::class.java)
         const val SIGNATURE_SUFFIX = ".sig"
         const val DOWNLOAD_BUFFER_SIZE = 1 shl 16
+        const val OPEN_COMMAND = "/usr/bin/open"
+        const val OPEN_TIMEOUT_SECONDS = 10L
+        const val MAC_APP_EXECUTABLE_DIRECTORY = "/Contents/MacOS/"
         val json = Json { ignoreUnknownKeys = true }
     }
 }
