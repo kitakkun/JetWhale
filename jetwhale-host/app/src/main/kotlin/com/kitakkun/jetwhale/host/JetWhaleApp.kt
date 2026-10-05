@@ -9,12 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,14 +22,12 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
 import com.kitakkun.jetwhale.host.component.PluginJarArrivalBanner
-import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarRequest
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
-import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.InfoNavKey
@@ -88,15 +82,6 @@ fun JetWhaleApp() {
         onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
-            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
-            var updateBannerDismissed by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    updateCheckMutation.mutateAsync(Unit)
-                }
-            }
-            val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
-
             SoilDataBoundary(
                 state1 = rememberSubscription(appGraph.themeSubscriptionKey),
                 state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
@@ -106,9 +91,6 @@ fun JetWhaleApp() {
                     colorScheme = theme.colorScheme,
                     appLanguage = settings.appLanguage,
                     backStack = backStack,
-                    availableUpdate = availableUpdate,
-                    onDismissUpdateBanner = { updateBannerDismissed = true },
-                    isUpdateBannerDismissed = updateBannerDismissed,
                 )
             }
         }
@@ -178,9 +160,6 @@ private fun ThemedHostWindow(
     colorScheme: JetWhaleColorScheme,
     appLanguage: AppLanguage,
     backStack: NavBackStack<NavKey>,
-    availableUpdate: UpdateCheckResult?,
-    isUpdateBannerDismissed: Boolean,
-    onDismissUpdateBanner: () -> Unit,
 ) {
     HostTheme(colorScheme) {
         AppEnvironment(appLanguage) {
@@ -230,13 +209,6 @@ private fun ThemedHostWindow(
                     ) {
                         HostWindowContent(
                             backStack = backStack,
-                            availableUpdate = availableUpdate,
-                            isUpdateBannerDismissed = isUpdateBannerDismissed,
-                            onDismissUpdateBanner = onDismissUpdateBanner,
-                            onClickOpenUpdateSettings = {
-                                onDismissUpdateBanner()
-                                backStack.addSingleTop(SettingsNavKey())
-                            },
                             onClickReviewArrivedPlugins = {
                                 backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.PluginSecurity))
                             },
@@ -252,10 +224,6 @@ private fun ThemedHostWindow(
 context(appGraph: JetWhaleAppGraph)
 private fun HostWindowContent(
     backStack: NavBackStack<NavKey>,
-    availableUpdate: UpdateCheckResult?,
-    isUpdateBannerDismissed: Boolean,
-    onDismissUpdateBanner: () -> Unit,
-    onClickOpenUpdateSettings: () -> Unit,
     onClickReviewArrivedPlugins: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -264,19 +232,6 @@ private fun HostWindowContent(
     val postponeMutation = rememberMutation(appGraph.postponeArrivedPluginJarMutationKey)
     val coroutineScope = rememberCoroutineScope()
     Column(modifier = modifier) {
-        AnimatedVisibility(
-            visible = availableUpdate != null && !isUpdateBannerDismissed,
-            enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
-            exit = slideOutVertically(targetOffsetY = Int::unaryMinus) + shrinkVertically(shrinkTowards = Alignment.Top),
-        ) {
-            availableUpdate?.let { update ->
-                UpdateAvailableBanner(
-                    latestVersion = update.latestVersion,
-                    onClickOpenSettings = onClickOpenUpdateSettings,
-                    onDismiss = onDismissUpdateBanner,
-                )
-            }
-        }
         AnimatedVisibility(
             visible = arrivedJars.isNotEmpty(),
             enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),

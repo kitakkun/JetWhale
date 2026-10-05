@@ -99,10 +99,6 @@ rail only the icon is shown, with the ring round the icon.
 | **Settings** (gear icon) | [Host Settings](/guide/host-settings). |
 | **About JetWhale** (info icon) | The about panel: version, project links, and **OSS Licenses** — the full list of open-source components the host ships. |
 
-When a newer release is available, a banner appears above the content with a **View in Settings**
-shortcut. Updates are never applied automatically — see
-[Host Settings → Application](/guide/host-settings#application).
-
 ## Collapsing the sidebar
 
 The collapse button in the sidebar header shrinks it to a narrow icon rail; the same button on the

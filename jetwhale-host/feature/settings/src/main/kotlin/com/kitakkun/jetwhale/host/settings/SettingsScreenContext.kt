@@ -8,7 +8,6 @@ import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
-import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
@@ -36,8 +35,6 @@ import com.kitakkun.jetwhale.host.model.SslCertificatesSubscriptionKey
 import com.kitakkun.jetwhale.host.model.StartPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
-import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
-import com.kitakkun.jetwhale.host.model.UpdateInstallMutationKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -62,9 +59,6 @@ class SettingsPresenterContext(
     val dismissPluginInstallMutationKey: DismissPluginInstallMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
     val signPluginTrustRegistryMutationKey: SignPluginTrustRegistryMutationKey,
-    val updateCheckMutationKey: UpdateCheckMutationKey,
-    val updateInstallMutationKey: UpdateInstallMutationKey,
-    val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
     val followAiOperationMutationKey: FollowAiOperationMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val generateSslCertificateMutationKey: GenerateSslCertificateMutationKey,

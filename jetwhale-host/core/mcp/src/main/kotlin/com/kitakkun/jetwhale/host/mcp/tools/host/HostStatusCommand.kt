@@ -79,7 +79,6 @@ class HostStatusCommand(
                     wssEnabled = settingsRepository.wssEnabledFlow.value,
                     mcpServerPort = settingsRepository.mcpServerPortFlow.value,
                     adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
-                    checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
                     persistData = settingsRepository.persistDataFlow.value,
                 ),
                 permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
@@ -211,6 +210,5 @@ data class SettingsJson(
     val wssEnabled: Boolean,
     val mcpServerPort: Int,
     val adbAutoPortMappingEnabled: Boolean,
-    val checkForUpdatesOnStartup: Boolean,
     val persistData: Boolean,
 )

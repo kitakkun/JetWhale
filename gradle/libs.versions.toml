@@ -41,8 +41,6 @@ aboutLibraries = "15.0.4"
 spotless = "8.9.0"
 kotrail = "0.1.0-20260926.144921-21"
 roborazzi = "1.73.0"
-conveyor = "2.0"
-conveyorControl = "1.1"
 intellijIdea = "2026.2.3"
 intellijPlatform = "2.19.0"
 
@@ -133,9 +131,6 @@ okhttpMockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.r
 
 mcpKotlinSdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcpKotlinSdk" }
 
-# Conveyor update control API (in-app update install trigger)
-conveyorControl = { module = "dev.hydraulic.conveyor:conveyor-control", version.ref = "conveyorControl" }
-
 # logging
 logbackClassic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
@@ -199,7 +194,6 @@ metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
-conveyor = { id = "dev.hydraulic.conveyor", version.ref = "conveyor" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kotrail = { id = "com.kitakkun.kotrail", version.ref = "kotrail" }
