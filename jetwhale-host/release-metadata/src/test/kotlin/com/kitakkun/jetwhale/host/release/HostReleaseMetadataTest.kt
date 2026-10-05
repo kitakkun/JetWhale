@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class HostReleaseMetadataTest {
     private val reader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases)
@@ -138,6 +139,19 @@ class HostReleaseMetadataTest {
         val metadata = sampleMetadata().withMacJar { copy(jvmArgs = jvmArgs + "--enable-native-access=ALL-UNNAMED" + "-Dnew.property=1") }
 
         assertNull(metadata.refusalOn(capableLauncher))
+    }
+
+    @Test
+    fun `a launcher refuses a release that needs a module of its runtime that a host cannot see`() {
+        val launcher = capableLauncher.copy(modules = runtimeModulesVisibleToHost())
+        val metadata = sampleMetadata()
+        assertTrue(ModuleLayer.boot().findModule("jdk.attach").isPresent, "jdk.attach is in this runtime")
+
+        assertNull(metadata.refusalOn(launcher))
+        assertEquals(
+            HostReleaseRefusal.MissingModules(listOf("jdk.attach")),
+            metadata.copy(runtime = metadata.runtime.copy(modules = metadata.runtime.modules + "java.sql" + "jdk.attach")).refusalOn(launcher),
+        )
     }
 
     @Test

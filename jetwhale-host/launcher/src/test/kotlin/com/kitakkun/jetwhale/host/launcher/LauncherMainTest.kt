@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherState
+import com.kitakkun.jetwhale.host.release.hostJarName
 import com.kitakkun.jetwhale.host.release.hostPlatformKey
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,9 +23,9 @@ class LauncherMainTest {
     private val packageResources: Path = appData.resolve("package")
     private val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
     private val bundledVersion = hostVersion("1.0.0-alpha13")
+    private val platformKey = checkNotNull(hostPlatformKey(System.getProperty("os.name"), System.getProperty("os.arch")))
 
     init {
-        val platformKey = checkNotNull(hostPlatformKey(System.getProperty("os.name"), System.getProperty("os.arch")))
         val bundledDirectory = Files.createDirectories(packageResources.resolve("host"))
         val stubClass = "${StubHost::class.java.name.replace('.', '/')}.class"
         JarOutputStream(Files.newOutputStream(bundledDirectory.resolve(BundledHost.JAR_FILE_NAME))).use { jar ->
@@ -96,6 +97,28 @@ class LauncherMainTest {
 
         assertEquals(mapOf(bundledVersion to 1), hostVersionsDirectory.readLauncherState().failedStartCounts)
         assertNull(hostVersionsDirectory.readLauncherState().startingHost)
+    }
+
+    @Test
+    fun `skips a downloaded version that needs a runtime module its host could not see`() {
+        val version = hostVersion("1.0.0-alpha14")
+        val directory = Files.createDirectories(hostVersionsDirectory.root.resolve(version.name))
+        val jar = Files.copy(packageResources.resolve("host/${BundledHost.JAR_FILE_NAME}"), directory.resolve(hostJarName(version, platformKey)))
+        val metadata = hostMetadata(version.name, Files.readAllBytes(jar))
+        Files.writeString(
+            directory.resolve("release.json"),
+            metadata.copy(
+                mainClass = StubHost::class.java.name,
+                runtime = metadata.runtime.copy(javaFeatureVersion = Runtime.version().feature(), modules = metadata.runtime.modules + "jdk.attach"),
+                platforms = mapOf(platformKey to metadata.platforms.getValue(PLATFORM)),
+            ).encode(),
+        )
+
+        assertEquals(0, runLauncher("return"))
+
+        val launcherLog = Files.readString(appData.resolve("logs/launcher.log"))
+        assertContains(launcherLog, "Skipping 1.0.0-alpha14: MissingModules(modules=[jdk.attach])")
+        assertContains(launcherLog, "Starting 1.0.0-alpha13 (bundled)")
     }
 
     private fun runLauncher(vararg arguments: String): Int {

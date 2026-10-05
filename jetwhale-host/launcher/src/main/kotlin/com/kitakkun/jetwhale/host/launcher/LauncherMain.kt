@@ -7,9 +7,9 @@ import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.hostPlatformKey
+import com.kitakkun.jetwhale.host.release.runtimeModulesVisibleToHost
 import java.awt.GraphicsEnvironment
 import java.lang.management.ManagementFactory
-import java.lang.module.ModuleFinder
 import java.nio.file.Path
 import javax.swing.JOptionPane
 import kotlin.concurrent.thread
@@ -70,7 +70,7 @@ private fun createHostLauncher(
     capabilities = LauncherCapabilities(
         contract = LauncherContract.VERSION,
         javaFeatureVersion = Runtime.version().feature(),
-        modules = ModuleFinder.ofSystem().findAll().map { it.descriptor().name() }.toSet(),
+        modules = runtimeModulesVisibleToHost(),
         platformKey = currentPlatformKey(),
         jvmArguments = ManagementFactory.getRuntimeMXBean().inputArguments,
     ),

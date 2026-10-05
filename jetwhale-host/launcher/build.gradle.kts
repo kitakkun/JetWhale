@@ -36,10 +36,15 @@ val bundledHostResources = tasks.register<Sync>("prepareBundledHostResources") {
 /** What the launcher itself uses beyond the host's modules: it reads the arguments its JVM started with. */
 val launcherModules = listOf("java.management")
 
+/**
+ * The runtime defines it to the application class loader, out of a host's reach, but ByteBuddy's
+ * self-attach for plugin hot reload loads it through the system class loader.
+ */
+val attachModules = listOf("jdk.attach")
+
 val runtimeModulesForLaterHosts = listOf(
     "java.net.http",
     "jdk.management",
-    "jdk.attach",
     "jdk.zipfs",
     "jdk.accessibility",
     "jdk.net",
@@ -61,7 +66,7 @@ compose.desktop {
             // The DMG format takes only a numeric MAJOR.MINOR.PATCH.
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
-            modules = ArrayList(JetWhaleHostRuntime.modules + launcherModules + runtimeModulesForLaterHosts)
+            modules = ArrayList(JetWhaleHostRuntime.modules + launcherModules + attachModules + runtimeModulesForLaterHosts)
             appResourcesRootDir.set(layout.dir(bundledHostResources.map { it.destinationDir }))
 
             targetFormats(
