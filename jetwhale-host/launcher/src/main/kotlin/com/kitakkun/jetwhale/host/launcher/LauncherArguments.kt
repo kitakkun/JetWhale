@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.launcher
 
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
 
 /**
@@ -9,7 +10,7 @@ import com.kitakkun.jetwhale.host.release.LauncherContract
 class LauncherArguments(
     val hostArguments: List<String>,
     val afterPid: Long?,
-    val retryVersion: String?,
+    val retryVersion: HostVersion?,
 ) {
     val headless: Boolean get() = HEADLESS_ARGUMENT in hostArguments
 
@@ -19,12 +20,12 @@ class LauncherArguments(
         fun parse(arguments: List<String>): LauncherArguments {
             val hostArguments = mutableListOf<String>()
             var afterPid: Long? = null
-            var retryVersion: String? = null
+            var retryVersion: HostVersion? = null
             val iterator = arguments.iterator()
             while (iterator.hasNext()) {
                 when (val argument = iterator.next()) {
                     LauncherContract.AFTER_ARGUMENT -> afterPid = iterator.nextOrNull()?.toLongOrNull()
-                    LauncherContract.RETRY_ARGUMENT -> retryVersion = iterator.nextOrNull()
+                    LauncherContract.RETRY_ARGUMENT -> retryVersion = iterator.nextOrNull()?.let(HostVersion::parse)
                     else -> hostArguments += argument
                 }
             }

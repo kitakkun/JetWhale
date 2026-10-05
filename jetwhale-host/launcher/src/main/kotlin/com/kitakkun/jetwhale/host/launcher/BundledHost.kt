@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
-import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.InstalledHostVersion
 import java.io.IOException
 import java.nio.file.Files
@@ -32,11 +31,9 @@ class BundledHost(val start: HostStart) {
             }
             val metadata: HostReleaseMetadata = (HostReleaseMetadata.decode(text) as? HostReleaseMetadataResult.Read)?.metadata
                 ?: return null
-            val version = HostVersion.parse(metadata.version) ?: return null
             return BundledHost(
                 HostStart(
-                    name = metadata.version,
-                    version = version,
+                    version = metadata.version,
                     metadata = metadata,
                     jar = directory.resolve(JAR_FILE_NAME),
                     isBundled = true,

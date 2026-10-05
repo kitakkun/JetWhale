@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
 class HostInstanceRecordTest {
-    private val versions = HostVersionsDirectory(Files.createTempDirectory("instance-record").resolve("host"))
+    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("instance-record").resolve("host"))
     private val server = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
     private val requests = CopyOnWriteArrayList<String>()
 
@@ -41,34 +41,34 @@ class HostInstanceRecordTest {
     fun `reads back the record it published`() {
         val record = HostInstanceRecord(port = 5000, pid = 42, token = "secret")
 
-        HostInstanceRecord.publish(versions, record)
+        HostInstanceRecord.publish(hostVersionsDirectory, record)
 
-        assertEquals(record, HostInstanceRecord.read(versions))
+        assertEquals(record, HostInstanceRecord.read(hostVersionsDirectory))
     }
 
     @Test
     fun `has no record before a host publishes one`() {
-        assertNull(HostInstanceRecord.read(versions))
+        assertNull(HostInstanceRecord.read(hostVersionsDirectory))
     }
 
     @Test
     fun `asks the host at the published endpoint with its token`() {
-        HostInstanceRecord.publish(versions, HostInstanceRecord(port = server.localPort, pid = 42, token = "secret"))
+        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = server.localPort, pid = 42, token = "secret"))
 
-        assertTrue(HostInstanceRecord.requestActivation(versions, 2_000.milliseconds))
+        assertTrue(HostInstanceRecord.requestActivation(hostVersionsDirectory, 2_000.milliseconds))
         assertEquals(listOf("activate secret"), requests)
     }
 
     @Test
     fun `gives up when the host refuses the token`() {
-        HostInstanceRecord.publish(versions, HostInstanceRecord(port = server.localPort, pid = 42, token = "stale"))
+        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = server.localPort, pid = 42, token = "stale"))
 
-        assertFalse(HostInstanceRecord.requestActivation(versions, 0.milliseconds))
+        assertFalse(HostInstanceRecord.requestActivation(hostVersionsDirectory, 0.milliseconds))
     }
 
     @Test
     fun `gives up when no record appears`() {
-        assertFalse(HostInstanceRecord.requestActivation(versions, 0.milliseconds))
+        assertFalse(HostInstanceRecord.requestActivation(hostVersionsDirectory, 0.milliseconds))
         assertTrue(requests.isEmpty())
     }
 }

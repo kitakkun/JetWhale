@@ -19,7 +19,7 @@ class LauncherArgumentsTest {
     fun `takes --retry for itself`() {
         val arguments = LauncherArguments.parse(listOf("--retry", "1.0.0-alpha15", "--after", "4242", "--plugin-dir", "/plugins"))
 
-        assertEquals("1.0.0-alpha15", arguments.retryVersion)
+        assertEquals("1.0.0-alpha15", arguments.retryVersion?.name)
         assertEquals(4242L, arguments.afterPid)
         assertEquals(listOf("--plugin-dir", "/plugins"), arguments.hostArguments)
     }

@@ -9,8 +9,8 @@ import java.nio.file.Path
  * published its record, and taken again before the launch writes `launcher-state.json` or starts
  * another host.
  */
-internal class LaunchLock(private val locks: LockFiles, private val path: Path) {
-    private var held: HeldLock? = locks.lock(path)
+internal class LaunchLock(private val lockFiles: LockFiles, private val path: Path) {
+    private var held: HeldLock? = lockFiles.lock(path)
 
     fun release() {
         held?.close()
@@ -18,6 +18,6 @@ internal class LaunchLock(private val locks: LockFiles, private val path: Path) 
     }
 
     fun ensureHeld() {
-        if (held == null) held = locks.lock(path)
+        if (held == null) held = lockFiles.lock(path)
     }
 }

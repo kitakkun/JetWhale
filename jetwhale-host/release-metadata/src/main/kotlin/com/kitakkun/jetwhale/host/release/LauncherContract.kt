@@ -22,7 +22,7 @@ object LauncherContract {
     const val HOST_DIRECTORY_PROPERTY = "jetwhale.launcher.hostDir"
 
     /** A version this launch set aside because it failed its first starts. */
-    const val SET_ASIDE_PROPERTY = "jetwhale.launcher.setAside"
+    const val SET_ASIDE_VERSION_PROPERTY = "jetwhale.launcher.setAsideVersion"
 
     /**
      * `--after <pid>`: the launcher waits for that process to end before it chooses a version, so

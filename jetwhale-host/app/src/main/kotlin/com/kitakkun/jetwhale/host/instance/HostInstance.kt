@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.seconds
  * loopback port that it publishes with a token in `instance.json` once it is up.
  */
 class HostInstance private constructor(
-    private val versions: HostVersionsDirectory,
+    private val hostVersionsDirectory: HostVersionsDirectory,
     private val server: ServerSocket,
     private val token: String,
 ) {
@@ -42,7 +42,7 @@ class HostInstance private constructor(
      */
     fun publish() {
         HostInstanceRecord.publish(
-            versions,
+            hostVersionsDirectory,
             HostInstanceRecord(port = server.localPort, pid = ProcessHandle.current().pid(), token = token),
         )
     }
@@ -62,14 +62,14 @@ class HostInstance private constructor(
          * reachable. When another host holds the lock, asks that one to bring its window forward
          * instead.
          */
-        fun claim(versions: HostVersionsDirectory, locks: LockFiles): HostInstanceClaim {
-            processInstanceLock = locks.tryLock(versions.instanceLock)
+        fun claim(hostVersionsDirectory: HostVersionsDirectory, lockFiles: LockFiles): HostInstanceClaim {
+            processInstanceLock = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile)
                 ?: return HostInstanceClaim.HeldByAnother(
-                    activated = HostInstanceRecord.requestActivation(versions, timeout = 5.seconds),
+                    activated = HostInstanceRecord.requestActivation(hostVersionsDirectory, timeout = 5.seconds),
                 )
             val server = ServerSocket(0, 8, InetAddress.getLoopbackAddress())
             val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
-            val instance = HostInstance(versions, server, token)
+            val instance = HostInstance(hostVersionsDirectory, server, token)
             instance.serve()
             return HostInstanceClaim.Claimed(instance)
         }

@@ -16,7 +16,7 @@ class BundledHostTest {
 
         val start = assertNotNull(BundledHost.read(directory)).start
 
-        assertEquals("1.0.0-alpha13", start.name)
+        assertEquals("1.0.0-alpha13", start.version.name)
         assertEquals(directory.resolve("jetwhale-host.bundled"), start.jar)
         assertTrue(start.isBundled)
     }

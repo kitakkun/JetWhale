@@ -23,44 +23,44 @@ import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.seconds
 
 class HostInstanceTest {
-    private val versions = HostVersionsDirectory(Files.createTempDirectory("host-instance").resolve("host"))
-    private val locks = InProcessLocks()
+    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("host-instance").resolve("host"))
+    private val lockFiles = InProcessLockFiles()
 
     @Test
     fun `publishes its record only when it is up`() {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
 
-        assertNull(HostInstanceRecord.read(versions))
+        assertNull(HostInstanceRecord.read(hostVersionsDirectory))
 
         instance.publish()
 
-        assertEquals(ProcessHandle.current().pid(), assertNotNull(HostInstanceRecord.read(versions)).pid)
+        assertEquals(ProcessHandle.current().pid(), assertNotNull(HostInstanceRecord.read(hostVersionsDirectory)).pid)
     }
 
     @Test
     fun `comes forward for a request with its token`() = runBlocking {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
         instance.publish()
         val request = async(start = CoroutineStart.UNDISPATCHED) { instance.activationRequests.first() }
 
-        assertEquals(true, HostInstanceRecord.requestActivation(versions, 2.seconds))
+        assertEquals(true, HostInstanceRecord.requestActivation(hostVersionsDirectory, 2.seconds))
         assertEquals(Unit, withTimeout(5.seconds) { request.await() })
     }
 
     @Test
     fun `a second host asks the first to come forward instead of claiming`() = runBlocking {
-        val first = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance
+        val first = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
         first.publish()
         val request = async(start = CoroutineStart.UNDISPATCHED) { first.activationRequests.first() }
 
-        assertEquals(HostInstanceClaim.HeldByAnother(activated = true), HostInstance.claim(versions, locks))
+        assertEquals(HostInstanceClaim.HeldByAnother(activated = true), HostInstance.claim(hostVersionsDirectory, lockFiles))
         assertEquals(Unit, withTimeout(5.seconds) { request.await() })
     }
 
     @Test
     fun `refuses a request with another token`() {
-        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance.publish()
-        val record = assertNotNull(HostInstanceRecord.read(versions))
+        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance.publish()
+        val record = assertNotNull(HostInstanceRecord.read(hostVersionsDirectory))
 
         val answer = Socket(InetAddress.getLoopbackAddress(), record.port).use { socket ->
             socket.getOutputStream().write("activate ${record.token.reversed()}\n".toByteArray())
@@ -72,8 +72,8 @@ class HostInstanceTest {
 
     @Test
     fun `refuses a request longer than any it takes, and still answers the next`() {
-        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance.publish()
-        val record = assertNotNull(HostInstanceRecord.read(versions))
+        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance.publish()
+        val record = assertNotNull(HostInstanceRecord.read(hostVersionsDirectory))
 
         val answer = Socket(InetAddress.getLoopbackAddress(), record.port).use { socket ->
             socket.getOutputStream().write("activate ${"x".repeat(4096)}".toByteArray())
@@ -81,23 +81,23 @@ class HostInstanceTest {
         }
 
         assertEquals("denied", answer)
-        assertEquals(true, HostInstanceRecord.requestActivation(versions, 2.seconds))
+        assertEquals(true, HostInstanceRecord.requestActivation(hostVersionsDirectory, 2.seconds))
     }
 
     @Test
     fun `keeps the instance lock when it stops taking requests`() {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(versions, locks)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
         instance.publish()
         val server = HostInstance::class.java.getDeclaredField("server").apply { isAccessible = true }.get(instance) as ServerSocket
 
         server.close()
 
-        assertEquals(false, HostInstanceRecord.requestActivation(versions, 1.seconds))
-        assertNull(locks.tryLock(versions.instanceLock))
+        assertEquals(false, HostInstanceRecord.requestActivation(hostVersionsDirectory, 1.seconds))
+        assertNull(lockFiles.tryLock(hostVersionsDirectory.instanceLockFile))
     }
 
     /** OS file locks as two processes would see them, for two hosts in one test JVM. */
-    private class InProcessLocks : LockFiles {
+    private class InProcessLockFiles : LockFiles {
         private val held: MutableSet<Path> = ConcurrentHashMap.newKeySet()
 
         override fun lock(path: Path): HeldLock = checkNotNull(tryLock(path))

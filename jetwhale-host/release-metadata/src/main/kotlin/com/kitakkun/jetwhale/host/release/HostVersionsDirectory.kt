@@ -26,16 +26,16 @@ import kotlin.io.path.name
  * ```
  */
 class HostVersionsDirectory(val root: Path) {
-    val staging: Path get() = root.resolve("staging")
+    val stagingDirectory: Path get() = root.resolve("staging")
 
     /** Held by the one launcher choosing and starting a host. */
-    val launchLock: Path get() = root.resolve("launch.lock")
+    val launchLockFile: Path get() = root.resolve("launch.lock")
 
     /** Held by the running host for as long as it runs. */
-    val instanceLock: Path get() = root.resolve("instance.lock")
+    val instanceLockFile: Path get() = root.resolve("instance.lock")
 
     /** The running host's [HostInstanceRecord]. */
-    val instanceRecord: Path get() = root.resolve("instance.json")
+    val instanceRecordFile: Path get() = root.resolve("instance.json")
 
     private val launcherStateFile: Path get() = root.resolve("launcher-state.json")
 
@@ -43,7 +43,7 @@ class HostVersionsDirectory(val root: Path) {
     val logsDirectory: Path get() = root.resolveSibling("logs")
 
     /** The output of [version]'s last GUI start, which the host links to when that version was set aside. */
-    fun hostLog(version: String): Path = logsDirectory.resolve("host-$version.log")
+    fun hostLogFile(version: HostVersion): Path = logsDirectory.resolve("host-${version.name}.log")
 
     /** The version directories, newest first. A directory not named for a release version is not one. */
     fun installedVersions(): List<InstalledHostVersion> {
@@ -56,9 +56,9 @@ class HostVersionsDirectory(val root: Path) {
             .sortedByDescending(InstalledHostVersion::version)
     }
 
-    fun installedVersion(name: String): InstalledHostVersion? {
-        val version = HostVersion.parse(name) ?: return null
-        val directory = root.resolve(name)
+    fun installedVersion(versionName: String): InstalledHostVersion? {
+        val version = HostVersion.parse(versionName) ?: return null
+        val directory = root.resolve(versionName)
         return if (directory.isDirectory()) InstalledHostVersion(version, directory) else null
     }
 
@@ -73,20 +73,20 @@ class HostVersionsDirectory(val root: Path) {
 
     /**
      * Replaces `launcher-state.json`. Only the launcher writes it, and only while it holds
-     * [launchLock]; the host only reads it.
+     * [launchLockFile]; the host only reads it.
      */
     fun writeLauncherState(state: LauncherState) {
         writeAtomically(launcherStateFile, json.encodeToString(LauncherState.serializer(), state))
     }
 
     /**
-     * Deletes [version]'s directory, or the link that stands in for one, never what a link points
-     * to. Returns false when something could not be deleted, as a running host's jar cannot on
+     * Deletes [installedVersion]'s directory, or the link that stands in for one, never what a link
+     * points to. Returns false when something could not be deleted, as a running host's jar cannot on
      * Windows; it stays until a later start.
      */
     @OptIn(ExperimentalPathApi::class)
-    fun delete(version: InstalledHostVersion): Boolean = try {
-        version.directory.deleteRecursively()
+    fun delete(installedVersion: InstalledHostVersion): Boolean = try {
+        installedVersion.directory.deleteRecursively()
         true
     } catch (_: IOException) {
         false
@@ -97,7 +97,7 @@ class HostVersionsDirectory(val root: Path) {
      * process ID, and the old record would then pass for its own.
      */
     fun deleteInstanceRecord() {
-        Files.deleteIfExists(instanceRecord)
+        Files.deleteIfExists(instanceRecordFile)
     }
 
     /** Whether [file] resolves, through any links, to a place inside this directory. */
@@ -133,13 +133,11 @@ class HostVersionsDirectory(val root: Path) {
 
 /** A version directory: the host jar of each platform it was downloaded for, and its metadata. */
 class InstalledHostVersion(val version: HostVersion, val directory: Path) {
-    val name: String get() = directory.name
-
     val metadataFile: Path get() = directory.resolve(METADATA_FILE_NAME)
 
     val signatureFile: Path get() = directory.resolve(SIGNATURE_FILE_NAME)
 
-    fun jar(platformKey: String): Path = directory.resolve(hostJarName(name, platformKey))
+    fun jarFile(platformKey: String): Path = directory.resolve(hostJarName(version, platformKey))
 
     companion object {
         const val METADATA_FILE_NAME = "release.json"
@@ -148,20 +146,20 @@ class InstalledHostVersion(val version: HostVersion, val directory: Path) {
 }
 
 /** The name a release gives the host jar of [platformKey], in its assets and in a version directory. */
-fun hostJarName(version: String, platformKey: String): String = "jetwhale-host-$version-$platformKey.jar"
+fun hostJarName(version: HostVersion, platformKey: String): String = "jetwhale-host-${version.name}-$platformKey.jar"
 
 /**
- * @property completedStarts The versions that were still running at the end of a startup window on
- * this machine. Such a version is never set aside again.
- * @property setAside The versions that failed their first starts, until the user tries them again.
- * An entry for a version whose directory is gone means nothing.
+ * @property completedStartVersions The versions that were still running at the end of a startup
+ * window on this machine. Such a version is never set aside again.
+ * @property setAsideVersions The versions that failed their first starts, until the user tries them
+ * again. An entry for a version whose directory is gone means nothing.
  */
 @Serializable
 data class LauncherState(
-    val completedStarts: Set<String>,
-    val setAside: Set<String>,
+    val completedStartVersions: Set<HostVersion>,
+    val setAsideVersions: Set<HostVersion>,
 ) {
     companion object {
-        val EMPTY = LauncherState(completedStarts = emptySet(), setAside = emptySet())
+        val EMPTY = LauncherState(completedStartVersions = emptySet(), setAsideVersions = emptySet())
     }
 }

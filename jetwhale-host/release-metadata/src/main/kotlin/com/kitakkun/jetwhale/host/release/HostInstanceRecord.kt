@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /**
- * What a running host publishes in [HostVersionsDirectory.instanceRecord]: a loopback port where it
+ * What a running host publishes in [HostVersionsDirectory.instanceRecordFile]: a loopback port where it
  * takes activation requests, its process ID, and the token a request has to carry.
  */
 @Serializable
@@ -31,26 +31,26 @@ data class HostInstanceRecord(
 
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun read(directory: HostVersionsDirectory): HostInstanceRecord? = try {
-            json.decodeFromString(serializer(), Files.readString(directory.instanceRecord))
+        fun read(hostVersionsDirectory: HostVersionsDirectory): HostInstanceRecord? = try {
+            json.decodeFromString(serializer(), Files.readString(hostVersionsDirectory.instanceRecordFile))
         } catch (_: IOException) {
             null
         } catch (_: SerializationException) {
             null
         }
 
-        fun publish(directory: HostVersionsDirectory, record: HostInstanceRecord) {
-            HostVersionsDirectory.writeAtomically(directory.instanceRecord, json.encodeToString(serializer(), record))
+        fun publish(hostVersionsDirectory: HostVersionsDirectory, record: HostInstanceRecord) {
+            HostVersionsDirectory.writeAtomically(hostVersionsDirectory.instanceRecordFile, json.encodeToString(serializer(), record))
         }
 
         /**
          * Asks the running host to bring its window forward. The record can be missing, or its endpoint
          * not answer yet, while that host is still starting, so it tries again until [timeout].
          */
-        fun requestActivation(directory: HostVersionsDirectory, timeout: Duration): Boolean {
+        fun requestActivation(hostVersionsDirectory: HostVersionsDirectory, timeout: Duration): Boolean {
             val deadline = TimeSource.Monotonic.markNow() + timeout
             while (true) {
-                val record = read(directory)
+                val record = read(hostVersionsDirectory)
                 if (record != null && sendActivation(record)) return true
                 if (deadline.hasPassedNow()) return false
                 Thread.sleep(RETRY_INTERVAL.inWholeMilliseconds)

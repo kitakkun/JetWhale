@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LockFiles
@@ -26,16 +27,18 @@ val capableLauncher = LauncherCapabilities(
     platformKey = PLATFORM,
 )
 
-fun hostMetadata(version: String, jarBytes: ByteArray) = HostReleaseMetadata(
+fun hostVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name)) { name }
+
+fun hostMetadata(versionName: String, jarBytes: ByteArray) = HostReleaseMetadata(
     format = 1,
-    version = version,
+    version = hostVersion(versionName),
     mainClass = "com.kitakkun.jetwhale.host.MainKt",
     launcherContract = 1,
     runtime = HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base", "java.desktop")),
     jvmArgs = listOf("-Dcompose.application.configure.swing.globals=true"),
     platforms = mapOf(
         PLATFORM to HostPlatformRelease(
-            url = "https://example.com/${hostJarName(version, PLATFORM)}",
+            url = "https://example.com/${hostJarName(hostVersion(versionName), PLATFORM)}",
             size = jarBytes.size.toLong(),
             sha256 = MessageDigest.getInstance("SHA-256").digest(jarBytes).joinToString("") { "%02x".format(it) },
             jvmArgs = listOf("-Xdock:name=JetWhale Debugger"),
@@ -46,17 +49,17 @@ fun hostMetadata(version: String, jarBytes: ByteArray) = HostReleaseMetadata(
 /** Writes a version directory, or the bundled one, as the host's download or the package leaves it. */
 fun writeHostVersion(
     directory: Path,
-    version: String,
+    versionName: String,
     edit: (HostReleaseMetadata) -> HostReleaseMetadata,
 ) {
-    val jarBytes = "host $version".toByteArray()
+    val jarBytes = "host $versionName".toByteArray()
     Files.createDirectories(directory)
-    Files.write(directory.resolve(hostJarName(version, PLATFORM)), jarBytes)
-    Files.writeString(directory.resolve("release.json"), edit(hostMetadata(version, jarBytes)).encode())
+    Files.write(directory.resolve(hostJarName(hostVersion(versionName), PLATFORM)), jarBytes)
+    Files.writeString(directory.resolve("release.json"), edit(hostMetadata(versionName, jarBytes)).encode())
 }
 
 /** OS file locks as separate processes see them, for launchers and hosts that run as threads. */
-class FakeLocks : LockFiles {
+class FakeLockFiles : LockFiles {
     private val semaphores = ConcurrentHashMap<Path, Semaphore>()
 
     override fun lock(path: Path): HeldLock {
@@ -99,8 +102,8 @@ sealed interface FakeHostBehavior {
 }
 
 class FakeHostProcesses(
-    private val locks: LockFiles,
-    private val instanceLock: Path,
+    private val lockFiles: LockFiles,
+    private val instanceLockFile: Path,
     private val runningHost: FakeRunningHost,
 ) : HostProcesses {
     private val pids = AtomicLong(1000)
@@ -111,32 +114,32 @@ class FakeHostProcesses(
     val nextPid: Long get() = pids.get() + 1
 
     /**
-     * Runs [action] once [version]'s host has published its record, while the launcher has let go
-     * of `launch.lock`: what another launcher could do in between.
+     * Runs [action] once the host of the version named [versionName] has published its record, while
+     * the launcher has let go of `launch.lock`: what another launcher could do in between.
      */
-    fun whenPublished(version: String, action: () -> Unit) {
-        afterPublishing[version] = action
+    fun whenPublished(versionName: String, action: () -> Unit) {
+        afterPublishing[versionName] = action
     }
 
-    /** Every start, as the version name and the set-aside version it was told about. */
+    /** Every start, as the version's name and the name of the set-aside version it was told about. */
     val starts: List<Pair<String, String?>> get() = recordedStarts
 
     private val recordedStarts = CopyOnWriteArrayList<Pair<String, String?>>()
 
-    /** What [version]'s next starts do, in order; once they are used up, it runs. */
-    fun script(version: String, vararg behaviors: FakeHostBehavior) {
-        scripts[version] = behaviors.toMutableList()
+    /** What the next starts of the version named [versionName] do, in order; once they are used up, it runs. */
+    fun script(versionName: String, vararg behaviors: FakeHostBehavior) {
+        scripts[versionName] = behaviors.toMutableList()
     }
 
-    override fun start(start: HostStart, setAside: String?): HostProcess {
-        recordedStarts += start.name to setAside
-        val behavior = scripts[start.name]?.removeFirstOrNull() ?: FakeHostBehavior.Runs
+    override fun start(start: HostStart, setAsideVersion: HostVersion?): HostProcess {
+        recordedStarts += start.version.name to setAsideVersion?.name
+        val behavior = scripts[start.version.name]?.removeFirstOrNull() ?: FakeHostBehavior.Runs
         val pid = pids.incrementAndGet()
         return when (behavior) {
             is FakeHostBehavior.Runs -> {
-                checkNotNull(locks.tryLock(instanceLock)) { "a started host found the instance taken" }
+                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "a started host found the instance taken" }
                 runningHost.publish(pid)
-                afterPublishing[start.name]?.invoke()
+                afterPublishing[start.version.name]?.invoke()
                 FakeHostProcess(pid, null)
             }
 
@@ -144,27 +147,27 @@ class FakeHostProcesses(
 
             is FakeHostBehavior.ExitsAfterPublishing -> {
                 runningHost.publish(pid)
-                afterPublishing[start.name]?.invoke()
+                afterPublishing[start.version.name]?.invoke()
                 FakeHostProcess(pid, behavior.status)
             }
 
             is FakeHostBehavior.EndsRightAfterTheWindow -> {
-                checkNotNull(locks.tryLock(instanceLock)) { "a started host found the instance taken" }
+                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "a started host found the instance taken" }
                 runningHost.publish(pid)
                 EndingHostProcess(pid, runningPolls = behavior.runningPolls)
             }
 
             is FakeHostBehavior.LosesTheInstance -> {
-                checkNotNull(locks.tryLock(instanceLock)) { "the other host could not take the instance" }
+                checkNotNull(lockFiles.tryLock(instanceLockFile)) { "the other host could not take the instance" }
                 FakeHostProcess(pid, 0)
             }
 
             is FakeHostBehavior.ClaimsTheInstanceLate -> LateClaimingHostProcess(pid, behavior.runningPolls) {
-                if (locks.tryLock(instanceLock) == null) {
+                if (lockFiles.tryLock(instanceLockFile) == null) {
                     0
                 } else {
                     runningHost.publish(pid)
-                    afterPublishing[start.name]?.invoke()
+                    afterPublishing[start.version.name]?.invoke()
                     null
                 }
             }
@@ -209,17 +212,17 @@ class FakeHostProcess(override val pid: Long, private val exitStatus: Int?) : Ho
  * only counts and answers.
  */
 class FakeRunningHost(
-    private val versions: HostVersionsDirectory,
+    private val hostVersionsDirectory: HostVersionsDirectory,
     private val answers: Boolean,
 ) : RunningHostChannel {
     var activationRequests = 0
         private set
 
     fun publish(pid: Long) {
-        HostInstanceRecord.publish(versions, HostInstanceRecord(port = 0, pid = pid, token = "token"))
+        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = 0, pid = pid, token = "token"))
     }
 
-    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(versions)?.pid == pid
+    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(hostVersionsDirectory)?.pid == pid
 
     override fun requestActivation(): Boolean {
         activationRequests++

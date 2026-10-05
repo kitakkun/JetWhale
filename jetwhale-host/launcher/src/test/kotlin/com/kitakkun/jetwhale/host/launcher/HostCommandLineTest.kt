@@ -1,16 +1,13 @@
 package com.kitakkun.jetwhale.host.launcher
 
-import com.kitakkun.jetwhale.host.release.HostVersion
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class HostCommandLineTest {
     private val jarBytes = "host".toByteArray()
     private val start = HostStart(
-        name = "1.0.0-alpha15",
-        version = assertNotNull(HostVersion.parse("1.0.0-alpha15")),
+        version = hostVersion("1.0.0-alpha15"),
         metadata = hostMetadata("1.0.0-alpha15", jarBytes),
         jar = Path.of("/data/host/1.0.0-alpha15/jetwhale-host-1.0.0-alpha15-macos-arm64.jar"),
         isBundled = false,
@@ -38,14 +35,14 @@ class HostCommandLineTest {
                 "-Djetwhale.launcher.executable=/app/MacOS/JetWhale Debugger",
                 "-Djetwhale.launcher.hostDir=/data/host",
                 "-Djetwhale.appDataDir=/data",
-                "-Djetwhale.launcher.setAside=1.0.0-alpha16",
+                "-Djetwhale.launcher.setAsideVersion=1.0.0-alpha16",
                 "-cp",
                 "/data/host/1.0.0-alpha15/jetwhale-host-1.0.0-alpha15-macos-arm64.jar",
                 "com.kitakkun.jetwhale.host.MainKt",
                 "--server-port",
                 "5103",
             ),
-            commandLine.build(start, setAside = "1.0.0-alpha16"),
+            commandLine.build(start, setAsideVersion = hostVersion("1.0.0-alpha16")),
         )
     }
 
@@ -61,9 +58,9 @@ class HostCommandLineTest {
             hostArguments = emptyList(),
         )
 
-        val command = commandLine.build(start, setAside = null)
+        val command = commandLine.build(start, setAsideVersion = null)
 
         assertEquals(listOf("-cp", start.jar.toString(), "com.kitakkun.jetwhale.host.MainKt"), command.takeLast(3))
-        assertEquals(emptyList(), command.filter { it.startsWith("-Djetwhale.launcher.executable") || it.startsWith("-Djetwhale.appDataDir") || it.startsWith("-Djetwhale.launcher.setAside") })
+        assertEquals(emptyList(), command.filter { it.startsWith("-Djetwhale.launcher.executable") || it.startsWith("-Djetwhale.appDataDir") || it.startsWith("-Djetwhale.launcher.setAsideVersion") })
     }
 }

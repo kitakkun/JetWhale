@@ -10,7 +10,6 @@ import java.nio.file.Path
 
 /** A host version the launcher is about to start: one that verified, or the bundled one. */
 class HostStart(
-    val name: String,
     val version: HostVersion,
     val metadata: HostReleaseMetadata,
     val jar: Path,
@@ -18,8 +17,8 @@ class HostStart(
 )
 
 fun interface HostProcesses {
-    /** @param setAside A version this launch set aside, which the started host tells the user about. */
-    fun start(start: HostStart, setAside: String?): HostProcess
+    /** @param setAsideVersion A version this launch set aside, which the started host tells the user about. */
+    fun start(start: HostStart, setAsideVersion: HostVersion?): HostProcess
 }
 
 interface HostProcess {
@@ -33,22 +32,22 @@ interface HostProcess {
 
 /**
  * Starts hosts on the launcher's own runtime with `java`. A GUI start writes the host's output to
- * [HostVersionsDirectory.hostLog], so the launcher can exit while the host runs and a failed start
+ * [HostVersionsDirectory.hostLogFile], so the launcher can exit while the host runs and a failed start
  * leaves its output behind; a `--headless` start shares the launcher's standard streams.
  */
 class JavaHostProcesses(
     private val commandLine: HostCommandLine,
-    private val versions: HostVersionsDirectory,
+    private val hostVersionsDirectory: HostVersionsDirectory,
     private val headless: Boolean,
 ) : HostProcesses {
-    override fun start(start: HostStart, setAside: String?): HostProcess {
-        val builder = ProcessBuilder(commandLine.build(start, setAside))
+    override fun start(start: HostStart, setAsideVersion: HostVersion?): HostProcess {
+        val builder = ProcessBuilder(commandLine.build(start, setAsideVersion))
         if (headless) {
             builder.inheritIO()
         } else {
-            Files.createDirectories(versions.logsDirectory)
+            Files.createDirectories(hostVersionsDirectory.logsDirectory)
             builder.redirectErrorStream(true)
-                .redirectOutput(versions.hostLog(start.name).toFile())
+                .redirectOutput(hostVersionsDirectory.hostLogFile(start.version).toFile())
                 .redirectInput(ProcessBuilder.Redirect.from(File(if (File.separatorChar == '\\') "NUL" else "/dev/null")))
         }
         val process = builder.start()
@@ -83,7 +82,7 @@ class HostCommandLine(
     private val appDataDirectoryOverride: String?,
     private val hostArguments: List<String>,
 ) {
-    fun build(start: HostStart, setAside: String?): List<String> = buildList {
+    fun build(start: HostStart, setAsideVersion: HostVersion?): List<String> = buildList {
         add(javaExecutable.toString())
         addAll(start.metadata.jvmArgsFor(platformKey))
         add("-XX:ErrorFile=${logsDirectory.resolve("hs_err_pid%p.log")}")
@@ -91,7 +90,7 @@ class HostCommandLine(
         launcherExecutable?.let { add("-D${LauncherContract.EXECUTABLE_PROPERTY}=$it") }
         add("-D${LauncherContract.HOST_DIRECTORY_PROPERTY}=$hostDirectory")
         appDataDirectoryOverride?.let { add("-D$APP_DATA_DIR_PROPERTY=$it") }
-        setAside?.let { add("-D${LauncherContract.SET_ASIDE_PROPERTY}=$it") }
+        setAsideVersion?.let { add("-D${LauncherContract.SET_ASIDE_VERSION_PROPERTY}=${it.name}") }
         add("-cp")
         add(start.jar.toString())
         add(start.metadata.mainClass)

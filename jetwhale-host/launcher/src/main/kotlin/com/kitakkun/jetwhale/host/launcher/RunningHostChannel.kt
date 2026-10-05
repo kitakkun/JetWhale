@@ -13,12 +13,12 @@ interface RunningHostChannel {
     fun requestActivation(): Boolean
 }
 
-/** Reaches the running host through the instance record it publishes in [versions]. */
+/** Reaches the running host through the instance record it publishes in [hostVersionsDirectory]. */
 class InstanceRecordChannel(
-    private val versions: HostVersionsDirectory,
+    private val hostVersionsDirectory: HostVersionsDirectory,
     private val activationTimeout: Duration,
 ) : RunningHostChannel {
-    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(versions)?.pid == pid
+    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(hostVersionsDirectory)?.pid == pid
 
-    override fun requestActivation(): Boolean = HostInstanceRecord.requestActivation(versions, activationTimeout)
+    override fun requestActivation(): Boolean = HostInstanceRecord.requestActivation(hostVersionsDirectory, activationTimeout)
 }

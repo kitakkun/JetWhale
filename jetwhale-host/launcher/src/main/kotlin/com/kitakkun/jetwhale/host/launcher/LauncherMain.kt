@@ -35,11 +35,11 @@ fun main(args: Array<String>) {
     val arguments = LauncherArguments.parse(args.toList())
     val appDataOverride = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf(String::isNotBlank)
     val appData = appDataOverride?.let(Path::of) ?: Path.of(System.getProperty("user.home"), ".jetwhale")
-    val versions = HostVersionsDirectory(appData.resolve("host"))
-    val log = FileLauncherLog(versions.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless)
+    val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
+    val log = FileLauncherLog(hostVersionsDirectory.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless)
 
     val exitStatus = try {
-        val launcher = createHostLauncher(arguments, versions, appDataOverride, log)
+        val launcher = createHostLauncher(arguments, hostVersionsDirectory, appDataOverride, log)
         when (val outcome = launcher.launch(arguments.afterPid, arguments.retryVersion)) {
             is LaunchOutcome.Started -> if (arguments.headless) outcome.process.waitForExit() else 0
 
@@ -50,13 +50,13 @@ fun main(args: Array<String>) {
             is LaunchOutcome.Crashed -> outcome.exitStatus
 
             is LaunchOutcome.NothingLeft -> {
-                showError("JetWhale Debugger could not start any of its host versions.", versions.logsDirectory, arguments.headless)
+                showError("JetWhale Debugger could not start any of its host versions.", hostVersionsDirectory.logsDirectory, arguments.headless)
                 1
             }
         }
     } catch (e: Throwable) {
         log.write("Stopped by an unexpected error: ${e.stackTraceToString()}")
-        showError("JetWhale Debugger could not start: $e", versions.logsDirectory, arguments.headless)
+        showError("JetWhale Debugger could not start: $e", hostVersionsDirectory.logsDirectory, arguments.headless)
         1
     }
     exitProcess(exitStatus)
@@ -64,18 +64,18 @@ fun main(args: Array<String>) {
 
 private fun createHostLauncher(
     arguments: LauncherArguments,
-    versions: HostVersionsDirectory,
+    hostVersionsDirectory: HostVersionsDirectory,
     appDataOverride: String?,
     log: LauncherLog,
 ): HostLauncher {
     val platformKey = checkNotNull(hostPlatformKey(System.getProperty("os.name"), System.getProperty("os.arch"))) {
         "JetWhale has no host for ${System.getProperty("os.name")} on ${System.getProperty("os.arch")}"
     }
-    val runningHost = InstanceRecordChannel(versions, activationTimeout = 5.seconds)
+    val runningHost = InstanceRecordChannel(hostVersionsDirectory, activationTimeout = 5.seconds)
     if (!arguments.headless) forwardReopensToHost(runningHost)
     return HostLauncher(
-        versions = versions,
-        bundled = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHost.read(Path.of(it).resolve("host")) },
+        hostVersionsDirectory = hostVersionsDirectory,
+        bundledHost = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHost.read(Path.of(it).resolve("host")) },
         capabilities = LauncherCapabilities(
             contract = LauncherContract.VERSION,
             javaFeatureVersion = Runtime.version().feature(),
@@ -83,19 +83,19 @@ private fun createHostLauncher(
             platformKey = platformKey,
         ),
         metadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
-        locks = LockFiles.Os,
+        lockFiles = LockFiles.Os,
         runningHost = runningHost,
         hostProcesses = JavaHostProcesses(
             commandLine = HostCommandLine(
                 javaExecutable = Path.of(System.getProperty("java.home"), "bin", javaExecutableName(platformKey, arguments.headless)),
                 platformKey = platformKey,
-                logsDirectory = versions.logsDirectory,
+                logsDirectory = hostVersionsDirectory.logsDirectory,
                 launcherExecutable = System.getProperty(APP_PATH_PROPERTY) ?: ProcessHandle.current().info().command().orElse(null),
-                hostDirectory = versions.root,
+                hostDirectory = hostVersionsDirectory.root,
                 appDataDirectoryOverride = appDataOverride,
                 hostArguments = arguments.hostArguments,
             ),
-            versions = versions,
+            hostVersionsDirectory = hostVersionsDirectory,
             headless = arguments.headless,
         ),
         startupWindow = StartupWindow(
