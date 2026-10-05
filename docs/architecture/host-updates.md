@@ -203,10 +203,11 @@ once, in a module shared by the host, the launcher and the release job.
 - **The runtime.** Corretto 21 as today, with no `bin/java`: the host runs in the launcher's JVM.
   It adds `java.management`, which the launcher reads its JVM's arguments with.
 - **Room for later hosts.** The runtime cannot change until a reinstall, so it carries modules a
-  later host may need: `java.net.http`, `jdk.management`, `jdk.attach`, `jdk.zipfs`,
-  `jdk.accessibility`, `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`, `java.scripting`,
-  `java.security.jgss` and `jdk.httpserver`. With Corretto 21 on macOS they take the image from
-  79 MB to 87 MB. All of `java.se` would make it 107 MB.
+  later host may need: `java.net.http`, `jdk.management`, `jdk.zipfs`, `jdk.accessibility`,
+  `jdk.net`, `jdk.crypto.cryptoki`, `jdk.charsets`, `java.scripting`, `java.security.jgss` and
+  `jdk.httpserver`. It also carries `jdk.attach`, which ByteBuddy's self-attach uses through the
+  system class loader; host classes cannot see it (see *Starting the host*). With Corretto 21 on
+  macOS these modules take the image from 79 MB to 87 MB. All of `java.se` would make it 107 MB.
 - **The launcher's main.** A small Kotlin module whose only dependency is the shared metadata
   module.
 - **The host jar of the same release, with its metadata.** The jar is the file attached to the
@@ -286,15 +287,19 @@ Before it calls the host, the launcher sets these system properties:
 - **Properties read at the JVM's start.** A `-D…` property that the JVM reads only as it starts has
   no effect when set this way, and it too belongs in the package's JVM arguments. A plugin's
   in-place hot reload needs one: `jdk.attach.allowAttachSelf`, which allows the self-attach it uses.
-  The metadata format cannot tell such properties apart, and no current host asks for one.
+  The metadata format cannot tell such properties apart, and no current host asks for one. A host
+  that needs one raises `launcherContract`, and the package that implements the new contract
+  starts its JVM with the property, so an older launcher refuses that host instead of running it
+  without the property.
 - **`skiko.library.path`.** The launcher clears the `skiko.library.path` that Compose's packaging
   sets to the app directory. With the property set, skiko looks for its library in that directory
   only, which holds none, and fails. Without it, skiko extracts the library that matches the jar
   into `~/.skiko/` and loads it (checked above).
 - **Modules on the application class loader.** Modules the runtime defines to the application class
-  loader, such as `jdk.attach`, are not visible to host classes directly. ByteBuddy's self-attach
-  loads the attach API through the system class loader and still works; a host that referenced
-  `com.sun.tools.attach` itself would not.
+  loader, `jdk.attach` and `jdk.internal.jvmstat` in this runtime, are not visible to host classes,
+  so the launcher treats them as missing when a version declares one (see *What the launcher
+  refuses*). ByteBuddy's self-attach loads the attach API through the system class loader and
+  still works.
 - **Crash logs.** A JVM fatal error log (hs_err) goes where the JVM puts it by default: the working
   directory, or the temporary directory when that is not writable. `-XX:ErrorFile` can only be set
   when the JVM starts, and the package cannot name the user's app data directory.
@@ -397,7 +402,8 @@ ends, so a crash leaves none behind.
 
 The launcher does not start a version, and tries the next candidate, when:
 - its `launcherContract` is higher than the launcher's;
-- it needs a higher Java feature version than the runtime has, or a module the runtime lacks;
+- it needs a higher Java feature version than the runtime has, or a module its class loader cannot
+  see: one the runtime lacks, or one the runtime defines to the application class loader;
 - it has no entry for this platform, or asks for a JVM argument outside the contract's forms;
 - it asks for a JVM argument other than `-D…` that the launcher's JVM did not start with;
 - its signature or hash does not verify.
