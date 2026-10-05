@@ -20,7 +20,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 class HostInstanceTest {
     private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("host-instance").resolve("host"))
@@ -86,15 +88,18 @@ class HostInstanceTest {
 
     @Test
     fun `keeps the instance lock when it stops taking requests`() {
+        val activationThreadsOfEarlierTests = activationThreads()
         val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
-        instance.publish()
+        val activationThread = (activationThreads() - activationThreadsOfEarlierTests).single()
         val server = HostInstance::class.java.getDeclaredField("server").apply { isAccessible = true }.get(instance) as ServerSocket
 
         server.close()
 
-        assertEquals(false, HostInstanceRecord.requestActivation(hostVersionsDirectory, 1.seconds))
+        assertTrue(activationThread.join(5.seconds.toJavaDuration()))
         assertNull(lockFiles.tryLock(hostVersionsDirectory.instanceLockFile))
     }
+
+    private fun activationThreads(): Set<Thread> = Thread.getAllStackTraces().keys.filterTo(mutableSetOf()) { it.name == "host-instance-activation" }
 
     /** OS file locks as two processes would see them, for two hosts in one test JVM. */
     private class InProcessLockFiles : LockFiles {
