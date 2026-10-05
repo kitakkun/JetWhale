@@ -28,11 +28,14 @@ class HostInstance private constructor(
     private val token: String,
 ) {
     private val mutableActivationRequests = MutableSharedFlow<Unit>(
-        extraBufferCapacity = 1,
+        replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
-    /** A request to bring the window forward, from a launcher or from a second host. */
+    /**
+     * A request to bring the window forward, from a launcher or from a second host. The latest one is
+     * kept for a collector that starts after it arrived, as the window's does after [publish].
+     */
     val activationRequests: Flow<Unit> = mutableActivationRequests
 
     /**
@@ -92,8 +95,8 @@ class HostInstance private constructor(
     private fun answer(connection: Socket) {
         try {
             val accepted = readRequest(connection) == "${HostInstanceRecord.ACTIVATE_REQUEST} $token"
-            connection.getOutputStream().write("${if (accepted) HostInstanceRecord.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
             if (accepted) mutableActivationRequests.tryEmit(Unit)
+            connection.getOutputStream().write("${if (accepted) HostInstanceRecord.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
         } catch (e: IOException) {
             logger.warn("An activation request could not be read", e)
         }

@@ -50,6 +50,15 @@ class HostInstanceTest {
     }
 
     @Test
+    fun `keeps a request that arrives before the window collects them`() = runBlocking {
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        instance.publish()
+
+        assertEquals(true, HostInstanceRecord.requestActivation(hostVersionsDirectory, 2.seconds))
+        assertEquals(Unit, withTimeout(5.seconds) { instance.activationRequests.first() })
+    }
+
+    @Test
     fun `a second host asks the first to come forward instead of claiming`() = runBlocking {
         val first = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
         first.publish()
