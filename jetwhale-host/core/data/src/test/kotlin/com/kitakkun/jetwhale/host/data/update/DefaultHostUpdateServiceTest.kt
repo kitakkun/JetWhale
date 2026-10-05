@@ -146,6 +146,16 @@ class DefaultHostUpdateServiceTest {
     }
 
     @Test
+    fun `says that a release needing a runtime module this host cannot see needs a new installer`() = runBlocking {
+        serveReleases(release("1.0.0-alpha14", edit = { it.copy(runtime = it.runtime.copy(modules = it.runtime.modules + "jdk.attach")) }))
+
+        val service = service(runtimeModules = object : HostRuntimeProvider {}.provideHostRuntime().modules)
+        service.check()
+
+        assertEquals(HostUpdateStatus.NeedsNewInstaller(hostVersion("1.0.0-alpha14")), service.stateFlow.value.status)
+    }
+
+    @Test
     fun `says that a release has no build for this machine`() = runBlocking {
         serveReleases(release("1.0.0-alpha14", edit = { it.copy(platforms = emptyMap()) }))
 
@@ -607,6 +617,7 @@ class DefaultHostUpdateServiceTest {
             javaToolOptions = null,
         ),
         jvmArguments: List<String> = emptyList(),
+        runtimeModules: Set<String> = setOf("java.base", "java.desktop"),
     ) = DefaultHostUpdateService(
         engine = MockEngine { request ->
             val url = request.url.toString()
@@ -616,7 +627,7 @@ class DefaultHostUpdateServiceTest {
         },
         hostLaunch = hostLaunch,
         hostVersionInfo = HostVersionInfo("1.0.0-alpha13"),
-        hostRuntime = HostRuntime(javaFeatureVersion = 21, modules = setOf("java.base", "java.desktop"), platformKey = PLATFORM, jvmArguments = jvmArguments),
+        hostRuntime = HostRuntime(javaFeatureVersion = 21, modules = runtimeModules, platformKey = PLATFORM, jvmArguments = jvmArguments),
         releaseSource = HostReleaseSource(RELEASES_URL),
         metadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
         hostVersionsRepository = HostVersionsRepository(hostLaunch),
