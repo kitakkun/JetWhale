@@ -179,10 +179,10 @@ class DefaultHostUpdateService(
     }
 
     private suspend fun lookUp(launch: HostLaunch.ByLauncher): HostUpdateStatus {
-        val running = HostVersion.parse(hostVersionInfo.version) ?: return HostUpdateStatus.NotManaged
+        val runningVersion = HostVersion.parse(hostVersionInfo.version) ?: return HostUpdateStatus.NotManaged
         val platformKey = hostRuntime.platformKey ?: return HostUpdateStatus.NotManaged
         val installed = versions.installedVersions()
-        val newestKnown = (installed.map(InstalledHostVersion::version) + running).max()
+        val newestKnownVersion = (installed.map(InstalledHostVersion::version) + runningVersion).max()
 
         val response = httpClient.get(releaseSource.releasesUrl)
         if (response.isRateLimited()) return HostUpdateStatus.CheckFailed(HostUpdateFailure.RateLimited)
@@ -196,13 +196,13 @@ class DefaultHostUpdateService(
         val candidate = releases
             .filterNot(GitHubRelease::draft)
             .mapNotNull { release -> HostVersion.parse(release.tagName)?.let { release to it } }
-            .filter { (release, version) -> version > newestKnown && release.asset(HostReleaseMetadata.assetName(release.tagName)) != null }
+            .filter { (release, version) -> version > newestKnownVersion && release.asset(HostReleaseMetadata.assetName(release.tagName)) != null }
             .maxByOrNull { it.second }
             ?.first
         if (candidate == null) {
             offer = null
             val setAside = versions.setAsideVersion()?.version
-            val waiting = installed.firstOrNull { it.version > running && it.name != setAside }
+            val waiting = installed.firstOrNull { it.version > runningVersion && it.name != setAside }
             return waiting?.let { HostUpdateStatus.ReadyToRestart(it.name) } ?: HostUpdateStatus.UpToDate
         }
         return offerOf(candidate, launch, platformKey)
