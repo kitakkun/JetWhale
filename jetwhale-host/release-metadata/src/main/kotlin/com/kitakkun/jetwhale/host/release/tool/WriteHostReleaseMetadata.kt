@@ -50,8 +50,9 @@ internal fun writeHostReleaseMetadata(arguments: List<String>): List<String> {
         return listOf(e.message.orEmpty())
     }
 
+    val version = HostVersion.parse(request.versionName)
     val problems = buildList {
-        if (HostVersion.parse(request.version) == null) add("${request.version} is not a release version")
+        if (version == null) add("${request.versionName} is not a release version")
         (request.jvmArgs + request.platformJvmArgs.values.flatten())
             .filterNot(::isAllowedHostJvmArgument)
             .forEach { add("$it is not a JVM argument the launcher contract allows") }
@@ -60,11 +61,11 @@ internal fun writeHostReleaseMetadata(arguments: List<String>): List<String> {
         }
         (request.platformJvmArgs.keys - request.jars.keys).forEach { add("$it has JVM arguments but no --jar") }
     }
-    if (problems.isNotEmpty()) return problems
+    if (version == null || problems.isNotEmpty()) return problems
 
     val metadata = HostReleaseMetadata(
         format = HostReleaseMetadata.FORMAT,
-        version = request.version,
+        version = version,
         mainClass = request.mainClass,
         launcherContract = LauncherContract.VERSION,
         runtime = HostRuntimeRequirements(
@@ -74,7 +75,7 @@ internal fun writeHostReleaseMetadata(arguments: List<String>): List<String> {
         jvmArgs = request.jvmArgs,
         platforms = request.jars.mapValues { (platformKey, jar) ->
             HostPlatformRelease(
-                url = "$RELEASE_DOWNLOAD_URL/${request.version}/jetwhale-host-${request.version}-$platformKey.jar",
+                url = "$RELEASE_DOWNLOAD_URL/${version.name}/jetwhale-host-${version.name}-$platformKey.jar",
                 size = Files.size(jar),
                 sha256 = sha256Hex(jar),
                 jvmArgs = request.platformJvmArgs[platformKey].orEmpty(),
@@ -97,7 +98,7 @@ internal fun writeHostReleaseMetadata(arguments: List<String>): List<String> {
 
 private class HostReleaseMetadataRequest(
     val output: Path,
-    val version: String,
+    val versionName: String,
     val mainClass: String,
     val javaFeatureVersion: Int,
     val modules: List<String>,
@@ -133,7 +134,7 @@ private class HostReleaseMetadataRequest(
             require(jars.map { it.first }.toSet().size == jars.size) { "Expected one --jar per platform" }
             return HostReleaseMetadataRequest(
                 output = Path.of(single("--output")),
-                version = single("--version"),
+                versionName = single("--version"),
                 mainClass = single("--main-class"),
                 javaFeatureVersion = single("--java-feature-version").toIntOrNull()
                     ?: throw IllegalArgumentException("Expected a number after --java-feature-version"),

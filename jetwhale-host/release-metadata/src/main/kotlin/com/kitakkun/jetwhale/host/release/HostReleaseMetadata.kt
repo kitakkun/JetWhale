@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class HostReleaseMetadata(
     val format: Int,
-    val version: String,
+    val version: HostVersion,
     val mainClass: String,
     val launcherContract: Int,
     val runtime: HostRuntimeRequirements,
@@ -61,7 +61,7 @@ data class HostReleaseMetadata(
 
         private val SHA256_HEX = Regex("[0-9a-f]{64}")
 
-        fun assetName(version: String): String = "jetwhale-host-$version.json"
+        fun assetName(version: HostVersion): String = "jetwhale-host-${version.name}.json"
 
         /**
          * Reads a metadata file. Unknown fields are ignored, so a later release can add some; a file
@@ -77,9 +77,6 @@ data class HostReleaseMetadata(
                 return HostReleaseMetadataResult.Malformed(e.message.orEmpty())
             } catch (e: IllegalArgumentException) {
                 return HostReleaseMetadataResult.Malformed(e.message.orEmpty())
-            }
-            if (HostVersion.parse(metadata.version) == null) {
-                return HostReleaseMetadataResult.Malformed("version ${metadata.version} is not a release version")
             }
             metadata.platforms.forEach { (platformKey, release) ->
                 if (!SHA256_HEX.matches(release.sha256)) {

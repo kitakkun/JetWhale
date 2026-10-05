@@ -34,7 +34,7 @@ class HostReleaseMetadataTest {
         """.trimIndent()
 
         val read = assertIs<HostReleaseMetadataResult.Read>(reader.read(text.toByteArray(), null))
-        assertEquals("1.0.0-alpha14", read.metadata.version)
+        assertEquals("1.0.0-alpha14", read.metadata.version.name)
     }
 
     @Test
@@ -53,7 +53,7 @@ class HostReleaseMetadataTest {
             """{ "format": 1, "version": "1.0.0" }""",
             sampleMetadata().copy(format = 0).encode(),
             sampleMetadata().copy(format = -1).encode(),
-            sampleMetadata().copy(version = "1.0.0-SNAPSHOT").encode(),
+            sampleMetadata().encode().replace("\"1.0.0-alpha14\"", "\"1.0.0-SNAPSHOT\""),
             sampleMetadata().withMacJar { copy(sha256 = "A".repeat(64)) }.encode(),
             sampleMetadata().withMacJar { copy(sha256 = "abc") }.encode(),
             sampleMetadata().withMacJar { copy(size = -1) }.encode(),
@@ -142,7 +142,7 @@ class HostReleaseMetadataTest {
 
     private fun sampleMetadata() = HostReleaseMetadata(
         format = 1,
-        version = "1.0.0-alpha14",
+        version = assertNotNull(HostVersion.parse("1.0.0-alpha14")),
         mainClass = "com.kitakkun.jetwhale.host.MainKt",
         launcherContract = 1,
         runtime = HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base", "java.desktop")),

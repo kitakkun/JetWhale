@@ -37,7 +37,7 @@ class WriteHostReleaseMetadataTest {
 
         assertEquals(emptyList(), problems)
         val metadata = assertIs<HostReleaseMetadataResult.Read>(readOutput()).metadata
-        assertEquals("1.0.0-alpha14", metadata.version)
+        assertEquals("1.0.0-alpha14", metadata.version.name)
         assertEquals("com.kitakkun.jetwhale.host.MainKt", metadata.mainClass)
         assertEquals(1, metadata.launcherContract)
         assertEquals(HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base", "java.desktop")), metadata.runtime)

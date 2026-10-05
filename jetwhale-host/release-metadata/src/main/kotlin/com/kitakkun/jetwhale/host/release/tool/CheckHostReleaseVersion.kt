@@ -8,10 +8,10 @@ import kotlin.system.exitProcess
  * launcher and the host could not order before it builds anything.
  */
 fun main(args: Array<String>) {
-    val version = args.singleOrNull()
-    if (version == null || HostVersion.parse(version) == null) {
+    val versionName = args.singleOrNull()
+    if (versionName == null || HostVersion.parse(versionName) == null) {
         System.err.println(
-            "$version is not a release version: MAJOR.MINOR.PATCH, optionally followed by -alphaN, -betaN or -rcN with N from 1 to 199.",
+            "$versionName is not a release version: MAJOR.MINOR.PATCH, optionally followed by -alphaN, -betaN or -rcN with N from 1 to 199.",
         )
         exitProcess(1)
     }

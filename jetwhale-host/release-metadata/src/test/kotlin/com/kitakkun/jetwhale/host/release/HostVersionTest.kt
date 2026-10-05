@@ -23,6 +23,16 @@ class HostVersionTest {
     }
 
     @Test
+    fun `keeps the text it was parsed from`() {
+        val padded = assertNotNull(HostVersion.parse("1.0.0-alpha09"))
+        val unpadded = assertNotNull(HostVersion.parse("1.0.0-alpha9"))
+
+        assertEquals(padded, unpadded)
+        assertEquals("1.0.0-alpha09", padded.name)
+        assertEquals("1.0.0-alpha9", unpadded.name)
+    }
+
+    @Test
     fun `a snapshot or unparseable tag is never a version`() {
         listOf(
             "1.0.0-alpha13-SNAPSHOT",
