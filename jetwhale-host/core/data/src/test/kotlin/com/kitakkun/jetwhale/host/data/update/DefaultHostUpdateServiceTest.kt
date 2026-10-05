@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assume
 import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
@@ -368,7 +367,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `offers the release again after a cancelled download`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val (bodyStarted, _) = serveStalledJar("1.0.0-alpha14")
+        val bodyStarted = serveStalledJar("1.0.0-alpha14")
         val service = service()
         service.check()
 
@@ -404,7 +403,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `does not check for updates while a download runs`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val (bodyStarted, _) = serveStalledJar("1.0.0-alpha14")
+        val bodyStarted = serveStalledJar("1.0.0-alpha14")
         val service = service()
         service.check()
         service.download()
@@ -420,15 +419,17 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `runs one download at a time`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val (bodyStarted, secondRequest) = serveStalledJar("1.0.0-alpha14")
+        serveStalledJar("1.0.0-alpha14")
         val service = service()
         service.check()
         service.download()
-        withTimeout(10.seconds) { bodyStarted.await() }
+        val progress = withTimeout(10.seconds) {
+            service.stateFlow.first { (it.status as? HostUpdateStatus.Downloading)?.downloadedBytes == 4L }.status
+        }
 
         service.download()
 
-        assertEquals(null, withTimeoutOrNull(1.seconds) { secondRequest.await() })
+        assertEquals(progress, service.stateFlow.value.status)
         service.cancelDownload()
     }
 
@@ -495,16 +496,10 @@ class DefaultHostUpdateServiceTest {
         }
     }
 
-    /**
-     * Answers [version]'s jar with a body that sends a few bytes and then nothing. Returns signals for
-     * the body's start and for a second request of the jar.
-     */
-    private fun serveStalledJar(version: String): Pair<CompletableDeferred<Unit>, CompletableDeferred<Unit>> {
+    /** Answers [version]'s jar with a body that sends 4 bytes and then nothing; returns the signal that the body started. */
+    private fun serveStalledJar(version: String): CompletableDeferred<Unit> {
         val bodyStarted = CompletableDeferred<Unit>()
-        val secondRequest = CompletableDeferred<Unit>()
-        var jarRequests = 0
         responses[jarUrl(version)] = {
-            if (++jarRequests == 2) secondRequest.complete(Unit)
             val body = bodyWriters.writer {
                 channel.writeFully(jarBytes(version), 0, 4)
                 channel.flush()
@@ -513,7 +508,7 @@ class DefaultHostUpdateServiceTest {
             }.channel
             respond(body, HttpStatusCode.OK)
         }
-        return bodyStarted to secondRequest
+        return bodyStarted
     }
 
     private fun assertStagingEmpty() {

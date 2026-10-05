@@ -39,6 +39,7 @@ import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -121,7 +122,12 @@ class DefaultHostUpdateService(
     override fun download() {
         val offer = offer ?: return
         if (downloadJob?.isActive == true) return
-        downloadJob = scope.launch { downloadAndInstall(offer) }
+        setStatus(HostUpdateStatus.Downloading(offer.metadata.version, downloadedBytes = 0, totalBytes = offer.platform.size))
+        // Started only once it is in downloadJob: a collector of the status the job publishes can
+        // cancel it before this thread reaches the assignment.
+        val job = scope.launch(start = CoroutineStart.LAZY) { downloadAndInstall(offer) }
+        downloadJob = job
+        job.start()
     }
 
     override fun cancelDownload() {
@@ -245,7 +251,6 @@ class DefaultHostUpdateService(
      */
     private suspend fun downloadAndInstall(offer: HostReleaseOffer) {
         val version = offer.metadata.version
-        setStatus(HostUpdateStatus.Downloading(version, downloadedBytes = 0, totalBytes = offer.platform.size))
         var status: HostUpdateStatus = HostUpdateStatus.Available(version, offer.platform.size)
         try {
             status = try {
