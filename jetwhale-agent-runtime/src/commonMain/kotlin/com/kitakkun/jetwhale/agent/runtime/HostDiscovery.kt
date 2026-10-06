@@ -90,13 +90,13 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
 
     override suspend fun resolve(): List<ResolvedEndpoint> {
         if (discovery.acceptsAnyHost && discovery.hasFilter) {
-            report(
+            logUnlessRepeated(
                 "discoverWss { } states allowAll() alongside an allowlist. The allowlist still " +
                     "applies, so allowAll() adds nothing here — drop one of the two.",
             )
         }
         if (discovery.acceptsNothing) {
-            report(
+            logUnlessRepeated(
                 "discoverWss { } was declared without a policy, so no discovered host can be accepted. " +
                     "Name the machine with allowHostName/allowAddress, or state allowAll() to take any " +
                     "JetWhale host on the network.",
@@ -106,19 +106,19 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
         val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
         return when (result) {
             is DiscoveryResult.Unavailable -> {
-                report("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
+                logUnlessRepeated("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
                 emptyList()
             }
 
             is DiscoveryResult.Browsed -> {
                 val usable = selectHosts(result.services, discovery)
-                report(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
+                logUnlessRepeated(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
                 usable.map { ResolvedEndpoint(it.service.address, it.port, useWss = true) }
             }
         }
     }
 
-    private fun report(message: String) {
+    private fun logUnlessRepeated(message: String) {
         if (message == lastReported) return
         lastReported = message
         JetWhaleLogger.i(message)
