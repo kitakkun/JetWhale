@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.release.HostReleaseRefusal
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
+import com.kitakkun.jetwhale.host.release.LauncherCompatibility
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.check
 import com.kitakkun.jetwhale.host.release.hostJarName
@@ -277,7 +278,7 @@ class DefaultHostUpdateService(
             platformKey = platformKey,
             jvmArguments = hostRuntime.jvmArguments,
         )
-        val refusal = metadata.refusalOn(capabilities)
+        val refusal = LauncherCompatibility(capabilities).refusalOf(metadata)
         if (refusal != null) {
             downloadableRelease = null
             return if (refusal is HostReleaseRefusal.NoBuildForPlatform) {
