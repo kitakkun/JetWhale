@@ -21,6 +21,42 @@ prefer `java -jar`.
 
 Launch the host. By default it listens for debuggee connections on **port 5080**.
 
+### First launch
+
+JetWhale is not notarized by Apple, and its Windows installer is not code-signed, so macOS and
+Windows each ask you to confirm once. Linux has no such step.
+
+- **macOS** — open the `.dmg` and drag **JetWhale Debugger** into **Applications**. The first time
+  you open it, macOS blocks it. Close that dialog, open **System Settings → Privacy & Security**,
+  scroll down to **Security**, click **Open Anyway** next to the message about JetWhale Debugger,
+  and confirm. On macOS 15 and later, Control-click → **Open** no longer gets past the block, so use
+  System Settings.
+- **Windows** — Microsoft Defender SmartScreen may stop the installer with *Windows protected your
+  PC*. Click **More info**, then **Run anyway**.
+
+Later launches start normally. Updates made from inside the app don't ask again; a new installer
+does.
+
+### Updates
+
+Once installed, JetWhale updates from inside the app. At startup it checks JetWhale's GitHub
+releases, prereleases included, and shows a banner when a newer version is out. Download it under
+**Settings → General → Application → Updates** (the banner's **View in Settings** opens it), then
+click **Restart to Update**, or keep working and the next start runs it. Turn off **Check for
+updates on startup** there to check only when you click **Check for Updates**. Now and then a
+release needs a newer launcher or Java runtime than your install has: the app says so and links to
+its release page, and you install that release from its installer. See
+[Host Settings → Application](/guide/host-settings#application) for more.
+
+A host started with `java -jar` does not update itself; download new jars from the releases page.
+
+::: info Coming from 1.0.0-alpha12 or earlier
+Hosts before 1.0.0-alpha13 cannot update themselves. Install the latest release once from its
+installer, over the old app. Your settings and plugins carry over, and later versions come through
+the app. On macOS, approve the first launch again as above. On Linux, apt may list the install as a
+downgrade; confirm it.
+:::
+
 ## 2. Add the agent runtime to your app
 
 All artifacts are published to Maven Central under the group `com.kitakkun.jetwhale`:
