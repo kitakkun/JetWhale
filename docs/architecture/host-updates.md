@@ -237,7 +237,7 @@ deleted or set aside, and its own launcher always runs it.
   1.0.0-alpha15/         jetwhale-host-1.0.0-alpha15-macos-arm64.jar, release.json, release.json.sig
   1.0.0-alpha14/         …
   staging/               downloads in progress; the launcher never reads it
-  launcher-state.json    completed and set-aside versions, failed-start counts, the starting host
+  launcher-state.json    completed and set-aside versions, failed-start counts, the start in progress
   launch.lock, instance.lock, instance.json
 ```
 
@@ -314,25 +314,25 @@ Before it calls the host, the launcher sets these system properties:
 
 ### Startup time window and rollback
 
-Before it calls the host, the launcher writes a `startingHost` record into `launcher-state.json`,
+Before it calls the host, the launcher writes a `startInProgress` mark into `launcher-state.json`,
 under `launch.lock`: the version, this process's ID, and the process's start time, which tells the
 process from a later one that reuses its ID. The *startup time window* runs 30 seconds from just
 before the host's `main` is called, and the first of these ends it, recorded once under
 `launch.lock`:
 - **Completed.** A timer finds the JVM still running at the end of the startup time window. The
-  version is recorded as having completed a start, its failed-start count is dropped, the record
-  is cleared, and pruning runs.
+  version is recorded as having completed a start, its failed-start count is dropped, the mark is
+  cleared, and pruning runs.
 - **Failed.** The host's `main` throws. The launcher writes the stack trace to the host's log and
-  the failure to `launcher.log`, counts a failed start, clears the record, and exits with status 1.
+  the failure to `launcher.log`, counts a failed start, clears the mark, and exits with status 1.
   A throw after the startup time window counts nothing, and the launcher still exits with
   status 1.
 - **Neither.** The JVM shuts down inside the startup time window and `main` did not throw: the
   user quit, the host ended the JVM with any exit status, the user restarted to update or chose
-  *Try again*, or `main` returned and the host's threads ended. A shutdown hook clears the record.
+  *Try again*, or `main` returned and the host's threads ended. A shutdown hook clears the mark.
 
-A crash, a JVM fatal error or a kill leaves the record behind; a SIGTERM runs the shutdown hook and
-is neither. The next launch, before anything else, finds that the record's process no longer runs,
-or runs with another start time, and counts a failed start of that version. A record whose process
+A crash, a JVM fatal error or a kill leaves the mark behind; a SIGTERM runs the shutdown hook and is
+neither. The next launch, before anything else, finds that the mark's process no longer runs, or
+runs with another start time, and counts a failed start of that version. A mark whose process
 still runs belongs to a host in its startup time window, and the instance check hands the launch
 to it.
 
@@ -639,11 +639,11 @@ every user who accepts the update.
   - The JVM argument forms.
 - **Launcher.**
   - Unit tests run launches one after another as separate fake processes, with fake locks that a
-    fake process releases when it ends, a fake process table and a test clock. They cover crash
-    records, a reused process ID, a throw from `main`, a shutdown before and after publication, two
-    failures setting a version aside and the fallback naming it, the bundled version never set
-    aside, `--retry`, the restart waiting without `launch.lock`, two launches at once, and
-    `launch.lock` held until publication and taken again to record a completed start.
+    fake process releases when it ends, a fake process table and a test clock. They cover the mark
+    a crash leaves, a reused process ID, a throw from `main`, a shutdown before and after
+    publication, two failures setting a version aside and the fallback naming it, the bundled
+    version never set aside, `--retry`, the restart waiting without `launch.lock`, two launches at
+    once, and `launch.lock` held until publication and taken again to record a completed start.
 - Process tests run the launcher's real `main` in a child JVM with a stub host jar written in Java,
     so it needs no Kotlin. They check that the host's class loader sees neither Kotlin nor the
     launcher, that the contract's properties and the metadata's `-D…` arguments are set and
