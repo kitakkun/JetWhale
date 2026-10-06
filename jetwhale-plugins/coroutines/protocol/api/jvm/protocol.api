@@ -1,0 +1,489 @@
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/ClearLongRuns : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearLongRuns;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns$Companion;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCleared ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/ClearedLongRuns$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail$Companion;
+	public fun <init> (Ljava/lang/String;ZLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ZLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail;Ljava/lang/String;ZLjava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCreationStack ()Ljava/util/List;
+	public final fun getDebugState ()Ljava/lang/String;
+	public final fun getFound ()Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getStackUnavailableReason ()Ljava/lang/String;
+	public final fun getSuspensionStack ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDetail$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getText ()Ljava/lang/String;
+	public final fun getUnavailableReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineDump$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineMessagesKt {
+	public static final field COROUTINES_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;JLjava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;JLjava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;JLjava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChildren ()Ljava/util/List;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getDispatcher ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getObservedMillis ()J
+	public final fun getState ()Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineNode$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState : java/lang/Enum {
+	public static final field Active Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static final field Cancelled Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static final field Cancelling Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState$Companion;
+	public static final field Completed Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static final field New Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree$Companion;
+	public fun <init> (Ljava/util/List;IZJ)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()I
+	public final fun component3 ()Z
+	public final fun component4 ()J
+	public final fun copy (Ljava/util/List;IZJ)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree;Ljava/util/List;IZJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCapturedAtEpochMillis ()J
+	public final fun getCoroutineCount ()I
+	public final fun getRoots ()Ljava/util/List;
+	public final fun getTruncated ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/CoroutineTree$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats$Companion;
+	public fun <init> (Ljava/lang/String;IIJDDDDJLjava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/util/List;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()J
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun component7 ()D
+	public final fun component8 ()D
+	public final fun component9 ()J
+	public final fun copy (Ljava/lang/String;IIJDDDDJLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats;Ljava/lang/String;IIJDDDDJLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAverageQueueLatencyMillis ()D
+	public final fun getAverageRunMillis ()D
+	public final fun getCompletedTasks ()J
+	public final fun getLongRunThresholdMillis ()J
+	public final fun getLongRuns ()Ljava/util/List;
+	public final fun getMaxQueueLatencyMillis ()D
+	public final fun getMaxRunMillis ()D
+	public final fun getName ()Ljava/lang/String;
+	public final fun getQueued ()I
+	public final fun getRunning ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStats$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport$Companion;
+	public fun <init> (Ljava/util/List;Ljava/util/List;J)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()J
+	public final fun copy (Ljava/util/List;Ljava/util/List;J)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport;Ljava/util/List;Ljava/util/List;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCapturedAtEpochMillis ()J
+	public final fun getDispatchers ()Ljava/util/List;
+	public final fun getUntracked ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/DispatcherStatsReport$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/DumpCoroutines : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/DumpCoroutines;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue$Companion;
+	public fun <init> (JLjava/lang/String;)V
+	public final fun component1 ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (JLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue;JLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAtEpochMillis ()J
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/FlowValue$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineDetail$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineTree : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetCoroutineTree;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetDispatcherStats : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetDispatcherStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/GetTrackedFlows : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/GetTrackedFlows;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun$Companion;
+	public fun <init> (JDLjava/lang/String;)V
+	public final fun component1 ()J
+	public final fun component2 ()D
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (JDLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun;JDLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAtEpochMillis ()J
+	public final fun getCoroutineName ()Ljava/lang/String;
+	public final fun getDurationMillis ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/LongRun$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo$Companion;
+	public fun <init> (Ljava/lang/String;IJJJJJDLjava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()J
+	public final fun component8 ()D
+	public final fun component9 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;IJJJJJDLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo;Ljava/lang/String;IJJJJJDLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActiveCollectors ()I
+	public final fun getCancellations ()J
+	public final fun getCollections ()J
+	public final fun getCompletions ()J
+	public final fun getEmissions ()J
+	public final fun getEmissionsPerSecond ()D
+	public final fun getFailures ()J
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRecentValues ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowInfo$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport$Companion;
+	public fun <init> (Ljava/util/List;J)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()J
+	public final fun copy (Ljava/util/List;J)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport;Ljava/util/List;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCapturedAtEpochMillis ()J
+	public final fun getFlows ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/TrackedFlowReport$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCoroutinesByState ()Ljava/util/Map;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/coroutines/protocol/UntrackedDispatcher$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
