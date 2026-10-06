@@ -174,7 +174,7 @@ class VideoStreamTest {
     fun `a stream that keeps its pace is left alone`() {
         val pace = ArrivalPace(requestedFps = 30, windowNanos = SECOND)
 
-        val reports = (0..90).map { pace.recordArrival(it * SECOND / 30) }
+        val reports = (0..90).map { pace.countFrameArrival(it * SECOND / 30) }
 
         assertTrue(reports.all { it == null })
     }
@@ -183,7 +183,7 @@ class VideoStreamTest {
     fun `a stream whose frames arrive at half the rate asked for is reported with the rate it got`() {
         val pace = ArrivalPace(requestedFps = 30, windowNanos = SECOND)
 
-        val reports = (0..30).mapNotNull { pace.recordArrival(it * SECOND / 15) }
+        val reports = (0..30).mapNotNull { pace.countFrameArrival(it * SECOND / 15) }
 
         assertEquals(15, reports.first())
     }

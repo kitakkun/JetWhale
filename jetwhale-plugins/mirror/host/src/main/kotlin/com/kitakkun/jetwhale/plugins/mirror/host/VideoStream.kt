@@ -129,7 +129,7 @@ internal fun readRawBgraInto(target: MirrorSurface.FrameStream, stream: VideoStr
     while (input.timingWork(target::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
         target.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
         onFrame()
-        val arrivedFps = pace.recordArrival(System.nanoTime()) ?: continue
+        val arrivedFps = pace.countFrameArrival(System.nanoTime()) ?: continue
         if (stream.onFellBehind(arrivedFps)) return
     }
 }
@@ -148,7 +148,7 @@ internal class ArrivalPace(private val requestedFps: Int, private val windowNano
     private var arrived = 0
 
     /** Counts a frame arriving at [nowNanos]; returns the rate frames arrived at when it is too low. */
-    fun recordArrival(nowNanos: Long): Int? {
+    fun countFrameArrival(nowNanos: Long): Int? {
         if (windowStart < 0) {
             windowStart = nowNanos
             return null
