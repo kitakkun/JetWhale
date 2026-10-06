@@ -22,6 +22,23 @@ final enum class com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding : k
     }
 }
 
+final enum class com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure : kotlin/Enum<com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure> { // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure|null[0]
+    enum entry CONNECTION_RESET // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.CONNECTION_RESET|null[0]
+    enum entry TIMEOUT // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.TIMEOUT|null[0]
+    enum entry UNREACHABLE // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.UNREACHABLE|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure> // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure> // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure> // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
 final enum class com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType : kotlin/Enum<com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType> { // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType|null[0]
     enum entry CONTAINS // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType.CONTAINS|null[0]
     enum entry EXACT // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType.EXACT|null[0]
@@ -88,6 +105,52 @@ final enum class com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget 
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition { // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Long, kotlin/Long?, kotlin/Long?, com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure?, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.<init>|<init>(kotlin.String;kotlin.String;kotlin.Long;kotlin.Long?;kotlin.Long?;com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure?;kotlin.Boolean){}[0]
+
+    final val addedLatencyMs // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.addedLatencyMs|{}addedLatencyMs[0]
+        final fun <get-addedLatencyMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.addedLatencyMs.<get-addedLatencyMs>|<get-addedLatencyMs>(){}[0]
+    final val downloadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.downloadBytesPerSecond|{}downloadBytesPerSecond[0]
+        final fun <get-downloadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.downloadBytesPerSecond.<get-downloadBytesPerSecond>|<get-downloadBytesPerSecond>(){}[0]
+    final val injectedFailure // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.injectedFailure|{}injectedFailure[0]
+        final fun <get-injectedFailure>(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.injectedFailure.<get-injectedFailure>|<get-injectedFailure>(){}[0]
+    final val offline // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.offline|{}offline[0]
+        final fun <get-offline>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.offline.<get-offline>|<get-offline>(){}[0]
+    final val ruleId // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.ruleId|{}ruleId[0]
+        final fun <get-ruleId>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.ruleId.<get-ruleId>|<get-ruleId>(){}[0]
+    final val ruleName // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.ruleName|{}ruleName[0]
+        final fun <get-ruleName>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.ruleName.<get-ruleName>|<get-ruleName>(){}[0]
+    final val uploadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.uploadBytesPerSecond|{}uploadBytesPerSecond[0]
+        final fun <get-uploadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.uploadBytesPerSecond.<get-uploadBytesPerSecond>|<get-uploadBytesPerSecond>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component3|component3(){}[0]
+    final fun component4(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component4|component4(){}[0]
+    final fun component5(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component5|component5(){}[0]
+    final fun component6(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component6|component6(){}[0]
+    final fun component7(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.component7|component7(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Long = ..., kotlin/Long? = ..., kotlin/Long? = ..., com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.copy|copy(kotlin.String;kotlin.String;kotlin.Long;kotlin.Long?;kotlin.Long?;com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure?;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition> { // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition) // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition> // com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest { // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest|null[0]
     constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long){}[0]
 
@@ -138,7 +201,7 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest {
 }
 
 final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse { // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse|null[0]
-    constructor <init>(kotlin/String, kotlin/Int, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long, kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean){}[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long, kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? = ...) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition?){}[0]
 
     final val body // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.body|{}body[0]
         final fun <get-body>(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.body.<get-body>|<get-body>(){}[0]
@@ -146,6 +209,8 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse 
         final fun <get-bodyEncoding>(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyEncoding.<get-bodyEncoding>|<get-bodyEncoding>(){}[0]
     final val bodyTruncated // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyTruncated|{}bodyTruncated[0]
         final fun <get-bodyTruncated>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyTruncated.<get-bodyTruncated>|<get-bodyTruncated>(){}[0]
+    final val condition // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.condition|{}condition[0]
+        final fun <get-condition>(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.condition.<get-condition>|<get-condition>(){}[0]
     final val durationMs // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.durationMs|{}durationMs[0]
         final fun <get-durationMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.durationMs.<get-durationMs>|<get-durationMs>(){}[0]
     final val fromMock // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.fromMock|{}fromMock[0]
@@ -160,6 +225,7 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse 
         final fun <get-txId>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.txId.<get-txId>|<get-txId>(){}[0]
 
     final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component1|component1(){}[0]
+    final fun component10(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component10|component10(){}[0]
     final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component2|component2(){}[0]
     final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component3|component3(){}[0]
     final fun component4(): kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component4|component4(){}[0]
@@ -168,7 +234,7 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse 
     final fun component7(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component7|component7(){}[0]
     final fun component8(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component8|component8(){}[0]
     final fun component9(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component9|component9(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.copy|copy(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.copy|copy(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.toString|toString(){}[0]
@@ -190,8 +256,10 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse 
 }
 
 final class com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure { // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure|null[0]
-    constructor <init>(kotlin/String, kotlin/String, kotlin/Long) // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.<init>|<init>(kotlin.String;kotlin.String;kotlin.Long){}[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Long, com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? = ...) // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.<init>|<init>(kotlin.String;kotlin.String;kotlin.Long;com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition?){}[0]
 
+    final val condition // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.condition|{}condition[0]
+        final fun <get-condition>(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.condition.<get-condition>|<get-condition>(){}[0]
     final val durationMs // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.durationMs|{}durationMs[0]
         final fun <get-durationMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.durationMs.<get-durationMs>|<get-durationMs>(){}[0]
     final val message // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.message|{}message[0]
@@ -202,7 +270,8 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure { 
     final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.component1|component1(){}[0]
     final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.component2|component2(){}[0]
     final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.component3|component3(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.copy|copy(kotlin.String;kotlin.String;kotlin.Long){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Long = ..., com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition? = ...): com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.copy|copy(kotlin.String;kotlin.String;kotlin.Long;com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure.toString|toString(){}[0]
@@ -361,6 +430,93 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/MockRule { // com.kit
 
     final object Companion { // com.kitakkun.jetwhale.plugins.network.protocol/MockRule.Companion|null[0]
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/MockRule> // com.kitakkun.jetwhale.plugins.network.protocol/MockRule.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition|null[0]
+    constructor <init>(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long? = ..., kotlin/Long? = ..., kotlin/Double = ..., com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure = ..., kotlin/Long = ..., kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long?;kotlin.Long?;kotlin.Double;com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure;kotlin.Long;kotlin.Boolean){}[0]
+
+    final val downloadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.downloadBytesPerSecond|{}downloadBytesPerSecond[0]
+        final fun <get-downloadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.downloadBytesPerSecond.<get-downloadBytesPerSecond>|<get-downloadBytesPerSecond>(){}[0]
+    final val failure // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failure|{}failure[0]
+        final fun <get-failure>(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failure.<get-failure>|<get-failure>(){}[0]
+    final val failureAfterMs // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failureAfterMs|{}failureAfterMs[0]
+        final fun <get-failureAfterMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failureAfterMs.<get-failureAfterMs>|<get-failureAfterMs>(){}[0]
+    final val failureRate // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failureRate|{}failureRate[0]
+        final fun <get-failureRate>(): kotlin/Double // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.failureRate.<get-failureRate>|<get-failureRate>(){}[0]
+    final val jitterMs // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.jitterMs|{}jitterMs[0]
+        final fun <get-jitterMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.jitterMs.<get-jitterMs>|<get-jitterMs>(){}[0]
+    final val latencyMs // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.latencyMs|{}latencyMs[0]
+        final fun <get-latencyMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.latencyMs.<get-latencyMs>|<get-latencyMs>(){}[0]
+    final val offline // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.offline|{}offline[0]
+        final fun <get-offline>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.offline.<get-offline>|<get-offline>(){}[0]
+    final val uploadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.uploadBytesPerSecond|{}uploadBytesPerSecond[0]
+        final fun <get-uploadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.uploadBytesPerSecond.<get-uploadBytesPerSecond>|<get-uploadBytesPerSecond>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component2|component2(){}[0]
+    final fun component3(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component3|component3(){}[0]
+    final fun component4(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component4|component4(){}[0]
+    final fun component5(): kotlin/Double // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component5|component5(){}[0]
+    final fun component6(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component6|component6(){}[0]
+    final fun component7(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component7|component7(){}[0]
+    final fun component8(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.component8|component8(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long? = ..., kotlin/Long? = ..., kotlin/Double = ..., com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure = ..., kotlin/Long = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long?;kotlin.Long?;kotlin.Double;com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure;kotlin.Long;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition> { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition) // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition> // com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule|null[0]
+    constructor <init>(kotlin/String, kotlin/String = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/MockMatcher? = ..., com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition) // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.<init>|<init>(kotlin.String;kotlin.String;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher?;com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition){}[0]
+
+    final val condition // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.condition|{}condition[0]
+        final fun <get-condition>(): com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.condition.<get-condition>|<get-condition>(){}[0]
+    final val enabled // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.enabled|{}enabled[0]
+        final fun <get-enabled>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.enabled.<get-enabled>|<get-enabled>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.id.<get-id>|<get-id>(){}[0]
+    final val matcher // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.matcher|{}matcher[0]
+        final fun <get-matcher>(): com.kitakkun.jetwhale.plugins.network.protocol/MockMatcher? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.matcher.<get-matcher>|<get-matcher>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.name.<get-name>|<get-name>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.component2|component2(){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.network.protocol/MockMatcher? // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.component4|component4(){}[0]
+    final fun component5(): com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.component5|component5(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/MockMatcher? = ..., com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition = ...): com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.copy|copy(kotlin.String;kotlin.String;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher?;com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule> { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule) // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule> // com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule.Companion.serializer|serializer(){}[0]
     }
 }
 
@@ -561,6 +717,34 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/SetMockingEnabled : c
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.network.protocol/Ack> { // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule>) // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule>){}[0]
+
+    final val rules // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.rules|{}rules[0]
+        final fun <get-rules>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule> // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.rules.<get-rules>|<get-rules>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule> // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.component1|component1(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule> = ...): com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions> { // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions) // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions> // com.kitakkun.jetwhale.plugins.network.protocol/SetNetworkConditions.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final object com.kitakkun.jetwhale.plugins.network.protocol/Ack : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.network.protocol/Ack|null[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/Ack.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/Ack.hashCode|hashCode(){}[0]
@@ -585,11 +769,15 @@ final object com.kitakkun.jetwhale.plugins.network.protocol/GetRedactionConfig :
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/GetRedactionConfig.toString|toString(){}[0]
 }
 
+final const val com.kitakkun.jetwhale.plugins.network.protocol/MAX_SIMULATED_DELAY_MS // com.kitakkun.jetwhale.plugins.network.protocol/MAX_SIMULATED_DELAY_MS|{}MAX_SIMULATED_DELAY_MS[0]
+    final fun <get-MAX_SIMULATED_DELAY_MS>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/MAX_SIMULATED_DELAY_MS.<get-MAX_SIMULATED_DELAY_MS>|<get-MAX_SIMULATED_DELAY_MS>(){}[0]
 final const val com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER // com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER|{}REDACTED_PLACEHOLDER[0]
     final fun <get-REDACTED_PLACEHOLDER>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER.<get-REDACTED_PLACEHOLDER>|<get-REDACTED_PLACEHOLDER>(){}[0]
 
 final fun (com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec).com.kitakkun.jetwhale.plugins.network.protocol/bodyBytes(): kotlin/ByteArray // com.kitakkun.jetwhale.plugins.network.protocol/bodyBytes|bodyBytes@com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec(){}[0]
+final fun (com.kitakkun.jetwhale.plugins.network.protocol/NetworkCondition).com.kitakkun.jetwhale.plugins.network.protocol/problems(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.network.protocol/problems|problems@com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition(){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/MockRule>).com.kitakkun.jetwhale.plugins.network.protocol/findMatching(kotlin/String, kotlin/String, kotlin/Boolean): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec? // com.kitakkun.jetwhale.plugins.network.protocol/findMatching|findMatching@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.MockRule>(kotlin.String;kotlin.String;kotlin.Boolean){}[0]
+final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule>).com.kitakkun.jetwhale.plugins.network.protocol/findMatchingCondition(kotlin/String, kotlin/String): com.kitakkun.jetwhale.plugins.network.protocol/NetworkConditionRule? // com.kitakkun.jetwhale.plugins.network.protocol/findMatchingCondition|findMatchingCondition@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule>(kotlin.String;kotlin.String){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/RedactionRule>).com.kitakkun.jetwhale.plugins.network.protocol/redact(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest // com.kitakkun.jetwhale.plugins.network.protocol/redact|redact@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule>(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/RedactionRule>).com.kitakkun.jetwhale.plugins.network.protocol/redact(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/redact|redact@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule>(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse){}[0]
 final fun (kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>>).com.kitakkun.jetwhale.plugins.network.protocol/mediaType(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/mediaType|mediaType@kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>(){}[0]

@@ -13,10 +13,12 @@ private fun NetworkInspectorScreenPreview() {
             transactions = previewTransactions(),
             mockRules = emptyList(),
             mockingEnabled = true,
+            conditionRules = emptyList(),
             trafficSplitPaneState = rememberJwSplitPaneState(0.42f),
             onClearTransactions = {},
             onToggleMocking = {},
             onMockRulesChanged = {},
+            onConditionRulesChanged = {},
         )
     }
 }
