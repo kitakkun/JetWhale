@@ -27,7 +27,7 @@ private const val RECONNECT_DELAY_MS = 2_000L
 @Inject
 class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val mappedDevices = ConcurrentSet<String>()
+    private val mappedDeviceSerials = ConcurrentSet<String>()
 
     private val mappedPorts = ConcurrentSet<Int>()
     private var deviceTrackingJob: Job? = null
@@ -38,7 +38,7 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
 
     override fun startPortMapping(port: Int) {
         if (mappedPorts.add(port)) {
-            mappedDevices.forEach { serial -> mapPort(serial, port) }
+            mappedDeviceSerials.forEach { serial -> mapPort(serial, port) }
         }
 
         if (deviceTrackingJob?.isActive == true) return
@@ -107,7 +107,7 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
         println("Mapping port $port for device $serial with adb reverse")
         val (exitCode, output) = runAdb("-s", serial, "reverse", "tcp:$port", "tcp:$port")
         if (exitCode == 0) {
-            mappedDevices.add(serial)
+            mappedDeviceSerials.add(serial)
         } else {
             System.err.println("Failed to map port $port for device $serial with adb reverse (exit=$exitCode): $output")
         }
@@ -119,18 +119,18 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
         if (exitCode != 0) {
             System.err.println("Failed to unmap port $port for device $serial with adb reverse (exit=$exitCode): $output")
         }
-        mappedDevices.remove(serial)
+        mappedDeviceSerials.remove(serial)
     }
 
     override fun stopPortMapping(port: Int) {
         mappedPorts.remove(port)
-        mappedDevices.forEach { serial ->
+        mappedDeviceSerials.forEach { serial ->
             runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         }
         if (mappedPorts.isEmpty()) {
             deviceTrackingJob?.cancel()
             deviceTrackingJob = null
-            mappedDevices.clear()
+            mappedDeviceSerials.clear()
         }
     }
 
