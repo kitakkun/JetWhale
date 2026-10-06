@@ -12,7 +12,7 @@ class HostReleaseMetadataTest {
 
     @Test
     fun `reads back what it encodes`() {
-        val metadata = sampleMetadata()
+        val metadata = sampleHostReleaseMetadata()
 
         assertEquals(HostReleaseMetadataResult.Read(metadata), reader.read(metadata.encode().toByteArray(), null))
     }
@@ -52,12 +52,12 @@ class HostReleaseMetadataTest {
             "[]",
             """{ "version": "1.0.0" }""",
             """{ "format": 1, "version": "1.0.0" }""",
-            sampleMetadata().copy(format = 0).encode(),
-            sampleMetadata().copy(format = -1).encode(),
-            sampleMetadata().encode().replace("\"1.0.0-alpha14\"", "\"1.0.0-SNAPSHOT\""),
-            sampleMetadata().withMacJar { copy(sha256 = "A".repeat(64)) }.encode(),
-            sampleMetadata().withMacJar { copy(sha256 = "abc") }.encode(),
-            sampleMetadata().withMacJar { copy(size = -1) }.encode(),
+            sampleHostReleaseMetadata().copy(format = 0).encode(),
+            sampleHostReleaseMetadata().copy(format = -1).encode(),
+            sampleHostReleaseMetadata().encode().replace("\"1.0.0-alpha14\"", "\"1.0.0-SNAPSHOT\""),
+            sampleHostReleaseMetadata().withMacJar { copy(sha256 = "A".repeat(64)) }.encode(),
+            sampleHostReleaseMetadata().withMacJar { copy(sha256 = "abc") }.encode(),
+            sampleHostReleaseMetadata().withMacJar { copy(size = -1) }.encode(),
         ).forEach { text ->
             assertIs<HostReleaseMetadataResult.Malformed>(reader.read(text.toByteArray(), null), text)
         }
@@ -66,7 +66,7 @@ class HostReleaseMetadataTest {
     @Test
     fun `answers deeply nested JSON with a result instead of overflowing the stack`() {
         val nested = "[".repeat(10_000) + "]".repeat(10_000)
-        val metadata = sampleMetadata()
+        val metadata = sampleHostReleaseMetadata()
 
         assertEquals(
             HostReleaseMetadataResult.Read(metadata),
@@ -77,7 +77,7 @@ class HostReleaseMetadataTest {
 
     @Test
     fun `reads nothing that the signature verifier does not trust`() {
-        val metadata = sampleMetadata().encode().toByteArray()
+        val metadata = sampleHostReleaseMetadata().encode().toByteArray()
         val signature = byteArrayOf(1, 2, 3)
         var checked: Pair<ByteArray, ByteArray?>? = null
         val rejecting = HostReleaseMetadataReader { bytes, sig ->
@@ -93,7 +93,7 @@ class HostReleaseMetadataTest {
 
     @Test
     fun `puts the common JVM arguments before the platform's own`() {
-        val metadata = sampleMetadata()
+        val metadata = sampleHostReleaseMetadata()
 
         assertEquals(
             listOf("-Dcompose.application.configure.swing.globals=true", "-Dapple.awt.application.appearance=system"),
@@ -101,97 +101,4 @@ class HostReleaseMetadataTest {
         )
         assertEquals(listOf("-Dcompose.application.configure.swing.globals=true"), metadata.jvmArgsFor("linux-x64"))
     }
-
-    @Test
-    fun `a launcher that has everything the release needs runs it`() {
-        assertNull(sampleMetadata().refusalOn(capableLauncher))
-    }
-
-    @Test
-    fun `a launcher refuses a release that needs more than it has`() {
-        val metadata = sampleMetadata()
-
-        assertEquals(
-            HostReleaseRefusal.NeedsNewerLauncher(2),
-            metadata.copy(launcherContract = 2).refusalOn(capableLauncher),
-        )
-        assertEquals(
-            HostReleaseRefusal.NeedsNewerJava(25),
-            metadata.copy(runtime = metadata.runtime.copy(javaFeatureVersion = 25)).refusalOn(capableLauncher),
-        )
-        assertEquals(
-            HostReleaseRefusal.MissingModules(listOf("java.net.http")),
-            metadata.copy(runtime = metadata.runtime.copy(modules = metadata.runtime.modules + "java.net.http"))
-                .refusalOn(capableLauncher),
-        )
-        assertEquals(
-            HostReleaseRefusal.NoBuildForPlatform("windows-x64"),
-            metadata.refusalOn(capableLauncher.copy(platformKey = "windows-x64")),
-        )
-        assertEquals(
-            HostReleaseRefusal.DisallowedJvmArgument("-javaagent:evil.jar"),
-            metadata.withMacJar { copy(jvmArgs = jvmArgs + "-javaagent:evil.jar") }.refusalOn(capableLauncher),
-        )
-    }
-
-    @Test
-    fun `a launcher runs a release that asks for any system property, and for other JVM arguments its JVM started with`() {
-        val metadata = sampleMetadata().withMacJar { copy(jvmArgs = jvmArgs + "--enable-native-access=ALL-UNNAMED" + "-Dnew.property=1") }
-
-        assertNull(metadata.refusalOn(capableLauncher))
-    }
-
-    @Test
-    fun `a launcher refuses a release that needs a module of its runtime that a host cannot see`() {
-        val launcher = capableLauncher.copy(modules = runtimeModulesVisibleToHost())
-        val metadata = sampleMetadata()
-        assertTrue(ModuleLayer.boot().findModule("jdk.attach").isPresent, "jdk.attach is in this runtime")
-
-        assertNull(metadata.refusalOn(launcher))
-        assertEquals(
-            HostReleaseRefusal.MissingModules(listOf("jdk.attach")),
-            metadata.copy(runtime = metadata.runtime.copy(modules = metadata.runtime.modules + "java.sql" + "jdk.attach")).refusalOn(launcher),
-        )
-    }
-
-    @Test
-    fun `a launcher refuses a release that needs a JVM argument its own JVM did not start with`() {
-        val metadata = sampleMetadata().withMacJar { copy(jvmArgs = jvmArgs + "-Xmx8g") }
-
-        assertEquals(HostReleaseRefusal.MissingJvmArgument("-Xmx8g"), metadata.refusalOn(capableLauncher))
-        assertNull(metadata.refusalOn(capableLauncher.copy(jvmArguments = capableLauncher.jvmArguments + "-Xmx8g")))
-    }
-
-    private val capableLauncher = LauncherCapabilities(
-        contract = 1,
-        javaFeatureVersion = 21,
-        modules = setOf("java.base", "java.desktop", "java.logging"),
-        platformKey = "macos-arm64",
-        jvmArguments = listOf("-Dcompose.application.configure.swing.globals=true", "--enable-native-access=ALL-UNNAMED"),
-    )
-
-    private fun sampleMetadata() = HostReleaseMetadata(
-        format = 1,
-        version = assertNotNull(HostVersion.parse("1.0.0-alpha14")),
-        mainClass = "com.kitakkun.jetwhale.host.MainKt",
-        launcherContract = 1,
-        runtime = HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base", "java.desktop")),
-        jvmArgs = listOf("-Dcompose.application.configure.swing.globals=true"),
-        platforms = mapOf(
-            "macos-arm64" to HostPlatformRelease(
-                url = "https://example.com/host-macos-arm64.jar",
-                size = 125156159,
-                sha256 = "8b2863effc431681ccf2686981887a2b01180001fc9b01f66a975d63ee3947de",
-                jvmArgs = listOf("-Dapple.awt.application.appearance=system"),
-            ),
-            "linux-x64" to HostPlatformRelease(
-                url = "https://example.com/host-linux-x64.jar",
-                size = 119133124,
-                sha256 = "a62592231a1d2980342640c2533f60bb6d89917816d7fa2f91373097989fbf16",
-                jvmArgs = emptyList(),
-            ),
-        ),
-    )
-
-    private fun HostReleaseMetadata.withMacJar(change: HostPlatformRelease.() -> HostPlatformRelease) = copy(platforms = platforms + ("macos-arm64" to platforms.getValue("macos-arm64").change()))
 }

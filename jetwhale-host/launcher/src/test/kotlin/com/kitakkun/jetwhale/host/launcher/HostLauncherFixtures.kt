@@ -35,6 +35,8 @@ val capableLauncher = LauncherCapabilities(
 
 fun hostVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name)) { name }
 
+fun hostVersions(vararg names: String): Set<HostVersion> = names.mapTo(LinkedHashSet(), ::hostVersion)
+
 fun hostMetadata(versionName: String, jarBytes: ByteArray) = HostReleaseMetadata(
     format = 1,
     version = hostVersion(versionName),

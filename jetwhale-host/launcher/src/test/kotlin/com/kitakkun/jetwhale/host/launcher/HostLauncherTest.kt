@@ -130,11 +130,11 @@ class HostLauncherTest {
     fun `skips a set-aside version`() {
         bed.download("1.0.0-alpha14")
         bed.download("1.0.0-alpha15")
-        writeState(setAsideVersions = versions("1.0.0-alpha15"))
+        writeState(setAsideVersions = hostVersions("1.0.0-alpha15"))
 
         assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostJar.version.name)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists(), "the user can still try it again")
-        assertEquals(versions("1.0.0-alpha15"), state().setAsideVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), state().setAsideVersions)
     }
 
     @Test
@@ -150,7 +150,7 @@ class HostLauncherTest {
         starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(listOf("lock", "launched", "release", "published", "lock", "release"), events)
-        assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), state().completedStartVersions)
         assertNull(state().startedHostProcess)
     }
 
@@ -164,7 +164,7 @@ class HostLauncherTest {
         starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(listOf(30.seconds to emptySet()), completedStartVersionsAtSleeps)
-        assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), state().completedStartVersions)
     }
 
     @Test
@@ -195,7 +195,7 @@ class HostLauncherTest {
 
         assertEquals("1.0.0-alpha14", fallback.chosenHostJar.version.name)
         assertEquals("1.0.0-alpha15", fallback.setAsideVersion?.name)
-        assertEquals(versions("1.0.0-alpha15"), state().setAsideVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), state().setAsideVersions)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -251,7 +251,7 @@ class HostLauncherTest {
         starting.startOutcomeRecorder.recordStartEndedWithoutFailure()
 
         assertEquals(completed, state())
-        assertEquals(versions("1.0.0-alpha15"), completed.completedStartVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), completed.completedStartVersions)
         assertEquals(emptyMap(), completed.failedStartCounts)
     }
 
@@ -284,7 +284,7 @@ class HostLauncherTest {
     @Test
     fun `does not count a failed start of a version that has completed one before`() {
         bed.download("1.0.0-alpha15")
-        writeState(completedStartVersions = versions("1.0.0-alpha15"))
+        writeState(completedStartVersions = hostVersions("1.0.0-alpha15"))
         bed.launch(pid = 101)
         bed.crash(101)
         bed.launch(pid = 102)
@@ -332,7 +332,7 @@ class HostLauncherTest {
     @Test
     fun `has nothing left without a bundled version once every download is set aside`() {
         bed.download("1.0.0-alpha15")
-        writeState(setAsideVersions = versions("1.0.0-alpha15"))
+        writeState(setAsideVersions = hostVersions("1.0.0-alpha15"))
 
         val outcome = bed.launcher(pid = 101, bundled = false).launch(afterPid = null, retryVersion = null)
 
@@ -342,29 +342,15 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `keeps the running version and the newest newer one after a start`() {
-        listOf("1.0.0-alpha14", "1.0.0-alpha15", "1.0.0-alpha16", "1.0.0-alpha17").forEach(bed::download)
-        writeState(
-            completedStartVersions = versions("1.0.0-alpha14"),
-            setAsideVersions = versions("1.0.0-alpha15", "1.0.0-alpha16", "1.0.0-alpha17"),
-            failedStartCounts = mapOf(hostVersion("1.0.0-alpha16") to 2, hostVersion("1.0.0-alpha17") to 2),
-        )
+    fun `deletes the downloaded versions that do not stay once it records a completed start`() {
+        bed.download("1.0.0-alpha14")
+        bed.download("1.0.0-alpha15")
+        writeState(completedStartVersions = hostVersions("1.0.0-alpha14"))
 
-        val starting = starting(bed.launch(pid = 101))
-        completeStart(101, starting)
+        completeStart(101, starting(bed.launch(pid = 101)))
 
-        assertEquals("1.0.0-alpha14", starting.chosenHostJar.version.name)
-        assertEquals(listOf("1.0.0-alpha17", "1.0.0-alpha14"), hostDirectory.hostVersionDirectories().map { it.version.name })
-        assertEquals(
-            LauncherState(
-                completedStartVersions = versions("1.0.0-alpha14"),
-                setAsideVersions = versions("1.0.0-alpha17"),
-                failedStartCounts = mapOf(hostVersion("1.0.0-alpha17") to 2),
-                startedHostProcess = null,
-            ),
-            state(),
-        )
-        assertTrue(Files.exists(bed.bundledDirectory.resolve("release.json")), "the bundled version is never deleted")
+        assertEquals(listOf("1.0.0-alpha15"), hostDirectory.hostVersionDirectories().map { it.version.name })
+        assertEquals(hostVersions("1.0.0-alpha15"), state().completedStartVersions)
     }
 
     @Test
@@ -430,8 +416,8 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha14")
         bed.download("1.0.0-alpha15")
         writeState(
-            completedStartVersions = versions("1.0.0-alpha14"),
-            setAsideVersions = versions("1.0.0-alpha15"),
+            completedStartVersions = hostVersions("1.0.0-alpha14"),
+            setAsideVersions = hostVersions("1.0.0-alpha15"),
             failedStartCounts = mapOf(hostVersion("1.0.0-alpha15") to 2),
         )
 
@@ -446,7 +432,7 @@ class HostLauncherTest {
     fun `keeps a change made to the record while the host ran when it records the completed start`() {
         bed.download("1.0.0-alpha15")
         bed.download("1.0.0-alpha16")
-        writeState(setAsideVersions = versions("1.0.0-alpha16"))
+        writeState(setAsideVersions = hostVersions("1.0.0-alpha16"))
         val starting = starting(bed.launch(pid = 101))
         bed.hostComesUp(101, starting)
         hostDirectory.writeLauncherState(state().copy(setAsideVersions = emptySet()))
@@ -454,7 +440,7 @@ class HostLauncherTest {
         starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(emptySet(), state().setAsideVersions)
-        assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
+        assertEquals(hostVersions("1.0.0-alpha15"), state().completedStartVersions)
     }
 
     @Test
@@ -484,8 +470,6 @@ class HostLauncherTest {
     ) {
         hostDirectory.writeLauncherState(LauncherState(completedStartVersions, setAsideVersions, failedStartCounts, startedHostProcess))
     }
-
-    private fun versions(vararg names: String): Set<HostVersion> = names.mapTo(LinkedHashSet(), ::hostVersion)
 
     private fun recordingLaunchLock(lockFiles: LockFiles, events: MutableList<String>) = object : LockFiles by lockFiles {
         override fun lock(path: Path): HeldLock {

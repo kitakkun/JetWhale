@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
+import com.kitakkun.jetwhale.host.release.LauncherCompatibility
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.StartedHostProcess
@@ -44,6 +45,10 @@ class HostLauncher(
     private val log: LauncherLog,
     private val sleep: (Duration) -> Unit,
 ) {
+    private val launcherCompatibility = LauncherCompatibility(capabilities)
+
+    private val hostVersionRetention = HostVersionRetention(hostDirectory, bundledHostJar?.version, log)
+
     /**
      * Returns [LaunchOutcome.Starting] still holding `launch.lock`, which its [HostStartOutcomeRecorder]
      * lets go.
@@ -161,7 +166,7 @@ class HostLauncher(
             is HostReleaseMetadataResult.Malformed -> return discard(hostVersionDirectory, "its metadata is malformed (${read.reason})")
         }
         if (metadata.version.name != version.name) return discard(hostVersionDirectory, "its metadata is for ${metadata.version}")
-        val refusal = metadata.refusalOn(capabilities)
+        val refusal = launcherCompatibility.refusalOf(metadata)
         if (refusal != null) {
             log.write("Skipping $version: $refusal")
             return null
@@ -179,12 +184,8 @@ class HostLauncher(
 
     private fun discard(hostVersionDirectory: HostVersionDirectory, reason: String): ChosenHostJar? {
         log.write("Deleting ${hostVersionDirectory.version}: $reason")
-        delete(hostVersionDirectory)
-        return null
-    }
-
-    private fun delete(hostVersionDirectory: HostVersionDirectory) {
         if (!hostDirectory.delete(hostVersionDirectory)) log.write("Could not delete all of ${hostVersionDirectory.version}; a later start tries again")
+        return null
     }
 
     /**
@@ -263,7 +264,7 @@ class HostLauncher(
         @Synchronized
         private fun recordCompletedStart() = recordOutcomeOnce { state ->
             log.write("${chosenHostJar.version} completed its start")
-            pruneAfterStart(
+            hostVersionRetention.pruneAfterCompletedStart(
                 chosenHostJar,
                 state.copy(
                     completedStartVersions = state.completedStartVersions + chosenHostJar.version,
@@ -303,27 +304,6 @@ class HostLauncher(
                 launchLock.close()
             }
         }
-    }
-
-    /**
-     * Keeps [chosenHostJar], which runs, and the newest version newer than it, which is set aside or
-     * finished downloading during this start, and deletes every other downloaded version.
-     */
-    private fun pruneAfterStart(chosenHostJar: ChosenHostJar, launcherState: LauncherState): LauncherState {
-        val hostVersionDirectories = hostDirectory.hostVersionDirectories()
-        val newestNewer = hostVersionDirectories.firstOrNull { it.version > chosenHostJar.version }
-        hostVersionDirectories
-            .filterNot { it == newestNewer || (!chosenHostJar.isBundled && it.version == chosenHostJar.version) }
-            .forEach {
-                log.write("Deleting ${it.version}: ${chosenHostJar.version} completed a start")
-                delete(it)
-            }
-        val keptVersions = hostDirectory.hostVersionDirectories().map(HostVersionDirectory::version).toSet() + listOfNotNull(bundledHostJar?.version)
-        return launcherState.copy(
-            completedStartVersions = launcherState.completedStartVersions.intersect(keptVersions),
-            setAsideVersions = launcherState.setAsideVersions.intersect(keptVersions),
-            failedStartCounts = launcherState.failedStartCounts.filterKeys(keptVersions::contains),
-        )
     }
 
     private sealed interface Candidate {

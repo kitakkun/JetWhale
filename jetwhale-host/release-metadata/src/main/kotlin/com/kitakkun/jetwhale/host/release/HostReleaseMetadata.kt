@@ -28,33 +28,6 @@ data class HostReleaseMetadata(
 
     fun jvmArgsFor(platformKey: String): List<String> = jvmArgs + platforms[platformKey]?.jvmArgs.orEmpty()
 
-    /** Why a launcher with [launcher]'s capabilities cannot run this release, or null when it can. */
-    fun refusalOn(launcher: LauncherCapabilities): HostReleaseRefusal? {
-        if (launcherContract > launcher.contract) {
-            return HostReleaseRefusal.NeedsNewerLauncher(launcherContract)
-        }
-        if (runtime.javaFeatureVersion > launcher.javaFeatureVersion) {
-            return HostReleaseRefusal.NeedsNewerJava(runtime.javaFeatureVersion)
-        }
-        val missingModules = runtime.modules.filterNot(launcher.modules::contains)
-        if (missingModules.isNotEmpty()) {
-            return HostReleaseRefusal.MissingModules(missingModules)
-        }
-        if (launcher.platformKey !in platforms) {
-            return HostReleaseRefusal.NoBuildForPlatform(launcher.platformKey)
-        }
-        val jvmArgs = jvmArgsFor(launcher.platformKey)
-        val disallowedArgument = jvmArgs.firstOrNull { !isAllowedHostJvmArgument(it) }
-        if (disallowedArgument != null) {
-            return HostReleaseRefusal.DisallowedJvmArgument(disallowedArgument)
-        }
-        val missingArgument = jvmArgs.firstOrNull { systemPropertyOf(it) == null && it !in launcher.jvmArguments }
-        if (missingArgument != null) {
-            return HostReleaseRefusal.MissingJvmArgument(missingArgument)
-        }
-        return null
-    }
-
     companion object {
         /** The metadata format this code reads and writes. A file with a higher one is refused. */
         const val FORMAT = 1
