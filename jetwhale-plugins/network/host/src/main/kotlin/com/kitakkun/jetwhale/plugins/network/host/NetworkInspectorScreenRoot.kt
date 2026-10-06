@@ -11,18 +11,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTableColumnKey
+import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.host.ui.rememberJwTableColumnState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -41,12 +47,14 @@ fun NetworkInspectorScreenRoot(
     modifier: Modifier = Modifier,
 ) {
     val trafficSplitPaneState = rememberPersistedSplitPaneState()
+    val trafficColumnState = rememberPersistedTrafficColumnState()
 
     NetworkInspectorScreen(
         transactions = transactions,
         mockRules = mockRules,
         mockingEnabled = mockingEnabled,
         trafficSplitPaneState = trafficSplitPaneState,
+        trafficColumnState = trafficColumnState,
         onClearTransactions = onClearTransactions,
         onToggleMocking = onToggleMocking,
         onMockRulesChanged = onMockRulesChanged,
@@ -77,6 +85,34 @@ private fun rememberPersistedSplitPaneState(): JwSplitPaneState {
     return splitPaneState
 }
 
+/**
+ * The traffic table's column widths the user dragged, kept across host restarts, mirrored both ways
+ * for the same reason as [rememberPersistedSplitPaneState]. Only changes to the table's widths are
+ * written back, not the empty map it starts with, so the stored widths survive whichever direction
+ * starts collecting first.
+ */
+@Composable
+private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
+    var storedWidths by rememberPersistent(COLUMN_WIDTHS_KEY, emptyList<StoredColumnWidth>())
+    val columnState = rememberJwTableColumnState()
+    LaunchedEffect(columnState) {
+        launch {
+            snapshotFlow { storedWidths }
+                .collect { stored -> columnState.widths = stored.associate { JwTableColumnKey(it.index, it.header) to it.width.dp } }
+        }
+        snapshotFlow { columnState.widths }
+            .drop(1)
+            .collect { widths -> storedWidths = widths.map { (column, width) -> StoredColumnWidth(column.index, column.header, width.value) } }
+    }
+    return columnState
+}
+
+/** A traffic-table column width as stored: the column's [JwTableColumnKey], and the width in dp. */
+@Serializable
+private data class StoredColumnWidth(val index: Int, val header: String, val width: Float)
+
 private const val SPLIT_POSITION_KEY = "traffic.splitPosition"
+
+private const val COLUMN_WIDTHS_KEY = "traffic.columnWidths"
 
 private const val DEFAULT_SPLIT_POSITION = 0.42f
