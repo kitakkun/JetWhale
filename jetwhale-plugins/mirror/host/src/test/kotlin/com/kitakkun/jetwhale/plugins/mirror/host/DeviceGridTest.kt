@@ -228,7 +228,7 @@ class DeviceGridTest {
 private object IgnoredNotices : MirrorNoticeActions {
     override val notice: MirrorNotice? get() = null
 
-    override fun perform(action: NoticeAction) = Unit
+    override fun dismissAndRun(action: NoticeAction) = Unit
 
     override fun dismiss() = Unit
 

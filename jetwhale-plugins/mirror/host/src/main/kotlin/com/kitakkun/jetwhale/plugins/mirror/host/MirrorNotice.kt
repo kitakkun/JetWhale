@@ -127,7 +127,7 @@ internal interface MirrorNoticeActions {
     val notice: MirrorNotice?
 
     /** Dismisses the notice, then does what [action] says. */
-    fun perform(action: NoticeAction)
+    fun dismissAndRun(action: NoticeAction)
 
     fun dismiss()
 

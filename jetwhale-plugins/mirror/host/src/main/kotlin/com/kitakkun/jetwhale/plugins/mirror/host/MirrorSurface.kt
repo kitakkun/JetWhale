@@ -100,7 +100,7 @@ internal class MirrorSurface : AutoCloseable {
          */
         fun recordDecode(nanos: Long) {
             window.recordDecode(nanos)
-            publishStatsIfDue()
+            updateStatsIfDue()
         }
     }
 
@@ -279,7 +279,7 @@ internal class MirrorSurface : AutoCloseable {
         if (this === drawn) closeWhenDrawn = true else close()
     }
 
-    private fun publishStatsIfDue() {
+    private fun updateStatsIfDue() {
         window.takeIfDue(STATS_WINDOW_NANOS)?.let { stats = it }
     }
 
