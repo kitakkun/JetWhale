@@ -444,7 +444,7 @@ class HostLauncherTest {
 
     @Test
     fun `does not take the instance JSON an earlier host left behind for this host's`() {
-        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = 0, pid = 101, token = "stale"))
+        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = 0, pid = 101, token = "stale"))
 
         bed.launch(pid = 101)
 

@@ -130,10 +130,10 @@ class FakeRunningHostChannel(
         private set
 
     fun publishInstanceJson(pid: Long) {
-        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = 0, pid = pid, token = "token"))
+        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = 0, pid = pid, token = "token"))
     }
 
-    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = InstanceJson.read(hostVersionsDirectory)?.pid == pid
+    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = hostVersionsDirectory.readInstanceJson()?.pid == pid
 
     override fun requestBringToFront(): Boolean {
         bringToFrontRequests++

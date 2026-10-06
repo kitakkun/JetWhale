@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.instance
 
+import com.kitakkun.jetwhale.host.release.BringToFrontClient
 import com.kitakkun.jetwhale.host.release.HeldLock
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.InstanceJson
@@ -45,8 +46,7 @@ class HostInstance private constructor(
      * sees it, and reaches the host through it.
      */
     fun publishInstanceJson() {
-        InstanceJson.publish(
-            hostVersionsDirectory,
+        hostVersionsDirectory.publishInstanceJson(
             InstanceJson(port = server.localPort, pid = ProcessHandle.current().pid(), token = token),
         )
     }
@@ -69,7 +69,7 @@ class HostInstance private constructor(
         fun claim(hostVersionsDirectory: HostVersionsDirectory, lockFiles: LockFiles): HostInstanceClaim {
             processInstanceLock = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile)
                 ?: return HostInstanceClaim.HeldByAnother(
-                    broughtToFront = InstanceJson.requestBringToFront(hostVersionsDirectory, timeout = 5.seconds),
+                    broughtToFront = BringToFrontClient(hostVersionsDirectory).requestBringToFront(timeout = 5.seconds),
                 )
             val server = ServerSocket(0, 8, InetAddress.getLoopbackAddress())
             val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
@@ -95,9 +95,9 @@ class HostInstance private constructor(
 
     private fun answer(connection: Socket) {
         try {
-            val accepted = readRequest(connection) == "${InstanceJson.BRING_TO_FRONT_REQUEST} $token"
+            val accepted = readRequest(connection) == BringToFrontClient.requestLine(token)
             if (accepted) mutableBringToFrontRequests.tryEmit(Unit)
-            connection.getOutputStream().write("${if (accepted) InstanceJson.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
+            connection.getOutputStream().write("${if (accepted) BringToFrontClient.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
         } catch (e: IOException) {
             logger.warn("A request to bring the window to the front could not be read", e)
         }

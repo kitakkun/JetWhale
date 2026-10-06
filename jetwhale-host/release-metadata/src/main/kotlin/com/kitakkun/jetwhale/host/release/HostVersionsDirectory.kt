@@ -34,8 +34,7 @@ class HostVersionsDirectory(val root: Path) {
     /** Held by the running host for as long as it runs. */
     val instanceLockFile: Path get() = root.resolve("instance.lock")
 
-    /** The running host's [InstanceJson]. */
-    val instanceJsonFile: Path get() = root.resolve("instance.json")
+    private val instanceJsonFile: Path get() = root.resolve("instance.json")
 
     private val launcherStateFile: Path get() = root.resolve("launcher-state.json")
 
@@ -92,6 +91,20 @@ class HostVersionsDirectory(val root: Path) {
         false
     }
 
+    /** What the running host published, or null when `instance.json` is missing or unreadable. */
+    fun readInstanceJson(): InstanceJson? = try {
+        json.decodeFromString(InstanceJson.serializer(), Files.readString(instanceJsonFile))
+    } catch (_: IOException) {
+        null
+    } catch (_: SerializationException) {
+        null
+    }
+
+    /** Replaces `instance.json`. Only the running host writes it, once it is up. */
+    fun publishInstanceJson(instanceJson: InstanceJson) {
+        writeAtomically(instanceJsonFile, json.encodeToString(InstanceJson.serializer(), instanceJson))
+    }
+
     /**
      * Deletes the `instance.json` a host left behind when it ended. A later host can get the same
      * process ID, and the old file would then pass for its own.
@@ -114,7 +127,7 @@ class HostVersionsDirectory(val root: Path) {
          * Writes [text] to a temporary file next to [target] and renames it over [target], so a
          * reader sees the old content or the new, never a part.
          */
-        fun writeAtomically(target: Path, text: String) {
+        private fun writeAtomically(target: Path, text: String) {
             Files.createDirectories(target.parent)
             val temporary = Files.createTempFile(target.parent, target.name, ".tmp")
             try {

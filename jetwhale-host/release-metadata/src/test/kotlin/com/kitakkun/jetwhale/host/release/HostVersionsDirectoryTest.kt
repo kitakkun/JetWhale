@@ -66,6 +66,25 @@ class HostVersionsDirectoryTest {
     }
 
     @Test
+    fun `reads back the instance JSON it published`() {
+        val instanceJson = InstanceJson(port = 5000, pid = 42, token = "secret")
+
+        hostVersionsDirectory.publishInstanceJson(instanceJson)
+
+        assertEquals(instanceJson, hostVersionsDirectory.readInstanceJson())
+    }
+
+    @Test
+    fun `reads a missing or unreadable instance JSON as none`() {
+        assertNull(hostVersionsDirectory.readInstanceJson())
+
+        Files.createDirectories(root)
+        Files.writeString(root.resolve("instance.json"), "{ broken")
+
+        assertNull(hostVersionsDirectory.readInstanceJson())
+    }
+
+    @Test
     fun `deletes a version directory with its files`() {
         Files.createDirectories(root.resolve("1.0.0-alpha15"))
         Files.writeString(root.resolve("1.0.0-alpha15/release.json"), "{}")
