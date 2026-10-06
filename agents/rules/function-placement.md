@@ -48,6 +48,14 @@ published artifact gains a dependency.
   interface file defines the contract; helpers for implementing it go with the implementations, or
   on the type they produce (5). Implementations declared in the same file as their interface follow
   rule 2 as usual.
+- A data type's companion object that does more than build that type or name its constants. File
+  I/O, network calls and protocols don't belong there:
+  - file I/O goes on the type that owns the file or the directory, as `HostVersionsDirectory`
+    reads and writes `launcher-state.json`;
+  - a protocol goes in a class named after it (3).
+
+  A call like `InstanceJson.requestBringToFront(…)` reads as asking the JSON to do it, and the data
+  type ends up holding unrelated reasons to change.
 
 ## Not worth a function
 
