@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
     alias(libs.plugins.aboutLibraries)
-    id("jetwhale-host-release")
+    alias(libs.plugins.jetwhaleHostRelease)
 }
 
 val generateBuildConfig by tasks.registering {
