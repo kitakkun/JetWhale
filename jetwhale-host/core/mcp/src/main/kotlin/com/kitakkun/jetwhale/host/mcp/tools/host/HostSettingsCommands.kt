@@ -34,7 +34,6 @@ class UpdateSettingsCommand(
     private val wssEnabled by booleanOrNull("Whether the secure (wss) connector is exposed at all.")
     private val mcpServerPort by intOrNull("Port this MCP server listens on. Persisted only — see the note in the result.")
     private val adbAutoPortMappingEnabled by booleanOrNull("Whether the host runs `adb reverse` automatically for connected Android devices.")
-    private val checkForUpdatesOnStartup by booleanOrNull("Whether the host checks for a newer release when it starts.")
     private val persistData by booleanOrNull("Whether captured debug data survives a host restart.")
     private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
 
@@ -66,10 +65,6 @@ class UpdateSettingsCommand(
         arguments[adbAutoPortMappingEnabled]?.let { enabled ->
             settingsRepository.updateAdbAutoPortMappingEnabled(enabled)
             applied["adbAutoPortMappingEnabled"] = enabled.toString()
-        }
-        arguments[checkForUpdatesOnStartup]?.let { enabled ->
-            settingsRepository.updateCheckForUpdatesOnStartup(enabled)
-            applied["checkForUpdatesOnStartup"] = enabled.toString()
         }
         arguments[persistData]?.let { enabled ->
             settingsRepository.updatePersistData(enabled)

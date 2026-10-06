@@ -12,21 +12,16 @@ import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image
 import java.awt.Desktop
-import java.awt.Toolkit
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.StringSelection
-import java.awt.datatransfer.Transferable
-import java.awt.datatransfer.UnsupportedFlavorException
 import java.io.File
 import java.io.IOException
 import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicLong
-import javax.imageio.ImageIO
 import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
 
@@ -49,7 +44,8 @@ internal interface CapturesActions {
 
     fun reveal(capture: Capture)
 
-    fun copyImage(capture: Capture)
+    /** Puts [capture] on the clipboard: a screenshot as its image and its file, a recording as its file. */
+    fun copy(capture: Capture)
 
     fun copyPath(capture: Capture)
 
@@ -73,6 +69,7 @@ internal class MirrorCaptures(
     private val zone: ZoneId,
     private val notices: MirrorNotices,
     private val ffmpegPath: String?,
+    private val clipboard: CaptureClipboard,
 ) : CapturesActions,
     ThumbnailSource {
     var library: CaptureLibrary by mutableStateOf(CaptureLibrary(defaultRoot, zone))
@@ -95,10 +92,28 @@ internal class MirrorCaptures(
 
     private var device: DeviceListing? = null
 
-    private val listings = AtomicLong()
+    private val captureListGeneration = AtomicLong()
+
+    // One copy at a time, in the order they were asked for, so a slow copy cannot land on the
+    // clipboard after a later one.
+    private val clipboardRequests = Channel<ClipboardRequest>(Channel.UNLIMITED)
 
     private val thumbnails = object : LinkedHashMap<File, ImageBitmap>(THUMBNAIL_CACHE_SIZE, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<File, ImageBitmap>): Boolean = size > THUMBNAIL_CACHE_SIZE
+    }
+
+    init {
+        scope.launch(Dispatchers.IO) {
+            for ((capture, pathOnly) in clipboardRequests) {
+                val what = if (pathOnly) "the path of ${capture.file.name}" else capture.file.name
+                try {
+                    if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
+                    notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: IOException) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                }
+            }
+        }
     }
 
     /** Reads the folder the user picked last time, if any. */
@@ -118,7 +133,7 @@ internal class MirrorCaptures(
         val at = Instant.now()
         val file = library.newFile(device, CaptureKind.Screenshot, at).apply { writeBytes(png) }
         val size = Image.makeFromEncoded(png).use { IntSize(it.width, it.height) }
-        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::prependToCaptureList)
     }
 
     /** A new, empty file for a recording of [device] that starts now. */
@@ -130,7 +145,7 @@ internal class MirrorCaptures(
      */
     suspend fun addRecording(device: DeviceListing, file: File, startedAt: Instant, size: IntSize?): Capture = withContext(Dispatchers.IO) {
         val duration = mp4DurationMillis(file) ?: (Instant.now().toEpochMilli() - startedAt.toEpochMilli())
-        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::prependToCaptureList)
     }
 
     /** The decoded thumbnail of [capture] if it is cached; null means [loadThumbnail] it. */
@@ -169,17 +184,12 @@ internal class MirrorCaptures(
         if (desktop.isSupported(Desktop.Action.BROWSE_FILE_DIR)) desktop.browseFileDirectory(capture.file) else desktop.open(capture.file.parentFile)
     }
 
-    override fun copyImage(capture: Capture) {
-        scope.launch(Dispatchers.IO) {
-            val image = ImageIO.read(capture.file) ?: return@launch
-            Toolkit.getDefaultToolkit().systemClipboard.setContents(ImageSelection(image), null)
-            notices.show(MirrorNotice.info("Copied ${capture.file.name} to the clipboard"))
-        }
+    override fun copy(capture: Capture) {
+        clipboardRequests.trySend(ClipboardRequest(capture, pathOnly = false))
     }
 
     override fun copyPath(capture: Capture) {
-        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(capture.file.absolutePath), null)
-        notices.show(MirrorNotice.info("Copied the path of ${capture.file.name}"))
+        clipboardRequests.trySend(ClipboardRequest(capture, pathOnly = true))
     }
 
     override fun delete(capture: Capture) {
@@ -187,7 +197,7 @@ internal class MirrorCaptures(
             library.delete(capture)
             synchronized(thumbnails) { thumbnails.remove(capture.file) }
             refresh()
-            synchronized(listings) { captures = captures - capture }
+            synchronized(captureListGeneration) { captures = captures - capture }
             if (selected == capture) selected = null
         }
     }
@@ -211,17 +221,17 @@ internal class MirrorCaptures(
 
     private fun refresh() {
         val deviceId = device?.id?.takeUnless { allDevices }
-        val listing = listings.incrementAndGet()
+        val listing = captureListGeneration.incrementAndGet()
         scope.launch(Dispatchers.IO) {
             val listed = library.list(deviceId, kind, sinceEpochMillis = null)
-            synchronized(listings) { if (listings.get() == listing) captures = listed }
+            synchronized(captureListGeneration) { if (captureListGeneration.get() == listing) captures = listed }
         }
     }
 
-    private fun added(capture: Capture) {
+    private fun prependToCaptureList(capture: Capture) {
         refresh()
         val shown = (allDevices || capture.info.deviceId == device?.id) && (kind == null || kind == capture.info.kind)
-        if (shown) synchronized(listings) { captures = listOf(capture) + captures }
+        if (shown) synchronized(captureListGeneration) { captures = listOf(capture) + captures }
     }
 
     private fun desktop(action: (Desktop) -> Unit) {
@@ -233,6 +243,8 @@ internal class MirrorCaptures(
             notices.show(MirrorNotice.failure("This desktop cannot open files from here: ${e.message}", retry = null))
         }
     }
+
+    private data class ClipboardRequest(val capture: Capture, val pathOnly: Boolean)
 }
 
 private fun captureInfo(device: DeviceListing, kind: CaptureKind, size: IntSize?, at: Instant, durationMillis: Long?) = CaptureInfo(
@@ -247,15 +259,3 @@ private fun captureInfo(device: DeviceListing, kind: CaptureKind, size: IntSize?
     capturedAtEpochMillis = at.toEpochMilli(),
     durationMillis = durationMillis,
 )
-
-/** Offers an image to the clipboard as an image, which AWT has no ready-made class for. */
-private class ImageSelection(private val image: java.awt.Image) : Transferable {
-    override fun getTransferDataFlavors(): Array<DataFlavor> = arrayOf(DataFlavor.imageFlavor)
-
-    override fun isDataFlavorSupported(flavor: DataFlavor): Boolean = flavor == DataFlavor.imageFlavor
-
-    override fun getTransferData(flavor: DataFlavor): Any {
-        if (flavor != DataFlavor.imageFlavor) throw UnsupportedFlavorException(flavor)
-        return image
-    }
-}

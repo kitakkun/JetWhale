@@ -68,6 +68,6 @@ class AppMetadataResolverTest {
 
         val metadata = resolveAppMetadata(config)
 
-        assertEquals(getDeviceModelName(), metadata.deviceName)
+        assertEquals(resolveDefaultDeviceName(), metadata.deviceName)
     }
 }

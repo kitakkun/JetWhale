@@ -74,7 +74,6 @@ class HostStatusCommandTest {
             every { wssEnabledFlow } returns MutableStateFlow(true)
             every { mcpServerPortFlow } returns MutableStateFlow(7080)
             every { adbAutoPortMappingEnabledFlow } returns MutableStateFlow(true)
-            every { checkForUpdatesOnStartupFlow } returns MutableStateFlow(true)
             every { persistDataFlow } returns MutableStateFlow(false)
         },
         mcpPermissionsRepository = permissions,

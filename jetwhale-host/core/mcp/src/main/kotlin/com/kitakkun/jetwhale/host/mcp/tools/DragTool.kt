@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -73,7 +74,8 @@ class DragMcpTool(
 }
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-suspend fun dispatchDrag(
+@VisibleForTesting
+internal suspend fun dispatchDrag(
     scene: PluginComposeScene,
     startX: Float,
     startY: Float,

@@ -38,13 +38,16 @@ class DefaultMcpPermissionsRepository(
                 pluginsDeniedInspect = preferences[KEY_DENIED_PLUGIN_INSPECT].orEmpty(),
                 pluginsDeniedInteract = preferences[KEY_DENIED_PLUGIN_INTERACT].orEmpty(),
                 deniedPluginTools = preferences[KEY_DENIED_PLUGIN_TOOLS].orEmpty(),
-            ).allOverriddenBy(launchOverride)
+            )
         }
+        .map(::withLaunchOverride)
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            initialValue = McpPermissions.Default.allOverriddenBy(launchOverride),
+            initialValue = withLaunchOverride(McpPermissions.Default),
         )
+
+    private fun withLaunchOverride(permissions: McpPermissions): McpPermissions = if (launchOverride.allowAll) McpPermissions.AllowAll else permissions
 
     override suspend fun setHostGroupAllowed(group: McpHostToolGroup, allowed: Boolean) {
         dataStore.edit { preferences ->

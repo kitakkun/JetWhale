@@ -9,6 +9,11 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
+import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -82,6 +87,17 @@ class NetworkMcpCommandsTest {
     fun `cursor resolves against the unfiltered list so filters can change between pages`() {
         val result = execute(listCommand(), "afterTxId" to "b", "urlContains" to "/d")
         assertEquals(listOf("d"), txIdsOf(result))
+    }
+
+    @Test
+    fun `urlContains cannot probe a query value hidden from MCP`() {
+        val mcpOnlyRules = listOf(RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER))
+        val command = ListTransactionsCommand(
+            transactions = { listOf(tx("a", 100, url = "https://api.example.com/a?token=secret&page=2")) },
+            redactForMcp = { it.copy(request = mcpOnlyRules.redact(it.request)) },
+        )
+        assertEquals(emptyList(), txIdsOf(execute(command, "urlContains" to "token=s")))
+        assertEquals(listOf("a"), txIdsOf(execute(command, "urlContains" to "page=2")))
     }
 
     @Test

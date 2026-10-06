@@ -53,6 +53,10 @@ const val REDACTED_PLACEHOLDER: String = "<redacted>"
  * Applies the matching rules to a captured request. Runs on the agent for
  * [RedactionScope.EVERYWHERE] rules and on the host (before building MCP tool results) for
  * [RedactionScope.MCP_ONLY] rules.
+ *
+ * URL query rules apply to the URL and to every header value a header rule does not hide whole:
+ * headers such as `Referer` carry a URL, so the value after a matching `?name=` or `&name=` in them
+ * is hidden as in a failure's message.
  */
 fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpRequest {
     if (isEmpty()) return request
@@ -63,7 +67,10 @@ fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpReques
     )
 }
 
-/** Applies the matching rules to a captured response; see the [CapturedHttpRequest] overload. */
+/**
+ * Applies the matching rules to a captured response; see the [CapturedHttpRequest] overload. A
+ * redirect's `Location` is one of the header values whose query values this hides.
+ */
 fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResponse {
     if (isEmpty()) return response
     return response.copy(
@@ -72,12 +79,37 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
     )
 }
 
+/**
+ * Applies the URL query rules to a failure's message, which may quote the request URL in full, as
+ * Ktor's timeout exceptions do. The value after every `?name=` or `&name=` in the message is hidden
+ * up to the next `&`, `#` or whitespace, whatever the URL's scheme (WebSocket URLs included) and
+ * wherever the URL seems to end.
+ */
+fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure = failure.copy(message = redactQueryParamsInText(failure.message))
+
 private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
     when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
-        null -> values
+        null -> values.map { redactQueryParamsInText(it) }
         else -> values.map(strategy::render)
     }
 }
+
+private fun List<RedactionRule>.redactQueryParamsInText(text: String): String {
+    if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return text
+    val redacted = StringBuilder()
+    var copiedUpTo = 0
+    for (name in QUERY_PARAM_NAME_IN_TEXT.findAll(text)) {
+        if (name.range.first < copiedUpTo) continue
+        val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name.groupValues[1].formUrlDecode()) ?: continue
+        val value = checkNotNull(QUERY_PARAM_VALUE.matchAt(text, name.range.last + 1))
+        redacted.appendRange(text, copiedUpTo, value.range.first).append(strategy.render(value.value))
+        copiedUpTo = value.range.last + 1
+    }
+    return redacted.appendRange(text, copiedUpTo, text.length).toString()
+}
+
+private val QUERY_PARAM_NAME_IN_TEXT = Regex("""[?&]([^?&#=\s]*)=""")
+private val QUERY_PARAM_VALUE = Regex("""[^&#\s]*""")
 
 private fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: String): RedactionStrategy? = lastOrNull { it.target == target && it.name.equals(name, ignoreCase = true) }?.strategy
 
@@ -96,7 +128,7 @@ private fun List<RedactionRule>.redactUrl(url: String): String {
         .split('&')
         .joinToString("&") { param ->
             val name = param.substringBefore('=')
-            val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name)
+            val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name.formUrlDecode())
             if ('=' in param && strategy != null) {
                 "$name=${strategy.render(param.substringAfter('='))}"
             } else {
@@ -113,11 +145,63 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     if (encoding == BodyEncoding.BASE64) return body
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
-        Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray } ?: return body
+        Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray }
     } catch (_: SerializationException) {
-        return body
+        null
     }
-    return Json.encodeToString(JsonElement.serializer(), redactFields(element))
+    return when {
+        element != null -> Json.encodeToString(JsonElement.serializer(), redactFields(element))
+        (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) && namesBodyField(body) -> WITHHELD_BODY
+        else -> body
+    }
+}
+
+private const val WITHHELD_BODY = "<body withheld: it names a redacted field but could not be parsed to redact it>"
+
+private fun List<RedactionRule>.namesBodyField(text: String): Boolean {
+    val names = filter { it.target == RedactionTarget.BODY_FIELD }.map(RedactionRule::name)
+    return textBetweenQuotes(text).any { stretch -> names.any { it.equals(stretch, ignoreCase = true) } }
+}
+
+/**
+ * The text between each two consecutive unescaped quotes in [text], unescaped as a JSON string; a
+ * stretch cut off at the end is left out. The stretches between string literals count too, so a
+ * stray quote in malformed JSON cannot shift a field name out of the scan.
+ */
+private fun textBetweenQuotes(text: String): Sequence<String> = sequence {
+    var index = text.indexOf('"')
+    while (index >= 0) {
+        val stretch = StringBuilder()
+        var at = index + 1
+        while (at < text.length && text[at] != '"') {
+            if (text[at] == '\\' && at + 1 < text.length) {
+                val unicode = text.getOrNull(at + 1) == 'u' && at + 6 <= text.length
+                val code = if (unicode) text.substring(at + 2, at + 6).takeIf { it.all(Char::isHexDigit) }?.toInt(radix = 16) else null
+                if (code != null) {
+                    stretch.append(code.toChar())
+                    at += 6
+                } else {
+                    stretch.append(
+                        when (val escaped = text[at + 1]) {
+                            'b' -> '\b'
+                            'f' -> '\u000C'
+                            'n' -> '\n'
+                            'r' -> '\r'
+                            't' -> '\t'
+                            else -> escaped
+                        },
+                    )
+                    at += 2
+                }
+            } else {
+                stretch.append(text[at])
+                at++
+            }
+        }
+        if (at >= text.length) return@sequence
+        yield(stretch.toString())
+        index = at
+    }
 }
 
 private fun List<RedactionRule>.redactFormBody(body: String): String = body

@@ -30,6 +30,14 @@ SDK modules) is designed for its callers outside the module, and its extensions 
    function in that file named for the type it builds. A reader looking for "how do I build one of
    these" finds it by the type's name.
 
+A declaration a test has to reach directly (a function, a constant, a property, or a type that only
+such declarations expose) is widened to `internal`, no further, and says so with
+`androidx.annotation.VisibleForTesting` (`otherwise =` only when it would not have been `private`).
+The annotation comes in through `compileOnly`, which Kotlin offers only for JVM targets. A published
+multiplatform module therefore uses it only when an `api` dependency such as Compose UI already
+brings it in; otherwise its test-widened declarations stay `internal` without it, so that no
+published artifact gains a dependency.
+
 ## Not allowed
 
 - An `internal` or public top-level helper whose callers are one or two distant classes. Move it to
@@ -40,6 +48,7 @@ SDK modules) is designed for its callers outside the module, and its extensions 
   interface file defines the contract; helpers for implementing it go with the implementations, or
   on the type they produce (5). Implementations declared in the same file as their interface follow
   rule 2 as usual.
+- Behavior on a data type, in its companion or anywhere else. See `data-and-behavior.md`.
 
 ## Not worth a function
 

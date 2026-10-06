@@ -99,9 +99,15 @@ rail only the icon is shown, with the ring round the icon.
 | **Settings** (gear icon) | [Host Settings](/guide/host-settings). |
 | **About JetWhale** (info icon) | The about panel: version, project links, and **OSS Licenses** — the full list of open-source components the host ships. |
 
-When a newer release is available, a banner appears above the content with a **View in Settings**
-shortcut. Updates are never applied automatically — see
-[Host Settings → Application](/guide/host-settings#application).
+Banners above the content report on [updates](/guide/host-settings#application), which are never
+applied automatically:
+
+- A newer release is available, or needs a new installer: **View in Settings** opens Host Settings →
+  Application.
+- A newer version is installed and starts next time: **Restart to Update** restarts into it now.
+- A new version failed to start, so the previous one is running: **View Log** opens the failed
+  start's output, and **Try Again** restarts into the new version once more.
+- A restart could not happen: quit the app and open it again.
 
 ## Collapsing the sidebar
 

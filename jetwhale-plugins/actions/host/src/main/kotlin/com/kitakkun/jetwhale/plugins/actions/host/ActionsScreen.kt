@@ -129,7 +129,7 @@ internal fun ActionsScreen(
                 runs = history,
                 selectedRunId = selectedRunId,
                 onSelect = actions::selectRun,
-                onRunAgain = actions::runAgain,
+                onRunAgain = actions::prefillFormFromRun,
             )
         }
     }

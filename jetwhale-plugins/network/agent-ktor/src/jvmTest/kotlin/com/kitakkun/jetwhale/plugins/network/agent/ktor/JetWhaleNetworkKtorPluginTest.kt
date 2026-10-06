@@ -1,9 +1,12 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.REDACTED_PLACEHOLDER
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import io.ktor.client.HttpClient
@@ -11,6 +14,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.ConnectTimeoutException
 import io.ktor.client.plugins.api.ClientPlugin
 import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
@@ -42,10 +46,14 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -266,6 +274,45 @@ class JetWhaleNetworkKtorPluginTest {
         assertEquals("streamed", body)
         val received = events.last() as ResponseReceived
         assertEquals("streamed", received.response.body)
+    }
+
+    @Test
+    fun `a failed call's message never carries a redacted query value`() = runBlocking {
+        val (agent, events) = agentWithEvents(NetworkRedactionRules { urlQueryParam("token") })
+        val client = HttpClient(MockEngine { request -> throw ConnectTimeoutException(request) }) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertFailsWith<IOException> { client.get("wss://api.example.com/socket?token=secret-value&page=2") }
+
+        val failure = (events.last() as RequestFailed).failure
+        assertFalse("secret-value" in failure.message, failure.message)
+        assertContains(failure.message, "page=2")
+    }
+
+    @Test
+    fun `a redirect hop's Location never carries a redacted query value`() = runBlocking {
+        val (agent, events) = agentWithEvents(NetworkRedactionRules { urlQueryParam("token") })
+        val client = HttpClient(
+            MockEngine { request ->
+                when (request.url.encodedPath) {
+                    "/login" -> respond(
+                        content = "",
+                        status = HttpStatusCode.Found,
+                        headers = headersOf(HttpHeaders.Location, "https://api.example.com/callback?token=secret-value&page=2"),
+                    )
+
+                    else -> respond(content = "ok")
+                }
+            },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertEquals("ok", client.get("https://api.example.com/login").bodyAsText())
+
+        val redirect = events.filterIsInstance<ResponseReceived>().single { it.response.statusCode == HttpStatusCode.Found.value }
+        assertEquals(listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"), redirect.response.headers[HttpHeaders.Location])
     }
 
     @Test

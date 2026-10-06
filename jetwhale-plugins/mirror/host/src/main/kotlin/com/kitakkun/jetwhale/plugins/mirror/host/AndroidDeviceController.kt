@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -81,7 +82,13 @@ internal class AndroidDeviceController(
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = withContext(Dispatchers.IO) {
-        emulatorScreens?.open(serial, wanted) ?: run {
+        // The emulator streams its own framebuffer, which follows only its own posture
+        // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
+        // it, and the stream would stretch that panel's picture to the framebuffer's shape.
+        val emulatorStream = emulatorScreens?.takeUnless {
+            display() != null && isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
+        }?.open(serial, wanted)
+        emulatorStream ?: run {
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
             val panel = panelArguments(option = "--display-id", display = display())
             VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", "-")), ffmpegPath)
@@ -143,6 +150,7 @@ private const val DISPLAY_READING_MAX_AGE_NANOS = 2_000_000_000L
  * One of an Android device's displays, by the two ids its tools take: `input` and `wm` its logical
  * id, and screencap and screenrecord the id of the panel behind it.
  */
+@VisibleForTesting
 internal data class AndroidDisplay(val logicalId: Int, val physicalId: String)
 
 /**
@@ -154,6 +162,7 @@ internal data class AndroidDisplay(val logicalId: Int, val physicalId: String)
  * off. The panel's state decides because a logical display's own can lag behind it: a folded
  * device's default display reads OFF while the cover panel behind it is on.
  */
+@VisibleForTesting
 internal fun parseActiveAndroidDisplay(dumpsysDisplay: String): AndroidDisplay? {
     val lines = dumpsysDisplay.lines()
     val panelIsOn = lines.filter { "DisplayDeviceInfo{" in it }.mapNotNull { line ->
@@ -196,12 +205,28 @@ private val PANEL_STATE = Regex(""", state (\w+)""")
 private val DISPLAY_REAL_SIZE = Regex("""real (\d+) x (\d+)""")
 
 /**
+ * Whether the `mBaseState` and `mCommittedState` lines of `adb shell dumpsys device_state` show the
+ * device in a posture other than its hardware's, as `cmd device_state state` puts it in; false
+ * when they do not say.
+ */
+@VisibleForTesting
+internal fun isPostureOverridden(dumpsysDeviceState: String): Boolean {
+    val states = DEVICE_STATE.findAll(dumpsysDeviceState).associate { it.groupValues[1] to it.groupValues[2] }
+    val base = states["mBaseState"] ?: return false
+    val committed = states["mCommittedState"] ?: return false
+    return base != committed
+}
+
+private val DEVICE_STATE = Regex("""(mBaseState|mCommittedState)=Optional\[DeviceState\{identifier=(\d+)""")
+
+/**
  * [text] as `adb shell input text` needs it: the device shell parses the argument again, so its
  * metacharacters are escaped, and `input text` reads `%` as an escape (a space is `%s`), so a
  * literal percent sign is escaped before spaces are encoded. A line break would end the command
  * in that shell and start another, and no escape carries it through, so control characters are
  * refused.
  */
+@VisibleForTesting
 internal fun escapeForAdbInputText(text: String): String {
     if (text.any(Char::isISOControl)) throw deviceControlError("text with a line break, tab or other control character cannot be typed on an Android device; type each line separately")
     return text
@@ -215,6 +240,7 @@ internal fun escapeForAdbInputText(text: String): String {
  * wakefulness line. `Awake` and `Dreaming` (a screensaver) have the screen on; `Asleep` and
  * `Dozing` (an always-on display) show nothing the mirror can use.
  */
+@VisibleForTesting
 internal fun parseScreenPower(output: String): ScreenPower? {
     val wakefulness = Regex("""mWakefulness=(\w+)""").find(output)?.groupValues?.get(1) ?: return null
     val locked = Regex("""isKeyguardShowing=(\w+)""").find(output)?.groupValues?.get(1) == "true"
@@ -222,6 +248,7 @@ internal fun parseScreenPower(output: String): ScreenPower? {
 }
 
 /** The `input keyevent` code that presses [button] on an Android device. */
+@VisibleForTesting
 internal fun androidKeycodeOf(button: DeviceButton): String = when (button) {
     DeviceButton.Home -> "KEYCODE_HOME"
     DeviceButton.Back -> "KEYCODE_BACK"

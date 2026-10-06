@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -564,7 +565,8 @@ internal class DeviceMirror(
     }
 
     /** Starts recording each of [targets] at once; one that fails to start leaves the others recording. */
-    suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
+    @VisibleForTesting
+    internal suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
         targets.map { device ->
             async {
                 try {
@@ -600,13 +602,13 @@ internal class DeviceMirror(
     }
 
     override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = coroutineScope {
-        (deviceIds ?: activeRecordings.keys.toList()).map { id ->
+        (deviceIds ?: synchronized(activeRecordings) { activeRecordings.keys.toList() }).map { id ->
             async { recordingLockOf(id).withLock { stopResultLocked(id) } }
         }.awaitAll()
     }
 
     private fun soleRecordingDeviceId(): String {
-        val running = activeRecordings.values.toList()
+        val running = synchronized(activeRecordings) { activeRecordings.values.toList() }
         return when (running.size) {
             0 -> throw deviceControlError("no recording is running")
             1 -> running.single().device.id

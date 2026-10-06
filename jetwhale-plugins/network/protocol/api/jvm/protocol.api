@@ -341,6 +341,7 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionModel
 	public static final field REDACTED_PLACEHOLDER Ljava/lang/String;
 	public static final fun redact (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
 	public static final fun redact (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public static final fun redact (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionRule {

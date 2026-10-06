@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -80,7 +81,8 @@ class GetAccessibilityTreeMcpTool(
  * otherwise it would hand an agent the values a plugin redacts from captures.
  */
 @OptIn(InternalComposeUiApi::class)
-fun captureAccessibilityTree(scene: PluginComposeScene): String {
+@VisibleForTesting
+internal fun captureAccessibilityTree(scene: PluginComposeScene): String {
     val viewport = McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
@@ -127,12 +129,14 @@ private fun nodeToInfo(node: SemanticsNode): NodeInfo {
 }
 
 @Serializable
-data class AccessibilityTreeResult(
+@VisibleForTesting
+internal data class AccessibilityTreeResult(
     val nodes: List<NodeInfo>,
 )
 
 @Serializable
-data class NodeInfo(
+@VisibleForTesting
+internal data class NodeInfo(
     val id: Int,
     val role: String? = null,
     val text: String? = null,
@@ -148,7 +152,8 @@ data class NodeInfo(
 )
 
 @Serializable
-data class BoundsInfo(
+@VisibleForTesting
+internal data class BoundsInfo(
     val left: Float,
     val top: Float,
     val right: Float,

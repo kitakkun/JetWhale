@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
@@ -27,17 +27,28 @@ import com.kitakkun.jetwhale.host.cli.JetWhaleLogLevel
 import com.kitakkun.jetwhale.host.component.InitializingDialog
 import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.instance.HostInstance
+import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
 import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
 import com.kitakkun.jetwhale.host.menu.MainWindowMenu
 import com.kitakkun.jetwhale.host.menu.MainWindowMenus
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
+import com.kitakkun.jetwhale.host.release.HostDirectory
+import com.kitakkun.jetwhale.host.release.HostVersion
+import com.kitakkun.jetwhale.host.release.LauncherContract
+import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
 import org.slf4j.Logger
@@ -45,6 +56,8 @@ import org.slf4j.LoggerFactory
 import java.awt.Desktop
 import java.awt.Taskbar
 import java.awt.desktop.QuitResponse
+import java.nio.file.Path
+import java.util.Properties
 import java.util.concurrent.atomic.AtomicReference
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
@@ -53,7 +66,9 @@ import ch.qos.logback.classic.Logger as LogbackLogger
 private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 fun main(args: Array<String>) = runBlocking {
+    defaultToSystemAppearance(System.getProperties())
     val cliOptions = CommandLineArgumentsParser().parse(args)
+    val hostInstance = claimLauncherInstance()
 
     if (cliOptions.headless) {
         // AWT reads this once, when its first class is loaded, so it has to be set before anything
@@ -70,6 +85,7 @@ fun main(args: Array<String>) = runBlocking {
             serverPortOverrides = cliOptions.serverPortOverrides,
             mcpPermissionOverride = cliOptions.mcpPermissionOverride,
             additionalPluginDirectories = AdditionalPluginDirectories(cliOptions.pluginDirs),
+            hostLaunch = hostLaunchOf(args),
         )
 
     appGraph.logCaptureService.startCapture()
@@ -77,13 +93,51 @@ fun main(args: Array<String>) = runBlocking {
     appGraph.applicationLifecycleOwner.initialize()
 
     if (cliOptions.headless) {
-        exitProcess(appGraph.headlessHostRunner.run())
+        exitProcess(appGraph.headlessHostRunner.run(onReady = { hostInstance?.publishInstanceJson() }))
     }
 
     val windowState = appGraph.windowStateRepository.loadWindowState().toWindowState()
 
     awaitApplication {
-        JetWhaleMainWindow(appGraph = appGraph, windowState = windowState)
+        JetWhaleMainWindow(appGraph = appGraph, windowState = windowState, hostInstance = hostInstance)
+    }
+}
+
+/** How the launcher, if it started this host, described it in the launcher contract's properties. */
+private fun hostLaunchOf(args: Array<String>): HostLaunch {
+    val contract = System.getProperty(LauncherContract.CONTRACT_PROPERTY)?.toIntOrNull() ?: return HostLaunch.Standalone
+    val hostDirectory = System.getProperty(LauncherContract.HOST_DIRECTORY_PROPERTY) ?: return HostLaunch.Standalone
+    return HostLaunch.ByLauncher(
+        launcherContract = contract,
+        launcherExecutable = System.getProperty(LauncherContract.EXECUTABLE_PROPERTY),
+        hostDirectoryPath = Path.of(hostDirectory),
+        setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)?.let(HostVersion::parse),
+        arguments = args.toList(),
+        javaToolOptions = System.getenv("JAVA_TOOL_OPTIONS"),
+    )
+}
+
+/**
+ * Has macOS draw the window frame in the system's light or dark appearance, unless the launcher or
+ * the command line chose one. AWT reads the property once, when it starts, so this runs before
+ * anything touches AWT.
+ */
+@VisibleForTesting
+internal fun defaultToSystemAppearance(properties: Properties) {
+    properties.putIfAbsent("apple.awt.application.appearance", "system")
+}
+
+/**
+ * Makes a host the launcher started the only one of its app data directory: it takes
+ * `instance.lock`, or asks the host that holds it to bring its window forward and exits. Null for a
+ * host started any other way.
+ */
+private fun claimLauncherInstance(): HostInstance? {
+    if (System.getProperty(LauncherContract.CONTRACT_PROPERTY) == null) return null
+    val hostDirectory = System.getProperty(LauncherContract.HOST_DIRECTORY_PROPERTY) ?: return null
+    return when (val claim = HostInstance.claim(HostDirectory(Path.of(hostDirectory)), LockFiles.Os)) {
+        is HostInstanceClaim.Claimed -> claim.instance
+        is HostInstanceClaim.HeldByAnother -> exitProcess(0)
     }
 }
 
@@ -123,7 +177,11 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
 
 @OptIn(FlowPreview::class)
 @Composable
-private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, windowState: WindowState) {
+private fun ApplicationScope.JetWhaleMainWindow(
+    appGraph: JetWhaleAppGraph,
+    windowState: WindowState,
+    hostInstance: HostInstance?,
+) {
     val applicationState by appGraph
         .applicationLifecycleOwner
         .applicationStateFlow
@@ -135,16 +193,13 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         .collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
-    val mainWindow = remember { AtomicReference<ComposeWindow?>(null) }
+    val menuBringToFrontRequests = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST) }
     val menu = remember(appGraph, coroutineScope) {
         MainWindowMenu(
             hostNavigationService = appGraph.hostNavigationService,
             coroutineScope = coroutineScope,
             quit = appGraph.applicationLifecycleOwner::shutdown,
-            raiseMainWindow = {
-                windowState.isMinimized = false
-                mainWindow.get()?.toFront()
-            },
+            raiseMainWindow = { menuBringToFrontRequests.tryEmit(Unit) },
         )
     }
     val systemQuitResponse = remember { AtomicReference<QuitResponse?>(null) }
@@ -199,10 +254,18 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
         // has declined the key.
         onKeyEvent = { keyEvent -> !isMac && menu.runShortcut(keyEvent) },
     ) {
-        DisposableEffect(window) {
-            mainWindow.set(window)
-            onDispose { mainWindow.set(null) }
+        LaunchedEffect(hostInstance) {
+            hostInstance?.publishInstanceJson()
+            merge(menuBringToFrontRequests, hostInstance?.bringToFrontRequests ?: emptyFlow()).collect {
+                windowState.isMinimized = false
+                window.toFront()
+                window.requestFocus()
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
+                    Desktop.getDesktop().requestForeground(true)
+                }
+            }
         }
+
         JwTheme(darkTheme = isSystemInDarkTheme()) {
             when (applicationState) {
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->

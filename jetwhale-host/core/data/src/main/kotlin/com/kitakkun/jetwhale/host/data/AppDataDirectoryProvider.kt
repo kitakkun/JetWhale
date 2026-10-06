@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -196,6 +197,7 @@ class AppDataDirectoryProvider(
          * JVM system property overriding the app data root (normally `~/.jetwhale`). Set by the
          * plugin-developer Gradle tasks to an isolated per-project sandbox directory.
          */
-        const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
+        @VisibleForTesting
+        internal const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
     }
 }

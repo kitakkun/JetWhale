@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
 import kotlinx.serialization.json.Json
@@ -44,6 +45,7 @@ internal fun InputStream.readPluginManifestJson(): String {
 }
 
 /** Far above any real manifest, which lists a handful of plugins. */
+@VisibleForTesting
 internal const val MAX_PLUGIN_MANIFEST_BYTES = 1024 * 1024
 
 private val pluginManifestJson = Json { ignoreUnknownKeys = true }
