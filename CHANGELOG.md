@@ -13,7 +13,7 @@ are experimental.
 
 ### Added
 
-- **The desktop host updates itself.** Settings → General → Application → **Updates** finds a newer release, downloads its host jar when you click **Download**, checks it against the release's size and SHA-256, and runs it after **Restart to Update** or at the next start. A banner at startup says when a version is available or installed; **Check for updates on startup** turns that check off. A version that fails to start twice in a row is set aside and the previous one runs again, with a notice that offers **View Log** and **Try Again**. A host started with `java -jar` or `runJetWhale` doesn't update itself and links the release page instead (#394, #396, #399, #401).
+- **The desktop host updates itself.** Settings → General → Application → **Updates** finds a newer release, downloads its host jar when you click **Download**, checks it against the release's size and SHA-256, and runs it after **Restart to Update** or at the next start. A banner at startup says when a version is available or installed; turn off **Check for updates on startup** to skip that check. A version that fails to start twice in a row is set aside and the previous one runs again, with a notice that offers **View Log** and **Try Again**. A host started with `java -jar` or `runJetWhale` doesn't update itself and links the release page instead (#394, #396, #399, #401).
 - Releases carry the host release metadata, `jetwhale-host-<version>.json`, which pins each platform's host jar by size and SHA-256, and a `SHA256SUMS` file covering every release asset (#396).
 - **Device Mirror** (experimental) is published for the first time: install it from **Settings → Plugins → Add Plugins → Official Plugins**, or as `com.kitakkun.jetwhale:jetwhale-device-mirror`, instead of building it from source (#341).
 - Device Mirror records several devices at once: the grid's record button starts every device that can record and **Stop all** ends them, and the `startRecording` and `stopRecording` MCP tools take `all: true` or `deviceIds` (#338).
@@ -55,7 +55,7 @@ are experimental.
 - Device Mirror asks a physical iPhone for video that no longer breaks into blocks while the screen moves (#345).
 - Device Mirror's Captures panel leaves out a capture whose sidecar can't be read, such as one deleted while the panel refreshes, instead of failing to list (#346).
 - Device Mirror's missing-idb hints give one install command that works, `brew install facebook/fb/idb` (#339).
-- `runJetWhale` on a machine that releases build no host jar for (Linux on arm64, an Intel Mac, Windows on arm64) fails with a message that lists the released platforms and how to build the host instead (#390).
+- When a release has no host jar for your machine (Linux on arm64, an Intel Mac, Windows on arm64), `runJetWhale` fails with a message that lists the platforms releases are built for and how to build the host instead (#390).
 
 ### Security
 
