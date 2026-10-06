@@ -86,7 +86,9 @@ class DefaultPluginInstallJobService(
 
     override suspend fun cancelAll() {
         jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
-        runningJobs.values.toList().joinAll()
+        // toMutableList() copies the live view in one pass; toList() on a single job reads the
+        // size, then the element, and throws if the job leaves in between.
+        runningJobs.values.toMutableList().joinAll()
     }
 
     private suspend fun run(job: PluginInstallJob) {
@@ -105,13 +107,13 @@ class DefaultPluginInstallJobService(
                 pendingOutcomes.remove(job.id)?.complete(outcome)
             }
         } finally {
-            runningJobs.remove(job.id)
             synchronized(this) {
                 pendingOutcomes.remove(job.id)?.let { outcome ->
                     jobsFlow.update { jobs -> jobs.filterNot { it.id == job.id }.toPersistentList() }
                     outcome.complete(PluginInstallStatus.Failed(reason = "the install was cancelled"))
                 }
             }
+            runningJobs.remove(job.id)
         }
     }
 
