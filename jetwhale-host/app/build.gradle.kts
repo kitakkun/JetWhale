@@ -32,6 +32,7 @@ val generateBuildConfig by tasks.registering {
 compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
+        jvmArgs(*JetWhaleHostRuntime.jvmArgs.toTypedArray())
     }
 }
 

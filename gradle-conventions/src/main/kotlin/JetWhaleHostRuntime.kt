@@ -32,7 +32,7 @@ object JetWhaleHostRuntime {
 
     /** The platforms releases are built for, by `os-arch` key, with the JVM arguments each adds. */
     val platformJvmArgs: Map<String, List<String>> = mapOf(
-        "macos-arm64" to listOf("-Dapple.awt.application.appearance=system"),
+        "macos-arm64" to emptyList(),
         "linux-x64" to emptyList(),
         "windows-x64" to emptyList(),
     )

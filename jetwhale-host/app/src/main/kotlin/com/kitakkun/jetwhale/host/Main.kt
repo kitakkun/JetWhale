@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory
 import java.awt.Desktop
 import java.awt.Taskbar
 import java.nio.file.Path
+import java.util.Properties
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
 import ch.qos.logback.classic.Logger as LogbackLogger
@@ -52,6 +54,7 @@ import ch.qos.logback.classic.Logger as LogbackLogger
 private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 fun main(args: Array<String>) = runBlocking {
+    defaultToSystemAppearance(System.getProperties())
     val cliOptions = CommandLineArgumentsParser().parse(args)
     val hostInstance = claimLauncherInstance()
 
@@ -85,6 +88,16 @@ fun main(args: Array<String>) = runBlocking {
     awaitApplication {
         JetWhaleMainWindow(appGraph = appGraph, windowState = windowState, hostInstance = hostInstance)
     }
+}
+
+/**
+ * Has macOS draw the window frame in the system's light or dark appearance, unless the launcher or
+ * the command line chose one. AWT reads the property once, when it starts, so this runs before
+ * anything touches AWT.
+ */
+@VisibleForTesting
+internal fun defaultToSystemAppearance(properties: Properties) {
+    properties.putIfAbsent("apple.awt.application.appearance", "system")
 }
 
 /**
