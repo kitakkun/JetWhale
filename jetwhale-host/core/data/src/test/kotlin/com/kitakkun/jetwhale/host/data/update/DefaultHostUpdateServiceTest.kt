@@ -7,12 +7,12 @@ import com.kitakkun.jetwhale.host.model.HostUpdateState
 import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.SetAsideHostVersion
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
 import com.kitakkun.jetwhale.host.release.HostVersion
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.hostJarName
@@ -58,8 +58,8 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultHostUpdateServiceTest {
-    private val hostDirectory: Path = Files.createTempDirectory("host-updates").resolve("host")
-    private val hostVersionsDirectory = HostVersionsDirectory(hostDirectory)
+    private val hostDirectoryPath: Path = Files.createTempDirectory("host-updates").resolve("host")
+    private val hostDirectory = HostDirectory(hostDirectoryPath)
     private val requests = CopyOnWriteArrayList<String>()
     private val responses = mutableMapOf<String, suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData>()
     private val bodyWriters = CoroutineScope(Dispatchers.IO)
@@ -110,14 +110,14 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `offers a set-aside version as a retry, never as a download`() = runBlocking {
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha14"))
 
         val service = service()
         service.check()
 
         assertEquals(
-            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion(hostVersion("1.0.0-alpha14"), hostVersionsDirectory.hostLogFile(hostVersion("1.0.0-alpha14"))), restartFailed = false),
+            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion(hostVersion("1.0.0-alpha14"), hostDirectory.hostLogFile(hostVersion("1.0.0-alpha14"))), restartFailed = false),
             service.stateFlow.value,
         )
     }
@@ -243,8 +243,8 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha14")), outcome)
-        assertTrue(hostDirectory.resolve("1.0.0-alpha14").resolve(hostJarName(hostVersion("1.0.0-alpha14"), PLATFORM)).exists())
-        assertTrue(hostDirectory.resolve("1.0.0-alpha14/release.json").exists())
+        assertTrue(hostDirectoryPath.resolve("1.0.0-alpha14").resolve(hostJarName(hostVersion("1.0.0-alpha14"), PLATFORM)).exists())
+        assertTrue(hostDirectoryPath.resolve("1.0.0-alpha14/release.json").exists())
         assertStagingEmpty()
     }
 
@@ -257,7 +257,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -269,7 +269,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -288,7 +288,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Corrupted), outcome)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -306,7 +306,7 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -318,16 +318,16 @@ class DefaultHostUpdateServiceTest {
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.DownloadFailed(HostUpdateFailure.Unreachable), outcome)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
     @Test
     fun `reports a download it could not save on this computer apart from a network failure`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        Files.createDirectories(hostDirectory)
-        val host = hostDirectory.toFile()
-        Assume.assumeTrue("the file system cannot take write permission away", host.setWritable(false) && !Files.isWritable(hostDirectory))
+        Files.createDirectories(hostDirectoryPath)
+        val host = hostDirectoryPath.toFile()
+        Assume.assumeTrue("the file system cannot take write permission away", host.setWritable(false) && !Files.isWritable(hostDirectoryPath))
         try {
             val outcome = checkAndDownload(service())
 
@@ -340,7 +340,7 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `ends a download that cannot clear staging as not saved`() = runBlocking {
         serveReleases(release("1.0.0-alpha14"))
-        val leftover = hostVersionsDirectory.stagingDirectory.resolve("1.0.0-alpha13")
+        val leftover = hostDirectory.stagingDirectory.resolve("1.0.0-alpha13")
         Files.createDirectories(leftover)
         Files.writeString(leftover.resolve("part.jar"), "part")
         Assume.assumeTrue("the file system cannot take write permission away", leftover.toFile().setWritable(false) && !Files.isWritable(leftover))
@@ -376,19 +376,19 @@ class DefaultHostUpdateServiceTest {
     fun `deletes every other downloaded version before a download`() = runBlocking {
         install("1.0.0-alpha13")
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
 
         val outcome = checkAndDownload(service())
 
         assertEquals(HostUpdateStatus.ReadyToRestart(hostVersion("1.0.0-alpha15")), outcome)
-        assertEquals(listOf("1.0.0-alpha15", "1.0.0-alpha13"), hostVersionsDirectory.installedVersions().map { it.version.name })
+        assertEquals(listOf("1.0.0-alpha15", "1.0.0-alpha13"), hostDirectory.hostVersionDirectories().map { it.version.name })
     }
 
     @Test
     fun `stops offering a set-aside version once a download has deleted it, even when the download fails`() = runBlocking {
         install("1.0.0-alpha14")
-        hostVersionsDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
         serveReleases(release("1.0.0-alpha15"))
         responses[jarUrl("1.0.0-alpha15")] = { respondError(HttpStatusCode.InternalServerError) }
         val service = service()
@@ -412,7 +412,7 @@ class DefaultHostUpdateServiceTest {
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Downloading }.status }
         assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -448,7 +448,7 @@ class DefaultHostUpdateServiceTest {
 
         val status = withTimeout(10.seconds) { service.stateFlow.first { it.status !is HostUpdateStatus.Verifying }.status }
         assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha14"), jarBytes("1.0.0-alpha14").size.toLong()), status)
-        assertEquals(emptyList(), hostVersionsDirectory.installedVersions())
+        assertEquals(emptyList(), hostDirectory.hostVersionDirectories())
         assertStagingEmpty()
     }
 
@@ -512,7 +512,7 @@ class DefaultHostUpdateServiceTest {
         val launch = HostLaunch.ByLauncher(
             launcherContract = 1,
             launcherExecutable = "/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger",
-            hostDirectory = hostDirectory,
+            hostDirectoryPath = hostDirectoryPath,
             setAsideVersion = null,
             arguments = listOf("--server-port", "5103"),
             javaToolOptions = "-Djetwhale.appDataDir=/tmp/jetwhale data",
@@ -537,7 +537,7 @@ class DefaultHostUpdateServiceTest {
         val launch = HostLaunch.ByLauncher(
             launcherContract = 1,
             launcherExecutable = "/opt/jetwhale-debugger/bin/JetWhale Debugger",
-            hostDirectory = hostDirectory,
+            hostDirectoryPath = hostDirectoryPath,
             setAsideVersion = null,
             arguments = listOf("--server-port", "5103"),
             javaToolOptions = "-Djetwhale.appDataDir=/tmp/jetwhale",
@@ -560,13 +560,13 @@ class DefaultHostUpdateServiceTest {
     fun `says so when the launcher to restart through cannot be started`() {
         val launch = HostLaunch.ByLauncher(
             launcherContract = 1,
-            launcherExecutable = hostDirectory.resolve("moved launcher").toString(),
-            hostDirectory = hostDirectory,
+            launcherExecutable = hostDirectoryPath.resolve("moved launcher").toString(),
+            hostDirectoryPath = hostDirectoryPath,
             setAsideVersion = null,
             arguments = emptyList(),
             javaToolOptions = null,
         )
-        val movedApp = launch.copy(launcherExecutable = hostDirectory.resolve("Moved.app/Contents/MacOS/Moved").toString())
+        val movedApp = launch.copy(launcherExecutable = hostDirectoryPath.resolve("Moved.app/Contents/MacOS/Moved").toString())
         val launches = listOfNotNull(launch, launch.copy(launcherExecutable = null), movedApp.takeIf { System.getProperty("os.name").startsWith("Mac") })
 
         launches.forEach {
@@ -593,7 +593,7 @@ class DefaultHostUpdateServiceTest {
     }
 
     private fun assertStagingEmpty() {
-        assertFalse(hostVersionsDirectory.stagingDirectory.exists() && hostVersionsDirectory.stagingDirectory.listDirectoryEntries().isNotEmpty(), "staging/ still holds a download")
+        assertFalse(hostDirectory.stagingDirectory.exists() && hostDirectory.stagingDirectory.listDirectoryEntries().isNotEmpty(), "staging/ still holds a download")
     }
 
     private suspend fun checkAndDownload(service: DefaultHostUpdateService): HostUpdateStatus {
@@ -611,7 +611,7 @@ class DefaultHostUpdateServiceTest {
         hostLaunch: HostLaunch = HostLaunch.ByLauncher(
             launcherContract = 1,
             launcherExecutable = "/Applications/JetWhale Debugger.app/Contents/MacOS/JetWhale Debugger",
-            hostDirectory = hostDirectory,
+            hostDirectoryPath = hostDirectoryPath,
             setAsideVersion = null,
             arguments = emptyList(),
             javaToolOptions = null,
@@ -662,7 +662,7 @@ class DefaultHostUpdateServiceTest {
     }
 
     private fun install(versionName: String) {
-        val directory = hostDirectory.resolve(versionName)
+        val directory = hostDirectoryPath.resolve(versionName)
         Files.createDirectories(directory)
         Files.write(directory.resolve(hostJarName(hostVersion(versionName), PLATFORM)), jarBytes(versionName))
         Files.writeString(directory.resolve("release.json"), metadata(versionName).encode())

@@ -12,7 +12,7 @@ sealed interface HostLaunch {
      * @property launcherContract The launcher contract the launcher implements.
      * @property launcherExecutable What the host starts to restart through the launcher; null when the
      * launcher could not tell its own path.
-     * @property hostDirectory `<app data>/host`, where downloaded versions go.
+     * @property hostDirectoryPath `<app data>/host`, where downloaded versions go.
      * @property setAsideVersion The version this launch set aside because it failed its first starts.
      * @property arguments The arguments the host was started with, which a restart passes on.
      * @property javaToolOptions The `JAVA_TOOL_OPTIONS` this process started with, which a restart
@@ -22,7 +22,7 @@ sealed interface HostLaunch {
     data class ByLauncher(
         val launcherContract: Int,
         val launcherExecutable: String?,
-        val hostDirectory: Path,
+        val hostDirectoryPath: Path,
         val setAsideVersion: HostVersion?,
         val arguments: List<String>,
         val javaToolOptions: String?,

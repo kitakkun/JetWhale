@@ -100,7 +100,7 @@ private fun hostLaunchOf(args: Array<String>): HostLaunch {
     return HostLaunch.ByLauncher(
         launcherContract = contract,
         launcherExecutable = System.getProperty(LauncherContract.EXECUTABLE_PROPERTY),
-        hostDirectory = Path.of(hostDirectory),
+        hostDirectoryPath = Path.of(hostDirectory),
         setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)?.let(HostVersion::parse),
         arguments = args.toList(),
         javaToolOptions = System.getenv("JAVA_TOOL_OPTIONS"),

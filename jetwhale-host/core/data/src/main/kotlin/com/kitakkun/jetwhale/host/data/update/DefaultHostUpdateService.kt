@@ -15,7 +15,7 @@ import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
 import com.kitakkun.jetwhale.host.release.HostReleaseRefusal
 import com.kitakkun.jetwhale.host.release.HostVersion
-import com.kitakkun.jetwhale.host.release.InstalledHostVersion
+import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.check
@@ -210,8 +210,8 @@ class DefaultHostUpdateService(
     private suspend fun findNewerRelease(launch: HostLaunch.ByLauncher): HostUpdateStatus {
         val runningVersion = runningVersion ?: return HostUpdateStatus.NotManaged
         val platformKey = hostRuntime.platformKey ?: return HostUpdateStatus.NotManaged
-        val installedVersions = hostVersionsRepository.installedVersions()
-        val newestKnownVersion = (installedVersions.map(InstalledHostVersion::version) + runningVersion).max()
+        val hostVersionDirectories = hostVersionsRepository.hostVersionDirectories()
+        val newestKnownVersion = (hostVersionDirectories.map(HostVersionDirectory::version) + runningVersion).max()
 
         val response = httpClient.get(releaseSource.releasesUrl)
         if (response.isRateLimited()) return HostUpdateStatus.CheckFailed(HostUpdateFailure.RateLimited)
@@ -242,7 +242,7 @@ class DefaultHostUpdateService(
     private fun versionAwaitingRestart(): HostVersion? {
         val runningVersion = runningVersion ?: return null
         val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
-        return hostVersionsRepository.installedVersions().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
+        return hostVersionsRepository.hostVersionDirectories().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
     }
 
     private suspend fun checkNewerRelease(
@@ -334,8 +334,8 @@ class DefaultHostUpdateService(
         }
         stateFlow.update { it.copy(setAside = hostVersionsRepository.newestSetAsideVersion()) }
         onLocalFiles {
-            Files.write(stagingDirectory.resolve(InstalledHostVersion.METADATA_FILE_NAME), downloadableRelease.metadataBytes)
-            downloadableRelease.signatureBytes?.let { Files.write(stagingDirectory.resolve(InstalledHostVersion.SIGNATURE_FILE_NAME), it) }
+            Files.write(stagingDirectory.resolve(HostVersionDirectory.METADATA_FILE_NAME), downloadableRelease.metadataBytes)
+            downloadableRelease.signatureBytes?.let { Files.write(stagingDirectory.resolve(HostVersionDirectory.SIGNATURE_FILE_NAME), it) }
         }
         val jar = stagingDirectory.resolve(hostJarName(version, downloadableRelease.platformKey))
         downloadJar(downloadableRelease, jar)?.let { return HostUpdateStatus.DownloadFailed(it) }
