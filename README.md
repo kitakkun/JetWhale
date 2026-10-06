@@ -42,7 +42,7 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 the [releases page](https://github.com/kitakkun/JetWhale/releases) (`.dmg` for macOS, `.deb` for
 Linux, `.msi` for Windows), and launch it. macOS and Windows ask you to approve its first launch;
 see [First launch](https://kitakkun.github.io/JetWhale/guide/getting-started#first-launch). After
-that, the app updates itself.
+that, you update it from inside the app.
 
 **2. Add the runtime** to the app you want to debug:
 
