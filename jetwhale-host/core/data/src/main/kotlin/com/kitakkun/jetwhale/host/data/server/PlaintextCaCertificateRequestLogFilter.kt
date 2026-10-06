@@ -19,8 +19,8 @@ class PlaintextCaCertificateRequestLogFilter : Filter<ILoggingEvent>() {
         val throwableProxy = event.throwableProxy
         val isPlaintextCaCertificateRequest = event.loggerName == ApplicationProtocolNegotiationHandler::class.java.name &&
             throwableProxy?.className == NotSslRecordException::class.java.name &&
-            // NotSslRecordException's message holds the bytes received, as a lowercase hex dump.
-            throwableProxy.message.orEmpty().contains(PLAINTEXT_CA_CERTIFICATE_REQUEST_LINE_HEX)
+            // The exception's message ends with the bytes received, as a lowercase hex dump.
+            throwableProxy.message.orEmpty().substringAfterLast(' ').startsWith(PLAINTEXT_CA_CERTIFICATE_REQUEST_LINE_HEX)
         return if (isPlaintextCaCertificateRequest) FilterReply.DENY else FilterReply.NEUTRAL
     }
 }
