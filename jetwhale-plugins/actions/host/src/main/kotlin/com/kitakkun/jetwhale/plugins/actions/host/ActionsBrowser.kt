@@ -66,7 +66,7 @@ internal interface ActionsScreenActions {
     fun selectRun(runId: String)
 
     /** Opens the run's action on the Actions tab with its form filled from the run's arguments. */
-    fun runAgain(runId: String)
+    fun prefillFormFromRun(runId: String)
 }
 
 /**
@@ -91,7 +91,7 @@ internal class ActionsBrowser(
     var selectedRunId: String? by mutableStateOf(null)
         private set
 
-    /** Set by [runAgain]; dropped once the form is run or another action is selected. */
+    /** Set by [prefillFormFromRun]; dropped once the form is run or another action is selected. */
     var prefill: FormPrefill? by mutableStateOf(null)
         private set
 
@@ -158,7 +158,7 @@ internal class ActionsBrowser(
         selectedRunId = runId
     }
 
-    override fun runAgain(runId: String) {
+    override fun prefillFormFromRun(runId: String) {
         val record = runs.firstOrNull { it.runId == runId } ?: return
         select(record.actionId)
         prefill = FormPrefill(record.actionId, record.arguments)
