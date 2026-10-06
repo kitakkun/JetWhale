@@ -363,10 +363,10 @@ host's own.
 ### Single instance, reopen and restart
 
 The launcher's process is the host's, so macOS delivers a reopen of the app to the host itself, and
-Finder activates the running app rather than starting a second one. Windows and Linux start a new
-process on every launch, and macOS does with `open -n` or a second copy of the app. Two OS file
-locks under `~/.jetwhale/host/` keep that to one host. The OS releases a file lock when its process
-ends, so a crash leaves none behind.
+Finder brings the running app to the front rather than starting a second one. Windows and Linux
+start a new process on every launch, and macOS does with `open -n` or a second copy of the app. Two
+OS file locks under `~/.jetwhale/host/` keep that to one host. The OS releases a file lock when its
+process ends, so a crash leaves none behind.
 
 - **One launcher at a time.** A launcher takes `launch.lock`, and waits while another launcher
   holds it. It keeps it until the host it runs has published `instance.json`, its start has been
@@ -375,10 +375,10 @@ ends, so a crash leaves none behind.
   if its reopen endpoint stops, so a later launch never starts a second host. Once its main window
   shows, or with `--headless` once its servers are bound, it writes a loopback endpoint, its process
   ID and a token to a temporary file, and renames that to `instance.json`, so a reader sees a whole
-  record or none. It keeps the latest request to come forward until its window takes requests, and
+  file or none. It keeps the latest request to come forward until its window takes requests, and
   takes a request before it answers it. A launcher that finds `instance.lock` held asks that host to
-  bring its window forward, then exits. If the record is missing or its endpoint does not answer,
-  it reads it again for a few seconds, then logs the failure and exits. The launcher probes
+  bring its window forward, then exits. If `instance.json` is missing or its endpoint does not
+  answer, it reads it again for a few seconds, then logs the failure and exits. The launcher probes
   `instance.lock` with a lock it releases at once, before it calls the host, so the host's own lock
   in the same JVM never overlaps it. A host that cannot take `instance.lock` asks the running one to
   come forward in the same way and exits. On Windows and Linux this is new: today a second start
@@ -700,9 +700,10 @@ every user who accepts the update.
      the extra modules, and today's package identity.
    - The MSI version scheme. It can also go earlier on its own, because it already fixes installing
      over an earlier alpha.
-   - On the host side: the launcher properties, the locks and activation, and the restart with
-     `--after`, through `open -n` on macOS. In #293's crash recovery: the version in its run
-     markers, a grace counted from the host's `main`, and hs_err files where the JVM puts them.
+   - On the host side: the launcher properties, the locks and the bring-to-front request, and the
+     restart with `--after`, through `open -n` on macOS. In #293's crash recovery: the version in
+     its run markers, a grace counted from the host's `main`, and hs_err files where the JVM puts
+     them.
 3. **Host update service and UI.** `HostUpdateService`, the version repository, the Updates section,
    the startup setting and the banner, and the set-aside, refusal and failure messages. All of it is
    hidden in the IDE.
