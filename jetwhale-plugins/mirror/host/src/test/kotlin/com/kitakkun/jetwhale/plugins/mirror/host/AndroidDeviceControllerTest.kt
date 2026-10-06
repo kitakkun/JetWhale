@@ -143,6 +143,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `an emulator folded through device_state is mirrored through screenrecord rather than its own stream`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
         emulatorWithStream(FOLDED) { emulator, server ->
             assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).process.waitFor()
@@ -154,6 +155,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `an emulator folded by its own posture is mirrored through its own stream`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded"))
         emulatorWithStream(FOLDED) { emulator, server ->
             assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
@@ -164,6 +166,7 @@ class AndroidDeviceControllerTest {
 
     @Test
     fun `an emulator with one panel opens its own stream without asking for its posture`() = runBlocking {
+        assumeShellScriptsLaunch()
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
         emulatorWithStream(ONE_PANEL) { emulator, server ->
             assertIs<VideoStream.EmulatorRgba>(emulator.openVideoStream(wanted = null)).close()
