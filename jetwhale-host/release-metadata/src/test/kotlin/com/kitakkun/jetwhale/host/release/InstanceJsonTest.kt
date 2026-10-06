@@ -13,8 +13,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
-class HostInstanceRecordTest {
-    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("instance-record").resolve("host"))
+class InstanceJsonTest {
+    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("instance-json").resolve("host"))
     private val server = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
     private val requests = CopyOnWriteArrayList<String>()
 
@@ -25,7 +25,7 @@ class HostInstanceRecordTest {
                 socket.use {
                     val request = it.getInputStream().bufferedReader().readLine()
                     requests += request
-                    val answer = if (request == "activate secret") "ok" else "denied"
+                    val answer = if (request == "bring-to-front secret") "ok" else "denied"
                     it.getOutputStream().write("$answer\n".toByteArray())
                 }
             }
@@ -38,37 +38,37 @@ class HostInstanceRecordTest {
     }
 
     @Test
-    fun `reads back the record it published`() {
-        val record = HostInstanceRecord(port = 5000, pid = 42, token = "secret")
+    fun `reads back what it published`() {
+        val instanceJson = InstanceJson(port = 5000, pid = 42, token = "secret")
 
-        HostInstanceRecord.publish(hostVersionsDirectory, record)
+        InstanceJson.publish(hostVersionsDirectory, instanceJson)
 
-        assertEquals(record, HostInstanceRecord.read(hostVersionsDirectory))
+        assertEquals(instanceJson, InstanceJson.read(hostVersionsDirectory))
     }
 
     @Test
-    fun `has no record before a host publishes one`() {
-        assertNull(HostInstanceRecord.read(hostVersionsDirectory))
+    fun `reads nothing before a host publishes`() {
+        assertNull(InstanceJson.read(hostVersionsDirectory))
     }
 
     @Test
     fun `asks the host at the published endpoint with its token`() {
-        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = server.localPort, pid = 42, token = "secret"))
+        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = server.localPort, pid = 42, token = "secret"))
 
-        assertTrue(HostInstanceRecord.requestActivation(hostVersionsDirectory, 2_000.milliseconds))
-        assertEquals(listOf("activate secret"), requests)
+        assertTrue(InstanceJson.requestBringToFront(hostVersionsDirectory, 2_000.milliseconds))
+        assertEquals(listOf("bring-to-front secret"), requests)
     }
 
     @Test
     fun `gives up when the host refuses the token`() {
-        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = server.localPort, pid = 42, token = "stale"))
+        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = server.localPort, pid = 42, token = "stale"))
 
-        assertFalse(HostInstanceRecord.requestActivation(hostVersionsDirectory, 0.milliseconds))
+        assertFalse(InstanceJson.requestBringToFront(hostVersionsDirectory, 0.milliseconds))
     }
 
     @Test
-    fun `gives up when no record appears`() {
-        assertFalse(HostInstanceRecord.requestActivation(hostVersionsDirectory, 0.milliseconds))
+    fun `gives up when nothing is published`() {
+        assertFalse(InstanceJson.requestBringToFront(hostVersionsDirectory, 0.milliseconds))
         assertTrue(requests.isEmpty())
     }
 }

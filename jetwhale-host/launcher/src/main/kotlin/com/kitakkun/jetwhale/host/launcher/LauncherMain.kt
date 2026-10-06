@@ -37,7 +37,7 @@ fun main(args: Array<String>) {
         ?: Path.of(System.getProperty("user.home"), ".jetwhale")
     val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
     val log = FileLauncherLog(hostVersionsDirectory.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless)
-    val runningHostChannel = InstanceRecordChannel(hostVersionsDirectory, activationTimeout = 5.seconds)
+    val runningHostChannel = InstanceJsonChannel(hostVersionsDirectory, bringToFrontTimeout = 5.seconds)
 
     val outcome = try {
         createHostLauncher(hostVersionsDirectory, runningHostChannel, log).launch(arguments.afterPid, arguments.retryVersion)
@@ -49,7 +49,7 @@ fun main(args: Array<String>) {
     when (outcome) {
         is LaunchOutcome.Starting -> runHost(outcome, arguments, hostVersionsDirectory, runningHostChannel, log)
 
-        is LaunchOutcome.ActivatedRunningHost -> exitProcess(0)
+        is LaunchOutcome.BroughtRunningHostToFront -> exitProcess(0)
 
         is LaunchOutcome.RunningHostUnreachable -> exitProcess(1)
 
@@ -100,7 +100,7 @@ private fun runHost(
             pollInterval = 200.milliseconds,
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
-        ).watch(starting.startup) { runningHostChannel.isPublishedBy(ProcessHandle.current().pid()) }
+        ).watch(starting.startup) { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) }
     }
     val inProcessHost = InProcessHost(
         hostVersionsDirectory = hostVersionsDirectory,

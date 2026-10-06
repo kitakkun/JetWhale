@@ -34,8 +34,8 @@ class HostVersionsDirectory(val root: Path) {
     /** Held by the running host for as long as it runs. */
     val instanceLockFile: Path get() = root.resolve("instance.lock")
 
-    /** The running host's [HostInstanceRecord]. */
-    val instanceRecordFile: Path get() = root.resolve("instance.json")
+    /** The running host's [InstanceJson]. */
+    val instanceJsonFile: Path get() = root.resolve("instance.json")
 
     private val launcherStateFile: Path get() = root.resolve("launcher-state.json")
 
@@ -93,11 +93,11 @@ class HostVersionsDirectory(val root: Path) {
     }
 
     /**
-     * Deletes the instance record a host left behind when it ended. A later host can get the same
-     * process ID, and the old record would then pass for its own.
+     * Deletes the `instance.json` a host left behind when it ended. A later host can get the same
+     * process ID, and the old file would then pass for its own.
      */
-    fun deleteInstanceRecord() {
-        Files.deleteIfExists(instanceRecordFile)
+    fun deleteInstanceJson() {
+        Files.deleteIfExists(instanceJsonFile)
     }
 
     /** Whether [file] resolves, through any links, to a place inside this directory. */

@@ -21,7 +21,7 @@ JetWhale Debugger (.app / .exe / deb)
 | `launcher-state.json` | the launcher only | completed, set-aside and failed-start versions, and the start in progress |
 | `launch.lock` | launchers | lets one launcher choose and record at a time |
 | `instance.lock` | the running host | held for the host's lifetime |
-| `instance.json` | the running host | loopback port, pid and token for "bring your window forward" |
+| `instance.json` | the running host | loopback port, pid and token for the `bring-to-front` request |
 
 ## A launch, step by step
 
@@ -30,8 +30,8 @@ JetWhale Debugger (.app / .exe / deb)
 3. **Judge the last start.** If `launcher-state.json` still records a start and its process is
    gone, that start crashed or was killed: count a failed start of that version.
 4. **Clear `--retry <version>`.** Remove its set-aside mark and failure count.
-5. **Hand off to a running host.** If `instance.lock` is held, send `activate <token>` to the
-   port in `instance.json`, then exit.
+5. **Hand off to a running host.** If `instance.lock` is held, send `bring-to-front <token>` to
+   the port in `instance.json`, then exit.
 6. **Choose a version.** Go through the downloaded versions newer than the bundled one, newest
    first, then the bundled one. Take the first that:
    - is not set aside (two failed starts in a row set a version aside here);
@@ -67,7 +67,7 @@ recovery handles later crashes. The bundled version is never set aside.
 ## Common paths
 
 - **Double-click while running:** step 5 brings the window forward. On macOS, Finder usually
-  activates the running app without starting a second process.
+  brings the running app to the front without starting a second process.
 - **Update:** the host downloads `<version>/` and offers *Restart to update*. It then starts the
   launcher with `--after <its pid>` (on macOS through `open -n`) and quits. The new launcher picks
   the new version at step 6.

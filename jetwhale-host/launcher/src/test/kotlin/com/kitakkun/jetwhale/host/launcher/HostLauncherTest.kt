@@ -1,9 +1,9 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HeldLock
-import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostVersion
+import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.StartingHost
@@ -136,7 +136,7 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `holds launch lock until the host publishes its record, and takes it again to record the completed start`() {
+    fun `holds launch lock until the host publishes its instance JSON, and takes it again to record the completed start`() {
         bed.download("1.0.0-alpha15")
         val events = CopyOnWriteArrayList<String>()
 
@@ -285,7 +285,7 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha15")
         bed.hostComesUp(101, starting(bed.launch(pid = 101)))
 
-        assertEquals(LaunchOutcome.ActivatedRunningHost, bed.launch(pid = 102))
+        assertEquals(LaunchOutcome.BroughtRunningHostToFront, bed.launch(pid = 102))
         assertEquals(101L, state().startingHost?.pid)
         assertEquals(emptyMap(), state().failedStartCounts)
     }
@@ -357,8 +357,8 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha15")
         bed.lockFiles.of(42).lock(hostVersionsDirectory.instanceLockFile)
 
-        assertEquals(LaunchOutcome.ActivatedRunningHost, bed.launch(pid = 101))
-        assertEquals(1, bed.runningHostChannel.activationRequests)
+        assertEquals(LaunchOutcome.BroughtRunningHostToFront, bed.launch(pid = 101))
+        assertEquals(1, bed.runningHostChannel.bringToFrontRequests)
         assertNull(state().startingHost)
         assertFalse(bed.lockFiles.isHeld(hostVersionsDirectory.launchLockFile))
     }
@@ -406,7 +406,7 @@ class HostLauncherTest {
         bed.hostComesUp(firstPid, starting(first))
         launches.forEach { it.join(10_000) }
 
-        assertEquals(LaunchOutcome.ActivatedRunningHost, assertNotNull(outcomes.poll()).second)
+        assertEquals(LaunchOutcome.BroughtRunningHostToFront, assertNotNull(outcomes.poll()).second)
         assertEquals(firstPid, state().startingHost?.pid)
     }
 
@@ -443,12 +443,12 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `does not take an instance record an earlier host left behind for this host's`() {
-        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = 0, pid = 101, token = "stale"))
+    fun `does not take the instance JSON an earlier host left behind for this host's`() {
+        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = 0, pid = 101, token = "stale"))
 
         bed.launch(pid = 101)
 
-        assertFalse(bed.runningHostChannel.isPublishedBy(101))
+        assertFalse(bed.runningHostChannel.isInstanceJsonPublishedBy(101))
     }
 
     private fun starting(outcome: LaunchOutcome): LaunchOutcome.Starting = assertIs<LaunchOutcome.Starting>(outcome)

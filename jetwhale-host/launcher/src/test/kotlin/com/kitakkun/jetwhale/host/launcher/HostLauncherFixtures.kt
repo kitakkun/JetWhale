@@ -1,13 +1,13 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HeldLock
-import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
@@ -126,17 +126,17 @@ class FakeRunningHostChannel(
     private val hostVersionsDirectory: HostVersionsDirectory,
     private val answers: Boolean,
 ) : RunningHostChannel {
-    var activationRequests = 0
+    var bringToFrontRequests = 0
         private set
 
-    fun publish(pid: Long) {
-        HostInstanceRecord.publish(hostVersionsDirectory, HostInstanceRecord(port = 0, pid = pid, token = "token"))
+    fun publishInstanceJson(pid: Long) {
+        InstanceJson.publish(hostVersionsDirectory, InstanceJson(port = 0, pid = pid, token = "token"))
     }
 
-    override fun isPublishedBy(pid: Long): Boolean = HostInstanceRecord.read(hostVersionsDirectory)?.pid == pid
+    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = InstanceJson.read(hostVersionsDirectory)?.pid == pid
 
-    override fun requestActivation(): Boolean {
-        activationRequests++
+    override fun requestBringToFront(): Boolean {
+        bringToFrontRequests++
         return answers
     }
 }
@@ -191,11 +191,11 @@ class LaunchTestBed {
     /** Launches as the process [pid]. */
     fun launch(pid: Long, afterPid: Long? = null, retryVersion: HostVersion? = null): LaunchOutcome = launcher(pid).launch(afterPid, retryVersion)
 
-    /** The host of the process [pid] takes `instance.lock` and publishes its record, as a host coming up does. */
+    /** The host of the process [pid] takes `instance.lock` and publishes `instance.json`, as a host coming up does. */
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
         checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
-        runningHostChannel.publish(pid)
-        starting.startup.hostPublished()
+        runningHostChannel.publishInstanceJson(pid)
+        starting.startup.hostPublishedInstanceJson()
     }
 
     /** A process that is not a launch runs with the ID [pid]. */
@@ -219,6 +219,6 @@ class LaunchTestBed {
     fun watchWindow(starting: LaunchOutcome.Starting, publishedBy: Long) {
         val time = TestTimeSource()
         StartupWindow(length = 30.seconds, pollInterval = 200.milliseconds, timeSource = time, sleep = time::plusAssign)
-            .watch(starting.startup) { runningHostChannel.isPublishedBy(publishedBy) }
+            .watch(starting.startup) { runningHostChannel.isInstanceJsonPublishedBy(publishedBy) }
     }
 }

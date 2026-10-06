@@ -15,16 +15,16 @@ class StartupWindow(
 ) {
     /**
      * Watches [startup] from now, which is right before the host's main is called, to the end of the
-     * window: tells it once [isPublished] says the host has published its record, and then that the
-     * window has ended.
+     * window: tells it once [isInstanceJsonPublished] says the host has published `instance.json`, and
+     * then that the window has ended.
      */
-    fun watch(startup: HostLauncher.HostStartup, isPublished: () -> Boolean) {
+    fun watch(startup: HostLauncher.HostStartup, isInstanceJsonPublished: () -> Boolean) {
         val started = timeSource.markNow()
         var published = false
         while (started.elapsedNow() < length) {
-            if (!published && isPublished()) {
+            if (!published && isInstanceJsonPublished()) {
                 published = true
-                startup.hostPublished()
+                startup.hostPublishedInstanceJson()
             }
             sleep(pollInterval)
         }

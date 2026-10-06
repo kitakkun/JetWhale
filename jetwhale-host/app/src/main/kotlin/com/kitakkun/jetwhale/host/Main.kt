@@ -80,7 +80,7 @@ fun main(args: Array<String>) = runBlocking {
     appGraph.applicationLifecycleOwner.initialize()
 
     if (cliOptions.headless) {
-        exitProcess(appGraph.headlessHostRunner.run(onReady = { hostInstance?.publish() }))
+        exitProcess(appGraph.headlessHostRunner.run(onReady = { hostInstance?.publishInstanceJson() }))
     }
 
     val windowState = appGraph.windowStateRepository.loadWindowState().toWindowState()
@@ -213,8 +213,8 @@ private fun ApplicationScope.JetWhaleMainWindow(
         },
     ) {
         LaunchedEffect(hostInstance) {
-            hostInstance?.publish()
-            hostInstance?.activationRequests?.collect {
+            hostInstance?.publishInstanceJson()
+            hostInstance?.bringToFrontRequests?.collect {
                 windowState.isMinimized = false
                 window.toFront()
                 window.requestFocus()

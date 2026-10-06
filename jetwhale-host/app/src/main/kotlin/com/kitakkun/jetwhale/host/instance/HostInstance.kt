@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.instance
 
 import com.kitakkun.jetwhale.host.release.HeldLock
-import com.kitakkun.jetwhale.host.release.HostInstanceRecord
 import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LockFiles
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
@@ -27,26 +27,27 @@ class HostInstance private constructor(
     private val server: ServerSocket,
     private val token: String,
 ) {
-    private val mutableActivationRequests = MutableSharedFlow<Unit>(
+    private val mutableBringToFrontRequests = MutableSharedFlow<Unit>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
     /**
-     * A request to bring the window forward, from a launcher or from a second host. The latest one is
-     * kept for a collector that starts after it arrived, as the window's does after [publish].
+     * A request to bring the window to the front, from a launcher or from a second host. The latest one
+     * is kept for a collector that starts after it arrived, as the window's does after
+     * [publishInstanceJson].
      */
-    val activationRequests: Flow<Unit> = mutableActivationRequests
+    val bringToFrontRequests: Flow<Unit> = mutableBringToFrontRequests
 
     /**
-     * Publishes the record that marks this host as up: once its main window shows, or, with
+     * Publishes `instance.json`, which marks this host as up: once its main window shows, or, with
      * `--headless`, once its servers are bound. The launcher lets the next launch go on once it
      * sees it, and reaches the host through it.
      */
-    fun publish() {
-        HostInstanceRecord.publish(
+    fun publishInstanceJson() {
+        InstanceJson.publish(
             hostVersionsDirectory,
-            HostInstanceRecord(port = server.localPort, pid = ProcessHandle.current().pid(), token = token),
+            InstanceJson(port = server.localPort, pid = ProcessHandle.current().pid(), token = token),
         )
     }
 
@@ -61,14 +62,14 @@ class HostInstance private constructor(
         private var processInstanceLock: HeldLock? = null
 
         /**
-         * Takes `instance.lock` for this process and starts taking requests; [publish] makes them
-         * reachable. When another host holds the lock, asks that one to bring its window forward
+         * Takes `instance.lock` for this process and starts taking requests; [publishInstanceJson] makes
+         * them reachable. When another host holds the lock, asks that one to bring its window forward
          * instead.
          */
         fun claim(hostVersionsDirectory: HostVersionsDirectory, lockFiles: LockFiles): HostInstanceClaim {
             processInstanceLock = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile)
                 ?: return HostInstanceClaim.HeldByAnother(
-                    activated = HostInstanceRecord.requestActivation(hostVersionsDirectory, timeout = 5.seconds),
+                    broughtToFront = InstanceJson.requestBringToFront(hostVersionsDirectory, timeout = 5.seconds),
                 )
             val server = ServerSocket(0, 8, InetAddress.getLoopbackAddress())
             val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
@@ -79,7 +80,7 @@ class HostInstance private constructor(
     }
 
     private fun serve() {
-        thread(isDaemon = true, name = "host-instance-activation") {
+        thread(isDaemon = true, name = "host-instance-bring-to-front") {
             while (!server.isClosed) {
                 val connection = try {
                     server.accept()
@@ -94,11 +95,11 @@ class HostInstance private constructor(
 
     private fun answer(connection: Socket) {
         try {
-            val accepted = readRequest(connection) == "${HostInstanceRecord.ACTIVATE_REQUEST} $token"
-            if (accepted) mutableActivationRequests.tryEmit(Unit)
-            connection.getOutputStream().write("${if (accepted) HostInstanceRecord.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
+            val accepted = readRequest(connection) == "${InstanceJson.BRING_TO_FRONT_REQUEST} $token"
+            if (accepted) mutableBringToFrontRequests.tryEmit(Unit)
+            connection.getOutputStream().write("${if (accepted) InstanceJson.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
         } catch (e: IOException) {
-            logger.warn("An activation request could not be read", e)
+            logger.warn("A request to bring the window to the front could not be read", e)
         }
     }
 }
@@ -127,6 +128,6 @@ private const val REQUEST_DEADLINE_NANOS = REQUEST_DEADLINE_MILLIS * 1_000_000L
 sealed interface HostInstanceClaim {
     data class Claimed(val instance: HostInstance) : HostInstanceClaim
 
-    /** Another host holds `instance.lock`; [activated] tells whether it answered the request to come forward. */
-    data class HeldByAnother(val activated: Boolean) : HostInstanceClaim
+    /** Another host holds `instance.lock`; [broughtToFront] tells whether it answered the request to come to the front. */
+    data class HeldByAnother(val broughtToFront: Boolean) : HostInstanceClaim
 }

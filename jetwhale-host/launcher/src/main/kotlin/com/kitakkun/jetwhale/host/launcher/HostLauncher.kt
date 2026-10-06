@@ -81,9 +81,9 @@ class HostLauncher(
     }
 
     private fun handToRunningHost(): LaunchOutcome {
-        if (runningHostChannel.requestActivation()) {
+        if (runningHostChannel.requestBringToFront()) {
             log.write("A host is already running; asked it to bring its window forward")
-            return LaunchOutcome.ActivatedRunningHost
+            return LaunchOutcome.BroughtRunningHostToFront
         }
         log.write("A host holds instance.lock but did not answer the request to bring its window forward")
         return LaunchOutcome.RunningHostUnreachable
@@ -185,11 +185,11 @@ class HostLauncher(
 
     /**
      * Writes down that this process starts [start], so that a later launch counts a crash within its
-     * startup window. An instance record a host left behind goes first: that host could have had this
-     * process's ID, and its record would pass for this host's.
+     * startup window. An `instance.json` a host left behind goes first: that host could have had this
+     * process's ID, and its `instance.json` would pass for this host's.
      */
     private fun startInThisProcess(start: HostStart, setAsideVersion: HostVersion?, launchLock: LaunchLock): LaunchOutcome.Starting {
-        hostVersionsDirectory.deleteInstanceRecord()
+        hostVersionsDirectory.deleteInstanceJson()
         val state = hostVersionsDirectory.readLauncherState()
         hostVersionsDirectory.writeLauncherState(
             state.copy(startingHost = StartingHost(start.version, processTable.currentPid, processTable.currentStartMillis)),
@@ -225,14 +225,14 @@ class HostLauncher(
      * How the start of [start] in this process ends. The first of three ends counts, and is recorded
      * once, under `launch.lock`: the end of the startup window, a failure of the host's main, or a
      * shutdown of this JVM. Until then it holds the `launch.lock` the launch took, or lets it go once
-     * the host has published its record.
+     * the host has published `instance.json`.
      */
     inner class HostStartup internal constructor(private val start: HostStart, private val launchLock: LaunchLock) {
         private var judged = false
 
-        /** The host published its record, where a later launch finds it, so `launch.lock` can go. */
+        /** The host published `instance.json`, where a later launch finds it, so `launch.lock` can go. */
         @Synchronized
-        fun hostPublished() {
+        fun hostPublishedInstanceJson() {
             if (!judged) launchLock.release()
         }
 
@@ -320,7 +320,7 @@ sealed interface LaunchOutcome {
         val startup: HostLauncher.HostStartup,
     ) : LaunchOutcome
 
-    data object ActivatedRunningHost : LaunchOutcome
+    data object BroughtRunningHostToFront : LaunchOutcome
 
     data object RunningHostUnreachable : LaunchOutcome
 

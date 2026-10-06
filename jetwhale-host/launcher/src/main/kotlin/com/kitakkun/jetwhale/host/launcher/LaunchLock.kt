@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 /**
  * `launch.lock` as one launch holds it: taken on creation, released once the started host has
- * published its record, and taken again before the launch writes `launcher-state.json` or starts
+ * published `instance.json`, and taken again before the launch writes `launcher-state.json` or starts
  * another host.
  */
 internal class LaunchLock(private val lockFiles: LockFiles, private val path: Path) {
