@@ -43,6 +43,7 @@ are experimental.
 - On iOS and macOS, the agent's host discovery keeps its mDNS browser delegates alive, so a garbage collection during a browse can no longer crash the app (#356).
 - The Network Inspector's traffic list keeps updating while a filter is typed (#360).
 - The Network Inspector's traffic list has its right-click menu back: Copy as cURL, Copy URL, Copy request body and Copy response body (#384).
+- The Network Inspector's traffic list no longer cuts URLs short to keep room for a mostly empty MOCK column; a mocked row shows its MOCK tag before the URL instead (#417).
 - The Compose Semantics Inspector keeps a node's `#id` tag when the node's own text starts with `#` (#352).
 - In Windows desktop apps, the Storage Inspector recognizes symbolic links and junctions, so deleting a directory from the host no longer deletes the files a link inside it points to, and a link no longer leads a listing out of its root (#387).
 - The host's log viewer keeps every captured line whole and once, shows non-ASCII text intact, files java.util.logging records at their own level instead of as errors, and no longer gains about sixteen Ktor and MCP SDK entries per MCP call (#362, #374).
