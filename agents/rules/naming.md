@@ -31,6 +31,19 @@ name still seems to fit.
 - **Give one concept one word everywhere.** A version's text is not `version` in one place and
   `name` in another.
 
+## Words whose meaning depends on context
+
+- **Add a qualifying word, even when it looks redundant.** Some words mean different things in
+  different parts of this codebase. A name built on one bare is read in whichever sense the reader
+  meets first.
+- **Write the qualified form:**
+  - `startupTimeWindow`, not `startupWindow`, in an app where "window" is a GUI window;
+  - `instanceJsonFile`, not `record`;
+  - `processTable`, not `processes`.
+- **Watch these words in particular:** window, session, state, record, plugin, host, agent, version
+  and name. Each has more than one meaning here. A name that reads unambiguously in isolation is
+  worth the extra word.
+
 ## Renames that are not made in passing
 
 - **Public API of a published module** (protocol, SDKs, `jetwhale-host-ui`). A rename breaks its
