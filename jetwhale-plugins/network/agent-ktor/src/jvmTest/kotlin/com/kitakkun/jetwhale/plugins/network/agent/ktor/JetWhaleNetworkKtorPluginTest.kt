@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.REDACTED_PLACEHOLDER
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
@@ -287,6 +288,31 @@ class JetWhaleNetworkKtorPluginTest {
         val failure = (events.last() as RequestFailed).failure
         assertFalse("secret-value" in failure.message, failure.message)
         assertContains(failure.message, "page=2")
+    }
+
+    @Test
+    fun `a redirect hop's Location never carries a redacted query value`() = runBlocking {
+        val (agent, events) = agentWithEvents(NetworkRedactionRules { urlQueryParam("token") })
+        val client = HttpClient(
+            MockEngine { request ->
+                when (request.url.encodedPath) {
+                    "/login" -> respond(
+                        content = "",
+                        status = HttpStatusCode.Found,
+                        headers = headersOf(HttpHeaders.Location, "https://api.example.com/callback?token=secret-value&page=2"),
+                    )
+
+                    else -> respond(content = "ok")
+                }
+            },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertEquals("ok", client.get("https://api.example.com/login").bodyAsText())
+
+        val redirect = events.filterIsInstance<ResponseReceived>().single { it.response.statusCode == HttpStatusCode.Found.value }
+        assertEquals(listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"), redirect.response.headers[HttpHeaders.Location])
     }
 
     @Test
