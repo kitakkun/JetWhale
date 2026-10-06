@@ -103,7 +103,7 @@ private fun NoticeStrip(notice: MirrorNotice, actions: MirrorNoticeActions) {
                 }
             }
             notice.actions.forEach { action ->
-                NoticeButton(color = content, onClick = { actions.perform(action) }) {
+                NoticeButton(color = content, onClick = { actions.dismissAndRun(action) }) {
                     JwText(text = action.label, style = JwTheme.textStyles.label, color = content, maxLines = 1)
                 }
             }

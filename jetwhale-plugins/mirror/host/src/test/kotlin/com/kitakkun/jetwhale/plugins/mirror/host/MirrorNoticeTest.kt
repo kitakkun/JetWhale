@@ -178,7 +178,7 @@ private class RecordingNotices(override val notice: MirrorNotice) : MirrorNotice
     val performed = mutableListOf<NoticeAction>()
     var dismissals = 0
 
-    override fun perform(action: NoticeAction) {
+    override fun dismissAndRun(action: NoticeAction) {
         performed += action
     }
 

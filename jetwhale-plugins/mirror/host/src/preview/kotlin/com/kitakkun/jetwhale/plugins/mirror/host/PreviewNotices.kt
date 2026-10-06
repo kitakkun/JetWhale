@@ -11,7 +11,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 
 /** A notice for previews, which only draw. */
 internal class PreviewNotices(override val notice: MirrorNotice?) : MirrorNoticeActions {
-    override fun perform(action: NoticeAction) = Unit
+    override fun dismissAndRun(action: NoticeAction) = Unit
 
     override fun dismiss() = Unit
 

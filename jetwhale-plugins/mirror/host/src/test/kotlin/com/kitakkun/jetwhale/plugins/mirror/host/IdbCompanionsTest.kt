@@ -81,7 +81,7 @@ class IdbCompanionsTest {
         val companions = companions()
         companions.acquire("udid-1")
 
-        companions.forget("udid-1")
+        companions.stopNow("udid-1")
 
         assertTrue(started.single().destroyed)
         assertFalse(companions.isRunning("udid-1"))

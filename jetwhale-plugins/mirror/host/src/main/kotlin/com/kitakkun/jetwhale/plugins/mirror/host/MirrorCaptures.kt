@@ -92,7 +92,7 @@ internal class MirrorCaptures(
 
     private var device: DeviceListing? = null
 
-    private val listings = AtomicLong()
+    private val listingGeneration = AtomicLong()
 
     // One copy at a time, in the order they were asked for, so a slow copy cannot land on the
     // clipboard after a later one.
@@ -133,7 +133,7 @@ internal class MirrorCaptures(
         val at = Instant.now()
         val file = library.newFile(device, CaptureKind.Screenshot, at).apply { writeBytes(png) }
         val size = Image.makeFromEncoded(png).use { IntSize(it.width, it.height) }
-        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::prependCapture)
     }
 
     /** A new, empty file for a recording of [device] that starts now. */
@@ -145,7 +145,7 @@ internal class MirrorCaptures(
      */
     suspend fun addRecording(device: DeviceListing, file: File, startedAt: Instant, size: IntSize?): Capture = withContext(Dispatchers.IO) {
         val duration = mp4DurationMillis(file) ?: (Instant.now().toEpochMilli() - startedAt.toEpochMilli())
-        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::prependCapture)
     }
 
     /** The decoded thumbnail of [capture] if it is cached; null means [loadThumbnail] it. */
@@ -197,7 +197,7 @@ internal class MirrorCaptures(
             library.delete(capture)
             synchronized(thumbnails) { thumbnails.remove(capture.file) }
             refresh()
-            synchronized(listings) { captures = captures - capture }
+            synchronized(listingGeneration) { captures = captures - capture }
             if (selected == capture) selected = null
         }
     }
@@ -221,17 +221,17 @@ internal class MirrorCaptures(
 
     private fun refresh() {
         val deviceId = device?.id?.takeUnless { allDevices }
-        val listing = listings.incrementAndGet()
+        val listing = listingGeneration.incrementAndGet()
         scope.launch(Dispatchers.IO) {
             val listed = library.list(deviceId, kind, sinceEpochMillis = null)
-            synchronized(listings) { if (listings.get() == listing) captures = listed }
+            synchronized(listingGeneration) { if (listingGeneration.get() == listing) captures = listed }
         }
     }
 
-    private fun added(capture: Capture) {
+    private fun prependCapture(capture: Capture) {
         refresh()
         val shown = (allDevices || capture.info.deviceId == device?.id) && (kind == null || kind == capture.info.kind)
-        if (shown) synchronized(listings) { captures = listOf(capture) + captures }
+        if (shown) synchronized(listingGeneration) { captures = listOf(capture) + captures }
     }
 
     private fun desktop(action: (Desktop) -> Unit) {

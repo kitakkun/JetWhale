@@ -111,12 +111,12 @@ internal class IosSimulatorDeviceController(
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
-    override suspend fun screenSize(): IntSize = describe().size
+    override suspend fun screenSize(): IntSize = idbScreen().size
 
     // idb takes points; the mirror works in pixels, so the screen's density converts between them.
-    private suspend fun pixelsPerPoint(): Double = describe().pixelsPerPoint
+    private suspend fun pixelsPerPoint(): Double = idbScreen().pixelsPerPoint
 
-    private suspend fun describe(): IdbScreen {
+    private suspend fun idbScreen(): IdbScreen {
         screen?.let { return it }
         val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }

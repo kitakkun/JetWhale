@@ -34,7 +34,7 @@ internal class DeviceDiscovery(
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
         val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
-        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { companions?.forget(it.id) }
+        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { companions?.stopNow(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         Discovery(devices = devices, missingTools = missingTools())
