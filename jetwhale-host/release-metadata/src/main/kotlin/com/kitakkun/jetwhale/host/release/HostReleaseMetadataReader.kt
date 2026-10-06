@@ -11,3 +11,14 @@ class HostReleaseMetadataReader(private val signatureVerifier: ReleaseMetadataSi
         return HostReleaseMetadata.decode(metadata.decodeToString())
     }
 }
+
+sealed interface HostReleaseMetadataResult {
+    data class Read(val metadata: HostReleaseMetadata) : HostReleaseMetadataResult
+
+    /** The signature check did not trust the file, so nothing in it was read. */
+    data object Untrusted : HostReleaseMetadataResult
+
+    data class NewerFormat(val format: Int) : HostReleaseMetadataResult
+
+    data class Malformed(val reason: String) : HostReleaseMetadataResult
+}

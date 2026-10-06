@@ -22,7 +22,7 @@ import kotlin.time.Duration
 private const val FAILED_STARTS_TO_SET_ASIDE = 2
 
 /**
- * Chooses the host version this process runs, and records how its start goes.
+ * Chooses the host version this process runs, and writes its start down.
  *
  * Under `launch.lock`, it first judges a start that an earlier launch wrote down and never judged: when
  * that process has ended, it crashed or was killed within its startup time window, which is a failed
@@ -48,6 +48,8 @@ class HostLauncher(
     private val launcherCompatibility = LauncherCompatibility(capabilities)
 
     private val hostVersionRetention = HostVersionRetention(hostDirectory, bundledHostJar?.version, log)
+
+    private val failedStartCounter = FailedStartCounter(log)
 
     /**
      * Returns [LaunchOutcome.Starting] still holding `launch.lock`, which its [HostStartOutcomeRecorder]
@@ -86,7 +88,7 @@ class HostLauncher(
         val startedHostProcess = state.startedHostProcess ?: return
         if (processTable.isRunning(startedHostProcess.pid, startedHostProcess.processStartMillis)) return
         log.write("${startedHostProcess.version} ended within its startup time window without a record of how: a crash or a kill")
-        hostDirectory.writeLauncherState(failedStart(state, startedHostProcess.version))
+        hostDirectory.writeLauncherState(failedStartCounter.countFailedStart(state, startedHostProcess.version))
     }
 
     private fun handToRunningHost(): LaunchOutcome {
@@ -204,7 +206,17 @@ class HostLauncher(
             state.copy(startedHostProcess = StartedHostProcess(chosenHostJar.version, processTable.currentPid, processTable.currentStartMillis)),
         )
         log.write("Starting ${chosenHostJar.version}${if (chosenHostJar.isBundled) " (bundled)" else ""}")
-        return LaunchOutcome.Starting(chosenHostJar, setAsideVersion, HostStartOutcomeRecorder(chosenHostJar, launchLock))
+        val startOutcomeRecorder = HostStartOutcomeRecorder(
+            chosenHostJar = chosenHostJar,
+            launchLock = launchLock,
+            hostDirectory = hostDirectory,
+            lockFiles = lockFiles,
+            hostVersionRetention = hostVersionRetention,
+            failedStartCounter = failedStartCounter,
+            log = log,
+            sleep = sleep,
+        )
+        return LaunchOutcome.Starting(chosenHostJar, setAsideVersion, startOutcomeRecorder)
     }
 
     private fun isInstanceHeldElsewhere(): Boolean {
@@ -213,97 +225,10 @@ class HostLauncher(
         return false
     }
 
-    /** Counts a failed start of [version], unless it has completed one before: its own crash recovery handles that. */
-    private fun failedStart(state: LauncherState, version: HostVersion): LauncherState {
-        if (version in state.completedStartVersions) {
-            log.write("$version has completed a start before, so this failure is not counted; its crash recovery takes over")
-            return state.copy(startedHostProcess = null)
-        }
-        val count = (state.failedStartCounts[version] ?: 0) + 1
-        log.write("$version has failed $count start(s) in a row")
-        return state.copy(failedStartCounts = state.failedStartCounts + (version to count), startedHostProcess = null)
-    }
-
     private fun readOrNull(file: Path): ByteArray? = try {
         Files.readAllBytes(file)
     } catch (_: IOException) {
         null
-    }
-
-    /**
-     * Records how the start of [chosenHostJar] in this process ends. The first of three ends counts,
-     * and is recorded once, under `launch.lock`: the end of the startup time window, a failure of the
-     * host's main, or a shutdown of this JVM. Until then it holds the `launch.lock` the launch took,
-     * unless it has been told to let it go.
-     */
-    inner class HostStartOutcomeRecorder internal constructor(
-        private val chosenHostJar: ChosenHostJar,
-        launchLock: HeldLock,
-    ) {
-        private var heldLaunchLock: HeldLock? = launchLock
-
-        private var isOutcomeRecorded = false
-
-        /** Lets `launch.lock` go until the outcome is recorded, which takes it again for the record. */
-        @Synchronized
-        fun releaseLaunchLock() {
-            heldLaunchLock?.close()
-            heldLaunchLock = null
-        }
-
-        /**
-         * Waits out [startupTimeWindow] from now, which is right before the host's main is called, and
-         * then records a completed start, unless the start has ended otherwise by then.
-         */
-        fun recordCompletedStartAfter(startupTimeWindow: Duration) {
-            sleep(startupTimeWindow)
-            recordCompletedStart()
-        }
-
-        /** The host still runs at the end of its startup time window: it completed its start. */
-        @Synchronized
-        private fun recordCompletedStart() = recordOutcomeOnce { state ->
-            log.write("${chosenHostJar.version} completed its start")
-            hostVersionRetention.pruneAfterCompletedStart(
-                chosenHostJar,
-                state.copy(
-                    completedStartVersions = state.completedStartVersions + chosenHostJar.version,
-                    setAsideVersions = state.setAsideVersions - chosenHostJar.version,
-                    failedStartCounts = state.failedStartCounts - chosenHostJar.version,
-                    startedHostProcess = null,
-                ),
-            )
-        }
-
-        /** The host's main threw within its startup time window: a failed start. */
-        @Synchronized
-        fun recordFailedStart() = recordOutcomeOnce { state ->
-            log.write("${chosenHostJar.version} failed within its startup time window")
-            failedStart(state, chosenHostJar.version)
-        }
-
-        /**
-         * This JVM shuts down within the startup time window, and the host's main did not throw: the
-         * user quit, or the host ended itself, as it does to restart. Neither a failed start nor a
-         * completed one.
-         */
-        @Synchronized
-        fun recordStartEndedWithoutFailure() = recordOutcomeOnce { state ->
-            log.write("${chosenHostJar.version} ended within its startup time window without failing")
-            state.copy(startedHostProcess = null)
-        }
-
-        private fun recordOutcomeOnce(stateWithOutcome: (LauncherState) -> LauncherState) {
-            if (isOutcomeRecorded) return
-            isOutcomeRecorded = true
-            val launchLock = heldLaunchLock ?: lockFiles.lock(hostDirectory.launchLockFile)
-            heldLaunchLock = null
-            try {
-                hostDirectory.writeLauncherState(stateWithOutcome(hostDirectory.readLauncherState()))
-            } finally {
-                launchLock.close()
-            }
-        }
     }
 
     private sealed interface Candidate {
@@ -311,23 +236,4 @@ class HostLauncher(
 
         data class Bundled(val chosenHostJar: ChosenHostJar) : Candidate
     }
-}
-
-sealed interface LaunchOutcome {
-    /**
-     * This process runs [chosenHostJar], and [startOutcomeRecorder] records how that start goes.
-     *
-     * @property setAsideVersion A version this launch set aside, which the host tells the user about.
-     */
-    class Starting(
-        val chosenHostJar: ChosenHostJar,
-        val setAsideVersion: HostVersion?,
-        val startOutcomeRecorder: HostLauncher.HostStartOutcomeRecorder,
-    ) : LaunchOutcome
-
-    data object BroughtRunningHostToFront : LaunchOutcome
-
-    data object RunningHostUnreachable : LaunchOutcome
-
-    data object NothingLeft : LaunchOutcome
 }

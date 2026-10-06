@@ -9,8 +9,10 @@ import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
+import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
+import com.kitakkun.jetwhale.host.release.StartedHostProcess
 import com.kitakkun.jetwhale.host.release.hostJarName
 import java.nio.file.Files
 import java.nio.file.Path
@@ -20,6 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 const val PLATFORM = "macos-arm64"
 
@@ -212,6 +215,21 @@ class LaunchTestBed {
     fun crash(pid: Long) {
         runningPids -= pid
         lockFiles.end(pid)
+    }
+
+    /** The host of the process [pid] comes up and is still running when its startup time window ends. */
+    fun completeStart(pid: Long, starting: LaunchOutcome.Starting) {
+        hostComesUp(pid, starting)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
+    }
+
+    fun writeLauncherState(
+        completedStartVersions: Set<HostVersion> = emptySet(),
+        setAsideVersions: Set<HostVersion> = emptySet(),
+        failedStartCounts: Map<HostVersion, Int> = emptyMap(),
+        startedHostProcess: StartedHostProcess? = null,
+    ) {
+        hostDirectory.writeLauncherState(LauncherState(completedStartVersions, setAsideVersions, failedStartCounts, startedHostProcess))
     }
 
     /** The process [pid] ends after its shutdown hook has run. */

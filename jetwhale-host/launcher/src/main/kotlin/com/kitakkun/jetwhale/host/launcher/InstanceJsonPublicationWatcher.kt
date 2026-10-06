@@ -20,7 +20,7 @@ class InstanceJsonPublicationWatcher(
      * says the host has published `instance.json`, and then has [startOutcomeRecorder] release
      * `launch.lock`.
      */
-    fun releaseLaunchLockWhenInstanceJsonIsPublished(startOutcomeRecorder: HostLauncher.HostStartOutcomeRecorder) {
+    fun releaseLaunchLockWhenInstanceJsonIsPublished(startOutcomeRecorder: HostStartOutcomeRecorder) {
         val started = timeSource.markNow()
         while (started.elapsedNow() < startupTimeWindow) {
             if (isInstanceJsonPublished()) {
