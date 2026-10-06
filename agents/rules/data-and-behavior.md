@@ -41,9 +41,8 @@ behavior holds what it works with, and does the work through its own members.
   clock. It goes in a class that holds them.
 - **UI formatting through what the framework supplies ambiently stays at its call site.** Compose's
   `stringResource` and the locale have no object to hold, so a class there would be ceremony. The
-  current time is not one of these: it is the clock, a dependency to pass in. The system's default
-  time zone is a process-wide fact (see above). A zone the user picks is a setting, so it is passed
-  in too.
+  clock and the time zone are not among them. The default zone can change at runtime
+  (`TimeZone.setDefault`), so both are dependencies to pass in.
 
 ## Policies
 
