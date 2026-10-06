@@ -18,7 +18,7 @@ import platform.darwin.NSObject
  * A weak reference would not do: a Kotlin reference to an Objective-C object is a wrapper the
  * runtime may collect while the object itself lives on, so a weak reference to it is gone by the
  * time an action arrives. Holding the object keeps its address unique, which is what makes the
- * address a sound key, and [captureReleasingUnseen] releases whatever a window no longer shows — so the
+ * address a sound key, and [runTreeCaptureReleasingUnseenObjects] releases whatever a window no longer shows — so the
  * registry never holds more than one screen's worth per window.
  *
  * The window an object was captured in is recorded with it. A view knows its window, but a bare
@@ -47,7 +47,7 @@ internal object AppleNodeIds {
      * A capture that throws releases nothing: the plugin keeps serving the previous snapshot in
      * that case, and its ids must keep resolving.
      */
-    fun <T> captureReleasingUnseen(window: UIWindow, block: () -> T): T {
+    fun <T> runTreeCaptureReleasingUnseenObjects(window: UIWindow, block: () -> T): T {
         val seen = HashSet<Long>()
         seenInCapture = seen
         val result = try {
