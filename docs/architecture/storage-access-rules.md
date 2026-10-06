@@ -133,6 +133,19 @@ The trade-off is between honesty and the name:
 
 Recommendation: `PLACEHOLDER` by default, and `OMIT` for names that carry data.
 
+### When several rules match
+
+Every rule that matches an item applies, whichever root it names and whether it matches directly,
+through an ancestor or as a store's backing file. Of these, the rules whose scope covers the
+request's origin decide:
+- any one of them hides the item;
+- `OMIT` among them wins over `PLACEHOLDER`;
+- with none of them, a matching `MCP_ONLY` rule marks the item for a `HOST_UI` request, again with
+  `OMIT` winning.
+
+Declaration order never weakens the result. It only picks which rule a mark reports, the first one
+declared, so that the answer is stable.
+
 ## Where the rules are enforced
 
 The agent decides every item, for both scopes. Every request that names a path or a store carries
@@ -141,7 +154,7 @@ a `requestOrigin`, either `HOST_UI` or `MCP`.
 | Scope | Request from `MCP` | Request from `HOST_UI` | MCP capture of the host window |
 |---|---|---|---|
 | `EVERYWHERE` | withheld by the agent | withheld by the agent | nothing to show |
-| `MCP_ONLY` | withheld by the agent | sent, marked with the rule | the host renders the marked item as hidden |
+| `MCP_ONLY` | withheld by the agent | sent with a mark | the host renders the marked item as hidden |
 
 The host does not match rules itself. It obeys the marks the agent sends, and only for the one case
 the agent cannot see: an MCP capture of what the host window has already loaded.
@@ -177,20 +190,24 @@ with its rule.
 
 **In a listing,** a hidden entry keeps its `name` and `isDirectory`. Every other field takes its
 neutral value: size 0, no times, not a link, no link target, not readable or writable. The entry
-carries `hidingRule`:
+carries a `hidingMark`:
 
 ```json
 {
   "name": "session.json", "isDirectory": false, "sizeBytes": 0, "linkTarget": null, "…": "…",
-  "hidingRule": { "type": "path", "rootName": "Files", "pattern": "session.json",
-                  "scope": "EVERYWHERE", "strategy": "PLACEHOLDER" }
+  "hidingMark": { "scope": "EVERYWHERE", "strategy": "PLACEHOLDER",
+                  "rule": { "type": "path", "rootName": "Files", "pattern": "session.json" } }
 }
 ```
+
+A mark holds the scope and strategy that result from every matching rule, and the rule it reports.
+Under `OMIT` its `rule` is null, because a pattern can spell the very name it hides
+(`accounts/user-1234@example.com.db`).
 
 The UI shows the name with *Hidden by the app · Files: session.json*. An item hidden from MCP only
 shows normally in the window, with a small *Hidden from AI agents* badge.
 
-**A request that names a hidden item** is answered with `hidingRule` and no content, whatever the
+**A request that names a hidden item** is answered with a `hidingMark` and no content, whatever the
 request is:
 - a read returns no bytes, so `hashFile` fails with the same answer;
 - listing a hidden directory returns no entries, so nothing below it ever appears;
@@ -200,7 +217,7 @@ The check runs before the item is read, listed or changed, and the answer does n
 whether the item exists. An omitted item is therefore not revealed by asking for it by name.
 
 **A key-value entry** keeps its `key` and `type`. Its `value` is `<hidden>`, and the entry carries
-`hidingRule`. Removing it is refused.
+a `hidingMark`. Removing it is refused.
 
 **Derived values.** Everything derived from content comes from content the rules let through. That
 covers a file's kind and line count, decoded preferences, SHA-256, sizes, and measurement totals.
@@ -215,7 +232,9 @@ painted over, because the accessibility tree hands over the string.
   The check runs on the first chunk, before the staging file is created.
 - **`DeleteFileEntry`** walks the subtree before deleting anything, as the recursive delete does, and
   refuses the whole delete if any entry in it is hidden. A delete never destroys what the requester
-  cannot see, and the refusal comes before anything is deleted.
+  cannot see, and the refusal comes before anything is deleted. The walk and the delete are not one
+  atomic step, so a hidden file the app creates in between is deleted with the rest. That costs the
+  file, never its content, and the agent has no way to lock the app's own writes out.
 - **`RemoveKeyValue`** on a hidden key is refused.
 - **`MeasureDirectory`** counts what a listing shows. It does not descend into a hidden directory, a
   placeholder entry counts in `withheldEntryCount` with no size, and an omitted entry is not
@@ -282,6 +301,7 @@ Rules are data, the decision is a policy class, and I/O stays with the agent plu
 - `HidingScope`, `HidingStrategy` and `RequestOrigin` (enums).
 - `sealed interface HidingRule` with `PathHidingRule(rootName, pattern, scope, strategy)` and
   `KeyValueHidingRule(storeName, keyPattern, scope, strategy)`.
+- `HidingMark(scope, strategy, rule: HidingRule?)`, the mark a reply carries.
 - The `HIDDEN_VALUE_PLACEHOLDER` constant, `"<hidden>"`.
 
 **Agent:**
@@ -300,8 +320,8 @@ Rules are data, the decision is a policy class, and I/O stays with the agent plu
 
   sealed interface StorageItemVisibility {
       data object Shown : StorageItemVisibility
-      data class Marked(val hidingRule: HidingRule) : StorageItemVisibility // MCP_ONLY, asked by HOST_UI
-      data class Hidden(val hidingRule: HidingRule) : StorageItemVisibility
+      data class Marked(val hidingMark: HidingMark) : StorageItemVisibility // MCP_ONLY, asked by HOST_UI
+      data class Hidden(val hidingMark: HidingMark) : StorageItemVisibility
   }
   ```
 
@@ -317,7 +337,7 @@ place to test and to change.
 - The `StorageClient` implementation takes its `RequestOrigin` in its constructor. The host plugin
   builds two clients: the MCP commands get the `MCP` one, and `StorageBrowser` the `HOST_UI` one.
   A command cannot pick the wrong origin, because it never sees the other client.
-- `HiddenItemDisplay(isMcpCapture)` decides what the UI renders of an item with a `hidingRule`. The
+- `HiddenItemDisplay(isMcpCapture)` decides what the UI renders of an item with a `hidingMark`. The
   composables build it from `LocalIsMcpCapture`, and every preview, detail and status line about an
   item goes through it.
 
@@ -328,8 +348,8 @@ Every change adds a JSON field or a type:
 | Message | Addition |
 |---|---|
 | `ListDirectory`, `ReadFile`, `WriteFileChunk`, `DeleteFileEntry`, `MeasureDirectory`, `ReadKeyValueStore`, `RemoveKeyValue` | `requestOrigin: RequestOrigin`, required |
-| `FileEntry`, `KeyValueEntry` | `hidingRule: HidingRule?` |
-| `DirectoryListing`, `FileContent`, `StorageOperationResult` | `hidingRule: HidingRule?`, set when the request named a hidden item |
+| `FileEntry`, `KeyValueEntry` | `hidingMark: HidingMark?` |
+| `DirectoryListing`, `FileContent`, `StorageOperationResult` | `hidingMark: HidingMark?`, set when the request named a hidden item |
 | `DirectoryMeasurement` | `withheldEntryCount: Int` |
 
 The messaging format ignores unknown keys and encodes defaults:
@@ -392,8 +412,8 @@ ancestor of either, matches a rule:
   paths, so `hidePath(rootName = "Files", "secrets")` also hides `Data:files/secrets`.
 - **Absent roots.** A rule that names a root the request's root list lacks cannot be placed, and
   then the agent cannot tell which files it covers. That request therefore gets every file
-  withheld, with an error that names the rule. A typo then shows at the first request, instead of
-  leaking through an overlapping root.
+  withheld, with an error that names the missing root. A typo then shows at the first request,
+  instead of leaking through an overlapping root.
 - **Stores that do not exist yet.** A key rule on such a store is fine: the store has no entries
   and no file until it is created.
 
@@ -404,6 +424,8 @@ ancestor of either, matches a rule:
 - **Policy (common tests).**
   - Glob cases, subtree hiding, case and NFC, and pattern validation.
   - Overlapping roots, an absent root, and backing files with their siblings.
+  - Several matching rules of different scopes and strategies, across roots and on backing files:
+    the strictest result, whatever the declaration order.
   - A table over scope × origin × strategy for each kind of request.
 - **Agent file system (JVM, Apple and Windows jobs).**
   - Links in both directions, dangling and looping links, and junctions on Windows.
@@ -412,7 +434,7 @@ ancestor of either, matches a rule:
   - A delete refused for a hidden descendant, with nothing deleted.
   - Measurement counts.
   - Writes refused for new and existing targets.
-  - No reply or error message contains an omitted name.
+  - No reply or error message contains an omitted name or an `OMIT` rule's pattern.
 - **Host.**
   - A fake agent records each MCP command's `requestOrigin`. `hashFile` and `readFile` on a hidden
     file return the rule, with no hash and no decoded preferences.
