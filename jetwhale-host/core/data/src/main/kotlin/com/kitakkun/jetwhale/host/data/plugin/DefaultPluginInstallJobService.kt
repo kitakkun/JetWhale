@@ -84,8 +84,8 @@ class DefaultPluginInstallJobService(
 
     override suspend fun cancelAll() {
         jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
-        // Not toList(): for a single job it reads the size and then the element, and throws when
-        // the job removes itself in between. toMutableList() copies in a single pass.
+        // toMutableList() copies the live view in one pass; toList() on a single job reads the
+        // size, then the element, and throws if the job leaves in between.
         runningJobs.values.toMutableList().joinAll()
     }
 
