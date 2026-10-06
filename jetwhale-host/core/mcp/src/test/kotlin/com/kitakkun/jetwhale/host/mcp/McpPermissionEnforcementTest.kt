@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
-import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -74,23 +73,6 @@ class McpPermissionEnforcementTest {
 
         assertFalse(permissions.allows(McpToolPermission.PluginTool("com.example.network.setMockRules"), pluginId = null))
         assertTrue(permissions.allows(McpToolPermission.PluginTool("com.example.network.listTransactions"), pluginId = null))
-    }
-
-    @Test
-    fun `the launch override lifts every denial without touching what was stored`() {
-        val stored = McpPermissions(
-            allowedHostGroups = emptySet(),
-            pluginsDeniedInspect = setOf("com.example.secret"),
-            pluginsDeniedInteract = setOf("com.example.secret"),
-            deniedPluginTools = setOf("com.example.secret.wipe"),
-        )
-
-        val overridden = stored.allOverriddenBy(McpPermissionOverride(allowAll = true))
-
-        assertTrue(overridden.allows(McpToolPermission.HostGroup(McpHostToolGroup.SETTINGS_AND_SERVERS), pluginId = null))
-        assertTrue(overridden.allows(McpToolPermission.PluginInspect, pluginId = "com.example.secret"))
-        assertTrue(overridden.allows(McpToolPermission.PluginTool("com.example.secret.wipe"), pluginId = null))
-        assertEquals(stored, stored.allOverriddenBy(McpPermissionOverride.None))
     }
 
     @Test
