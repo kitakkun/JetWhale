@@ -40,6 +40,7 @@ fun App() {
                         1 -> NetworkTestScreen()
                         2 -> Nav3TestScreen(nav3BackStack)
                         3 -> ComposeNodeTestScreen()
+                        4 -> MainThreadTestScreen()
                         else -> PlatformExtraTabScreen()
                     }
                 }
@@ -71,10 +72,15 @@ private fun DemoTabRow(selectedTab: Int, onSelectTab: (Int) -> Unit, modifier: M
             onClick = { onSelectTab(3) },
             text = { Text("Compose nodes") },
         )
+        Tab(
+            selected = selectedTab == 4,
+            onClick = { onSelectTab(4) },
+            text = { Text("Main thread") },
+        )
         platformExtraTabLabel?.let { label ->
             Tab(
-                selected = selectedTab == 4,
-                onClick = { onSelectTab(4) },
+                selected = selectedTab == 5,
+                onClick = { onSelectTab(5) },
                 text = { Text(label) },
             )
         }

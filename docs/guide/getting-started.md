@@ -573,6 +573,7 @@ version as the host release they belong to.
 | `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 | `jetwhale-debug-actions`, `-agent`, `-agent-compose`, `-protocol` | [Debug Actions](/guide/debug-actions). |
 | `jetwhale-device-mirror` | [Device Mirror](/guide/device-mirror); host-only, no app artifact. |
+| `jetwhale-main-thread-monitor`, `-agent`, `-protocol` | [Main Thread Monitor](/guide/main-thread-monitor). |
 
 In each plugin row, the first artifact (the one without an `-agent` or `-protocol` suffix) is the
 **host** plugin jar — you install it into the host rather than into your app; see
