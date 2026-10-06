@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
+import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
-    private val adbAutoWiringService: ADBAutoWiringService,
+    private val adbAutoPortMappingService: AdbAutoPortMappingService,
     private val sessionRepository: DebugSessionRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
@@ -78,16 +78,16 @@ class DefaultDebugWebSocketServer(
     private suspend fun mapServerPortsOverAdb() {
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
-        var wiredPorts: List<Int> = emptyList()
+        var mappedPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
             when (status) {
                 is DebugWebSocketServerStatus.Started -> {
-                    wiredPorts = listOfNotNull(status.port, status.wssPort)
-                    wiredPorts.forEach(adbAutoWiringService::startAutoWiring)
+                    mappedPorts = listOfNotNull(status.port, status.wssPort)
+                    mappedPorts.forEach(adbAutoPortMappingService::startPortMapping)
                 }
 
                 is DebugWebSocketServerStatus.Stopped -> {
-                    wiredPorts.forEach(adbAutoWiringService::stopAutoWiring)
+                    mappedPorts.forEach(adbAutoPortMappingService::stopPortMapping)
                 }
 
                 else -> Unit
