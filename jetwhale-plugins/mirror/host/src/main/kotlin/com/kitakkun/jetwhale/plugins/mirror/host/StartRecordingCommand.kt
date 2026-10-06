@@ -4,9 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class StartRecordingCommand(
@@ -22,20 +20,21 @@ internal class StartRecordingCommand(
     private val all by booleanOrNull("Start recording every device that can record and is not recording yet. Not combined with deviceId or deviceIds.")
     private val deviceIds by stringListOrNull("Device ids from $TOOL_PREFIX.listDevices to start recording at once. Not combined with deviceId or all.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val single = arguments[deviceId]
         val several = arguments[deviceIds]
         val everyDevice = arguments[all] == true
         if (listOf(single != null, several != null, everyDevice).count { it } > 1) {
             throw JetWhaleMcpArgumentException("pass one of deviceId, deviceIds or all=true")
         }
+        if (several?.isEmpty() == true) throw JetWhaleMcpArgumentException("deviceIds names no device; pass at least one id from $TOOL_PREFIX.listDevices, or all=true")
         if (several == null && !everyDevice) {
             val device = deviceOperation { mirror.resolve(single) }
             deviceOperation { mirror.startRecording(device) }
-            return okJson()
+            return okResult()
         }
         if (everyDevice) mirror.refresh()
         val results = mirror.startRecordings(several)
-        return buildJsonObject { put("results", buildJsonArray { results.forEach { add(it.toJson()) } }) }.toString()
+        return results.toMcpResult(nothingToDo = "there is no device to start recording: each one that can record already is, or none is connected; call $TOOL_PREFIX.listDevices")
     }
 }

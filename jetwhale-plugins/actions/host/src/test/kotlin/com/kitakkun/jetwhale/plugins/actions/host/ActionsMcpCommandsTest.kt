@@ -4,12 +4,14 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
+import com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
 import com.kitakkun.jetwhale.plugins.actions.protocol.ParameterType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -42,7 +44,7 @@ class ActionsMcpCommandsTest {
         val emailOptions = client.actions.first().copy(parameters = listOf(loginAs.parameters.single().copy(hasOptions = true)))
         client.actions = listOf(emailOptions, wipe)
 
-        val listed = ListActionsCommand(browser).run().getValue("actions").jsonArray.map(JsonElement::jsonObject)
+        val listed = ListActionsCommand(browser).structuredAnswer().getValue("actions").jsonArray.map(JsonElement::jsonObject)
 
         val login = listed.first { it.getValue("id").jsonPrimitive.content == loginAs.id }
         assertEquals("string", login.getValue("argumentsSchema").jsonObject.getValue("properties").jsonObject.getValue("email").jsonObject.getValue("type").jsonPrimitive.content)
@@ -57,7 +59,7 @@ class ActionsMcpCommandsTest {
         val nullableTier = ActionParameter("tier", ParameterType.ENUM, optional = false, nullable = true, description = null, enumValues = listOf("FREE", "PRO"), hasOptions = false)
         client.actions = listOf(action("Set tier", destructive = false, parameters = listOf(nullableTier)))
 
-        val tier = ListActionsCommand(browser).run().getValue("actions").jsonArray.single().jsonObject
+        val tier = ListActionsCommand(browser).structuredAnswer().getValue("actions").jsonArray.single().jsonObject
             .getValue("argumentsSchema").jsonObject.getValue("properties").jsonObject.getValue("tier").jsonObject
 
         assertEquals(listOf(JsonPrimitive("FREE"), JsonPrimitive("PRO"), JsonNull), tier.getValue("enum").jsonArray.toList())
@@ -65,13 +67,13 @@ class ActionsMcpCommandsTest {
 
     @Test
     fun `the confirmation of a destructive run reaches the app`() {
-        RunActionCommand(browser).run(
+        RunActionCommand(browser).structuredAnswer(
             buildJsonObject {
                 put("id", wipe.id)
                 put("confirmDestructive", true)
             },
         )
-        RunActionCommand(browser).run(
+        RunActionCommand(browser).structuredAnswer(
             buildJsonObject {
                 put("id", loginAs.id)
                 putJsonObject("arguments") { put("email", "a") }
@@ -83,7 +85,7 @@ class ActionsMcpCommandsTest {
 
     @Test
     fun `runAction passes the arguments and returns the outcome`() {
-        val result = RunActionCommand(browser).run(
+        val result = RunActionCommand(browser).structuredAnswer(
             buildJsonObject {
                 put("id", loginAs.id)
                 putJsonObject("arguments") { put("email", "qa@example.com") }
@@ -96,11 +98,35 @@ class ActionsMcpCommandsTest {
     }
 
     @Test
+    fun `a run that does not succeed is a failed call that keeps its error and stack trace`() {
+        val failing = FakeActionsClient(
+            actions = listOf(loginAs),
+            options = emptyMap(),
+            result = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "no such user", stackTrace = "at LoginAs.run", durationMillis = 3),
+        )
+        val command = RunActionCommand(ActionsBrowser(failing, CoroutineScope(Dispatchers.Unconfined)))
+
+        val result = runBlocking {
+            command.run(
+                JetWhaleMcpArguments(
+                    buildJsonObject {
+                        put("id", loginAs.id)
+                        putJsonObject("arguments") { put("email", "nobody@example.com") }
+                    },
+                ),
+            )
+        }
+
+        assertTrue(result.isError)
+        assertEquals("'Log in as' ended with FAILURE after 3 ms: no such user\nat LoginAs.run", (result.content.single() as JetWhaleMcpContent.Text).text)
+    }
+
+    @Test
     fun `a destructive action is refused without explicit confirmation`() {
-        assertFailsWith<JetWhaleMcpArgumentException> { RunActionCommand(browser).run(buildJsonObject { put("id", wipe.id) }) }
+        assertFailsWith<JetWhaleMcpArgumentException> { RunActionCommand(browser).structuredAnswer(buildJsonObject { put("id", wipe.id) }) }
         assertTrue(client.runs.isEmpty())
 
-        RunActionCommand(browser).run(
+        RunActionCommand(browser).structuredAnswer(
             buildJsonObject {
                 put("id", wipe.id)
                 put("confirmDestructive", true)
@@ -111,13 +137,13 @@ class ActionsMcpCommandsTest {
 
     @Test
     fun `an unknown id is an argument error naming listActions`() {
-        val failure = assertFailsWith<JetWhaleMcpArgumentException> { RunActionCommand(browser).run(buildJsonObject { put("id", "nope") }) }
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> { RunActionCommand(browser).structuredAnswer(buildJsonObject { put("id", "nope") }) }
 
         assertTrue(failure.message.orEmpty().contains("listActions"))
     }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+private fun JetWhaleMcpCommand.structuredAnswer(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
+    checkNotNull(run(JetWhaleMcpArguments(arguments)).structuredContent)
 }

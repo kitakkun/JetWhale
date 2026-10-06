@@ -25,10 +25,9 @@ import io.ktor.server.sse.sse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +35,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
@@ -225,11 +227,16 @@ class DefaultMcpServerService(
                 name = toolName,
                 description = descriptor.description,
                 inputSchema = inputSchema,
+                outputSchema = descriptor.outputSchema?.let { schema ->
+                    ToolSchema(
+                        properties = schema["properties"] as? JsonObject,
+                        required = (schema["required"] as? JsonArray)?.mapNotNull(JsonElement::jsonContent),
+                    )
+                },
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
-                val arguments = request.arguments ?: emptyMap()
-                val result = toolRegistry.dispatch(toolName, arguments)
-                CallToolResult(content = listOf(TextContent(result ?: "null")))
+                toolRegistry.dispatch(toolName, request.arguments ?: emptyMap())?.toCallToolResult()
+                    ?: errorResult("$toolName is no longer offered by any plugin; reconnect to refresh the tool list.")
             }
         }
     }

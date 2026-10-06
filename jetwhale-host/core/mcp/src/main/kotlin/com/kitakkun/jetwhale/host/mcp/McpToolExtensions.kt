@@ -1,14 +1,18 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.io.encoding.Base64
 
 /**
  * Assembles the MCP input schema of a tool declared with the parameter DSL.
@@ -28,10 +32,22 @@ fun JetWhaleMcpToolDescriptor.toToolSchema(
     required = leadingProperties.keys.toList() + parameters.filterValues(JetWhaleMcpParameterDescriptor::required).keys,
 )
 
-fun errorResult(message: String): CallToolResult = CallToolResult(
-    content = listOf(TextContent(buildJsonObject { put("error", message) }.toString())),
-    isError = true,
+/**
+ * A plugin's result as the MCP wire type. Plugins never see the MCP library's types, so this is the
+ * one place where the SDK's vocabulary and the protocol's meet.
+ */
+fun JetWhaleMcpResult.toCallToolResult(): CallToolResult = CallToolResult(
+    content = content.map { block ->
+        when (block) {
+            is JetWhaleMcpContent.Text -> TextContent(block.text)
+            is JetWhaleMcpContent.Image -> ImageContent(data = Base64.encode(block.data), mimeType = block.mimeType)
+        }
+    },
+    isError = isError,
+    structuredContent = structuredContent,
 )
+
+fun errorResult(message: String): CallToolResult = JetWhaleMcpResult.error(message).toCallToolResult()
 
 fun successResult(): CallToolResult = CallToolResult(
     content = listOf(TextContent(buildJsonObject { put("success", true) }.toString())),

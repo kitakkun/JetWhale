@@ -38,6 +38,7 @@ class McpToolRegistrar(
             description = description,
             inputSchema = inputSchema,
             permission = permission,
+            outputSchema = null,
             resolvePluginId = { request -> request.arguments?.get("pluginId")?.jsonContent },
             handler = handler,
         )
@@ -49,11 +50,14 @@ class McpToolRegistrar(
      * Plugin tool schemas only carry `sessionId` — the owning plugin is an implementation detail the
      * agent never names — so attribution has to be resolved from the session instead of read off the
      * arguments. Without this the plugin's own tools would be the only ones the UI cannot attribute.
+     *
+     * [outputSchema] is null for a tool whose command declares no output.
      */
     fun addPluginTool(
         name: String,
         description: String,
         inputSchema: ToolSchema,
+        outputSchema: ToolSchema?,
         resolvePluginIdForSession: (sessionId: String) -> String?,
         handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
     ) {
@@ -62,6 +66,7 @@ class McpToolRegistrar(
             description = description,
             inputSchema = inputSchema,
             permission = McpToolPermission.PluginTool(name),
+            outputSchema = outputSchema,
             resolvePluginId = { request ->
                 request.arguments?.get("sessionId")?.jsonContent?.let(resolvePluginIdForSession)
             },
@@ -74,6 +79,7 @@ class McpToolRegistrar(
         description: String,
         inputSchema: ToolSchema,
         permission: McpToolPermission,
+        outputSchema: ToolSchema?,
         resolvePluginId: (CallToolRequest) -> String?,
         handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
     ) {
@@ -87,6 +93,7 @@ class McpToolRegistrar(
             name = name,
             description = description,
             inputSchema = inputSchema,
+            outputSchema = outputSchema,
         ) { request ->
             val targetPluginId = resolvePluginId(request)
             // Checked per call, not only when the tool list was built: a tool list is fixed for the
@@ -167,7 +174,8 @@ private val McpHostToolGroup.displayName: String
  *
  * A structured payload follows the blocks on its own line. It is the whole answer for a tool that
  * replies only in `structuredContent`, and it reads as the machine-readable detail behind the prose
- * for a tool that sends both.
+ * for a tool that sends both, unless a text block already spells it out, as the protocol asks a
+ * structured tool to do for clients that read nothing else.
  */
 private fun CallToolResult.renderForHistory(): String {
     val renderedBlocks = content.map { block ->
@@ -176,5 +184,6 @@ private fun CallToolResult.renderForHistory(): String {
             else -> "<${block.type.value}>"
         }
     }
-    return (renderedBlocks + listOfNotNull(structuredContent?.toString())).joinToString(separator = "\n")
+    val structured = structuredContent?.toString()?.takeUnless(renderedBlocks::contains)
+    return (renderedBlocks + listOfNotNull(structured)).joinToString(separator = "\n")
 }

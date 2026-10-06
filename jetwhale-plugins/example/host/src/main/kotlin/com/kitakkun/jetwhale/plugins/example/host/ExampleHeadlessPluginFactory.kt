@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -28,11 +29,11 @@ private class ExampleHeadlessPlugin :
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private class EchoCommand : JetWhaleMcpCommand() {
+private class EchoCommand : JetWhaleMcpTextCommand() {
     override val name = "com.kitakkun.jetwhale.example.headless.echo"
     override val description = "Echoes the given text back, to show a headless plugin doing its work over MCP."
 
     private val text by string("Text to echo back.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[text]
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[text]
 }
