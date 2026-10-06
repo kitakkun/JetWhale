@@ -49,32 +49,11 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
         CommandLineArgumentProvider {
             val version = releaseVersion.get()
             val dir = releaseDir.get()
-            buildList {
-                add("--output")
-                add(dir.resolve("jetwhale-host-$version.json").path)
-                add("--version")
-                add(version)
-                add("--main-class")
-                add(checkNotNull(hostMainClass))
-                add("--java-feature-version")
-                add(JetWhaleHostRuntime.JAVA_FEATURE_VERSION.toString())
-                JetWhaleHostRuntime.modules.forEach {
-                    add("--module")
-                    add(it)
+            listOf("--output", dir.resolve("jetwhale-host-$version.json").path) +
+                JetWhaleHostRuntime.releaseMetadataArguments(version, checkNotNull(hostMainClass)) +
+                JetWhaleHostRuntime.platformJvmArgs.keys.flatMap { platform ->
+                    listOf("--jar", "$platform=${dir.resolve("jetwhale-host-$version-$platform.jar").path}")
                 }
-                JetWhaleHostRuntime.jvmArgs.forEach {
-                    add("--jvm-arg")
-                    add(it)
-                }
-                JetWhaleHostRuntime.platformJvmArgs.forEach { (platform, arguments) ->
-                    arguments.forEach {
-                        add("--platform-jvm-arg")
-                        add("$platform=$it")
-                    }
-                    add("--jar")
-                    add("$platform=${dir.resolve("jetwhale-host-$version-$platform.jar").path}")
-                }
-            }
         },
     )
 }
@@ -93,32 +72,9 @@ val writeBundledHostMetadata = tasks.register<JavaExec>("writeBundledHostMetadat
     outputs.file(metadataFile)
     argumentProviders.add(
         CommandLineArgumentProvider {
-            buildList {
-                add("--output")
-                add(metadataFile.get().asFile.path)
-                add("--version")
-                add(hostVersion)
-                add("--main-class")
-                add(checkNotNull(hostMainClass))
-                add("--java-feature-version")
-                add(JetWhaleHostRuntime.JAVA_FEATURE_VERSION.toString())
-                JetWhaleHostRuntime.modules.forEach {
-                    add("--module")
-                    add(it)
-                }
-                JetWhaleHostRuntime.jvmArgs.forEach {
-                    add("--jvm-arg")
-                    add(it)
-                }
-                JetWhaleHostRuntime.platformJvmArgs.forEach { (platform, arguments) ->
-                    arguments.forEach {
-                        add("--platform-jvm-arg")
-                        add("$platform=$it")
-                    }
-                }
-                add("--current-platform-jar")
-                add(hostJar.singleFile.path)
-            }
+            listOf("--output", metadataFile.get().asFile.path) +
+                JetWhaleHostRuntime.releaseMetadataArguments(hostVersion, checkNotNull(hostMainClass)) +
+                listOf("--current-platform-jar", hostJar.singleFile.path)
         },
     )
 }

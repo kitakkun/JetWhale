@@ -36,4 +36,31 @@ object JetWhaleHostRuntime {
         "linux-x64" to emptyList(),
         "windows-x64" to emptyList(),
     )
+
+    /**
+     * The arguments `WriteHostReleaseMetadata` takes for a host of [versionName] with [mainClass] and
+     * these requirements, every platform's JVM arguments included. A caller adds `--output` and the jars.
+     */
+    internal fun releaseMetadataArguments(versionName: String, mainClass: String): List<String> = buildList {
+        add("--version")
+        add(versionName)
+        add("--main-class")
+        add(mainClass)
+        add("--java-feature-version")
+        add(JAVA_FEATURE_VERSION.toString())
+        modules.forEach {
+            add("--module")
+            add(it)
+        }
+        jvmArgs.forEach {
+            add("--jvm-arg")
+            add(it)
+        }
+        platformJvmArgs.forEach { (platform, arguments) ->
+            arguments.forEach {
+                add("--platform-jvm-arg")
+                add("$platform=$it")
+            }
+        }
+    }
 }
