@@ -101,6 +101,7 @@ private fun HostViewState.toJson() = UiStateJson(
     pluginId = destination.pluginId,
     sessionId = destination.sessionId,
     settingsSection = destination.settingsSection?.name,
+    content = ContentJson(destination.content.kind.name, destination.content.pluginId, destination.content.sessionId),
     poppedOutPlugins = destination.poppedOutPlugins.map { PoppedOutPluginJson(it.pluginId, it.sessionId) },
     selectedSessionId = selectedSessionId,
     selectedPluginId = selectedPluginId,
@@ -155,15 +156,26 @@ data class PermissionsJson(
     val changeableIn: String = "Settings → AI Agents → Permissions",
 )
 
+/**
+ * @property content What the main window shows under [destination] when that is a dialog; otherwise the same thing.
+ */
 @Serializable
 data class UiStateJson(
     val destination: String,
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: String? = null,
+    val content: ContentJson,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
     val selectedSessionId: String? = null,
     val selectedPluginId: String? = null,
+)
+
+@Serializable
+data class ContentJson(
+    val destination: String,
+    val pluginId: String? = null,
+    val sessionId: String? = null,
 )
 
 @Serializable

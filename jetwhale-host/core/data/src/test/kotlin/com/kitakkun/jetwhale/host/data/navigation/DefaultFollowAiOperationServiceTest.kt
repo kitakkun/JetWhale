@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.navigation
 
 import com.kitakkun.jetwhale.host.data.server.DefaultMcpActivityRepository
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
@@ -109,6 +110,23 @@ class DefaultFollowAiOperationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                content = HostContent(HostDestinationKind.PLUGIN, "plugin-1", "session-1"),
+            ),
+        )
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+
+        assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `the plugin under a dialog the user has open is not navigated to again`() = runBlocking {
+        navigationService.updateDestination(
+            HostDestination(
+                kind = HostDestinationKind.SETTINGS,
+                content = HostContent(HostDestinationKind.PLUGIN, "plugin-1", "session-1"),
             ),
         )
         val following = startFollowing()
@@ -126,6 +144,7 @@ class DefaultFollowAiOperationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                content = HostContent(HostDestinationKind.PLUGIN, "plugin-1", "session-1"),
             ),
         )
         val following = startFollowing()
@@ -142,6 +161,7 @@ class DefaultFollowAiOperationServiceTest {
             HostDestination(
                 kind = HostDestinationKind.HOME,
                 poppedOutPlugins = listOf(PoppedOutPlugin("plugin-1", "session-1")),
+                content = HostContent(HostDestinationKind.HOME),
             ),
         )
         val following = startFollowing()

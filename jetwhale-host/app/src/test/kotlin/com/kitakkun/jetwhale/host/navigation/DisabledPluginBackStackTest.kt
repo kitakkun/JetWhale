@@ -18,6 +18,16 @@ class DisabledPluginBackStackTest {
     }
 
     @Test
+    fun `enabling a disabled plugin under a popout keeps the popout on top`() {
+        val popout = PluginPopoutNavKey(pluginId = "com.example.layout", sessionId = "app-1", pluginName = "Layout")
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, disabled, popout)
+
+        backStack.openEnabledPlugin(disabled)
+
+        assertEquals(listOf(EmptyPluginNavKey, PluginNavKey(pluginId = "com.example.network", sessionId = "app-1"), popout), backStack.toList())
+    }
+
+    @Test
     fun `a plugin enabled with no session to open in only leaves its screen`() {
         val noSession = disabled.copy(sessionId = null)
         val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, noSession)

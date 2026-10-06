@@ -158,10 +158,12 @@ working.
 
 Only a tool call that names a plugin moves the window; host-level calls (navigation, settings,
 status) leave it alone, and so does a plugin already popped out into its own window — it is visible
-where it is. Each time the window moves this way, a short notice says so (*Following the AI:
-&lt;plugin&gt;*), so a screen change nobody clicked is explained. The same switch is in the popover of
-the AI indicator in the sidebar header (see [AI activity](/guide/host-window#ai-activity)), so it
-can be turned off without a trip back to this page.
+where it is. The move changes what the main window shows underneath: a dialog you have open —
+Settings, the MCP tools browser — stays open on top of it, as do the popout windows. Each time
+the window moves this way, a short notice says so (*Following the AI: &lt;plugin&gt;*), so a screen
+change nobody clicked is explained. The same switch is in the popover of the AI indicator in the
+sidebar header (see [AI activity](/guide/host-window#ai-activity)), so it can be turned off
+without a trip back to this page.
 
 ## Plugins
 
