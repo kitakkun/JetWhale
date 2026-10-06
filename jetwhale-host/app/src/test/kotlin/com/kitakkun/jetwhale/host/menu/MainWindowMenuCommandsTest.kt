@@ -138,6 +138,18 @@ class MainWindowMenuCommandsTest {
         assertTrue(hostNavigationService.navigatedRequests.isEmpty())
     }
 
+    @Test
+    fun `a shortcut pressed with the other platform's shortcut modifier as well runs nothing`() = runComposeUiTest {
+        val otherPlatformModifier = if (HostOs.current == HostOs.MAC) Key.CtrlLeft else Key.MetaLeft
+        showShortcutTarget()
+
+        pressShortcut { withKeyDown(otherPlatformModifier) { pressKey(Key.Comma) } }
+        pressShortcut { withKeyDown(otherPlatformModifier) { pressKey(Key.Q) } }
+
+        assertTrue(hostNavigationService.navigatedRequests.isEmpty())
+        assertEquals(0, quitCount)
+    }
+
     private fun ComposeUiTest.showShortcutTarget() {
         setContent {
             Box(Modifier.size(10.dp).testTag(TARGET).onKeyEvent(mainWindowMenuCommands::runShortcut).focusable())
