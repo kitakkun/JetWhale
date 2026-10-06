@@ -87,6 +87,13 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
  */
 fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure = failure.copy(message = redactQueryParamsInText(failure.message))
 
+private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
+    when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
+        null -> values.map { redactQueryParamsInText(it) }
+        else -> values.map(strategy::render)
+    }
+}
+
 private fun List<RedactionRule>.redactQueryParamsInText(text: String): String {
     if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return text
     val redacted = StringBuilder()
@@ -103,13 +110,6 @@ private fun List<RedactionRule>.redactQueryParamsInText(text: String): String {
 
 private val QUERY_PARAM_NAME_IN_TEXT = Regex("""[?&]([^?&#=\s]*)=""")
 private val QUERY_PARAM_VALUE = Regex("""[^&#\s]*""")
-
-private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
-    when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
-        null -> values.map { redactQueryParamsInText(it) }
-        else -> values.map(strategy::render)
-    }
-}
 
 private fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: String): RedactionStrategy? = lastOrNull { it.target == target && it.name.equals(name, ignoreCase = true) }?.strategy
 
