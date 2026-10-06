@@ -52,7 +52,7 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
     when (outcome) {
-        is LaunchOutcome.Starting -> runHost(outcome.hostStart, arguments, hostDirectory, runningHostChannel, log)
+        is LaunchOutcome.Starting -> runHost(outcome, arguments, hostDirectory, runningHostChannel, log)
 
         is LaunchOutcome.BroughtRunningHostToFront -> exitProcess(0)
 
@@ -71,7 +71,7 @@ private fun createHostLauncher(
     log: LauncherLog,
 ): HostLauncher = HostLauncher(
     hostDirectory = hostDirectory,
-    bundledHostVersion = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHostDirectory(Path.of(it).resolve("host")).readHostVersion() },
+    bundledHostJar = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHostDirectory(Path.of(it).resolve("host")).readHostJar() },
     capabilities = LauncherCapabilities(
         contract = LauncherContract.VERSION,
         javaFeatureVersion = Runtime.version().feature(),
@@ -93,13 +93,13 @@ private fun createHostLauncher(
  * leaves the JVM to end once the host's threads have.
  */
 private fun runHost(
-    hostStart: HostLauncher.HostStart,
+    starting: LaunchOutcome.Starting,
     arguments: LauncherArguments,
     hostDirectory: HostDirectory,
     runningHostChannel: RunningHostChannel,
     log: LauncherLog,
 ) {
-    Runtime.getRuntime().addShutdownHook(Thread(hostStart::recordEndedWithoutFailure, "jetwhale-host-shutdown"))
+    Runtime.getRuntime().addShutdownHook(Thread(starting.startOutcomeRecorder::recordStartEndedWithoutFailure, "jetwhale-host-shutdown"))
     thread(isDaemon = true, name = "jetwhale-host-instance-json-watcher") {
         InstanceJsonPublicationWatcher(
             startupTimeWindow = STARTUP_TIME_WINDOW,
@@ -107,10 +107,10 @@ private fun runHost(
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
             isInstanceJsonPublished = { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) },
-        ).releaseLaunchLockWhenInstanceJsonIsPublished(hostStart)
+        ).releaseLaunchLockWhenInstanceJsonIsPublished(starting.startOutcomeRecorder)
     }
     thread(isDaemon = true, name = "jetwhale-host-startup-time-window") {
-        hostStart.recordCompletedAfter(STARTUP_TIME_WINDOW)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(STARTUP_TIME_WINDOW)
     }
     val inProcessHost = InProcessHost(
         hostDirectory = hostDirectory,
@@ -119,11 +119,11 @@ private fun runHost(
         writesOutputToLog = !arguments.headless,
     )
     try {
-        inProcessHost.run(hostStart.chosenHostVersion, hostStart.setAsideVersion, arguments.hostArguments)
+        inProcessHost.run(starting.chosenHostJar, starting.setAsideVersion, arguments.hostArguments)
     } catch (e: Throwable) {
-        System.err.println("JetWhale host ${hostStart.chosenHostVersion.version} stopped: ${e.stackTraceToString()}")
-        log.write("${hostStart.chosenHostVersion.version} stopped: $e")
-        hostStart.recordFailed()
+        System.err.println("JetWhale host ${starting.chosenHostJar.version} stopped: ${e.stackTraceToString()}")
+        log.write("${starting.chosenHostJar.version} stopped: $e")
+        starting.startOutcomeRecorder.recordFailedStart()
         exitProcess(1)
     }
 }

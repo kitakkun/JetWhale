@@ -29,13 +29,13 @@ class InProcessHost(
     private val writesOutputToLog: Boolean,
 ) {
     /**
-     * Sets the system properties [chosenHostVersion]'s metadata and the launcher contract give the host,
+     * Sets the system properties [chosenHostJar]'s metadata and the launcher contract give the host,
      * then calls its main with [arguments]. Returns when that main returns, and throws what it throws.
      *
      * @param setAsideVersion A version this launch set aside, which the host tells the user about.
      */
-    fun run(chosenHostVersion: ChosenHostVersion, setAsideVersion: HostVersion?, arguments: List<String>) {
-        chosenHostVersion.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
+    fun run(chosenHostJar: ChosenHostJar, setAsideVersion: HostVersion?, arguments: List<String>) {
+        chosenHostJar.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
         System.setProperty(LauncherContract.CONTRACT_PROPERTY, LauncherContract.VERSION.toString())
         launcherExecutable?.let { System.setProperty(LauncherContract.EXECUTABLE_PROPERTY, it) }
         System.setProperty(LauncherContract.HOST_DIRECTORY_PROPERTY, hostDirectory.root.toString())
@@ -50,14 +50,14 @@ class InProcessHost(
 
         if (writesOutputToLog) {
             Files.createDirectories(hostDirectory.logsDirectory)
-            val output = PrintStream(FileOutputStream(hostDirectory.hostLogFile(chosenHostVersion.version).toFile()), true)
+            val output = PrintStream(FileOutputStream(hostDirectory.hostLogFile(chosenHostJar.version).toFile()), true)
             System.setOut(output)
             System.setErr(output)
         }
 
-        val classLoader = URLClassLoader("jetwhale-host-${chosenHostVersion.version.name}", arrayOf(chosenHostVersion.jar.toUri().toURL()), ClassLoader.getPlatformClassLoader())
+        val classLoader = URLClassLoader("jetwhale-host-${chosenHostJar.version.name}", arrayOf(chosenHostJar.path.toUri().toURL()), ClassLoader.getPlatformClassLoader())
         Thread.currentThread().contextClassLoader = classLoader
-        val main = classLoader.loadClass(chosenHostVersion.metadata.mainClass).getMethod("main", Array<String>::class.java)
+        val main = classLoader.loadClass(chosenHostJar.metadata.mainClass).getMethod("main", Array<String>::class.java)
         try {
             main.invoke(null, arguments.toTypedArray())
         } catch (e: InvocationTargetException) {

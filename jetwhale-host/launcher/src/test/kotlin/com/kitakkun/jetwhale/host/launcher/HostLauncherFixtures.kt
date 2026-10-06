@@ -177,7 +177,7 @@ class LaunchTestBed {
         runningPids += pid
         return HostLauncher(
             hostDirectory = hostDirectory,
-            bundledHostVersion = if (bundled) BundledHostDirectory(bundledDirectory).readHostVersion() else null,
+            bundledHostJar = if (bundled) BundledHostDirectory(bundledDirectory).readHostJar() else null,
             capabilities = capableLauncher,
             metadataReader = metadataReader,
             lockFiles = lockFiles,
@@ -198,7 +198,7 @@ class LaunchTestBed {
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
         checkNotNull(lockFiles.of(pid).tryLock(hostDirectory.instanceLockFile)) { "the instance was taken" }
         runningHostChannel.publishInstanceJson(pid)
-        starting.hostStart.releaseLaunchLock()
+        starting.startOutcomeRecorder.releaseLaunchLock()
     }
 
     /** A process that is not a launch runs with the ID [pid]. */
@@ -214,7 +214,7 @@ class LaunchTestBed {
 
     /** The process [pid] ends after its shutdown hook has run. */
     fun shutDown(pid: Long, starting: LaunchOutcome.Starting) {
-        starting.hostStart.recordEndedWithoutFailure()
+        starting.startOutcomeRecorder.recordStartEndedWithoutFailure()
         crash(pid)
     }
 }

@@ -14,19 +14,19 @@ class BundledHostDirectoryTest {
     fun `reads the version and the jar the package carries`() {
         Files.writeString(directory.resolve("release.json"), hostMetadata("1.0.0-alpha13", "host".toByteArray()).encode())
 
-        val chosenHostVersion = assertNotNull(BundledHostDirectory(directory).readHostVersion())
+        val chosenHostJar = assertNotNull(BundledHostDirectory(directory).readHostJar())
 
-        assertEquals("1.0.0-alpha13", chosenHostVersion.version.name)
-        assertEquals(directory.resolve("jetwhale-host.bundled"), chosenHostVersion.jar)
-        assertTrue(chosenHostVersion.isBundled)
+        assertEquals("1.0.0-alpha13", chosenHostJar.version.name)
+        assertEquals(directory.resolve("jetwhale-host.bundled"), chosenHostJar.path)
+        assertTrue(chosenHostJar.isBundled)
     }
 
     @Test
     fun `has no bundled version without readable metadata`() {
-        assertNull(BundledHostDirectory(directory).readHostVersion())
+        assertNull(BundledHostDirectory(directory).readHostJar())
 
         Files.writeString(directory.resolve("release.json"), "{}")
 
-        assertNull(BundledHostDirectory(directory).readHostVersion())
+        assertNull(BundledHostDirectory(directory).readHostJar())
     }
 }

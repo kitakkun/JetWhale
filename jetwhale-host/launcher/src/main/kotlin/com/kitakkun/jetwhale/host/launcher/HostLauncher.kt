@@ -10,7 +10,7 @@ import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
-import com.kitakkun.jetwhale.host.release.StartInProgress
+import com.kitakkun.jetwhale.host.release.StartedHostProcess
 import com.kitakkun.jetwhale.host.release.check
 import java.io.IOException
 import java.nio.file.Files
@@ -30,12 +30,12 @@ private const val FAILED_STARTS_TO_SET_ASIDE = 2
  * first that is not set aside, not refused and verifies. A downloaded version that has never completed
  * a start and has failed its last two is set aside on the way.
  *
- * @param bundledHostVersion Null when the launcher runs outside a package, which has no bundled host.
+ * @param bundledHostJar Null when the launcher runs outside a package, which has no bundled host.
  * @param processTable This process, which runs the chosen host, and those of earlier launches.
  */
 class HostLauncher(
     private val hostDirectory: HostDirectory,
-    private val bundledHostVersion: ChosenHostVersion?,
+    private val bundledHostJar: ChosenHostJar?,
     private val capabilities: LauncherCapabilities,
     private val metadataReader: HostReleaseMetadataReader,
     private val lockFiles: LockFiles,
@@ -45,7 +45,8 @@ class HostLauncher(
     private val sleep: (Duration) -> Unit,
 ) {
     /**
-     * Returns [LaunchOutcome.Starting] still holding `launch.lock`, which its [HostStart] lets go.
+     * Returns [LaunchOutcome.Starting] still holding `launch.lock`, which its [HostStartOutcomeRecorder]
+     * lets go.
      *
      * @param afterPid The host that restarts into an update, which has to end before a version is
      * chosen. It is waited for before `launch.lock` is taken, because that host takes the lock on its
@@ -77,10 +78,10 @@ class HostLauncher(
      */
     private fun judgeEndedStart() {
         val state = hostDirectory.readLauncherState()
-        val startInProgress = state.startInProgress ?: return
-        if (processTable.isRunning(startInProgress.pid, startInProgress.processStartMillis)) return
-        log.write("${startInProgress.version} ended within its startup time window without a record of how: a crash or a kill")
-        hostDirectory.writeLauncherState(failedStart(state, startInProgress.version))
+        val startedHostProcess = state.startedHostProcess ?: return
+        if (processTable.isRunning(startedHostProcess.pid, startedHostProcess.processStartMillis)) return
+        log.write("${startedHostProcess.version} ended within its startup time window without a record of how: a crash or a kill")
+        hostDirectory.writeLauncherState(failedStart(state, startedHostProcess.version))
     }
 
     private fun handToRunningHost(): LaunchOutcome {
@@ -104,16 +105,16 @@ class HostLauncher(
     private fun chooseAndStart(launchLock: HeldLock): LaunchOutcome {
         var firstSetAsideVersion: HostVersion? = null
         for (candidate in candidates()) {
-            val chosenHostVersion = when (candidate) {
+            val chosenHostJar = when (candidate) {
                 is Candidate.Downloaded -> {
                     val version = candidate.hostVersionDirectory.version
                     if (setAsideAfterFailedStarts(version)) firstSetAsideVersion = firstSetAsideVersion ?: version
                     verify(candidate.hostVersionDirectory, hostDirectory.readLauncherState()) ?: continue
                 }
 
-                is Candidate.Bundled -> candidate.chosenHostVersion
+                is Candidate.Bundled -> candidate.chosenHostJar
             }
-            return recordStartInProgress(chosenHostVersion, firstSetAsideVersion, launchLock)
+            return recordStartedHostProcess(chosenHostJar, firstSetAsideVersion, launchLock)
         }
         log.write("No host version is left to start")
         return LaunchOutcome.NothingLeft
@@ -132,14 +133,14 @@ class HostLauncher(
     }
 
     private fun candidates(): List<Candidate> {
-        val floor = bundledHostVersion?.version
+        val floor = bundledHostJar?.version
         val downloaded = hostDirectory.hostVersionDirectories()
             .filter { floor == null || it.version > floor }
             .map(Candidate::Downloaded)
-        return downloaded + listOfNotNull(bundledHostVersion?.let(Candidate::Bundled))
+        return downloaded + listOfNotNull(bundledHostJar?.let(Candidate::Bundled))
     }
 
-    private fun verify(hostVersionDirectory: HostVersionDirectory, launcherState: LauncherState): ChosenHostVersion? {
+    private fun verify(hostVersionDirectory: HostVersionDirectory, launcherState: LauncherState): ChosenHostJar? {
         val version = hostVersionDirectory.version
         if (version in launcherState.setAsideVersions) {
             log.write("Skipping $version: it is set aside")
@@ -173,10 +174,10 @@ class HostLauncher(
             return discard(hostVersionDirectory, "its jar cannot be read (${e.message})")
         }
         if (check != HostJarCheck.Matches) return discard(hostVersionDirectory, "its jar does not match its metadata ($check)")
-        return ChosenHostVersion(version = version, metadata = metadata, jar = jar, isBundled = false)
+        return ChosenHostJar(version = version, metadata = metadata, path = jar, isBundled = false)
     }
 
-    private fun discard(hostVersionDirectory: HostVersionDirectory, reason: String): ChosenHostVersion? {
+    private fun discard(hostVersionDirectory: HostVersionDirectory, reason: String): ChosenHostJar? {
         log.write("Deleting ${hostVersionDirectory.version}: $reason")
         delete(hostVersionDirectory)
         return null
@@ -187,22 +188,22 @@ class HostLauncher(
     }
 
     /**
-     * Writes down that this process starts [chosenHostVersion], so that a later launch counts a crash
+     * Writes down that this process starts [chosenHostJar], so that a later launch counts a crash
      * within its startup time window. An `instance.json` a host left behind goes first: that host could
      * have had this process's ID, and its `instance.json` would pass for this host's.
      */
-    private fun recordStartInProgress(
-        chosenHostVersion: ChosenHostVersion,
+    private fun recordStartedHostProcess(
+        chosenHostJar: ChosenHostJar,
         setAsideVersion: HostVersion?,
         launchLock: HeldLock,
     ): LaunchOutcome.Starting {
         hostDirectory.deleteInstanceJson()
         val state = hostDirectory.readLauncherState()
         hostDirectory.writeLauncherState(
-            state.copy(startInProgress = StartInProgress(chosenHostVersion.version, processTable.currentPid, processTable.currentStartMillis)),
+            state.copy(startedHostProcess = StartedHostProcess(chosenHostJar.version, processTable.currentPid, processTable.currentStartMillis)),
         )
-        log.write("Starting ${chosenHostVersion.version}${if (chosenHostVersion.isBundled) " (bundled)" else ""}")
-        return LaunchOutcome.Starting(HostStart(chosenHostVersion, setAsideVersion, launchLock))
+        log.write("Starting ${chosenHostJar.version}${if (chosenHostJar.isBundled) " (bundled)" else ""}")
+        return LaunchOutcome.Starting(chosenHostJar, setAsideVersion, HostStartOutcomeRecorder(chosenHostJar, launchLock))
     }
 
     private fun isInstanceHeldElsewhere(): Boolean {
@@ -215,11 +216,11 @@ class HostLauncher(
     private fun failedStart(state: LauncherState, version: HostVersion): LauncherState {
         if (version in state.completedStartVersions) {
             log.write("$version has completed a start before, so this failure is not counted; its crash recovery takes over")
-            return state.copy(startInProgress = null)
+            return state.copy(startedHostProcess = null)
         }
         val count = (state.failedStartCounts[version] ?: 0) + 1
         log.write("$version has failed $count start(s) in a row")
-        return state.copy(failedStartCounts = state.failedStartCounts + (version to count), startInProgress = null)
+        return state.copy(failedStartCounts = state.failedStartCounts + (version to count), startedHostProcess = null)
     }
 
     private fun readOrNull(file: Path): ByteArray? = try {
@@ -229,16 +230,13 @@ class HostLauncher(
     }
 
     /**
-     * The start of [chosenHostVersion] in this process, which records how it ends. The first of three
-     * ends counts, and is recorded once, under `launch.lock`: the end of the startup time window, a
-     * failure of the host's main, or a shutdown of this JVM. Until then it holds the `launch.lock` the
-     * launch took, unless it has been told to let it go.
-     *
-     * @property setAsideVersion A version this launch set aside, which the host tells the user about.
+     * Records how the start of [chosenHostJar] in this process ends. The first of three ends counts,
+     * and is recorded once, under `launch.lock`: the end of the startup time window, a failure of the
+     * host's main, or a shutdown of this JVM. Until then it holds the `launch.lock` the launch took,
+     * unless it has been told to let it go.
      */
-    inner class HostStart internal constructor(
-        val chosenHostVersion: ChosenHostVersion,
-        val setAsideVersion: HostVersion?,
+    inner class HostStartOutcomeRecorder internal constructor(
+        private val chosenHostJar: ChosenHostJar,
         launchLock: HeldLock,
     ) {
         private var heldLaunchLock: HeldLock? = launchLock
@@ -256,31 +254,31 @@ class HostLauncher(
          * Waits out [startupTimeWindow] from now, which is right before the host's main is called, and
          * then records a completed start, unless the start has ended otherwise by then.
          */
-        fun recordCompletedAfter(startupTimeWindow: Duration) {
+        fun recordCompletedStartAfter(startupTimeWindow: Duration) {
             sleep(startupTimeWindow)
-            recordCompleted()
+            recordCompletedStart()
         }
 
         /** The host still runs at the end of its startup time window: it completed its start. */
         @Synchronized
-        private fun recordCompleted() = recordOutcomeOnce { state ->
-            log.write("${chosenHostVersion.version} completed its start")
+        private fun recordCompletedStart() = recordOutcomeOnce { state ->
+            log.write("${chosenHostJar.version} completed its start")
             pruneAfterStart(
-                chosenHostVersion,
+                chosenHostJar,
                 state.copy(
-                    completedStartVersions = state.completedStartVersions + chosenHostVersion.version,
-                    setAsideVersions = state.setAsideVersions - chosenHostVersion.version,
-                    failedStartCounts = state.failedStartCounts - chosenHostVersion.version,
-                    startInProgress = null,
+                    completedStartVersions = state.completedStartVersions + chosenHostJar.version,
+                    setAsideVersions = state.setAsideVersions - chosenHostJar.version,
+                    failedStartCounts = state.failedStartCounts - chosenHostJar.version,
+                    startedHostProcess = null,
                 ),
             )
         }
 
         /** The host's main threw within its startup time window: a failed start. */
         @Synchronized
-        fun recordFailed() = recordOutcomeOnce { state ->
-            log.write("${chosenHostVersion.version} failed within its startup time window")
-            failedStart(state, chosenHostVersion.version)
+        fun recordFailedStart() = recordOutcomeOnce { state ->
+            log.write("${chosenHostJar.version} failed within its startup time window")
+            failedStart(state, chosenHostJar.version)
         }
 
         /**
@@ -289,9 +287,9 @@ class HostLauncher(
          * completed one.
          */
         @Synchronized
-        fun recordEndedWithoutFailure() = recordOutcomeOnce { state ->
-            log.write("${chosenHostVersion.version} ended within its startup time window without failing")
-            state.copy(startInProgress = null)
+        fun recordStartEndedWithoutFailure() = recordOutcomeOnce { state ->
+            log.write("${chosenHostJar.version} ended within its startup time window without failing")
+            state.copy(startedHostProcess = null)
         }
 
         private fun recordOutcomeOnce(stateWithOutcome: (LauncherState) -> LauncherState) {
@@ -308,19 +306,19 @@ class HostLauncher(
     }
 
     /**
-     * Keeps [chosenHostVersion], which runs, and the newest version newer than it, which is set aside or
+     * Keeps [chosenHostJar], which runs, and the newest version newer than it, which is set aside or
      * finished downloading during this start, and deletes every other downloaded version.
      */
-    private fun pruneAfterStart(chosenHostVersion: ChosenHostVersion, launcherState: LauncherState): LauncherState {
+    private fun pruneAfterStart(chosenHostJar: ChosenHostJar, launcherState: LauncherState): LauncherState {
         val hostVersionDirectories = hostDirectory.hostVersionDirectories()
-        val newestNewer = hostVersionDirectories.firstOrNull { it.version > chosenHostVersion.version }
+        val newestNewer = hostVersionDirectories.firstOrNull { it.version > chosenHostJar.version }
         hostVersionDirectories
-            .filterNot { it == newestNewer || (!chosenHostVersion.isBundled && it.version == chosenHostVersion.version) }
+            .filterNot { it == newestNewer || (!chosenHostJar.isBundled && it.version == chosenHostJar.version) }
             .forEach {
-                log.write("Deleting ${it.version}: ${chosenHostVersion.version} completed a start")
+                log.write("Deleting ${it.version}: ${chosenHostJar.version} completed a start")
                 delete(it)
             }
-        val keptVersions = hostDirectory.hostVersionDirectories().map(HostVersionDirectory::version).toSet() + listOfNotNull(bundledHostVersion?.version)
+        val keptVersions = hostDirectory.hostVersionDirectories().map(HostVersionDirectory::version).toSet() + listOfNotNull(bundledHostJar?.version)
         return launcherState.copy(
             completedStartVersions = launcherState.completedStartVersions.intersect(keptVersions),
             setAsideVersions = launcherState.setAsideVersions.intersect(keptVersions),
@@ -331,13 +329,21 @@ class HostLauncher(
     private sealed interface Candidate {
         data class Downloaded(val hostVersionDirectory: HostVersionDirectory) : Candidate
 
-        data class Bundled(val chosenHostVersion: ChosenHostVersion) : Candidate
+        data class Bundled(val chosenHostJar: ChosenHostJar) : Candidate
     }
 }
 
 sealed interface LaunchOutcome {
-    /** This process runs [hostStart]'s version, and [hostStart] records how that start goes. */
-    class Starting(val hostStart: HostLauncher.HostStart) : LaunchOutcome
+    /**
+     * This process runs [chosenHostJar], and [startOutcomeRecorder] records how that start goes.
+     *
+     * @property setAsideVersion A version this launch set aside, which the host tells the user about.
+     */
+    class Starting(
+        val chosenHostJar: ChosenHostJar,
+        val setAsideVersion: HostVersion?,
+        val startOutcomeRecorder: HostLauncher.HostStartOutcomeRecorder,
+    ) : LaunchOutcome
 
     data object BroughtRunningHostToFront : LaunchOutcome
 

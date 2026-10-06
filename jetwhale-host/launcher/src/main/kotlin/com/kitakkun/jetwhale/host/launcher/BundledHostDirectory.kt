@@ -10,7 +10,7 @@ import java.nio.file.Path
 /** The directory in the package that holds the host version installed with it: its `release.json` and jar. */
 class BundledHostDirectory(private val path: Path) {
     /** Reads the bundled version. Null when the directory has no readable metadata. */
-    fun readHostVersion(): ChosenHostVersion? {
+    fun readHostJar(): ChosenHostJar? {
         val text = try {
             Files.readString(path.resolve(HostVersionDirectory.METADATA_FILE_NAME))
         } catch (_: IOException) {
@@ -18,10 +18,10 @@ class BundledHostDirectory(private val path: Path) {
         }
         val metadata: HostReleaseMetadata = (HostReleaseMetadata.decode(text) as? HostReleaseMetadataResult.Read)?.metadata
             ?: return null
-        return ChosenHostVersion(
+        return ChosenHostJar(
             version = metadata.version,
             metadata = metadata,
-            jar = path.resolve(JAR_FILE_NAME),
+            path = path.resolve(JAR_FILE_NAME),
             isBundled = true,
         )
     }

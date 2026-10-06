@@ -76,7 +76,7 @@ class LauncherMainTest {
         assertEquals(1, runLauncher("throw"))
 
         assertEquals(mapOf(bundledVersion to 1), hostDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostDirectory.readLauncherState().startInProgress)
+        assertNull(hostDirectory.readLauncherState().startedHostProcess)
         assertContains(Files.readString(hostDirectory.hostLogFile(bundledVersion)), "stub host failed")
         assertContains(Files.readString(appData.resolve("logs/launcher.log")), "IllegalStateException: stub host failed")
     }
@@ -91,12 +91,12 @@ class LauncherMainTest {
     @Test
     fun `counts a start whose JVM halted as failed at the next launch`() {
         assertEquals(134, runLauncher("halt"))
-        assertEquals(bundledVersion, assertNotNull(hostDirectory.readLauncherState().startInProgress).version)
+        assertEquals(bundledVersion, assertNotNull(hostDirectory.readLauncherState().startedHostProcess).version)
 
         assertEquals(0, runLauncher("return"))
 
         assertEquals(mapOf(bundledVersion to 1), hostDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostDirectory.readLauncherState().startInProgress)
+        assertNull(hostDirectory.readLauncherState().startedHostProcess)
     }
 
     @Test
