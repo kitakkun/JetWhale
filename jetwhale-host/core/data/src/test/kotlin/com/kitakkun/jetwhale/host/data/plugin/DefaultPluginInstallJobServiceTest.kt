@@ -280,13 +280,15 @@ class DefaultPluginInstallJobServiceTest {
         }
         serviceHeld.await()
 
-        service.cancel(job.id)
-        withTimeout(TIMEOUT_MILLIS) {
-            while (ManagementFactory.getThreadMXBean().dumpAllThreads(false, false).none { it.threadState == Thread.State.BLOCKED && it.lockInfo?.identityHashCode == System.identityHashCode(service) }) yield()
+        val shutdown = try {
+            service.cancel(job.id)
+            withTimeout(TIMEOUT_MILLIS) {
+                while (ManagementFactory.getThreadMXBean().dumpAllThreads(false, false).none { it.threadState == Thread.State.BLOCKED && it.lockInfo?.identityHashCode == System.identityHashCode(service) }) yield()
+            }
+            launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }.also { assertFalse(it.isCompleted) }
+        } finally {
+            releaseService.countDown()
         }
-        val shutdown = launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }
-        assertFalse(shutdown.isCompleted)
-        releaseService.countDown()
         withTimeout(TIMEOUT_MILLIS) { shutdown.join() }
 
         assertEquals(emptyList(), service.jobsFlow.value.filter { it.id == job.id })
