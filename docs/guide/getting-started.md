@@ -19,6 +19,21 @@ Download the installer for your OS from the
 A runnable uber-jar (`jetwhale-host-<version>-<osArch>.jar`) is also attached to each release if you
 prefer `java -jar`.
 
+::: details Linux notes
+- Install the package with `sudo apt install ./jetwhale-debugger-<version>-linux-x64.deb`, which also
+  pulls in anything it depends on. The host then appears in your desktop's application menu.
+- The host draws at a whole-number scale (1×, 2×) and takes it from the `GDK_SCALE` environment
+  variable (or `J2D_UISCALE`, which wins when both are set), not from the desktop's display
+  settings. On a high-resolution screen, start it with `GDK_SCALE=2`; for the menu entry, copy
+  `/opt/jetwhale-debugger/lib/jetwhale-debugger-JetWhale_Debugger.desktop` to
+  `~/.local/share/applications/` and prefix its `Exec=` line with `env GDK_SCALE=2`. Fractional
+  scaling is not available: a 150% desktop setting has no effect on the host, and a fractional value
+  in either variable is rounded down (`1.5` gives 1×).
+- The Japanese UI needs a CJK font, such as `fonts-noto-cjk` on Debian and Ubuntu; without one,
+  Japanese text shows as empty boxes.
+- On a Wayland session the host runs through XWayland.
+:::
+
 Launch the host. By default it listens for debuggee connections on **port 5080**.
 
 ## 2. Add the agent runtime to your app
