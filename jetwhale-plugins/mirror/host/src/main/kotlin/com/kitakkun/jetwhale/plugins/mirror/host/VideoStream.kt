@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import org.jetbrains.skia.ColorType
 import java.io.InputStream
@@ -101,6 +102,7 @@ private const val RAW_ROW_ALIGNMENT = 64
 /** What idb's client keeps up with alone, measured at 90–134 MB/s, with room to spare. */
 private const val RAW_BYTES_PER_SECOND = 90_000_000L
 
+@VisibleForTesting
 internal const val MIN_RAW_FPS = 5
 
 internal const val MAX_RAW_FPS = 60
@@ -127,7 +129,7 @@ internal fun readRawBgraInto(target: MirrorSurface.FrameStream, stream: VideoStr
     while (input.timingWork(target::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
         target.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
         onFrame()
-        val arrivedFps = pace.fellBehind(System.nanoTime()) ?: continue
+        val arrivedFps = pace.countFrameArrival(System.nanoTime()) ?: continue
         if (stream.onFellBehind(arrivedFps)) return
     }
 }
@@ -140,12 +142,13 @@ private const val PACE_WINDOW_NANOS = 2_000_000_000L
  * [KEPT_PACE_SHARE] of [requestedFps] over [windowNanos] mean the source is producing more than can
  * be passed on, and the backlog only grows.
  */
+@VisibleForTesting
 internal class ArrivalPace(private val requestedFps: Int, private val windowNanos: Long) {
     private var windowStart = -1L
     private var arrived = 0
 
     /** Counts a frame arriving at [nowNanos]; returns the rate frames arrived at when it is too low. */
-    fun fellBehind(nowNanos: Long): Int? {
+    fun countFrameArrival(nowNanos: Long): Int? {
         if (windowStart < 0) {
             windowStart = nowNanos
             return null

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -89,15 +90,18 @@ internal fun ImageBodyBlock(body: String, mediaType: String?, url: String, trunc
 }
 
 /** A decoded image body: the original bytes (what gets saved) alongside the bitmap to draw. */
+@VisibleForTesting
 internal class DecodedImage(val bytes: ByteArray, val bitmap: ImageBitmap)
 
 /** Decodes a Base64 image body, or null when it is not Base64 or not a format Skia can read. */
+@VisibleForTesting
 internal fun decodeImageBody(body: String): DecodedImage? = runCatching {
     val bytes = base64Decode(body)
     DecodedImage(bytes, SkiaImage.makeFromEncoded(bytes).use { it.toComposeImageBitmap() })
 }.getOrNull()
 
 /** Names a downloaded image after the URL's last path segment, falling back to the media type. */
+@VisibleForTesting
 internal fun suggestedImageFileName(url: String, mediaType: String?): String {
     val segment = url.substringBefore('?').substringBefore('#').substringAfterLast('/')
     val name = segment.substringBeforeLast('.', segment).replace(UNSAFE_FILE_NAME_CHARS, "_").ifBlank { "image" }

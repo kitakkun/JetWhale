@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.FilterMipmap
 import org.jetbrains.skia.FilterMode
@@ -12,6 +13,7 @@ import java.io.InputStream
 import kotlin.concurrent.thread
 
 /** Tall enough for a grid cell on a Retina display, small enough to keep a hundred in memory. */
+@VisibleForTesting
 internal const val THUMBNAIL_HEIGHT_PX = 240
 
 /**

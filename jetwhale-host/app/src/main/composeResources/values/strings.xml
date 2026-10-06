@@ -1,8 +1,14 @@
 <resources>
     <string name="app_name">JetWhale Debugger</string>
+    <string name="host_update_banner_available">JetWhale %1$s is available</string>
+    <string name="host_update_banner_ready">JetWhale %1$s is installed and starts next time</string>
+    <string name="host_update_banner_open_settings">View in Settings</string>
+    <string name="host_update_banner_restart">Restart to Update</string>
+    <string name="host_restart_failed_banner">JetWhale could not restart itself. Quit it and open JetWhale Debugger again.</string>
+    <string name="host_set_aside_banner">JetWhale %1$s failed to start, so %2$s is running</string>
+    <string name="host_set_aside_view_log">View Log</string>
+    <string name="host_set_aside_try_again">Try Again</string>
     <string name="version_format">Version %1$s</string>
-    <string name="update_banner_message">New version %1$s is available</string>
-    <string name="update_banner_open_settings">View in Settings</string>
     <string name="plugin_arrived_new">New plugin: %1$s · %2$s</string>
     <string name="plugin_arrived_update">New version: %1$s · %2$s</string>
     <string name="plugin_arrived_unreadable">JAR without a readable plugin manifest · %1$s</string>
@@ -29,6 +35,7 @@
     <string name="sessions_connected_message">%1$d sessions connected</string>
     <string name="session_disconnected_message">%1$s disconnected</string>
     <string name="sessions_disconnected_message">%1$d sessions disconnected</string>
+    <string name="plugin_enabled_change_failed_message">Couldn't enable or disable the plugin: %1$s</string>
     <string name="plugin_installed_message">%1$s installed</string>
     <string name="plugin_install_failed_message">Couldn’t install %1$s: %2$s</string>
     <string name="plugin_install_open">Open</string>

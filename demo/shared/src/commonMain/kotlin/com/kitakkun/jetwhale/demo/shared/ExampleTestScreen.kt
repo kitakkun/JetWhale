@@ -40,7 +40,7 @@ internal fun ExampleTestScreen() {
     ) {
         item {
             Button(
-                onClick = { plugin.reportButtonClicked(++counter) },
+                onClick = { plugin.sendButtonClicked(++counter) },
             ) {
                 Text("Send ButtonClicked(${counter + 1})")
             }

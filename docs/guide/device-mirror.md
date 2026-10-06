@@ -34,7 +34,8 @@ Android devices and iPhones send their screen as H.264, which the plugin decodes
 `ffmpeg` command. Without it an Android device is shown through screenshots, a few times a second,
 and an iPhone cannot be mirrored. iOS simulators, and Android emulators that expose their own gRPC
 screen stream, send their screen without ffmpeg; an emulator without that stream is decoded like a
-device.
+device, and so is a foldable emulator folded through `adb shell cmd device_state state`, whose own
+stream follows only the emulator's fold control.
 
 When a tool is missing, the device list says which one and what it would enable.
 

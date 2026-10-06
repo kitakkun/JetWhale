@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -175,6 +176,7 @@ private suspend fun namesOf(jobs: List<PluginInstallJob>): String {
 }
 
 /** How long finishing installs are gathered into one notice before it shows. */
+@VisibleForTesting
 internal const val BATCH_WINDOW_MILLIS = 1_000L
 
 private const val MAX_NAMED_PLUGINS = 3

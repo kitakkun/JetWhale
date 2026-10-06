@@ -14,14 +14,16 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorType
+import org.jetbrains.skiko.MainUIDispatcher
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MirrorVideoTest {
     @Test
-    fun `a new frame redraws the video and nothing around it`() {
+    fun `a new frame redraws the video and nothing around it`() = runBlocking(MainUIDispatcher) {
         VideoScene().use { video ->
             repeat(FRAMES) { frame -> video.show(colorOf(frame)) }
 
@@ -30,7 +32,7 @@ class MirrorVideoTest {
     }
 
     @Test
-    fun `every render shows the newest frame`() {
+    fun `every render shows the newest frame`() = runBlocking(MainUIDispatcher) {
         VideoScene().use { video ->
             val sent = List(FRAMES, ::colorOf)
 

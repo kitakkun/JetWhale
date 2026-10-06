@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -72,7 +73,8 @@ class ScrollMcpTool(
 }
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-suspend fun dispatchScroll(scene: PluginComposeScene, x: Float, y: Float, deltaX: Float, deltaY: Float) {
+@VisibleForTesting
+internal suspend fun dispatchScroll(scene: PluginComposeScene, x: Float, y: Float, deltaX: Float, deltaY: Float) {
     scene.composeScene.sendPointerEvent(
         eventType = PointerEventType.Scroll,
         position = Offset(x, y),

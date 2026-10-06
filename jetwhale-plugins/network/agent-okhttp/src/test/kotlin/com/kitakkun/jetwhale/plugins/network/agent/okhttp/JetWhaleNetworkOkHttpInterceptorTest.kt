@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -112,6 +113,21 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val sent = events[0] as RequestSent
         val failed = events[1] as RequestFailed
         assertEquals(sent.request.txId, failed.failure.txId)
+    }
+
+    @OptIn(InternalJetWhaleApi::class)
+    @Test
+    fun `a redirect's Location that the app follows itself never carries a redacted query value`() {
+        agent = JetWhaleNetworkAgentPlugin(NetworkRedactionRules { urlQueryParam("token") })
+        agent.bindMessenger(RecordingMessenger(events))
+        server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "/callback?token=secret-value&page=2"))
+        val client = client().newBuilder().followRedirects(false).build()
+
+        client.newCall(Request.Builder().url(server.url("/login")).build()).execute().close()
+
+        val location = events.filterIsInstance<ResponseReceived>().single().response.headers.getValue("Location").single()
+        assertTrue("secret-value" !in location, location)
+        assertTrue("page=2" in location, location)
     }
 
     @Test

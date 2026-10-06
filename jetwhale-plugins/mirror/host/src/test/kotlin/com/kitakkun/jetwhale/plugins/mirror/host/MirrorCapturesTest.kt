@@ -46,6 +46,7 @@ class MirrorCapturesTest {
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `copies reach the clipboard in the order they were asked for`() = runBlocking {
+        assumeShellScriptsLaunch()
         val slow = screenshot("slow.png")
         val quick = screenshot("quick.png")
 

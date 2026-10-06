@@ -41,7 +41,7 @@ internal class JetWhaleAgentPluginService(
     )
 
     /** Lives for the whole agent, independent of any connection, so offline buffers survive reconnects. */
-    private val serviceScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
+    private val serviceScope: CoroutineScope = CoroutineScope(ioDispatcher() + SupervisorJob())
 
     private var connectionScope: CoroutineScope? = null
     private var sendFrame: (suspend (PluginFrame) -> Unit)? = null
@@ -56,7 +56,7 @@ internal class JetWhaleAgentPluginService(
         plugin.pluginId to PluginRuntime(plugin, messenger)
     }
 
-    /** Binds the service to a freshly opened connection. Call before [syncActivePlugins]. */
+    /** Binds the service to a freshly opened connection. Call before [activateOnly]. */
     fun bindConnection(scope: CoroutineScope, sendFrame: suspend (PluginFrame) -> Unit) {
         this.connectionScope = scope
         this.sendFrame = sendFrame
@@ -66,7 +66,7 @@ internal class JetWhaleAgentPluginService(
      * On connect: reconcile the host-activated set against [availableIds] — activating newly-enabled
      * plugins and deactivating any the host disabled while we were away — then (re)establish peers.
      */
-    suspend fun syncActivePlugins(availableIds: Set<String>) {
+    suspend fun activateOnly(availableIds: Set<String>) {
         runtimes.values
             .filter { it.active && it.plugin.pluginId !in availableIds }
             .forEach { deactivate(it) }
@@ -79,7 +79,7 @@ internal class JetWhaleAgentPluginService(
     }
 
     /** On disconnect: drop every peer, keeping plugins activated for the next connection. */
-    suspend fun disconnectAll() {
+    suspend fun dropAllPeers() {
         runtimes.values.forEach { dropPeer(it, notifyDisconnected = true) }
     }
 
@@ -157,7 +157,7 @@ internal class JetWhaleAgentPluginService(
         }
     }
 
-    suspend fun onFrame(frame: PluginFrame) {
+    suspend fun routeFrame(frame: PluginFrame) {
         val peer = runtimes[frame.pluginId]?.peer
         if (peer != null) {
             peer.onFrame(frame)

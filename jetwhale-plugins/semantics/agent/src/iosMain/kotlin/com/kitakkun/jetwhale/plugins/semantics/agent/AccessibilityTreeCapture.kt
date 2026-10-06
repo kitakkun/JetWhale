@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
@@ -277,6 +278,7 @@ private fun NSObject.toggleableState(traits: UIAccessibilityTraits): String? {
 private infix fun UIAccessibilityTraits.has(trait: UIAccessibilityTraits): Boolean = this and trait != 0uL
 
 /** The public trait names for the bits set, with any bit outside the public set kept as its number. */
+@VisibleForTesting
 internal fun UIAccessibilityTraits.names(): List<String> {
     if (this == 0uL) return emptyList()
     val named = NAMED_TRAITS.filter { (trait, _) -> this has trait }.map { (_, name) -> name }

@@ -26,6 +26,7 @@ class CaptureClipboardTest {
 
     @Test
     fun `on macOS the pasteboard script is given the capture's path and kind`() {
+        assumeShellScriptsLaunch()
         CaptureClipboard(osascriptPath = fakeOsascript.absolutePath).putCapture(recording)
 
         assertEquals(listOf(recording.file.absolutePath, "Recording"), File(folder, "arguments").readLines())
@@ -33,6 +34,7 @@ class CaptureClipboardTest {
 
     @Test
     fun `a pasteboard the script cannot write fails with what osascript said`() {
+        assumeShellScriptsLaunch()
         fakeOsascript.writeText("#!/bin/sh\necho 'execution error: Error: Error: the clipboard did not take it (-2700)' >&2\nexit 1\n")
 
         val failure = assertFailsWith<IOException> { CaptureClipboard(osascriptPath = fakeOsascript.absolutePath).putCapture(recording) }

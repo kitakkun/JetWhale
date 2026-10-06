@@ -31,7 +31,7 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin() {
 
     /** Sends a button-clicked event to the host (and logs it locally). A click is only meaningful
      *  live, so it is dropped if the host is not connected. */
-    fun reportButtonClicked(count: Int) {
+    fun sendButtonClicked(count: Int) {
         val event = ButtonClicked(count)
         mutableEventLogsFlow.update { it + "Event: $event" }
         messenger.trySend(event)

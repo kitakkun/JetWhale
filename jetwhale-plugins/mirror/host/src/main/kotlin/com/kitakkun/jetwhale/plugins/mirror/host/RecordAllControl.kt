@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +84,7 @@ internal fun RecordAllWarningDialog(targets: List<DeviceListing>, onRecord: (don
 }
 
 /** Why recording [kinds] at once weighs on this machine, naming the kinds that weigh the most. */
+@VisibleForTesting
 internal fun recordAllLoadNote(kinds: List<DeviceKind>): String {
     val simulators = kinds.count { it == DeviceKind.IosSimulator }
     val general = "Recording several devices at once is heavy on this machine and can make the live views drop frames."

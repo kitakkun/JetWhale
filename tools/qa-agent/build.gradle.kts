@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.ktorServerNetty)
     implementation(libs.ktorServerContentNegotiation)
     implementation(libs.ktorSerializationKotlinxJson)
+    compileOnly(libs.androidxAnnotation)
 
     testImplementation(libs.kotlinTest)
 }

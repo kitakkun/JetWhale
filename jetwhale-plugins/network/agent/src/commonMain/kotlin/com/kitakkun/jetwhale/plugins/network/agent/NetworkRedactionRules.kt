@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
@@ -38,6 +39,8 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
 
     fun redactAtCapture(response: CapturedHttpResponse): CapturedHttpResponse = captureRules.redact(response)
 
+    fun redactAtCapture(failure: HttpRequestFailure): HttpRequestFailure = captureRules.redact(failure)
+
     class Builder internal constructor() {
         private val rules = mutableListOf<RedactionRule>()
 
@@ -54,7 +57,11 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
             add(RedactionTarget.HEADER, names, scope, strategy)
         }
 
-        /** Redacts the values of the given URL query parameters. */
+        /**
+         * Redacts the values of the given URL query parameters: in the request URL, and wherever a
+         * header value or a failure message quotes them after `?` or `&`, such as in a redirect's
+         * `Location` or a `Referer`.
+         */
         fun urlQueryParam(
             vararg names: String,
             scope: RedactionScope = RedactionScope.EVERYWHERE,

@@ -92,7 +92,7 @@ private object NoActions : ActionsScreenActions {
 
     override fun selectRun(runId: String) = Unit
 
-    override fun runAgain(runId: String) = Unit
+    override fun prefillFormFromRun(runId: String) = Unit
 }
 
 @Preview

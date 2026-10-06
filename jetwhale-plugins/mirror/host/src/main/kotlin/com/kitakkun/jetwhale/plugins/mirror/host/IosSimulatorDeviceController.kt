@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -110,12 +111,12 @@ internal class IosSimulatorDeviceController(
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
-    override suspend fun screenSize(): IntSize = describe().size
+    override suspend fun screenSize(): IntSize = readSimulatorScreenFromIdb().size
 
     // idb takes points; the mirror works in pixels, so the screen's density converts between them.
-    private suspend fun pixelsPerPoint(): Double = describe().pixelsPerPoint
+    private suspend fun pixelsPerPoint(): Double = readSimulatorScreenFromIdb().pixelsPerPoint
 
-    private suspend fun describe(): IdbScreen {
+    private suspend fun readSimulatorScreenFromIdb(): IdbScreen {
         screen?.let { return it }
         val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
@@ -133,6 +134,7 @@ internal const val IDB_MISSING = "iOS input and live streaming need idb (https:/
  * switcher on two HOME presses in quick succession; two idb calls in a row land about 0.3 s apart,
  * well inside that window.
  */
+@VisibleForTesting
 internal fun iosSimulatorPressesOf(button: DeviceButton): List<String>? = when (button) {
     DeviceButton.Home -> listOf("HOME")
     DeviceButton.Recents -> listOf("HOME", "HOME")

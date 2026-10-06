@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
+import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
-    private val adbAutoWiringService: ADBAutoWiringService,
+    private val adbAutoPortMappingService: AdbAutoPortMappingService,
     private val sessionRepository: DebugSessionRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
@@ -67,27 +67,27 @@ class DefaultDebugWebSocketServer(
         serverMonitoringJob?.cancel()
 
         serverMonitoringJob = coroutineScope.launch {
-            launch { monitorAdbAutoWiring() }
-            launch { monitorNegotiationCompleted() }
-            launch { monitorSessionClosed() }
-            launch { monitorEnabledPluginChanges() }
-            launch { monitorPluginFrames() }
+            launch { mapServerPortsOverAdb() }
+            launch { registerOpenedSessions() }
+            launch { deactivateClosedSessionsAndDisposeTheirInstances() }
+            launch { forwardPluginActivationChangesToAgents() }
+            launch { routePluginFramesToInstances() }
         }
     }
 
-    private suspend fun monitorAdbAutoWiring() {
+    private suspend fun mapServerPortsOverAdb() {
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
-        var wiredPorts: List<Int> = emptyList()
+        var mappedPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
             when (status) {
                 is DebugWebSocketServerStatus.Started -> {
-                    wiredPorts = listOfNotNull(status.port, status.wssPort)
-                    wiredPorts.forEach(adbAutoWiringService::startAutoWiring)
+                    mappedPorts = listOfNotNull(status.port, status.wssPort)
+                    mappedPorts.forEach(adbAutoPortMappingService::startPortMapping)
                 }
 
                 is DebugWebSocketServerStatus.Stopped -> {
-                    wiredPorts.forEach(adbAutoWiringService::stopAutoWiring)
+                    mappedPorts.forEach(adbAutoPortMappingService::stopPortMapping)
                 }
 
                 else -> Unit
@@ -95,8 +95,8 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorNegotiationCompleted() {
-        ktorWebSocketServer.negotiationCompletedFlow.collect { opened ->
+    private suspend fun registerOpenedSessions() {
+        ktorWebSocketServer.sessionOpenedFlow.collect { opened ->
             sessionRepository.registerDebugSession(
                 sessionId = opened.result.session.sessionId,
                 sessionName = opened.result.session.sessionName,
@@ -107,14 +107,14 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorSessionClosed() {
+    private suspend fun deactivateClosedSessionsAndDisposeTheirInstances() {
         ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
             sessionRepository.unregisterDebugSession(sessionId)
             pluginInstanceService.unloadPluginInstanceForSession(sessionId)
         }
     }
 
-    private suspend fun monitorEnabledPluginChanges() {
+    private suspend fun forwardPluginActivationChangesToAgents() {
         reconciliationService.reconciliationEvents().collect { event ->
             when (event) {
                 is PluginReconciliationEvent.Activated -> event.sessionIds.forEach { sessionId ->
@@ -130,7 +130,7 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorPluginFrames() {
+    private suspend fun routePluginFramesToInstances() {
         ktorWebSocketServer.debuggeeEventFlow.collect { (sessionId, event) ->
             if (event !is JetWhaleDebuggeeEvent.PluginFrameMessage) return@collect
             pluginInstanceService.routeFrame(sessionId = sessionId, frame = event.frame)
