@@ -72,6 +72,7 @@ export default defineConfig({
         items: [
           { text: 'What is JetWhale?', link: '/guide/what-is-jetwhale' },
           { text: 'Getting Started', link: '/guide/getting-started' },
+          { text: 'Excluding from Release Builds', link: '/guide/excluding-from-release-builds' },
         ],
       },
       {
