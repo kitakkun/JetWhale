@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.following_ai_toast
-import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenuCommands
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -165,10 +165,10 @@ private fun ToolingScaffoldWithActions(
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val menu = LocalMainWindowMenu.current
+    val mainWindowMenuCommands = LocalMainWindowMenuCommands.current
     val hasSelectedApp = uiState.selectedSession != null
-    LaunchedEffect(menu, uiState.plugins, hasSelectedApp) {
-        menu?.updatePlugins(uiState.plugins, hasSelectedApp)
+    LaunchedEffect(mainWindowMenuCommands, uiState.plugins, hasSelectedApp) {
+        mainWindowMenuCommands?.updatePluginMenuItems(uiState.plugins, hasSelectedApp)
     }
 
     ToolingScaffold(

@@ -23,30 +23,30 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class MainWindowBackHandlerTest {
-    private val first = PluginNavKey(pluginId = "com.example.network", sessionId = "app-1")
-    private val second = PluginNavKey(pluginId = "com.example.storage", sessionId = "app-1")
+    private val firstPluginNavKey = PluginNavKey(pluginId = "com.example.network", sessionId = "app-1")
+    private val secondPluginNavKey = PluginNavKey(pluginId = "com.example.storage", sessionId = "app-1")
 
     @Test
     fun `one back with the log viewer open goes back one step in the main window`() = runComposeUiTest {
-        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, first, second, LogViewerNavKey)
-        val back = setMainWindowContent(backStack)
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, firstPluginNavKey, secondPluginNavKey, LogViewerNavKey)
+        val backInput = setMainWindowContent(backStack)
 
-        runOnUiThread(back::backCompleted)
+        runOnUiThread(backInput::backCompleted)
         waitForIdle()
 
-        assertEquals(listOf(EmptyPluginNavKey, first, LogViewerNavKey), backStack.toList())
+        assertEquals(listOf(EmptyPluginNavKey, firstPluginNavKey, LogViewerNavKey), backStack.toList())
     }
 
     @Test
     fun `one back with a popped-out plugin goes back one step in the main window`() = runComposeUiTest {
-        val poppedOut = PluginPopoutNavKey(pluginId = "com.example.device", sessionId = "app-1", pluginName = "Device")
-        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, first, second, poppedOut)
-        val back = setMainWindowContent(backStack)
+        val pluginPopoutNavKey = PluginPopoutNavKey(pluginId = "com.example.device", sessionId = "app-1", pluginName = "Device")
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, firstPluginNavKey, secondPluginNavKey, pluginPopoutNavKey)
+        val backInput = setMainWindowContent(backStack)
 
-        runOnUiThread(back::backCompleted)
+        runOnUiThread(backInput::backCompleted)
         waitForIdle()
 
-        assertEquals(listOf(EmptyPluginNavKey, first, poppedOut), backStack.toList())
+        assertEquals(listOf(EmptyPluginNavKey, firstPluginNavKey, pluginPopoutNavKey), backStack.toList())
     }
 }
 
@@ -60,13 +60,13 @@ private fun ComposeUiTest.setMainWindowContent(backStack: NavBackStack<NavKey>):
     val dispatcherOwner = object : NavigationEventDispatcherOwner {
         override val navigationEventDispatcher = NavigationEventDispatcher()
     }
-    val back = DirectNavigationEventInput()
-    dispatcherOwner.navigationEventDispatcher.addInput(back)
+    val backInput = DirectNavigationEventInput()
+    dispatcherOwner.navigationEventDispatcher.addInput(backInput)
     setContent {
         CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides dispatcherOwner) {
             NavDisplay(
                 backStack = backStack,
-                onBack = backStack::popMainWindow,
+                onBack = backStack::popMainWindowEntry,
                 sceneStrategies = listOf(OwnWindowSceneStrategy(), SinglePaneSceneStrategy()),
                 entryProvider = { key ->
                     NavEntry(key, metadata = if (key.showsInMainWindow) emptyMap() else mapOf(OWN_WINDOW to true)) {}
@@ -75,7 +75,7 @@ private fun ComposeUiTest.setMainWindowContent(backStack: NavBackStack<NavKey>):
             MainWindowBackHandler(backStack)
         }
     }
-    return back
+    return backInput
 }
 
 private const val OWN_WINDOW = "ownWindow"

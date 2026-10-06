@@ -7,7 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class HostNavigationMappingTest {
-    private val plugin = PluginNavKey(pluginId = "com.example.network", sessionId = "app-1")
+    private val pluginNavKey = PluginNavKey(pluginId = "com.example.network", sessionId = "app-1")
 
     @Test
     fun `the home screen under the log viewer is reported as home with the log viewer open`() {
@@ -28,16 +28,16 @@ class HostNavigationMappingTest {
     @Test
     fun `a plugin under the log viewer is reported as on screen in the main window`() {
         assertEquals(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = plugin.pluginId, sessionId = plugin.sessionId, logViewerOpen = true),
-            listOf(EmptyPluginNavKey, plugin, LogViewerNavKey).toHostDestination(),
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = pluginNavKey.pluginId, sessionId = pluginNavKey.sessionId, logViewerOpen = true),
+            listOf(EmptyPluginNavKey, pluginNavKey, LogViewerNavKey).toHostDestination(),
         )
     }
 
     @Test
     fun `a closed log viewer is reported closed`() {
         assertEquals(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = plugin.pluginId, sessionId = plugin.sessionId, logViewerOpen = false),
-            listOf(EmptyPluginNavKey, plugin).toHostDestination(),
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = pluginNavKey.pluginId, sessionId = pluginNavKey.sessionId, logViewerOpen = false),
+            listOf(EmptyPluginNavKey, pluginNavKey).toHostDestination(),
         )
     }
 }

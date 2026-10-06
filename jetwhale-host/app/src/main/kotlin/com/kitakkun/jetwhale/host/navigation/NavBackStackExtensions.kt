@@ -14,13 +14,13 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
  * (see [showsInMainWindow]), so dismissing a dialog opened before or after them closes the dialog.
  * The home screen at the bottom is never removed.
  */
-fun NavBackStack<NavKey>.popMainWindow() {
+fun NavBackStack<NavKey>.popMainWindowEntry() {
     val top = indexOfLastPoppable()
     if (top >= 0) removeAt(top)
 }
 
-/** Whether [popMainWindow] has anything to remove. */
-fun NavBackStack<NavKey>.canPopMainWindow(): Boolean = indexOfLastPoppable() >= 0
+/** Whether [popMainWindowEntry] has anything to remove. */
+fun NavBackStack<NavKey>.canPopMainWindowEntry(): Boolean = indexOfLastPoppable() >= 0
 
 private fun List<NavKey>.indexOfLastPoppable(): Int = indexOfLast { it.showsInMainWindow && it !is EmptyPluginNavKey }
 

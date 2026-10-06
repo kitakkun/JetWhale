@@ -18,7 +18,7 @@ import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_icon
 import com.kitakkun.jetwhale.host.menu.HostShortcuts
-import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenuCommands
 import com.kitakkun.jetwhale.host.menu.MainWindowMenus
 import com.kitakkun.jetwhale.host.menu.matches
 import com.kitakkun.jetwhale.host.menu.toKeyShortcut
@@ -58,7 +58,7 @@ internal class WindowOverlayScene<T : Any>(
             height = windowEntry.properties.height,
         )
 
-        val menu = LocalMainWindowMenu.current
+        val mainWindowMenuCommands = LocalMainWindowMenuCommands.current
         val usesMenuBar = HostOs.current == HostOs.MAC && !LocalEmbeddedInIde.current
         Window(
             state = windowState,
@@ -73,13 +73,13 @@ internal class WindowOverlayScene<T : Any>(
                         true
                     }
 
-                    else -> menu?.runShortcut(keyEvent) == true
+                    else -> mainWindowMenuCommands?.runShortcut(keyEvent) == true
                 }
             },
         ) {
             if (usesMenuBar) {
                 MenuBar {
-                    menu?.let { MainWindowMenus(plugins = it.plugins, onGoHome = it::goHome, onOpenLogViewer = it::openLogViewer, onOpenPlugin = it::openPlugin) }
+                    mainWindowMenuCommands?.let { MainWindowMenus(pluginMenuItems = it.pluginMenuItems, onGoHome = it::goHome, onOpenLogViewer = it::openLogViewer, onOpenPlugin = it::openPlugin) }
                     Menu(text = stringResource(Res.string.menu_window)) {
                         Item(
                             text = stringResource(Res.string.menu_close_window),

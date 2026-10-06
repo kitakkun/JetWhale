@@ -29,8 +29,8 @@ import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.instance.HostInstance
 import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
-import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenu
-import com.kitakkun.jetwhale.host.menu.MainWindowMenu
+import com.kitakkun.jetwhale.host.menu.LocalMainWindowMenuCommands
+import com.kitakkun.jetwhale.host.menu.MainWindowMenuCommands
 import com.kitakkun.jetwhale.host.menu.MainWindowMenus
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.HostLaunch
@@ -194,18 +194,18 @@ private fun ApplicationScope.JetWhaleMainWindow(
 
     val coroutineScope = rememberCoroutineScope()
     val menuBringToFrontRequests = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST) }
-    val menu = remember(appGraph, coroutineScope) {
-        MainWindowMenu(
+    val mainWindowMenuCommands = remember(appGraph, coroutineScope) {
+        MainWindowMenuCommands(
             hostNavigationService = appGraph.hostNavigationService,
             coroutineScope = coroutineScope,
             quit = appGraph.applicationLifecycleOwner::shutdown,
-            raiseMainWindow = { menuBringToFrontRequests.tryEmit(Unit) },
+            bringMainWindowToFront = { menuBringToFrontRequests.tryEmit(Unit) },
         )
     }
     val systemQuitResponse = remember { AtomicReference<QuitResponse?>(null) }
     val isMac = HostOs.current == HostOs.MAC
     if (isMac) {
-        MacApplicationMenuEffect(menu = menu, systemQuitResponse = systemQuitResponse)
+        MacApplicationMenuEffect(mainWindowMenuCommands = mainWindowMenuCommands, systemQuitResponse = systemQuitResponse)
     }
 
     LaunchedEffect(Unit) {
@@ -252,7 +252,7 @@ private fun ApplicationScope.JetWhaleMainWindow(
         // After the focused content has had the key, so a plugin's own shortcut wins. On macOS the
         // menu bar handles them instead: ⌘, and ⌘Q natively, the rest also only once the content
         // has declined the key.
-        onKeyEvent = { keyEvent -> !isMac && menu.runShortcut(keyEvent) },
+        onKeyEvent = { keyEvent -> !isMac && mainWindowMenuCommands.runShortcut(keyEvent) },
     ) {
         LaunchedEffect(hostInstance) {
             hostInstance?.publishInstanceJson()
@@ -280,13 +280,13 @@ private fun ApplicationScope.JetWhaleMainWindow(
             }
         }
 
-        CompositionLocalProvider(LocalMainWindowMenu provides menu) {
+        CompositionLocalProvider(LocalMainWindowMenuCommands provides mainWindowMenuCommands) {
             context(appGraph) {
                 JetWhaleApp(
                     menuBar = {
                         if (isMac) {
                             MenuBar {
-                                MainWindowMenus(plugins = menu.plugins, onGoHome = menu::goHome, onOpenLogViewer = menu::openLogViewer, onOpenPlugin = menu::openPlugin)
+                                MainWindowMenus(pluginMenuItems = mainWindowMenuCommands.pluginMenuItems, onGoHome = mainWindowMenuCommands::goHome, onOpenLogViewer = mainWindowMenuCommands::openLogViewer, onOpenPlugin = mainWindowMenuCommands::openPlugin)
                             }
                         }
                     },
@@ -302,14 +302,14 @@ private fun ApplicationScope.JetWhaleMainWindow(
  * host's own shutdown.
  */
 @Composable
-private fun MacApplicationMenuEffect(menu: MainWindowMenu, systemQuitResponse: AtomicReference<QuitResponse?>) {
-    DisposableEffect(menu) {
+private fun MacApplicationMenuEffect(mainWindowMenuCommands: MainWindowMenuCommands, systemQuitResponse: AtomicReference<QuitResponse?>) {
+    DisposableEffect(mainWindowMenuCommands) {
         val desktop = Desktop.getDesktop()
-        desktop.setAboutHandler { menu.showAbout() }
-        desktop.setPreferencesHandler { menu.openSettings() }
+        desktop.setAboutHandler { mainWindowMenuCommands.openInfo() }
+        desktop.setPreferencesHandler { mainWindowMenuCommands.openSettings() }
         desktop.setQuitHandler { _, response ->
             systemQuitResponse.set(response)
-            menu.quit()
+            mainWindowMenuCommands.quit()
         }
         onDispose {
             desktop.setAboutHandler(null)

@@ -36,20 +36,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
-class MainWindowMenuTest {
-    private val navigation = RecordingHostNavigationService()
+class MainWindowMenuCommandsTest {
+    private val hostNavigationService = RecordingHostNavigationService()
     private var quitCount = 0
-    private var raisedCount = 0
-    private val menu = MainWindowMenu(
-        hostNavigationService = navigation,
+    private var broughtToFrontCount = 0
+    private val mainWindowMenuCommands = MainWindowMenuCommands(
+        hostNavigationService = hostNavigationService,
         coroutineScope = CoroutineScope(Dispatchers.Unconfined),
         quit = { quitCount++ },
-        raiseMainWindow = { raisedCount++ },
+        bringMainWindowToFront = { broughtToFrontCount++ },
     )
 
     @Test
     fun `the Plugins menu lists the drawer's enabled plugins with the ones that need no app first`() {
-        menu.updatePlugins(
+        mainWindowMenuCommands.updatePluginMenuItems(
             drawerPlugins = listOf(
                 drawerPlugin(id = "network", availability = PluginAvailability.Enabled, needsApp = true),
                 drawerPlugin(id = "mirror", availability = PluginAvailability.Enabled, needsApp = false),
@@ -60,13 +60,13 @@ class MainWindowMenuTest {
             hasSelectedApp = true,
         )
 
-        assertEquals(listOf("mirror", "network", "nav3"), menu.plugins.map(MenuPlugin::id))
-        assertEquals(listOf(Key.One, Key.Two, Key.Three), menu.plugins.map { it.shortcut?.key })
+        assertEquals(listOf("mirror", "network", "nav3"), mainWindowMenuCommands.pluginMenuItems.map(PluginMenuItem::pluginId))
+        assertEquals(listOf(Key.One, Key.Two, Key.Three), mainWindowMenuCommands.pluginMenuItems.map { it.shortcut?.key })
     }
 
     @Test
     fun `with no app selected the Plugins menu lists only the plugins that need no app`() {
-        menu.updatePlugins(
+        mainWindowMenuCommands.updatePluginMenuItems(
             drawerPlugins = listOf(
                 drawerPlugin(id = "network", availability = PluginAvailability.Enabled, needsApp = true),
                 drawerPlugin(id = "mirror", availability = PluginAvailability.Enabled, needsApp = false),
@@ -74,23 +74,23 @@ class MainWindowMenuTest {
             hasSelectedApp = false,
         )
 
-        assertEquals(listOf("mirror"), menu.plugins.map(MenuPlugin::id))
+        assertEquals(listOf("mirror"), mainWindowMenuCommands.pluginMenuItems.map(PluginMenuItem::pluginId))
     }
 
     @Test
     fun `only the first nine plugins get a shortcut`() {
-        menu.updatePlugins(
+        mainWindowMenuCommands.updatePluginMenuItems(
             drawerPlugins = List(10) { drawerPlugin(id = "plugin-$it", availability = PluginAvailability.Enabled, needsApp = false) },
             hasSelectedApp = false,
         )
 
-        assertEquals(Key.Nine, menu.plugins[8].shortcut?.key)
-        assertEquals(null, menu.plugins[9].shortcut)
+        assertEquals(Key.Nine, mainWindowMenuCommands.pluginMenuItems[8].shortcut?.key)
+        assertEquals(null, mainWindowMenuCommands.pluginMenuItems[9].shortcut)
     }
 
     @Test
     fun `each shortcut opens its destination through the navigation channel`() = runComposeUiTest {
-        menu.updatePlugins(
+        mainWindowMenuCommands.updatePluginMenuItems(
             drawerPlugins = listOf(drawerPlugin(id = "network", availability = PluginAvailability.Enabled, needsApp = true)),
             hasSelectedApp = true,
         )
@@ -109,22 +109,22 @@ class MainWindowMenuTest {
                 HostNavigationRequest.LogViewer,
                 HostNavigationRequest.Plugin("network", sessionId = null, followsAgent = false),
             ),
-            navigation.navigated,
+            hostNavigationService.navigatedRequests,
         )
         assertEquals(1, quitCount)
     }
 
     @Test
     fun `a destination the main window shows brings it to the front and the log viewer leaves it where it is`() {
-        menu.openSettings()
-        menu.showAbout()
-        menu.goHome()
-        menu.openPlugin("network")
-        assertEquals(4, raisedCount)
+        mainWindowMenuCommands.openSettings()
+        mainWindowMenuCommands.openInfo()
+        mainWindowMenuCommands.goHome()
+        mainWindowMenuCommands.openPlugin("network")
+        assertEquals(4, broughtToFrontCount)
 
-        menu.openLogViewer()
+        mainWindowMenuCommands.openLogViewer()
 
-        assertEquals(4, raisedCount)
+        assertEquals(4, broughtToFrontCount)
     }
 
     @Test
@@ -135,12 +135,12 @@ class MainWindowMenuTest {
         pressShortcut { withKeyDown(Key.AltLeft) { pressKey(Key.Comma) } }
         pressShortcut { pressKey(Key.H) }
 
-        assertTrue(navigation.navigated.isEmpty())
+        assertTrue(hostNavigationService.navigatedRequests.isEmpty())
     }
 
     private fun ComposeUiTest.showShortcutTarget() {
         setContent {
-            Box(Modifier.size(10.dp).testTag(TARGET).onKeyEvent(menu::runShortcut).focusable())
+            Box(Modifier.size(10.dp).testTag(TARGET).onKeyEvent(mainWindowMenuCommands::runShortcut).focusable())
         }
         onNodeWithTag(TARGET).requestFocus()
     }
@@ -166,12 +166,12 @@ private fun drawerPlugin(id: String, availability: PluginAvailability, needsApp:
 )
 
 private class RecordingHostNavigationService : HostNavigationService {
-    val navigated = mutableListOf<HostNavigationRequest>()
+    val navigatedRequests = mutableListOf<HostNavigationRequest>()
     override val requests: Flow<HostNavigationRequest> = emptyFlow()
     override val currentView: StateFlow<HostViewState?> = MutableStateFlow(null)
 
     override suspend fun navigate(request: HostNavigationRequest) {
-        navigated += request
+        navigatedRequests += request
     }
 
     override fun updateDestination(destination: HostDestination) = Unit

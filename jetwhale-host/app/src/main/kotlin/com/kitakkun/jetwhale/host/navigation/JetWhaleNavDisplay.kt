@@ -43,7 +43,7 @@ fun JetWhaleNavDisplay(
 
     NavDisplay<NavKey>(
         backStack = backStack,
-        onBack = backStack::popMainWindow,
+        onBack = backStack::popMainWindowEntry,
         sceneStrategies = listOf(dialogSceneStrategy, windowSceneStrategy, listDetailSceneStrategy),
         transitionSpec = {
             ContentTransform(
@@ -69,7 +69,7 @@ fun JetWhaleNavDisplay(
                 onClickClose = { backStack.removeIf { it is SettingsNavKey } },
                 onOpenLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
             )
-            licensesEntry(onClickBack = backStack::popMainWindow)
+            licensesEntry(onClickBack = backStack::popMainWindowEntry)
             logViewerEntry()
             mcpToolsEntry()
             pluginEntries(
@@ -95,7 +95,7 @@ fun JetWhaleNavDisplay(
 internal fun MainWindowBackHandler(backStack: NavBackStack<NavKey>) {
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-        isBackEnabled = backStack.canPopMainWindow(),
-        onBackCompleted = backStack::popMainWindow,
+        isBackEnabled = backStack.canPopMainWindowEntry(),
+        onBackCompleted = backStack::popMainWindowEntry,
     )
 }

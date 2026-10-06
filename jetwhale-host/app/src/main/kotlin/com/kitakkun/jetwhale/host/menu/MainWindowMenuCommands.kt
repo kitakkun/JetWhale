@@ -35,27 +35,27 @@ import org.jetbrains.compose.resources.stringResource
  * are used from pop-outs and the log viewer too. The plugins come from the drawer, which publishes
  * the ones it can open.
  */
-internal class MainWindowMenu(
+internal class MainWindowMenuCommands(
     private val hostNavigationService: HostNavigationService,
     private val coroutineScope: CoroutineScope,
     val quit: () -> Unit,
-    private val raiseMainWindow: () -> Unit,
+    private val bringMainWindowToFront: () -> Unit,
 ) {
-    var plugins: ImmutableList<MenuPlugin> by mutableStateOf(persistentListOf())
+    var pluginMenuItems: ImmutableList<PluginMenuItem> by mutableStateOf(persistentListOf())
         private set
 
     /** Lists the drawer's enabled plugins in its order, the ones that need no app first. */
-    fun updatePlugins(drawerPlugins: List<DrawerPluginItemUiState>, hasSelectedApp: Boolean) {
-        plugins = drawerPlugins
+    fun updatePluginMenuItems(drawerPlugins: List<DrawerPluginItemUiState>, hasSelectedApp: Boolean) {
+        pluginMenuItems = drawerPlugins
             .filter { it.pluginAvailability == PluginAvailability.Enabled && (!it.needsApp || hasSelectedApp) }
             .sortedBy(DrawerPluginItemUiState::needsApp)
-            .mapIndexed { position, plugin -> MenuPlugin(id = plugin.id, name = plugin.name, shortcut = HostShortcuts.plugin(position)) }
+            .mapIndexed { position, plugin -> PluginMenuItem(pluginId = plugin.id, pluginName = plugin.name, shortcut = HostShortcuts.forPluginAt(position)) }
             .toImmutableList()
     }
 
     fun openSettings() = showInMainWindow(HostNavigationRequest.Settings(HostSettingsSection.GENERAL))
 
-    fun showAbout() = showInMainWindow(HostNavigationRequest.Info)
+    fun openInfo() = showInMainWindow(HostNavigationRequest.Info)
 
     fun goHome() = showInMainWindow(HostNavigationRequest.Home)
 
@@ -68,13 +68,13 @@ internal class MainWindowMenu(
      * shortcuts, and says whether it ran anything.
      */
     fun runShortcut(event: KeyEvent): Boolean {
-        val plugin = plugins.firstOrNull { it.shortcut?.matches(event) == true }
+        val pluginMenuItem = pluginMenuItems.firstOrNull { it.shortcut?.matches(event) == true }
         when {
             HostShortcuts.settings.matches(event) -> openSettings()
             HostShortcuts.quit.matches(event) -> quit()
             HostShortcuts.home.matches(event) -> goHome()
             HostShortcuts.logViewer.matches(event) -> openLogViewer()
-            plugin != null -> openPlugin(plugin.id)
+            pluginMenuItem != null -> openPlugin(pluginMenuItem.pluginId)
             else -> return false
         }
         return true
@@ -82,7 +82,7 @@ internal class MainWindowMenu(
 
     private fun showInMainWindow(request: HostNavigationRequest) {
         navigate(request)
-        raiseMainWindow()
+        bringMainWindowToFront()
     }
 
     private fun navigate(request: HostNavigationRequest) {
@@ -90,17 +90,17 @@ internal class MainWindowMenu(
     }
 }
 
-internal data class MenuPlugin(val id: String, val name: String, val shortcut: HostShortcut?)
+internal data class PluginMenuItem(val pluginId: String, val pluginName: String, val shortcut: HostShortcut?)
 
-/** The main window's menu, for the windows that show it; null outside the host's windows. */
-internal val LocalMainWindowMenu = staticCompositionLocalOf<MainWindowMenu?> { null }
+/** The main window's menu commands, for the windows that show its menus; null outside the host's windows. */
+internal val LocalMainWindowMenuCommands = staticCompositionLocalOf<MainWindowMenuCommands?> { null }
 
 /** The menus every host window shows on macOS: where to go, and which plugin to open. */
 // Menus live only inside a window's MenuBar, which a preview has no way to host.
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 internal fun MenuBarScope.MainWindowMenus(
-    plugins: ImmutableList<MenuPlugin>,
+    pluginMenuItems: ImmutableList<PluginMenuItem>,
     onGoHome: () -> Unit,
     onOpenLogViewer: () -> Unit,
     onOpenPlugin: (pluginId: String) -> Unit,
@@ -110,12 +110,12 @@ internal fun MenuBarScope.MainWindowMenus(
         Item(text = stringResource(Res.string.log_viewer_window_title), shortcut = HostShortcuts.logViewer.toKeyShortcut(), onClick = onOpenLogViewer)
     }
     Menu(text = stringResource(Res.string.plugins)) {
-        if (plugins.isEmpty()) {
+        if (pluginMenuItems.isEmpty()) {
             Item(text = stringResource(Res.string.menu_no_plugins), enabled = false, onClick = {})
         }
-        plugins.forEach { plugin ->
-            key(plugin.id) {
-                Item(text = plugin.name, shortcut = plugin.shortcut?.toKeyShortcut(), onClick = { onOpenPlugin(plugin.id) })
+        pluginMenuItems.forEach { pluginMenuItem ->
+            key(pluginMenuItem.pluginId) {
+                Item(text = pluginMenuItem.pluginName, shortcut = pluginMenuItem.shortcut?.toKeyShortcut(), onClick = { onOpenPlugin(pluginMenuItem.pluginId) })
             }
         }
     }

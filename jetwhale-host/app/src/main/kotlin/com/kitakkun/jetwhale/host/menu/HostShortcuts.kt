@@ -13,8 +13,8 @@ internal object HostShortcuts {
     val logViewer = HostShortcut(Key.L, withShift = true)
     val closeWindow = HostShortcut(Key.W, withShift = false)
 
-    private val pluginKeys = listOf(Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine)
+    private val pluginShortcutKeys = listOf(Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine)
 
     /** The shortcut of the plugin at [position] in the Plugins menu; only the first nine get one. */
-    fun plugin(position: Int): HostShortcut? = pluginKeys.getOrNull(position)?.let { HostShortcut(it, withShift = false) }
+    fun forPluginAt(position: Int): HostShortcut? = pluginShortcutKeys.getOrNull(position)?.let { HostShortcut(it, withShift = false) }
 }
