@@ -644,7 +644,7 @@ every user who accepts the update.
     publication, two failures setting a version aside and the fallback naming it, the bundled
     version never set aside, `--retry`, the restart waiting without `launch.lock`, two launches at
     once, and `launch.lock` held until publication and taken again to record a completed start.
-- Process tests run the launcher's real `main` in a child JVM with a stub host jar written in Java,
+  - Process tests run the launcher's real `main` in a child JVM with a stub host jar written in Java,
     so it needs no Kotlin. They check that the host's class loader sees neither Kotlin nor the
     launcher, that the contract's properties and the metadata's `-D…` arguments are set and
     `skiko.library.path` is cleared, that output goes to the host's log, that a throw counts a
