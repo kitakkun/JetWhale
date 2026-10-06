@@ -36,7 +36,7 @@ private data class CertificateMetadata(
 )
 
 @Serializable
-private data class CertificatesStore(
+private data class CertificatesJson(
     val certificates: List<CertificateMetadata> = emptyList(),
 )
 
@@ -70,10 +70,10 @@ class DefaultSslCertificateManager(
     private val sslDir: File
         get() = appDataDirectoryProvider.getSslDirectory()
 
-    private val metadataFile: File
+    private val certificatesJsonFile: File
         get() = File(sslDir, "certificates.json")
 
-    override fun getAllCertificates(): List<SslCertificateEntry> = loadMetadata().certificates.mapNotNull { metadata ->
+    override fun getAllCertificates(): List<SslCertificateEntry> = readCertificatesJson().certificates.mapNotNull { metadata ->
         val pemFile = caCertPemFile(metadata.id)
         if (!pemFile.exists()) return@mapNotNull null
         SslCertificateEntry(
@@ -87,17 +87,17 @@ class DefaultSslCertificateManager(
 
     private fun caCertPemFile(id: String): File = File(sslDir, "ca_$id.pem")
 
-    private fun loadMetadata(): CertificatesStore {
-        if (!metadataFile.exists()) return CertificatesStore()
-        return runCatching { json.decodeFromString<CertificatesStore>(metadataFile.readText()) }
-            .getOrDefault(CertificatesStore())
+    private fun readCertificatesJson(): CertificatesJson {
+        if (!certificatesJsonFile.exists()) return CertificatesJson()
+        return runCatching { json.decodeFromString<CertificatesJson>(certificatesJsonFile.readText()) }
+            .getOrDefault(CertificatesJson())
     }
 
     override fun getActiveCertificate(): SslCertificateEntry? = getAllCertificates().find(SslCertificateEntry::isActive)
 
     override fun hasCertificate(): Boolean = getAllCertificates().isNotEmpty()
 
-    override fun generateAndAddCertificate(name: String?): SslCertificateEntry {
+    override fun generateAndActivateCertificate(name: String?): SslCertificateEntry {
         val id = UUID.randomUUID().toString().take(8)
         val createdAt = System.currentTimeMillis()
         val certName = name ?: generateDefaultName(createdAt)
@@ -133,16 +133,16 @@ class DefaultSslCertificateManager(
         }
         FilePermissionsWriter.restrictToOwnerFile(pemFile)
 
-        val store = loadMetadata()
-        val updatedCertificates = store.certificates.map { it.copy(isActive = false) } +
+        val certificatesJson = readCertificatesJson()
+        val updatedCertificates = certificatesJson.certificates.map { it.copy(isActive = false) } +
             CertificateMetadata(
                 id = id,
                 name = certName,
                 createdAt = createdAt,
                 isActive = true,
             )
-        saveMetadata(CertificatesStore(updatedCertificates))
-        notifyCertificatesChanged()
+        writeCertificatesJson(CertificatesJson(updatedCertificates))
+        refreshCertificatesFlow()
 
         return SslCertificateEntry(
             id = id,
@@ -153,7 +153,7 @@ class DefaultSslCertificateManager(
         )
     }
 
-    private fun notifyCertificatesChanged() {
+    private fun refreshCertificatesFlow() {
         mutableCertificatesFlow.value = getAllCertificates()
     }
 
@@ -161,39 +161,39 @@ class DefaultSslCertificateManager(
 
     private fun keyAlias(id: String): String = "jetwhale_$id"
 
-    private fun saveMetadata(store: CertificatesStore) {
-        metadataFile.writeText(json.encodeToString(store))
-        FilePermissionsWriter.restrictToOwnerFile(metadataFile)
+    private fun writeCertificatesJson(certificatesJson: CertificatesJson) {
+        certificatesJsonFile.writeText(json.encodeToString(certificatesJson))
+        FilePermissionsWriter.restrictToOwnerFile(certificatesJsonFile)
     }
 
     override fun setActiveCertificate(id: String): Boolean {
-        val store = loadMetadata()
-        if (store.certificates.none { it.id == id }) return false
-        saveMetadata(CertificatesStore(store.certificates.map { it.copy(isActive = it.id == id) }))
-        notifyCertificatesChanged()
+        val certificatesJson = readCertificatesJson()
+        if (certificatesJson.certificates.none { it.id == id }) return false
+        writeCertificatesJson(CertificatesJson(certificatesJson.certificates.map { it.copy(isActive = it.id == id) }))
+        refreshCertificatesFlow()
         return true
     }
 
     override fun deleteCertificate(id: String): Boolean {
-        val store = loadMetadata()
-        val toDelete = store.certificates.find { it.id == id } ?: return false
+        val certificatesJson = readCertificatesJson()
+        val toDelete = certificatesJson.certificates.find { it.id == id } ?: return false
 
         keyStoreFile(id).delete()
         caCertPemFile(id).delete()
 
-        val remaining = store.certificates.filter { it.id != id }
+        val remaining = certificatesJson.certificates.filter { it.id != id }
         val updatedCertificates = if (toDelete.isActive && remaining.isNotEmpty()) {
             remaining.mapIndexed { index, cert -> cert.copy(isActive = index == 0) }
         } else {
             remaining
         }
-        saveMetadata(CertificatesStore(updatedCertificates))
-        notifyCertificatesChanged()
+        writeCertificatesJson(CertificatesJson(updatedCertificates))
+        refreshCertificatesFlow()
         return true
     }
 
     override fun getActiveKeyStore(): KeyStore? {
-        val active = loadMetadata().certificates.find(CertificateMetadata::isActive) ?: return null
+        val active = readCertificatesJson().certificates.find(CertificateMetadata::isActive) ?: return null
         val file = keyStoreFile(active.id)
         if (!file.exists()) return null
         return KeyStore.getInstance("PKCS12").apply {
@@ -204,7 +204,7 @@ class DefaultSslCertificateManager(
     override fun getKeyStorePassword(): CharArray = KEYSTORE_PASSWORD.toCharArray()
 
     override fun getActiveKeyAlias(): String? {
-        val active = loadMetadata().certificates.find(CertificateMetadata::isActive) ?: return null
+        val active = readCertificatesJson().certificates.find(CertificateMetadata::isActive) ?: return null
         return keyAlias(active.id)
     }
 
