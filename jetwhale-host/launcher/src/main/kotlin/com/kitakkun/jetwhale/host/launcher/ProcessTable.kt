@@ -13,7 +13,9 @@ interface ProcessTable {
 
     /**
      * Whether the process [pid] that started at [startMillis] still runs. A later process that got the
-     * same ID is not it.
+     * same ID is not it, unless a start time is missing on either side: a reused ID then cannot be told
+     * apart, and a host still in its startup time window must not be judged ended, so a live process
+     * with the ID counts as it.
      */
     fun isRunning(pid: Long, startMillis: Long?): Boolean
 
@@ -30,8 +32,6 @@ class OsProcessTable(private val exitTimeout: Duration) : ProcessTable {
     override fun isRunning(pid: Long, startMillis: Long?): Boolean {
         val process = ProcessHandle.of(pid).orElse(null)?.takeIf(ProcessHandle::isAlive) ?: return false
         val actualStartMillis = process.startMillis()
-        // Without both start times a reused ID cannot be told apart, and a host still in its
-        // startup time window must not be judged ended, so a live process with the ID counts as it.
         return startMillis == null || actualStartMillis == null || actualStartMillis == startMillis
     }
 
