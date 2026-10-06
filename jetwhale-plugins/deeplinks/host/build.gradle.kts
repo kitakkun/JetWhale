@@ -1,0 +1,64 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
+import com.kitakkun.kotrail.gradle.KotrailExtension
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
+plugins {
+    alias(libs.plugins.jvm)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.jetwhalePlugin)
+    alias(libs.plugins.jetwhaleHostLaunch)
+    alias(libs.plugins.publish)
+}
+
+kotlin {
+    abiValidation()
+
+    target.compilations.create("preview") {
+        associateWith(target.compilations.getByName("main"))
+    }
+}
+
+// Distinct group: the other plugins also have a `host` module, and Gradle substitutes projects that
+// share coordinates during resolution.
+group = "com.kitakkun.jetwhale.plugins.deeplinks"
+
+jetwhalePlugin {
+    pluginArchiveName.set("jetwhale-deep-links")
+}
+
+dependencies {
+    compileOnly(projects.jetwhaleHostSdk)
+    compileOnly(projects.jetwhaleHostUi)
+    compileOnly(compose.desktop.currentOs)
+    compileOnly(libs.material3)
+    compileOnly(libs.kotlinxSerializationJson)
+    compileOnly(libs.androidxAnnotation)
+    api(projects.jetwhalePlugins.deeplinks.protocol)
+    "previewImplementation"(projects.jetwhaleHostUi)
+    "previewImplementation"(compose.desktop.currentOs)
+    "previewImplementation"(libs.jetbrainsComposePreview)
+    "previewImplementation"(libs.kotlinxSerializationJson)
+    testImplementation(projects.jetwhaleHostSdk)
+    testImplementation(projects.jetwhaleHostUi)
+    testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxSerializationJson)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.material3)
+}
+
+tasks.named("check") {
+    dependsOn("compilePreviewKotlin")
+}
+
+configure<KotrailExtension> {
+    compilation("main") { configFile = file("kotrail-main.yaml") }
+    compilation("preview") { configFile = file("kotrail-preview.yaml") }
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-deep-links"
+    name = "JetWhale Deep Links"
+    description = "JetWhale host plugin for listing and opening an app's deep links."
+}

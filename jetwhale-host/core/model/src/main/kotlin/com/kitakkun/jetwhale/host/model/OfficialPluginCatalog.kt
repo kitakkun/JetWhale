@@ -117,5 +117,14 @@ object OfficialPluginCatalog {
             agentRegistration = null,
             guidePath = "device-mirror",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.deeplinks",
+            displayName = "Deep Links",
+            description = "List and open the deep links of connected debug sessions.",
+            artifactId = "jetwhale-deep-links",
+            agentArtifactId = "jetwhale-deep-links-agent",
+            agentRegistration = "JetWhaleDeepLinkAgentPlugin.platformDefaults()",
+            guidePath = "deep-links",
+        ),
     )
 }

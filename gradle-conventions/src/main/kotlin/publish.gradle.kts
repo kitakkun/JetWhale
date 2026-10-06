@@ -98,7 +98,7 @@ afterEvaluate {
 /**
  * A selector is an artifactId, or one of the groups the snapshot workflow offers: `sdk` (the
  * runtime, the SDKs and everything an app or a host plugin links against), one official plugin by
- * name (`network`, `nav3`, `semantics`, `storage`, `actions`, `mirror`), `gradle-plugin` and `agent-plugin`.
+ * name (`network`, `nav3`, `semantics`, `storage`, `actions`, `mirror`, `deeplinks`), `gradle-plugin` and `agent-plugin`.
  */
 private fun String.selects(artifactId: String): Boolean = when (this) {
     artifactId -> true
@@ -108,8 +108,9 @@ private fun String.selects(artifactId: String): Boolean = when (this) {
     "storage" -> artifactId.startsWith("jetwhale-storage-inspector")
     "actions" -> artifactId.startsWith("jetwhale-debug-actions")
     "mirror" -> artifactId == "jetwhale-device-mirror"
+    "deeplinks" -> artifactId.startsWith("jetwhale-deep-links")
     "gradle-plugin" -> artifactId == "jetwhale-host-gradle-plugin"
     "agent-plugin" -> artifactId == "jetwhale-agent-compiler-plugin" || artifactId == "jetwhale-agent-gradle-plugin"
-    "sdk" -> listOf("network", "nav3", "semantics", "storage", "actions", "mirror", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
+    "sdk" -> listOf("network", "nav3", "semantics", "storage", "actions", "mirror", "deeplinks", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
     else -> false
 }

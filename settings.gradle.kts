@@ -100,6 +100,9 @@ include(":jetwhale-plugins:actions:agent")
 include(":jetwhale-plugins:actions:agent-compose")
 include(":jetwhale-plugins:actions:host")
 include(":jetwhale-plugins:mirror:host")
+include(":jetwhale-plugins:deeplinks:protocol")
+include(":jetwhale-plugins:deeplinks:agent")
+include(":jetwhale-plugins:deeplinks:host")
 
 include(":test-annotations")
 
