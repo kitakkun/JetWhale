@@ -43,6 +43,7 @@ are experimental.
 - On iOS and macOS, the agent's host discovery keeps its mDNS browser delegates alive, so a garbage collection during a browse can no longer crash the app (#356).
 - The Network Inspector's traffic list keeps updating while a filter is typed (#360).
 - The Compose Semantics Inspector keeps a node's `#id` tag when the node's own text starts with `#` (#352).
+- In Windows desktop apps, the Storage Inspector recognizes symbolic links and junctions, so deleting a directory from the host no longer deletes the files a link inside it points to, and a link no longer leads a listing out of its root (#387).
 - The host's log viewer keeps every captured line whole and once, shows non-ASCII text intact, files java.util.logging records at their own level instead of as errors, and no longer gains about sixteen Ktor and MCP SDK entries per MCP call (#362, #374).
 - The host tells you when enabling or disabling a plugin fails, and why (#355).
 - The Health Check in Settings → Connection → ADB Support reports adb as missing when it isn't installed, and finds Homebrew's adb in `/opt/homebrew/bin` (#371).
@@ -55,6 +56,7 @@ are experimental.
 - Device Mirror asks a physical iPhone for video that no longer breaks into blocks while the screen moves (#345).
 - Device Mirror's Captures panel leaves out a capture whose sidecar can't be read, such as one deleted while the panel refreshes, instead of failing to list (#346).
 - Device Mirror's missing-idb hints give one install command that works, `brew install facebook/fb/idb` (#339).
+- On Windows, Device Mirror keeps the double quotes in text typed on an Android device: `say "hi"` no longer arrives as `say hi` (#388).
 - When a release has no host jar for your machine (Linux on arm64, an Intel Mac, Windows on arm64), `runJetWhale` fails with a message that lists the platforms releases are built for and how to build the host instead (#390).
 
 ### Security
