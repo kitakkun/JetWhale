@@ -11,7 +11,9 @@ name still seems to fit.
 ## Functions
 
 - **Name the action and what it acts on:** `publishInstanceJson()`, `deleteStagingDirectory()`,
-  `requestBringToFront()`. The reason it is called goes in KDoc, not in the name.
+  `requestBringToFront()`. What the function is for goes in its KDoc, not in its name. If a caller's
+  reason for calling it isn't obvious, that reason is a comment at the call site (see
+  `function-placement.md`).
 - **Avoid verbs that would fit any body.** These include `handle`, `process`, `manage`, `perform`,
   `execute`, `do`, `apply`, `sync`, `prepare` and `setUp`. Use `run`, `update`, `resolve` or
   `check` only with an object that makes them specific: `runHost`, `updateWindowTitle`,
@@ -34,8 +36,8 @@ name still seems to fit.
 ## Words whose meaning depends on context
 
 - **Add a qualifying word, even when it looks redundant.** Some words mean different things in
-  different parts of this codebase. A name built on one bare is read in whichever sense the reader
-  meets first.
+  different parts of this codebase. A name built on one bare word is read in whichever sense the
+  reader meets first.
 - **Write the qualified form:**
   - `startupTimeWindow`, not `startupWindow`, in an app where "window" is a GUI window;
   - `instanceJsonFile`, not `record`;
