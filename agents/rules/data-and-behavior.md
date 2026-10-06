@@ -39,9 +39,11 @@ behavior holds what it works with, and does the work through its own members.
   `Domain.from(dto)` on the target's companion: the type would then depend on the other layer.
 - **A conversion that needs a dependency is behavior,** such as resources, formatting settings or a
   clock. It goes in a class that holds them.
-- **UI formatting through the framework's ambient resources stays at its call site.** Compose's
-  `stringResource` and the locale have no object to hold, so a class there would be ceremony. Pass a
-  time zone or clock in only where a test needs to pin it.
+- **UI formatting through what the framework supplies ambiently stays at its call site.** Compose's
+  `stringResource` and the locale have no object to hold, so a class there would be ceremony. The
+  current time is not one of these: it is the clock, a dependency to pass in. The system's default
+  time zone is a process-wide fact (see above). A zone the user picks is a setting, so it is passed
+  in too.
 
 ## Policies
 
@@ -68,5 +70,6 @@ behavior holds what it works with, and does the work through its own members.
   a top-level function or an `object`. Make them members of an object that holds the dependencies.
   Two kinds are exempt, because their form is the platform's idiom:
   - composables, which take their inputs as parameters by convention;
-  - `expect`/`actual` platform primitives such as `readFileBytes(path)`, where Kotlin Multiplatform
-    declares a platform function as a top-level `expect`.
+  - `expect`/`actual` platform primitives such as storage's
+    `readFileBytes(path, offset, maxBytes)`, where Kotlin Multiplatform declares a platform
+    function as a top-level `expect`.
