@@ -100,6 +100,10 @@ include(":jetwhale-plugins:actions:agent")
 include(":jetwhale-plugins:actions:agent-compose")
 include(":jetwhale-plugins:actions:host")
 include(":jetwhale-plugins:mirror:host")
+include(":jetwhale-plugins:background:protocol")
+include(":jetwhale-plugins:background:agent")
+include(":jetwhale-plugins:background:agent-workmanager")
+include(":jetwhale-plugins:background:host")
 
 include(":test-annotations")
 
