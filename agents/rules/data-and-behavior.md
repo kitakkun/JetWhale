@@ -51,11 +51,12 @@ behavior holds what it works with, and does the work through its own members.
   `metadata.refusalOn(capabilities)`. The rule then has one home to test and to change.
 - **Test:** if it changes when the data's shape changes, it stays with the data. If it changes for
   a rule, a setting or another layer, it goes outside.
-- **An invariant the type documents stays with the type.** That holds even when the number behind
-  it is a product choice. A factory that enforces it, such as `McpCallArgument.truncating` for the
-  documented length cap, is part of what the type is.
+- **A factory that builds the shape the type's documentation describes stays with the type.** This
+  holds even when a number behind that shape is a product choice. `McpCallArgument`'s KDoc says its
+  value is cut to `MAX_VALUE_LENGTH` characters, so `McpCallArgument.truncating`, which cuts it,
+  belongs to the type.
 - **A type whose purpose is a decision answers it itself.** `McpPermissions` exists to record what
-  may run, so `permissions.allows(tool)` stays. `refusalOn` moves out of `HostReleaseMetadata`
+  may run, so `permissions.allows(permission, pluginId)` stays. `refusalOn` moves out of `HostReleaseMetadata`
   because launcher compatibility is not what release metadata is for.
 
 ## Not allowed
