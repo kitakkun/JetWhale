@@ -102,7 +102,7 @@ class KtorWebSocketServerTest {
         System.setProperty("user.home", tempHome.absolutePath)
         try {
             val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
-            sslCertificateManager.generateAndAddCertificate("first")
+            sslCertificateManager.generateAndActivateCertificate("first")
 
             val server = KtorWebSocketServer(
                 json = Json,
@@ -119,7 +119,7 @@ class KtorWebSocketServerTest {
 
                 val serialBefore = fetchLeafSerial(wssPort)
 
-                sslCertificateManager.generateAndAddCertificate("second")
+                sslCertificateManager.generateAndActivateCertificate("second")
 
                 val serialAfter = withTimeout(10_000) {
                     var serial = serialBefore
@@ -185,7 +185,7 @@ class KtorWebSocketServerTest {
         System.setProperty("user.home", tempHome.absolutePath)
         try {
             val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
-            sslCertificateManager.generateAndAddCertificate("tls-ca")
+            sslCertificateManager.generateAndActivateCertificate("tls-ca")
             val expectedPem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
 
             val server = KtorWebSocketServer(
