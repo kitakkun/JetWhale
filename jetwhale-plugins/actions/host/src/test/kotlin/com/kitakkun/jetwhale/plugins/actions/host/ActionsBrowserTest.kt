@@ -79,7 +79,7 @@ class ActionsBrowserTest {
     }
 
     @Test
-    fun `run again opens the action on the actions tab with the run's arguments`() {
+    fun `prefilling the form from a run opens the action on the actions tab with the run's arguments`() {
         val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
         client.actions = listOf(signIn, reset)
         runBlocking {
@@ -89,7 +89,7 @@ class ActionsBrowserTest {
         browser.select(reset.id)
         browser.showTab(ActionsTab.HISTORY)
 
-        browser.runAgain(browser.history.single().runId)
+        browser.prefillFormFromRun(browser.history.single().runId)
 
         assertEquals(ActionsTab.ACTIONS, browser.tab)
         assertEquals(signIn.id, browser.selectedId)
@@ -98,14 +98,14 @@ class ActionsBrowserTest {
     }
 
     @Test
-    fun `selecting another action drops the run again arguments`() {
+    fun `selecting another action drops the prefilled arguments`() {
         val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
         client.actions = listOf(signIn, reset)
         runBlocking {
             browser.load()
             browser.runNow(signIn.id, emailArguments("qa@example.com"), RunOrigin.USER, confirmedDestructive = false)
         }
-        browser.runAgain(browser.history.single().runId)
+        browser.prefillFormFromRun(browser.history.single().runId)
 
         browser.select(reset.id)
 
