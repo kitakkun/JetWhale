@@ -29,6 +29,14 @@ name still seems to fit.
 
 - **Name a value after what it holds**, which is usually its type: `processTable: ProcessTable`,
   `hostVersionsRepository: HostVersionsRepository`. Not `processes` or `versions`.
+- **A value that holds identifiers is named after the identifiers, not after what they identify:**
+  a `Set<String>` of ADB serials is `mappedDeviceSerials`, not `mappedDevices`. Use the domain's own
+  word for the identifier (`serial` for ADB, `udid` for iOS simulators). A generic `Id` tells less
+  about what the value is and where it is accepted.
+- **End a type's name with a noun that says what it is:** `ChosenHostVersion`,
+  `HostStartOutcomeRecorder`, not `HostVersionToStart`. A sealed variant that names a state may be a
+  participle or an adjective (`HostUpdateStatus.Checking`, `Downloading`, `UpToDate`), because it
+  reads as "the status is Checking".
 - **Name a type that holds a file's contents after the file:** `InstanceJson` for `instance.json`.
 - **Give one concept one word everywhere.** A version's text is not `version` in one place and
   `name` in another.
