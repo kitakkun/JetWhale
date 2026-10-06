@@ -87,7 +87,7 @@ When the published skill describes a behaviour and you need the mechanism, these
 |---|---|
 | Ports on the command line | `jetwhale-host/app/.../cli/CommandLineArgumentsParser.kt` |
 | Screenshot viewport and the `density` argument | `ScreenshotTool.kt`, `McpViewportUtils.kt` |
-| A scene created on demand inheriting the window's density | `PluginComposeSceneService.updateHostDensity` |
+| A scene created on demand inheriting the window's density | `PluginComposeSceneFactory.updateHostDensity` |
 | `rememberPersistent`'s 300 ms debounce | `RememberPersistent.kt` |
 | The QA agent's control API | `tools/qa-agent/src/main/kotlin/…` |
 

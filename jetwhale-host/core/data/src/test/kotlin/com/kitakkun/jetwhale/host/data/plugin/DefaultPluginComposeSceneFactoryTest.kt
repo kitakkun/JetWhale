@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
@@ -12,35 +13,43 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
-import dev.mokkery.answering.returns
-import dev.mokkery.every
-import dev.mokkery.matcher.any
+import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import dev.mokkery.mock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 @OptIn(InternalComposeUiApi::class, InternalJetWhaleHostApi::class)
-class DefaultPluginComposeSceneServiceTest {
-    private val plugin = WindowSizeReadingPlugin().apply { bindStorage(mock()) }
+class DefaultPluginComposeSceneFactoryTest {
+    private val passThroughBridge = object : DynamicPluginBridgeProvider {
+        @Composable
+        override fun PluginEntryPoint(content: @Composable () -> Unit) = content()
+    }
 
-    private val service = DefaultPluginComposeSceneService(
-        pluginBridgeProvider = PassThroughBridgeProvider,
-        pluginInstanceService = mock<PluginInstanceService> {
-            every { getPluginInstanceForSession(any(), any()) } returns plugin
-        },
-    )
+    @Test
+    fun `a scene whose content throws while it is first composed is closed`() = runBlocking<Unit> {
+        val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
+        val runningBefore = Recomposer.runningRecomposers.value
+
+        withContext(Dispatchers.Main) { assertFailsWith<IllegalStateException> { factory.createScene(boundPlugin()) { error("content broke") } } }
+
+        // A scene that stays open keeps its Recomposer running.
+        withTimeout(5_000) { Recomposer.runningRecomposers.first { (it - runningBefore).isEmpty() } }
+    }
 
     @Test
     fun `an unchanged window size does not recompose the plugin UI`() = runBlocking {
-        val scene = service.getOrCreatePluginScene(pluginId = "plugin", sessionId = "session")
+        val plugin = WindowSizeReadingPlugin().apply { bindStorage(mock()) }
         withContext(Dispatchers.Main) {
+            val scene = DefaultPluginComposeSceneFactory(passThroughBridge).createScene(plugin) { plugin.Content() }
             scene.showAt(IntSize(400, 300))
             val compositionsBefore = plugin.compositions
 
@@ -52,8 +61,9 @@ class DefaultPluginComposeSceneServiceTest {
 
     @Test
     fun `a changed window size reaches the plugin UI`() = runBlocking {
-        val scene = service.getOrCreatePluginScene(pluginId = "plugin", sessionId = "session")
+        val plugin = WindowSizeReadingPlugin().apply { bindStorage(mock()) }
         withContext(Dispatchers.Main) {
+            val scene = DefaultPluginComposeSceneFactory(passThroughBridge).createScene(plugin) { plugin.Content() }
             scene.showAt(IntSize(400, 300))
 
             scene.showAt(IntSize(800, 600))
@@ -67,6 +77,10 @@ class DefaultPluginComposeSceneServiceTest {
         windowInfoUpdater.updateWindowSize(intSize = size, dpSize = DpSize(size.width.dp, size.height.dp))
         Snapshot.sendApplyNotifications()
         render(Canvas(ImageBitmap(1, 1)))
+    }
+
+    private fun boundPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}.apply {
+        bindStorage(mock<JetWhalePluginStorage>())
     }
 }
 
@@ -83,12 +97,5 @@ private class WindowSizeReadingPlugin :
             compositions++
             observedContainerSize = containerSize
         }
-    }
-}
-
-private object PassThroughBridgeProvider : DynamicPluginBridgeProvider {
-    @Composable
-    override fun PluginEntryPoint(content: @Composable () -> Unit) {
-        content()
     }
 }

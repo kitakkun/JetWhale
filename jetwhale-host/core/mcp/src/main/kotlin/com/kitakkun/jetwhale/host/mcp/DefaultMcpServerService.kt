@@ -228,8 +228,11 @@ class DefaultMcpServerService(
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
                 val arguments = request.arguments ?: emptyMap()
-                val result = toolRegistry.dispatch(toolName, arguments)
-                CallToolResult(content = listOf(TextContent(result ?: "null")))
+                toolRegistry.dispatch(toolName, arguments)
+                    ?.let { CallToolResult(content = listOf(TextContent(it))) }
+                    ?: errorResult(
+                        "'$toolName' is not available in session '${arguments["sessionId"]?.jsonContent}': its plugin is disabled, not installed for that session, or still starting.",
+                    )
             }
         }
     }

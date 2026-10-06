@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
@@ -50,6 +51,14 @@ class DefaultPluginSessionReconciliationService(
                 pluginFactoryRepository.loadedPluginsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
+                    // The disable collector below runs only while this flow is collected, so a
+                    // plugin disabled meanwhile (while the debug server restarts) can still have
+                    // instances.
+                    pluginInstanceService.getLoadedPluginInstances()
+                        .map(LoadedPluginInstance::pluginId)
+                        .filterNot(enabledPluginIds::contains)
+                        .toSet()
+                        .forEach(pluginInstanceService::unloadPluginInstancesForPlugin)
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,

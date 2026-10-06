@@ -16,12 +16,13 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -33,7 +34,7 @@ import kotlinx.serialization.json.JsonObject
 @Inject
 @ContributesIntoSet(AppScope::class)
 class TypeMcpTool(
-    private val pluginComposeSceneService: PluginComposeSceneService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
@@ -68,7 +69,8 @@ class TypeMcpTool(
                 return@addTool errorResult("'text' and 'specialKey' are mutually exclusive; provide only one")
             }
 
-            val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+            val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             when {
                 text != null -> {
                     val success = withContext(Dispatchers.Main) {

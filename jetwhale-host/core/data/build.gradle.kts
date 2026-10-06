@@ -41,4 +41,5 @@ dependencies {
     compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
+    testImplementation(libs.kotlinxCoroutinesTest)
 }

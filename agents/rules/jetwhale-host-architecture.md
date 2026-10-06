@@ -16,4 +16,4 @@ Service: Everything else (business logic, object management, external integratio
 ### Service
 - Combines multiple Repositories/Services for business logic
 - Manages object lifecycles (creation/disposal)
-- Examples: `PluginInstanceService`, `PluginComposeSceneService`, `ADBAutoWiringService`
+- Examples: `PluginInstanceService`, `PluginHotReloadService`, `ADBAutoWiringService`

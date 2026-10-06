@@ -10,12 +10,13 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -28,7 +29,7 @@ import kotlinx.serialization.json.JsonObject
 @Inject
 @ContributesIntoSet(AppScope::class)
 class DragMcpTool(
-    private val pluginComposeSceneService: PluginComposeSceneService,
+    private val pluginInstanceService: PluginInstanceService,
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
@@ -66,7 +67,8 @@ class DragMcpTool(
                 ?: return@addTool errorResult("Missing required argument: endY")
             val steps = request.arguments?.get("steps")?.jsonFloat?.toInt() ?: 10
 
-            val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+            val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             withContext(Dispatchers.Main) { dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps) }
             successResult()
         }

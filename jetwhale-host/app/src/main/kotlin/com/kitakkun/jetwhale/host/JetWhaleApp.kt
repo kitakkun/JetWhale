@@ -43,6 +43,7 @@ import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
+import com.kitakkun.jetwhale.host.navigation.removeEntriesOfUninstalledPlugins
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -50,6 +51,7 @@ import com.kitakkun.jetwhale.host.theme.HostTheme
 import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
@@ -106,7 +108,7 @@ context(appGraph: JetWhaleAppGraph)
 private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     val density = LocalDensity.current
     LaunchedEffect(density) {
-        appGraph.pluginComposeSceneService.updateHostDensity(density)
+        appGraph.pluginComposeSceneFactory.updateHostDensity(density)
     }
 
     LaunchedEffect(backStack) {
@@ -122,7 +124,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     LaunchedEffect(Unit) {
         appGraph.debugWebSocketServer.serverStoppedFlow.collect {
             backStack.removeAppPluginEntries()
-            appGraph.pluginComposeSceneService.disposeAppSessionPluginScenes()
         }
     }
 
@@ -135,7 +136,17 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
-            appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
+        }
+    }
+
+    LaunchedEffect(backStack) {
+        // Rerun on every back-stack change too: an enable that completes after the jar was removed,
+        // or a navigation that races the removal, can add an entry for a plugin that is already
+        // gone.
+        combine(appGraph.pluginFactoryRepository.loadedPluginsFlow, snapshotFlow { backStack.toList() }) { loadedPlugins, _ ->
+            loadedPlugins.keys
+        }.collect { installedPluginIds ->
+            backStack.removeEntriesOfUninstalledPlugins(installedPluginIds)
         }
     }
 
@@ -148,8 +159,6 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
                     else -> false
                 }
             }
-
-            appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
 }
