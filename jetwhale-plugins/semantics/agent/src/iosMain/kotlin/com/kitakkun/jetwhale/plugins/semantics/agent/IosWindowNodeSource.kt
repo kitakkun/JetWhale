@@ -33,7 +33,7 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
         val frame = window.frame.toNodeBounds()
         ComposeRoot(
             rootId = sourceId,
-            label = window.describe(),
+            label = window.windowLabel(),
             // Bounds are in points, which are already density-independent and what every iOS tool
             // takes.
             density = 1f,
@@ -42,7 +42,7 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
             // Modality on iOS lives inside the window — a presented controller over the content —
             // so no window claims the touches that land outside it.
             isTouchModal = false,
-            node = AppleNodeIds.trackingCapture(window) {
+            node = AppleNodeIds.captureReleasingUnseen(window) {
                 window.toAppleNode(options = options, window = window, depth = 0)
             },
         )
@@ -81,7 +81,7 @@ private fun NSObject.anyDescendant(predicate: (NSObject) -> Boolean): Boolean = 
 }
 
 /** Names the window by what it shows — its root view controller — since a window has no name of its own. */
-private fun UIWindow.describe(): String {
+private fun UIWindow.windowLabel(): String {
     val controller = rootViewController ?: return className()
     val name = (controller as NSObject).className()
     return if (isKeyWindow()) name else "$name / ${className()}"
