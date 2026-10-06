@@ -32,7 +32,7 @@ object LauncherContract {
     /**
      * `--after <pid>`: the launcher waits for that process to end before it chooses a version, so
      * that a host restarting into an update has freed its lock and its ports. It waits before it
-     * takes `launch.lock`, which a host ending within its startup window takes to record that.
+     * takes `launch.lock`, which a host ending within its startup time window takes to record that.
      */
     const val AFTER_ARGUMENT = "--after"
 

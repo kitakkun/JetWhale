@@ -24,6 +24,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class HostLauncherTest {
     private val bed = LaunchTestBed()
@@ -145,7 +147,7 @@ class HostLauncherTest {
         events += "launched"
         bed.hostComesUp(101, starting)
         events += "published"
-        bed.watchWindow(starting, publishedBy = 101)
+        starting.startup.recordCompletedStartAfter(30.seconds)
 
         assertEquals(listOf("lock", "launched", "release", "published", "lock", "release"), events)
         assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
@@ -153,7 +155,20 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `counts a start whose process ended within its window without a record as failed, and starts the version again`() {
+    fun `records a completed start once the startup time window has passed, and not before`() {
+        bed.download("1.0.0-alpha15")
+        val completedStartVersionsAtSleeps = mutableListOf<Pair<Duration, Set<HostVersion>>>()
+        val launcher = bed.launcher(pid = 101, sleep = { completedStartVersionsAtSleeps += it to state().completedStartVersions })
+        val starting = starting(launcher.launch(afterPid = null, retryVersion = null))
+
+        starting.startup.recordCompletedStartAfter(30.seconds)
+
+        assertEquals(listOf(30.seconds to emptySet()), completedStartVersionsAtSleeps)
+        assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
+    }
+
+    @Test
+    fun `counts a start whose process ended within its startup time window without a record as failed, and starts the version again`() {
         bed.download("1.0.0-alpha14")
         bed.download("1.0.0-alpha15")
         bed.hostComesUp(101, starting(bed.launch(pid = 101)))
@@ -210,7 +225,7 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `counts a shutdown within the window as neither failed nor completed, before the host has published or after`() {
+    fun `counts a shutdown within the startup time window as neither failed nor completed, before the host has published or after`() {
         bed.download("1.0.0-alpha15")
         bed.shutDown(101, starting(bed.launch(pid = 101)))
         val published = starting(bed.launch(pid = 102))
@@ -241,15 +256,15 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `does not record a completed start when the window ends after the host failed or the JVM began to shut down`() {
+    fun `does not record a completed start when the startup time window ends after the host failed or the JVM began to shut down`() {
         bed.download("1.0.0-alpha15")
         val failed = starting(bed.launch(pid = 101))
         failed.startup.hostFailed()
-        bed.watchWindow(failed, publishedBy = 101)
+        failed.startup.recordCompletedStartAfter(30.seconds)
         bed.crash(101)
         val quit = starting(bed.launch(pid = 102))
         quit.startup.shutDownWithoutFailure()
-        bed.watchWindow(quit, publishedBy = 102)
+        quit.startup.recordCompletedStartAfter(30.seconds)
 
         assertEquals(emptySet(), state().completedStartVersions)
         assertEquals(mapOf(hostVersion("1.0.0-alpha15") to 1), state().failedStartCounts)
@@ -374,7 +389,7 @@ class HostLauncherTest {
     }
 
     @Test
-    fun `waits for a host restarting within its window to end, without launch lock, and does not count that start as failed`() {
+    fun `waits for a host restarting within its startup time window to end, without launch lock, and does not count that start as failed`() {
         bed.download("1.0.0-alpha15")
         val restarting = starting(bed.launch(pid = 101))
         bed.hostComesUp(101, restarting)
@@ -436,7 +451,7 @@ class HostLauncherTest {
         bed.hostComesUp(101, starting)
         hostVersionsDirectory.writeLauncherState(state().copy(setAsideVersions = emptySet()))
 
-        bed.watchWindow(starting, publishedBy = 101)
+        starting.startup.recordCompletedStartAfter(30.seconds)
 
         assertEquals(emptySet(), state().setAsideVersions)
         assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
@@ -453,10 +468,10 @@ class HostLauncherTest {
 
     private fun starting(outcome: LaunchOutcome): LaunchOutcome.Starting = assertIs<LaunchOutcome.Starting>(outcome)
 
-    /** The host of the process [pid] comes up and is still running when its window ends. */
+    /** The host of the process [pid] comes up and is still running when its startup time window ends. */
     private fun completeStart(pid: Long, starting: LaunchOutcome.Starting) {
         bed.hostComesUp(pid, starting)
-        bed.watchWindow(starting, publishedBy = pid)
+        starting.startup.recordCompletedStartAfter(30.seconds)
     }
 
     private fun state(): LauncherState = hostVersionsDirectory.readLauncherState()

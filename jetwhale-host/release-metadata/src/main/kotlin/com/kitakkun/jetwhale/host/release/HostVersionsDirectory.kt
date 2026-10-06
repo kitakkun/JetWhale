@@ -162,14 +162,14 @@ class InstalledHostVersion(val version: HostVersion, val directory: Path) {
 fun hostJarName(version: HostVersion, platformKey: String): String = "jetwhale-host-${version.name}-$platformKey.jar"
 
 /**
- * @property completedStartVersions The versions that were still running at the end of a startup
+ * @property completedStartVersions The versions that were still running at the end of a startup time
  * window on this machine. Such a version is never set aside again.
  * @property setAsideVersions The versions that failed their first starts, until the user tries them
  * again. An entry for a version whose directory is gone means nothing.
  * @property failedStartCounts How many starts in a row each version that has not completed one has
  * failed.
- * @property startingHost The host whose start has not been judged yet: it is in its startup window,
- * or its process ended without the judgment being recorded.
+ * @property startingHost The host whose start has not been judged yet: it is in its startup time
+ * window, or its process ended without the judgment being recorded.
  */
 @Serializable
 data class LauncherState(

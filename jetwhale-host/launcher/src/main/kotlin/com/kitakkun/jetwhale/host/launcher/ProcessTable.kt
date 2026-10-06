@@ -31,7 +31,7 @@ class OsProcessTable(private val exitTimeout: Duration) : ProcessTable {
         val process = ProcessHandle.of(pid).orElse(null)?.takeIf(ProcessHandle::isAlive) ?: return false
         val actualStartMillis = process.startMillis()
         // Without both start times a reused ID cannot be told apart, and a host still in its
-        // startup window must not be judged ended, so a live process with the ID counts as it.
+        // startup time window must not be judged ended, so a live process with the ID counts as it.
         return startMillis == null || actualStartMillis == null || actualStartMillis == startMillis
     }
 

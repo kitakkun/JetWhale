@@ -82,7 +82,7 @@ class LauncherMainTest {
     }
 
     @Test
-    fun `counts an exit within the window as neither failed nor completed`() {
+    fun `counts an exit within the startup time window as neither failed nor completed`() {
         assertEquals(3, runLauncher("exit"))
 
         assertEquals(LauncherState.EMPTY, hostVersionsDirectory.readLauncherState())

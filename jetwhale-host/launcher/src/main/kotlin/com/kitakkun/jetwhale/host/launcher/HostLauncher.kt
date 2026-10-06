@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.release.check
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.time.Duration
 
 /** How many starts in a row a version that has never completed one may fail before it is set aside. */
 private const val FAILED_STARTS_TO_SET_ASIDE = 2
@@ -22,11 +23,11 @@ private const val FAILED_STARTS_TO_SET_ASIDE = 2
  * Chooses the host version this process runs, and records how its start goes.
  *
  * Under `launch.lock`, it first judges a start that an earlier launch wrote down and never judged: when
- * that process has ended, it crashed or was killed within its startup window, which is a failed start.
- * Then it hands the launch to a host that is already running. Otherwise it goes through the downloaded
- * versions newer than the bundled one, newest first, then the bundled one, and picks the first that is
- * not set aside, not refused and verifies. A downloaded version that has never completed a start and
- * has failed its last two is set aside on the way.
+ * that process has ended, it crashed or was killed within its startup time window, which is a failed
+ * start. Then it hands the launch to a host that is already running. Otherwise it goes through the
+ * downloaded versions newer than the bundled one, newest first, then the bundled one, and picks the
+ * first that is not set aside, not refused and verifies. A downloaded version that has never completed
+ * a start and has failed its last two is set aside on the way.
  *
  * @param bundledHost Null when the launcher runs outside a package, which has no bundled host.
  * @param processTable This process, which runs the chosen host, and those of earlier launches.
@@ -40,13 +41,14 @@ class HostLauncher(
     private val runningHostChannel: RunningHostChannel,
     private val processTable: ProcessTable,
     private val log: LauncherLog,
+    private val sleep: (Duration) -> Unit,
 ) {
     /**
      * Returns [LaunchOutcome.Starting] still holding `launch.lock`, which its [HostStartup] lets go.
      *
      * @param afterPid The host that restarts into an update, which has to end before a version is
      * chosen. It is waited for before `launch.lock` is taken, because that host takes the lock on its
-     * way out when it restarts within its startup window.
+     * way out when it restarts within its startup time window.
      * @param retryVersion A set-aside version the user asked to try again.
      */
     fun launch(afterPid: Long?, retryVersion: HostVersion?): LaunchOutcome {
@@ -76,7 +78,7 @@ class HostLauncher(
         val state = hostVersionsDirectory.readLauncherState()
         val startingHost = state.startingHost ?: return
         if (processTable.isRunning(startingHost.pid, startingHost.processStartMillis)) return
-        log.write("${startingHost.version} ended within its startup window without a record of how: a crash or a kill")
+        log.write("${startingHost.version} ended within its startup time window without a record of how: a crash or a kill")
         hostVersionsDirectory.writeLauncherState(failedStart(state, startingHost.version))
     }
 
@@ -185,8 +187,8 @@ class HostLauncher(
 
     /**
      * Writes down that this process starts [start], so that a later launch counts a crash within its
-     * startup window. An `instance.json` a host left behind goes first: that host could have had this
-     * process's ID, and its `instance.json` would pass for this host's.
+     * startup time window. An `instance.json` a host left behind goes first: that host could have had
+     * this process's ID, and its `instance.json` would pass for this host's.
      */
     private fun startInThisProcess(start: HostStart, setAsideVersion: HostVersion?, launchLock: LaunchLock): LaunchOutcome.Starting {
         hostVersionsDirectory.deleteInstanceJson()
@@ -223,8 +225,8 @@ class HostLauncher(
 
     /**
      * How the start of [start] in this process ends. The first of three ends counts, and is recorded
-     * once, under `launch.lock`: the end of the startup window, a failure of the host's main, or a
-     * shutdown of this JVM. Until then it holds the `launch.lock` the launch took, or lets it go once
+     * once, under `launch.lock`: the end of the startup time window, a failure of the host's main, or
+     * a shutdown of this JVM. Until then it holds the `launch.lock` the launch took, or lets it go once
      * the host has published `instance.json`.
      */
     inner class HostStartup internal constructor(private val start: HostStart, private val launchLock: LaunchLock) {
@@ -236,9 +238,18 @@ class HostLauncher(
             if (!judged) launchLock.release()
         }
 
-        /** The host still runs at the end of its startup window: it completed its start. */
+        /**
+         * Waits out [startupTimeWindow] from now, which is right before the host's main is called, and
+         * then records a completed start, unless the start has ended otherwise by then.
+         */
+        fun recordCompletedStartAfter(startupTimeWindow: Duration) {
+            sleep(startupTimeWindow)
+            recordCompletedStart()
+        }
+
+        /** The host still runs at the end of its startup time window: it completed its start. */
         @Synchronized
-        fun windowEnded() = judge { state ->
+        private fun recordCompletedStart() = judge { state ->
             log.write("${start.version} completed its start")
             pruneAfterStart(
                 start,
@@ -251,20 +262,21 @@ class HostLauncher(
             )
         }
 
-        /** The host's main threw within the window: a failed start. */
+        /** The host's main threw within its startup time window: a failed start. */
         @Synchronized
         fun hostFailed() = judge { state ->
-            log.write("${start.version} failed within its startup window")
+            log.write("${start.version} failed within its startup time window")
             failedStart(state, start.version)
         }
 
         /**
-         * This JVM shuts down within the window, and the host's main did not throw: the user quit, or
-         * the host ended itself, as it does to restart. Neither a failed start nor a completed one.
+         * This JVM shuts down within the startup time window, and the host's main did not throw: the
+         * user quit, or the host ended itself, as it does to restart. Neither a failed start nor a
+         * completed one.
          */
         @Synchronized
         fun shutDownWithoutFailure() = judge { state ->
-            log.write("${start.version} ended within its startup window without failing")
+            log.write("${start.version} ended within its startup time window without failing")
             state.copy(startingHost = null)
         }
 

@@ -19,9 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.TestTimeSource
+import kotlin.time.Duration
 
 const val PLATFORM = "macos-arm64"
 
@@ -174,6 +172,7 @@ class LaunchTestBed {
         runningHostChannel: RunningHostChannel = this.runningHostChannel,
         onAwaitExit: (Long) -> Unit = {},
         bundled: Boolean = true,
+        sleep: (Duration) -> Unit = {},
     ): HostLauncher {
         runningPids += pid
         return HostLauncher(
@@ -185,6 +184,7 @@ class LaunchTestBed {
             runningHostChannel = runningHostChannel,
             processTable = FakeProcessTable(currentPid = pid, runningPids = runningPids, startMillisOf = { it * 1000 }, onAwaitExit = onAwaitExit),
             log = { logLines += it },
+            sleep = sleep,
         )
     }
 
@@ -213,12 +213,5 @@ class LaunchTestBed {
     fun shutDown(pid: Long, starting: LaunchOutcome.Starting) {
         starting.startup.shutDownWithoutFailure()
         crash(pid)
-    }
-
-    /** Watches a start through its whole window, in test time, as the process [publishedBy] does. */
-    fun watchWindow(starting: LaunchOutcome.Starting, publishedBy: Long) {
-        val time = TestTimeSource()
-        StartupWindow(length = 30.seconds, pollInterval = 200.milliseconds, timeSource = time, sleep = time::plusAssign)
-            .watch(starting.startup) { runningHostChannel.isInstanceJsonPublishedBy(publishedBy) }
     }
 }

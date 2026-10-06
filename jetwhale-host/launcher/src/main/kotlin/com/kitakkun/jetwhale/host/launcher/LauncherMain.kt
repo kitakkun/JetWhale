@@ -21,7 +21,12 @@ import kotlin.time.TimeSource
 private const val RESOURCES_DIR_PROPERTY = "compose.application.resources.dir"
 private const val APP_PATH_PROPERTY = "jpackage.app-path"
 private const val RELEASES_PAGE = "https://github.com/kitakkun/JetWhale/releases"
-private val STARTUP_WINDOW = 30.seconds
+
+/**
+ * The time after a host's start in which a crash counts against the start. It is the startup grace of
+ * the host's crash recovery, so the launcher and the host count the same crashes as startup crashes.
+ */
+private val STARTUP_TIME_WINDOW = 30.seconds
 private val AFTER_PROCESS_TIMEOUT = 60.seconds
 
 /** The host's own override of `~/.jetwhale`, which the launcher honors too. */
@@ -79,12 +84,13 @@ private fun createHostLauncher(
     runningHostChannel = runningHostChannel,
     processTable = OsProcessTable(exitTimeout = AFTER_PROCESS_TIMEOUT),
     log = log,
+    sleep = { Thread.sleep(it.inWholeMilliseconds) },
 )
 
 /**
  * Runs the chosen host on this thread and records how its start goes: a throw from its main, the end
- * of its startup window, or a shutdown of this JVM before either. A host's main that returns leaves
- * the JVM to end once the host's threads have.
+ * of its startup time window, or a shutdown of this JVM before either. A host's main that returns
+ * leaves the JVM to end once the host's threads have.
  */
 private fun runHost(
     starting: LaunchOutcome.Starting,
@@ -94,13 +100,17 @@ private fun runHost(
     log: LauncherLog,
 ) {
     Runtime.getRuntime().addShutdownHook(Thread(starting.startup::shutDownWithoutFailure, "jetwhale-host-shutdown"))
-    thread(isDaemon = true, name = "jetwhale-host-startup-window") {
-        StartupWindow(
-            length = STARTUP_WINDOW,
+    thread(isDaemon = true, name = "jetwhale-host-instance-json-watcher") {
+        InstanceJsonPublicationWatcher(
+            startupTimeWindow = STARTUP_TIME_WINDOW,
             pollInterval = 200.milliseconds,
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
-        ).watch(starting.startup) { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) }
+            isInstanceJsonPublished = { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) },
+        ).reportPublicationTo(starting.startup)
+    }
+    thread(isDaemon = true, name = "jetwhale-host-startup-time-window") {
+        starting.startup.recordCompletedStartAfter(STARTUP_TIME_WINDOW)
     }
     val inProcessHost = InProcessHost(
         hostVersionsDirectory = hostVersionsDirectory,

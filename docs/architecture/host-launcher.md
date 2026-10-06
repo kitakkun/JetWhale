@@ -52,7 +52,8 @@ JetWhale Debugger (.app / .exe / deb)
 
 ## How a start is judged
 
-The first of these to happen within 30 seconds of step 8 is recorded, under `launch.lock`:
+The first of these to happen within the *startup time window*, the 30 seconds from step 8, is
+recorded, under `launch.lock`:
 
 | What happens | Judgment | Effect |
 |---|---|---|
