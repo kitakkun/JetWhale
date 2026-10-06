@@ -323,7 +323,7 @@ place to test and to change.
 
 ## Wire format
 
-Every addition is additive JSON:
+Every change adds a JSON field or a type:
 
 | Message | Addition |
 |---|---|
@@ -340,8 +340,8 @@ The messaging format ignores unknown keys and encodes defaults:
   a failure rather than guessing the origin.
 - The agent's `pluginVersion` goes to `1.1.0`, and the host manifest's `agentVersionRange` to
   `1.0.0`–`1.1.0`. An older host, whose range ends at `1.0.0`, lists a new agent as incompatible
-  and never activates the plugin. It cannot ignore marks it does not know.
-- A new host with an older agent works as today.
+  and never activates the plugin, so a host that would ignore the marks never receives them.
+- A new host with an older agent works as it does without rules.
 
 The official catalog installs the host plugin version that matches the running host. An older host
 therefore keeps refusing a new agent until the user updates the host.
@@ -421,7 +421,7 @@ ancestor of either, matches a rule:
     `AccessibilityTreeRedactionTest`.
   - The ZIP leaves out withheld files and writes `jetwhale-withheld.txt`.
   - Negotiation lists agent `1.1.0` as incompatible under a `1.0.0`-only range.
-- **Each enforcement point removed in turn** fails its test, as #361 did for Network.
+- **Each enforcement point removed in turn** fails its test, as in #361 for Network.
 - **By hand**, with the demo app declaring rules: drive the MCP tools and captures through the
   plugin-qa skill, and the window by hand.
 
@@ -444,7 +444,7 @@ Phases 1 and 2 ship in the same release: an agent with rules needs a host that r
    *Placeholder or omission*. `OMIT` stays an opt-in for names that carry data.
 3. **Should a rule that names an absent root withhold every file?** Recommendation: yes. It is loud
    and fail-closed. The cost lands on rules for a root that comes and goes, such as Android's
-   External cache when storage is unmounted, which no known app needs. Revisit if one does.
+   External cache when storage is unmounted. Revisit if an app needs such a rule.
 4. **Should the DataStore adapter require the store's file?** Recommendation: yes. Without it, every
    key rule on that store can be bypassed through the file view. The alternative fallback, hiding
    every `*.preferences_pb` once any DataStore store has a rule, over-hides and is harder to explain.
