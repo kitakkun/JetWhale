@@ -62,7 +62,7 @@ internal class DefaultClientSessionNegotiationStrategy(
         sendSerialized(
             JetWhaleAgentNegotiationRequest.Session(
                 sessionId = resumingSessionId,
-                sessionName = appMetadata.deviceName ?: getDeviceModelName(),
+                sessionName = appMetadata.deviceName ?: resolveDefaultDeviceName(),
                 appMetadata = appMetadata,
             ),
         )

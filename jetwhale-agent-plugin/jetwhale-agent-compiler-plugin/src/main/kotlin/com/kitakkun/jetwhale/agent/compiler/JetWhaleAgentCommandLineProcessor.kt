@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 
 class JetWhaleAgentCommandLineProcessor : CommandLineProcessor {
     private val buildMachineAddress = CliOption(
-        optionName = JetWhaleAgentPluginNames.ADDRESS_OPTION,
+        optionName = JetWhaleAgentPluginNames.BUILD_MACHINE_ADDRESS_OPTION,
         valueDescription = "<ip-or-hostname>",
         description = "Address that buildMachineWss(port) is rewritten to dial.",
         required = false,

@@ -41,7 +41,7 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
 }
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
+internal actual fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
     check(this is DarwinClientEngineConfig) { "Expected DarwinClientEngineConfig but got ${this::class.simpleName}" }

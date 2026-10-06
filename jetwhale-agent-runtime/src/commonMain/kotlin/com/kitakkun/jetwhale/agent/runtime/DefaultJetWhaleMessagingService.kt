@@ -21,7 +21,7 @@ internal class DefaultJetWhaleMessagingService(
     private val socketClient: JetWhaleSocketClient,
     private val pluginService: JetWhaleAgentPluginService,
 ) : JetWhaleMessagingService {
-    private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
+    private val coroutineScope: CoroutineScope = CoroutineScope(ioDispatcher() + SupervisorJob())
     private var connectionLoopJob: Job? = null
     private var retryCount = 0
     private var lastReportedFailure: String? = null
@@ -34,8 +34,8 @@ internal class DefaultJetWhaleMessagingService(
                 val outcome = runRound(resolver)
                 if (outcome is RoundResult.Served) continue
 
-                reportRoundFailed((outcome as RoundResult.Failed).summary)
-                pluginService.disconnectAll()
+                warnUnlessRepeated((outcome as RoundResult.Failed).summary)
+                pluginService.dropAllPeers()
                 retryCount++
                 delay((retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS))
             }
@@ -50,7 +50,7 @@ internal class DefaultJetWhaleMessagingService(
             connectionJob.cancelAndJoin()
             withContext(NonCancellable) {
                 socketClient.closeConnection()
-                pluginService.disconnectAll()
+                pluginService.dropAllPeers()
             }
         }.invokeOnCompletion {
             coroutineScope.cancel()
@@ -116,7 +116,7 @@ internal class DefaultJetWhaleMessagingService(
      * One line per round rather than one per candidate, so the same set of failures repeating is a
      * repeating message and stays suppressed until something about it changes.
      */
-    private fun reportRoundFailed(summary: String) {
+    private fun warnUnlessRepeated(summary: String) {
         if (summary == lastReportedFailure) return
         lastReportedFailure = summary
         JetWhaleLogger.w("$summary. Retrying with backoff until one does.")
@@ -132,17 +132,17 @@ internal class DefaultJetWhaleMessagingService(
         )
 
         try {
-            pluginService.syncActivePlugins(connection.negotiationResult.availablePluginIds.toSet())
+            pluginService.activateOnly(connection.negotiationResult.availablePluginIds.toSet())
 
             connection.debuggerEventFlow.collect { event ->
                 when (event) {
                     is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugin(event.pluginId)
                     is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugin(event.pluginId)
-                    is JetWhaleDebuggerEvent.PluginFrameMessage -> pluginService.onFrame(event.frame)
+                    is JetWhaleDebuggerEvent.PluginFrameMessage -> pluginService.routeFrame(event.frame)
                 }
             }
         } finally {
-            pluginService.disconnectAll()
+            pluginService.dropAllPeers()
         }
     }
 

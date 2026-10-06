@@ -12,7 +12,7 @@ import platform.windows.UINTVar
 import platform.windows.WCHARVar
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun getDeviceModelName(): String {
+internal actual fun resolveDefaultDeviceName(): String {
     memScoped {
         val buffer = allocArray<WCHARVar>(256)
         val size = alloc<UINTVar>()
