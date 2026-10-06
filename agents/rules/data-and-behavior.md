@@ -52,9 +52,9 @@ behavior holds what it works with, and does the work through its own members.
 - **Test:** if it changes when the data's shape changes, it stays with the data. If it changes for
   a rule, a setting or another layer, it goes outside.
 - **A factory that builds the shape the type's documentation describes stays with the type.** This
-  holds even when a number behind that shape is a product choice. `McpCallArgument`'s KDoc says its
-  value is cut to `MAX_VALUE_LENGTH` characters, so `McpCallArgument.truncating`, which cuts it,
-  belongs to the type.
+  holds even when a number behind that shape is a product choice. `McpCallArgument`'s KDoc
+  describes its value as shortened, with a marker where it was cut. `McpCallArgument.truncating`
+  builds exactly that, so it belongs to the type.
 - **A type whose purpose is a decision answers it itself.** `McpPermissions` exists to record what
   may run, so `permissions.allows(permission, pluginId)` stays. `refusalOn` moves out of `HostReleaseMetadata`
   because launcher compatibility is not what release metadata is for.
