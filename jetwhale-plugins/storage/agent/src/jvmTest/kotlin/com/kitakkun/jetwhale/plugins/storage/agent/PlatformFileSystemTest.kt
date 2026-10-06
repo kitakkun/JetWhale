@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
-import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -14,6 +14,7 @@ import kotlin.test.assertFalse
 
 class PlatformFileSystemTest {
     private val directory: File = Files.createTempDirectory("storage-agent-test").toFile()
+    private val onWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 
     @AfterTest
     fun cleanUp() {
@@ -57,7 +58,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `a symbolic link that leads outside the root is refused`() {
-        assumeLinksRecognized()
         val root = File(directory, "root").apply { mkdir() }
         val outside = File(directory, "outside").apply { mkdir() }
         Files.createSymbolicLink(File(root, "escape").toPath(), outside.toPath())
@@ -67,7 +67,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `deleting a directory removes a link inside it but not what the link points to`() {
-        assumeLinksRecognized()
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "keep.txt").writeText("keep")
         File(directory, "cache").mkdir()
@@ -80,8 +79,31 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `deleting a directory removes a junction inside it but not what the junction points to`() {
+        assumeTrue("junctions exist only on Windows", onWindows)
+        val outside = File(directory, "outside").apply { mkdir() }
+        File(outside, "keep.txt").writeText("keep")
+        File(directory, "cache").mkdir()
+        createJunction(File(directory, "cache/junction"), outside)
+
+        deleteRecursively("${directory.path}/cache")
+
+        assertFalse(File(directory, "cache").exists())
+        assertEquals("keep", File(outside, "keep.txt").readText())
+    }
+
+    @Test
+    fun `a junction that leads outside the root is refused`() {
+        assumeTrue("junctions exist only on Windows", onWindows)
+        val root = File(directory, "root").apply { mkdir() }
+        val outside = File(directory, "outside").apply { mkdir() }
+        createJunction(File(root, "escape"), outside)
+
+        assertFailsWith<IllegalArgumentException> { FileRoot(name = "Root", path = root.path).resolve(listOf("escape")) }
+    }
+
+    @Test
     fun `a listing marks a symbolic link and names its target`() {
-        assumeLinksRecognized()
         val target = File(directory, "target.txt").apply { writeText("hello") }
         Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
 
@@ -108,8 +130,14 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a link that loops does not fail the listing of its directory`() {
+        Files.createSymbolicLink(File(directory, "loop").toPath(), File("loop").toPath())
+
+        assertEquals(listOf("loop"), listDirectoryEntries(directory.path).map(FileEntry::name))
+    }
+
+    @Test
     fun `measuring counts everything below and does not follow links`() {
-        assumeLinksRecognized()
         val outside = File(directory, "outside").apply { mkdir() }
         File(outside, "big.bin").writeBytes(ByteArray(1000))
         File(directory, "cache/images").mkdirs()
@@ -124,7 +152,6 @@ class PlatformFileSystemTest {
 
     @Test
     fun `measuring a link to a directory counts the link and does not follow it`() {
-        assumeLinksRecognized()
         val target = File(directory, "target").apply { mkdir() }
         File(target, "big.bin").writeBytes(ByteArray(1000))
         Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
@@ -151,8 +178,9 @@ class PlatformFileSystemTest {
         assertFailsWith<IOException> { listDirectoryEntries("${directory.path}/notes.txt") }
     }
 
-    private fun assumeLinksRecognized() = assumeFalse(
-        "symbolic links are not recognized on Windows yet: java.io canonical paths do not resolve them there before JDK 24",
-        System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true),
-    )
+    private fun createJunction(link: File, target: File) {
+        val mklink = ProcessBuilder("cmd", "/c", "mklink", "/J", link.path, target.path).redirectErrorStream(true).start()
+        val output = mklink.inputStream.bufferedReader().readText()
+        check(mklink.waitFor() == 0) { "mklink /J failed: $output" }
+    }
 }
