@@ -309,6 +309,38 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `a redirect's Location header has its redacted query values hidden`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            CapturedHttpResponse(
+                txId = "tx-1",
+                statusCode = 302,
+                headers = mapOf("Location" to listOf("https://api.example.com/callback?token=secret-value&page=2")),
+                durationMs = 10L,
+            ),
+        )
+        assertEquals(listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["Location"])
+    }
+
+    @Test
+    fun `a Referer header has its redacted query values hidden`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            request(headers = mapOf("Referer" to listOf("https://app.example.com/page?token=secret-value&page=2"))),
+        )
+        assertEquals(listOf("https://app.example.com/page?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["Referer"])
+    }
+
+    @Test
+    fun `a header that is not a standard URL header has its redacted query values hidden too`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            request(headers = mapOf("X-Callback-Url" to listOf("https://app.example.com/done?token=secret-value&page=2"))),
+        )
+        assertEquals(listOf("https://app.example.com/done?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["X-Callback-Url"])
+    }
+
+    @Test
     fun `empty rules return the instance unchanged`() {
         val original = request(headers = mapOf("Authorization" to listOf("Bearer secret")))
         assertSame(original, NetworkRedactionRules.None.redactAtCapture(original))

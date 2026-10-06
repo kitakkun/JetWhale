@@ -57,7 +57,11 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
             add(RedactionTarget.HEADER, names, scope, strategy)
         }
 
-        /** Redacts the values of the given URL query parameters. */
+        /**
+         * Redacts the values of the given URL query parameters: in the request URL, and wherever a
+         * header value or a failure message quotes them after `?` or `&`, such as in a redirect's
+         * `Location` or a `Referer`.
+         */
         fun urlQueryParam(
             vararg names: String,
             scope: RedactionScope = RedactionScope.EVERYWHERE,

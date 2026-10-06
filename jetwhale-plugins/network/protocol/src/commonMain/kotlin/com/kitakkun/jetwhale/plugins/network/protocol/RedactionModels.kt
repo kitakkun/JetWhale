@@ -53,6 +53,10 @@ const val REDACTED_PLACEHOLDER: String = "<redacted>"
  * Applies the matching rules to a captured request. Runs on the agent for
  * [RedactionScope.EVERYWHERE] rules and on the host (before building MCP tool results) for
  * [RedactionScope.MCP_ONLY] rules.
+ *
+ * URL query rules apply to the URL and to every header value a header rule does not hide whole:
+ * headers such as `Referer` carry a URL, so the value after a matching `?name=` or `&name=` in them
+ * is hidden as in a failure's message.
  */
 fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpRequest {
     if (isEmpty()) return request
@@ -63,7 +67,10 @@ fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpReques
     )
 }
 
-/** Applies the matching rules to a captured response; see the [CapturedHttpRequest] overload. */
+/**
+ * Applies the matching rules to a captured response; see the [CapturedHttpRequest] overload. A
+ * redirect's `Location` is one of the header values whose query values this hides.
+ */
 fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResponse {
     if (isEmpty()) return response
     return response.copy(
@@ -78,19 +85,20 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
  * up to the next `&`, `#` or whitespace, whatever the URL's scheme (WebSocket URLs included) and
  * wherever the URL seems to end.
  */
-fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure {
-    if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return failure
-    val message = failure.message
+fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure = failure.copy(message = redactQueryParamsInText(failure.message))
+
+private fun List<RedactionRule>.redactQueryParamsInText(text: String): String {
+    if (none { it.target == RedactionTarget.URL_QUERY_PARAM }) return text
     val redacted = StringBuilder()
     var copiedUpTo = 0
-    for (name in QUERY_PARAM_NAME_IN_TEXT.findAll(message)) {
+    for (name in QUERY_PARAM_NAME_IN_TEXT.findAll(text)) {
         if (name.range.first < copiedUpTo) continue
         val strategy = strategyFor(RedactionTarget.URL_QUERY_PARAM, name.groupValues[1].formUrlDecode()) ?: continue
-        val value = checkNotNull(QUERY_PARAM_VALUE.matchAt(message, name.range.last + 1))
-        redacted.appendRange(message, copiedUpTo, value.range.first).append(strategy.render(value.value))
+        val value = checkNotNull(QUERY_PARAM_VALUE.matchAt(text, name.range.last + 1))
+        redacted.appendRange(text, copiedUpTo, value.range.first).append(strategy.render(value.value))
         copiedUpTo = value.range.last + 1
     }
-    return failure.copy(message = redacted.appendRange(message, copiedUpTo, message.length).toString())
+    return redacted.appendRange(text, copiedUpTo, text.length).toString()
 }
 
 private val QUERY_PARAM_NAME_IN_TEXT = Regex("""[?&]([^?&#=\s]*)=""")
@@ -98,7 +106,7 @@ private val QUERY_PARAM_VALUE = Regex("""[^&#\s]*""")
 
 private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
     when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
-        null -> values
+        null -> values.map { redactQueryParamsInText(it) }
         else -> values.map(strategy::render)
     }
 }
