@@ -13,8 +13,8 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
 class BringToFrontClientTest {
-    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("bring-to-front").resolve("host"))
-    private val bringToFrontClient = BringToFrontClient(hostVersionsDirectory)
+    private val hostDirectory = HostDirectory(Files.createTempDirectory("bring-to-front").resolve("host"))
+    private val bringToFrontClient = BringToFrontClient(hostDirectory)
     private val server = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
     private val requests = CopyOnWriteArrayList<String>()
 
@@ -39,7 +39,7 @@ class BringToFrontClientTest {
 
     @Test
     fun `asks the host at the published endpoint with its token`() {
-        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = server.localPort, pid = 42, token = "secret"))
+        hostDirectory.publishInstanceJson(InstanceJson(port = server.localPort, pid = 42, token = "secret"))
 
         assertTrue(bringToFrontClient.requestBringToFront(2_000.milliseconds))
         assertEquals(listOf("bring-to-front secret"), requests)
@@ -47,7 +47,7 @@ class BringToFrontClientTest {
 
     @Test
     fun `gives up when the host refuses the token`() {
-        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = server.localPort, pid = 42, token = "stale"))
+        hostDirectory.publishInstanceJson(InstanceJson(port = server.localPort, pid = 42, token = "stale"))
 
         assertFalse(bringToFrontClient.requestBringToFront(0.milliseconds))
     }

@@ -25,7 +25,7 @@ import kotlin.io.path.name
  * launch.lock, instance.lock, instance.json
  * ```
  */
-class HostVersionsDirectory(val root: Path) {
+class HostDirectory(val root: Path) {
     val stagingDirectory: Path get() = root.resolve("staging")
 
     /** Held by the one launcher choosing and starting a host. */
@@ -45,20 +45,20 @@ class HostVersionsDirectory(val root: Path) {
     fun hostLogFile(version: HostVersion): Path = logsDirectory.resolve("host-${version.name}.log")
 
     /** The version directories, newest first. A directory not named for a release version is not one. */
-    fun installedVersions(): List<InstalledHostVersion> {
+    fun hostVersionDirectories(): List<HostVersionDirectory> {
         if (!root.isDirectory()) return emptyList()
         return root.listDirectoryEntries()
             .filter { it.isDirectory() }
             .mapNotNull { directory ->
-                HostVersion.parse(directory.name)?.let { InstalledHostVersion(it, directory) }
+                HostVersion.parse(directory.name)?.let { HostVersionDirectory(it, directory) }
             }
-            .sortedByDescending(InstalledHostVersion::version)
+            .sortedByDescending(HostVersionDirectory::version)
     }
 
-    fun installedVersion(versionName: String): InstalledHostVersion? {
+    fun hostVersionDirectory(versionName: String): HostVersionDirectory? {
         val version = HostVersion.parse(versionName) ?: return null
         val directory = root.resolve(versionName)
-        return if (directory.isDirectory()) InstalledHostVersion(version, directory) else null
+        return if (directory.isDirectory()) HostVersionDirectory(version, directory) else null
     }
 
     /** What the launcher has recorded, or nothing when the file is missing or unreadable. */
@@ -79,13 +79,13 @@ class HostVersionsDirectory(val root: Path) {
     }
 
     /**
-     * Deletes [installedVersion]'s directory, or the link that stands in for one, never what a link
-     * points to. Returns false when something could not be deleted, as a running host's jar cannot on
-     * Windows; it stays until a later start.
+     * Deletes [hostVersionDirectory], or the link that stands in for one, never what a link points to.
+     * Returns false when something could not be deleted, as a running host's jar cannot on Windows; it
+     * stays until a later start.
      */
     @OptIn(ExperimentalPathApi::class)
-    fun delete(installedVersion: InstalledHostVersion): Boolean = try {
-        installedVersion.directory.deleteRecursively()
+    fun delete(hostVersionDirectory: HostVersionDirectory): Boolean = try {
+        hostVersionDirectory.path.deleteRecursively()
         true
     } catch (_: IOException) {
         false
@@ -144,13 +144,13 @@ class HostVersionsDirectory(val root: Path) {
     }
 }
 
-/** A version directory: the host jar of each platform it was downloaded for, and its metadata. */
-class InstalledHostVersion(val version: HostVersion, val directory: Path) {
-    val metadataFile: Path get() = directory.resolve(METADATA_FILE_NAME)
+/** `<app data>/host/<version>/`: the host jar of each platform it was downloaded for, and its metadata. */
+class HostVersionDirectory(val version: HostVersion, val path: Path) {
+    val metadataFile: Path get() = path.resolve(METADATA_FILE_NAME)
 
-    val signatureFile: Path get() = directory.resolve(SIGNATURE_FILE_NAME)
+    val signatureFile: Path get() = path.resolve(SIGNATURE_FILE_NAME)
 
-    fun jarFile(platformKey: String): Path = directory.resolve(hostJarName(version, platformKey))
+    fun jarFile(platformKey: String): Path = path.resolve(hostJarName(version, platformKey))
 
     companion object {
         const val METADATA_FILE_NAME = "release.json"

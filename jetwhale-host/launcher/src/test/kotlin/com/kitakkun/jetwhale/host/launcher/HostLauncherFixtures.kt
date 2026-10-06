@@ -1,12 +1,12 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HeldLock
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostPlatformRelease
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostRuntimeRequirements
 import com.kitakkun.jetwhale.host.release.HostVersion
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LockFiles
@@ -121,17 +121,17 @@ class FakeProcessTable(
  * only counts and answers.
  */
 class FakeRunningHostChannel(
-    private val hostVersionsDirectory: HostVersionsDirectory,
+    private val hostDirectory: HostDirectory,
     private val answers: Boolean,
 ) : RunningHostChannel {
     var bringToFrontRequests = 0
         private set
 
     fun publishInstanceJson(pid: Long) {
-        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = 0, pid = pid, token = "token"))
+        hostDirectory.publishInstanceJson(InstanceJson(port = 0, pid = pid, token = "token"))
     }
 
-    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = hostVersionsDirectory.readInstanceJson()?.pid == pid
+    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = hostDirectory.readInstanceJson()?.pid == pid
 
     override fun requestBringToFront(): Boolean {
         bringToFrontRequests++
@@ -145,10 +145,10 @@ class FakeRunningHostChannel(
  */
 class LaunchTestBed {
     val appData: Path = Files.createTempDirectory("launcher-test")
-    val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
+    val hostDirectory = HostDirectory(appData.resolve("host"))
     val bundledDirectory: Path = appData.resolve("package/host")
     val lockFiles = FakeLockFiles()
-    val runningHostChannel = FakeRunningHostChannel(hostVersionsDirectory, answers = true)
+    val runningHostChannel = FakeRunningHostChannel(hostDirectory, answers = true)
     val logLines = CopyOnWriteArrayList<String>()
 
     /** The processes that run, other than those the test has ended. */
@@ -163,7 +163,7 @@ class LaunchTestBed {
         writeHostVersion(versionDirectory(versionName), versionName) { it }
     }
 
-    fun versionDirectory(versionName: String): Path = hostVersionsDirectory.root.resolve(versionName)
+    fun versionDirectory(versionName: String): Path = hostDirectory.root.resolve(versionName)
 
     fun launcher(
         pid: Long,
@@ -176,7 +176,7 @@ class LaunchTestBed {
     ): HostLauncher {
         runningPids += pid
         return HostLauncher(
-            hostVersionsDirectory = hostVersionsDirectory,
+            hostDirectory = hostDirectory,
             bundledHostVersion = if (bundled) BundledHostDirectory(bundledDirectory).readHostVersion() else null,
             capabilities = capableLauncher,
             metadataReader = metadataReader,
@@ -196,7 +196,7 @@ class LaunchTestBed {
      * up does, and its launcher lets `launch.lock` go on seeing it.
      */
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
-        checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
+        checkNotNull(lockFiles.of(pid).tryLock(hostDirectory.instanceLockFile)) { "the instance was taken" }
         runningHostChannel.publishInstanceJson(pid)
         starting.hostStart.releaseLaunchLock()
     }

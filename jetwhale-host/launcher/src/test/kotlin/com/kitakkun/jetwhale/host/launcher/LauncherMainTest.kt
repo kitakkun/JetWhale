@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.launcher
 
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.hostJarName
 import com.kitakkun.jetwhale.host.release.hostPlatformKey
@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 class LauncherMainTest {
     private val appData: Path = Files.createTempDirectory("launcher-main")
     private val packageResources: Path = appData.resolve("package")
-    private val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
+    private val hostDirectory = HostDirectory(appData.resolve("host"))
     private val bundledVersion = hostVersion("1.0.0-alpha13")
     private val platformKey = checkNotNull(hostPlatformKey(System.getProperty("os.name"), System.getProperty("os.arch")))
 
@@ -62,22 +62,22 @@ class LauncherMainTest {
         assertEquals("true", found.getProperty("contextClassLoaderIsOwn"))
         assertEquals("return --server-port 5103", found.getProperty("arguments"))
         assertEquals("1", found.getProperty("jetwhale.launcher.contract"))
-        assertEquals(hostVersionsDirectory.root.toString(), found.getProperty("jetwhale.launcher.hostDir"))
+        assertEquals(hostDirectory.root.toString(), found.getProperty("jetwhale.launcher.hostDir"))
         assertEquals("null", found.getProperty("jetwhale.launcher.setAsideVersion"))
         assertEquals("null", found.getProperty("skiko.library.path"))
         assertEquals("1", found.getProperty("stub.common"))
         assertEquals("2", found.getProperty("stub.platform"))
-        assertContains(Files.readString(hostVersionsDirectory.hostLogFile(bundledVersion)), "stub host output")
-        assertEquals(LauncherState.EMPTY, hostVersionsDirectory.readLauncherState(), "a main that returns ends its JVM, which is neither a failed nor a completed start")
+        assertContains(Files.readString(hostDirectory.hostLogFile(bundledVersion)), "stub host output")
+        assertEquals(LauncherState.EMPTY, hostDirectory.readLauncherState(), "a main that returns ends its JVM, which is neither a failed nor a completed start")
     }
 
     @Test
     fun `counts a throw from the host's main as a failed start and exits with status 1`() {
         assertEquals(1, runLauncher("throw"))
 
-        assertEquals(mapOf(bundledVersion to 1), hostVersionsDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostVersionsDirectory.readLauncherState().startInProgress)
-        assertContains(Files.readString(hostVersionsDirectory.hostLogFile(bundledVersion)), "stub host failed")
+        assertEquals(mapOf(bundledVersion to 1), hostDirectory.readLauncherState().failedStartCounts)
+        assertNull(hostDirectory.readLauncherState().startInProgress)
+        assertContains(Files.readString(hostDirectory.hostLogFile(bundledVersion)), "stub host failed")
         assertContains(Files.readString(appData.resolve("logs/launcher.log")), "IllegalStateException: stub host failed")
     }
 
@@ -85,24 +85,24 @@ class LauncherMainTest {
     fun `counts an exit within the startup time window as neither failed nor completed`() {
         assertEquals(3, runLauncher("exit"))
 
-        assertEquals(LauncherState.EMPTY, hostVersionsDirectory.readLauncherState())
+        assertEquals(LauncherState.EMPTY, hostDirectory.readLauncherState())
     }
 
     @Test
     fun `counts a start whose JVM halted as failed at the next launch`() {
         assertEquals(134, runLauncher("halt"))
-        assertEquals(bundledVersion, assertNotNull(hostVersionsDirectory.readLauncherState().startInProgress).version)
+        assertEquals(bundledVersion, assertNotNull(hostDirectory.readLauncherState().startInProgress).version)
 
         assertEquals(0, runLauncher("return"))
 
-        assertEquals(mapOf(bundledVersion to 1), hostVersionsDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostVersionsDirectory.readLauncherState().startInProgress)
+        assertEquals(mapOf(bundledVersion to 1), hostDirectory.readLauncherState().failedStartCounts)
+        assertNull(hostDirectory.readLauncherState().startInProgress)
     }
 
     @Test
     fun `skips a downloaded version that needs a runtime module its host could not see`() {
         val version = hostVersion("1.0.0-alpha14")
-        val directory = Files.createDirectories(hostVersionsDirectory.root.resolve(version.name))
+        val directory = Files.createDirectories(hostDirectory.root.resolve(version.name))
         val jar = Files.copy(packageResources.resolve("host/${BundledHostDirectory.JAR_FILE_NAME}"), directory.resolve(hostJarName(version, platformKey)))
         val metadata = hostMetadata(version.name, Files.readAllBytes(jar))
         Files.writeString(

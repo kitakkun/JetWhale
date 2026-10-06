@@ -9,7 +9,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /** Asks the running host to bring its window to the front, at the endpoint its `instance.json` names. */
-class BringToFrontClient(private val hostVersionsDirectory: HostVersionsDirectory) {
+class BringToFrontClient(private val hostDirectory: HostDirectory) {
     /**
      * Sends the request with the token from `instance.json` and returns whether the host accepted it.
      * `instance.json` can be missing, or its endpoint not answer yet, while that host is still
@@ -18,7 +18,7 @@ class BringToFrontClient(private val hostVersionsDirectory: HostVersionsDirector
     fun requestBringToFront(timeout: Duration): Boolean {
         val deadline = TimeSource.Monotonic.markNow() + timeout
         while (true) {
-            val instanceJson = hostVersionsDirectory.readInstanceJson()
+            val instanceJson = hostDirectory.readInstanceJson()
             if (instanceJson != null && sendRequest(instanceJson)) return true
             if (deadline.hasPassedNow()) return false
             Thread.sleep(RETRY_INTERVAL.inWholeMilliseconds)

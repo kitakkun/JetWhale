@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadata
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
-import com.kitakkun.jetwhale.host.release.InstalledHostVersion
+import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,7 +12,7 @@ class BundledHostDirectory(private val path: Path) {
     /** Reads the bundled version. Null when the directory has no readable metadata. */
     fun readHostVersion(): ChosenHostVersion? {
         val text = try {
-            Files.readString(path.resolve(InstalledHostVersion.METADATA_FILE_NAME))
+            Files.readString(path.resolve(HostVersionDirectory.METADATA_FILE_NAME))
         } catch (_: IOException) {
             return null
         }

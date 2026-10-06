@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.launcher
 
 import com.kitakkun.jetwhale.host.release.BringToFrontClient
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import kotlin.time.Duration
 
 /** How the launcher reaches a host that runs, or that it has just started. */
@@ -13,14 +13,14 @@ interface RunningHostChannel {
     fun requestBringToFront(): Boolean
 }
 
-/** Reaches the running host through the `instance.json` it publishes in [hostVersionsDirectory]. */
+/** Reaches the running host through the `instance.json` it publishes in [hostDirectory]. */
 class InstanceJsonChannel(
-    private val hostVersionsDirectory: HostVersionsDirectory,
+    private val hostDirectory: HostDirectory,
     private val bringToFrontTimeout: Duration,
 ) : RunningHostChannel {
-    private val bringToFrontClient = BringToFrontClient(hostVersionsDirectory)
+    private val bringToFrontClient = BringToFrontClient(hostDirectory)
 
-    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = hostVersionsDirectory.readInstanceJson()?.pid == pid
+    override fun isInstanceJsonPublishedBy(pid: Long): Boolean = hostDirectory.readInstanceJson()?.pid == pid
 
     override fun requestBringToFront(): Boolean = bringToFrontClient.requestBringToFront(bringToFrontTimeout)
 }

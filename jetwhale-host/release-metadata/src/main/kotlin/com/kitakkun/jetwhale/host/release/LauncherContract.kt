@@ -23,7 +23,7 @@ object LauncherContract {
      */
     const val EXECUTABLE_PROPERTY = "jetwhale.launcher.executable"
 
-    /** The [HostVersionsDirectory] the launcher chose from. */
+    /** The [HostDirectory] the launcher chose from. */
     const val HOST_DIRECTORY_PROPERTY = "jetwhale.launcher.hostDir"
 
     /** A version this launch set aside because it failed its first starts. */

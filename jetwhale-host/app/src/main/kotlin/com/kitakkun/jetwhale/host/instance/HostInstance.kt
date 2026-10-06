@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.host.instance
 
 import com.kitakkun.jetwhale.host.release.BringToFrontClient
 import com.kitakkun.jetwhale.host.release.HeldLock
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.InstanceJson
 import com.kitakkun.jetwhale.host.release.LockFiles
 import kotlinx.coroutines.channels.BufferOverflow
@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
  * loopback port that it publishes with a token in `instance.json` once it is up.
  */
 class HostInstance private constructor(
-    private val hostVersionsDirectory: HostVersionsDirectory,
+    private val hostDirectory: HostDirectory,
     private val server: ServerSocket,
     private val token: String,
 ) {
@@ -46,7 +46,7 @@ class HostInstance private constructor(
      * sees it, and reaches the host through it.
      */
     fun publishInstanceJson() {
-        hostVersionsDirectory.publishInstanceJson(
+        hostDirectory.publishInstanceJson(
             InstanceJson(port = server.localPort, pid = ProcessHandle.current().pid(), token = token),
         )
     }
@@ -66,14 +66,14 @@ class HostInstance private constructor(
          * them reachable. When another host holds the lock, asks that one to bring its window forward
          * instead.
          */
-        fun claim(hostVersionsDirectory: HostVersionsDirectory, lockFiles: LockFiles): HostInstanceClaim {
-            processInstanceLock = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile)
+        fun claim(hostDirectory: HostDirectory, lockFiles: LockFiles): HostInstanceClaim {
+            processInstanceLock = lockFiles.tryLock(hostDirectory.instanceLockFile)
                 ?: return HostInstanceClaim.HeldByAnother(
-                    broughtToFront = BringToFrontClient(hostVersionsDirectory).requestBringToFront(timeout = 5.seconds),
+                    broughtToFront = BringToFrontClient(hostDirectory).requestBringToFront(timeout = 5.seconds),
                 )
             val server = ServerSocket(0, 8, InetAddress.getLoopbackAddress())
             val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
-            val instance = HostInstance(hostVersionsDirectory, server, token)
+            val instance = HostInstance(hostDirectory, server, token)
             instance.serve()
             return HostInstanceClaim.Claimed(instance)
         }

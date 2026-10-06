@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.launcher
 
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostVersion
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.systemPropertyOf
 import java.io.FileOutputStream
@@ -23,7 +23,7 @@ import java.nio.file.Files
  * file; a `--headless` host keeps the launcher's.
  */
 class InProcessHost(
-    private val hostVersionsDirectory: HostVersionsDirectory,
+    private val hostDirectory: HostDirectory,
     private val platformKey: String,
     private val launcherExecutable: String?,
     private val writesOutputToLog: Boolean,
@@ -38,7 +38,7 @@ class InProcessHost(
         chosenHostVersion.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
         System.setProperty(LauncherContract.CONTRACT_PROPERTY, LauncherContract.VERSION.toString())
         launcherExecutable?.let { System.setProperty(LauncherContract.EXECUTABLE_PROPERTY, it) }
-        System.setProperty(LauncherContract.HOST_DIRECTORY_PROPERTY, hostVersionsDirectory.root.toString())
+        System.setProperty(LauncherContract.HOST_DIRECTORY_PROPERTY, hostDirectory.root.toString())
         if (setAsideVersion == null) {
             System.clearProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)
         } else {
@@ -49,8 +49,8 @@ class InProcessHost(
         System.clearProperty(SKIKO_LIBRARY_PATH_PROPERTY)
 
         if (writesOutputToLog) {
-            Files.createDirectories(hostVersionsDirectory.logsDirectory)
-            val output = PrintStream(FileOutputStream(hostVersionsDirectory.hostLogFile(chosenHostVersion.version).toFile()), true)
+            Files.createDirectories(hostDirectory.logsDirectory)
+            val output = PrintStream(FileOutputStream(hostDirectory.hostLogFile(chosenHostVersion.version).toFile()), true)
             System.setOut(output)
             System.setErr(output)
         }

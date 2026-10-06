@@ -30,7 +30,7 @@ import com.kitakkun.jetwhale.host.instance.HostInstance
 import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
@@ -108,7 +108,7 @@ internal fun defaultToSystemAppearance(properties: Properties) {
 private fun claimLauncherInstance(): HostInstance? {
     if (System.getProperty(LauncherContract.CONTRACT_PROPERTY) == null) return null
     val hostDirectory = System.getProperty(LauncherContract.HOST_DIRECTORY_PROPERTY) ?: return null
-    return when (val claim = HostInstance.claim(HostVersionsDirectory(Path.of(hostDirectory)), LockFiles.Os)) {
+    return when (val claim = HostInstance.claim(HostDirectory(Path.of(hostDirectory)), LockFiles.Os)) {
         is HostInstanceClaim.Claimed -> claim.instance
         is HostInstanceClaim.HeldByAnother -> exitProcess(0)
     }

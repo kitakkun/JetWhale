@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class HostLauncherTest {
     private val bed = LaunchTestBed()
-    private val hostVersionsDirectory = bed.hostVersionsDirectory
+    private val hostDirectory = bed.hostDirectory
 
     @Test
     fun `starts the newest downloaded version that verifies and writes its start down`() {
@@ -90,7 +90,7 @@ class HostLauncherTest {
     fun `deletes a version directory that links outside the host directory, but not what it links to`() {
         val elsewhere = bed.appData.resolve("elsewhere/1.0.0-alpha15")
         writeHostVersion(elsewhere, "1.0.0-alpha15") { it }
-        Files.createDirectories(hostVersionsDirectory.root)
+        Files.createDirectories(hostDirectory.root)
         Files.createSymbolicLink(bed.versionDirectory("1.0.0-alpha15"), elsewhere)
 
         assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).hostStart.chosenHostVersion.version.name)
@@ -207,7 +207,7 @@ class HostLauncherTest {
 
         assertEquals(mapOf(hostVersion("1.0.0-alpha15") to 1), state().failedStartCounts)
         assertNull(state().startInProgress)
-        assertFalse(bed.lockFiles.isHeld(hostVersionsDirectory.launchLockFile))
+        assertFalse(bed.lockFiles.isHeld(hostDirectory.launchLockFile))
     }
 
     @Test
@@ -337,7 +337,7 @@ class HostLauncherTest {
         val outcome = bed.launcher(pid = 101, bundled = false).launch(afterPid = null, retryVersion = null)
 
         assertEquals(LaunchOutcome.NothingLeft, outcome)
-        assertFalse(bed.lockFiles.isHeld(hostVersionsDirectory.launchLockFile))
+        assertFalse(bed.lockFiles.isHeld(hostDirectory.launchLockFile))
         assertNull(state().startInProgress)
     }
 
@@ -354,7 +354,7 @@ class HostLauncherTest {
         completeStart(101, starting)
 
         assertEquals("1.0.0-alpha14", starting.hostStart.chosenHostVersion.version.name)
-        assertEquals(listOf("1.0.0-alpha17", "1.0.0-alpha14"), hostVersionsDirectory.installedVersions().map { it.version.name })
+        assertEquals(listOf("1.0.0-alpha17", "1.0.0-alpha14"), hostDirectory.hostVersionDirectories().map { it.version.name })
         assertEquals(
             LauncherState(
                 completedStartVersions = versions("1.0.0-alpha14"),
@@ -370,19 +370,19 @@ class HostLauncherTest {
     @Test
     fun `asks a running host to come forward instead of starting another`() {
         bed.download("1.0.0-alpha15")
-        bed.lockFiles.of(42).lock(hostVersionsDirectory.instanceLockFile)
+        bed.lockFiles.of(42).lock(hostDirectory.instanceLockFile)
 
         assertEquals(LaunchOutcome.BroughtRunningHostToFront, bed.launch(pid = 101))
         assertEquals(1, bed.runningHostChannel.bringToFrontRequests)
         assertNull(state().startInProgress)
-        assertFalse(bed.lockFiles.isHeld(hostVersionsDirectory.launchLockFile))
+        assertFalse(bed.lockFiles.isHeld(hostDirectory.launchLockFile))
     }
 
     @Test
     fun `reports a running host that does not answer`() {
-        bed.lockFiles.of(42).lock(hostVersionsDirectory.instanceLockFile)
+        bed.lockFiles.of(42).lock(hostDirectory.instanceLockFile)
 
-        val outcome = bed.launcher(pid = 101, runningHostChannel = FakeRunningHostChannel(hostVersionsDirectory, answers = false)).launch(afterPid = null, retryVersion = null)
+        val outcome = bed.launcher(pid = 101, runningHostChannel = FakeRunningHostChannel(hostDirectory, answers = false)).launch(afterPid = null, retryVersion = null)
 
         assertEquals(LaunchOutcome.RunningHostUnreachable, outcome)
         assertNull(state().startInProgress)
@@ -395,7 +395,7 @@ class HostLauncherTest {
         bed.hostComesUp(101, restarting)
         val waitedFor = CopyOnWriteArrayList<Long>()
         val launcher = bed.launcher(pid = 102, onAwaitExit = { pid ->
-            assertNotNull(bed.lockFiles.of(7).tryLock(hostVersionsDirectory.launchLockFile), "it waits without launch.lock").close()
+            assertNotNull(bed.lockFiles.of(7).tryLock(hostDirectory.launchLockFile), "it waits without launch.lock").close()
             waitedFor += pid
             bed.shutDown(101, restarting)
         })
@@ -449,7 +449,7 @@ class HostLauncherTest {
         writeState(setAsideVersions = versions("1.0.0-alpha16"))
         val starting = starting(bed.launch(pid = 101))
         bed.hostComesUp(101, starting)
-        hostVersionsDirectory.writeLauncherState(state().copy(setAsideVersions = emptySet()))
+        hostDirectory.writeLauncherState(state().copy(setAsideVersions = emptySet()))
 
         starting.hostStart.recordCompletedAfter(30.seconds)
 
@@ -459,7 +459,7 @@ class HostLauncherTest {
 
     @Test
     fun `does not take the instance JSON an earlier host left behind for this host's`() {
-        hostVersionsDirectory.publishInstanceJson(InstanceJson(port = 0, pid = 101, token = "stale"))
+        hostDirectory.publishInstanceJson(InstanceJson(port = 0, pid = 101, token = "stale"))
 
         bed.launch(pid = 101)
 
@@ -474,7 +474,7 @@ class HostLauncherTest {
         starting.hostStart.recordCompletedAfter(30.seconds)
     }
 
-    private fun state(): LauncherState = hostVersionsDirectory.readLauncherState()
+    private fun state(): LauncherState = hostDirectory.readLauncherState()
 
     private fun writeState(
         completedStartVersions: Set<HostVersion> = emptySet(),
@@ -482,7 +482,7 @@ class HostLauncherTest {
         failedStartCounts: Map<HostVersion, Int> = emptyMap(),
         startInProgress: StartInProgress? = null,
     ) {
-        hostVersionsDirectory.writeLauncherState(LauncherState(completedStartVersions, setAsideVersions, failedStartCounts, startInProgress))
+        hostDirectory.writeLauncherState(LauncherState(completedStartVersions, setAsideVersions, failedStartCounts, startInProgress))
     }
 
     private fun versions(vararg names: String): Set<HostVersion> = names.mapTo(LinkedHashSet(), ::hostVersion)
@@ -490,9 +490,9 @@ class HostLauncherTest {
     private fun recordingLaunchLock(lockFiles: LockFiles, events: MutableList<String>) = object : LockFiles by lockFiles {
         override fun lock(path: Path): HeldLock {
             val held = lockFiles.lock(path)
-            if (path == hostVersionsDirectory.launchLockFile) events += "lock"
+            if (path == hostDirectory.launchLockFile) events += "lock"
             return HeldLock {
-                if (path == hostVersionsDirectory.launchLockFile) events += "release"
+                if (path == hostDirectory.launchLockFile) events += "release"
                 held.close()
             }
         }

@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.host.instance
 
 import com.kitakkun.jetwhale.host.release.BringToFrontClient
 import com.kitakkun.jetwhale.host.release.HeldLock
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.LockFiles
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -25,24 +25,24 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
 class HostInstanceTest {
-    private val hostVersionsDirectory = HostVersionsDirectory(Files.createTempDirectory("host-instance").resolve("host"))
-    private val bringToFrontClient = BringToFrontClient(hostVersionsDirectory)
+    private val hostDirectory = HostDirectory(Files.createTempDirectory("host-instance").resolve("host"))
+    private val bringToFrontClient = BringToFrontClient(hostDirectory)
     private val lockFiles = InProcessLockFiles()
 
     @Test
     fun `publishes its instance JSON only when it is up`() {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance
 
-        assertNull(hostVersionsDirectory.readInstanceJson())
+        assertNull(hostDirectory.readInstanceJson())
 
         instance.publishInstanceJson()
 
-        assertEquals(ProcessHandle.current().pid(), assertNotNull(hostVersionsDirectory.readInstanceJson()).pid)
+        assertEquals(ProcessHandle.current().pid(), assertNotNull(hostDirectory.readInstanceJson()).pid)
     }
 
     @Test
     fun `comes forward for a request with its token`() = runBlocking {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance
         instance.publishInstanceJson()
         val request = async(start = CoroutineStart.UNDISPATCHED) { instance.bringToFrontRequests.first() }
 
@@ -52,7 +52,7 @@ class HostInstanceTest {
 
     @Test
     fun `keeps a request that arrives before the window collects them`() = runBlocking {
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance
         instance.publishInstanceJson()
 
         assertEquals(true, bringToFrontClient.requestBringToFront(2.seconds))
@@ -61,18 +61,18 @@ class HostInstanceTest {
 
     @Test
     fun `a second host asks the first to come forward instead of claiming`() = runBlocking {
-        val first = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        val first = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance
         first.publishInstanceJson()
         val request = async(start = CoroutineStart.UNDISPATCHED) { first.bringToFrontRequests.first() }
 
-        assertEquals(HostInstanceClaim.HeldByAnother(broughtToFront = true), HostInstance.claim(hostVersionsDirectory, lockFiles))
+        assertEquals(HostInstanceClaim.HeldByAnother(broughtToFront = true), HostInstance.claim(hostDirectory, lockFiles))
         assertEquals(Unit, withTimeout(5.seconds) { request.await() })
     }
 
     @Test
     fun `refuses a request with another token`() {
-        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance.publishInstanceJson()
-        val instanceJson = assertNotNull(hostVersionsDirectory.readInstanceJson())
+        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance.publishInstanceJson()
+        val instanceJson = assertNotNull(hostDirectory.readInstanceJson())
 
         val answer = Socket(InetAddress.getLoopbackAddress(), instanceJson.port).use { socket ->
             socket.getOutputStream().write("bring-to-front ${instanceJson.token.reversed()}\n".toByteArray())
@@ -84,8 +84,8 @@ class HostInstanceTest {
 
     @Test
     fun `refuses a request longer than any it takes, and still answers the next`() {
-        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance.publishInstanceJson()
-        val instanceJson = assertNotNull(hostVersionsDirectory.readInstanceJson())
+        assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance.publishInstanceJson()
+        val instanceJson = assertNotNull(hostDirectory.readInstanceJson())
 
         val answer = Socket(InetAddress.getLoopbackAddress(), instanceJson.port).use { socket ->
             socket.getOutputStream().write("bring-to-front ${"x".repeat(4096)}".toByteArray())
@@ -99,14 +99,14 @@ class HostInstanceTest {
     @Test
     fun `keeps the instance lock when it stops taking requests`() {
         val bringToFrontThreadsOfEarlierTests = bringToFrontThreads()
-        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostVersionsDirectory, lockFiles)).instance
+        val instance = assertIs<HostInstanceClaim.Claimed>(HostInstance.claim(hostDirectory, lockFiles)).instance
         val bringToFrontThread = (bringToFrontThreads() - bringToFrontThreadsOfEarlierTests).single()
         val server = HostInstance::class.java.getDeclaredField("server").apply { isAccessible = true }.get(instance) as ServerSocket
 
         server.close()
 
         assertTrue(bringToFrontThread.join(5.seconds.toJavaDuration()))
-        assertNull(lockFiles.tryLock(hostVersionsDirectory.instanceLockFile))
+        assertNull(lockFiles.tryLock(hostDirectory.instanceLockFile))
     }
 
     private fun bringToFrontThreads(): Set<Thread> = Thread.getAllStackTraces().keys.filterTo(mutableSetOf()) { it.name == "host-instance-bring-to-front" }

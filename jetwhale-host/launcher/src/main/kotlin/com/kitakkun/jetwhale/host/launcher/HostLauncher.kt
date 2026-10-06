@@ -1,11 +1,11 @@
 package com.kitakkun.jetwhale.host.launcher
 
+import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostJarCheck
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataResult
 import com.kitakkun.jetwhale.host.release.HostVersion
-import com.kitakkun.jetwhale.host.release.HostVersionsDirectory
-import com.kitakkun.jetwhale.host.release.InstalledHostVersion
+import com.kitakkun.jetwhale.host.release.HostVersionDirectory
 import com.kitakkun.jetwhale.host.release.LauncherCapabilities
 import com.kitakkun.jetwhale.host.release.LauncherState
 import com.kitakkun.jetwhale.host.release.LockFiles
@@ -33,7 +33,7 @@ private const val FAILED_STARTS_TO_SET_ASIDE = 2
  * @param processTable This process, which runs the chosen host, and those of earlier launches.
  */
 class HostLauncher(
-    private val hostVersionsDirectory: HostVersionsDirectory,
+    private val hostDirectory: HostDirectory,
     private val bundledHostVersion: ChosenHostVersion?,
     private val capabilities: LauncherCapabilities,
     private val metadataReader: HostReleaseMetadataReader,
@@ -56,7 +56,7 @@ class HostLauncher(
             log.write("Waiting for process $afterPid to end")
             processTable.awaitExit(afterPid)
         }
-        val launchLock = LaunchLock(lockFiles, hostVersionsDirectory.launchLockFile)
+        val launchLock = LaunchLock(lockFiles, hostDirectory.launchLockFile)
         var handedOver = false
         try {
             judgeEndedStart()
@@ -75,11 +75,11 @@ class HostLauncher(
      * shutdown hook or failure handling: a crash, an hs_err, or a kill.
      */
     private fun judgeEndedStart() {
-        val state = hostVersionsDirectory.readLauncherState()
+        val state = hostDirectory.readLauncherState()
         val startInProgress = state.startInProgress ?: return
         if (processTable.isRunning(startInProgress.pid, startInProgress.processStartMillis)) return
         log.write("${startInProgress.version} ended within its startup time window without a record of how: a crash or a kill")
-        hostVersionsDirectory.writeLauncherState(failedStart(state, startInProgress.version))
+        hostDirectory.writeLauncherState(failedStart(state, startInProgress.version))
     }
 
     private fun handToRunningHost(): LaunchOutcome {
@@ -92,10 +92,10 @@ class HostLauncher(
     }
 
     private fun clearSetAside(version: HostVersion) {
-        val state = hostVersionsDirectory.readLauncherState()
+        val state = hostDirectory.readLauncherState()
         if (version !in state.setAsideVersions && version !in state.failedStartCounts) return
         log.write("Trying $version again")
-        hostVersionsDirectory.writeLauncherState(
+        hostDirectory.writeLauncherState(
             state.copy(setAsideVersions = state.setAsideVersions - version, failedStartCounts = state.failedStartCounts - version),
         )
     }
@@ -105,9 +105,9 @@ class HostLauncher(
         for (candidate in candidates()) {
             val chosenHostVersion = when (candidate) {
                 is Candidate.Downloaded -> {
-                    val version = candidate.installedVersion.version
+                    val version = candidate.hostVersionDirectory.version
                     if (setAsideAfterFailedStarts(version)) firstSetAsideVersion = firstSetAsideVersion ?: version
-                    verify(candidate.installedVersion, hostVersionsDirectory.readLauncherState()) ?: continue
+                    verify(candidate.hostVersionDirectory, hostDirectory.readLauncherState()) ?: continue
                 }
 
                 is Candidate.Bundled -> candidate.chosenHostVersion
@@ -123,30 +123,30 @@ class HostLauncher(
      * that has never completed a start has failures counted.
      */
     private fun setAsideAfterFailedStarts(version: HostVersion): Boolean {
-        val state = hostVersionsDirectory.readLauncherState()
+        val state = hostDirectory.readLauncherState()
         if (version in state.setAsideVersions || (state.failedStartCounts[version] ?: 0) < FAILED_STARTS_TO_SET_ASIDE) return false
         log.write("Setting $version aside: it failed its last $FAILED_STARTS_TO_SET_ASIDE starts")
-        hostVersionsDirectory.writeLauncherState(state.copy(setAsideVersions = state.setAsideVersions + version))
+        hostDirectory.writeLauncherState(state.copy(setAsideVersions = state.setAsideVersions + version))
         return true
     }
 
     private fun candidates(): List<Candidate> {
         val floor = bundledHostVersion?.version
-        val downloaded = hostVersionsDirectory.installedVersions()
+        val downloaded = hostDirectory.hostVersionDirectories()
             .filter { floor == null || it.version > floor }
             .map(Candidate::Downloaded)
         return downloaded + listOfNotNull(bundledHostVersion?.let(Candidate::Bundled))
     }
 
-    private fun verify(installedVersion: InstalledHostVersion, launcherState: LauncherState): ChosenHostVersion? {
-        val version = installedVersion.version
+    private fun verify(hostVersionDirectory: HostVersionDirectory, launcherState: LauncherState): ChosenHostVersion? {
+        val version = hostVersionDirectory.version
         if (version in launcherState.setAsideVersions) {
             log.write("Skipping $version: it is set aside")
             return null
         }
-        val metadataBytes = readOrNull(installedVersion.metadataFile)
-            ?: return discard(installedVersion, "it has no ${InstalledHostVersion.METADATA_FILE_NAME}")
-        val metadata = when (val read = metadataReader.read(metadataBytes, readOrNull(installedVersion.signatureFile))) {
+        val metadataBytes = readOrNull(hostVersionDirectory.metadataFile)
+            ?: return discard(hostVersionDirectory, "it has no ${HostVersionDirectory.METADATA_FILE_NAME}")
+        val metadata = when (val read = metadataReader.read(metadataBytes, readOrNull(hostVersionDirectory.signatureFile))) {
             is HostReleaseMetadataResult.Read -> read.metadata
 
             is HostReleaseMetadataResult.NewerFormat -> {
@@ -154,35 +154,35 @@ class HostLauncher(
                 return null
             }
 
-            HostReleaseMetadataResult.Untrusted -> return discard(installedVersion, "its metadata signature does not verify")
+            HostReleaseMetadataResult.Untrusted -> return discard(hostVersionDirectory, "its metadata signature does not verify")
 
-            is HostReleaseMetadataResult.Malformed -> return discard(installedVersion, "its metadata is malformed (${read.reason})")
+            is HostReleaseMetadataResult.Malformed -> return discard(hostVersionDirectory, "its metadata is malformed (${read.reason})")
         }
-        if (metadata.version.name != version.name) return discard(installedVersion, "its metadata is for ${metadata.version}")
+        if (metadata.version.name != version.name) return discard(hostVersionDirectory, "its metadata is for ${metadata.version}")
         val refusal = metadata.refusalOn(capabilities)
         if (refusal != null) {
             log.write("Skipping $version: $refusal")
             return null
         }
-        val jar = installedVersion.jarFile(capabilities.platformKey)
-        if (!hostVersionsDirectory.contains(jar)) return discard(installedVersion, "its jar resolves outside ${hostVersionsDirectory.root}")
+        val jar = hostVersionDirectory.jarFile(capabilities.platformKey)
+        if (!hostDirectory.contains(jar)) return discard(hostVersionDirectory, "its jar resolves outside ${hostDirectory.root}")
         val check = try {
             metadata.platforms.getValue(capabilities.platformKey).check(jar)
         } catch (e: IOException) {
-            return discard(installedVersion, "its jar cannot be read (${e.message})")
+            return discard(hostVersionDirectory, "its jar cannot be read (${e.message})")
         }
-        if (check != HostJarCheck.Matches) return discard(installedVersion, "its jar does not match its metadata ($check)")
+        if (check != HostJarCheck.Matches) return discard(hostVersionDirectory, "its jar does not match its metadata ($check)")
         return ChosenHostVersion(version = version, metadata = metadata, jar = jar, isBundled = false)
     }
 
-    private fun discard(installedVersion: InstalledHostVersion, reason: String): ChosenHostVersion? {
-        log.write("Deleting ${installedVersion.version}: $reason")
-        delete(installedVersion)
+    private fun discard(hostVersionDirectory: HostVersionDirectory, reason: String): ChosenHostVersion? {
+        log.write("Deleting ${hostVersionDirectory.version}: $reason")
+        delete(hostVersionDirectory)
         return null
     }
 
-    private fun delete(installedVersion: InstalledHostVersion) {
-        if (!hostVersionsDirectory.delete(installedVersion)) log.write("Could not delete all of ${installedVersion.version}; a later start tries again")
+    private fun delete(hostVersionDirectory: HostVersionDirectory) {
+        if (!hostDirectory.delete(hostVersionDirectory)) log.write("Could not delete all of ${hostVersionDirectory.version}; a later start tries again")
     }
 
     /**
@@ -195,9 +195,9 @@ class HostLauncher(
         setAsideVersion: HostVersion?,
         launchLock: LaunchLock,
     ): LaunchOutcome.Starting {
-        hostVersionsDirectory.deleteInstanceJson()
-        val state = hostVersionsDirectory.readLauncherState()
-        hostVersionsDirectory.writeLauncherState(
+        hostDirectory.deleteInstanceJson()
+        val state = hostDirectory.readLauncherState()
+        hostDirectory.writeLauncherState(
             state.copy(startInProgress = StartInProgress(chosenHostVersion.version, processTable.currentPid, processTable.currentStartMillis)),
         )
         log.write("Starting ${chosenHostVersion.version}${if (chosenHostVersion.isBundled) " (bundled)" else ""}")
@@ -205,7 +205,7 @@ class HostLauncher(
     }
 
     private fun isInstanceHeldElsewhere(): Boolean {
-        val probe = lockFiles.tryLock(hostVersionsDirectory.instanceLockFile) ?: return true
+        val probe = lockFiles.tryLock(hostDirectory.instanceLockFile) ?: return true
         probe.close()
         return false
     }
@@ -295,7 +295,7 @@ class HostLauncher(
             isOutcomeRecorded = true
             launchLock.ensureHeld()
             try {
-                hostVersionsDirectory.writeLauncherState(stateWithOutcome(hostVersionsDirectory.readLauncherState()))
+                hostDirectory.writeLauncherState(stateWithOutcome(hostDirectory.readLauncherState()))
             } finally {
                 launchLock.release()
             }
@@ -307,15 +307,15 @@ class HostLauncher(
      * finished downloading during this start, and deletes every other downloaded version.
      */
     private fun pruneAfterStart(chosenHostVersion: ChosenHostVersion, launcherState: LauncherState): LauncherState {
-        val installedVersions = hostVersionsDirectory.installedVersions()
-        val newestNewer = installedVersions.firstOrNull { it.version > chosenHostVersion.version }
-        installedVersions
+        val hostVersionDirectories = hostDirectory.hostVersionDirectories()
+        val newestNewer = hostVersionDirectories.firstOrNull { it.version > chosenHostVersion.version }
+        hostVersionDirectories
             .filterNot { it == newestNewer || (!chosenHostVersion.isBundled && it.version == chosenHostVersion.version) }
             .forEach {
                 log.write("Deleting ${it.version}: ${chosenHostVersion.version} completed a start")
                 delete(it)
             }
-        val keptVersions = hostVersionsDirectory.installedVersions().map(InstalledHostVersion::version).toSet() + listOfNotNull(bundledHostVersion?.version)
+        val keptVersions = hostDirectory.hostVersionDirectories().map(HostVersionDirectory::version).toSet() + listOfNotNull(bundledHostVersion?.version)
         return launcherState.copy(
             completedStartVersions = launcherState.completedStartVersions.intersect(keptVersions),
             setAsideVersions = launcherState.setAsideVersions.intersect(keptVersions),
@@ -324,7 +324,7 @@ class HostLauncher(
     }
 
     private sealed interface Candidate {
-        data class Downloaded(val installedVersion: InstalledHostVersion) : Candidate
+        data class Downloaded(val hostVersionDirectory: HostVersionDirectory) : Candidate
 
         data class Bundled(val chosenHostVersion: ChosenHostVersion) : Candidate
     }

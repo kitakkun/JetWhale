@@ -23,8 +23,8 @@ class InstanceJsonPublicationWatcherTest {
         watcher { launchLockHeldAtPolls.size >= 3 }.releaseLaunchLockWhenInstanceJsonIsPublished(starting.hostStart)
 
         assertEquals(listOf(true, true, true), launchLockHeldAtPolls)
-        assertFalse(bed.lockFiles.isHeld(bed.hostVersionsDirectory.launchLockFile))
-        assertNotNull(bed.hostVersionsDirectory.readLauncherState().startInProgress, "the start is still to be judged")
+        assertFalse(bed.lockFiles.isHeld(bed.hostDirectory.launchLockFile))
+        assertNotNull(bed.hostDirectory.readLauncherState().startInProgress, "the start is still to be judged")
     }
 
     @Test
@@ -36,7 +36,7 @@ class InstanceJsonPublicationWatcherTest {
 
         assertEquals(150, launchLockHeldAtPolls.size)
         assertTrue(launchLockHeldAtPolls.all { it })
-        assertTrue(bed.lockFiles.isHeld(bed.hostVersionsDirectory.launchLockFile), "launch.lock stays for the end of the startup time window to let go")
+        assertTrue(bed.lockFiles.isHeld(bed.hostDirectory.launchLockFile), "launch.lock stays for the end of the startup time window to let go")
     }
 
     private fun watcher(isInstanceJsonPublished: () -> Boolean) = InstanceJsonPublicationWatcher(
@@ -45,7 +45,7 @@ class InstanceJsonPublicationWatcherTest {
         timeSource = time,
         sleep = time::plusAssign,
         isInstanceJsonPublished = {
-            launchLockHeldAtPolls += bed.lockFiles.isHeld(bed.hostVersionsDirectory.launchLockFile)
+            launchLockHeldAtPolls += bed.lockFiles.isHeld(bed.hostDirectory.launchLockFile)
             isInstanceJsonPublished()
         },
     )
