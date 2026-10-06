@@ -1,13 +1,18 @@
 package com.kitakkun.jetwhale.host.data.settings
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.McpToolPermission
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okio.Path.Companion.toPath
@@ -36,7 +41,10 @@ class DefaultMcpPermissionsRepositoryTest {
             deniedPluginTools = setOf("com.example.secret.wipe"),
         )
 
-        val overridden = DefaultMcpPermissionsRepository(dataStore, McpPermissionOverride(allowAll = true)).permissionsFlow.value
+        val overriddenDataStore = FirstReadSignalingDataStore(dataStore)
+        val overriddenRepository = DefaultMcpPermissionsRepository(overriddenDataStore, McpPermissionOverride(allowAll = true))
+        withTimeout(5_000) { overriddenDataStore.firstReadDelivered.await() }
+        val overridden = overriddenRepository.permissionsFlow.value
 
         assertTrue(overridden.allows(McpToolPermission.HostGroup(McpHostToolGroup.SETTINGS_AND_SERVERS), pluginId = null))
         assertTrue(overridden.allows(McpToolPermission.PluginInspect, pluginId = "com.example.secret"))
@@ -44,5 +52,18 @@ class DefaultMcpPermissionsRepositoryTest {
         withTimeout(5_000) {
             DefaultMcpPermissionsRepository(dataStore, McpPermissionOverride.None).permissionsFlow.first { it == stored }
         }
+    }
+}
+
+/**
+ * Signals once the first value read from [dataStore] has reached its collector: `emit` returns only
+ * after the collector has handled the value.
+ */
+private class FirstReadSignalingDataStore(dataStore: DataStore<Preferences>) : DataStore<Preferences> by dataStore {
+    val firstReadDelivered = CompletableDeferred<Unit>()
+
+    override val data: Flow<Preferences> = dataStore.data.transform { preferences ->
+        emit(preferences)
+        firstReadDelivered.complete(Unit)
     }
 }
