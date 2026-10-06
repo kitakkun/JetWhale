@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.launcher
 
+import com.kitakkun.jetwhale.host.release.HeldLock
 import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostJarCheck
 import com.kitakkun.jetwhale.host.release.HostReleaseMetadataReader
@@ -56,7 +57,7 @@ class HostLauncher(
             log.write("Waiting for process $afterPid to end")
             processTable.awaitExit(afterPid)
         }
-        val launchLock = LaunchLock(lockFiles, hostDirectory.launchLockFile)
+        val launchLock = lockFiles.lock(hostDirectory.launchLockFile)
         var handedOver = false
         try {
             judgeEndedStart()
@@ -66,7 +67,7 @@ class HostLauncher(
             handedOver = outcome is LaunchOutcome.Starting
             return outcome
         } finally {
-            if (!handedOver) launchLock.release()
+            if (!handedOver) launchLock.close()
         }
     }
 
@@ -100,7 +101,7 @@ class HostLauncher(
         )
     }
 
-    private fun chooseAndStart(launchLock: LaunchLock): LaunchOutcome {
+    private fun chooseAndStart(launchLock: HeldLock): LaunchOutcome {
         var firstSetAsideVersion: HostVersion? = null
         for (candidate in candidates()) {
             val chosenHostVersion = when (candidate) {
@@ -193,7 +194,7 @@ class HostLauncher(
     private fun recordStartInProgress(
         chosenHostVersion: ChosenHostVersion,
         setAsideVersion: HostVersion?,
-        launchLock: LaunchLock,
+        launchLock: HeldLock,
     ): LaunchOutcome.Starting {
         hostDirectory.deleteInstanceJson()
         val state = hostDirectory.readLauncherState()
@@ -238,14 +239,17 @@ class HostLauncher(
     inner class HostStart internal constructor(
         val chosenHostVersion: ChosenHostVersion,
         val setAsideVersion: HostVersion?,
-        private val launchLock: LaunchLock,
+        launchLock: HeldLock,
     ) {
+        private var heldLaunchLock: HeldLock? = launchLock
+
         private var isOutcomeRecorded = false
 
         /** Lets `launch.lock` go until the outcome is recorded, which takes it again for the record. */
         @Synchronized
         fun releaseLaunchLock() {
-            if (!isOutcomeRecorded) launchLock.release()
+            heldLaunchLock?.close()
+            heldLaunchLock = null
         }
 
         /**
@@ -293,11 +297,12 @@ class HostLauncher(
         private fun recordOutcomeOnce(stateWithOutcome: (LauncherState) -> LauncherState) {
             if (isOutcomeRecorded) return
             isOutcomeRecorded = true
-            launchLock.ensureHeld()
+            val launchLock = heldLaunchLock ?: lockFiles.lock(hostDirectory.launchLockFile)
+            heldLaunchLock = null
             try {
                 hostDirectory.writeLauncherState(stateWithOutcome(hostDirectory.readLauncherState()))
             } finally {
-                launchLock.release()
+                launchLock.close()
             }
         }
     }
