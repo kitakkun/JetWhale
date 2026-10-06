@@ -9,15 +9,15 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class OsProcessTableTest {
-    private val processes = OsProcessTable(exitTimeout = 10.seconds)
+    private val processTable = OsProcessTable(exitTimeout = 10.seconds)
 
     @Test
     fun `tells this process from a later one that got its ID`() {
-        val startMillis = assertNotNull(processes.currentStartMillis)
+        val startMillis = assertNotNull(processTable.currentStartMillis)
 
-        assertTrue(processes.isRunning(processes.currentPid, startMillis))
-        assertTrue(processes.isRunning(processes.currentPid, startMillis = null))
-        assertFalse(processes.isRunning(processes.currentPid, startMillis + 1))
+        assertTrue(processTable.isRunning(processTable.currentPid, startMillis))
+        assertTrue(processTable.isRunning(processTable.currentPid, startMillis = null))
+        assertFalse(processTable.isRunning(processTable.currentPid, startMillis + 1))
     }
 
     @Test
@@ -25,8 +25,8 @@ class OsProcessTableTest {
         val ended = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-version").start()
         assertTrue(ended.waitFor(60, TimeUnit.SECONDS))
 
-        processes.awaitExit(ended.pid())
+        processTable.awaitExit(ended.pid())
 
-        assertFalse(processes.isRunning(ended.pid(), startMillis = null))
+        assertFalse(processTable.isRunning(ended.pid(), startMillis = null))
     }
 }

@@ -37,17 +37,17 @@ fun main(args: Array<String>) {
         ?: Path.of(System.getProperty("user.home"), ".jetwhale")
     val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
     val log = FileLauncherLog(hostVersionsDirectory.logsDirectory.resolve("launcher.log"), echoToStandardError = arguments.headless)
-    val runningHost = InstanceRecordChannel(hostVersionsDirectory, activationTimeout = 5.seconds)
+    val runningHostChannel = InstanceRecordChannel(hostVersionsDirectory, activationTimeout = 5.seconds)
 
     val outcome = try {
-        createHostLauncher(hostVersionsDirectory, runningHost, log).launch(arguments.afterPid, arguments.retryVersion)
+        createHostLauncher(hostVersionsDirectory, runningHostChannel, log).launch(arguments.afterPid, arguments.retryVersion)
     } catch (e: Throwable) {
         log.write("Stopped by an unexpected error: ${e.stackTraceToString()}")
         showError("JetWhale Debugger could not start: $e", hostVersionsDirectory.logsDirectory, arguments.headless)
         exitProcess(1)
     }
     when (outcome) {
-        is LaunchOutcome.Starting -> runHost(outcome, arguments, hostVersionsDirectory, runningHost, log)
+        is LaunchOutcome.Starting -> runHost(outcome, arguments, hostVersionsDirectory, runningHostChannel, log)
 
         is LaunchOutcome.ActivatedRunningHost -> exitProcess(0)
 
@@ -62,7 +62,7 @@ fun main(args: Array<String>) {
 
 private fun createHostLauncher(
     hostVersionsDirectory: HostVersionsDirectory,
-    runningHost: RunningHostChannel,
+    runningHostChannel: RunningHostChannel,
     log: LauncherLog,
 ): HostLauncher = HostLauncher(
     hostVersionsDirectory = hostVersionsDirectory,
@@ -76,8 +76,8 @@ private fun createHostLauncher(
     ),
     metadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
     lockFiles = LockFiles.Os,
-    runningHost = runningHost,
-    processes = OsProcessTable(exitTimeout = AFTER_PROCESS_TIMEOUT),
+    runningHostChannel = runningHostChannel,
+    processTable = OsProcessTable(exitTimeout = AFTER_PROCESS_TIMEOUT),
     log = log,
 )
 
@@ -90,7 +90,7 @@ private fun runHost(
     starting: LaunchOutcome.Starting,
     arguments: LauncherArguments,
     hostVersionsDirectory: HostVersionsDirectory,
-    runningHost: RunningHostChannel,
+    runningHostChannel: RunningHostChannel,
     log: LauncherLog,
 ) {
     Runtime.getRuntime().addShutdownHook(Thread(starting.startup::shutDownWithoutFailure, "jetwhale-host-shutdown"))
@@ -100,7 +100,7 @@ private fun runHost(
             pollInterval = 200.milliseconds,
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
-        ).watch(starting.startup) { runningHost.isPublishedBy(ProcessHandle.current().pid()) }
+        ).watch(starting.startup) { runningHostChannel.isPublishedBy(ProcessHandle.current().pid()) }
     }
     val inProcessHost = InProcessHost(
         hostVersionsDirectory = hostVersionsDirectory,

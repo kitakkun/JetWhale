@@ -29,7 +29,7 @@ private const val FAILED_STARTS_TO_SET_ASIDE = 2
  * has failed its last two is set aside on the way.
  *
  * @param bundledHost Null when the launcher runs outside a package, which has no bundled host.
- * @param processes This process, which runs the chosen host, and those of earlier launches.
+ * @param processTable This process, which runs the chosen host, and those of earlier launches.
  */
 class HostLauncher(
     private val hostVersionsDirectory: HostVersionsDirectory,
@@ -37,8 +37,8 @@ class HostLauncher(
     private val capabilities: LauncherCapabilities,
     private val metadataReader: HostReleaseMetadataReader,
     private val lockFiles: LockFiles,
-    private val runningHost: RunningHostChannel,
-    private val processes: ProcessTable,
+    private val runningHostChannel: RunningHostChannel,
+    private val processTable: ProcessTable,
     private val log: LauncherLog,
 ) {
     /**
@@ -52,7 +52,7 @@ class HostLauncher(
     fun launch(afterPid: Long?, retryVersion: HostVersion?): LaunchOutcome {
         if (afterPid != null) {
             log.write("Waiting for process $afterPid to end")
-            processes.awaitExit(afterPid)
+            processTable.awaitExit(afterPid)
         }
         val launchLock = LaunchLock(lockFiles, hostVersionsDirectory.launchLockFile)
         var handedOver = false
@@ -75,13 +75,13 @@ class HostLauncher(
     private fun judgeEndedStart() {
         val state = hostVersionsDirectory.readLauncherState()
         val startingHost = state.startingHost ?: return
-        if (processes.isRunning(startingHost.pid, startingHost.processStartMillis)) return
+        if (processTable.isRunning(startingHost.pid, startingHost.processStartMillis)) return
         log.write("${startingHost.version} ended within its startup window without a record of how: a crash or a kill")
         hostVersionsDirectory.writeLauncherState(failedStart(state, startingHost.version))
     }
 
     private fun handToRunningHost(): LaunchOutcome {
-        if (runningHost.requestActivation()) {
+        if (runningHostChannel.requestActivation()) {
             log.write("A host is already running; asked it to bring its window forward")
             return LaunchOutcome.ActivatedRunningHost
         }
@@ -192,7 +192,7 @@ class HostLauncher(
         hostVersionsDirectory.deleteInstanceRecord()
         val state = hostVersionsDirectory.readLauncherState()
         hostVersionsDirectory.writeLauncherState(
-            state.copy(startingHost = StartingHost(start.version, processes.currentPid, processes.currentStartMillis)),
+            state.copy(startingHost = StartingHost(start.version, processTable.currentPid, processTable.currentStartMillis)),
         )
         log.write("Starting ${start.version}${if (start.isBundled) " (bundled)" else ""}")
         return LaunchOutcome.Starting(start, setAsideVersion, HostStartup(start, launchLock))
@@ -284,13 +284,13 @@ class HostLauncher(
      * Keeps the running version and the newest version newer than it, which is set aside or finished
      * downloading during this start, and deletes every other downloaded version.
      */
-    private fun pruneAfterStart(running: HostStart, launcherState: LauncherState): LauncherState {
+    private fun pruneAfterStart(runningStart: HostStart, launcherState: LauncherState): LauncherState {
         val installedVersions = hostVersionsDirectory.installedVersions()
-        val newestNewer = installedVersions.firstOrNull { it.version > running.version }
+        val newestNewer = installedVersions.firstOrNull { it.version > runningStart.version }
         installedVersions
-            .filterNot { it == newestNewer || (!running.isBundled && it.version == running.version) }
+            .filterNot { it == newestNewer || (!runningStart.isBundled && it.version == runningStart.version) }
             .forEach {
-                log.write("Deleting ${it.version}: ${running.version} completed a start")
+                log.write("Deleting ${it.version}: ${runningStart.version} completed a start")
                 delete(it)
             }
         val keptVersions = hostVersionsDirectory.installedVersions().map(InstalledHostVersion::version).toSet() + listOfNotNull(bundledHost?.start?.version)

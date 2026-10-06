@@ -358,7 +358,7 @@ class HostLauncherTest {
         bed.lockFiles.of(42).lock(hostVersionsDirectory.instanceLockFile)
 
         assertEquals(LaunchOutcome.ActivatedRunningHost, bed.launch(pid = 101))
-        assertEquals(1, bed.runningHost.activationRequests)
+        assertEquals(1, bed.runningHostChannel.activationRequests)
         assertNull(state().startingHost)
         assertFalse(bed.lockFiles.isHeld(hostVersionsDirectory.launchLockFile))
     }
@@ -367,7 +367,7 @@ class HostLauncherTest {
     fun `reports a running host that does not answer`() {
         bed.lockFiles.of(42).lock(hostVersionsDirectory.instanceLockFile)
 
-        val outcome = bed.launcher(pid = 101, runningHost = FakeRunningHost(hostVersionsDirectory, answers = false)).launch(afterPid = null, retryVersion = null)
+        val outcome = bed.launcher(pid = 101, runningHostChannel = FakeRunningHostChannel(hostVersionsDirectory, answers = false)).launch(afterPid = null, retryVersion = null)
 
         assertEquals(LaunchOutcome.RunningHostUnreachable, outcome)
         assertNull(state().startingHost)
@@ -448,7 +448,7 @@ class HostLauncherTest {
 
         bed.launch(pid = 101)
 
-        assertFalse(bed.runningHost.isPublishedBy(101))
+        assertFalse(bed.runningHostChannel.isPublishedBy(101))
     }
 
     private fun starting(outcome: LaunchOutcome): LaunchOutcome.Starting = assertIs<LaunchOutcome.Starting>(outcome)

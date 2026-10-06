@@ -104,16 +104,16 @@ class FakeLockFiles {
     private fun semaphoreOf(path: Path): Semaphore = semaphores.computeIfAbsent(path) { Semaphore(1) }
 }
 
-/** Processes by ID: those in [running] run, with the start time [startMillisOf] gives them. */
+/** Processes by ID: those in [runningPids] run, with the start time [startMillisOf] gives them. */
 class FakeProcessTable(
     override val currentPid: Long,
-    private val running: Set<Long>,
+    private val runningPids: Set<Long>,
     private val startMillisOf: (Long) -> Long?,
     private val onAwaitExit: (Long) -> Unit,
 ) : ProcessTable {
     override val currentStartMillis: Long? = startMillisOf(currentPid)
 
-    override fun isRunning(pid: Long, startMillis: Long?): Boolean = pid in running && (startMillis == null || startMillis == startMillisOf(pid))
+    override fun isRunning(pid: Long, startMillis: Long?): Boolean = pid in runningPids && (startMillis == null || startMillis == startMillisOf(pid))
 
     override fun awaitExit(pid: Long) = onAwaitExit(pid)
 }
@@ -122,7 +122,7 @@ class FakeProcessTable(
  * Publication goes through the real `instance.json`, as a host's would; a request to come forward
  * only counts and answers.
  */
-class FakeRunningHost(
+class FakeRunningHostChannel(
     private val hostVersionsDirectory: HostVersionsDirectory,
     private val answers: Boolean,
 ) : RunningHostChannel {
@@ -150,7 +150,7 @@ class LaunchTestBed {
     val hostVersionsDirectory = HostVersionsDirectory(appData.resolve("host"))
     val bundledDirectory: Path = appData.resolve("package/host")
     val lockFiles = FakeLockFiles()
-    val runningHost = FakeRunningHost(hostVersionsDirectory, answers = true)
+    val runningHostChannel = FakeRunningHostChannel(hostVersionsDirectory, answers = true)
     val logLines = CopyOnWriteArrayList<String>()
 
     /** The processes that run, other than those the test has ended. */
@@ -171,7 +171,7 @@ class LaunchTestBed {
         pid: Long,
         lockFiles: LockFiles = this.lockFiles.of(pid),
         metadataReader: HostReleaseMetadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases),
-        runningHost: RunningHostChannel = this.runningHost,
+        runningHostChannel: RunningHostChannel = this.runningHostChannel,
         onAwaitExit: (Long) -> Unit = {},
         bundled: Boolean = true,
     ): HostLauncher {
@@ -182,8 +182,8 @@ class LaunchTestBed {
             capabilities = capableLauncher,
             metadataReader = metadataReader,
             lockFiles = lockFiles,
-            runningHost = runningHost,
-            processes = FakeProcessTable(currentPid = pid, running = runningPids, startMillisOf = { it * 1000 }, onAwaitExit = onAwaitExit),
+            runningHostChannel = runningHostChannel,
+            processTable = FakeProcessTable(currentPid = pid, runningPids = runningPids, startMillisOf = { it * 1000 }, onAwaitExit = onAwaitExit),
             log = { logLines += it },
         )
     }
@@ -194,7 +194,7 @@ class LaunchTestBed {
     /** The host of the process [pid] takes `instance.lock` and publishes its record, as a host coming up does. */
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
         checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
-        runningHost.publish(pid)
+        runningHostChannel.publish(pid)
         starting.startup.hostPublished()
     }
 
@@ -219,6 +219,6 @@ class LaunchTestBed {
     fun watchWindow(starting: LaunchOutcome.Starting, publishedBy: Long) {
         val time = TestTimeSource()
         StartupWindow(length = 30.seconds, pollInterval = 200.milliseconds, timeSource = time, sleep = time::plusAssign)
-            .watch(starting.startup) { runningHost.isPublishedBy(publishedBy) }
+            .watch(starting.startup) { runningHostChannel.isPublishedBy(publishedBy) }
     }
 }
