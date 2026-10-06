@@ -7,14 +7,19 @@ import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.CancelHostUpdateDownloadMutationKey
 import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.CheckForHostUpdateMutationKey
+import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.DownloadHostUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.HostUpdateStateSubscriptionKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
@@ -27,6 +32,7 @@ import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallJobsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
@@ -34,6 +40,7 @@ import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistrySubscriptionKey
 import com.kitakkun.jetwhale.host.model.SslCertificatesSubscriptionKey
 import com.kitakkun.jetwhale.host.model.StartPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
+import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
 import dev.zacsweers.metro.Inject
 
@@ -60,6 +67,12 @@ class SettingsPresenterContext(
     val trustPluginMutationKey: TrustPluginMutationKey,
     val signPluginTrustRegistryMutationKey: SignPluginTrustRegistryMutationKey,
     val followAiOperationMutationKey: FollowAiOperationMutationKey,
+    val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
+    val checkForHostUpdateMutationKey: CheckForHostUpdateMutationKey,
+    val downloadHostUpdateMutationKey: DownloadHostUpdateMutationKey,
+    val cancelHostUpdateDownloadMutationKey: CancelHostUpdateDownloadMutationKey,
+    val restartToUpdateMutationKey: RestartToUpdateMutationKey,
+    val tryHostVersionAgainMutationKey: TryHostVersionAgainMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val generateSslCertificateMutationKey: GenerateSslCertificateMutationKey,
     val activateSslCertificateMutationKey: ActivateSslCertificateMutationKey,
@@ -85,5 +98,6 @@ class SettingsScreenContext(
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val sslCertificatesSubscriptionKey: SslCertificatesSubscriptionKey,
+    val hostUpdateStateSubscriptionKey: HostUpdateStateSubscriptionKey,
     val presenterContext: SettingsPresenterContext,
 ) : ScreenContext

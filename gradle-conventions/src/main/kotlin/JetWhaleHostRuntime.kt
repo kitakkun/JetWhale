@@ -20,6 +20,7 @@ object JetWhaleHostRuntime {
         "java.naming",
         "java.sql",
         "java.instrument",
+        "java.management",
     )
 
     /**

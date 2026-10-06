@@ -29,8 +29,10 @@ import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.instance.HostInstance
 import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
 import com.kitakkun.jetwhale.host.release.HostDirectory
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.LockFiles
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
@@ -73,6 +75,7 @@ fun main(args: Array<String>) = runBlocking {
             serverPortOverrides = cliOptions.serverPortOverrides,
             mcpPermissionOverride = cliOptions.mcpPermissionOverride,
             additionalPluginDirectories = AdditionalPluginDirectories(cliOptions.pluginDirs),
+            hostLaunch = hostLaunchOf(args),
         )
 
     appGraph.logCaptureService.startCapture()
@@ -88,6 +91,20 @@ fun main(args: Array<String>) = runBlocking {
     awaitApplication {
         JetWhaleMainWindow(appGraph = appGraph, windowState = windowState, hostInstance = hostInstance)
     }
+}
+
+/** How the launcher, if it started this host, described it in the launcher contract's properties. */
+private fun hostLaunchOf(args: Array<String>): HostLaunch {
+    val contract = System.getProperty(LauncherContract.CONTRACT_PROPERTY)?.toIntOrNull() ?: return HostLaunch.Standalone
+    val hostDirectory = System.getProperty(LauncherContract.HOST_DIRECTORY_PROPERTY) ?: return HostLaunch.Standalone
+    return HostLaunch.ByLauncher(
+        launcherContract = contract,
+        launcherExecutable = System.getProperty(LauncherContract.EXECUTABLE_PROPERTY),
+        hostDirectoryPath = Path.of(hostDirectory),
+        setAsideVersion = System.getProperty(LauncherContract.SET_ASIDE_VERSION_PROPERTY)?.let(HostVersion::parse),
+        arguments = args.toList(),
+        javaToolOptions = System.getenv("JAVA_TOOL_OPTIONS"),
+    )
 }
 
 /**

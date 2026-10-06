@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.settings.general
 
 import com.kitakkun.jetwhale.host.model.AppLanguage
+import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
+import com.kitakkun.jetwhale.host.release.HostVersion
 import kotlinx.collections.immutable.ImmutableList
 
 data class GeneralSettingsScreenUiState(
@@ -13,4 +15,15 @@ data class GeneralSettingsScreenUiState(
     val adbPath: String,
     val currentVersion: String,
     val followAiOperation: Boolean,
+    val updates: HostUpdatesUiState,
+)
+
+/**
+ * @property setAsideVersion An installed version the launcher set aside after it failed its first
+ * starts, which the user can try again.
+ */
+data class HostUpdatesUiState(
+    val status: HostUpdateStatus,
+    val setAsideVersion: HostVersion?,
+    val checkForUpdatesOnStartup: Boolean,
 )

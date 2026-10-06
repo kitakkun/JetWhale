@@ -38,6 +38,26 @@ Everything about *this install* of the host.
   shortcut to open it in your file manager.
 - **View Application Logs** — opens the built-in [log viewer](/guide/host-window#the-log-viewer).
 
+**Updates**
+
+The installed JetWhale Debugger app updates its host in place: it downloads the newer host version,
+checks it against the SHA-256 its release publishes, and starts it the next time it opens. Nothing
+is downloaded or applied without a click.
+
+- **Check for updates on startup (notify only)** — look for a newer release when the app starts,
+  and show a banner when there is one.
+- **Check for Updates** — look now. A newer release can be **Downloaded**; once it is, **Restart to
+  Update**, or keep working and the next start runs it.
+- A release that needs a newer launcher or Java runtime than your install has says so, and links to
+  its release page: install its package to get it. A release with no build for your operating
+  system and processor says that instead.
+- When a new version fails to start twice in a row, the next start goes back to the previous one
+  and sets the new one aside. This section then names it, with **View Log** for the output of its
+  failed start and **Try Again**.
+
+A host started any other way (`java -jar`, the Gradle tasks) does not update itself; the section
+links to the release page instead. In the IDE plugin the section is hidden.
+
 ## Connection
 
 ### Debug Server
