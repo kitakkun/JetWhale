@@ -110,6 +110,10 @@ platform the agent supports.
   - **Text** for anything that reads as UTF-8.
   - **Hex** for everything, including SQLite databases and other binary formats.
 - **Save.** Downloads the whole file to your machine, however large — not just the previewed part.
+- **Upload and Replace.** **Upload…** on a directory sends a file from your machine into it;
+  **Replace…** on a file overwrites it with one of yours. Replacing a file that is already there
+  asks first. The file is sent in 1 MB chunks and swapped in only once all of it has arrived, so
+  the app never sees it half-written.
 - **Delete.** A file, or a directory with everything in it. The root itself cannot be deleted.
 - **Key-Value.** The stores in a list, and the selected store's entries with their types. Select
   an entry and press **Delete…** to remove it, as with a file.
@@ -130,9 +134,17 @@ With the [MCP server](./mcp-server) running, the same operations are available t
 | `com.kitakkun.jetwhale.storage.removeKeyValue` | Remove one entry from a store |
 | `com.kitakkun.jetwhale.storage.measureDirectory` | The total size, file count and directory count below a directory |
 | `com.kitakkun.jetwhale.storage.hashFile` | The SHA-256 of a whole file |
+| `com.kitakkun.jetwhale.storage.writeFile` | Create or replace a file, from text or Base64 |
 
 Paths are relative to a root, with `/` between segments: `readFile(root = "Data", path =
 "shared_prefs/settings.xml")`.
+
+::: warning Files the app keeps open
+A Preferences DataStore keeps its values in memory, and a SQLite database keeps its connection and
+`-wal` file open. Replacing such a file under a running app may not take effect — the app can keep
+serving what it read, or write it back over yours — and a database replaced beside a stale `-wal`
+can be corrupted. Restart the app after replacing one, or replace it while the app is stopped.
+:::
 
 ## What it refuses to do
 

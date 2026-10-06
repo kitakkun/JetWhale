@@ -500,3 +500,40 @@ public final class com/kitakkun/jetwhale/plugins/storage/protocol/StorageOperati
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;JLjava/lang/String;Z)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;JLjava/lang/String;Z)Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;JLjava/lang/String;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContentBase64 ()Ljava/lang/String;
+	public final fun getOffset ()J
+	public final fun getPath ()Ljava/util/List;
+	public final fun getRootName ()Ljava/lang/String;
+	public final fun getUploadId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun isLast ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/WriteFileChunk$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

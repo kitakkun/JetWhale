@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 
@@ -47,6 +48,25 @@ internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): By
 
 internal actual fun fileSize(path: String): Long = File(path).length()
 
+internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean) {
+    FileOutputStream(path, append).use { it.write(bytes) }
+}
+
+internal actual fun moveReplacing(source: String, target: String) {
+    val targetFile = File(target)
+    if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
+    if (File(source).renameTo(targetFile)) return
+    // File.renameTo fails on Windows when the target exists, so there the target is moved
+    // aside first.
+    val backup = File("$source.replaced")
+    if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
+    if (!File(source).renameTo(targetFile)) {
+        if (!backup.renameTo(targetFile)) throw IOException("'$target' could not be replaced, and its previous content could not be put back; it is at '${backup.path}'")
+        throw IOException("'$target' could not be replaced")
+    }
+    backup.delete()
+}
+
 internal actual fun deleteRecursively(path: String) {
     val file = File(path)
     // exists() follows links, so a dangling link would read as missing.
@@ -55,6 +75,8 @@ internal actual fun deleteRecursively(path: String) {
 }
 
 internal actual fun isSymbolicLink(path: String): Boolean = File(path).isSymbolicLink()
+
+internal actual fun existsAsNonRegularFile(path: String): Boolean = File(path).let { it.exists() && !it.isFile }
 
 internal actual fun resolvesInside(path: String, root: String): Boolean {
     val canonicalRoot = File(root).canonicalFile
@@ -75,5 +97,8 @@ private fun File.isSymbolicLinkIn(canonicalParent: File): Boolean {
     // Not Files.isSymbolicLink: java.nio.file arrives on Android only at API 26, and this code runs
     // down to API 23.
     val inCanonicalParent = File(canonicalParent, name)
-    return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile
+    if (inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile) return true
+    // canonicalFile leaves a link to a missing target unresolved, and exists() follows the link, so
+    // a listed name that does not exist can only be such a link.
+    return !exists() && canonicalParent.list().orEmpty().contains(name)
 }
