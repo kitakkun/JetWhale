@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.host.data.util
 
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
 import java.io.File
 
 /**
@@ -13,7 +16,7 @@ import java.io.File
  * @property fixedDirectories directories searched whether or not `PATH` lists them, because an app
  * started from the macOS Dock does not inherit the shell's `PATH`.
  */
-internal class AdbLocator(
+class AdbLocator(
     environment: Map<String, String>,
     private val userHome: String?,
     private val isWindows: Boolean,
@@ -51,4 +54,10 @@ internal class AdbLocator(
             )
         }
     }
+}
+
+@ContributesTo(AppScope::class)
+interface AdbLocatorProvider {
+    @Provides
+    fun provideAdbLocator(): AdbLocator = AdbLocator.ofCurrentProcess()
 }

@@ -10,6 +10,7 @@ import io.ktor.util.collections.ConcurrentSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +26,9 @@ private const val RECONNECT_DELAY_MS = 2_000L
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
-class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
+class DefaultAdbAutoPortMappingService(
+    private val adbLocator: AdbLocator,
+) : AdbAutoPortMappingService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val mappedDeviceSerials = ConcurrentSet<String>()
 
@@ -34,7 +37,7 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
 
     // Without an adb found, the bare name still lets the launch fail with the OS's own error, which
     // the port mapping reports.
-    private val adbPath: String by lazy { AdbLocator.ofCurrentProcess().let { it.find()?.path ?: it.executableName } }
+    private val adbPath: String by lazy { adbLocator.find()?.path ?: adbLocator.executableName }
 
     override fun startPortMapping(port: Int) {
         if (mappedPorts.add(port)) {
@@ -100,7 +103,10 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
             close()
         }
 
-        awaitClose(deviceTrackingProcess::destroy)
+        awaitClose {
+            deviceTrackingProcess.destroy()
+            deviceTrackingProcess.waitFor()
+        }
     }
 
     private fun mapPort(serial: String, port: Int) {
@@ -122,16 +128,19 @@ class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
         mappedDeviceSerials.remove(serial)
     }
 
-    override fun stopPortMapping(port: Int) {
+    override suspend fun stopPortMapping(port: Int) {
         mappedPorts.remove(port)
+        val noPortsRemainMapped = mappedPorts.isEmpty()
+        if (noPortsRemainMapped) {
+            // Joined before the removal below, so that a device the tracking is mapping right now
+            // is already among the serials it unmaps.
+            deviceTrackingJob?.cancelAndJoin()
+            deviceTrackingJob = null
+        }
         mappedDeviceSerials.forEach { serial ->
             runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         }
-        if (mappedPorts.isEmpty()) {
-            deviceTrackingJob?.cancel()
-            deviceTrackingJob = null
-            mappedDeviceSerials.clear()
-        }
+        if (noPortsRemainMapped) mappedDeviceSerials.clear()
     }
 
     /**
