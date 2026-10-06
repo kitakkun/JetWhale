@@ -1,0 +1,4 @@
+# LF in every checkout, Windows included: the sources, ktlint and the tests' text fixtures all
+# assume it. The batch wrapper is the exception, since cmd.exe misreads labels in an LF batch file.
+* text=auto eol=lf
+*.bat text eol=crlf

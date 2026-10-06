@@ -107,6 +107,53 @@ jobs:
       - name: Run Apple tests
         run: ./gradlew macosArm64Test iosSimulatorArm64Test
 
+  # The host ships a Windows installer, and the JVM agent runs inside desktop apps on Windows, but the
+  # jobs above run on Linux and macOS only. This runs the JVM tests of the host, its plugins and the
+  # agent libraries on Windows, where paths, process launching and line endings differ. Android,
+  # browser and Apple targets stay with the other jobs.
+  windows:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Run JVM tests
+        run: >
+          ./gradlew
+          :jetwhale-host-sdk:test
+          :jetwhale-host-ui:test
+          :jetwhale-host:app:test
+          :jetwhale-host:core:architecture:test
+          :jetwhale-host:core:data:test
+          :jetwhale-host:core:mcp:test
+          :jetwhale-host:core:model:test
+          :jetwhale-host:feature:settings:test
+          :jetwhale-plugins:actions:host:test
+          :jetwhale-plugins:mirror:host:test
+          :jetwhale-plugins:nav3:host:test
+          :jetwhale-plugins:network:host:test
+          :jetwhale-plugins:semantics:host:test
+          :jetwhale-plugins:storage:host:test
+          :tools:qa-agent:test
+          :jetwhale-agent-runtime:jvmTest
+          :jetwhale-agent-sdk:jvmTest
+          :jetwhale-protocol:core:jvmTest
+          :jetwhale-plugins:actions:agent:jvmTest
+          :jetwhale-plugins:actions:agent-compose:jvmTest
+          :jetwhale-plugins:nav3:agent:jvmTest
+          :jetwhale-plugins:network:agent:jvmTest
+          :jetwhale-plugins:network:agent-ktor:jvmTest
+          :jetwhale-plugins:network:agent-okhttp:test
+          :jetwhale-plugins:semantics:agent:jvmTest
+          :jetwhale-plugins:semantics:protocol:jvmTest
+          :jetwhale-plugins:storage:agent:jvmTest
+          :jetwhale-plugins:storage:agent-datastore:jvmTest
+          --continue
+
   # Publishes the JVM and Android variants (and the root module files) to Maven Local, unsigned, and
   # checks them for the lint plugin leaking into what apps and host plugins consume: a Kotrail
   # dependency in a POM or module file, or Kotrail annotations in an Android artifact that lacks the
