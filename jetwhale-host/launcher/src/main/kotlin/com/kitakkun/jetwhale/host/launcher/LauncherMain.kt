@@ -52,7 +52,7 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
     when (outcome) {
-        is LaunchOutcome.Starting -> runHost(outcome, arguments, hostVersionsDirectory, runningHostChannel, log)
+        is LaunchOutcome.Starting -> runHost(outcome.hostStart, arguments, hostVersionsDirectory, runningHostChannel, log)
 
         is LaunchOutcome.BroughtRunningHostToFront -> exitProcess(0)
 
@@ -71,7 +71,7 @@ private fun createHostLauncher(
     log: LauncherLog,
 ): HostLauncher = HostLauncher(
     hostVersionsDirectory = hostVersionsDirectory,
-    bundledHost = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHost.read(Path.of(it).resolve("host")) },
+    bundledHostVersion = System.getProperty(RESOURCES_DIR_PROPERTY)?.let { BundledHostDirectory(Path.of(it).resolve("host")).readHostVersion() },
     capabilities = LauncherCapabilities(
         contract = LauncherContract.VERSION,
         javaFeatureVersion = Runtime.version().feature(),
@@ -93,13 +93,13 @@ private fun createHostLauncher(
  * leaves the JVM to end once the host's threads have.
  */
 private fun runHost(
-    starting: LaunchOutcome.Starting,
+    hostStart: HostLauncher.HostStart,
     arguments: LauncherArguments,
     hostVersionsDirectory: HostVersionsDirectory,
     runningHostChannel: RunningHostChannel,
     log: LauncherLog,
 ) {
-    Runtime.getRuntime().addShutdownHook(Thread(starting.startOutcomeRecorder::recordStartEndedWithoutFailure, "jetwhale-host-shutdown"))
+    Runtime.getRuntime().addShutdownHook(Thread(hostStart::recordEndedWithoutFailure, "jetwhale-host-shutdown"))
     thread(isDaemon = true, name = "jetwhale-host-instance-json-watcher") {
         InstanceJsonPublicationWatcher(
             startupTimeWindow = STARTUP_TIME_WINDOW,
@@ -107,10 +107,10 @@ private fun runHost(
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
             isInstanceJsonPublished = { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) },
-        ).releaseLaunchLockOncePublished(starting.startOutcomeRecorder)
+        ).releaseLaunchLockOncePublished(hostStart)
     }
     thread(isDaemon = true, name = "jetwhale-host-startup-time-window") {
-        starting.startOutcomeRecorder.recordCompletedStartAfter(STARTUP_TIME_WINDOW)
+        hostStart.recordCompletedAfter(STARTUP_TIME_WINDOW)
     }
     val inProcessHost = InProcessHost(
         hostVersionsDirectory = hostVersionsDirectory,
@@ -119,11 +119,11 @@ private fun runHost(
         writesOutputToLog = !arguments.headless,
     )
     try {
-        inProcessHost.run(starting.chosenHostVersion, starting.setAsideVersion, arguments.hostArguments)
+        inProcessHost.run(hostStart.chosenHostVersion, hostStart.setAsideVersion, arguments.hostArguments)
     } catch (e: Throwable) {
-        System.err.println("JetWhale host ${starting.chosenHostVersion.version} stopped: ${e.stackTraceToString()}")
-        log.write("${starting.chosenHostVersion.version} stopped: $e")
-        starting.startOutcomeRecorder.recordFailedStart()
+        System.err.println("JetWhale host ${hostStart.chosenHostVersion.version} stopped: ${e.stackTraceToString()}")
+        log.write("${hostStart.chosenHostVersion.version} stopped: $e")
+        hostStart.recordFailed()
         exitProcess(1)
     }
 }

@@ -41,7 +41,8 @@ JetWhale Debugger (.app / .exe / deb)
    - has a jar matching its pinned size and SHA-256.
 
    Broken or mismatched versions are deleted. Versions this launcher can't run are skipped.
-7. **Record the start** (version, pid, process start time). `launch.lock` stays held.
+7. **Record the start in progress** (`startInProgress`: version, pid, process start time).
+   `launch.lock` stays held.
 8. **Run the host:**
    - set the metadata's `-D` arguments and the launcher contract as system properties;
    - send output to `logs/host-<version>.log` (not with `--headless`);
@@ -59,7 +60,7 @@ recorded, under `launch.lock`:
 |---|---|---|
 | Still running after 30 s | completed | Clears its failures. Deletes every downloaded version except this one and the newest newer one |
 | The host's `main` throws | failed | Counts a failure, exits 1 |
-| JVM shuts down without a throw (a quit, a restart) | neither | Clears the start record |
+| JVM shuts down without a throw (a quit, a restart) | neither | Clears `startInProgress` |
 | Crash, hs_err or kill: nothing gets recorded | failed | Counted at the next launch (step 3) |
 
 A version that has completed a start before is never counted as failing again. Its own crash

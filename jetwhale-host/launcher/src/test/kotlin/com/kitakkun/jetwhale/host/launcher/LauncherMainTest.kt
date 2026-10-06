@@ -28,7 +28,7 @@ class LauncherMainTest {
     init {
         val bundledDirectory = Files.createDirectories(packageResources.resolve("host"))
         val stubClass = "${StubHost::class.java.name.replace('.', '/')}.class"
-        JarOutputStream(Files.newOutputStream(bundledDirectory.resolve(BundledHost.JAR_FILE_NAME))).use { jar ->
+        JarOutputStream(Files.newOutputStream(bundledDirectory.resolve(BundledHostDirectory.JAR_FILE_NAME))).use { jar ->
             jar.putNextEntry(JarEntry(stubClass))
             jar.write(checkNotNull(StubHost::class.java.classLoader.getResourceAsStream(stubClass)).use { it.readBytes() })
             jar.closeEntry()
@@ -76,7 +76,7 @@ class LauncherMainTest {
         assertEquals(1, runLauncher("throw"))
 
         assertEquals(mapOf(bundledVersion to 1), hostVersionsDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostVersionsDirectory.readLauncherState().startingHost)
+        assertNull(hostVersionsDirectory.readLauncherState().startInProgress)
         assertContains(Files.readString(hostVersionsDirectory.hostLogFile(bundledVersion)), "stub host failed")
         assertContains(Files.readString(appData.resolve("logs/launcher.log")), "IllegalStateException: stub host failed")
     }
@@ -91,19 +91,19 @@ class LauncherMainTest {
     @Test
     fun `counts a start whose JVM halted as failed at the next launch`() {
         assertEquals(134, runLauncher("halt"))
-        assertEquals(bundledVersion, assertNotNull(hostVersionsDirectory.readLauncherState().startingHost).version)
+        assertEquals(bundledVersion, assertNotNull(hostVersionsDirectory.readLauncherState().startInProgress).version)
 
         assertEquals(0, runLauncher("return"))
 
         assertEquals(mapOf(bundledVersion to 1), hostVersionsDirectory.readLauncherState().failedStartCounts)
-        assertNull(hostVersionsDirectory.readLauncherState().startingHost)
+        assertNull(hostVersionsDirectory.readLauncherState().startInProgress)
     }
 
     @Test
     fun `skips a downloaded version that needs a runtime module its host could not see`() {
         val version = hostVersion("1.0.0-alpha14")
         val directory = Files.createDirectories(hostVersionsDirectory.root.resolve(version.name))
-        val jar = Files.copy(packageResources.resolve("host/${BundledHost.JAR_FILE_NAME}"), directory.resolve(hostJarName(version, platformKey)))
+        val jar = Files.copy(packageResources.resolve("host/${BundledHostDirectory.JAR_FILE_NAME}"), directory.resolve(hostJarName(version, platformKey)))
         val metadata = hostMetadata(version.name, Files.readAllBytes(jar))
         Files.writeString(
             directory.resolve("release.json"),

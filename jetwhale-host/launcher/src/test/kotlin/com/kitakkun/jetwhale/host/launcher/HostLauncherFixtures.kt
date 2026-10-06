@@ -156,7 +156,7 @@ class LaunchTestBed {
 
     init {
         writeHostVersion(bundledDirectory, "1.0.0-alpha13") { it }
-        Files.move(bundledDirectory.resolve(hostJarName(hostVersion("1.0.0-alpha13"), PLATFORM)), bundledDirectory.resolve(BundledHost.JAR_FILE_NAME))
+        Files.move(bundledDirectory.resolve(hostJarName(hostVersion("1.0.0-alpha13"), PLATFORM)), bundledDirectory.resolve(BundledHostDirectory.JAR_FILE_NAME))
     }
 
     fun download(versionName: String) {
@@ -177,7 +177,7 @@ class LaunchTestBed {
         runningPids += pid
         return HostLauncher(
             hostVersionsDirectory = hostVersionsDirectory,
-            bundledHost = if (bundled) BundledHost.read(bundledDirectory) else null,
+            bundledHostVersion = if (bundled) BundledHostDirectory(bundledDirectory).readHostVersion() else null,
             capabilities = capableLauncher,
             metadataReader = metadataReader,
             lockFiles = lockFiles,
@@ -198,7 +198,7 @@ class LaunchTestBed {
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
         checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
         runningHostChannel.publishInstanceJson(pid)
-        starting.startOutcomeRecorder.releaseLaunchLock()
+        starting.hostStart.releaseLaunchLock()
     }
 
     /** A process that is not a launch runs with the ID [pid]. */
@@ -214,7 +214,7 @@ class LaunchTestBed {
 
     /** The process [pid] ends after its shutdown hook has run. */
     fun shutDown(pid: Long, starting: LaunchOutcome.Starting) {
-        starting.startOutcomeRecorder.recordStartEndedWithoutFailure()
+        starting.hostStart.recordEndedWithoutFailure()
         crash(pid)
     }
 }

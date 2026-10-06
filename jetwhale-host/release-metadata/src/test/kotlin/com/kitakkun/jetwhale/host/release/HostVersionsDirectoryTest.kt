@@ -46,7 +46,7 @@ class HostVersionsDirectoryTest {
             completedStartVersions = setOf(checkNotNull(HostVersion.parse("1.0.0-alpha14"))),
             setAsideVersions = setOf(checkNotNull(HostVersion.parse("1.0.0-alpha15"))),
             failedStartCounts = mapOf(checkNotNull(HostVersion.parse("1.0.0-alpha16")) to 1),
-            startingHost = StartingHost(checkNotNull(HostVersion.parse("1.0.0-alpha16")), pid = 4242, processStartMillis = 1_791_000_000_000),
+            startInProgress = StartInProgress(checkNotNull(HostVersion.parse("1.0.0-alpha16")), pid = 4242, processStartMillis = 1_791_000_000_000),
         )
 
         hostVersionsDirectory.writeLauncherState(state)

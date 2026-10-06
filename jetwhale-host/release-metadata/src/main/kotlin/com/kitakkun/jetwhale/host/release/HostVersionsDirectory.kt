@@ -168,7 +168,7 @@ fun hostJarName(version: HostVersion, platformKey: String): String = "jetwhale-h
  * again. An entry for a version whose directory is gone means nothing.
  * @property failedStartCounts How many starts in a row each version that has not completed one has
  * failed.
- * @property startingHost The host whose start has not been judged yet: it is in its startup time
+ * @property startInProgress The host start that has not been judged yet: it is in its startup time
  * window, or its process ended without the judgment being recorded.
  */
 @Serializable
@@ -176,14 +176,14 @@ data class LauncherState(
     val completedStartVersions: Set<HostVersion>,
     val setAsideVersions: Set<HostVersion>,
     val failedStartCounts: Map<HostVersion, Int>,
-    val startingHost: StartingHost?,
+    val startInProgress: StartInProgress?,
 ) {
     companion object {
         val EMPTY = LauncherState(
             completedStartVersions = emptySet(),
             setAsideVersions = emptySet(),
             failedStartCounts = emptyMap(),
-            startingHost = null,
+            startInProgress = null,
         )
     }
 }
@@ -195,7 +195,7 @@ data class LauncherState(
  * tells it from a later process that got the same ID; null when the OS did not say.
  */
 @Serializable
-data class StartingHost(
+data class StartInProgress(
     val version: HostVersion,
     val pid: Long,
     val processStartMillis: Long?,
