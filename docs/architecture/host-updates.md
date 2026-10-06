@@ -237,7 +237,7 @@ deleted or set aside, and its own launcher always runs it.
   1.0.0-alpha15/         jetwhale-host-1.0.0-alpha15-macos-arm64.jar, release.json, release.json.sig
   1.0.0-alpha14/         …
   staging/               downloads in progress; the launcher never reads it
-  launcher-state.json    completed and set-aside versions, failed-start counts, the start in progress
+  launcher-state.json    completed and set-aside versions, failed-start counts, the started host process
   launch.lock, instance.lock, instance.json
 ```
 
@@ -314,7 +314,7 @@ Before it calls the host, the launcher sets these system properties:
 
 ### Startup time window and rollback
 
-Before it calls the host, the launcher writes a `startInProgress` mark into `launcher-state.json`,
+Before it calls the host, the launcher writes a `startedHostProcess` mark into `launcher-state.json`,
 under `launch.lock`: the version, this process's ID, and the process's start time, which tells the
 process from a later one that reuses its ID. The *startup time window* runs 30 seconds from just
 before the host's `main` is called, and the first of these ends it, recorded once under
