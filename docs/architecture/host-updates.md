@@ -219,7 +219,7 @@ once, in a module shared by the host, the launcher and the release job.
 ### Choosing a version
 
 On each start, the launcher first settles a start an earlier launch left unjudged (see *Startup
-window and rollback*). It then goes through the bundled version and the directories under
+time window and rollback*). It then goes through the bundled version and the directories under
 `~/.jetwhale/host/`, newest first:
 
 1. It skips a version that is set aside, or that it sets aside now after two failed starts in a
@@ -312,26 +312,29 @@ Before it calls the host, the launcher sets these system properties:
   terminal uses `java -jar` on the host jar, or `runJetWhale`, as it does today.
 - The launcher writes its own decisions to `logs/launcher.log`.
 
-### Startup window and rollback
+### Startup time window and rollback
 
 Before it calls the host, the launcher writes a `startingHost` record into `launcher-state.json`,
 under `launch.lock`: the version, this process's ID, and the process's start time, which tells the
-process from a later one that reuses its ID. The window runs 30 seconds from just before the host's
-`main` is called, and the first of these ends it, recorded once under `launch.lock`:
-- **Completed.** A timer finds the JVM still running at the end of the window. The version is
-  recorded as having completed a start, its failed-start count is dropped, the record is cleared,
-  and pruning runs.
+process from a later one that reuses its ID. The *startup time window* runs 30 seconds from just
+before the host's `main` is called, and the first of these ends it, recorded once under
+`launch.lock`:
+- **Completed.** A timer finds the JVM still running at the end of the startup time window. The
+  version is recorded as having completed a start, its failed-start count is dropped, the record
+  is cleared, and pruning runs.
 - **Failed.** The host's `main` throws. The launcher writes the stack trace to the host's log and
   the failure to `launcher.log`, counts a failed start, clears the record, and exits with status 1.
-  A throw after the window counts nothing, and the launcher still exits with status 1.
-- **Neither.** The JVM shuts down inside the window and `main` did not throw: the user quit, the
-  host ended the JVM with any exit status, the user restarted to update or chose *Try again*, or
-  `main` returned and the host's threads ended. A shutdown hook clears the record.
+  A throw after the startup time window counts nothing, and the launcher still exits with
+  status 1.
+- **Neither.** The JVM shuts down inside the startup time window and `main` did not throw: the
+  user quit, the host ended the JVM with any exit status, the user restarted to update or chose
+  *Try again*, or `main` returned and the host's threads ended. A shutdown hook clears the record.
 
 A crash, a JVM fatal error or a kill leaves the record behind; a SIGTERM runs the shutdown hook and
 is neither. The next launch, before anything else, finds that the record's process no longer runs,
 or runs with another start time, and counts a failed start of that version. A record whose process
-still runs belongs to a host in its window, and the instance check hands the launch to it.
+still runs belongs to a host in its startup time window, and the instance check hands the launch
+to it.
 
 The launcher stays the app until the host ends. With `--headless`, the JVM's exit status is the
 host's own.
@@ -350,10 +353,10 @@ host's own.
   Once the host has run on this machine, a plugin is the likelier cause.
 - **#293's crash recovery.** Its run markers should record the host version. Otherwise the host the
   launcher falls back to counts the failed version's crashes as its own and starts in safe mode.
-  Its 30-second grace should count from when the launcher calls the host's `main`, when this window
-  starts, or accept that the process starts earlier by the launcher's own work: normally well under
-  a second, longer after `--after` waited for the old host. It finds hs_err files where the JVM
-  puts them by default (see *Starting the host*).
+  Its 30-second grace should count from when the launcher calls the host's `main`, when the startup
+  time window starts, or accept that the process starts earlier by the launcher's own work:
+  normally well under a second, longer after `--after` waited for the old host. It finds hs_err
+  files where the JVM puts them by default (see *Starting the host*).
 - **Nothing left.** If no candidate remains, the launcher shows its only UI: a dialog with the log
   location and the release page.
 - **Unexpected errors.** An error the launcher did not expect, such as a file under `host/` that
@@ -393,9 +396,9 @@ process ends, so a crash leaves none behind.
   - Elsewhere it starts `jetwhale.launcher.executable` directly.
 
   The new launcher waits for that process to end before it takes `launch.lock`, because a host that
-  restarts inside its window takes `launch.lock` on its way out, to judge its start. It then
-  chooses as usual, and the new version is the newest one. A launch that slips in between finds the
-  newest version or the host it started, so one host still results.
+  restarts inside its startup time window takes `launch.lock` on its way out, to judge its start.
+  It then chooses as usual, and the new version is the newest one. A launch that slips in between
+  finds the newest version or the host it started, so one host still results.
 - **No restart.** If the user does not restart, the next normal start runs the new version.
 
 ### What the launcher refuses
@@ -645,8 +648,8 @@ every user who accepts the update.
     so it needs no Kotlin. They check that the host's class loader sees neither Kotlin nor the
     launcher, that the contract's properties and the metadata's `-D…` arguments are set and
     `skiko.library.path` is cleared, that output goes to the host's log, that a throw counts a
-    failed start and exits with status 1, that `System.exit` inside the window is neither, and that
-    the next launch counts a `Runtime.halt` as a failed start.
+    failed start and exits with status 1, that `System.exit` inside the startup time window is
+    neither, and that the next launch counts a `Runtime.halt` as a failed start.
 - **Host update service.** Ktor's `MockEngine`, as `UpdateCheckServiceTest` uses it today.
   - Release selection from recorded API responses: drafts, snapshots, missing metadata, a missing
     platform, and installed or set-aside versions.
@@ -681,7 +684,8 @@ every user who accepts the update.
   - A version that halted the JVM and then threw from `main` was counted twice, the halt by the
     next launch. The third launch set it aside and ran the previous version with the set-aside
     banner.
-  - Quitting inside the window counted nothing, also for a version that had never completed a start.
+  - Quitting inside the startup time window counted nothing, also for a version that had never
+    completed a start.
   - A jar changed after install was deleted at start, and the bundled version ran.
 
 ## Plan
