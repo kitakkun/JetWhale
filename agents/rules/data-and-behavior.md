@@ -5,10 +5,14 @@ behavior holds what it works with, and does the work through its own members.
 
 ## Data
 
-- **Data is a `data class` or a `@Serializable` class that only holds values.** It has no I/O and
-  no dependencies, and it doesn't call out to anything.
-- **Its functions derive only from its own values:** a computed property, a predicate such as
-  `NodeBounds.isEmpty`, or a factory on its companion (see `function-placement.md`, rule 5).
+- **Data is a `data class` or a `@Serializable` class that holds values.** It has no I/O and no
+  dependencies, and it doesn't call out to anything.
+- **Data may compute.** Its functions are pure: a computed property, a predicate such as
+  `NodeBounds.isEmpty`, a comparison, a factory on its companion (see `function-placement.md`,
+  rule 5), or a decision over other plain values such as `metadata.refusalOn(capabilities)`.
+- **The line is effects.** A function that reads or writes files, uses the network, the clock,
+  randomness or shared state, or takes a dependency, is behavior. It doesn't go on data, however
+  small it is. `platformRelease.check(jar)` reads and hashes a 120 MB jar, so it is behavior.
 - **A type that mirrors a file or a message is data.** `InstanceJson` holds the contents of
   `instance.json`: port, pid and token. Reading, writing and using them happen elsewhere.
 
