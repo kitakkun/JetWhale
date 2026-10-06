@@ -79,16 +79,6 @@ tasks.register<JavaExec>("writeHostReleaseMetadata") {
     )
 }
 
-val currentPlatformKey: Provider<String> = providers.systemProperty("os.name")
-    .zip(providers.systemProperty("os.arch")) { osName, osArch ->
-        val os = when {
-            osName.startsWith("Mac") -> "macos"
-            osName.startsWith("Windows") -> "windows"
-            else -> "linux"
-        }
-        val arch = if (osArch == "aarch64" || osArch == "arm64") "arm64" else "x64"
-        "$os-$arch"
-    }
 val uberJar: FileCollection = files(tasks.matching { it.name == "packageUberJarForCurrentOS" })
 
 val writeBundledHostMetadata = tasks.register<JavaExec>("writeBundledHostMetadata") {
@@ -98,7 +88,6 @@ val writeBundledHostMetadata = tasks.register<JavaExec>("writeBundledHostMetadat
     val metadataFile = layout.buildDirectory.file("bundled-host-metadata/release.json")
     val hostVersion = libs.findVersion("jetwhale").get().requiredVersion
     val hostMainClass = compose.desktop.application.mainClass
-    val platformKey = currentPlatformKey
     val hostJar = uberJar
     inputs.files(hostJar)
     outputs.file(metadataFile)
@@ -121,12 +110,14 @@ val writeBundledHostMetadata = tasks.register<JavaExec>("writeBundledHostMetadat
                     add("--jvm-arg")
                     add(it)
                 }
-                JetWhaleHostRuntime.platformJvmArgs[platformKey.get()].orEmpty().forEach {
-                    add("--platform-jvm-arg")
-                    add("${platformKey.get()}=$it")
+                JetWhaleHostRuntime.platformJvmArgs.forEach { (platform, arguments) ->
+                    arguments.forEach {
+                        add("--platform-jvm-arg")
+                        add("$platform=$it")
+                    }
                 }
-                add("--jar")
-                add("${platformKey.get()}=${hostJar.singleFile.path}")
+                add("--current-platform-jar")
+                add(hostJar.singleFile.path)
             }
         },
     )
@@ -136,10 +127,7 @@ val bundledHostDirectory = layout.buildDirectory.dir("bundled-host")
 val bundledHost = tasks.register<Sync>("bundledHost") {
     description = "Collects the host jar and release metadata that the launcher's package carries."
 
-    val hostVersion = libs.findVersion("jetwhale").get().requiredVersion
-    val hostJarName = currentPlatformKey.map { "jetwhale-host-$hostVersion-$it.jar" }
-    val hostJar = uberJar
-    from(hostJar) { rename { hostJarName.get() } }
+    from(uberJar)
     from(writeBundledHostMetadata)
     into(bundledHostDirectory)
 }
