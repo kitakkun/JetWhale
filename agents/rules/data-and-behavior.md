@@ -15,6 +15,9 @@ behavior holds what it works with, and does the work through its own members.
 - **The line is effects.** A function that reads or writes files, uses the network, the clock,
   randomness or shared state, or takes a dependency, is behavior. It doesn't go on data, however
   small it is. `platformRelease.check(jar)` reads and hashes a 120 MB jar, so it is behavior.
+- **A process-wide fact is a value, not an effect.** Reading something fixed for the life of the
+  process, once, is a value: the OS from `os.name`, or a default directory derived from it
+  (`HostOs.current`). Probing the file system for what is there is still I/O.
 - **A type that mirrors a file or a message is data.** `InstanceJson` holds the contents of
   `instance.json`: port, pid and token. Reading, writing and using them happen elsewhere.
 
@@ -36,6 +39,9 @@ behavior holds what it works with, and does the work through its own members.
   `Domain.from(dto)` on the target's companion: the type would then depend on the other layer.
 - **A conversion that needs a dependency is behavior,** such as resources, formatting settings or a
   clock. It goes in a class that holds them.
+- **UI formatting through the framework's ambient resources stays at its call site.** Compose's
+  `stringResource` and the locale have no object to hold, so a class there would be ceremony. Pass a
+  time zone or clock in only where a test needs to pin it.
 
 ## Policies
 
@@ -45,6 +51,12 @@ behavior holds what it works with, and does the work through its own members.
   `metadata.refusalOn(capabilities)`. The rule then has one home to test and to change.
 - **Test:** if it changes when the data's shape changes, it stays with the data. If it changes for
   a rule, a setting or another layer, it goes outside.
+- **An invariant the type documents stays with the type.** That holds even when the number behind
+  it is a product choice. A factory that enforces it, such as `McpCallArgument.truncating` for the
+  documented length cap, is part of what the type is.
+- **A type whose purpose is a decision answers it itself.** `McpPermissions` exists to record what
+  may run, so `permissions.allows(tool)` stays. `refusalOn` moves out of `HostReleaseMetadata`
+  because launcher compatibility is not what release metadata is for.
 
 ## Not allowed
 
@@ -53,3 +65,7 @@ behavior holds what it works with, and does the work through its own members.
   values. Its calls also read as if the data did the work.
 - **Static-style functions that take the data and the dependencies as parameters,** in a companion,
   a top-level function or an `object`. Make them members of an object that holds the dependencies.
+  Two kinds are exempt, because their form is the platform's idiom:
+  - composables, which take their inputs as parameters by convention;
+  - `expect`/`actual` platform primitives such as `readFileBytes(path)`, where Kotlin Multiplatform
+    declares a platform function as a top-level `expect`.
