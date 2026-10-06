@@ -79,7 +79,7 @@ class PluginJarDirectoryPollerTest {
 
     @Test
     fun `a jar replaced by a rename that keeps its size and time is reported`() {
-        assumeFalse("Windows reports no file key, so there such a replacement looks unchanged", HostOs.current == HostOs.WINDOWS)
+        assumeFalse("Windows reports no file key, so there a replacement keeping size and time looks unchanged", HostOs.current == HostOs.WINDOWS)
         val installed = jar("installed.jar", byteArrayOf(1, 2), modifiedAt = 1_000)
         val poller = PluginJarDirectoryPoller(directory)
         val replacement = File(directory, "replacement.tmp").apply {
