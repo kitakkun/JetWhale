@@ -4,7 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class OfficialPluginTest {
+class OfficialPluginReleaseTest {
     private val plugin = OfficialPlugin(
         pluginId = "com.example.plugin",
         displayName = "Example",
@@ -32,7 +32,7 @@ class OfficialPluginTest {
                     repositoryUrl = MavenCoordinates.MAVEN_SNAPSHOTS_URL,
                 ),
             ),
-            plugin.installCandidatesFor(HostVersionInfo("1.0.0")),
+            OfficialPluginRelease(HostVersionInfo("1.0.0")).installCandidatesOf(plugin),
         )
     }
 
@@ -47,7 +47,7 @@ class OfficialPluginTest {
                     repositoryUrl = MavenCoordinates.MAVEN_SNAPSHOTS_URL,
                 ),
             ),
-            plugin.installCandidatesFor(HostVersionInfo("1.0.0-SNAPSHOT")),
+            OfficialPluginRelease(HostVersionInfo("1.0.0-SNAPSHOT")).installCandidatesOf(plugin),
         )
     }
 
@@ -59,11 +59,16 @@ class OfficialPluginTest {
 
     @Test
     fun `the agent coordinates follow the host's version`() {
-        assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", plugin.agentCoordinates(HostVersionInfo("1.2.0-SNAPSHOT")))
+        assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", OfficialPluginRelease(HostVersionInfo("1.2.0-SNAPSHOT")).agentCoordinatesOf(plugin))
+    }
+
+    @Test
+    fun `the agent runtime follows the host's version`() {
+        assertEquals("com.kitakkun.jetwhale:jetwhale-agent-runtime:1.2.0", OfficialPluginRelease(HostVersionInfo("1.2.0")).agentRuntimeCoordinates)
     }
 
     @Test
     fun `a host-only plugin has no agent coordinates`() {
-        assertNull(plugin.copy(agentArtifactId = null).agentCoordinates(HostVersionInfo("1.2.0")))
+        assertNull(OfficialPluginRelease(HostVersionInfo("1.2.0")).agentCoordinatesOf(plugin.copy(agentArtifactId = null)))
     }
 }
