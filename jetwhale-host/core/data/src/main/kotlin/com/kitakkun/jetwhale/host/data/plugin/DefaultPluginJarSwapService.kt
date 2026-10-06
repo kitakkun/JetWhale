@@ -120,7 +120,10 @@ class DefaultPluginJarSwapService(
             pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                 pluginId = pluginId,
                 sessionIds = activeSessionIds,
-            )
+            ).forEach { sessionId ->
+                // A reload replaces only the host's instances; the agents keep the plugin active.
+                pluginInstanceService.startPluginInstancePreparation(pluginId = pluginId, sessionId = sessionId)
+            }
         }
     }
 }
