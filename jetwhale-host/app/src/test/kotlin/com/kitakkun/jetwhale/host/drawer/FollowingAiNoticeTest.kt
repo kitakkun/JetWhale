@@ -75,6 +75,27 @@ class FollowingAiNoticeTest {
         assertEquals(listOf("Following the AI: Network", "Demo app connected", "Following the AI: Mirror"), shownMessages)
     }
 
+    @Test
+    fun `the same plugin followed again behind a waiting message still shows for two seconds`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        setSnackbarHostContent()
+        followingAiNotice.show("Network")
+        awaitShown("Following the AI: Network")
+        scope.launch { snackbarHostState.showSnackbar("Demo app connected", duration = JwSnackbarDuration.Short) }
+        mainClock.advanceTimeByFrame()
+
+        followingAiNotice.show("Network")
+        awaitShown("Demo app connected")
+        mainClock.advanceTimeBy(JwSnackbarDefaults.SHORT_DURATION_MILLIS)
+        awaitShown("Following the AI: Network")
+        mainClock.advanceTimeBy(FOLLOWING_AI_NOTICE_DURATION_MILLIS - 500)
+        onNodeWithText("Following the AI: Network").assertExists()
+
+        mainClock.advanceTimeBy(1_500)
+        onNodeWithText("Following the AI: Network").assertDoesNotExist()
+        assertEquals(listOf("Following the AI: Network", "Demo app connected", "Following the AI: Network"), shownMessages)
+    }
+
     private fun ComposeUiTest.setSnackbarHostContent() {
         setContent {
             scope = rememberCoroutineScope()
