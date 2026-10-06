@@ -29,13 +29,13 @@ class InProcessHost(
     private val writesOutputToLog: Boolean,
 ) {
     /**
-     * Sets the system properties [start]'s metadata and the launcher contract give the host, then calls
-     * its main with [arguments]. Returns when that main returns, and throws what it throws.
+     * Sets the system properties [chosenHostVersion]'s metadata and the launcher contract give the host,
+     * then calls its main with [arguments]. Returns when that main returns, and throws what it throws.
      *
      * @param setAsideVersion A version this launch set aside, which the host tells the user about.
      */
-    fun run(start: HostStart, setAsideVersion: HostVersion?, arguments: List<String>) {
-        start.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
+    fun run(chosenHostVersion: ChosenHostVersion, setAsideVersion: HostVersion?, arguments: List<String>) {
+        chosenHostVersion.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
         System.setProperty(LauncherContract.CONTRACT_PROPERTY, LauncherContract.VERSION.toString())
         launcherExecutable?.let { System.setProperty(LauncherContract.EXECUTABLE_PROPERTY, it) }
         System.setProperty(LauncherContract.HOST_DIRECTORY_PROPERTY, hostVersionsDirectory.root.toString())
@@ -50,14 +50,14 @@ class InProcessHost(
 
         if (writesOutputToLog) {
             Files.createDirectories(hostVersionsDirectory.logsDirectory)
-            val output = PrintStream(FileOutputStream(hostVersionsDirectory.hostLogFile(start.version).toFile()), true)
+            val output = PrintStream(FileOutputStream(hostVersionsDirectory.hostLogFile(chosenHostVersion.version).toFile()), true)
             System.setOut(output)
             System.setErr(output)
         }
 
-        val classLoader = URLClassLoader("jetwhale-host-${start.version.name}", arrayOf(start.jar.toUri().toURL()), ClassLoader.getPlatformClassLoader())
+        val classLoader = URLClassLoader("jetwhale-host-${chosenHostVersion.version.name}", arrayOf(chosenHostVersion.jar.toUri().toURL()), ClassLoader.getPlatformClassLoader())
         Thread.currentThread().contextClassLoader = classLoader
-        val main = classLoader.loadClass(start.metadata.mainClass).getMethod("main", Array<String>::class.java)
+        val main = classLoader.loadClass(chosenHostVersion.metadata.mainClass).getMethod("main", Array<String>::class.java)
         try {
             main.invoke(null, arguments.toTypedArray())
         } catch (e: InvocationTargetException) {

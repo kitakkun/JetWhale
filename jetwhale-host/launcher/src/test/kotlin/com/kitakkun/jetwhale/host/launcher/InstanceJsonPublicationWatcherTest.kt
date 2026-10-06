@@ -20,7 +20,7 @@ class InstanceJsonPublicationWatcherTest {
     fun `lets go of launch lock once the host has published, and stops polling`() {
         val starting = assertIs<LaunchOutcome.Starting>(bed.launch(pid = 101))
 
-        watcher { launchLockHeldAtPolls.size >= 3 }.reportPublicationTo(starting.startup)
+        watcher { launchLockHeldAtPolls.size >= 3 }.releaseLaunchLockOncePublished(starting.startOutcomeRecorder)
 
         assertEquals(listOf(true, true, true), launchLockHeldAtPolls)
         assertFalse(bed.lockFiles.isHeld(bed.hostVersionsDirectory.launchLockFile))
@@ -32,7 +32,7 @@ class InstanceJsonPublicationWatcherTest {
         time += 1.hours
         val starting = assertIs<LaunchOutcome.Starting>(bed.launch(pid = 101))
 
-        watcher { false }.reportPublicationTo(starting.startup)
+        watcher { false }.releaseLaunchLockOncePublished(starting.startOutcomeRecorder)
 
         assertEquals(150, launchLockHeldAtPolls.size)
         assertTrue(launchLockHeldAtPolls.all { it })

@@ -11,7 +11,7 @@ import java.nio.file.Path
  * The host version installed with the package. The package vouches for it, so it is not verified
  * again; it is also the floor, never deleted and never set aside.
  */
-class BundledHost(val start: HostStart) {
+class BundledHost(val chosenHostVersion: ChosenHostVersion) {
     companion object {
         /**
          * The bundled jar's name. It does not end in `.jar`, because jpackage puts every such file
@@ -32,7 +32,7 @@ class BundledHost(val start: HostStart) {
             val metadata: HostReleaseMetadata = (HostReleaseMetadata.decode(text) as? HostReleaseMetadataResult.Read)?.metadata
                 ?: return null
             return BundledHost(
-                HostStart(
+                ChosenHostVersion(
                     version = metadata.version,
                     metadata = metadata,
                     jar = directory.resolve(JAR_FILE_NAME),

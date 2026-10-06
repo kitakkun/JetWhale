@@ -38,7 +38,7 @@ class HostLauncherTest {
 
         val starting = starting(bed.launch(pid = 101))
 
-        assertEquals("1.0.0-alpha15", starting.start.version.name)
+        assertEquals("1.0.0-alpha15", starting.chosenHostVersion.version.name)
         assertNull(starting.setAsideVersion)
         assertEquals(StartingHost(hostVersion("1.0.0-alpha15"), pid = 101, processStartMillis = 101_000), state().startingHost)
     }
@@ -50,8 +50,8 @@ class HostLauncherTest {
         val starting = starting(bed.launch(pid = 101))
         completeStart(101, starting)
 
-        assertEquals("1.0.0-alpha13", starting.start.version.name)
-        assertTrue(starting.start.isBundled)
+        assertEquals("1.0.0-alpha13", starting.chosenHostVersion.version.name)
+        assertTrue(starting.chosenHostVersion.isBundled)
         assertFalse(bed.versionDirectory("1.0.0-alpha12").exists(), "a version older than the bundled one goes")
     }
 
@@ -61,7 +61,7 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha15")
         Files.write(bed.versionDirectory("1.0.0-alpha15").resolve(hostJarName(hostVersion("1.0.0-alpha15"), PLATFORM)), "tampered!!!!!!!!".toByteArray())
 
-        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -71,7 +71,7 @@ class HostLauncherTest {
         Files.writeString(bed.versionDirectory("1.0.0-alpha15").resolve("release.json"), "{ not json")
         writeHostVersion(bed.versionDirectory("1.0.0-alpha16"), "1.0.0-alpha16") { it.copy(version = hostVersion("1.0.0-alpha17")) }
 
-        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
         assertFalse(bed.versionDirectory("1.0.0-alpha16").exists())
     }
@@ -82,7 +82,7 @@ class HostLauncherTest {
 
         val outcome = bed.launcher(pid = 101, metadataReader = HostReleaseMetadataReader { _, _ -> false }).launch(afterPid = null, retryVersion = null)
 
-        assertEquals("1.0.0-alpha13", starting(outcome).start.version.name)
+        assertEquals("1.0.0-alpha13", starting(outcome).chosenHostVersion.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -93,7 +93,7 @@ class HostLauncherTest {
         Files.createDirectories(hostVersionsDirectory.root)
         Files.createSymbolicLink(bed.versionDirectory("1.0.0-alpha15"), elsewhere)
 
-        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertFalse(Files.exists(bed.versionDirectory("1.0.0-alpha15"), LinkOption.NOFOLLOW_LINKS))
         assertTrue(Files.exists(elsewhere.resolve("release.json")))
     }
@@ -104,7 +104,7 @@ class HostLauncherTest {
         val jar = bed.versionDirectory("1.0.0-alpha15").resolve(hostJarName(hostVersion("1.0.0-alpha15"), PLATFORM)).toFile()
         Assume.assumeTrue("the file system cannot take read permission away", jar.setReadable(false) && !jar.canRead())
 
-        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha13", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -113,7 +113,7 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha14")
         writeHostVersion(bed.versionDirectory("1.0.0-alpha15"), "1.0.0-alpha15") { it.copy(launcherContract = 2) }
 
-        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -122,7 +122,7 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha14")
         writeHostVersion(bed.versionDirectory("1.0.0-alpha15"), "1.0.0-alpha15") { it.copy(jvmArgs = it.jvmArgs + "--enable-native-access=ALL-UNNAMED") }
 
-        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists())
     }
 
@@ -132,7 +132,7 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha15")
         writeState(setAsideVersions = versions("1.0.0-alpha15"))
 
-        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).start.version.name)
+        assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostVersion.version.name)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists(), "the user can still try it again")
         assertEquals(versions("1.0.0-alpha15"), state().setAsideVersions)
     }
@@ -147,7 +147,7 @@ class HostLauncherTest {
         events += "launched"
         bed.hostComesUp(101, starting)
         events += "published"
-        starting.startup.recordCompletedStartAfter(30.seconds)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(listOf("lock", "launched", "release", "published", "lock", "release"), events)
         assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
@@ -161,7 +161,7 @@ class HostLauncherTest {
         val launcher = bed.launcher(pid = 101, sleep = { completedStartVersionsAtSleeps += it to state().completedStartVersions })
         val starting = starting(launcher.launch(afterPid = null, retryVersion = null))
 
-        starting.startup.recordCompletedStartAfter(30.seconds)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(listOf(30.seconds to emptySet()), completedStartVersionsAtSleeps)
         assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
@@ -176,7 +176,7 @@ class HostLauncherTest {
 
         val again = starting(bed.launch(pid = 102))
 
-        assertEquals("1.0.0-alpha15", again.start.version.name)
+        assertEquals("1.0.0-alpha15", again.chosenHostVersion.version.name)
         assertNull(again.setAsideVersion)
         assertEquals(mapOf(hostVersion("1.0.0-alpha15") to 1), state().failedStartCounts)
         assertEquals(102L, state().startingHost?.pid)
@@ -193,7 +193,7 @@ class HostLauncherTest {
 
         val fallback = starting(bed.launch(pid = 103))
 
-        assertEquals("1.0.0-alpha14", fallback.start.version.name)
+        assertEquals("1.0.0-alpha14", fallback.chosenHostVersion.version.name)
         assertEquals("1.0.0-alpha15", fallback.setAsideVersion?.name)
         assertEquals(versions("1.0.0-alpha15"), state().setAsideVersions)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists())
@@ -203,7 +203,7 @@ class HostLauncherTest {
     fun `counts a throw from the host's main as a failed start, and lets go of launch lock`() {
         bed.download("1.0.0-alpha15")
 
-        starting(bed.launch(pid = 101)).startup.hostFailed()
+        starting(bed.launch(pid = 101)).startOutcomeRecorder.recordFailedStart()
 
         assertEquals(mapOf(hostVersion("1.0.0-alpha15") to 1), state().failedStartCounts)
         assertNull(state().startingHost)
@@ -215,12 +215,12 @@ class HostLauncherTest {
         bed.download("1.0.0-alpha15")
         bed.launch(pid = 101)
         bed.crash(101)
-        starting(bed.launch(pid = 102)).startup.hostFailed()
+        starting(bed.launch(pid = 102)).startOutcomeRecorder.recordFailedStart()
         bed.crash(102)
 
         val fallback = starting(bed.launch(pid = 103))
 
-        assertEquals("1.0.0-alpha13", fallback.start.version.name)
+        assertEquals("1.0.0-alpha13", fallback.chosenHostVersion.version.name)
         assertEquals("1.0.0-alpha15", fallback.setAsideVersion?.name)
     }
 
@@ -234,7 +234,7 @@ class HostLauncherTest {
 
         val again = starting(bed.launch(pid = 103))
 
-        assertEquals("1.0.0-alpha15", again.start.version.name)
+        assertEquals("1.0.0-alpha15", again.chosenHostVersion.version.name)
         assertEquals(emptyMap(), state().failedStartCounts)
         assertEquals(emptySet(), state().setAsideVersions)
         assertEquals(emptySet(), state().completedStartVersions)
@@ -247,8 +247,8 @@ class HostLauncherTest {
         completeStart(101, starting)
         val completed = state()
 
-        starting.startup.hostFailed()
-        starting.startup.shutDownWithoutFailure()
+        starting.startOutcomeRecorder.recordFailedStart()
+        starting.startOutcomeRecorder.recordStartEndedWithoutFailure()
 
         assertEquals(completed, state())
         assertEquals(versions("1.0.0-alpha15"), completed.completedStartVersions)
@@ -259,12 +259,12 @@ class HostLauncherTest {
     fun `does not record a completed start when the startup time window ends after the host failed or the JVM began to shut down`() {
         bed.download("1.0.0-alpha15")
         val failed = starting(bed.launch(pid = 101))
-        failed.startup.hostFailed()
-        failed.startup.recordCompletedStartAfter(30.seconds)
+        failed.startOutcomeRecorder.recordFailedStart()
+        failed.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
         bed.crash(101)
         val quit = starting(bed.launch(pid = 102))
-        quit.startup.shutDownWithoutFailure()
-        quit.startup.recordCompletedStartAfter(30.seconds)
+        quit.startOutcomeRecorder.recordStartEndedWithoutFailure()
+        quit.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(emptySet(), state().completedStartVersions)
         assertEquals(mapOf(hostVersion("1.0.0-alpha15") to 1), state().failedStartCounts)
@@ -290,7 +290,7 @@ class HostLauncherTest {
         bed.launch(pid = 102)
         bed.crash(102)
 
-        assertEquals("1.0.0-alpha15", starting(bed.launch(pid = 103)).start.version.name)
+        assertEquals("1.0.0-alpha15", starting(bed.launch(pid = 103)).chosenHostVersion.version.name)
         assertEquals(emptyMap(), state().failedStartCounts)
         assertEquals(emptySet(), state().setAsideVersions)
     }
@@ -325,7 +325,7 @@ class HostLauncherTest {
 
         val again = starting(bed.launch(pid = 103))
 
-        assertEquals("1.0.0-alpha13", again.start.version.name)
+        assertEquals("1.0.0-alpha13", again.chosenHostVersion.version.name)
         assertEquals(emptySet(), state().setAsideVersions)
     }
 
@@ -353,7 +353,7 @@ class HostLauncherTest {
         val starting = starting(bed.launch(pid = 101))
         completeStart(101, starting)
 
-        assertEquals("1.0.0-alpha14", starting.start.version.name)
+        assertEquals("1.0.0-alpha14", starting.chosenHostVersion.version.name)
         assertEquals(listOf("1.0.0-alpha17", "1.0.0-alpha14"), hostVersionsDirectory.installedVersions().map { it.version.name })
         assertEquals(
             LauncherState(
@@ -403,7 +403,7 @@ class HostLauncherTest {
         val restarted = starting(launcher.launch(afterPid = 101, retryVersion = null))
 
         assertEquals(listOf(101L), waitedFor)
-        assertEquals("1.0.0-alpha15", restarted.start.version.name)
+        assertEquals("1.0.0-alpha15", restarted.chosenHostVersion.version.name)
         assertEquals(emptyMap(), state().failedStartCounts)
         assertEquals(102L, state().startingHost?.pid)
     }
@@ -437,7 +437,7 @@ class HostLauncherTest {
 
         val starting = starting(bed.launch(pid = 101, retryVersion = hostVersion("1.0.0-alpha15")))
 
-        assertEquals("1.0.0-alpha15", starting.start.version.name)
+        assertEquals("1.0.0-alpha15", starting.chosenHostVersion.version.name)
         assertEquals(emptySet(), state().setAsideVersions)
         assertEquals(emptyMap(), state().failedStartCounts)
     }
@@ -451,7 +451,7 @@ class HostLauncherTest {
         bed.hostComesUp(101, starting)
         hostVersionsDirectory.writeLauncherState(state().copy(setAsideVersions = emptySet()))
 
-        starting.startup.recordCompletedStartAfter(30.seconds)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
 
         assertEquals(emptySet(), state().setAsideVersions)
         assertEquals(versions("1.0.0-alpha15"), state().completedStartVersions)
@@ -471,7 +471,7 @@ class HostLauncherTest {
     /** The host of the process [pid] comes up and is still running when its startup time window ends. */
     private fun completeStart(pid: Long, starting: LaunchOutcome.Starting) {
         bed.hostComesUp(pid, starting)
-        starting.startup.recordCompletedStartAfter(30.seconds)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(30.seconds)
     }
 
     private fun state(): LauncherState = hostVersionsDirectory.readLauncherState()

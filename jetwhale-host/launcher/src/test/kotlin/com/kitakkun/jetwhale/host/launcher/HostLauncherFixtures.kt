@@ -191,11 +191,14 @@ class LaunchTestBed {
     /** Launches as the process [pid]. */
     fun launch(pid: Long, afterPid: Long? = null, retryVersion: HostVersion? = null): LaunchOutcome = launcher(pid).launch(afterPid, retryVersion)
 
-    /** The host of the process [pid] takes `instance.lock` and publishes `instance.json`, as a host coming up does. */
+    /**
+     * The host of the process [pid] takes `instance.lock` and publishes `instance.json`, as a host coming
+     * up does, and its launcher lets `launch.lock` go on seeing it.
+     */
     fun hostComesUp(pid: Long, starting: LaunchOutcome.Starting) {
         checkNotNull(lockFiles.of(pid).tryLock(hostVersionsDirectory.instanceLockFile)) { "the instance was taken" }
         runningHostChannel.publishInstanceJson(pid)
-        starting.startup.hostPublishedInstanceJson()
+        starting.startOutcomeRecorder.releaseLaunchLock()
     }
 
     /** A process that is not a launch runs with the ID [pid]. */
@@ -211,7 +214,7 @@ class LaunchTestBed {
 
     /** The process [pid] ends after its shutdown hook has run. */
     fun shutDown(pid: Long, starting: LaunchOutcome.Starting) {
-        starting.startup.shutDownWithoutFailure()
+        starting.startOutcomeRecorder.recordStartEndedWithoutFailure()
         crash(pid)
     }
 }

@@ -99,7 +99,7 @@ private fun runHost(
     runningHostChannel: RunningHostChannel,
     log: LauncherLog,
 ) {
-    Runtime.getRuntime().addShutdownHook(Thread(starting.startup::shutDownWithoutFailure, "jetwhale-host-shutdown"))
+    Runtime.getRuntime().addShutdownHook(Thread(starting.startOutcomeRecorder::recordStartEndedWithoutFailure, "jetwhale-host-shutdown"))
     thread(isDaemon = true, name = "jetwhale-host-instance-json-watcher") {
         InstanceJsonPublicationWatcher(
             startupTimeWindow = STARTUP_TIME_WINDOW,
@@ -107,10 +107,10 @@ private fun runHost(
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
             isInstanceJsonPublished = { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) },
-        ).reportPublicationTo(starting.startup)
+        ).releaseLaunchLockOncePublished(starting.startOutcomeRecorder)
     }
     thread(isDaemon = true, name = "jetwhale-host-startup-time-window") {
-        starting.startup.recordCompletedStartAfter(STARTUP_TIME_WINDOW)
+        starting.startOutcomeRecorder.recordCompletedStartAfter(STARTUP_TIME_WINDOW)
     }
     val inProcessHost = InProcessHost(
         hostVersionsDirectory = hostVersionsDirectory,
@@ -119,11 +119,11 @@ private fun runHost(
         writesOutputToLog = !arguments.headless,
     )
     try {
-        inProcessHost.run(starting.start, starting.setAsideVersion, arguments.hostArguments)
+        inProcessHost.run(starting.chosenHostVersion, starting.setAsideVersion, arguments.hostArguments)
     } catch (e: Throwable) {
-        System.err.println("JetWhale host ${starting.start.version} stopped: ${e.stackTraceToString()}")
-        log.write("${starting.start.version} stopped: $e")
-        starting.startup.hostFailed()
+        System.err.println("JetWhale host ${starting.chosenHostVersion.version} stopped: ${e.stackTraceToString()}")
+        log.write("${starting.chosenHostVersion.version} stopped: $e")
+        starting.startOutcomeRecorder.recordFailedStart()
         exitProcess(1)
     }
 }

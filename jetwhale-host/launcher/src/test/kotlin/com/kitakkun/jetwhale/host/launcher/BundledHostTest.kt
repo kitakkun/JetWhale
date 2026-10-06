@@ -14,11 +14,11 @@ class BundledHostTest {
     fun `reads the version and the jar the package carries`() {
         Files.writeString(directory.resolve("release.json"), hostMetadata("1.0.0-alpha13", "host".toByteArray()).encode())
 
-        val start = assertNotNull(BundledHost.read(directory)).start
+        val chosenHostVersion = assertNotNull(BundledHost.read(directory)).chosenHostVersion
 
-        assertEquals("1.0.0-alpha13", start.version.name)
-        assertEquals(directory.resolve("jetwhale-host.bundled"), start.jar)
-        assertTrue(start.isBundled)
+        assertEquals("1.0.0-alpha13", chosenHostVersion.version.name)
+        assertEquals(directory.resolve("jetwhale-host.bundled"), chosenHostVersion.jar)
+        assertTrue(chosenHostVersion.isBundled)
     }
 
     @Test
