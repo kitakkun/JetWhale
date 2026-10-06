@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.data.server
 
 import com.kitakkun.jetwhale.host.data.util.AdbLocator
-import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
+import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -25,25 +25,25 @@ private const val RECONNECT_DELAY_MS = 2_000L
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
-class DefaultADBAutoWiringService : ADBAutoWiringService {
+class DefaultAdbAutoPortMappingService : AdbAutoPortMappingService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val wiredDevices = ConcurrentSet<String>()
+    private val mappedDevices = ConcurrentSet<String>()
 
-    private val wiredPorts = ConcurrentSet<Int>()
-    private var wiringJob: Job? = null
+    private val mappedPorts = ConcurrentSet<Int>()
+    private var deviceTrackingJob: Job? = null
 
     // Without an adb found, the bare name still lets the launch fail with the OS's own error, which
-    // the wiring reports.
+    // the port mapping reports.
     private val adbPath: String by lazy { AdbLocator.ofCurrentProcess().let { it.find()?.path ?: it.executableName } }
 
-    override fun startAutoWiring(port: Int) {
-        if (wiredPorts.add(port)) {
-            wiredDevices.forEach { serial -> wire(serial, port) }
+    override fun startPortMapping(port: Int) {
+        if (mappedPorts.add(port)) {
+            mappedDevices.forEach { serial -> mapPort(serial, port) }
         }
 
-        if (wiringJob?.isActive == true) return
+        if (deviceTrackingJob?.isActive == true) return
 
-        wiringJob = coroutineScope.launch {
+        deviceTrackingJob = coroutineScope.launch {
             // adb track-devices can end at any time (adb server restart or crash, kill-server from
             // another tool, version mismatch), which completes the flow, so re-attach after a
             // delay.
@@ -54,8 +54,8 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                 try {
                     deviceEventFlow().collect { event ->
                         when (event) {
-                            is DeviceEvent.Connected -> wiredPorts.forEach { wire(event.serial, it) }
-                            is DeviceEvent.Disconnected -> wiredPorts.forEach { unwire(event.serial, it) }
+                            is DeviceEvent.Connected -> mappedPorts.forEach { mapPort(event.serial, it) }
+                            is DeviceEvent.Disconnected -> mappedPorts.forEach { unmapPort(event.serial, it) }
                         }
                     }
                     System.err.println("ADB device tracking ended; re-attaching in ${RECONNECT_DELAY_MS}ms")
@@ -103,44 +103,44 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         awaitClose(deviceTrackingProcess::destroy)
     }
 
-    private fun wire(serial: String, port: Int) {
-        println("Wiring ADB reverse for device $serial on port $port")
+    private fun mapPort(serial: String, port: Int) {
+        println("Mapping port $port for device $serial with adb reverse")
         val (exitCode, output) = runAdb("-s", serial, "reverse", "tcp:$port", "tcp:$port")
         if (exitCode == 0) {
-            wiredDevices.add(serial)
+            mappedDevices.add(serial)
         } else {
-            System.err.println("Failed to wire ADB reverse for device $serial on port $port (exit=$exitCode): $output")
+            System.err.println("Failed to map port $port for device $serial with adb reverse (exit=$exitCode): $output")
         }
     }
 
-    private fun unwire(serial: String, port: Int) {
-        println("Unwiring ADB reverse for device $serial on port $port")
+    private fun unmapPort(serial: String, port: Int) {
+        println("Unmapping port $port for device $serial with adb reverse")
         val (exitCode, output) = runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         if (exitCode != 0) {
-            System.err.println("Failed to unwire ADB reverse for device $serial on port $port (exit=$exitCode): $output")
+            System.err.println("Failed to unmap port $port for device $serial with adb reverse (exit=$exitCode): $output")
         }
-        wiredDevices.remove(serial)
+        mappedDevices.remove(serial)
     }
 
-    override fun stopAutoWiring(port: Int) {
-        wiredPorts.remove(port)
-        wiredDevices.forEach { serial ->
+    override fun stopPortMapping(port: Int) {
+        mappedPorts.remove(port)
+        mappedDevices.forEach { serial ->
             runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         }
-        if (wiredPorts.isEmpty()) {
-            wiringJob?.cancel()
-            wiringJob = null
-            wiredDevices.clear()
+        if (mappedPorts.isEmpty()) {
+            deviceTrackingJob?.cancel()
+            deviceTrackingJob = null
+            mappedDevices.clear()
         }
     }
 
     /**
      * Runs an adb command to completion and returns its exit code together with its merged output.
      *
-     * A failure to launch adb at all is reported as a non-zero exit rather than thrown. The wiring
-     * job catches everything, but teardown does not run inside it — [stopAutoWiring] and [unwire]
-     * call this directly, and an adb that has been uninstalled or unmounted since wiring would
-     * otherwise throw IOException out of a shutdown path, where nothing is waiting to handle it.
+     * A failure to launch adb at all is reported as a non-zero exit rather than thrown. The device
+     * tracking job catches everything, but teardown does not run inside it — [stopPortMapping] and
+     * [unmapPort] call this directly, and an adb that has been uninstalled or unmounted since mapping
+     * would otherwise throw IOException out of a shutdown path, where nothing is waiting to handle it.
      * Callers already treat a non-zero exit as a failure to report.
      */
     private fun runAdb(vararg args: String): Pair<Int, String> = try {
