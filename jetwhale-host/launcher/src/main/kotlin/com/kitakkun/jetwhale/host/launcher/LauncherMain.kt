@@ -107,7 +107,7 @@ private fun runHost(
             timeSource = TimeSource.Monotonic,
             sleep = { Thread.sleep(it.inWholeMilliseconds) },
             isInstanceJsonPublished = { runningHostChannel.isInstanceJsonPublishedBy(ProcessHandle.current().pid()) },
-        ).releaseLaunchLockOncePublished(hostStart)
+        ).releaseLaunchLockWhenInstanceJsonIsPublished(hostStart)
     }
     thread(isDaemon = true, name = "jetwhale-host-startup-time-window") {
         hostStart.recordCompletedAfter(STARTUP_TIME_WINDOW)

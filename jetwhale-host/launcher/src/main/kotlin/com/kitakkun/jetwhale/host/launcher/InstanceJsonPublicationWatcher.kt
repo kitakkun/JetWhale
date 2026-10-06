@@ -19,7 +19,7 @@ class InstanceJsonPublicationWatcher(
      * Polls from now, which is right before the host's main is called, until [isInstanceJsonPublished]
      * says the host has published `instance.json`, and then has [hostStart] release `launch.lock`.
      */
-    fun releaseLaunchLockOncePublished(hostStart: HostLauncher.HostStart) {
+    fun releaseLaunchLockWhenInstanceJsonIsPublished(hostStart: HostLauncher.HostStart) {
         val started = timeSource.markNow()
         while (started.elapsedNow() < startupTimeWindow) {
             if (isInstanceJsonPublished()) {
