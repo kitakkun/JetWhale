@@ -28,6 +28,7 @@ Read these before editing; they apply to every change.
 - `agents/rules/comments.md` — comment only what the code cannot say.
 - `agents/rules/function-placement.md` — put a helper next to its use, with no more visibility than it needs.
 - `agents/rules/naming.md` — name a function after what it does, not after its role or the moment it runs.
+- `agents/rules/data-and-behavior.md` — data only holds values; behavior lives in an object that holds what it works with.
 - `agents/rules/jetwhale-host-architecture.md` — what belongs in a Repository and what in a Service.
 - `agents/rules/pr-descriptions.md` — a PR description states the goal and where a reviewer should look.
 
