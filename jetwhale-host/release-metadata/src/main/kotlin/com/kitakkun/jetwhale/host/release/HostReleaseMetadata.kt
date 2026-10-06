@@ -28,28 +28,6 @@ data class HostReleaseMetadata(
 
     fun jvmArgsFor(platformKey: String): List<String> = jvmArgs + platforms[platformKey]?.jvmArgs.orEmpty()
 
-    /** Why a launcher with [launcher]'s capabilities cannot run this release, or null when it can. */
-    fun refusalOn(launcher: LauncherCapabilities): HostReleaseRefusal? {
-        if (launcherContract > launcher.contract) {
-            return HostReleaseRefusal.NeedsNewerLauncher(launcherContract)
-        }
-        if (runtime.javaFeatureVersion > launcher.javaFeatureVersion) {
-            return HostReleaseRefusal.NeedsNewerJava(runtime.javaFeatureVersion)
-        }
-        val missingModules = runtime.modules.filterNot(launcher.modules::contains)
-        if (missingModules.isNotEmpty()) {
-            return HostReleaseRefusal.MissingModules(missingModules)
-        }
-        if (launcher.platformKey !in platforms) {
-            return HostReleaseRefusal.NoBuildForPlatform(launcher.platformKey)
-        }
-        val disallowedArgument = jvmArgsFor(launcher.platformKey).firstOrNull { !isAllowedHostJvmArgument(it) }
-        if (disallowedArgument != null) {
-            return HostReleaseRefusal.DisallowedJvmArgument(disallowedArgument)
-        }
-        return null
-    }
-
     companion object {
         /** The metadata format this code reads and writes. A file with a higher one is refused. */
         const val FORMAT = 1
@@ -66,8 +44,11 @@ data class HostReleaseMetadata(
         /**
          * Reads a metadata file. Unknown fields are ignored, so a later release can add some; a file
          * whose `format` is higher than [FORMAT] is refused instead of read with fields missing.
+         *
+         * It checks no signature, so it is only for the metadata that came inside the installed
+         * package. A downloaded release's metadata is read through [HostReleaseMetadataReader].
          */
-        internal fun decode(text: String): HostReleaseMetadataResult {
+        fun decode(text: String): HostReleaseMetadataResult {
             val metadata = try {
                 val format = json.decodeFromString(MetadataFormat.serializer(), text).format
                 if (format < 1) return HostReleaseMetadataResult.Malformed("format $format is not a metadata format")
@@ -119,14 +100,3 @@ data class HostPlatformRelease(
     val sha256: String,
     val jvmArgs: List<String>,
 )
-
-sealed interface HostReleaseMetadataResult {
-    data class Read(val metadata: HostReleaseMetadata) : HostReleaseMetadataResult
-
-    /** The signature check did not trust the file, so nothing in it was read. */
-    data object Untrusted : HostReleaseMetadataResult
-
-    data class NewerFormat(val format: Int) : HostReleaseMetadataResult
-
-    data class Malformed(val reason: String) : HostReleaseMetadataResult
-}

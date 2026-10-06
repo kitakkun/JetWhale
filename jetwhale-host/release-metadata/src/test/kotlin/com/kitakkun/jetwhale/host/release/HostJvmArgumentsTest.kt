@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.release
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HostJvmArgumentsTest {
@@ -14,7 +16,6 @@ class HostJvmArgumentsTest {
             "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
             "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
             "--enable-native-access=ALL-UNNAMED",
-            "-Xdock:name=JetWhale Debugger",
             "-Xmx4g",
             "-Xmx512M",
         ).forEach { assertTrue(isAllowedHostJvmArgument(it), it) }
@@ -35,6 +36,7 @@ class HostJvmArgumentsTest {
             "-Xbootclasspath/a:evil.jar",
             "--add-opens",
             "--add-opens=",
+            "-Xdock:name=JetWhale Debugger",
             "-Xdock:icon=/tmp/icon.icns",
             "-Xmx",
             "-Xms1g",
@@ -42,5 +44,13 @@ class HostJvmArgumentsTest {
             "-D=value",
             "",
         ).forEach { assertFalse(isAllowedHostJvmArgument(it), it) }
+    }
+
+    @Test
+    fun `reads the system property a -D argument sets`() {
+        assertEquals("apple.awt.application.appearance" to "system", systemPropertyOf("-Dapple.awt.application.appearance=system"))
+        assertEquals("key" to "a=b c", systemPropertyOf("-Dkey=a=b c"))
+        assertEquals("flag" to "", systemPropertyOf("-Dflag"))
+        listOf("--add-opens=java.desktop/sun.awt=ALL-UNNAMED", "-Xmx4g", "-D", "-D=value").forEach { assertNull(systemPropertyOf(it), it) }
     }
 }

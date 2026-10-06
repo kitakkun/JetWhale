@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
 import com.kitakkun.jetwhale.host.release.ReleaseMetadataSignatureVerifier
 import com.kitakkun.jetwhale.host.release.check
+import com.kitakkun.jetwhale.host.release.hostPlatformKey
 import com.kitakkun.jetwhale.host.release.isAllowedHostJvmArgument
 import com.kitakkun.jetwhale.host.release.sha256Hex
 import java.nio.file.Files
@@ -26,12 +27,14 @@ private const val RELEASE_DOWNLOAD_URL = "https://github.com/kitakkun/JetWhale/r
  * ```
  * --output <file> --version <tag> --main-class <class> --java-feature-version <n>
  * --module <name>…  --jvm-arg <argument>…  --platform-jvm-arg <os-arch>=<argument>…
- * --jar <os-arch>=<path>…
+ * --jar <os-arch>=<path>…  --current-platform-jar <path>
  * ```
  *
  * Each `--jar` becomes a platform entry whose URL is the `jetwhale-host-<version>-<os-arch>.jar` asset
- * of the `<version>` release, whatever the given file is called. Exits with 1 and the problems on
- * stderr when anything is missing, refused or does not verify.
+ * of the `<version>` release, whatever the given file is called. `--current-platform-jar` is the `--jar`
+ * of the platform the tool runs on, by [hostPlatformKey]; with it, the `--platform-jvm-arg`s of
+ * platforms that have no jar are left out instead of refused. Exits with 1 and the problems on stderr
+ * when anything is missing, refused or does not verify.
  */
 fun main(args: Array<String>) {
     val problems = writeHostReleaseMetadata(args.toList())
@@ -129,9 +132,19 @@ private class HostReleaseMetadataRequest(
                 key to value.substringAfter('=')
             }
 
-            val jars = keyed("--jar")
-            require(jars.isNotEmpty()) { "Expected at least one --jar" }
-            require(jars.map { it.first }.toSet().size == jars.size) { "Expected one --jar per platform" }
+            val currentPlatformJars = values["--current-platform-jar"].orEmpty()
+            require(currentPlatformJars.size <= 1) { "Expected --current-platform-jar at most once" }
+            val jars = keyed("--jar") + currentPlatformJars.map { path ->
+                val osName = System.getProperty("os.name")
+                val osArch = System.getProperty("os.arch")
+                val platformKey = requireNotNull(hostPlatformKey(osName, osArch)) {
+                    "No release is built for $osName on $osArch, so --current-platform-jar has no platform"
+                }
+                platformKey to path
+            }
+            require(jars.isNotEmpty()) { "Expected at least one --jar or --current-platform-jar" }
+            val repeatedPlatforms = jars.groupingBy { it.first }.eachCount().filterValues { it > 1 }.keys
+            require(repeatedPlatforms.isEmpty()) { "Expected one jar per platform, but got several for ${repeatedPlatforms.joinToString()}" }
             return HostReleaseMetadataRequest(
                 output = Path.of(single("--output")),
                 versionName = single("--version"),
@@ -140,7 +153,9 @@ private class HostReleaseMetadataRequest(
                     ?: throw IllegalArgumentException("Expected a number after --java-feature-version"),
                 modules = values["--module"].orEmpty(),
                 jvmArgs = values["--jvm-arg"].orEmpty(),
-                platformJvmArgs = keyed("--platform-jvm-arg").groupBy({ it.first }, { it.second }),
+                platformJvmArgs = keyed("--platform-jvm-arg")
+                    .groupBy({ it.first }, { it.second })
+                    .filterKeys { platformKey -> currentPlatformJars.isEmpty() || jars.any { it.first == platformKey } },
                 jars = jars.associate { (platformKey, path) -> platformKey to Path.of(path) },
             )
         }
@@ -154,6 +169,7 @@ private class HostReleaseMetadataRequest(
             "--jvm-arg",
             "--platform-jvm-arg",
             "--jar",
+            "--current-platform-jar",
         )
     }
 }
