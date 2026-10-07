@@ -11,23 +11,39 @@ internal fun copyToClipboard(text: String) {
 }
 
 /**
- * Adapters record bodies they can't read (streaming/binary) as a single `<...>` marker such as
- * `<streaming request body>` or `<application/json>`. Real XML/HTML bodies contain nested tags
- * with more than one `<`/`>`, so they don't match.
+ * The markers the adapters and agent-side redaction record as a TEXT body in place of a body they
+ * did not capture. Only these shapes are matched, because a real body can be a single element such
+ * as `<br>` or `<root/>`.
  */
-private val PLACEHOLDER_BODY = Regex("^<[^<>]+>$")
+private val UNCAPTURED_BODY_MARKER = Regex(
+    listOf(
+        "<streaming request body>",
+        "<streaming response body>",
+        "<websocket upgrade>",
+        "<Content-Encoding: .+ body>",
+        "<.+ body over the \\d+-byte maxImageBytes limit>",
+        "<body withheld: .+>",
+        "<$MEDIA_TYPE_TOKEN/$MEDIA_TYPE_TOKEN(?:; .+)?>",
+    ).joinToString("|"),
+)
+
+/** An RFC 9110 token, the shape of a media type's type and subtype. */
+private const val MEDIA_TYPE_TOKEN = "[!#\$%&'*+.^_`|~0-9A-Za-z-]+"
+
+/** [body] as text to copy, or null when it is absent, a binary (Base64) capture or an uncaptured-body marker. */
+internal fun copyableBody(body: String?, encoding: BodyEncoding): String? = body?.takeUnless { encoding == BodyEncoding.BASE64 || it.matches(UNCAPTURED_BODY_MARKER) }
 
 /**
  * Rebuilds the captured request as a shell-pasteable `curl` command.
  *
  * Content-Length is dropped (curl derives it from the body). A truncated capture can't be
  * replayed faithfully, so it's flagged with a leading comment instead of silently emitting
- * a partial body; a placeholder body and a binary (Base64) capture are omitted entirely and
+ * a partial body; an uncaptured-body marker and a binary (Base64) capture are omitted entirely and
  * flagged the same way.
  */
 internal fun buildCurlCommand(request: CapturedHttpRequest): String {
     val binary = request.bodyEncoding == BodyEncoding.BASE64
-    val body = request.body?.takeUnless { binary || it.matches(PLACEHOLDER_BODY) }
+    val body = copyableBody(request.body, request.bodyEncoding)
     // --globoff: curl expands [] and {} in URLs itself, even inside shell quotes.
     val lines = mutableListOf("curl --globoff")
     // -X GET must be explicit when a body is present, or --data-raw switches the method to POST.

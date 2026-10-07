@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -151,7 +153,8 @@ public fun JwTableCellText(
  * the [Fixed] ones leave.
  *
  * Rows are one compact control tall unless a column wraps ([JwColumnOverflow.Wrap]), in which
- * case a row grows to its tallest cell.
+ * case a row grows to its tallest cell. For a right-click menu on the rows, use the overload that
+ * takes `contextMenuItems`.
  *
  * @param items the rows, in display order — sort and filter before passing them.
  * @param columns the columns, in display order.
@@ -173,6 +176,76 @@ public fun <T> JwTable(
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     emptyContent: (@Composable () -> Unit)? = null,
+) {
+    TableContent(
+        items = items,
+        columns = columns,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        key = key,
+        isSelected = isSelected,
+        onClick = onClick,
+        contextMenuItems = null,
+        emptyContent = emptyContent,
+    )
+}
+
+/**
+ * A [JwTable] whose rows open a context menu on right-click, anywhere on the row and whether or not
+ * the table is read-only.
+ *
+ * @param items the rows, in display order — sort and filter before passing them.
+ * @param columns the columns, in display order.
+ * @param contextMenuItems what right-clicking a row offers for its item.
+ * @param key a stable identity per item, so selection and scroll position survive reordering.
+ * @param isSelected whether the row for an item is the current one.
+ * @param onClick what selecting a row does; null for a read-only table.
+ * @param state the list's scroll state; hoist it to scroll programmatically.
+ * @param contentPadding padding around the rows, inside the scrolling area.
+ * @param emptyContent what to show instead of rows while [items] is empty — a [JwEmptyState].
+ */
+@Composable
+public fun <T> JwTable(
+    items: List<T>,
+    columns: List<JwTableColumn<T>>,
+    contextMenuItems: (item: T) -> List<ContextMenuItem>,
+    modifier: Modifier = Modifier,
+    key: ((item: T) -> Any)? = null,
+    isSelected: (item: T) -> Boolean = { false },
+    onClick: ((item: T) -> Unit)? = null,
+    state: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    emptyContent: (@Composable () -> Unit)? = null,
+) {
+    // A separate overload, not a defaulted parameter on the one above: plugins built against an
+    // earlier host-ui link to that exact JVM signature, and a new parameter changes it even with a default.
+    TableContent(
+        items = items,
+        columns = columns,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        key = key,
+        isSelected = isSelected,
+        onClick = onClick,
+        contextMenuItems = contextMenuItems,
+        emptyContent = emptyContent,
+    )
+}
+
+@Composable
+private fun <T> TableContent(
+    items: List<T>,
+    columns: List<JwTableColumn<T>>,
+    modifier: Modifier,
+    state: LazyListState,
+    contentPadding: PaddingValues,
+    key: ((item: T) -> Any)?,
+    isSelected: (item: T) -> Boolean,
+    onClick: ((item: T) -> Unit)?,
+    contextMenuItems: ((item: T) -> List<ContextMenuItem>)?,
+    emptyContent: (@Composable () -> Unit)?,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -212,10 +285,17 @@ public fun <T> JwTable(
                         Cell(column) { column.cell(item) }
                     }
                 }
-                if (onClick == null) {
-                    ReadOnlyRow(selected = isSelected(item), content = cells)
+                val row: @Composable () -> Unit = {
+                    if (onClick == null) {
+                        ReadOnlyRow(selected = isSelected(item), content = cells)
+                    } else {
+                        JwListItem(selected = isSelected(item), onClick = { onClick(item) }, content = cells)
+                    }
+                }
+                if (contextMenuItems == null) {
+                    row()
                 } else {
-                    JwListItem(selected = isSelected(item), onClick = { onClick(item) }, content = cells)
+                    ContextMenuArea(items = { contextMenuItems(item) }, content = row)
                 }
             }
         }

@@ -12,7 +12,6 @@ import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
-import com.kitakkun.jetwhale.host.following_ai_toast
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
@@ -28,7 +27,6 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -104,13 +102,10 @@ fun ToolingScaffoldRoot(
             )
 
             val scope = rememberCoroutineScope()
+            val followingAiNotice = remember { FollowingAiNotice(snackbarHostState, scope) }
             HostNavigationRequestEffect(
                 screenChannel = screenChannel,
-                onFollowAgent = { pluginName ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
-                    }
-                },
+                onFollowAgent = followingAiNotice::show,
                 onClickPlugin = onClickPlugin,
                 onClickInfo = onClickInfo,
                 onNavigateHome = onNavigateHome,

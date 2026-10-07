@@ -18,10 +18,13 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Inject
 @SingleIn(AppScope::class)
@@ -54,7 +57,7 @@ class DefaultDebugWebSocketServer(
     }
 
     override suspend fun stop() {
-        serverMonitoringJob?.cancel()
+        serverMonitoringJob?.cancelAndJoin()
         serverMonitoringJob = null
         hostDiscoveryAdvertiser.stop()
         ktorWebSocketServer.stop()
@@ -79,18 +82,16 @@ class DefaultDebugWebSocketServer(
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
         var mappedPorts: List<Int> = emptyList()
-        ktorWebSocketServer.statusFlow.collect { status ->
-            when (status) {
-                is DebugWebSocketServerStatus.Started -> {
+        try {
+            ktorWebSocketServer.statusFlow.collect { status ->
+                if (status is DebugWebSocketServerStatus.Started) {
                     mappedPorts = listOfNotNull(status.port, status.wssPort)
                     mappedPorts.forEach(adbAutoPortMappingService::startPortMapping)
                 }
-
-                is DebugWebSocketServerStatus.Stopped -> {
-                    mappedPorts.forEach(adbAutoPortMappingService::stopPortMapping)
-                }
-
-                else -> Unit
+            }
+        } finally {
+            withContext(NonCancellable) {
+                mappedPorts.forEach { adbAutoPortMappingService.stopPortMapping(it) }
             }
         }
     }
@@ -122,6 +123,7 @@ class DefaultDebugWebSocketServer(
                         sessionId = sessionId,
                         event = JetWhaleDebuggerEvent.PluginActivated(pluginId = event.pluginId),
                     )
+                    pluginInstanceService.startPluginInstancePreparation(pluginId = event.pluginId, sessionId = sessionId)
                 }
 
                 is PluginReconciliationEvent.Deactivated ->

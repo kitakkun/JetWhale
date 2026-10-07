@@ -19,7 +19,58 @@ Download the installer for your OS from the
 A runnable uber-jar (`jetwhale-host-<version>-<osArch>.jar`) is also attached to each release if you
 prefer `java -jar`.
 
+::: details Linux notes
+- Install the package with `sudo apt install ./jetwhale-debugger-<version>-linux-x64.deb`, which also
+  pulls in anything it depends on. The host then appears in your desktop's application menu.
+- The host draws at a whole-number scale (1×, 2×) and takes it from the `GDK_SCALE` environment
+  variable (or `J2D_UISCALE`, which wins when both are set), not from the desktop's display
+  settings. On a high-resolution screen, start it with `GDK_SCALE=2`; for the menu entry, copy
+  `/opt/jetwhale-debugger/lib/jetwhale-debugger-JetWhale_Debugger.desktop` to
+  `~/.local/share/applications/` and prefix its `Exec=` line with `env GDK_SCALE=2`. Fractional
+  scaling is not available: a 150% desktop setting has no effect on the host, and a fractional value
+  in either variable is rounded down (`1.5` gives 1×).
+- The Japanese UI needs a CJK font, such as `fonts-noto-cjk` on Debian and Ubuntu; without one,
+  Japanese text shows as empty boxes.
+- On a Wayland session the host runs through XWayland.
+:::
+
 Launch the host. By default it listens for debuggee connections on **port 5080**.
+
+### First launch
+
+JetWhale is not notarized by Apple, and its Windows installer is not code-signed, so macOS and
+Windows each ask you to confirm once. Linux has no such step.
+
+- **macOS** — open the `.dmg` and drag **JetWhale Debugger** into **Applications**. The first time
+  you open it, macOS blocks it. Close that dialog, open **System Settings → Privacy & Security**,
+  scroll down to **Security**, click **Open Anyway** next to the message about JetWhale Debugger,
+  and confirm. On macOS 15 and later, Control-click → **Open** no longer gets past the block, so use
+  System Settings.
+- **Windows** — Microsoft Defender SmartScreen may stop the installer with *Windows protected your
+  PC*. Click **More info**, then **Run anyway**.
+
+Later launches start normally. Updates made from inside the app don't ask again; a new installer
+does.
+
+### Updates
+
+Once installed, JetWhale updates from inside the app. At startup it checks JetWhale's GitHub
+releases, prereleases included, and shows a banner when a newer version is out. Download it under
+**Settings → General → Application → Updates** (the banner's **View in Settings** opens it), then
+click **Restart to Update**, or keep working and the next start runs it. Turn off **Check for
+updates on startup** there to check only when you click **Check for Updates**. Now and then a
+release needs a newer launcher or Java runtime than your install has: the app says so and links to
+its release page, and you install that release from its installer. See
+[Host Settings → Application](/guide/host-settings#application) for more.
+
+A host started with `java -jar` does not update itself; download new jars from the releases page.
+
+::: info Coming from 1.0.0-alpha12 or earlier
+Hosts before 1.0.0-alpha13 cannot update themselves. Install the latest release once from its
+installer, over the old app. Your settings and plugins carry over, and later versions come through
+the app. On macOS, approve the first launch again as above. On Linux, apt may list the install as a
+downgrade; confirm it.
+:::
 
 ## 2. Add the agent runtime to your app
 

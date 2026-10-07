@@ -42,13 +42,13 @@ When a tool is missing, the device list says which one and what it would enable.
 ## What you get in the host
 
 - **Device picker.** The device's name at the top left opens every device, Android and iOS in
-  two groups, with its kind, OS version and a dot for what the mirror last saw: showing its
-  screen, screen off, unavailable, or (hollow) not watched yet. The list refreshes every few
-  seconds; a device appears once it is booted or connected. The picker's first entry, **All
+  two groups, with its kind, its OS version (iOS only) and a dot for what the mirror last saw:
+  showing its screen, screen off, unavailable, or (hollow) not watched yet. The list refreshes
+  every few seconds; a device appears once it is booted or connected. The picker's first entry, **All
   devices**, opens the grid.
 - **All devices (grid).** Every device as a tile with a screenshot refreshed every 1.5 seconds,
-  its status dot, name, kind and OS version, and how long ago the picture was taken; **Screen off**
-  or **Unavailable** (with the reason) says why a picture is old. The tiles are sized so that all
+  its status dot, name, kind, OS version (iOS only), and how long ago the picture was taken;
+  **Screen off** or **Unavailable** (with the reason) says why a picture is old. The tiles are sized so that all
   of them fit the pane and are centered in it, each at its device's own shape; with more devices
   than fit at a readable size they scroll. The device open in the single view has an accent
   outline. Only tiles on screen are captured, two captures at a time at most, and nothing streams
@@ -123,7 +123,7 @@ The short code after the device name comes from the device's serial number or UD
 therefore keeps its folder across sessions, and two devices with the same name get separate
 folders. The `.json` file beside each capture records:
 
-- the device's id, name, platform, kind and OS version;
+- the device's id, name, platform, kind and, for an iOS device or simulator, its OS version;
 - the capture's size in pixels;
 - when it was taken;
 - for a recording, how long it runs.
@@ -157,7 +157,7 @@ can be left out to use the device selected in the mirror.
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, OS version, and what they accept: input, buttons, recording. An Android device also reports `screenOn` and `locked` |
+| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. An iOS device or simulator also reports `osVersion`; an Android device reports `screenOn` and `locked` |
 | `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
