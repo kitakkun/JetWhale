@@ -49,6 +49,9 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/png', href: `${base}icon.png` }],
   ],
   ignoreDeadLinks: [/^https?:\/\/localhost/],
+  markdown: {
+    image: { lazyLoading: true },
+  },
   themeConfig: {
     logo: '/icon.svg',
     nav: [
