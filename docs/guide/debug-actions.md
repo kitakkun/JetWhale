@@ -1,14 +1,23 @@
 # Debug Actions <Badge type="warning" text="experimental" />
 
-Debug Actions turns an app's debug menu into typed actions the JetWhale host and AI agents can
-run: sign in as a test user, reset onboarding, shift the clock, open a deep link. The app declares
-each action once; the host builds a form for its arguments, and an agent gets the same action with
-a JSON Schema over MCP.
+Debug Actions turns an app's debug menu into typed actions the JetWhale host and AI agents can run:
+sign in as a test user, reset onboarding, shift the clock, open a deep link. The app declares each
+action once; the host builds a form for its arguments, and an agent gets the same action with a JSON
+Schema over MCP.
+
+**Works with:** Android, iOS, macOS, desktop (JVM) and the web.
+
+![Debug Actions: the app's actions, one pinned, and the selected Log in as action with its arguments, its latest result and its runs, one of them made by an AI agent](../images/debug-actions/actions-light.webp){.light-only width=688}
+![Debug Actions: the app's actions, one pinned, and the selected Log in as action with its arguments, its latest result and its runs, one of them made by an AI agent](../images/debug-actions/actions-dark.webp){.dark-only width=688}
 
 ## Setup
 
-Install **Debug Actions** from **Settings → Plugins → Add Plugins → Official Plugins**, then add the
-agent to the app:
+### Install the host plugin
+
+Install **Debug Actions** from **Settings → Plugins → Add Plugins → Official Plugins**. To install it
+by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
+
+### Add the agent to your app
 
 ```kotlin
 dependencies {
@@ -34,11 +43,11 @@ actionsPlugin.register {
 startJetWhale { plugins { register(actionsPlugin) } }
 ```
 
-## Declaring actions
+### Declaring actions
 
-An action's arguments are one `@Serializable` class. Its properties become the fields of the
-host's form and of the MCP schema; a property with a default may be left out, and
-`@McpDescription` documents it for people and agents alike.
+An action's arguments are one `@Serializable` class. Its properties become the fields of the host's
+form and of the MCP schema; a property with a default may be left out, and `@McpDescription`
+documents it for people and agents alike.
 
 ```kotlin
 @Serializable
@@ -68,12 +77,11 @@ actionsPlugin.register {
 | `timeout` | How long a run may take (30 seconds unless set) |
 
 The value `perform` returns is shown to whoever ran it: a `String` as text, a `JsonElement` as JSON,
-anything else through `toString()`. A thrown exception is reported with its stack trace. An action
-can therefore also answer a question — "what is the current user id?" — rather than change
-anything.
+anything else through `toString()`, and a thrown exception with its stack trace. An action can
+therefore answer a question — "what is the current user id?" — rather than change anything.
 
-Properties are entered by type: text for strings and numbers, a switch for a `Boolean`, a menu for
-an `enum`, and JSON for anything else (lists, nested classes).
+Properties are entered by type: text for strings and numbers, a switch for a `Boolean`, a menu for an
+`enum`, and JSON for anything else (lists, nested classes).
 
 ### Actions of a screen
 
@@ -88,24 +96,31 @@ fun CheckoutScreen(form: CheckoutFormState) {
 }
 ```
 
-The host marks them **Screen** and they appear and disappear as the user navigates. Pass what the
+The host marks them **Screen**, and they appear and disappear as the user navigates. Pass what the
 actions capture as keys; they are declared again when a key changes.
 
-## In the host
+## Using it
 
 - **Search** — ⌘K (Ctrl+K) focuses the search field; Enter picks the first match.
 - **Pins** — pinned actions stay at the top of the list, across restarts.
 - **Arguments** — the form starts from the arguments the action last ran with.
 - **Runs** — the latest result under the form, and the action's recent runs, including those an AI
-  agent made. A run in progress can be cancelled.
+  agent made. A run in progress can be canceled.
 
 ## MCP tools
+
+With the [MCP server](/guide/mcp-server) running, an AI agent runs the same actions through these
+tools. Each takes the `sessionId` of the app's session.
 
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.actions.listActions` | Every action with its argument JSON Schema, suggested values, and whether it is destructive or belongs to the current screen |
 | `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace |
 
-The tool list of an MCP connection is fixed when it opens, while screen actions come and go, so
-actions are not tools of their own: an agent lists them, then runs one by id. List again after
-navigating.
+## Limits
+
+- **Actions are not tools of their own.** The tool list of an MCP connection is fixed when it opens,
+  while screen actions come and go, so an agent lists the actions and runs one by id. List again after
+  navigating.
+- **A run that outlives its `timeout`** (30 seconds unless the action sets one) is canceled and
+  reported as timed out.
