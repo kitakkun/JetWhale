@@ -26,7 +26,9 @@ sets `jetwhalePlugin.hostVersion`, which is what gives you the `runJetWhale` and
 Can:
 
 - layout and rendering (screenshot), at a chosen viewport
-- gestures: click, drag, scroll, typing, and the state changes they cause
+- gestures: click, right-click, drag, scroll, typing, and the state changes they cause
+- context menus: open one with `jetwhale.secondaryClick`, read its items from the result, the
+  accessibility tree or a screenshot, and pick one with `jetwhale.click`
 - the Compose semantics tree (`getAccessibilityTree`) for locating elements
 - persisted plugin state, and whether it survives a host restart
 - the plugin's own contributed MCP tools
@@ -313,6 +315,7 @@ HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it
 | `jetwhale.listSessions` / `jetwhale.listPlugins` | discovery (read-only) |
 | `jetwhale.screenshot` | render the plugin scene to PNG |
 | `jetwhale.click` / `jetwhale.drag` / `jetwhale.scroll` | pointer input |
+| `jetwhale.secondaryClick` | right-click; lists the items of the context menu it opens |
 | `jetwhale.type` | text and special keys |
 | `jetwhale.getAccessibilityTree` | semantics tree; use it to find coordinates |
 | `<pluginId>.*` | tools the plugin itself contributes |

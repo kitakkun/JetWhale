@@ -53,6 +53,7 @@ from. Start here.
 |------|--------------|
 | `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
 | `jetwhale.click` | Dispatches a mouse click at pixel coordinates in a plugin's UI |
+| `jetwhale.secondaryClick` | Sends a secondary-button (right) click at pixel coordinates, to open a context menu |
 | `jetwhale.type` | Types text or a special key into a plugin's UI |
 | `jetwhale.scroll` | Dispatches a scroll event in a plugin's UI |
 | `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |
@@ -71,6 +72,7 @@ Beyond that pair, each tool takes:
 | `screenshot` | `width`, `height` | no | the UI's current size (fallback 1280×720) | Render at a different size for this capture only. Must be supplied **together**. |
 | | `density` | no | the scene's own density | e.g. `2` for HiDPI. Must be finite and greater than 0. |
 | `click` | `x`, `y` | yes | — | Pixels from the plugin UI's left/top edge. |
+| `secondaryClick` | `x`, `y` | yes | — | Pixels from the plugin UI's left/top edge. |
 | `type` | `text` | no | — | Printable characters to type. |
 | | `specialKey` | no | — | A key name instead of text. **Exactly one** of `text` / `specialKey` must be given. |
 | `scroll` | `x`, `y` | yes | — | Where to scroll. |
@@ -87,6 +89,20 @@ Worth knowing when a call does not do what you expect:
 - **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
   point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
   back as *No clickable element found*, rather than silently doing nothing.
+- **`jetwhale.secondaryClick` is a raw pointer event**: a secondary-button press and release at the
+  point, so a `ContextMenuArea` or a handler that checks for the secondary button reacts as it would
+  to a right-click. It answers with `consumed` (whether a handler consumed the press or release),
+  `openedPopup` and `closedPopup`, and `popupClickableNodes`: the clickable nodes of every popup
+  still open, such as a menu's items, topmost popup first and in the node shape
+  `jetwhale.getAccessibilityTree` returns. Pick an item with `jetwhale.click` at the center of its
+  `bounds`. When nothing consumed the click and no popup opened, closed or is open, it comes back as
+  an error; a handler that reacts without consuming the event is not detected, so check with a
+  screenshot.
+- **An open menu stays open until something closes it.** Picking an item closes it. To close it
+  without picking one, `jetwhale.secondaryClick` outside it: like a real click outside a menu, that
+  press only closes the menu (`closedPopup: true`) and reaches nothing beneath it. `jetwhale.click`
+  outside the menu leaves it open: it invokes the clickable element beneath the point as if the menu
+  were not there.
 - **`jetwhale.type`'s `text` goes to the focused text field**, where a user's keystrokes would land,
   or to the first text field in the scene when none has focus. Click a field first when the target
   matters. A special key is dispatched as a real key-down/key-up pair.
@@ -94,9 +110,11 @@ Worth knowing when a call does not do what you expect:
 
 `jetwhale.getAccessibilityTree` returns each node's `id`, `role`, `text`, `contentDescription`,
 `bounds` (relative to the plugin UI's root) and the `isClickable` / `isEnabled` / `isFocused` /
-`isSelected` / `isChecked` / `isEditable` flags, nested by `children`. Both it and
-`jetwhale.screenshot` raise the plugin's `LocalIsMcpCapture`, so
-[redaction](#plugin-provided-tools) applies to either.
+`isSelected` / `isChecked` / `isEditable` flags, nested by `children`. An open popup or dialog,
+such as a context menu, comes after the plugin's own content as a top-level node of its own, and
+`jetwhale.screenshot` draws it over that content. The tree and the screenshot both raise the
+plugin's `LocalIsMcpCapture`, so [redaction](#plugin-provided-tools) applies to either, and so does
+`jetwhale.secondaryClick` when it reads the items of a popup.
 
 ::: tip Reading the *app's* UI, not the plugin's
 These tools read the **host window's** Compose UI. To read the debugged app's own Compose tree — and
@@ -198,7 +216,7 @@ Each installed plugin gets a subtree of its own:
 | | Covers | Default |
 |---|---|---|
 | **UI → Inspect** | `screenshot`, `getAccessibilityTree`, for that plugin | on |
-| **UI → Interact** | `click`, `type`, `scroll`, `drag`, for that plugin | on |
+| **UI → Interact** | `click`, `secondaryClick`, `type`, `scroll`, `drag`, for that plugin | on |
 | **Own tools** | one checkbox per MCP tool the plugin contributes | on |
 
 Reading and driving are split because they are different risks: letting an agent look at a plugin's
