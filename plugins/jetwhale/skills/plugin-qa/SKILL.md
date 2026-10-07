@@ -367,8 +367,8 @@ Always `Read` the screenshot afterwards. A screenshot you never open verifies no
 
 ## 5. Coordinates and density — the expensive gotcha
 
-- `click` / `drag` / `scroll` coordinates are in the **same pixel space as the screenshot**, so
-  read positions off the image you just captured.
+- `click` / `secondaryClick` / `drag` / `scroll` coordinates are in the **same pixel space as the
+  screenshot**, so read positions off the image you just captured.
 - `width` / `height` on `screenshot` are **pixels**, and the scene renders at the host window's
   density — 2.0 on a Retina Mac, so a 240dp minimum width measures 480px. That holds even for a
   scene the tool created on demand and the window never displayed: it is seeded with the window's

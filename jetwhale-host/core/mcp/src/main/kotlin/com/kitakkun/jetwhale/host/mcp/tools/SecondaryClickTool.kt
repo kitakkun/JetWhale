@@ -19,6 +19,7 @@ import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
+import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -38,7 +39,11 @@ import kotlinx.serialization.json.JsonObject
 @ContributesIntoSet(AppScope::class)
 class SecondaryClickMcpTool(
     private val pluginComposeSceneService: PluginComposeSceneService,
+    private val mcpPermissionsRepository: McpPermissionsRepository,
 ) : JetWhaleMcpTool {
+    /** Leaves out the nodes an agent may not see instead of writing them as null. */
+    private val secondaryClickOutcomeJson = Json { explicitNulls = false }
+
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.secondaryClick",
@@ -47,8 +52,8 @@ class SecondaryClickMcpTool(
                 "clickable element's action, this is a pointer event. The result says whether a handler consumed it " +
                 "and whether a popup opened or closed, and lists the clickable nodes of every popup still open, such " +
                 "as a menu's items, with their bounds, in the shape jetwhale.getAccessibilityTree uses, so pick one " +
-                "with jetwhale.click. " +
-                "A secondary click outside an open popup closes it.",
+                "with jetwhale.click. The nodes are listed only when the plugin's UI may also be inspected, as for " +
+                "jetwhale.getAccessibilityTree. A secondary click outside an open popup closes it.",
             inputSchema = ToolSchema(
                 properties = JsonObject(
                     mapOf(
@@ -76,15 +81,33 @@ class SecondaryClickMcpTool(
                 ensureSceneRendered(scene)
                 dispatchSecondaryClick(scene, x, y)
             }
-            if (!outcome.consumed && !outcome.openedPopup && !outcome.closedPopup && outcome.popupClickableNodes.isEmpty()) {
-                errorResult(
+            if (!outcome.consumed && !outcome.openedPopup && !outcome.closedPopup && outcome.popupClickableNodes.isNullOrEmpty()) {
+                return@addTool errorResult(
                     "Nothing at ($x, $y) consumed the secondary click, and no popup opened or closed. " +
                         "A handler that reacts without consuming the event is not detected; check with jetwhale.screenshot.",
                 )
-            } else {
-                CallToolResult(content = listOf(TextContent(Json.encodeToString(outcome))))
             }
+            encodeOutcomeWithinInspectPermission(outcome, pluginId)
         }
+    }
+
+    /**
+     * [outcome] as a tool result. The popup's nodes carry what `jetwhale.getAccessibilityTree` shows, so
+     * they are left out, with a note saying why, unless the agent may also inspect [pluginId]'s UI.
+     */
+    private fun encodeOutcomeWithinInspectPermission(outcome: SecondaryClickOutcome, pluginId: String): CallToolResult {
+        if (mcpPermissionsRepository.permissionsFlow.value.allows(McpToolPermission.PluginInspect, pluginId)) {
+            return CallToolResult(content = listOf(TextContent(secondaryClickOutcomeJson.encodeToString(outcome))))
+        }
+        return CallToolResult(
+            content = listOf(
+                TextContent(secondaryClickOutcomeJson.encodeToString(outcome.copy(popupClickableNodes = null))),
+                TextContent(
+                    "popupClickableNodes is left out: reading the UI of '$pluginId' is not exposed to AI agents. " +
+                        "Review it in Settings → AI Agents → Permissions.",
+                ),
+            ),
+        )
     }
 }
 
@@ -97,7 +120,7 @@ class SecondaryClickMcpTool(
  * @property closedPopup whether a popup or dialog that was open closed. A press outside an open
  * popup only dismisses it; nothing beneath the popup receives that press.
  * @property popupClickableNodes the clickable nodes of every popup or dialog open after the click, the topmost
- * one's first and each one's top to bottom.
+ * one's first and each one's top to bottom; null when the agent may not inspect the plugin's UI.
  */
 @Serializable
 @VisibleForTesting
@@ -105,7 +128,7 @@ internal data class SecondaryClickOutcome(
     val consumed: Boolean,
     val openedPopup: Boolean,
     val closedPopup: Boolean,
-    val popupClickableNodes: List<NodeInfo>,
+    val popupClickableNodes: List<NodeInfo>?,
 )
 
 /**

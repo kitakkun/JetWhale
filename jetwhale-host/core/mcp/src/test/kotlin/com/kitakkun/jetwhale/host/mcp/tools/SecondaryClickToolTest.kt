@@ -26,6 +26,7 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
+import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.mokkery.answering.returns
@@ -44,7 +45,10 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -66,8 +70,8 @@ class SecondaryClickToolTest {
 
         assertTrue(outcome.consumed, "ContextMenuArea consumes the press that opens it")
         assertTrue(outcome.openedPopup)
-        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes.map(NodeInfo::text))
-        assertTrue(outcome.popupClickableNodes.all(NodeInfo::isClickable))
+        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes?.map(NodeInfo::text))
+        assertEquals(true, outcome.popupClickableNodes?.all(NodeInfo::isClickable))
     }
 
     @Test
@@ -124,7 +128,7 @@ class SecondaryClickToolTest {
     @Test
     fun `clicking a menu item runs its action and closes the menu`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = contextMenuScene()
-        val copyUrlBounds = dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes.single { it.text == "Copy URL" }.bounds
+        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes).single { it.text == "Copy URL" }.bounds
 
         ensureSceneRendered(scene)
         val clicked = dispatchClick(scene, copyUrlBounds.centerX, copyUrlBounds.centerY)
@@ -147,13 +151,13 @@ class SecondaryClickToolTest {
     @Test
     fun `a secondary click inside an open menu lists the items of the menu still open`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = contextMenuScene()
-        val copyUrlBounds = dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes.single { it.text == "Copy URL" }.bounds
+        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes).single { it.text == "Copy URL" }.bounds
 
         val outcome = dispatchSecondaryClick(scene, copyUrlBounds.centerX, copyUrlBounds.centerY)
 
         assertFalse(outcome.openedPopup)
         assertFalse(outcome.closedPopup)
-        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes.map(NodeInfo::text))
+        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes?.map(NodeInfo::text))
     }
 
     @Test
@@ -170,16 +174,16 @@ class SecondaryClickToolTest {
 
     @Test
     fun `secondaryClick answers with the opened menu's items`(): Unit = runBlocking(Dispatchers.Main) {
-        val result = callSecondaryClickTool(contextMenuScene(), x = 100, y = 100)
+        val result = callSecondaryClickTool(contextMenuScene(), x = 100, y = 100, permissions = McpPermissions.AllowAll)
 
         assertFalse(result.isError == true, "Expected a successful result, but was $result")
         val outcome = Json.decodeFromString<SecondaryClickOutcome>((result.content.single() as TextContent).text)
-        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes.map(NodeInfo::text))
+        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes?.map(NodeInfo::text))
     }
 
     @Test
     fun `secondaryClick answers with an error when nothing at the point takes the click`(): Unit = runBlocking(Dispatchers.Main) {
-        val result = callSecondaryClickTool(contextMenuScene(), x = 600, y = 400)
+        val result = callSecondaryClickTool(contextMenuScene(), x = 600, y = 400, permissions = McpPermissions.AllowAll)
 
         assertEquals(true, result.isError)
         assertContains((result.content.single() as TextContent).text, "Nothing at (600.0, 400.0) consumed the secondary click")
@@ -188,13 +192,28 @@ class SecondaryClickToolTest {
     @Test
     fun `secondaryClick inside an open menu answers with the menu's items rather than an error`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = contextMenuScene()
-        callSecondaryClickTool(scene, x = 100, y = 100)
+        callSecondaryClickTool(scene, x = 100, y = 100, permissions = McpPermissions.AllowAll)
 
-        val result = callSecondaryClickTool(scene, x = 120, y = 120)
+        val result = callSecondaryClickTool(scene, x = 120, y = 120, permissions = McpPermissions.AllowAll)
 
         assertFalse(result.isError == true, "Expected a successful result, but was $result")
         val outcome = Json.decodeFromString<SecondaryClickOutcome>((result.content.single() as TextContent).text)
-        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes.map(NodeInfo::text))
+        assertEquals(listOf("Copy URL", "Copy as cURL"), outcome.popupClickableNodes?.map(NodeInfo::text))
+    }
+
+    @Test
+    fun `secondaryClick leaves out the popup's nodes when the plugin's UI may not be inspected`(): Unit = runBlocking(Dispatchers.Main) {
+        val interactOnly = McpPermissions.AllowAll.copy(pluginsDeniedInspect = setOf("plugin"))
+
+        val result = callSecondaryClickTool(contextMenuScene(), x = 100, y = 100, permissions = interactOnly)
+
+        assertFalse(result.isError == true, "Expected a successful result, but was $result")
+        val texts = result.content.map { (it as TextContent).text }
+        val outcome = Json.parseToJsonElement(texts.first()).jsonObject
+        assertEquals(setOf("consumed", "openedPopup", "closedPopup"), outcome.keys)
+        assertEquals(true, outcome.getValue("openedPopup").jsonPrimitive.boolean)
+        assertTrue(texts.none { "Copy URL" in it }, "Expected no node data, but the result was $texts")
+        assertContains(texts.last(), "popupClickableNodes is left out")
     }
 
     /** A rendered scene whose top-left 200×200 black box is clickable, like a table row, and opens a two-item context menu. */
@@ -208,7 +227,7 @@ class SecondaryClickToolTest {
         return scene
     }
 
-    private suspend fun callSecondaryClickTool(scene: PluginComposeScene, x: Int, y: Int): CallToolResult {
+    private suspend fun callSecondaryClickTool(scene: PluginComposeScene, x: Int, y: Int, permissions: McpPermissions): CallToolResult {
         val server = Server(
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
@@ -216,7 +235,8 @@ class SecondaryClickToolTest {
         val sceneService = mock<PluginComposeSceneService> {
             everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
         }
-        SecondaryClickMcpTool(sceneService).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        val permissionsRepository = FakeMcpPermissionsRepository(permissions)
+        SecondaryClickMcpTool(sceneService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.secondaryClick",

@@ -95,9 +95,10 @@ Worth knowing when a call does not do what you expect:
   `openedPopup` and `closedPopup`, and `popupClickableNodes`: the clickable nodes of every popup
   still open, such as a menu's items, topmost popup first and in the node shape
   `jetwhale.getAccessibilityTree` returns. Pick an item with `jetwhale.click` at the center of its
-  `bounds`. When nothing consumed the click and no popup opened, closed or is open, it comes back as
-  an error; a handler that reacts without consuming the event is not detected, so check with a
-  screenshot.
+  `bounds`. The nodes are left out when the plugin's UI may not be inspected (see
+  [Permissions](#permissions)). When nothing consumed the click and no popup opened, closed or is
+  open, it comes back as an error; a handler that reacts without consuming the event is not
+  detected, so check with a screenshot.
 - **An open menu stays open until something closes it.** Picking an item closes it. To close it
   without picking one, `jetwhale.secondaryClick` outside it: like a real click outside a menu, that
   press only closes the menu (`closedPopup: true`) and reaches nothing beneath it. `jetwhale.click`
@@ -222,6 +223,11 @@ Each installed plugin gets a subtree of its own:
 Reading and driving are split because they are different risks: letting an agent look at a plugin's
 screen is not the same as letting it press the buttons on it. Everything defaults to on — you
 installed and enabled the plugin deliberately — and any leaf can be revoked on its own.
+
+`secondaryClick` needs only **Interact**, but its answer lists a popup's nodes, which carry what
+`getAccessibilityTree` would show, so it includes them only when **Inspect** is allowed for that
+plugin too. With Interact alone it still reports `consumed`, `openedPopup` and `closedPopup`, leaves
+`popupClickableNodes` out, and says why in a note.
 
 A plugin's own tools are only listed once the plugin has a live instance, since that is when it
 publishes its commands; with nothing connected the subtree says so. Denials are keyed by tool name,
