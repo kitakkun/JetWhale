@@ -24,12 +24,12 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
     subscribe = {
         pluginFactoryRepository.loadedPluginVersionsFlow.map { versionsById ->
             versionsById.values.mapNotNull { versions ->
-                val loaded = versions.firstOrNull() ?: return@mapNotNull null
-                val classLoader = loaded.factory.javaClass.classLoader
+                val newestVersion = versions.firstOrNull() ?: return@mapNotNull null
+                val classLoader = newestVersion.factory.javaClass.classLoader
                 PluginMetaData(
-                    name = loaded.manifest.pluginName,
-                    id = loaded.manifest.pluginId,
-                    version = loaded.manifest.version,
+                    name = newestVersion.manifest.pluginName,
+                    id = newestVersion.manifest.pluginId,
+                    version = newestVersion.manifest.version,
                     installedVersions = versions.map {
                         InstalledPluginVersion(
                             version = it.manifest.version,
@@ -37,12 +37,12 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
                             removable = appDataDirectoryProvider.isManagedPluginJarPath(it.jarPath),
                         )
                     },
-                    requiresAgent = loaded.manifest.requiresAgent,
-                    activeIconResource = loaded.manifest.icon?.activePath?.let {
+                    requiresAgent = newestVersion.manifest.requiresAgent,
+                    activeIconResource = newestVersion.manifest.icon?.activePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },
-                    inactiveIconResource = loaded.manifest.icon?.inactivePath?.let {
+                    inactiveIconResource = newestVersion.manifest.icon?.inactivePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },

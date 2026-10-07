@@ -279,16 +279,16 @@ class DefaultMcpServerServiceTest {
             val appPlugin = "com.example.app"
             val appSessions = listOf("app-session-1", "app-session-2")
             val hostPlugin = "com.example.host"
-            val hostInstance = LoadedPluginInstance(hostPlugin, HostSession.ID, FakeMcpCapablePlugin(toolName = "com.example.host.greet"), version = "1.0.0")
+            val hostPluginInstance = LoadedPluginInstance(hostPlugin, HostSession.ID, FakeMcpCapablePlugin(toolName = "com.example.host.greet"), version = "1.0.0")
             every { pluginInstanceService.getLoadedPluginInstances() } returns appSessions.map { sessionId ->
                 LoadedPluginInstance(appPlugin, sessionId, FakeMcpCapablePlugin(toolName = "com.example.app.greet"), version = "1.0.0")
-            } + hostInstance
+            } + hostPluginInstance
             appSessions.forEach { eventFlow.emit(PluginInstanceEvent.Ready(appPlugin, it, version = "1.0.0")) }
             eventFlow.emit(PluginInstanceEvent.Ready(hostPlugin, HostSession.ID, version = "1.0.0"))
             awaitCapableFor(HostSession.ID) { hostPlugin in it }
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { appPlugin in it } }
 
-            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(hostInstance)
+            every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(hostPluginInstance)
             appSessions.forEach { sessionId -> eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, sessionId)) }
 
             appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { it.isEmpty() } }

@@ -26,7 +26,7 @@ class SessionToolsTest {
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository>()
     private val pluginInstanceService = mock<PluginInstanceService> {
-        every { boundVersionsFlow } returns MutableStateFlow(BoundPluginVersions.Empty)
+        every { boundPluginVersionsFlow } returns MutableStateFlow(BoundPluginVersions.Empty)
     }
 
     private val hostOnlyPlugins = mapOf(
@@ -137,7 +137,7 @@ class SessionToolsTest {
         }
         every { pluginFactoryRepository.loadedPlugins } returns mapOf("com.example.plugin" to loadedPlugin("com.example.plugin", requiresAgent = true))
         every { pluginInstanceService.getPluginInstanceForSession("com.example.plugin", "old-app") } returns null
-        every { pluginInstanceService.boundVersionsFlow } returns MutableStateFlow(BoundPluginVersions(mapOf("old-app" to mapOf("com.example.plugin" to "0.9.0"))))
+        every { pluginInstanceService.boundPluginVersionsFlow } returns MutableStateFlow(BoundPluginVersions(mapOf("old-app" to mapOf("com.example.plugin" to "0.9.0"))))
 
         val result = listPlugins("old-app", repo, pluginFactoryRepository, pluginInstanceService)
         assertEquals("""[{"pluginId":"com.example.plugin","pluginName":"com.example.plugin","version":"0.9.0","mcpCapable":false}]""", result)

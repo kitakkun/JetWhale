@@ -9,8 +9,8 @@ import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
  */
 interface PluginStorageService {
     /**
-     * The storage of [plugin]'s version, seeded as described above on its first use. The first use of
+     * The storage of [loadedPlugin]'s version, seeded as described above on its first use. The first use of
      * a version reads and writes files on the calling thread; later uses do not.
      */
-    fun storageFor(plugin: LoadedHostPlugin): JetWhalePluginStorage
+    fun storageFor(loadedPlugin: LoadedHostPlugin): JetWhalePluginStorage
 }

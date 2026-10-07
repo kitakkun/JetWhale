@@ -28,10 +28,10 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistryTest {
 
-    private val boundVersions = MutableStateFlow(BoundPluginVersions.Empty)
+    private val mutableBoundPluginVersionsFlow = MutableStateFlow(BoundPluginVersions.Empty)
     private val instances = mutableMapOf<Pair<String, String>, JetWhaleHostPlugin>()
     private val pluginInstanceService = mock<PluginInstanceService> {
-        every { boundVersionsFlow } returns boundVersions
+        every { boundPluginVersionsFlow } returns mutableBoundPluginVersionsFlow
         every { getPluginInstanceForSession(any(), any()) } calls { (pluginId: String, sessionId: String) -> instances[pluginId to sessionId] }
     }
     private val registry = McpToolRegistry(pluginInstanceService)
@@ -138,16 +138,16 @@ class McpToolRegistryTest {
 
     @Test
     fun `a tool is listed with the definition of the newest version that registers it`() {
-        register(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", description = "old"))
-        register(sessionId = "session-new", version = "1.10.0", FakeTooledPlugin("a.greet", description = "new"))
+        bindVersionAndRegister(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", description = "old"))
+        bindVersionAndRegister(sessionId = "session-new", version = "1.10.0", FakeTooledPlugin("a.greet", description = "new"))
 
         assertEquals("new", registry.allRegistrations().single().second.description)
     }
 
     @Test
     fun `a call runs the version bound to the target session`() = runBlocking {
-        register(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", result = "from 1.2.0"))
-        register(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet", result = "from 1.3.0"))
+        bindVersionAndRegister(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", result = "from 1.2.0"))
+        bindVersionAndRegister(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet", result = "from 1.3.0"))
 
         assertEquals("from 1.2.0", registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-old"))))
         assertEquals("from 1.3.0", registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-new"))))
@@ -155,8 +155,8 @@ class McpToolRegistryTest {
 
     @Test
     fun `a call to a tool the session's version lacks fails naming that version`() = runBlocking {
-        register(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet", "a.added"))
-        register(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet"))
+        bindVersionAndRegister(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet", "a.added"))
+        bindVersionAndRegister(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet"))
 
         val result = registry.dispatch("a.added", mapOf("sessionId" to JsonPrimitive("session-old")))
 
@@ -168,8 +168,8 @@ class McpToolRegistryTest {
 
     @Test
     fun `an argument error from an older version names the version that ran`() = runBlocking {
-        register(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet"))
-        register(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", rejectArguments = true))
+        bindVersionAndRegister(sessionId = "session-new", version = "1.3.0", FakeTooledPlugin("a.greet"))
+        bindVersionAndRegister(sessionId = "session-old", version = "1.2.0", FakeTooledPlugin("a.greet", rejectArguments = true))
 
         val result = registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-old")))
 
@@ -178,9 +178,9 @@ class McpToolRegistryTest {
         assertContains(error, "1.3.0")
     }
 
-    private fun register(sessionId: String, version: String, plugin: FakeTooledPlugin) {
+    private fun bindVersionAndRegister(sessionId: String, version: String, plugin: FakeTooledPlugin) {
         instances["com.example.a" to sessionId] = plugin
-        boundVersions.value = BoundPluginVersions(boundVersions.value.versionsBySession + (sessionId to mapOf("com.example.a" to version)))
+        mutableBoundPluginVersionsFlow.value = BoundPluginVersions(mutableBoundPluginVersionsFlow.value.versionsBySession + (sessionId to mapOf("com.example.a" to version)))
         registry.register("com.example.a", sessionId, version = version, plugin = plugin)
     }
 }

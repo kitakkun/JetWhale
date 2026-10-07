@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.data.server.negotiation
 
+import com.kitakkun.jetwhale.host.model.AgentVersionCompatibility
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
-import com.kitakkun.jetwhale.host.model.newestFor
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -31,12 +31,12 @@ class PluginNegotiationStrategy(
         request.plugins.forEach { requestedPlugin ->
             val versions = loadedVersions[requestedPlugin.pluginId] ?: return@forEach
             if (requestedPlugin.pluginId !in enabledPluginIds) return@forEach
-            when (val bound = versions.newestFor(requestedPlugin.pluginVersion)) {
+            when (val compatibleVersion = AgentVersionCompatibility(requestedPlugin.pluginVersion).newestCompatibleOf(versions)) {
                 null -> incompatiblePlugins += requestedPlugin
 
                 else -> availablePlugins += JetWhalePluginInfo(
-                    pluginId = bound.manifest.pluginId,
-                    pluginVersion = bound.manifest.version,
+                    pluginId = compatibleVersion.manifest.pluginId,
+                    pluginVersion = compatibleVersion.manifest.version,
                 )
             }
         }

@@ -120,9 +120,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * that does not provide the tool.
      */
     private fun otherVersionBoundTo(sessionId: String, bindings: Collection<ToolBinding>): Pair<String, String>? {
-        val boundVersions = pluginInstanceService.boundVersionsFlow.value
+        val boundPluginVersions = pluginInstanceService.boundPluginVersionsFlow.value
         return bindings.map(ToolBinding::pluginId).distinct().firstNotNullOfOrNull { pluginId ->
-            boundVersions.versionOf(sessionId, pluginId)?.let { pluginId to it }
+            boundPluginVersions.versionOf(sessionId, pluginId)?.let { pluginId to it }
         }
     }
 

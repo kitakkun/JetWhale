@@ -133,9 +133,9 @@ class DefaultPluginSessionReconciliationServiceTest {
             pluginInstanceService = FakePluginInstanceService(factoryRepository),
         )
 
-        assertEquals(mapOf(HostSession.ID to null), service.targetSessions(hostOnlyPluginId, listOf(activeSession)))
-        assertEquals(mapOf(sessionId to "1.0.0"), service.targetSessions(pluginId, listOf(activeSession)))
-        assertEquals(emptyMap(), service.targetSessions(pluginId, emptyList()))
+        assertEquals(mapOf(HostSession.ID to null), service.agentVersionsByTargetSession(hostOnlyPluginId, listOf(activeSession)))
+        assertEquals(mapOf(sessionId to "1.0.0"), service.agentVersionsByTargetSession(pluginId, listOf(activeSession)))
+        assertEquals(emptyMap(), service.agentVersionsByTargetSession(pluginId, emptyList()))
     }
 
     private class FakeDebugSessionRepository(
@@ -199,13 +199,13 @@ class DefaultPluginSessionReconciliationServiceTest {
 
         override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
 
-        override val boundVersionsFlow: StateFlow<BoundPluginVersions> = MutableStateFlow(BoundPluginVersions.Empty)
+        override val boundPluginVersionsFlow: StateFlow<BoundPluginVersions> = MutableStateFlow(BoundPluginVersions.Empty)
 
-        override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessions: Map<String, String?>): Set<String> {
+        override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, agentVersionsBySession: Map<String, String?>): Set<String> {
             val newSessionIds = if (factoryRepository.loadedPlugins[pluginId] == null) {
                 emptySet()
             } else {
-                sessions.keys - initializedSessionIds
+                agentVersionsBySession.keys - initializedSessionIds
             }
             initializedSessionIds += newSessionIds
             calls.trySend(newSessionIds)

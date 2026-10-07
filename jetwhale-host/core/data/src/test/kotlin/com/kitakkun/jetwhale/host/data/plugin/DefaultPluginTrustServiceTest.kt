@@ -477,7 +477,7 @@ class DefaultPluginTrustServiceTest {
             }
             failingJars[pluginJarPath]?.let { reason -> failedJarsFlow.value += FailedPluginJar(pluginJarPath, reason) }
             if (failedJarsFlow.value.none { it.jarPath == pluginJarPath }) {
-                runningPluginsByJar[pluginJarPath] = declaredPlugins(File(pluginJarPath))
+                runningPluginsByJar[pluginJarPath] = readDeclaredPluginManifestsOrEmpty(File(pluginJarPath))
             }
         }
 

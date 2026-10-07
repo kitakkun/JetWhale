@@ -44,9 +44,9 @@ class DefaultPluginJarSwapServiceTest {
     private val preparedSessionIds = Channel<String>(Channel.UNLIMITED)
 
     private val factoryRepository = JarPluginFactoryRepository()
-    private val sessions = MutableStateFlow<ImmutableList<DebugSession>>(persistentListOf())
+    private val mutableDebugSessionsFlow = MutableStateFlow<ImmutableList<DebugSession>>(persistentListOf())
     private val debugSessionRepository = mock<DebugSessionRepository> {
-        every { debugSessionsFlow } returns sessions
+        every { debugSessionsFlow } returns mutableDebugSessionsFlow
     }
     private val enabledPluginsRepository = mock<EnabledPluginsRepository> {
         everySuspend { isPluginEnabled(any()) } returns true
@@ -84,11 +84,11 @@ class DefaultPluginJarSwapServiceTest {
 
     @Test
     fun `a reload prepares the rebuilt instance of a session whose agent has the plugin active`() = runBlocking {
-        val jar = jarFile("example.jar")
-        factoryRepository.load(version("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
+        val jar = writeJarFile("example.jar")
+        factoryRepository.load(loadedPluginVersion("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
         connectApp("app", agentVersion = "1.2.0")
         assertEquals("app", receivePreparedSessionId())
-        factoryRepository.rebuild(version("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
+        factoryRepository.rebuild(loadedPluginVersion("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
 
         swapService.reload(jar.absolutePath, expectedSha256 = null)
 
@@ -97,10 +97,10 @@ class DefaultPluginJarSwapServiceTest {
 
     @Test
     fun `a reload that makes a version fit a session leaves its instance to reconciliation`() = runBlocking {
-        val jar = jarFile("example.jar")
-        factoryRepository.load(version("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
+        val jar = writeJarFile("example.jar")
+        factoryRepository.load(loadedPluginVersion("1.2.0", jar, AgentVersionRange(max = "1.2.9")))
         connectApp("new-app", agentVersion = "1.3.0")
-        factoryRepository.rebuild(version("1.2.0", jar, agentVersionRange = null))
+        factoryRepository.rebuild(loadedPluginVersion("1.2.0", jar, agentVersionRange = null))
 
         swapService.reload(jar.absolutePath, expectedSha256 = null)
 
@@ -109,15 +109,15 @@ class DefaultPluginJarSwapServiceTest {
 
     @Test
     fun `removing a session's version moves the session to another version and prepares it there`() = runBlocking {
-        val oldJar = jarFile("example-1.2.0.jar")
-        factoryRepository.load(version("1.2.0", oldJar, agentVersionRange = null))
+        val oldJar = writeJarFile("example-1.2.0.jar")
+        factoryRepository.load(loadedPluginVersion("1.2.0", oldJar, agentVersionRange = null))
         connectApp("app", agentVersion = "1.3.0")
         assertEquals("app", receivePreparedSessionId())
-        factoryRepository.load(version("1.3.0", jarFile("example-1.3.0.jar"), agentVersionRange = null))
+        factoryRepository.load(loadedPluginVersion("1.3.0", writeJarFile("example-1.3.0.jar"), agentVersionRange = null))
 
         swapService.remove(oldJar.absolutePath)
 
-        assertEquals("1.3.0", instanceService.boundVersionsFlow.value.versionOf("app", PLUGIN_ID))
+        assertEquals("1.3.0", instanceService.boundPluginVersionsFlow.value.versionOf("app", PLUGIN_ID))
         assertEquals("app", receivePreparedSessionId())
     }
 
@@ -126,7 +126,7 @@ class DefaultPluginJarSwapServiceTest {
      * its agent has the plugin active. An app no loaded version fits gets neither.
      */
     private fun connectApp(sessionId: String, agentVersion: String) {
-        sessions.update { current ->
+        mutableDebugSessionsFlow.update { current ->
             (
                 current + DebugSession(
                     id = sessionId,
@@ -137,18 +137,18 @@ class DefaultPluginJarSwapServiceTest {
                 )
                 ).toPersistentList()
         }
-        instanceService.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, mapOf(sessionId to agentVersion)).forEach { activated ->
-            instanceService.startPluginInstancePreparation(PLUGIN_ID, activated)
+        instanceService.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, mapOf(sessionId to agentVersion)).forEach { initializedSessionId ->
+            instanceService.startPluginInstancePreparation(PLUGIN_ID, initializedSessionId)
         }
     }
 
     private suspend fun receivePreparedSessionId(): String = withTimeout(5.seconds) { preparedSessionIds.receive() }
 
-    private fun jarFile(name: String): File = File(jarDirectory, name).apply {
+    private fun writeJarFile(fileName: String): File = File(jarDirectory, fileName).apply {
         writeBytes(jarBytes(PLUGIN_MANIFEST_PATH, """{"plugins":[]}"""))
     }
 
-    private fun version(version: String, jar: File, agentVersionRange: AgentVersionRange?) = LoadedHostPlugin(
+    private fun loadedPluginVersion(version: String, jar: File, agentVersionRange: AgentVersionRange?) = LoadedHostPlugin(
         jarPath = jar.absolutePath,
         manifest = JetWhaleHostPluginManifest(
             pluginId = PLUGIN_ID,

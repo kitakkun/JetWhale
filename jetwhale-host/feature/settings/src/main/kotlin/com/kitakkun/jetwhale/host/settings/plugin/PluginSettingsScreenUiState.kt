@@ -21,7 +21,7 @@ data class PluginSettingsScreenUiState(
      * can declare several plugins, and removing it removes all of them.
      */
     fun versionsInJar(jarPath: String): List<Pair<String, String>> = plugins.flatMap { plugin ->
-        plugin.versions.filter { it.jarPath == jarPath }.map { plugin.name to it.version }
+        plugin.installedVersions.filter { it.jarPath == jarPath }.map { plugin.name to it.version }
     }
 }
 

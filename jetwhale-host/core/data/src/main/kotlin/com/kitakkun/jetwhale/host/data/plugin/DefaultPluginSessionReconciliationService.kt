@@ -30,7 +30,7 @@ class DefaultPluginSessionReconciliationService(
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessions(pluginId: String, sessions: List<DebugSession>): Map<String, String?> = if (requiresAgent(pluginId)) {
+    override fun agentVersionsByTargetSession(pluginId: String, sessions: List<DebugSession>): Map<String, String?> = if (requiresAgent(pluginId)) {
         sessions.mapNotNull { session ->
             session.installedPlugins.firstOrNull { it.pluginId == pluginId }?.let { advertised -> session.id to advertised.pluginVersion }
         }.toMap()
@@ -52,7 +52,7 @@ class DefaultPluginSessionReconciliationService(
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
-                            sessions = targetSessions(pluginId, activeSessions),
+                            agentVersionsBySession = agentVersionsByTargetSession(pluginId, activeSessions),
                         )
                         if (requiresAgent(pluginId) && activatedSessionIds.isNotEmpty()) {
                             send(PluginReconciliationEvent.Activated(pluginId, activatedSessionIds))

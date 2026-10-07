@@ -14,5 +14,5 @@ class DefaultBoundPluginVersionsSubscriptionKey(
     private val pluginInstanceService: PluginInstanceService,
 ) : BoundPluginVersionsSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("bound_plugin_versions"),
-    subscribe = { pluginInstanceService.boundVersionsFlow },
+    subscribe = { pluginInstanceService.boundPluginVersionsFlow },
 )

@@ -180,7 +180,7 @@ class DefaultPluginTrustService(
      * and scenes before their classloader is closed.
      */
     private suspend fun loadApproved(jarPath: String, approvedSha256: String) {
-        val declared = withContext(Dispatchers.IO) { declaredPlugins(File(jarPath)) }
+        val declared = withContext(Dispatchers.IO) { readDeclaredPluginManifestsOrEmpty(File(jarPath)) }
         val replacesRunningPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isNotEmpty() ||
             declared.any { manifest ->
                 pluginFactoryRepository.loadedPluginVersions[manifest.pluginId].orEmpty().any { it.manifest.version == manifest.version }
@@ -225,12 +225,12 @@ class DefaultPluginTrustService(
         } finally {
             snapshot.delete()
         }
-        val declaredPlugins = manifest?.plugins.orEmpty()
+        val declaredPluginManifests = manifest?.plugins.orEmpty()
         return ArrivedPluginJar(
             jarPath = jarPath,
             sizeBytes = sizeBytes,
             sha256 = sha256,
-            declaredPlugins = declaredPlugins.map(JetWhaleHostPluginManifest::toDeclaredPlugin),
+            declaredPlugins = declaredPluginManifests.map(JetWhaleHostPluginManifest::toDeclaredPlugin),
             unreadableReason = unreadableReason,
             loadFailure = null,
             replacedPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).flatMap { pluginId ->
@@ -238,7 +238,7 @@ class DefaultPluginTrustService(
                     .filter { it.jarPath == jarPath }
                     .map { it.manifest.toDeclaredPlugin() }
             },
-            otherVersions = declaredPlugins.flatMap { declared ->
+            otherVersions = declaredPluginManifests.flatMap { declared ->
                 pluginFactoryRepository.loadedPluginVersions[declared.pluginId].orEmpty()
                     .filter { it.jarPath != jarPath && it.manifest.version != declared.version }
                     .map { it.manifest.toDeclaredPlugin() }

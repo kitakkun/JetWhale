@@ -24,7 +24,7 @@ internal fun readJetWhaleHostPluginManifestFile(jar: File): JetWhaleHostPluginMa
  * The plugins [jar] declares, or none when its manifest cannot be read (the load then fails and
  * says why). Read before loading, to find the running plugins a jar would take over.
  */
-internal fun declaredPlugins(jar: File): List<JetWhaleHostPluginManifest> = try {
+internal fun readDeclaredPluginManifestsOrEmpty(jar: File): List<JetWhaleHostPluginManifest> = try {
     readJetWhaleHostPluginManifestFile(jar).plugins
 } catch (_: IOException) {
     emptyList()

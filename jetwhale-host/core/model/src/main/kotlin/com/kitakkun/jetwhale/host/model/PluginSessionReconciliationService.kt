@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.Flow
  * It reconciles the enabled-plugin set against the active sessions, drives
  * [PluginInstanceService] to create/unload the instances, and emits the agent-facing
  * [PluginReconciliationEvent]s that the transport layer must forward. Any other component that needs
- * the target-session computation (e.g. hot reload) goes through [targetSessions] instead of
- * recomputing it, so the rule lives in exactly one place.
+ * the target-session computation (e.g. hot reload) goes through [agentVersionsByTargetSession]
+ * instead of recomputing it, so the rule lives in exactly one place.
  */
 interface PluginSessionReconciliationService {
     /**
@@ -24,7 +24,7 @@ interface PluginSessionReconciliationService {
      * agent advertised it; a host-only plugin targets [HostSession] alone, mapped to null, whatever
      * [sessions] holds.
      */
-    fun targetSessions(pluginId: String, sessions: List<DebugSession>): Map<String, String?>
+    fun agentVersionsByTargetSession(pluginId: String, sessions: List<DebugSession>): Map<String, String?>
 
     /**
      * A cold flow that reconciles enabled plugins against active sessions for as long as it is

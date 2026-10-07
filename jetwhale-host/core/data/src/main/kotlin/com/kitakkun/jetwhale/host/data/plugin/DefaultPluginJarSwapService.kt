@@ -71,15 +71,15 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        val takenOverJarPaths = withContext(Dispatchers.IO) { declaredPlugins(File(jarPath)) }.mapNotNull { declared ->
+        val takenOverJarPaths = withContext(Dispatchers.IO) { readDeclaredPluginManifestsOrEmpty(File(jarPath)) }.mapNotNull { declared ->
             pluginFactoryRepository.loadedPluginVersions[declared.pluginId]
                 ?.firstOrNull { it.manifest.version == declared.version }
                 ?.jarPath
         }
         val replacedJarPaths = (takenOverJarPaths + jarPath).distinct()
         val previousPluginIds = replacedJarPaths.flatMap(pluginFactoryRepository::findPluginIdsByJarPath).distinct()
-        val activatedSessionIds = sessionIdsHoldingInstancesOf(previousPluginIds)
-        disposeJars(replacedJarPaths, previousPluginIds)
+        val activatedSessionIdsByPluginId = sessionIdsHoldingInstancesOf(previousPluginIds)
+        disposeInstancesAndScenes(replacedJarPaths, previousPluginIds)
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
@@ -87,14 +87,14 @@ class DefaultPluginJarSwapService(
             // A failed reload leaves the previous code loaded, so restore the instances and scenes
             // disposed above.
             previousPluginIds.forEach {
-                reinitializeInstances(it, activatedSessionIds[it].orEmpty())
+                reinitializeInstances(it, activatedSessionIdsByPluginId[it].orEmpty())
                 pluginReloadedFlow.emit(it)
             }
             return
         }
 
         val affectedPluginIds = (previousPluginIds + reloadedPluginIds).distinct()
-        affectedPluginIds.forEach { reinitializeInstances(it, activatedSessionIds[it].orEmpty()) }
+        affectedPluginIds.forEach { reinitializeInstances(it, activatedSessionIdsByPluginId[it].orEmpty()) }
 
         logger.info("Reloaded plugin(s): ${reloadedPluginIds.joinToString()}")
         affectedPluginIds.forEach { pluginReloadedFlow.emit(it) }
@@ -102,16 +102,16 @@ class DefaultPluginJarSwapService(
 
     override suspend fun remove(jarPath: String) {
         val pluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
-        val activatedSessionIds = sessionIdsHoldingInstancesOf(pluginIds)
-        disposeJars(listOf(jarPath), pluginIds)
+        val activatedSessionIdsByPluginId = sessionIdsHoldingInstancesOf(pluginIds)
+        disposeInstancesAndScenes(listOf(jarPath), pluginIds)
         pluginFactoryRepository.unloadPluginJar(jarPath)
         pluginIds.forEach {
-            reinitializeInstances(it, activatedSessionIds[it].orEmpty())
+            reinitializeInstances(it, activatedSessionIdsByPluginId[it].orEmpty())
             pluginReloadedFlow.emit(it)
         }
     }
 
-    private suspend fun disposeJars(jarPaths: List<String>, pluginIds: List<String>) = withContext(Dispatchers.Main) {
+    private suspend fun disposeInstancesAndScenes(jarPaths: List<String>, pluginIds: List<String>) = withContext(Dispatchers.Main) {
         jarPaths.forEach(pluginInstanceService::unloadPluginInstancesForJar)
         pluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
     }
@@ -133,14 +133,14 @@ class DefaultPluginJarSwapService(
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
-        val targetSessions = reconciliationService.targetSessions(pluginId, activeSessions).filterKeys(activatedSessionIds::contains)
+        val agentVersionsByTargetSession = reconciliationService.agentVersionsByTargetSession(pluginId, activeSessions).filterKeys(activatedSessionIds::contains)
 
-        if (targetSessions.isEmpty()) return
+        if (agentVersionsByTargetSession.isEmpty()) return
 
         withContext(Dispatchers.Main) {
             pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                 pluginId = pluginId,
-                sessions = targetSessions,
+                agentVersionsBySession = agentVersionsByTargetSession,
             ).forEach { sessionId ->
                 pluginInstanceService.startPluginInstancePreparation(pluginId = pluginId, sessionId = sessionId)
             }

@@ -28,7 +28,7 @@ interface PluginInstanceService {
      * The version each instance was created from. A session keeps the version it was bound to while
      * that version stays loaded.
      */
-    val boundVersionsFlow: StateFlow<BoundPluginVersions>
+    val boundPluginVersionsFlow: StateFlow<BoundPluginVersions>
 
     /** Returns all currently loaded plugin instances. */
     fun getLoadedPluginInstances(): List<LoadedPluginInstance>
@@ -53,17 +53,17 @@ interface PluginInstanceService {
 
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.
-     * [sessions] maps each target session id to the version of the plugin its agent advertised, or to
-     * null for [HostSession]; each session gets the newest loaded version that version accepts (see
-     * [newestFor]). A session keeps a version it is already bound to while that version stays loaded,
-     * across a reload of that version's jar too, and gets no instance when no loaded version fits it. Each new instance is wired to its own
-     * messaging peer.
+     * [agentVersionsBySession] maps each target session id to the version of the plugin its agent
+     * advertised, or to null for [HostSession]; each session gets the loaded version
+     * [AgentVersionCompatibility] picks for it. A session keeps a version it is already bound to while
+     * that version stays loaded, across a reload of that version's jar too, and gets no instance when no
+     * loaded version fits it. Each new instance is wired to its own messaging peer.
      *
      * A new instance of a plugin that requires an agent does not run its `onPrepare` until
      * [startPluginInstancePreparation] is called for it.
      * @return The set of session IDs for which new plugin instances were initialized.
      */
-    fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessions: Map<String, String?>): Set<String>
+    fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, agentVersionsBySession: Map<String, String?>): Set<String>
 
     /**
      * Runs the `onPrepare` of [pluginId]'s instance in [sessionId]. Call it once that session's agent

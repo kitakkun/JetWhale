@@ -21,9 +21,9 @@ class DefaultPluginStorageService(
     private val seededVersions: MutableSet<Pair<String, String>> = ConcurrentHashMap.newKeySet()
     private val seedLock = Any()
 
-    override fun storageFor(plugin: LoadedHostPlugin): JetWhalePluginStorage {
-        val pluginId = plugin.manifest.pluginId
-        val version = plugin.manifest.version
+    override fun storageFor(loadedPlugin: LoadedHostPlugin): JetWhalePluginStorage {
+        val pluginId = loadedPlugin.manifest.pluginId
+        val version = loadedPlugin.manifest.version
         if (pluginId to version !in seededVersions) {
             synchronized(seedLock) {
                 if (seededVersions.add(pluginId to version)) seedIfNew(pluginId, version)
@@ -38,7 +38,7 @@ class DefaultPluginStorageService(
         val olderVersions = storedVersions.filter { stored -> stored == null || PluginVersionOrder.compare(stored, version) < 0 }
         if (olderVersions.isEmpty()) return
         val sourceVersion = olderVersions.last()
-        pluginDataStoreRepository.seed(pluginId, version, pluginDataStoreRepository.readEntries(pluginId, sourceVersion))
+        pluginDataStoreRepository.writeInitialEntries(pluginId, version, pluginDataStoreRepository.readEntries(pluginId, sourceVersion))
         logger.info("Plugin '$pluginId' $version starts from a copy of the data of ${sourceVersion ?: "the unversioned store"}")
     }
 

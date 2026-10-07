@@ -13,7 +13,7 @@ class PluginSettingsScreenUiStateTest {
             PluginInfoUiState(
                 id = "com.example.network",
                 name = "Network",
-                versions = persistentListOf(
+                installedVersions = persistentListOf(
                     InstalledPluginVersion(version = "2.0.0", jarPath = "/plugins/network-2.jar", removable = true),
                     InstalledPluginVersion(version = "1.0.0", jarPath = "/plugins/bundle.jar", removable = true),
                 ),
@@ -21,7 +21,7 @@ class PluginSettingsScreenUiStateTest {
             PluginInfoUiState(
                 id = "com.example.storage",
                 name = "Storage",
-                versions = persistentListOf(
+                installedVersions = persistentListOf(
                     InstalledPluginVersion(version = "1.0.0", jarPath = "/plugins/bundle.jar", removable = true),
                 ),
             ),

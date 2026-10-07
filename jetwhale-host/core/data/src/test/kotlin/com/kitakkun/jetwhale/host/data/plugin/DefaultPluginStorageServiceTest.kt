@@ -41,90 +41,90 @@ class DefaultPluginStorageServiceTest {
     @Test
     fun `an upgrade starts from a copy of the older version's data`() = runBlocking {
         val service = newService()
-        service.storageFor(version("1.2.0")).put("filter", "errors-only")
+        service.storageFor(loadedPluginVersion("1.2.0")).put("filter", "errors-only")
 
-        assertEquals("errors-only", newService().storageFor(version("1.3.0")).get<String>("filter"))
+        assertEquals("errors-only", newService().storageFor(loadedPluginVersion("1.3.0")).get<String>("filter"))
     }
 
     @Test
     fun `versions running side by side do not see each other's writes after the seed`() = runBlocking {
         val service = newService()
-        val old = service.storageFor(version("1.2.0"))
-        old.put("filter", "errors-only")
-        val new = service.storageFor(version("1.3.0"))
+        val oldStorage = service.storageFor(loadedPluginVersion("1.2.0"))
+        oldStorage.put("filter", "errors-only")
+        val newStorage = service.storageFor(loadedPluginVersion("1.3.0"))
 
-        new.put("filter", "all")
-        old.put("pinned", "row-1")
+        newStorage.put("filter", "all")
+        oldStorage.put("pinned", "row-1")
 
-        assertEquals("errors-only", old.get<String>("filter"))
-        assertEquals("all", new.get<String>("filter"))
-        assertNull(new.get<String>("pinned"))
+        assertEquals("errors-only", oldStorage.get<String>("filter"))
+        assertEquals("all", newStorage.get<String>("filter"))
+        assertNull(newStorage.get<String>("pinned"))
     }
 
     @Test
     fun `a version that has its own data is not seeded again on a later start`() = runBlocking {
         val repository = DefaultPluginDataStoreRepository(appDataDirectoryProvider)
-        repository.seed(pluginId, "1.2.0", mapOf("filter" to JsonPrimitive("from 1.2.0")))
-        repository.seed(pluginId, "1.3.0", mapOf("filter" to JsonPrimitive("from 1.3.0")))
+        repository.writeInitialEntries(pluginId, "1.2.0", mapOf("filter" to JsonPrimitive("from 1.2.0")))
+        repository.writeInitialEntries(pluginId, "1.3.0", mapOf("filter" to JsonPrimitive("from 1.3.0")))
 
-        assertEquals("from 1.3.0", DefaultPluginStorageService(repository).storageFor(version("1.3.0")).get<String>("filter"))
+        assertEquals("from 1.3.0", DefaultPluginStorageService(repository).storageFor(loadedPluginVersion("1.3.0")).get<String>("filter"))
     }
 
     @Test
     fun `the seed comes from the nearest older version`() = runBlocking {
         val service = newService()
-        service.storageFor(version("1.2.0")).put("filter", "from 1.2.0")
-        service.storageFor(version("1.9.0")).put("filter", "from 1.9.0")
-        service.storageFor(version("1.11.0")).put("filter", "from 1.11.0")
+        service.storageFor(loadedPluginVersion("1.2.0")).put("filter", "from 1.2.0")
+        service.storageFor(loadedPluginVersion("1.9.0")).put("filter", "from 1.9.0")
+        service.storageFor(loadedPluginVersion("1.11.0")).put("filter", "from 1.11.0")
 
-        assertEquals("from 1.9.0", service.storageFor(version("1.10.0")).get<String>("filter"))
+        assertEquals("from 1.9.0", service.storageFor(loadedPluginVersion("1.10.0")).get<String>("filter"))
     }
 
     @Test
     fun `a pre-release upgrade starts from a copy of the previous pre-release's data`() = runBlocking {
         val service = newService()
-        service.storageFor(version("1.0.0-alpha01")).put("filter", "errors-only")
+        service.storageFor(loadedPluginVersion("1.0.0-alpha01")).put("filter", "errors-only")
 
-        assertEquals("errors-only", newService().storageFor(version("1.0.0-alpha02")).get<String>("filter"))
+        assertEquals("errors-only", newService().storageFor(loadedPluginVersion("1.0.0-alpha02")).get<String>("filter"))
     }
 
     @Test
     fun `a version older than every stored one starts empty`() = runBlocking {
         val service = newService()
-        service.storageFor(version("1.3.0")).put("filter", "from 1.3.0")
+        service.storageFor(loadedPluginVersion("1.3.0")).put("filter", "from 1.3.0")
 
-        assertNull(service.storageFor(version("1.2.0")).get<String>("filter"))
+        assertNull(service.storageFor(loadedPluginVersion("1.2.0")).get<String>("filter"))
     }
 
     @Test
     fun `data stored before versions were kept apart seeds the first version`() = runBlocking {
-        val unversionedStore = File(appDataDirectoryProvider.resolvePluginDataDir(pluginId).toString(), "store.json")
-        unversionedStore.parentFile.mkdirs()
-        unversionedStore.writeText("""{"filter":"errors-only"}""")
+        val unversionedStoreJsonFile = File(appDataDirectoryProvider.resolvePluginDataDir(pluginId).toString(), "store.json")
+        unversionedStoreJsonFile.parentFile.mkdirs()
+        unversionedStoreJsonFile.writeText("""{"filter":"errors-only"}""")
 
-        assertEquals("errors-only", newService().storageFor(version("1.2.0")).get<String>("filter"))
+        assertEquals("errors-only", newService().storageFor(loadedPluginVersion("1.2.0")).get<String>("filter"))
     }
 
     @Test
     fun `a version with a newer storage format migrates its copy and leaves the older version's alone`() = runBlocking {
         val service = newService()
-        val old = service.storageFor(version("1.2.0"))
-        StoringPlugin(storageVersion = 1, migrate = {}).apply { bindStorage(old) }.write("draft", "hello")
+        val oldStorage = service.storageFor(loadedPluginVersion("1.2.0"))
+        StoringPlugin(storageVersion = 1, migrate = {}).apply { bindStorage(oldStorage) }.write("draft", "hello")
 
         val newPlugin = StoringPlugin(storageVersion = 2, migrate = { storage ->
             storage.get<String>("draft")?.let { storage.put("draft-input", it) }
             storage.remove("draft")
         })
-        newPlugin.bindStorage(service.storageFor(version("1.3.0")))
+        newPlugin.bindStorage(service.storageFor(loadedPluginVersion("1.3.0")))
 
         assertEquals("hello", newPlugin.read("draft-input"))
         assertNull(newPlugin.read("draft"))
-        assertEquals("hello", old.get<String>("draft"))
+        assertEquals("hello", oldStorage.get<String>("draft"))
     }
 
     private fun newService() = DefaultPluginStorageService(DefaultPluginDataStoreRepository(appDataDirectoryProvider))
 
-    private fun version(version: String) = LoadedHostPlugin(
+    private fun loadedPluginVersion(version: String) = LoadedHostPlugin(
         manifest = JetWhaleHostPluginManifest(
             pluginId = pluginId,
             pluginName = "Example",

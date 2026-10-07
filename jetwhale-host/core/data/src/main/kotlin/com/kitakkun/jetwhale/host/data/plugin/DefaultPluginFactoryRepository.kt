@@ -59,7 +59,7 @@ class DefaultPluginFactoryRepository(
     private val classLoaders: ConcurrentHashMap<String, URLClassLoader> = ConcurrentHashMap()
 
     /** Maps the absolute jar path plugins were loaded from to the plugin versions it provides. */
-    private val jarPathToPlugins: ConcurrentHashMap<String, List<PluginVersionKey>> = ConcurrentHashMap()
+    private val jarPathToPluginVersionKeys: ConcurrentHashMap<String, List<PluginVersionKey>> = ConcurrentHashMap()
 
     /**
      * Private per-jar copy of the jar that each classloader actually opens, keyed by absolute jar path.
@@ -72,7 +72,7 @@ class DefaultPluginFactoryRepository(
 
     /**
      * Serializes load/unload/reload: each performs compound read-modify-write across several maps
-     * ([classLoaders], [jarPathToPlugins], [runtimeJars], [loadedPluginVersionsFlow]), which per-map
+     * ([classLoaders], [jarPathToPluginVersionKeys], [runtimeJars], [loadedPluginVersionsFlow]), which per-map
      * atomicity alone does not make safe. `loadPlugin` is invoked from the initial load, the install
      * flow, and the hot-reload watcher, so these can overlap.
      */
@@ -119,16 +119,16 @@ class DefaultPluginFactoryRepository(
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
-            val newPlugins = loaded.map(LoadedHostPlugin::versionKey)
+            val loadedVersionKeys = loaded.map(LoadedHostPlugin::versionKey)
 
-            detachPluginVersionsFromOtherJars(newPlugins.toSet(), keepJarPath = pluginJarPath)
+            detachPluginVersionsFromOtherJars(loadedVersionKeys.toSet(), keepJarPath = pluginJarPath)
 
             val previousClassLoader = classLoaders.put(pluginJarPath, classLoader)
             committed = true
             previousClassLoader?.close()
             if (runtimeJar != null) runtimeJars[pluginJarPath] = runtimeJar else runtimeJars.remove(pluginJarPath)
 
-            jarPathToPlugins[pluginJarPath] = newPlugins
+            jarPathToPluginVersionKeys[pluginJarPath] = loadedVersionKeys
             loadedPluginVersionsFlow.update { current ->
                 (current.withoutJar(pluginJarPath).values.flatten() + loaded).toVersionsById()
             }
@@ -216,23 +216,23 @@ class DefaultPluginFactoryRepository(
     }
 
     /**
-     * Removes [plugins] from every jar other than [keepJarPath] that currently provides them, together
+     * Removes [pluginVersionKeys] from every jar other than [keepJarPath] that currently provides them, together
      * with their loaded entries; a jar left with no plugins has its classloader closed and dropped.
      */
-    private fun detachPluginVersionsFromOtherJars(plugins: Set<PluginVersionKey>, keepJarPath: String) {
-        for ((jarPath, provided) in jarPathToPlugins) {
+    private fun detachPluginVersionsFromOtherJars(pluginVersionKeys: Set<PluginVersionKey>, keepJarPath: String) {
+        for ((jarPath, provided) in jarPathToPluginVersionKeys) {
             if (jarPath == keepJarPath) continue
-            val remaining = provided.filterNot(plugins::contains)
+            val remaining = provided.filterNot(pluginVersionKeys::contains)
             if (remaining.size == provided.size) continue
             loadedPluginVersionsFlow.update { current ->
-                current.values.flatten().filterNot { it.jarPath == jarPath && it.versionKey() in plugins }.toVersionsById()
+                current.values.flatten().filterNot { it.jarPath == jarPath && it.versionKey() in pluginVersionKeys }.toVersionsById()
             }
             if (remaining.isEmpty()) {
-                jarPathToPlugins.remove(jarPath)
+                jarPathToPluginVersionKeys.remove(jarPath)
                 classLoaders.remove(jarPath)?.close()
                 runtimeJars.remove(jarPath)
             } else {
-                jarPathToPlugins[jarPath] = remaining
+                jarPathToPluginVersionKeys[jarPath] = remaining
             }
         }
     }
@@ -255,15 +255,15 @@ class DefaultPluginFactoryRepository(
     }
 
     override suspend fun unloadPluginJar(pluginJarPath: String): Unit = loadMutex.withLock {
-        val plugins = jarPathToPlugins.remove(pluginJarPath).orEmpty()
+        val unloadedVersionKeys = jarPathToPluginVersionKeys.remove(pluginJarPath).orEmpty()
         loadedPluginVersionsFlow.update { current -> current.withoutJar(pluginJarPath) }
         classLoaders.remove(pluginJarPath)?.close()
         runtimeJars.remove(pluginJarPath)
         mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
-        plugins.forEach { println("Unloaded plugin: ${it.pluginId} v${it.version}") }
+        unloadedVersionKeys.forEach { println("Unloaded plugin: ${it.pluginId} v${it.version}") }
     }
 
-    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPlugins[pluginJarPath].orEmpty().map(PluginVersionKey::pluginId)
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginVersionKeys[pluginJarPath].orEmpty().map(PluginVersionKey::pluginId)
 
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
         loadPluginUnderLock(pluginJarPath, expectedSha256)

@@ -31,5 +31,5 @@ interface PluginDataStoreRepository {
      * Writes [entries] as the initial data of [version] of [pluginId]. Only for a version with no data
      * yet, before its [storageFor] handle is first used.
      */
-    fun seed(pluginId: String, version: String, entries: Map<String, JsonElement>)
+    fun writeInitialEntries(pluginId: String, version: String, entries: Map<String, JsonElement>)
 }

@@ -115,14 +115,14 @@ fun PluginSettingsScreen(
             onDismiss = { showFailedJarsDialog = false },
         )
     }
-    versionToRemove?.let { (plugin, version) ->
+    versionToRemove?.let { (plugin, installedVersion) ->
         RemovePluginVersionDialog(
             pluginName = plugin.name,
-            version = version.version,
-            alsoRemoved = uiState.versionsInJar(version.jarPath) - (plugin.name to version.version),
+            version = installedVersion.version,
+            alsoRemovedVersions = uiState.versionsInJar(installedVersion.jarPath) - (plugin.name to installedVersion.version),
             onConfirm = {
                 versionToRemove = null
-                onRemovePluginVersion(version.jarPath)
+                onRemovePluginVersion(installedVersion.jarPath)
             },
             onDismiss = { versionToRemove = null },
         )
@@ -521,21 +521,21 @@ private fun InstalledPluginRow(
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
-                plugin.versions.forEach { version ->
+                plugin.installedVersions.forEach { installedVersion ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         JwText(
-                            text = "v${version.version}",
+                            text = "v${installedVersion.version}",
                             style = JwTheme.textStyles.label,
                             color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                         )
-                        if (version.removable) {
+                        if (installedVersion.removable) {
                             JwButton(
                                 text = stringResource(Res.string.remove_plugin_version),
-                                onClick = { onRemoveVersion(version) },
+                                onClick = { onRemoveVersion(installedVersion) },
                                 style = JwButtonStyle.Text,
                             )
                         }
@@ -547,14 +547,14 @@ private fun InstalledPluginRow(
 }
 
 /**
- * Confirms removing a version, which deletes its jar: [alsoRemoved] lists the other plugin versions
- * that jar declares, as name and version, since they go with it.
+ * Confirms removing a version, which deletes its jar: [alsoRemovedVersions] lists the other plugin
+ * versions that jar declares, as name and version, since they go with it.
  */
 @Composable
 private fun RemovePluginVersionDialog(
     pluginName: String,
     version: String,
-    alsoRemoved: List<Pair<String, String>>,
+    alsoRemovedVersions: List<Pair<String, String>>,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -577,13 +577,13 @@ private fun RemovePluginVersionDialog(
             style = JwTheme.textStyles.bodySmall,
             color = JwTheme.colors.textSecondary,
         )
-        if (alsoRemoved.isNotEmpty()) {
+        if (alsoRemovedVersions.isNotEmpty()) {
             JwText(
                 text = stringResource(Res.string.remove_plugin_version_also_removes),
                 style = JwTheme.textStyles.bodySmall,
             )
             JwText(
-                text = alsoRemoved.joinToString(separator = "\n") { (name, otherVersion) -> "$name v$otherVersion" },
+                text = alsoRemovedVersions.joinToString(separator = "\n") { (name, otherVersion) -> "$name v$otherVersion" },
                 style = JwTheme.textStyles.bodySmall,
             )
         }
@@ -732,7 +732,7 @@ private fun PluginSettingsScreenPreview() {
                     PluginInfoUiState(
                         name = "Network Inspector",
                         id = "com.example.network",
-                        versions = persistentListOf(
+                        installedVersions = persistentListOf(
                             InstalledPluginVersion(version = "1.3.0", jarPath = "/plugins/network-1.3.0.jar", removable = true),
                             InstalledPluginVersion(version = "1.2.0", jarPath = "/plugins/network-1.2.0.jar", removable = true),
                         ),

@@ -54,11 +54,11 @@ class DefaultPluginDataStoreRepository(
     }
 
     override fun storedVersions(pluginId: String): List<String?> {
-        val pluginDir = appDataDirectoryProvider.resolvePluginDataDir(pluginId)
+        val pluginDataDir = appDataDirectoryProvider.resolvePluginDataDir(pluginId)
         val fileSystem = FileSystem.SYSTEM
-        if (!fileSystem.exists(pluginDir)) return emptyList()
-        val unversioned = if (fileSystem.exists(pluginDir / STORE_FILE_NAME)) listOf(null) else emptyList()
-        val versioned = fileSystem.list(pluginDir)
+        if (!fileSystem.exists(pluginDataDir)) return emptyList()
+        val unversioned = if (fileSystem.exists(pluginDataDir / STORE_FILE_NAME)) listOf(null) else emptyList()
+        val versioned = fileSystem.list(pluginDataDir)
             .filter { fileSystem.exists(it / STORE_FILE_NAME) }
             .mapNotNull(::readVersion)
             .sortedWith(PluginVersionOrder)
@@ -80,7 +80,7 @@ class DefaultPluginDataStoreRepository(
         }
     }
 
-    override fun seed(pluginId: String, version: String, entries: Map<String, JsonElement>) {
+    override fun writeInitialEntries(pluginId: String, version: String, entries: Map<String, JsonElement>) {
         val versionDir = appDataDirectoryProvider.resolvePluginVersionDataDir(pluginId, version)
         FileSystem.SYSTEM.createDirectories(versionDir)
         FileSystem.SYSTEM.write(versionDir / STORE_FILE_NAME) {
@@ -93,7 +93,7 @@ class DefaultPluginDataStoreRepository(
         val metadataPath = versionDir / METADATA_FILE_NAME
         if (FileSystem.SYSTEM.exists(metadataPath)) return
         FileSystem.SYSTEM.createDirectories(versionDir)
-        FileSystem.SYSTEM.write(metadataPath) { writeUtf8(Json.encodeToString(StoreMetadata.serializer(), StoreMetadata(version))) }
+        FileSystem.SYSTEM.write(metadataPath) { writeUtf8(Json.encodeToString(MetadataJson.serializer(), MetadataJson(version))) }
     }
 
     /**
@@ -104,7 +104,7 @@ class DefaultPluginDataStoreRepository(
         val metadataPath = versionDir / METADATA_FILE_NAME
         if (!FileSystem.SYSTEM.exists(metadataPath)) return null
         return try {
-            Json.decodeFromString(StoreMetadata.serializer(), FileSystem.SYSTEM.read(metadataPath) { readUtf8() }).version
+            Json.decodeFromString(MetadataJson.serializer(), FileSystem.SYSTEM.read(metadataPath) { readUtf8() }).version
         } catch (e: SerializationException) {
             logger.warning("Plugin data metadata $metadataPath is malformed; its data is not carried over: ${e.message}")
             null
@@ -149,7 +149,7 @@ class DefaultPluginDataStoreRepository(
 }
 
 @Serializable
-private data class StoreMetadata(val version: String)
+private data class MetadataJson(val version: String)
 
 /**
  * Backs a single plugin's [JetWhalePluginStorage] with a [DataStore] holding one [JsonObject]: each

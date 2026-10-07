@@ -87,42 +87,42 @@ class DefaultPluginFactoryRepositoryTest {
 
     @Test
     fun `jars with different versions of one plugin are loaded side by side`() = runBlocking {
-        val older = versionJar("example-1.2.0.jar", "1.2.0")
-        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
-        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+        val olderJar = writePluginJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(olderJar.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(writePluginJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
 
         assertEquals(listOf("1.3.0", "1.2.0"), repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version })
         assertEquals("1.3.0", repository.loadedPlugins.getValue(PLUGIN_ID).manifest.version)
-        assertEquals(listOf(PLUGIN_ID), repository.findPluginIdsByJarPath(older.absolutePath))
+        assertEquals(listOf(PLUGIN_ID), repository.findPluginIdsByJarPath(olderJar.absolutePath))
     }
 
     @Test
     fun `a jar with the same version as another jar takes that version over`() = runBlocking {
-        val older = versionJar("example-1.2.0.jar", "1.2.0")
-        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
-        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
-        val copy = versionJar("example-copy.jar", "1.3.0")
+        val olderJar = writePluginJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(olderJar.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(writePluginJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+        val sameVersionJar = writePluginJar("example-copy.jar", "1.3.0")
 
-        repository.loadPlugin(copy.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(sameVersionJar.absolutePath, expectedSha256 = null)
 
         assertEquals(
-            listOf("1.3.0" to copy.absolutePath, "1.2.0" to older.absolutePath),
+            listOf("1.3.0" to sameVersionJar.absolutePath, "1.2.0" to olderJar.absolutePath),
             repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version to it.jarPath },
         )
     }
 
     @Test
     fun `unloading one version's jar keeps the other versions`() = runBlocking {
-        val older = versionJar("example-1.2.0.jar", "1.2.0")
-        repository.loadPlugin(older.absolutePath, expectedSha256 = null)
-        repository.loadPlugin(versionJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
+        val olderJar = writePluginJar("example-1.2.0.jar", "1.2.0")
+        repository.loadPlugin(olderJar.absolutePath, expectedSha256 = null)
+        repository.loadPlugin(writePluginJar("example-1.3.0.jar", "1.3.0").absolutePath, expectedSha256 = null)
 
-        repository.unloadPluginJar(older.absolutePath)
+        repository.unloadPluginJar(olderJar.absolutePath)
 
         assertEquals(listOf("1.3.0"), repository.loadedPluginVersions.getValue(PLUGIN_ID).map { it.manifest.version })
     }
 
-    private fun versionJar(name: String, version: String): File = File(pluginsDir, name).apply {
+    private fun writePluginJar(fileName: String, version: String): File = File(pluginsDir, fileName).apply {
         JarOutputStream(outputStream()).use { archive ->
             archive.putNextEntry(JarEntry(PLUGIN_MANIFEST_PATH))
             val factoryClass = VersionTestPluginFactory::class.java.name

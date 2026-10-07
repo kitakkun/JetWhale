@@ -79,7 +79,7 @@ fun pluginSettingsScreenPresenter(
             PluginInfoUiState(
                 id = it.id,
                 name = it.name,
-                versions = it.installedVersions.toPersistentList(),
+                installedVersions = it.installedVersions.toPersistentList(),
             )
         }.toPersistentList(),
         officialPlugins = OfficialPluginCatalog.plugins.map { plugin ->
