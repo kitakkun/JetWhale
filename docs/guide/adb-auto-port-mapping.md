@@ -28,7 +28,7 @@ While enabled, the host:
    ```
 
    for **each** active server port — the plain ws port and, while wss is enabled, the
-   [wss](/guide/getting-started#secure-connections-wss) port too — so both endpoints reach the host.
+   [wss](/guide/connecting#secure-connections-wss) port too — so both endpoints reach the host.
 4. When a device goes offline, removes its reverse mappings.
 
 If the ADB server restarts or crashes (for example, another tool ran `adb kill-server`), JetWhale

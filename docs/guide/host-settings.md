@@ -58,6 +58,14 @@ is downloaded or applied without a click.
 A host started any other way (`java -jar`, the Gradle tasks) does not update itself; the section
 links to the release page instead. In the IDE plugin the section is hidden.
 
+Banners above the host's plugin area report on the same states:
+
+- A newer release is available, or needs a new installer: **View in Settings** opens this section.
+- A newer version is installed and starts next time: **Restart to Update** restarts into it now.
+- A new version failed to start, so the previous one is running: **View Log** opens the failed
+  start's output, and **Try Again** restarts into the new version once more.
+- A restart could not happen: quit the app and open it again.
+
 ## Connection
 
 ### Debug Server
@@ -92,7 +100,7 @@ is where to export, replace or switch it.
 
 ### SSL certificates
 
-To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
+To let agents connect over [wss](/guide/connecting#secure-connections-wss), the host serves TLS
 using a **locally-issued certificate**. Each entry is a self-contained local PKI: a root CA plus a
 `localhost` server certificate signed by it. The host serves wss with the server certificate; the
 agent trusts the CA.

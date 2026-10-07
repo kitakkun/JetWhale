@@ -1,29 +1,21 @@
 # Network Inspector
 
-The Network Inspector is an official JetWhale plugin for inspecting the HTTP traffic of your app —
-and for **mocking responses** without touching your backend.
+The Network Inspector shows the HTTP traffic of your app's **Ktor** and **OkHttp** clients — request
+and response headers, bodies and timing — and **mocks responses** from the host without touching
+your backend. Redaction rules keep secrets out of what it captures.
 
-- 📡 Live view of HTTP transactions (request/response headers, bodies, timing)
-- 🔍 JSON body viewer for structured responses
-- 📋 Copy transactions for sharing or reproducing requests — the detail pane is fully
-  text-selectable
-- 🎭 Response mocking with configurable rules, toggled from the host UI
-- 🙈 [Redaction rules](#redacting-sensitive-values) to keep secrets (auth headers, tokens,
-  passwords) out of captured traffic
-
-It works with **Ktor** and **OkHttp** clients.
+**Works with:** every platform through a Ktor client; Android and the JVM through OkHttp.
 
 ## Setup
 
 ### Install the host plugin
 
-The Network Inspector is in the host's **official catalog**: open **Settings → Plugins → Add Plugins
-→ Official Plugins** and install it with one click — no coordinates needed. See
-[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+Install **Network Inspector** from **Settings → Plugins → Add Plugins → Official Plugins**. To
+install it by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
 
-Add the core agent plus the adapter for your HTTP client to the app being debugged:
+Add the adapter for your HTTP client, next to the agent runtime:
 
 ```kotlin
 dependencies {
@@ -34,13 +26,12 @@ dependencies {
 }
 ```
 
-Create **one** `JetWhaleNetworkAgentPlugin` instance and use it in two places: install it into your
-HTTP client, and register it in `startJetWhale { }`. It must be the same instance.
+Create **one** `JetWhaleNetworkAgentPlugin`, install it into your HTTP client, and register the same
+instance in `startJetWhale { }`:
 
-### Ktor
+::: code-group
 
-```kotlin
-import com.kitakkun.jetwhale.agent.runtime.startJetWhale
+```kotlin [Ktor]
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 
@@ -51,40 +42,26 @@ val client = HttpClient {
 }
 
 startJetWhale {
-    connection {
-        endpoints {
-            ws("localhost", 5080)
-        }
-    }
+    connection { /* ... */ }
     plugins {
         register(networkAgent)
     }
 }
 ```
 
-#### Attaching to a client you didn't build
-
-When the `HttpClient` comes from a DI container or a library, use the `HttpSend` interceptor
-instead — it attaches to an already-built client, so the construction site stays untouched:
-
-```kotlin
+```kotlin [Ktor, a client you didn't build]
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorSendInterceptor
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
 
 val networkAgent = JetWhaleNetworkAgentPlugin()
-val client = HttpClient()
+val client: HttpClient = /* from your DI container or a library */
 
 client.plugin(HttpSend).intercept(networkAgent.ktorSendInterceptor(client))
+// register(networkAgent) in startJetWhale { plugins { } } as well
 ```
 
-Pass the same client the interceptor is registered on — it is used to synthesize mocked responses.
-Register it once per client at setup: `HttpSend` neither rejects duplicates nor offers a way to
-remove an interceptor, so registering twice records every transaction twice.
-
-### OkHttp
-
-```kotlin
+```kotlin [OkHttp]
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.okhttp.okHttpInterceptor
 
@@ -95,63 +72,36 @@ val client = OkHttpClient.Builder()
     .build()
 
 startJetWhale {
-    connection {
-        endpoints {
-            ws("localhost", 5080)
-        }
-    }
+    connection { /* ... */ }
     plugins {
         register(networkAgent)
     }
 }
 ```
 
-Add the interceptor **after** interceptors that finalize the request (e.g. auth interceptors), so
-the recorded transaction matches what actually goes on the wire.
+:::
 
-### Body capture limit
+- **A client you didn't build** — the `HttpSend` interceptor attaches to an already-built client, so
+  the construction site stays untouched. Pass the same client it is registered on, which it uses to
+  build mocked responses, and register it once: `HttpSend` neither rejects duplicates nor removes an
+  interceptor, so registering twice records every transaction twice.
+- **OkHttp** — add the interceptor **after** interceptors that finalize the request, such as auth
+  interceptors, so the recorded transaction matches what goes on the wire.
 
-Both adapters capture request/response bodies up to a limit (default `100_000` characters), and
-accept it as a parameter:
+### Body capture limits
 
-```kotlin
-networkAgent.ktorClientPlugin(maxBodyChars = 500_000)
-networkAgent.okHttpInterceptor(maxBodyChars = 500_000)
-```
-
-Image bodies are captured as bytes rather than text, under their own limit (default **2 MiB**).
-A larger image is skipped rather than truncated — half an image cannot be decoded — and the capture
-shows a marker saying so. Raise the limit when you need to inspect bigger images:
+Both adapters capture request and response bodies up to `100_000` characters, and images as bytes
+up to **2 MiB**. A larger image is skipped rather than cut, since half an image cannot be decoded,
+and the capture says so. Raise either limit where you need to:
 
 ```kotlin
-networkAgent.ktorClientPlugin(maxImageBytes = 8 * 1024 * 1024)
-networkAgent.okHttpInterceptor(maxImageBytes = 8 * 1024 * 1024)
+networkAgent.ktorClientPlugin(maxBodyChars = 500_000, maxImageBytes = 8 * 1024 * 1024)
+networkAgent.okHttpInterceptor(maxBodyChars = 500_000, maxImageBytes = 8 * 1024 * 1024)
 ```
 
-## Inspecting traffic
+### Redacting sensitive values
 
-Open the **Network Inspector** plugin in the JetWhale host and select your app's session. Each HTTP
-transaction appears live as your app makes requests. Select a transaction to inspect its request
-and response — headers, bodies (with a dedicated JSON view), and status. Right-click a transaction
-for **Copy as cURL**, **Copy URL** and its request/response bodies, to share it or reproduce the
-request elsewhere.
-
-An image body (`image/*`, except SVG, which stays text) is shown as a picture instead of as text,
-with its dimensions and size. **Copy image** puts it on the clipboard and **Save image…** writes the
-original bytes — the exact file the server sent — where you choose. **Mock this** on an image
-response keeps those bytes, so the mock serves the same image back.
-
-The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
-arrives. Use **Clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
-issue so what you capture afterwards is only what the reproduction produced.
-
-Traffic captured while the host is away is **not** lost: the agent buffers up to **256** events
-(dropping the oldest past that) and flushes them on reconnect, so requests fired before you opened
-the host still show up.
-
-## Redacting sensitive values
-
-Captured traffic often contains secrets — `Authorization` headers, session cookies, tokens in query
+Captured traffic often holds secrets: `Authorization` headers, session cookies, tokens in query
 parameters, passwords in JSON bodies. Pass **redaction rules** to the agent plugin to strip them:
 
 ```kotlin
@@ -165,59 +115,67 @@ val networkAgent = JetWhaleNetworkAgentPlugin(
 )
 ```
 
-Three rule targets are available — `header(...)`, `urlQueryParam(...)`, and `bodyField(...)`
-(matches the field name anywhere in a JSON body, or a parameter name of an
-`application/x-www-form-urlencoded` body). Name matching is case-insensitive, and each rule takes
-two options:
+`header(...)`, `urlQueryParam(...)` and `bodyField(...)` match names case-insensitively; `bodyField`
+matches a field anywhere in a JSON body, or a parameter of an `application/x-www-form-urlencoded`
+body. Each rule takes two options:
 
-- **`scope`** — where the rule is enforced:
-  - `EVERYWHERE` (default): applied at capture time on the agent, so the value never leaves the
-    debuggee process.
-  - `MCP_ONLY`: the value stays visible in the host UI, but is hidden from AI agents connected via
-    the [MCP server](/guide/mcp-server).
-- **`strategy`** — how the redacted value is rendered: `PLACEHOLDER` (default, a `<redacted>`
-  marker) or `MASK` (one `*` per character, preserving the value's length).
+- **`scope`** — `EVERYWHERE` (default) redacts at capture time on the agent, so the value never
+  leaves the app. `MCP_ONLY` keeps it visible in the host but hides it from AI agents connected over
+  the [MCP server](/guide/mcp-server).
+- **`strategy`** — `PLACEHOLDER` (default) shows a `<redacted>` marker; `MASK` shows one `*` per
+  character, keeping the value's length.
 
-Without a `redaction` argument no rules apply and captured data is forwarded verbatim.
+Without a `redaction` argument, captured data is forwarded verbatim.
 
-## Mocking responses
+## Using it
 
-The Mocks view lets you define **mock rules** on the host and push them to the running app: when
-mocking is enabled, requests matching a rule get the mocked response instead of hitting the
-network. This is handy for reproducing error states, empty lists, or slow-path payloads without a
-test backend. Toggle **Mocking enabled** on/off at any time from the host — no app restart needed.
+### Traffic
 
-### What a rule looks like
+Select your app in the sidebar and open **Network Inspector**: each HTTP transaction appears in the
+**Traffic** tab as the app makes it. The detail pane shows headers, bodies (JSON in a dedicated
+view) and status, all text-selectable. Right-click a
+transaction for **Copy as cURL**, **Copy URL** and its request and response bodies.
 
-**Add rule** opens an editor with these fields. The same shape is what the
-[MCP tools](#mcp-tools) take, so a rule written by hand and one written by an AI agent are
-interchangeable.
+An image body (`image/*`, except SVG, which stays text) shows as a picture with its dimensions and
+size. **Copy image** puts it on the clipboard, and **Save image…** writes the exact bytes the server
+sent. **Mock this** on an image response keeps those bytes, so the mock serves the same image.
+
+Use **Clear** before reproducing an issue, so what you capture afterwards is only what the
+reproduction produced.
+
+### Mocks
+
+The **Mocks** tab defines mock rules and pushes them to the running app: while **Mocking enabled** is
+on, a request matching a rule gets the mocked response instead of reaching the network. It is handy
+for error states, empty lists or slow payloads without a test backend, and needs no app restart.
+
+**Add rule** opens an editor with these fields. The [MCP tools](#mcp-tools) take the same shape, so a
+rule written by hand and one written by an agent are interchangeable.
 
 | Field | Default | Meaning |
 |-------|---------|---------|
-| **Name** | empty | Human-readable label, shown in the list. |
-| **enabled** | on | Whether the rule takes effect. Rules can be parked without deleting them. |
-| **Method** | any | HTTP method to match, compared case-insensitively. Blank matches any method. |
-| **URL pattern** | — | The pattern, interpreted per the match type. |
-| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex never matches. |
+| **Name** | empty | Label shown in the list. |
+| **enabled** | on | Whether the rule takes effect, so a rule can be parked without deleting it. |
+| **Method** | any | HTTP method to match, case-insensitively. Blank matches any method. |
+| **URL pattern** | — | The pattern, read according to the match type. |
+| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (must match somewhere in the URL). An invalid regex never matches. |
 | **Status** | `200` | Status code of the mocked response. |
-| **Content-Type** | none | Convenience field for the header of the same name. |
+| **Content-Type** | none | Shortcut for the header of the same name. |
 | **Response body** | empty | The body to return. |
-| **Delay ms** | `0` | Artificial delay before the mocked response is delivered. |
+| **Delay ms** | `0` | Delay before the mocked response is delivered. |
 
 The **first enabled rule that matches** wins, so order the list from most specific to most general.
-Matching is identical in every adapter, because they share one implementation.
+Every adapter matches the same way.
 
 ::: tip The app owns the mock config
-The mock rules and the enabled flag live on the **agent**, not the host — they survive a host
-restart, and the host fetches them back when it reconnects. That is also why a rule you add applies
-immediately without restarting the app.
+The rules and the enabled flag live in the **agent**, not the host: they survive a host restart, the
+host reads them back when it reconnects, and a new rule applies without restarting the app.
 :::
 
 ## MCP tools
 
-The Network Inspector contributes its own tools to the host's [MCP server](/guide/mcp-server), so
-an AI agent can read captured traffic and manage mock rules for a session:
+With the [MCP server](/guide/mcp-server) running, an AI agent can read captured traffic and manage
+mock rules through these tools. Each takes the `sessionId` of the app's session.
 
 | Tool | What it does |
 |------|--------------|
@@ -230,28 +188,25 @@ an AI agent can read captured traffic and manage mock rules for a session:
 | `com.kitakkun.jetwhale.network.setMockRules` | Replaces the **whole** rule list in one call |
 | `com.kitakkun.jetwhale.network.setMockingEnabled` | Turns mocking on or off |
 
-Like every MCP tool, they take a required `sessionId` (from `jetwhale.listSessions`).
+- `listTransactions` narrows a busy capture with `limit`, `afterTxId` (everything recorded after a
+  transaction you already have: the cheap way to poll), `sinceTimestampMs` / `untilTimestampMs`,
+  `urlContains` and `method`.
+- `addMockRule` takes the rule's fields flat (`urlPattern`, `matchType`, `method`, `name`,
+  `statusCode`, `body`, `headers`, `contentType`, `delayMs`), appends one enabled rule with a
+  generated id, and returns it. `contentType` only fills in a `Content-Type` header when `headers`
+  did not set one. `setMockRules` instead takes a JSON list of complete rules and **replaces** the
+  set: the tool for setting up a scenario, editing a rule (reuse its `id`), or parking one
+  (`enabled: false`).
+- An image body is summarized (media type and size) rather than inlined as Base64.
+- Values redacted with `RedactionScope.MCP_ONLY` are hidden from these results **and** from
+  `jetwhale.screenshot` and `jetwhale.getAccessibilityTree` captures of the plugin. Until the host has
+  read the app's rules, normally right after the app connects, `listTransactions` and
+  `getTransaction` return an error and captures show a notice instead of the traffic.
 
-`listTransactions` narrows a busy capture rather than dumping it: `limit`, `afterTxId` (everything
-recorded after a transaction you already have — the cheap way to poll), `sinceTimestampMs` /
-`untilTimestampMs`, `urlContains` and `method`.
+## Limits
 
-`addMockRule` takes the rule's fields flat (`urlPattern`, `matchType`, `method`, `name`,
-`statusCode`, `body`, `headers`, `contentType`, `delayMs`), appends one enabled rule with a generated
-id, and returns it. `contentType` is a convenience that only fills in a `Content-Type` header when
-`headers` did not already set one.
-
-`setMockRules` instead takes a JSON list of complete rules and **replaces** the whole set — the tool
-to reach for when setting up a scenario, editing a rule (reuse its `id`), or disabling one
-(`enabled: false`) rather than deleting it.
-
-An image body is summarized in tool results (media type and size) rather than inlined as Base64:
-the bytes are of no use to an agent and would crowd out the rest of the result. View the image in
-the host window instead.
-
-[Redaction rules](#redacting-sensitive-values) apply to MCP output as well: values redacted with
-`RedactionScope.MCP_ONLY` are hidden from these tools' results **and** from `jetwhale.screenshot`
-and `jetwhale.getAccessibilityTree` captures of the Network Inspector UI, while staying visible to
-you in the host window. Until the host has read the app's rules, normally right after the app
-connects, `listTransactions` and `getTransaction` return an error and captures show a notice
-instead of the traffic.
+- The host keeps the **latest 500 transactions** per session; older ones are dropped as traffic
+  arrives.
+- While the host is away, the agent buffers up to **256** events, dropping the oldest past that, and
+  sends them on reconnect, so requests made before you opened the host still show up.
+- Only Ktor and OkHttp clients are captured.

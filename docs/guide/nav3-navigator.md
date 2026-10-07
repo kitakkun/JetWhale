@@ -1,25 +1,21 @@
 # Nav3 Navigator
 
 The Nav3 Navigator shows the [Navigation 3](https://developer.android.com/guide/navigation/navigation-3)
-back stack of the app you are debugging, and lets you drive it: push a screen, pop back, reorder
-entries, or replace the whole stack with an exact state — from the host UI, or from an AI agent over
-MCP.
+back stack of the app you are debugging and lets you drive it: push a screen, pop back, reorder
+entries, or replace the whole stack with an exact state, from the host or from an AI agent over MCP.
+It knows nothing about your screens: everything it shows and builds comes from the serializers your
+app **already** gives `rememberNavBackStack`.
 
-It is generic: it knows nothing about your screens. Everything it can show and construct is derived
-from the serializers your app **already** gives `rememberNavBackStack`.
+**Works with:** any app that uses Navigation 3.
 
 ## Setup
 
 ### Install the host plugin
 
-The Nav3 Navigator is in the host's **official catalog**: open **Settings → Plugins → Add Plugins →
-Official Plugins** and install it with one click — no coordinates needed. See
-[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+Install **Nav3 Navigator** from **Settings → Plugins → Add Plugins → Official Plugins**. To install
+it by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
-
-The agent side is a normal dependency of the app being debugged, alongside the agent runtime that
-`startJetWhale` lives in:
 
 ```kotlin
 dependencies {
@@ -31,7 +27,9 @@ dependencies {
 A Navigation 3 app already declares how its `NavKey`s serialize, because saved state needs it. Hand
 the plugin that same declaration:
 
-```kotlin
+::: code-group
+
+```kotlin [Open polymorphism]
 // The module you already pass to rememberNavBackStack.
 val navKeyModule = SerializersModule {
     polymorphic(NavKey::class) {
@@ -41,13 +39,18 @@ val navKeyModule = SerializersModule {
 }
 
 val nav3Plugin = JetWhaleNav3AgentPlugin(Nav3KeyCodec.openPolymorphic(navKeyModule))
+```
 
+```kotlin [Sealed hierarchy]
+// No module needed: the hierarchy's own serializer.
+val nav3Plugin = JetWhaleNav3AgentPlugin(Nav3KeyCodec.closedPolymorphic(Screen.serializer()))
+```
+
+:::
+
+```kotlin
 startJetWhale {
-    connection {
-        endpoints {
-            ws("localhost", 5080)
-        }
-    }
+    connection { /* ... */ }
     plugins {
         register(nav3Plugin)
     }
@@ -70,44 +73,36 @@ fun App() {
 }
 ```
 
-That is the whole integration. `TrackNavBackStack` mirrors the stack to the host for as long as it is
-in composition, so put it where the back stack is created — for a single-stack app, at the root, so
-the host can navigate whatever screen the app is on.
+`TrackNavBackStack` mirrors the stack to the host for as long as it is in composition, so put it
+where the back stack is created; for a single-stack app, at the root.
 
-::: tip Closed (sealed) hierarchies
-If your keys are a sealed hierarchy rather than open polymorphism, build the codec from its own
-serializer instead — no module needed:
+### Several back stacks
 
-```kotlin
-JetWhaleNav3AgentPlugin(Nav3KeyCodec.closedPolymorphic(Screen.serializer()))
-```
-:::
-
-#### Several back stacks
-
-An app that nests navigation registers each stack under its own id, and the host lets you pick:
+An app that nests navigation registers each stack under its own id, and the host lets you pick one:
 
 ```kotlin
 nav3Plugin.TrackNavBackStack(mainBackStack)                      // "main"
 nav3Plugin.TrackNavBackStack(sheetBackStack, stackId = "sheet")
 ```
 
-## What you get in the host
+## Using it
 
-- **The stack, live.** Every entry with its index, type, and `toString()`; the last one is marked
-  `current`. It updates as the app navigates, whoever navigated it.
-- **Per-entry actions.** *Pop to here*, *To top*, *Remove* — including removing an entry from the
-  middle, which rewrites where "back" will land without leaving the current screen.
+- **The stack, live.** Every entry with its index, type and `toString()`, the last one marked
+  `current`, updated as the app navigates, whoever navigated it.
+- **Per-entry actions.** *Pop to here*, *To top* and *Remove*, including removing an entry from the
+  middle, which changes where "back" lands without leaving the current screen.
 - **Push a NavKey.** The right-hand pane lists the key types the app can construct, each with its
-  fields and a ready-to-fill JSON template. Click one, edit the values, and *Push* — or *Replace
-  stack* to make it the only entry. The filter above the list narrows it to the types whose name
-  contains what you type, case aside — a simple name such as `Detail`, or part of a qualified one.
+  fields and a ready-to-fill JSON template. Click one, edit the values, and *Push*, or *Replace stack*
+  to make it the only entry. The filter above the list narrows it to the types whose name contains
+  what you type, case aside — a simple name such as `Detail`, or part of a qualified one.
 - **Copy to editor.** Any entry's key can be copied into the editor and pushed again, which also
-  covers key types that are not in the catalog.
+  covers key types that are not in the list.
 
 ## MCP tools
 
-With the [MCP server](./mcp-server) running, the same operations are available to an AI agent:
+With the [MCP server](/guide/mcp-server) running, an AI agent can do the same through these tools.
+Each takes the `sessionId` of the app's session; `stackId` may be left out when the app has a single
+back stack.
 
 | Tool | What it does |
 |------|--------------|
@@ -119,21 +114,17 @@ With the [MCP server](./mcp-server) running, the same operations are available t
 | `com.kitakkun.jetwhale.nav3.moveNavKeyToTop` | Bring an entry already on the stack back to the top |
 | `com.kitakkun.jetwhale.nav3.replaceBackStack` | Put the app into an exact state in one step |
 
-`stackId` may be omitted whenever the app has a single back stack.
+A typical flow is `listNavKeyTypes` → fill a template → `pushNavKey`. Every mutating tool returns the
+resulting stack, so the confirmation is already in hand.
 
-A typical agent flow is `listNavKeyTypes` → fill a template → `pushNavKey`, then `getBackStack` to
-confirm. Every mutating tool returns the resulting stack, so the confirmation is usually already
-in hand.
+## Limits
 
-## What it refuses to do
-
-- **Leaving the stack empty.** `NavDisplay` cannot render an empty back stack, so an operation that
-  would empty it is rejected and nothing is applied — the app keeps running and the caller gets a
-  message.
-- **Inventing keys.** A key is decoded by the *app*, with the app's serializers. A type the app does
-  not know is reported as an error rather than guessed at.
-- **Half-applying.** Operations are validated as a unit: an out-of-range index or an undecodable key
-  leaves the app's back stack exactly as it was.
+- **It never leaves the stack empty.** `NavDisplay` cannot render an empty back stack, so an operation
+  that would empty it is rejected and nothing is applied; the caller gets a message.
+- **It never invents keys.** A key is decoded by the *app*, with the app's serializers, and a type the
+  app does not know is reported as an error.
+- **It never half-applies.** Operations are validated as a unit: an out-of-range index or an
+  undecodable key leaves the back stack exactly as it was.
 
 Entries that survive an edit keep their identity, so Navigation 3 keeps the saved state and
 ViewModels behind the screens you did not touch.

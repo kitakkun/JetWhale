@@ -70,8 +70,9 @@ startJetWhale {
 
 That is the whole integration — the app shows up in the host as soon as it runs.
 
-See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for physical iOS
-devices, secure connections, and the rest.
+See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for the rest,
+and **[Connecting Devices](https://kitakkun.github.io/JetWhale/guide/connecting)** for physical
+devices and secure connections.
 
 ## Official plugins
 

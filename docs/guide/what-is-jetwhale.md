@@ -1,11 +1,8 @@
 # What is JetWhale?
 
 JetWhale is an extensible debugging tool inspired by
-[Flipper](https://github.com/facebook/flipper).
-
-It is built with Kotlin and Jetpack Compose, making it especially familiar and approachable for
-Kotlin / Android developers. Thanks to its Kotlin-first design, JetWhale can be introduced with a
-minimal learning curve.
+[Flipper](https://github.com/facebook/flipper), built with Kotlin and Jetpack Compose for Kotlin
+Multiplatform apps: Android, desktop (JVM), iOS and the web.
 
 ::: warning Active development
 This project is under active development. We welcome feedback as we work toward a stable release.
@@ -14,35 +11,36 @@ Please note that the Plugin SDK APIs are not yet finalized and may change in the
 
 ## How it works
 
-JetWhale consists of two sides connected over a WebSocket:
+- **The host** is a desktop application, the debugger UI, that you run on your development machine.
+- **The agent** is a small runtime you add to the app being debugged. It connects to the host over a
+  WebSocket and exchanges type-safe messages powered by kotlinx.serialization.
+- **Plugins** are the debugging tools. Each is a JAR the host loads at runtime, usually paired with an
+  agent plugin in the app; a few, like the Device Mirror, run in the host alone.
 
-- **The host** — a desktop application (the debugger UI) that you run on your development machine.
-  Debugging tools are implemented as **plugins**, loaded at runtime as JAR files.
-- **The agent** — a small runtime you add to the app being debugged (the *debuggee*). It connects
-  to the host and exchanges type-safe messages powered by kotlinx.serialization.
+One host debugs **several sessions at once** — an Android device and a desktop app, say — each
+labeled with the app's name and icon and grouped by the device it runs on; see
+[Session metadata](/guide/agent-configuration#session-metadata). Apps on the host machine connect
+over plain ws on loopback, and physical devices over **wss**; see
+[Connecting Devices](/guide/connecting).
 
-One host can debug **multiple sessions simultaneously** — for example an Android device and a
-desktop app at the same time. Each session is labeled with the app's name and icon and grouped by
-the device it runs on — resolved automatically, and customizable via the agent's
-[`app { }` block](/guide/getting-started#session-metadata).
+## Official plugins
 
-The connection is plain **ws** by default, and can be upgraded to **secure WebSocket (wss)** with a
-locally-issued certificate — see [Secure connections](/guide/getting-started#secure-connections-wss).
+| Plugin | What it is for | Needs an agent in the app |
+|---|---|---|
+| [Network Inspector](/guide/network-inspector) | HTTP traffic of Ktor and OkHttp clients, with response mocking | Yes |
+| [Compose Semantics Inspector](/guide/compose-semantics-inspector) | The semantics tree of a running screen, and driving it by node | Yes |
+| [Nav3 Navigator](/guide/nav3-navigator) | The Navigation 3 back stack, and pushing or popping entries | Yes |
+| [Debug Actions](/guide/debug-actions) *(experimental)* | The app's debug menu as typed actions | Yes |
+| [Storage Inspector](/guide/storage-inspector) | The app's files, caches and key-value stores | Yes |
+| [Device Mirror](/guide/device-mirror) *(experimental)* | Live screens of Android devices, iOS simulators and iPhones | No |
 
-### Session security indicator
-
-Each session in the host shows a lock indicator for how its transport is secured:
-
-- 🟢 **Green lock** — connected over TLS (**wss**); encrypted end to end.
-- ⚪ **Neutral lock** — plain ws over a loopback peer (local or ADB-forwarded device). The traffic
-  never leaves the machine, so it is effectively secure.
-- **No lock** — plain ws to a non-loopback peer; the traffic is unencrypted on the network.
+The host also embeds an [MCP server](/guide/mcp-server) *(experimental)*, so an AI agent can use the
+same plugins.
 
 ## Next steps
 
 - [Getting Started](/guide/getting-started) — install the host and integrate the agent into your app
 - [The Host Window](/guide/host-window) — sessions, the sidebar, and popping a plugin out
 - [ADB auto port mapping](/guide/adb-auto-port-mapping) — zero-setup Android debugging
-- [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [MCP Server](/guide/mcp-server) *(experimental)* — let an AI agent drive the app
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools

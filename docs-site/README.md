@@ -6,11 +6,30 @@ to `main` that touches `docs/` or `docs-site/`.
 
 The split is deliberate:
 
-- **`docs/`** — plain Markdown content only. Edit pages here.
-- **`docs-site/`** — all site tooling (VitePress config, npm packages, static assets, version list).
-  The VitePress `srcDir` points at `../docs`.
+- **`docs/`** — the Markdown pages and the screenshots they show. Edit pages here.
+- **`docs-site/`** — all site tooling (VitePress config and theme, npm packages, static assets,
+  version list). The VitePress `srcDir` points at `../docs`.
 
 Adding a new page also requires adding it to the sidebar in `docs-site/.vitepress/config.mts`.
+
+## Screenshots
+
+Screenshots live in `docs/images/<page>/`, one WebP file per theme: `<shot>-light.webp` and
+`<shot>-dark.webp`. A page references both by relative path, so a missing file fails the build,
+and the theme shows the one that matches the reader's appearance:
+
+```md
+![The Network Inspector's traffic list](../images/network-inspector/traffic-light.webp){.light-only}
+![The Network Inspector's traffic list](../images/network-inspector/traffic-dark.webp){.dark-only}
+```
+
+Keep each file at 250 KB or less: lossy WebP at quality 85–90, or lossless when that is smaller.
+
+## Moving a section
+
+GitHub Pages has no redirects. When a section moves to another page, add its old and new
+`/<page>#<anchor>` to `docs-site/.vitepress/theme/movedAnchors.ts`, so links to the old location
+still land on it.
 
 ## Local development
 
