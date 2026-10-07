@@ -49,8 +49,8 @@ connected.
 
 The picker's first entry, **All devices**, opens the grid: every device as a tile, at its own shape,
 with a screenshot refreshed every 1.5 seconds and how long ago it was taken. Only tiles on screen are
-captured, and nothing streams meanwhile. Click a tile, or press Enter on it, to open that device;
-hovering one offers **Open** and **Screenshot**.
+captured, two at a time at most, and nothing streams meanwhile. Click a tile, or press Enter on it,
+to open that device; hovering one offers **Open** and **Screenshot**.
 
 The grid's toolbar acts on every device at once. The camera button saves one screenshot per device.
 The record button starts recording every device that can record; while any device records it turns
@@ -100,7 +100,7 @@ The short code after the device name comes from its serial number or UDID, so a 
 folder across sessions and two devices with the same name get separate folders. The `.json` beside
 each capture records the device's id, name, platform, kind and iOS version, the capture's size in
 pixels, when it was taken, and a recording's length. The list is rebuilt from these files, so
-captures from earlier sessions stay listed.
+captures from earlier sessions stay listed, and one deleted in Finder drops off.
 
 The folder defaults to `~/.jetwhale/plugin-data/com.kitakkun.jetwhale.mirror/captures`; **Change
 folder…** in the Captures panel picks another, and the host remembers it.

@@ -132,7 +132,8 @@ Without a `redaction` argument, captured data is forwarded verbatim.
 ### Traffic
 
 Select your app in the sidebar and open **Network Inspector**: each HTTP transaction appears in the
-**Traffic** tab as the app makes it, and the detail pane is text-selectable. Right-click a
+**Traffic** tab as the app makes it. The detail pane shows headers, bodies (JSON in a dedicated
+view) and status, all text-selectable. Right-click a
 transaction for **Copy as cURL**, **Copy URL** and its request and response bodies.
 
 An image body (`image/*`, except SVG, which stays text) shows as a picture with its dimensions and

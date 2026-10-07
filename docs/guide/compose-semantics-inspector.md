@@ -102,8 +102,9 @@ empty.
 - **On a simulator** the probe turns it on when you install it, and the running app picks it up at
   once. The setting belongs to the simulator, so it stays on for every app there after yours exits.
   The call is private API, compiled into the simulator slice only.
-- **On a device** the probe changes nothing. The tree is complete while VoiceOver or another
-  assistive feature is on, or while the Accessibility Inspector inspects the device.
+- **On a device** the probe changes nothing. The tree should be complete while VoiceOver or another
+  assistive feature is on, or while the Accessibility Inspector inspects the device. That is how
+  UIKit decides on a simulator; it has not been confirmed on a device yet.
 
 ::: details Leaving the simulator's setting alone
 Install the probe with `installJetWhaleSemanticsProbe(enableSimulatorApplicationAccessibility = false)`
@@ -142,7 +143,8 @@ Select your app, open **Compose Semantics Inspector**, and press **Refresh**.
 
 Select a node to see its full semantics, with a button for every action it exposes, and **Copy
 `adb shell input tap`** (**Copy `idb ui tap`** for an iOS node) for when you do want the input
-system. A row marked **not operable** offers an action that a user could not reach right now; see
+system. A row marked **not operable** offers something to do that a user could not do right now,
+because the node is disabled or a touch would not reach it; see
 [Reachability](/reference/semantics-tree#reachability). The host also shows what the capture cost on
 the device and the round trip.
 
@@ -217,7 +219,8 @@ node's `unit`: pixels on Android and desktop, points on iOS.
 - **On iOS**, a Compose element cannot take `SetText`, `InsertText`, `ImeAction`, `RequestFocus` or
   `ScrollToIndex`, `LongClick` is not available, and a Compose `role` is folded into label and
   traits; see [iOS nodes](/reference/semantics-tree#ios-nodes).
-- **Secure fields** are never captured or typed into.
+- **A secure field's contents are never captured**: a password field reads as editable, with no
+  text.
 
 ## Troubleshooting
 

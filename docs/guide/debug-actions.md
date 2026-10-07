@@ -5,7 +5,7 @@ sign in as a test user, reset onboarding, shift the clock, open a deep link. The
 action once; the host builds a form for its arguments, and an agent gets the same action with a JSON
 Schema over MCP.
 
-**Works with:** every platform the agent supports.
+**Works with:** Android, iOS, macOS, desktop (JVM) and the web.
 
 ## Setup
 
@@ -102,7 +102,7 @@ actions capture as keys; they are declared again when a key changes.
 - **Pins** — pinned actions stay at the top of the list, across restarts.
 - **Arguments** — the form starts from the arguments the action last ran with.
 - **Runs** — the latest result under the form, and the action's recent runs, including those an AI
-  agent made. A run in progress can be cancelled.
+  agent made. A run in progress can be canceled.
 
 ## MCP tools
 
@@ -119,5 +119,5 @@ tools. Each takes the `sessionId` of the app's session.
 - **Actions are not tools of their own.** The tool list of an MCP connection is fixed when it opens,
   while screen actions come and go, so an agent lists the actions and runs one by id. List again after
   navigating.
-- **A run that outlives its `timeout`** (30 seconds unless the action sets one) is cancelled and
+- **A run that outlives its `timeout`** (30 seconds unless the action sets one) is canceled and
   reported as timed out.

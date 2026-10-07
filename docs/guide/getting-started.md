@@ -52,10 +52,10 @@ does.
 
 ### Updates
 
-The installed app updates itself: it checks for a newer release at startup, shows a banner when there
-is one, and downloads it from **Settings → General → Application → Updates** when you click. See
-[Host Settings → Application](/guide/host-settings#application). A host started with `java -jar` does
-not update itself; download new jars from the releases page.
+The installed app updates itself: at startup it checks JetWhale's releases, prereleases included,
+shows a banner when there is a newer one, and downloads it from **Settings → General → Application →
+Updates** when you click. See [Host Settings → Application](/guide/host-settings#application). A host
+started with `java -jar` does not update itself; download new jars from the releases page.
 
 ::: info Coming from 1.0.0-alpha12 or earlier
 Hosts before 1.0.0-alpha13 cannot update themselves. Install the latest release once from its
@@ -158,9 +158,12 @@ registered in your app. The Storage Inspector, for example:
    }
    ```
 
-Run the app again and select **Storage Inspector** in the sidebar: your app's files and key-value
-stores are there. A plugin installed in the host but missing from the app is listed under
-**not in this app**; selecting it shows the dependency and the `register(...)` call to copy.
+3. Run the app again. A newly installed plugin starts disabled, so **Storage Inspector** is listed
+   under **disabled** in the sidebar: select it and click **Enable**.
+
+Your app's files and key-value stores are now in the Storage Inspector. A plugin installed in the
+host but missing from the app is listed under **not in this app**; selecting it shows the dependency
+and the `register(...)` call to copy.
 
 ## Next steps
 

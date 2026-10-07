@@ -50,7 +50,7 @@ Each entry carries a lock icon for how its connection is secured:
 
 ## The plugin list
 
-Under the picker are the selected app's plugins, enabled ones first. The rest follow in two greyed
+Under the picker are the selected app's plugins, enabled ones first. The rest follow in two grayed
 groups, each under a fold row:
 
 - **N disabled** — installed but switched off; open to begin with unless there are more than two.

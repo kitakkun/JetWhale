@@ -48,8 +48,8 @@ mind before exposing the port beyond localhost.
 | `com.kitakkun.jetwhale.<plugin>.*` | What each plugin exposes, such as captured traffic or the app's semantics tree | Each plugin's guide |
 
 `jetwhale.getStatus` is the recommended first call: one request with no arguments tells an agent the
-host version, both servers' endpoints, the live sessions and plugins, the settings, the permission
-state, and what the window is showing.
+host version, both servers' endpoints, how many sessions and plugins are live, the settings, the
+permission state, and what the window is showing.
 
 The plugin UI tools read the **host window's** Compose UI. To read the debugged app's own UI, use the
 [Compose Semantics Inspector](/guide/compose-semantics-inspector#mcp-tools).
@@ -139,8 +139,9 @@ while a call runs.
   parameter with its type, whether it is **required**, and its description. A badge counts the
   tool's calls and takes a rotating ring while an agent is calling it.
 - **History** — the last 100 calls in scope, newest first, with the time and whether each succeeded.
-  Selecting one shows the arguments it was called with and the response it returned; each section
-  has a copy button, and **Copy details** copies the whole record.
+  Selecting one shows the arguments it was called with and the response it returned. Each section
+  has a copy button, **Copy details** copies the whole record, and right-clicking a row offers the
+  same copy actions.
 
 It is the fastest way to answer "what did the agent actually send, and what did it get back?" when a
 plugin behaves unexpectedly under automation.

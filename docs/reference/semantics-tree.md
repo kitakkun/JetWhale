@@ -146,8 +146,8 @@ that has one:
 | `Expand` / `Collapse` | a custom action of that name, when it has a handler block; a target/selector custom action is not invoked | same | same |
 | `LongClick` | not available | | |
 
-Text entry into a secure field is never possible, and its contents are never captured: a password
-field stays `isEditable` with no `editableText`, on Android as on iOS.
+A secure field's contents are never captured: a password field stays `isEditable` with no
+`editableText`, on Android as on iOS.
 
 ## Reachability
 

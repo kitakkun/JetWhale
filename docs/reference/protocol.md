@@ -24,7 +24,7 @@ plain-ws port. The rest is carried in TXT records:
 | `wssPort` | The port serving **wss**. Absent while the host has wss disabled. |
 | `hostName` | The host machine's hostname. Carried separately from the instance name because mDNS may uniquify that on collision (`name (2)`), and this is what the agent's `allowHostName` filter compares against. |
 
-A discovered host is only ever dialled over **wss**, on `wssPort`: the host binds plain ws to
+A discovered host is only ever dialed over **wss**, on `wssPort`: the host binds plain ws to
 loopback, which is not the address discovery returns, so a host advertising no `wssPort` is skipped.
 See [Finding the host on the network](/guide/connecting#finding-the-host-on-the-network)
 for the agent-side configuration.
