@@ -307,17 +307,15 @@ class DefaultMcpServerServiceTest {
         try {
             val testPluginId = "com.example.test"
             val testSessionId = "test-session-replaced"
-            val otherPluginId = "com.example.other"
+            val barrierPluginId = "com.example.other"
             every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
                 LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin(), version = "2.0.0"),
-                LoadedPluginInstance(otherPluginId, testSessionId, FakeMcpCapablePlugin(toolName = "com.example.other.greet"), version = "1.0.0"),
+                LoadedPluginInstance(barrierPluginId, testSessionId, FakeMcpCapablePlugin(toolName = "com.example.other.greet"), version = "1.0.0"),
             )
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
-            // Handled after the stale Ready, so once this plugin shows up the stale event has been
-            // handled too.
-            eventFlow.emit(PluginInstanceEvent.Ready(otherPluginId, testSessionId, version = "1.0.0"))
+            eventFlow.emit(PluginInstanceEvent.Ready(barrierPluginId, testSessionId, version = "1.0.0"))
 
-            awaitCapableFor(testSessionId) { otherPluginId in it }
+            awaitCapableFor(testSessionId) { barrierPluginId in it }
             assertFalse(testPluginId in service.mcpCapablePluginsFlow.value.pluginIdsFor(testSessionId))
         } finally {
             service.stop()

@@ -109,9 +109,8 @@ class DefaultPluginInstanceService(
         val versions = pluginFactoryRepository.loadedPluginVersions[pluginId].orEmpty()
         if (versions.isEmpty()) return emptySet()
 
-        // An instance of a reloaded or removed version holds classes from a closed classloader, so
-        // it goes and the loop below rebuilds it. An app keeps a version that is still loaded; the
-        // host session lasts as long as the host, so it moves to the newest at once.
+        // The host session lasts as long as the host, so it moves to the newest version as soon as
+        // one loads; an app session keeps its version until that version is reloaded or removed.
         loadedPlugins.entries
             .filter { (key, instance) ->
                 key.pluginId == pluginId &&

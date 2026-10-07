@@ -43,9 +43,9 @@ class DefaultPluginSessionReconciliationService(
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
                 sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter(DebugSession::isActive) },
-                // A load is a reconciliation trigger of its own: nothing removes an id from the
-                // enabled set when its jar goes, so installing a jar whose pluginId is already
-                // enabled changes neither flow above.
+                // Loading a plugin is a trigger of its own: the enabled set only grows, so
+                // installing a jar whose pluginId is already enabled changes neither flow above,
+                // and the plugin would never get an instance.
                 pluginFactoryRepository.loadedPluginVersionsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->

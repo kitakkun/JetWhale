@@ -40,8 +40,8 @@ import java.util.logging.Logger
 class DefaultPluginDataStoreRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginDataStoreRepository {
-    // DataStore forbids more than one active instance over the same file, so each store file gets a
-    // single shared handle.
+    // DataStore refuses a second active instance over the same file, so each store file keeps one
+    // shared storage.
     private val storages: ConcurrentHashMap<Path, JetWhalePluginStorage> = ConcurrentHashMap()
 
     override fun storageFor(pluginId: String, version: String): JetWhalePluginStorage {
