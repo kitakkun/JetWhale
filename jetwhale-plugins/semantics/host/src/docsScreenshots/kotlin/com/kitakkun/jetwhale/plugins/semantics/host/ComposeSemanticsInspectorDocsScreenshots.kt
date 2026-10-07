@@ -50,6 +50,9 @@ class ComposeSemanticsInspectorDocsScreenshots {
     ) { darkTheme ->
         setInspector(darkTheme)
         onNodeWithText("TextView · @id/promo_banner · Free shipping on orders over $30").mouseClickThenMovePointerAway()
+        // performScrollTo stops as soon as the header is in view, at the pane's bottom edge;
+        // scrolling by its offset brings it to the top, so the attributes below it are in the
+        // picture.
         val detailPane = onNode(hasScrollAction() and hasAnyDescendant(hasText(VIEW_ATTRIBUTES_HEADER)))
         val headerTop = onNodeWithText(VIEW_ATTRIBUTES_HEADER).fetchSemanticsNode().boundsInRoot.top
         val paneTop = detailPane.fetchSemanticsNode().boundsInRoot.top

@@ -46,8 +46,13 @@ class McpToolsBrowserDocsScreenshots {
 
     @Test
     fun `the tools browser with a tool selected`() = recorder.record(
-        // The browser takes 80% of the window it opens in, so the window is a quarter wider than it.
-        DocsShot(page = "mcp-server", name = "tools-browser", surfaceSize = DpSize(860.dp, 600.dp), density = 2f, displayWidth = 688),
+        DocsShot(
+            page = "mcp-server",
+            name = "tools-browser",
+            surfaceSize = DpSize(BROWSER_WIDTH * WINDOW_PER_BROWSER, 600.dp),
+            density = 2f,
+            displayWidth = BROWSER_WIDTH.value.toInt(),
+        ),
     ) { darkTheme ->
         setContent {
             HostWindowSurface(darkTheme = darkTheme) {
@@ -68,13 +73,17 @@ class McpToolsBrowserDocsScreenshots {
 
 private const val TOOLS_BROWSER_TAG = "tools-browser"
 
+private val BROWSER_WIDTH = 688.dp
+
+/** The window the browser is laid out in, per unit of browser: the browser takes 80% of it. */
+private const val WINDOW_PER_BROWSER = 1.25f
+
 private const val NETWORK_ID = "com.kitakkun.jetwhale.network"
 
 private const val NETWORK_NAME = "Network Inspector"
 
 @OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
 private fun toolsBrowserUiState(): McpToolsScreenUiState {
-    // Bound as the host binds a new instance, before its commands are read.
     val pluginScope = CoroutineScope(Job())
     val plugin = NetworkHostPluginFactory().createPlugin()
     plugin.bindPluginScope(pluginScope)

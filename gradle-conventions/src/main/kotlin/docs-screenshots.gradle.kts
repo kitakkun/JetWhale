@@ -22,8 +22,8 @@ kotlinJvm.target.compilations.matching { it.name == "preview" }.all {
     docsScreenshots.associateWith(this)
 }
 
-// What the host supplies to a plugin at runtime is compileOnly in the plugin; a shot runs without the
-// host, so it needs those classes itself.
+// What the host supplies to a plugin at runtime is compileOnly in the plugin; a shot runs without
+// the host, so it needs those classes itself.
 configurations.named(docsScreenshots.runtimeOnlyConfigurationName) {
     extendsFrom(configurations.getByName("compileOnly"))
 }
@@ -42,8 +42,8 @@ tasks.register<Test>("recordDocsScreenshots") {
     classpath = docsScreenshots.output.allOutputs + docsScreenshots.runtimeDependencyFiles
     useJUnit()
     systemProperty("jetwhale.docs.imagesDir", docsImagesDirectory)
-    // Text and times follow the JVM's locale and time zone; pinning them keeps the images the same
-    // whatever machine renders them, short of its fonts.
+    // The UI's text and times follow the JVM's locale and time zone, which differ from machine to
+    // machine.
     jvmArgs("-Duser.language=en", "-Duser.country=US", "-Duser.timezone=UTC")
     doNotTrackState("Writes into docs/images, which only it decides whether to change")
 }

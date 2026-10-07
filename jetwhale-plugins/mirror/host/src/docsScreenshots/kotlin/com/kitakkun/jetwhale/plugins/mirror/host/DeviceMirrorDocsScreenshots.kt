@@ -52,6 +52,8 @@ class DeviceMirrorDocsScreenshots {
             IPHONE.id to ThumbnailState.Live,
             PIXEL_DEVICE.id to ThumbnailState.ScreenOff,
         ).mapValues { (id, state) ->
+            // The grid measures a thumbnail's age against the system clock, so the current time is
+            // what keeps its caption at "just now".
             DeviceThumbnail(image = sampleAppScreenImage(SCREEN_SIZES.getValue(id)), updatedAtMillis = System.currentTimeMillis(), state = state)
         }
         setContent {

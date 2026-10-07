@@ -81,7 +81,6 @@ class HostWindowDocsScreenshots {
         callouts += Callout(number = 2, center = Offset(sidebarEdge, centerYOf("Device Mirror")))
         callouts += Callout(number = 3, center = Offset(sidebarEdge, (centerYOf(PIXEL_9) + centerYOf(SAMPLE_APP)) / 2))
         callouts += Callout(number = 4, center = Offset(sidebarEdge, centerYOf("Compose Semantics Inspector")))
-        // The footer's middle is empty, between the buttons on its left and the one on its right.
         callouts += Callout(number = 5, center = Offset(sidebarEdge / 2, (WINDOW_HEIGHT - JwMetrics.toolbarHeight / 2).value * WINDOW_DENSITY))
         callouts += Callout(number = 6, center = Offset(sidebarEdge + PLUGIN_AREA_CALLOUT_INSET.value * WINDOW_DENSITY, centerYOf("Mocks")))
         onSurface()
@@ -94,7 +93,7 @@ class HostWindowDocsScreenshots {
     }
 
     @Test
-    fun `an AI agent driving the Network Inspector`() = recorder.record(windowShot(page = "host-window", name = "ai-activity")) { darkTheme ->
+    fun `an AI agent driving the Network Inspector with its activity details open`() = recorder.record(windowShot(page = "host-window", name = "ai-activity")) { darkTheme ->
         val operatedPlugins = DRAWER_PLUGINS.map { if (it.id == NETWORK_ID) it.copy(underAiControl = true) else it }
         setHostWindow(darkTheme, uiState = windowUiState(aiActivity = AGENT_OPERATING, plugins = operatedPlugins.toPersistentList()), overlay = {}) {
             NetworkInspectorContent()

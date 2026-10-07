@@ -117,7 +117,7 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     // The window shots show the Network Inspector in the plugin area, and every official plugin's
-    // icon in the sidebar.
+    // icon, read from its jar, in the sidebar.
     "docsScreenshotsImplementation"(projects.jetwhalePlugins.network.host)
     "docsScreenshotsImplementation"(projects.jetwhalePlugins.semantics.host)
     "docsScreenshotsImplementation"(projects.jetwhalePlugins.nav3.host)
