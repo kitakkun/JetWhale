@@ -118,27 +118,42 @@ Every argument is optional; only the ones you supply are touched.
 | `mcpServerPort` | integer | The MCP server's port. Persisted only; see the warning below. |
 | `adbAutoPortMappingEnabled` | boolean | [ADB auto port mapping](/guide/adb-auto-port-mapping). |
 | `persistData` | boolean | Whether captured debug data survives a host restart. |
+| `theme` | string | The window's theme, as on [Settings → Appearance](/guide/host-settings#appearance): `LIGHT`, `DARK`, or `DYNAMIC`, which follows the OS light or dark appearance. |
 | `restartDebugServer` | boolean | Whether to restart the debug server now. Defaults to `true` when any of `serverPort`, `wssPort`, `wssEnabled` or `adbAutoPortMappingEnabled` changed. |
 
-Ports are validated (`1..65535`) before anything is written, and a call that supplies no settings is
-rejected. The result reports which keys were applied, whether the debug server was restarted, and
-notes explaining any deferred effect.
+Ports and the theme name are validated before anything is written, and a call that supplies no
+settings is rejected. The result reports which keys were applied, whether the debug server was
+restarted, and notes explaining any deferred effect. `jetwhale.getStatus` reports the theme under
+`settings.theme`.
+
+A theme change re-themes the window at once, as choosing it in Settings does. On macOS the title bar
+is the exception: it follows the system's light or dark appearance whichever theme is chosen,
+because macOS takes the window frame's appearance once, when the host starts.
 
 ### `jetwhale.navigate`
 
 | Argument | Required | Accepted values |
 |----------|----------|-----------------|
-| `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
+| `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER`, `MCP_TOOLS` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
 | `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the sidebar. |
-| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. `SERVER` is the page the window titles **Connection**. |
+| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`, opening the section's first page. Defaults to `GENERAL`. `SERVER` is the section the window titles **Connection**. |
+| `settingsPage` | no | Only for `SETTINGS`: `APPEARANCE`, `APPLICATION`, `DEBUG_SERVER`, `SSL_CERTIFICATE`, `ADB_SUPPORT`, `MCP_SERVER`, `PERMISSIONS`, `ACTIVITY`, `INSTALLED_PLUGINS`, `ADD_PLUGINS`, `SECURITY`, the pages of the settings menu. Takes the place of `settingsSection`; if both are given, the page has to be in that section. |
+| `mcpToolsTab` | no | Only for `MCP_TOOLS`: `TOOLS` or `HISTORY`. Defaults to `TOOLS`. |
 
 Navigating to `PLUGIN` also selects that session in the sidebar, which is what a following
 `jetwhale.screenshot` of the same plugin shows. The call waits up to two seconds for the window to
 confirm, and reports `applied: false` with a reason if it does not.
 
-`jetwhale.getStatus` can report destinations the tool cannot request: `DISABLED_PLUGIN`, `LICENSES`
-and `MCP_TOOLS`.
+`MCP_TOOLS` opens the [MCP tools browser](/guide/mcp-server#the-mcp-tools-browser) with no plugin or
+session filter. Like the Settings pages, it is for the person at the window: `jetwhale.screenshot`
+and the other UI tools read plugin screens only, so an agent cannot read the browser's call history
+through it. The result and `jetwhale.getStatus` report the page or tab the screen opened on, not one
+picked by hand inside it afterwards. Settings, Info and the MCP tools browser open as dialogs, and
+opening one closes any other that is open.
+
+`jetwhale.getStatus` can report destinations the tool cannot request: `DISABLED_PLUGIN` and
+`LICENSES`.
 
 ::: warning Destructive host tools
 `jetwhale.restartDebugServer`, and `jetwhale.updateSettings` when it changes a ws/wss setting, stop
