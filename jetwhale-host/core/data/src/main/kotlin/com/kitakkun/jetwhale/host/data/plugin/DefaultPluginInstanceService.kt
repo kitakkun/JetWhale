@@ -314,7 +314,9 @@ class DefaultPluginInstanceService(
      * pluginId is replaced by an instance from a new classloader that may not answer the same way.
      */
     private fun publishInstanceState() {
-        val entries = loadedPlugins.entries.toList()
+        // toMutableList() copies the live view in one pass; toList() on a single instance reads the
+        // size, then the entry, and throws if the instance leaves in between.
+        val entries = loadedPlugins.entries.toMutableList()
         headlessPluginsFlow.value = HeadlessPlugins(
             entries
                 .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
