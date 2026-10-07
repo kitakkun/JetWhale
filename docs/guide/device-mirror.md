@@ -10,6 +10,9 @@ It needs no app: nothing is added to the app you debug, and it is listed at the 
 above the app picker, usable as soon as the host starts with nothing connected — see
 [Plugins that need no app](/guide/host-window#plugins-that-need-no-app).
 
+![The Device Mirror showing a Pixel 9 emulator's screen, with the device picker and the device's buttons above it and the text field below](../images/device-mirror/live-light.webp){.light-only width=688}
+![The Device Mirror showing a Pixel 9 emulator's screen, with the device picker and the device's buttons above it and the text field below](../images/device-mirror/live-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin
@@ -51,6 +54,9 @@ The picker's first entry, **All devices**, opens the grid: every device as a til
 with a screenshot refreshed every 1.5 seconds and how long ago it was taken. Only tiles on screen are
 captured, two at a time at most, and nothing streams meanwhile. Click a tile, or press Enter on it,
 to open that device; hovering one offers **Open** and **Screenshot**.
+
+![The device grid: a Pixel 9 emulator and an iPhone 16 simulator showing their screens, and a Pixel 7 whose screen is off](../images/device-mirror/grid-light.webp){.light-only width=688}
+![The device grid: a Pixel 9 emulator and an iPhone 16 simulator showing their screens, and a Pixel 7 whose screen is off](../images/device-mirror/grid-dark.webp){.dark-only width=688}
 
 The grid's toolbar acts on every device at once. The camera button saves one screenshot per device.
 The record button starts recording every device that can record; while any device records it turns
@@ -114,6 +120,9 @@ folder…** in the Captures panel picks another, and the host remembers it.
   on the clipboard as an image and as its file; **Copy file** puts a recording there as its file,
   which Finder, chat apps and upload fields accept. **Copy path** copies its absolute path.
 - **Open folder** opens the device's folder, or the captures folder when all devices are shown.
+
+![The Captures panel beside the live view: the filters, the day's captures, and the selected screenshot's details and actions](../images/device-mirror/captures-light.webp){.light-only width=688}
+![The Captures panel beside the live view: the filters, the day's captures, and the selected screenshot's details and actions](../images/device-mirror/captures-dark.webp){.dark-only width=688}
 
 ## MCP tools
 

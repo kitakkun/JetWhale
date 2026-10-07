@@ -6,6 +6,9 @@ your backend. Redaction rules keep secrets out of what it captures.
 
 **Works with:** every platform through a Ktor client; Android and the JVM through OkHttp.
 
+![The Network Inspector's Traffic tab: the captured requests with their status, one answered by a mock, and the selected response's JSON body as a tree](../images/network-inspector/traffic-light.webp){.light-only width=688}
+![The Network Inspector's Traffic tab: the captured requests with their status, one answered by a mock, and the selected response's JSON body as a tree](../images/network-inspector/traffic-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin
@@ -136,6 +139,9 @@ Select your app in the sidebar and open **Network Inspector**: each HTTP transac
 view) and status, all text-selectable. Right-click a
 transaction for **Copy as cURL**, **Copy URL** and its request and response bodies.
 
+![The context menu of a transaction, offering Copy as cURL, Copy URL, Copy request body and Copy response body](../images/network-inspector/context-menu-light.webp){.light-only width=688}
+![The context menu of a transaction, offering Copy as cURL, Copy URL, Copy request body and Copy response body](../images/network-inspector/context-menu-dark.webp){.dark-only width=688}
+
 An image body (`image/*`, except SVG, which stays text) shows as a picture with its dimensions and
 size. **Copy image** puts it on the clipboard, and **Save image…** writes the exact bytes the server
 sent. **Mock this** on an image response keeps those bytes, so the mock serves the same image.
@@ -148,6 +154,9 @@ reproduction produced.
 The **Mocks** tab defines mock rules and pushes them to the running app: while **Mocking enabled** is
 on, a request matching a rule gets the mocked response instead of reaching the network. It is handy
 for error states, empty lists or slow payloads without a test backend, and needs no app restart.
+
+![The Mocks tab with mocking enabled and three rules, one of them switched off](../images/network-inspector/mocks-light.webp){.light-only width=688}
+![The Mocks tab with mocking enabled and three rules, one of them switched off](../images/network-inspector/mocks-dark.webp){.dark-only width=688}
 
 **Add rule** opens an editor with these fields. The [MCP tools](#mcp-tools) take the same shape, so a
 rule written by hand and one written by an agent are interchangeable.

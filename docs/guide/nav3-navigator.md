@@ -8,6 +8,9 @@ app **already** gives `rememberNavBackStack`.
 
 **Works with:** any app that uses Navigation 3.
 
+![The Nav3 Navigator: a back stack of three entries with their actions, beside the push editor and the key types filtered to Product](../images/nav3-navigator/back-stack-light.webp){.light-only width=688}
+![The Nav3 Navigator: a back stack of three entries with their actions, beside the push editor and the key types filtered to Product](../images/nav3-navigator/back-stack-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin

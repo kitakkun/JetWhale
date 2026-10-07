@@ -9,6 +9,9 @@ action instead of guessing at pixels.
 
 **Works with:** Android, desktop (JVM) and iOS. Not the web; see [Limits](#limits).
 
+![The Compose Semantics Inspector: the Android views and Compose nodes of a captured screen, with a button selected and its semantics and actions on the right](../images/compose-semantics-inspector/tree-light.webp){.light-only width=688}
+![The Compose Semantics Inspector: the Android views and Compose nodes of a captured screen, with a button selected and its semantics and actions on the right](../images/compose-semantics-inspector/tree-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin
@@ -154,6 +157,9 @@ Select an Android `View` node and its platform attributes appear under its seman
 State, Layout, Appearance, Text and Info — padding, a color, `visibility`, a size — and most can be
 changed live, so you can try a change without a rebuild. The full list is in the
 [reference](/reference/semantics-tree#view-attributes).
+
+![The attributes of a selected TextView, grouped into State, Layout, Appearance and Text, each with an editor](../images/compose-semantics-inspector/view-attributes-light.webp){.light-only width=688}
+![The attributes of a selected TextView, grouped into State, Layout, Appearance and Text, each with an editor](../images/compose-semantics-inspector/view-attributes-dark.webp){.dark-only width=688}
 
 - **An edit is temporary.** The app owns the property: a relayout, a rebind or the app writing it
   takes the value back. It is a way to see a change, not to make one.

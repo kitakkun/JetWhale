@@ -4,6 +4,9 @@ JetWhale is an extensible debugging tool inspired by
 [Flipper](https://github.com/facebook/flipper), built with Kotlin and Jetpack Compose for Kotlin
 Multiplatform apps: Android, desktop (JVM), iOS and the web.
 
+![The JetWhale host window: the sidebar with Sample App connected from a Pixel 9 emulator and its plugins, and the Network Inspector showing the app's HTTP traffic](../images/what-is-jetwhale/overview-light.webp){.light-only width=688}
+![The JetWhale host window: the sidebar with Sample App connected from a Pixel 9 emulator and its plugins, and the Network Inspector showing the app's HTTP traffic](../images/what-is-jetwhale/overview-dark.webp){.dark-only width=688}
+
 ::: warning Active development
 This project is under active development. We welcome feedback as we work toward a stable release.
 Please note that the Plugin SDK APIs are not yet finalized and may change in the future.

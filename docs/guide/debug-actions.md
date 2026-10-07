@@ -7,6 +7,9 @@ Schema over MCP.
 
 **Works with:** Android, iOS, macOS, desktop (JVM) and the web.
 
+![Debug Actions: the app's actions, one pinned, and the selected Log in as action with its arguments, its latest result and its runs, one of them made by an AI agent](../images/debug-actions/actions-light.webp){.light-only width=688}
+![Debug Actions: the app's actions, one pinned, and the selected Log in as action with its arguments, its latest result and its runs, one of them made by an AI agent](../images/debug-actions/actions-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin

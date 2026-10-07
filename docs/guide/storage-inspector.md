@@ -9,6 +9,9 @@ agent finds the app's own directories and the platform's preferences store by it
 **Works with:** Android, iOS, macOS, desktop (JVM) and the web; see the table below for what each
 shows.
 
+![The Storage Inspector's Files tab: the app's directories as a tree, and a Preferences DataStore file with its details and decoded entries](../images/storage-inspector/files-light.webp){.light-only width=688}
+![The Storage Inspector's Files tab: the app's directories as a tree, and a Preferences DataStore file with its details and decoded entries](../images/storage-inspector/files-dark.webp){.dark-only width=688}
+
 ## Setup
 
 ### Install the host plugin
@@ -116,6 +119,9 @@ everything in it; a root itself cannot be deleted.
 
 The stores in a list, and the selected store's entries with their types. Select an entry and press
 **Delete…** to remove it.
+
+![The Key-Value tab: the app's SharedPreferences stores, and the entries of one with an entry selected](../images/storage-inspector/key-value-light.webp){.light-only width=688}
+![The Key-Value tab: the app's SharedPreferences stores, and the entries of one with an entry selected](../images/storage-inspector/key-value-dark.webp){.dark-only width=688}
 
 ## MCP tools
 

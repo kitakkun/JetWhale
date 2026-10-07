@@ -128,6 +128,9 @@ session metadata, stopping and reconnecting — is in
 Launch your app. It appears in the host's sidebar as a session, under its device; several apps and
 devices can be connected at once.
 
+![The host window with Sample App connected from a Pixel 9 emulator: the app picker shows the device and the app, and no plugin is installed yet](../images/getting-started/first-session-light.webp){.light-only width=688}
+![The host window with Sample App connected from a Pixel 9 emulator: the app picker shows the device and the app, and no plugin is installed yet](../images/getting-started/first-session-dark.webp){.dark-only width=688}
+
 | Your app runs on | What to do |
 |---|---|
 | Desktop, iOS Simulator, a browser | Nothing: it reaches the host on `localhost` |
@@ -141,6 +144,10 @@ registered in your app. The Storage Inspector, for example:
 
 1. In the host, open **Settings → Plugins → Add Plugins → Official Plugins** and install
    **Storage Inspector**.
+
+   ![Settings → Plugins → Add Plugins, listing the official plugins, each with an Install button](../images/getting-started/official-plugins-light.webp){.light-only width=688}
+   ![Settings → Plugins → Add Plugins, listing the official plugins, each with an Install button](../images/getting-started/official-plugins-dark.webp){.dark-only width=688}
+
 2. Add its agent to your app and register it:
 
    ```kotlin

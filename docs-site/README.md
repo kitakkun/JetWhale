@@ -15,15 +15,27 @@ Adding a new page also requires adding it to the sidebar in `docs-site/.vitepres
 ## Screenshots
 
 Screenshots live in `docs/images/<page>/`, one WebP file per theme: `<shot>-light.webp` and
-`<shot>-dark.webp`. A page references both by relative path, so a missing file fails the build,
-and the theme shows the one that matches the reader's appearance:
+`<shot>-dark.webp`. They are rendered from the real UI rather than captured by hand: the tests in a
+module's `src/docsScreenshots` render its screens with fixture state, in both themes, and
 
-```md
-![The Network Inspector's traffic list](../images/network-inspector/traffic-light.webp){.light-only}
-![The Network Inspector's traffic list](../images/network-inspector/traffic-dark.webp){.dark-only}
+```shell
+./gradlew recordDocsScreenshots
 ```
 
-Keep each file at 250 KB or less: lossy WebP at quality 85–90, or lossless when that is smaller.
+writes every image whose picture changed; a file whose pixels did not move is left as it is. Text is
+drawn with the fonts of the machine that renders it, so render on macOS, as the committed images
+were, or every image changes.
+
+A page references both variants by relative path, so a missing file fails the build, and the theme
+shows the one that matches the reader's appearance. `width` is the width the page shows the image
+at, half of its pixel width:
+
+```md
+![The Network Inspector's traffic list](../images/network-inspector/traffic-light.webp){.light-only width=688}
+![The Network Inspector's traffic list](../images/network-inspector/traffic-dark.webp){.dark-only width=688}
+```
+
+The task writes lossy WebP at quality 88, and fails a shot whose file would be over 250 KB.
 
 ## Moving a section
 
