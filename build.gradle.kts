@@ -70,6 +70,12 @@ subprojects {
         }
     }
 
+    pluginManager.withPlugin("docs-screenshots") {
+        configure<KotrailExtension> {
+            compilation("docsScreenshots") { configFile = rootProject.layout.projectDirectory.file("kotrail-docs-screenshots.yaml") }
+        }
+    }
+
     // On macOS a test JVM that starts AWT becomes a regular app with a Dock icon and takes keyboard
     // focus; as a background-only app, AWT still works.
     tasks.withType<Test>().configureEach {
