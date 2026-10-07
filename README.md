@@ -76,8 +76,8 @@ devices, secure connections, and the rest.
 ## Official plugins
 
 The debugging tools themselves are plugins. These ship with JetWhale — install one into the host
-from its plugin catalog, add the matching artifact to your app, and register it in
-`startJetWhale { }`:
+from its plugin catalog; for one that works inside your app, also add the matching artifact to your
+app and register it in `startJetWhale { }`:
 
 - **[Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector)** — HTTP
   traffic with request and response bodies, plus mock rules that reshape responses without touching
@@ -90,11 +90,10 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   the app's debug menu as typed actions the host and AI agents can run
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
-
-The **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* shows the live
-screens of Android devices and emulators, iOS simulators and iPhones, one at a time or all together
-in a grid, and records screenshots and videos per device. Android devices and simulators also take
-input; an iPhone is view-only. It needs no agent in your app; install it from the host's official plugins.
+- **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* — the
+  live screens of Android devices and emulators, iOS simulators and iPhones, one at a time or in a
+  grid, with screenshots and recordings per device; Android devices and simulators also take input.
+  It runs in the host alone, with nothing to add to your app
 
 ## Developing plugins
 
