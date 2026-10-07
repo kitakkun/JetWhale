@@ -385,7 +385,7 @@ Always `Read` the screenshot afterwards. A screenshot you never open verifies no
 `rememberPersistent` writes to:
 
 ```
-<module>/build/jetwhale-sandbox/plugin-data/<pluginId>/store.json
+<module>/build/jetwhale-sandbox/plugin-data/<pluginId>/<version>/store.json
 ```
 
 - Writes are **debounced 300 ms**, so sleep 1–2 s after the interaction before reading the file.

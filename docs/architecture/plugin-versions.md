@@ -41,6 +41,10 @@ it.
   while that version stays loaded, so installing a newer version does not swap a running app's plugin
   underneath it; the app's next connection, or one whose bound version was removed, binds afresh. A
   reload of the same version (new classloader) recreates the instance from that version.
+- **Activation comes first.** An app's instance prepares only after its agent has been told to
+  activate the plugin. A reload or a removal recreates only the instances it disposed, whose agents
+  already have the plugin active. An app that a reloaded version fits for the first time had no
+  instance, so reconciliation creates it and tells its agent before it prepares.
 - Instances, NavKeys and screens stay keyed by `(sessionId, pluginId)`: the version is resolved per
   session, so nothing above the instance layer needs to know which version it talks to.
 
