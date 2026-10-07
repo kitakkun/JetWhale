@@ -23,7 +23,7 @@ semantics tree, so an agent can use any plugin the way you do.
 | Tool | What it does |
 |------|--------------|
 | `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
-| `jetwhale.click` | Dispatches a mouse click at pixel coordinates in a plugin's UI |
+| `jetwhale.click` | Invokes the `OnClick` action of the deepest clickable node at pixel coordinates in a plugin's UI; no pointer event is sent |
 | `jetwhale.type` | Types text or a special key into a plugin's UI |
 | `jetwhale.scroll` | Dispatches a scroll event in a plugin's UI |
 | `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |

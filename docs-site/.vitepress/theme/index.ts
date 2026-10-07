@@ -10,7 +10,13 @@ function movedAnchorTarget(href: string): string | undefined {
   const base = withBase('/')
   let path = url.pathname.startsWith(base) ? `/${url.pathname.slice(base.length)}` : url.pathname
   path = path.replace(/\.html$/, '')
-  const target = movedAnchors[`${path}${decodeURIComponent(url.hash)}`]
+  let hash: string
+  try {
+    hash = decodeURIComponent(url.hash)
+  } catch {
+    return undefined
+  }
+  const target = movedAnchors[`${path}${hash}`]
   if (!target) return undefined
   const [targetPath, targetHash] = target.split('#')
   return `${targetPath}.html#${targetHash}`

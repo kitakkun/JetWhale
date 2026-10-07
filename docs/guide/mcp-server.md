@@ -56,8 +56,10 @@ The plugin UI tools read the **host window's** Compose UI. To read the debugged 
 
 ### Plugin-provided tools
 
-Host plugins can add tools of their own; JetWhale injects a required `sessionId` into each, so an
-agent targets one connected app. The official plugins' tools are listed in each guide, such as the
+Host plugins can add tools of their own. JetWhale injects a required `sessionId` into each, naming
+the session the call goes to: a connected app's, or `host` for a plugin that needs no app, such as
+the [Device Mirror](/guide/device-mirror#mcp-tools). The official plugins' tools are listed in each
+guide, such as the
 [Network Inspector's](/guide/network-inspector#mcp-tools). To write one, see
 [Developing Plugins → Exposing MCP tools](/guide/developing-plugins#exposing-mcp-tools). A plugin can
 hide sensitive values from agents; the Network Inspector's

@@ -30,10 +30,18 @@ In each plugin row, the first artifact (the one without an `-agent` or `-protoco
 
 ## Kotlin Multiplatform targets
 
-The multiplatform artifacts ship `jvm`, `android`, `js(IR)`, `wasmJs`, `iosArm64`,
-`iosSimulatorArm64`, `macosArm64`, `mingwX64`, `linuxX64` and `linuxArm64`. There is **no `iosX64`
-and no `macosX64`**, so an Intel Mac and the Intel iOS simulator cannot resolve them, and there are
-no watchOS or tvOS targets.
+Targets differ per artifact:
+
+| Artifacts | Targets |
+|---|---|
+| `jetwhale-agent-runtime`, `jetwhale-agent-sdk`, `jetwhale-protocol-core`, `jetwhale-annotations`, every plugin's `-protocol`, `jetwhale-network-inspector-agent` and `-agent-ktor`, `jetwhale-nav3-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64`, `linuxX64`, `linuxArm64`, `mingwX64` |
+| `jetwhale-storage-inspector-agent` and `-agent-datastore`, `jetwhale-debug-actions-agent` and `-agent-compose` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64` |
+| `jetwhale-compose-semantics-inspector-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64` |
+| `jetwhale-network-inspector-agent-okhttp`, the host plugin jars, `jetwhale-host-sdk`, `jetwhale-host-ui`, the Gradle plugins and the compiler plugin, `jetwhale-qa-agent` | JVM only |
+
+No artifact has an `iosX64` or `macosX64` target, or a watchOS or tvOS one. A desktop app on an Intel
+Mac uses the `jvm` variant like any other; what cannot resolve them is a native macOS build for x64
+or an app built for the Intel iOS simulator.
 
 ## Kotlin compatibility
 
