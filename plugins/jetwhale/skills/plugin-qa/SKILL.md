@@ -346,9 +346,9 @@ List the tools before planning around one, and do not read a refusal as a bug in
 | `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled, plus the official catalog under `availableOfficial` |
 | `jetwhale.installOfficialPlugin` | install a plugin from that catalog — catalog entries only, and `setPluginEnabled` still has to follow |
 | `jetwhale.setPluginEnabled` | enable the plugin under test; reports which sessions got an instance |
-| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER`) |
+| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER` / `MCP_TOOLS`) |
 | `jetwhale.getLogs` / `jetwhale.clearLogs` | the **host's** own log — clear, reproduce, read |
-| `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports and server lifecycle |
+| `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports, theme and server lifecycle |
 
 `getLogs` reads the host's log, not the debuggee's — it is how a plugin jar that failed to load
 explains itself.

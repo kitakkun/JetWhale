@@ -2,7 +2,9 @@ package com.kitakkun.jetwhale.host.navigation
 
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.drawer.McpToolsTab
 import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 
 fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
     removeIf { it == navKey }
@@ -15,14 +17,23 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
 }
 
 /**
- * Shows the MCP tools browser, seeded with the scope it was opened from.
- *
- * At most one browser window exists: opening it from a different scope re-seeds the filters rather
- * than stacking a second window, and re-opening it with the same scope leaves the window as it is so
- * the user does not lose its position or their own filter changes.
+ * Shows Settings at [page]. An open Settings is replaced rather than stacked under it: every dialog
+ * draws its own scrim, so each stacked one would darken the window further.
  */
-fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?) {
-    val navKey = McpToolsNavKey(pluginId = pluginId, sessionId = sessionId)
+fun NavBackStack<NavKey>.openSettings(page: SettingsScreenPage) {
+    removeAll { it is SettingsNavKey }
+    add(SettingsNavKey(initialPage = page))
+}
+
+/**
+ * Shows the MCP tools browser on [tab], seeded with the scope it was opened from.
+ *
+ * At most one browser window exists: opening it from a different scope or on a different tab
+ * re-seeds it rather than stacking a second window, and re-opening it the same way leaves the window
+ * as it is so the user does not lose its position or their own filter changes.
+ */
+fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?, tab: McpToolsTab) {
+    val navKey = McpToolsNavKey(pluginId = pluginId, sessionId = sessionId, initialTab = tab)
     if (any { it == navKey }) return
     removeAll { it is McpToolsNavKey }
     add(navKey)

@@ -51,6 +51,7 @@ import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
+import com.kitakkun.jetwhale.host.navigation.openSettings
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
@@ -92,7 +93,7 @@ fun JetWhaleApp() {
     HostWindowEffects(backStack)
 
     KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
+        onPressSettingsShortcut = { backStack.openSettings(SettingsScreenPage.Appearance) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
             val checkForHostUpdateMutation = rememberMutation(appGraph.checkForHostUpdateMutationKey)
@@ -185,12 +186,8 @@ private fun ThemedHostWindow(
             JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                 context(retain { appGraph.toolingScaffoldScreenContext }) {
                     ToolingScaffoldRoot(
-                        onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
-                        onClickPluginSettings = {
-                            backStack.addSingleTop(
-                                SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins),
-                            )
-                        },
+                        onClickSettings = { backStack.openSettings(SettingsScreenPage.Appearance) },
+                        onClickPluginSettings = { backStack.openSettings(SettingsScreenPage.InstalledPlugins) },
                         onClickInfo = { backStack.addSingleTop(InfoNavKey) },
                         onClickInactivePlugin = { pluginId, pluginName, sessionId, notInApp ->
                             backStack.addSingleTop(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
@@ -213,9 +210,7 @@ private fun ThemedHostWindow(
                         onNavigateHome = {
                             backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
                         },
-                        onNavigateSettings = { page ->
-                            backStack.addSingleTop(SettingsNavKey(initialPage = page))
-                        },
+                        onNavigateSettings = backStack::openSettings,
                         onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                         onSelectedSessionChange = { selectedSession ->
                             backStack.followPluginToSession(
@@ -228,12 +223,8 @@ private fun ThemedHostWindow(
                     ) {
                         HostWindowContent(
                             backStack = backStack,
-                            onClickReviewArrivedPlugins = {
-                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.PluginSecurity))
-                            },
-                            onClickOpenUpdateSettings = {
-                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.Application))
-                            },
+                            onClickReviewArrivedPlugins = { backStack.openSettings(SettingsScreenPage.PluginSecurity) },
+                            onClickOpenUpdateSettings = { backStack.openSettings(SettingsScreenPage.Application) },
                         )
                     }
                 }

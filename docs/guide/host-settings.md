@@ -27,6 +27,9 @@ configure.
 | **Language** | UI language of the host: **English** or **Japanese**. |
 | **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
 
+An AI agent can change the theme through `jetwhale.updateSettings` (`theme`: `DYNAMIC`, `LIGHT` or
+`DARK`).
+
 ### Application
 
 Everything about *this install* of the host.
