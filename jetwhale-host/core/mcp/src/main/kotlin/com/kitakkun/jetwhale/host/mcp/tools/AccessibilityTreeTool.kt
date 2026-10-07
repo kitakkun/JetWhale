@@ -95,17 +95,17 @@ internal fun captureAccessibilityTree(scene: PluginComposeScene): String {
 }
 
 private fun traverseSemanticsTree(node: SemanticsNode): List<NodeInfo> {
-    val info = nodeToInfo(node)
+    val info = node.toNodeInfo()
     val children = node.children.flatMap(::traverseSemanticsTree)
     return listOf(info.copy(children = children))
 }
 
-private fun nodeToInfo(node: SemanticsNode): NodeInfo {
-    val config = node.config
+/** This node as `jetwhale.getAccessibilityTree` reports it, with its children left empty. */
+internal fun SemanticsNode.toNodeInfo(): NodeInfo {
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
-    val bounds = node.boundsInRoot
+    val bounds = boundsInRoot
     return NodeInfo(
-        id = node.id,
+        id = id,
         role = config.getOrNull(SemanticsProperties.Role)?.toString(),
         text = config.getOrNull(SemanticsProperties.Text)
             ?.joinToString(separator = " ", transform = AnnotatedString::text)
@@ -135,7 +135,6 @@ internal data class AccessibilityTreeResult(
 )
 
 @Serializable
-@VisibleForTesting
 internal data class NodeInfo(
     val id: Int,
     val role: String? = null,
@@ -152,7 +151,6 @@ internal data class NodeInfo(
 )
 
 @Serializable
-@VisibleForTesting
 internal data class BoundsInfo(
     val left: Float,
     val top: Float,

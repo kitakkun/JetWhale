@@ -46,7 +46,7 @@ mind before exposing the port beyond localhost.
 | Tools | What they operate on | Reference |
 |---|---|---|
 | `jetwhale.listSessions`, `jetwhale.listPlugins` | Discovery: the session and plugin ids every other tool takes | [Discovery tools](/reference/mcp-tools#discovery-tools) |
-| `jetwhale.screenshot`, `click`, `type`, `scroll`, `drag`, `getAccessibilityTree` | A **plugin's UI inside the host**, the way you use it | [Plugin UI tools](/reference/mcp-tools#plugin-ui-tools) |
+| `jetwhale.screenshot`, `click`, `secondaryClick`, `type`, `scroll`, `drag`, `getAccessibilityTree` | A **plugin's UI inside the host**, the way you use it | [Plugin UI tools](/reference/mcp-tools#plugin-ui-tools) |
 | `jetwhale.getStatus`, `getLogs`, `updateSettings`, `navigate`, … | The **host** as a whole | [Host tools](/reference/mcp-tools#host-tools) |
 | `com.kitakkun.jetwhale.<plugin>.*` | What each plugin exposes, such as captured traffic or the app's semantics tree | Each plugin's guide |
 
@@ -85,7 +85,7 @@ Each installed plugin gets a subtree of its own:
 | | Covers | Default |
 |---|---|---|
 | **UI → Inspect** | `screenshot`, `getAccessibilityTree`, for that plugin | on |
-| **UI → Interact** | `click`, `type`, `scroll`, `drag`, for that plugin | on |
+| **UI → Interact** | `click`, `secondaryClick`, `type`, `scroll`, `drag`, for that plugin | on |
 | **Own tools** | one checkbox per MCP tool the plugin contributes | on |
 
 ![Settings → AI Agents → Permissions: Manage plugins and Settings & servers unticked, and the Network Inspector's UI and own tools opened](../images/mcp-server/permissions-light.webp){.light-only width=688}
@@ -93,6 +93,10 @@ Each installed plugin gets a subtree of its own:
 
 - **Looking and pressing are separate.** Letting an agent look at a plugin's screen is not the same
   risk as letting it press the buttons on it, so any leaf can be revoked on its own.
+- **`secondaryClick` needs Interact, and Inspect for a menu's items.** Its answer lists a popup's
+  nodes, which carry what `getAccessibilityTree` would show, so it includes them only when Inspect is
+  allowed for that plugin too. With Interact alone it still reports `consumed`, `openedPopup` and
+  `closedPopup`, and says in a note why the nodes are left out.
 - **The two groups that are off do something unticking cannot undo:** installing a plugin runs new
   code inside JetWhale, and restarting the debug server disconnects every session. A group added by a
   future release starts off rather than inheriting a yes you never gave.
