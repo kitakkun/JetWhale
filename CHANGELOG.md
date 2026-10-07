@@ -48,6 +48,7 @@ are experimental.
 - The Network Inspector's traffic list no longer cuts URLs short to keep room for a mostly empty MOCK column; a mocked row shows its MOCK tag before the URL instead (#417).
 - After a plugin is disabled and enabled again, its host side waits for the app to activate it before the first exchange, so plugins such as Storage and Nav3 load their state again (#422).
 - The host no longer logs a TLS handshake failure, with a stack trace, each time an app connects with trust on first use (#421).
+- Stopping the debug server, or restarting it to apply settings, removes the `adb reverse` mappings that ADB auto port mapping added, and quitting the host no longer leaves an `adb track-devices` process running (#419).
 - On an iOS simulator, the Compose Semantics Inspector turns on application accessibility for the app it runs in, so a fresh simulator no longer shows an empty tree; pass `enableSimulatorApplicationAccessibility = false` to `installJetWhaleSemanticsProbe` to opt out. A physical device needs application accessibility turned on as the guide describes (#423).
 - The Compose Semantics Inspector keeps a node's `#id` tag when the node's own text starts with `#` (#352).
 - In Windows desktop apps, the Storage Inspector recognizes symbolic links and junctions, so deleting a directory from the host no longer deletes the files a link inside it points to, and a link no longer leads a listing out of its root (#387).
