@@ -52,7 +52,7 @@ call_portal() { # <curl arguments>; leaves the response body in $response
 }
 
 # Not retried: a retry after a lost response would create a second deployment.
-call_portal --request POST \
+call_portal --connect-timeout 30 --max-time 900 --request POST \
   --url-query "name=$deployment_name" --url-query "publishingType=USER_MANAGED" \
   --form "bundle=@$bundle;type=application/octet-stream" \
   "$CENTRAL_PORTAL_URL/api/v1/publisher/upload"
@@ -62,7 +62,7 @@ echo "Uploaded $deployment_name as deployment $deployment_id"
 deadline=$((SECONDS + 30 * 60))
 last_state=""
 while :; do
-  call_portal --retry 3 --request POST --url-query "id=$deployment_id" "$CENTRAL_PORTAL_URL/api/v1/publisher/status"
+  call_portal --connect-timeout 10 --max-time 30 --retry 3 --request POST --url-query "id=$deployment_id" "$CENTRAL_PORTAL_URL/api/v1/publisher/status"
   state="$(jq -r '.deploymentState' "$response")"
   if [ "$state" != "$last_state" ]; then
     echo "Deployment $deployment_id: $state"
