@@ -14,8 +14,8 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -24,13 +24,13 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class NetworkInspectorDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `traffic with a JSON response selected`() = recorder.record(
-        DocsShot(page = PAGE, name = "traffic", surfaceSize = DpSize(688.dp, 420.dp), density = 2f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "traffic", surfaceSize = DpSize(688.dp, 420.dp), density = 2f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setNetworkInspector(darkTheme)
+        setNetworkInspectorContent(darkTheme)
         onNodeWithText(ITEMS_URL).mouseClickThenMovePointerAway()
         onNodeWithText("items  [2]").mouseClickThenMovePointerAway()
         onNodeWithText("[0]  {3}").mouseClickThenMovePointerAway()
@@ -39,18 +39,18 @@ class NetworkInspectorDocsScreenshots {
 
     @Test
     fun `the context menu of a transaction`() = recorder.record(
-        DocsShot(page = PAGE, name = "context-menu", surfaceSize = DpSize(688.dp, 320.dp), density = 2f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "context-menu", surfaceSize = DpSize(688.dp, 320.dp), density = 2f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setNetworkInspector(darkTheme)
+        setNetworkInspectorContent(darkTheme)
         onNodeWithText(CART_URL).performMouseInput { rightClick(center) }
         onSurface()
     }
 
     @Test
     fun `the mock rules list`() = recorder.record(
-        DocsShot(page = PAGE, name = "mocks", surfaceSize = DpSize(688.dp, 300.dp), density = 2f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "mocks", surfaceSize = DpSize(688.dp, 300.dp), density = 2f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setNetworkInspector(darkTheme)
+        setNetworkInspectorContent(darkTheme)
         onNodeWithText("Mocks").mouseClickThenMovePointerAway()
         onSurface()
     }
@@ -58,7 +58,7 @@ class NetworkInspectorDocsScreenshots {
 
 /** The list wider than its default, so the URLs show their paths at the page's width. */
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setNetworkInspector(darkTheme: Boolean) {
+private fun SkikoComposeUiTest.setNetworkInspectorContent(darkTheme: Boolean) {
     setContent {
         PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(mapOf("traffic.splitPosition" to "0.56"))) {
             NetworkInspectorScreenRoot(

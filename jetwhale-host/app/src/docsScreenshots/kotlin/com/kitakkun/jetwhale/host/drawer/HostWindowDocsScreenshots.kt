@@ -39,8 +39,8 @@ import com.kitakkun.jetwhale.plugins.network.host.NetworkInspectorScreenRoot
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.HostWindowSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -60,26 +60,26 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class HostWindowDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
-    fun `the window with the Network Inspector open`() = recorder.record(windowShot(page = "what-is-jetwhale", name = "overview")) { darkTheme ->
-        setHostWindow(darkTheme, uiState = windowUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = {}) { NetworkInspectorContent() }
+    fun `the window with the Network Inspector open`() = recorder.record(windowScreenshot(page = "what-is-jetwhale", name = "overview")) { darkTheme ->
+        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = {}) { NetworkInspectorContent() }
         onNodeWithText(ITEMS_URL).mouseClickThenMovePointerAway()
         onSurface()
     }
 
     @Test
-    fun `the window with each part of the sidebar numbered`() = recorder.record(windowShot(page = "host-window", name = "annotated")) { darkTheme ->
+    fun `the window with each part of the sidebar numbered`() = recorder.record(windowScreenshot(page = "host-window", name = "annotated")) { darkTheme ->
         val callouts = mutableStateListOf<Callout>()
-        setHostWindow(darkTheme, uiState = windowUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = { CalloutMarkers(callouts) }) {
+        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = { CalloutMarkers(callouts) }) {
             NetworkInspectorContent()
         }
         onNodeWithText(ITEMS_URL).mouseClickThenMovePointerAway()
         val sidebarEdge = JwMetrics.sidebarWidth.value * WINDOW_DENSITY
         callouts += Callout(number = 1, center = Offset(sidebarEdge, centerYOf("AI agent connected")))
         callouts += Callout(number = 2, center = Offset(sidebarEdge, centerYOf("Device Mirror")))
-        callouts += Callout(number = 3, center = Offset(sidebarEdge, (centerYOf(PIXEL_9) + centerYOf(SAMPLE_APP)) / 2))
+        callouts += Callout(number = 3, center = Offset(sidebarEdge, (centerYOf(DEVICE_NAME) + centerYOf(APP_NAME)) / 2))
         callouts += Callout(number = 4, center = Offset(sidebarEdge, centerYOf("Compose Semantics Inspector")))
         callouts += Callout(number = 5, center = Offset(sidebarEdge / 2, (WINDOW_HEIGHT - JwMetrics.toolbarHeight / 2).value * WINDOW_DENSITY))
         callouts += Callout(number = 6, center = Offset(sidebarEdge + PLUGIN_AREA_CALLOUT_INSET.value * WINDOW_DENSITY, centerYOf("Mocks")))
@@ -87,15 +87,15 @@ class HostWindowDocsScreenshots {
     }
 
     @Test
-    fun `the first session before any plugin is installed`() = recorder.record(windowShot(page = "getting-started", name = "first-session")) { darkTheme ->
-        setHostWindow(darkTheme, uiState = windowUiState(aiActivity = MCP_READY, plugins = persistentListOf()), overlay = {}) { EmptyPluginScreen() }
+    fun `the first session before any plugin is installed`() = recorder.record(windowScreenshot(page = "getting-started", name = "first-session")) { darkTheme ->
+        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = MCP_READY, plugins = persistentListOf()), overlay = {}) { EmptyPluginScreen() }
         onSurface()
     }
 
     @Test
-    fun `an AI agent driving the Network Inspector with its activity details open`() = recorder.record(windowShot(page = "host-window", name = "ai-activity")) { darkTheme ->
-        val operatedPlugins = DRAWER_PLUGINS.map { if (it.id == NETWORK_ID) it.copy(underAiControl = true) else it }
-        setHostWindow(darkTheme, uiState = windowUiState(aiActivity = AGENT_OPERATING, plugins = operatedPlugins.toPersistentList()), overlay = {}) {
+    fun `an AI agent driving the Network Inspector with its activity details open`() = recorder.record(windowScreenshot(page = "host-window", name = "ai-activity")) { darkTheme ->
+        val pluginsWithNetworkUnderAiControl = DRAWER_PLUGINS.map { if (it.id == NETWORK_PLUGIN_ID) it.copy(underAiControl = true) else it }
+        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_OPERATING, plugins = pluginsWithNetworkUnderAiControl.toPersistentList()), overlay = {}) {
             NetworkInspectorContent()
         }
         onNodeWithText(AGENT_OPERATING.operatingToolShortName.orEmpty()).mouseClickThenMovePointerAway()
@@ -104,11 +104,11 @@ class HostWindowDocsScreenshots {
 
     @Test
     fun `the plugin list with its folded groups open`() = recorder.record(
-        DocsShot(page = "host-window", name = "plugin-groups", surfaceSize = DpSize(JwMetrics.sidebarWidth, 470.dp), density = 2f, displayWidth = JwMetrics.sidebarWidth.value.roundToInt()),
+        DocsScreenshot(page = "host-window", name = "plugin-groups", surfaceSize = DpSize(JwMetrics.sidebarWidth, 470.dp), density = 2f, displayWidthCssPx = JwMetrics.sidebarWidth.value.roundToInt()),
     ) { darkTheme ->
         setContent {
             HostWindowSurface(darkTheme = darkTheme) {
-                ToolingDrawerWithoutActions(windowUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS))
+                ExpandedToolingDrawer(toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS))
             }
         }
         onNodeWithText("1 not in this app").mouseClickThenMovePointerAway()
@@ -116,19 +116,19 @@ class HostWindowDocsScreenshots {
     }
 }
 
-private fun windowShot(page: String, name: String) = DocsShot(
+private fun windowScreenshot(page: String, name: String) = DocsScreenshot(
     page = page,
     name = name,
     surfaceSize = DpSize((WINDOW_DISPLAY_WIDTH * 2 / WINDOW_DENSITY).dp, WINDOW_HEIGHT),
     density = WINDOW_DENSITY,
-    displayWidth = WINDOW_DISPLAY_WIDTH,
+    displayWidthCssPx = WINDOW_DISPLAY_WIDTH,
 )
 
 @OptIn(ExperimentalTestApi::class)
 private fun SkikoComposeUiTest.centerYOf(text: String): Float = onNodeWithText(text).fetchSemanticsNode().boundsInRoot.center.y
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setHostWindow(
+private fun SkikoComposeUiTest.setHostWindowContent(
     darkTheme: Boolean,
     uiState: ToolingScaffoldUiState,
     overlay: @Composable () -> Unit,
@@ -165,7 +165,7 @@ private fun SkikoComposeUiTest.setHostWindow(
 }
 
 @Composable
-private fun ToolingDrawerWithoutActions(uiState: ToolingScaffoldUiState) {
+private fun ExpandedToolingDrawer(uiState: ToolingScaffoldUiState) {
     ExpandedToolingDrawerView(
         selectedPluginId = uiState.selectedPluginId,
         plugins = uiState.plugins,
@@ -237,9 +237,9 @@ private fun CalloutMarkers(callouts: List<Callout>) {
     }
 }
 
-private fun windowUiState(aiActivity: AiActivityUiState, plugins: ImmutableList<DrawerPluginItemUiState>) = ToolingScaffoldUiState(
+private fun toolingScaffoldUiState(aiActivity: AiActivityUiState, plugins: ImmutableList<DrawerPluginItemUiState>) = ToolingScaffoldUiState(
     selectedSessionId = SESSION.id,
-    selectedPluginId = NETWORK_ID,
+    selectedPluginId = NETWORK_PLUGIN_ID,
     sessions = persistentListOf(SESSION),
     plugins = plugins,
     hasFailedJars = false,
@@ -262,11 +262,11 @@ private val CALLOUT_BORDER = 2.dp
 
 private val CALLOUT_COLOR = Color(0xFFE5484D)
 
-private const val PIXEL_9 = "Pixel 9"
+private const val DEVICE_NAME = "Pixel 9"
 
-private const val SAMPLE_APP = "Sample App"
+private const val APP_NAME = "Sample App"
 
-private const val NETWORK_ID = "com.kitakkun.jetwhale.network"
+private const val NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
 
 private const val ITEMS_URL = "https://example.com/api/items?page=1&size=20"
 
@@ -278,23 +278,23 @@ private val AGENT_OPERATING = AGENT_CONNECTED.copy(
     operatingToolName = "com.kitakkun.jetwhale.network.listTransactions",
     operatingToolShortName = "network.listTransactions",
     operatingPluginName = "Network Inspector",
-    operatingAppName = SAMPLE_APP,
+    operatingAppName = APP_NAME,
 )
 
 private val SESSION = DebugSession(
     id = "4b7e21c9-0d5a-4f63-a8e2-6c1f9d3b7a40",
-    name = SAMPLE_APP,
+    name = APP_NAME,
     isActive = true,
     transportSecurity = SessionTransportSecurity.LOOPBACK,
     installedPlugins = persistentListOf(
-        JetWhalePluginInfo(pluginId = NETWORK_ID, pluginVersion = "1.0.0"),
+        JetWhalePluginInfo(pluginId = NETWORK_PLUGIN_ID, pluginVersion = "1.0.0"),
         JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.semantics", pluginVersion = "1.1.0"),
         JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.nav3", pluginVersion = "1.0.0"),
         JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.actions", pluginVersion = "1.0.0"),
     ),
-    appName = SAMPLE_APP,
+    appName = APP_NAME,
     deviceId = "emulator-5554",
-    deviceName = PIXEL_9,
+    deviceName = DEVICE_NAME,
 )
 
 /**
@@ -303,7 +303,7 @@ private val SESSION = DebugSession(
  */
 private val DRAWER_PLUGINS = persistentListOf(
     drawerPlugin(name = "Device Mirror", id = "com.kitakkun.jetwhale.mirror", iconName = "mirror", availability = PluginAvailability.Enabled, needsApp = false),
-    drawerPlugin(name = "Network Inspector", id = NETWORK_ID, iconName = "network", availability = PluginAvailability.Enabled, needsApp = true),
+    drawerPlugin(name = "Network Inspector", id = NETWORK_PLUGIN_ID, iconName = "network", availability = PluginAvailability.Enabled, needsApp = true),
     drawerPlugin(name = "Compose Semantics Inspector", id = "com.kitakkun.jetwhale.semantics", iconName = "node_tree", availability = PluginAvailability.Enabled, needsApp = true),
     drawerPlugin(name = "Nav3 Navigator", id = "com.kitakkun.jetwhale.nav3", iconName = "nav3", availability = PluginAvailability.Enabled, needsApp = true),
     drawerPlugin(name = "Debug Actions", id = "com.kitakkun.jetwhale.actions", iconName = "actions", availability = PluginAvailability.Disabled, needsApp = true),

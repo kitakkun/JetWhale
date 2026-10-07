@@ -6,8 +6,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.onSurface
@@ -33,22 +33,22 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class DeviceMirrorDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the live view of an Android emulator`() = recorder.record(
-        DocsShot(page = PAGE, name = "live", surfaceSize = DpSize(688.dp, 520.dp), density = 2f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "live", surfaceSize = DpSize(688.dp, 520.dp), density = 2f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setMirrorScreen(darkTheme, showCaptures = false)
+        setMirrorScreenContent(darkTheme, showCaptures = false)
         onSurface()
     }
 
     @Test
     fun `the grid of every device`() = recorder.record(
-        DocsShot(page = PAGE, name = "grid", surfaceSize = DpSize(860.dp, 480.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "grid", surfaceSize = DpSize(860.dp, 480.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
         val thumbnails = mapOf(
-            PIXEL.id to ThumbnailState.Live,
+            PIXEL_EMULATOR.id to ThumbnailState.Live,
             IPHONE.id to ThumbnailState.Live,
             PIXEL_DEVICE.id to ThumbnailState.ScreenOff,
         ).mapValues { (id, state) ->
@@ -60,10 +60,10 @@ class DeviceMirrorDocsScreenshots {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
                 DeviceGrid(
                     devices = DEVICES,
-                    selectedId = PIXEL.id,
+                    selectedId = PIXEL_EMULATOR.id,
                     missingTools = emptyList(),
                     notices = PreviewNotices(notice = null),
-                    recording = GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = listOf(PIXEL, IPHONE, PIXEL_DEVICE), warningSuppressed = false),
+                    recording = GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = listOf(PIXEL_EMULATOR, IPHONE, PIXEL_DEVICE), warningSuppressed = false),
                     recordingActions = NoGridRecordingActions,
                     thumbnailOf = thumbnails::getValue,
                     poll = { _, _ -> awaitCancellation() },
@@ -79,18 +79,18 @@ class DeviceMirrorDocsScreenshots {
 
     @Test
     fun `the captures panel beside the live view`() = recorder.record(
-        DocsShot(page = PAGE, name = "captures", surfaceSize = DpSize(860.dp, 560.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "captures", surfaceSize = DpSize(860.dp, 560.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setMirrorScreen(darkTheme, showCaptures = true)
+        setMirrorScreenContent(darkTheme, showCaptures = true)
         onSurface()
     }
 }
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setMirrorScreen(darkTheme: Boolean, showCaptures: Boolean) {
+private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCaptures: Boolean) {
     val surface = MirrorSurface().apply {
-        switchTo(PIXEL.id)
-        val (width, height) = SCREEN_SIZES.getValue(PIXEL.id)
+        switchTo(PIXEL_EMULATOR.id)
+        val (width, height) = SCREEN_SIZES.getValue(PIXEL_EMULATOR.id)
         startStream().writeFrame(width = width, height = height, colorType = ColorType.N32) { target ->
             SampleAppScreenPainter(Canvas(target), width = width, height = height).drawScreen()
             true
@@ -102,7 +102,7 @@ private fun SkikoComposeUiTest.setMirrorScreen(darkTheme: Boolean, showCaptures:
                 devices = DEVICES,
                 capabilities = DeviceCapabilities(input = true, buttons = DeviceButton.entries, recording = true, screenPower = true),
                 missingTools = emptyList(),
-                selectedId = PIXEL.id,
+                selectedId = PIXEL_EMULATOR.id,
                 state = MirrorState.Streaming,
                 notices = PreviewNotices(notice = null),
                 screenPower = ScreenPower(awake = true, locked = false),
@@ -192,17 +192,17 @@ private object SampleAppThumbnails : ThumbnailSource {
 
 private const val PAGE = "device-mirror"
 
-private val PIXEL = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
+private val PIXEL_EMULATOR = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
 
 private val IPHONE = DeviceListing(id = "4F1C2B9A-7D3E-4A55-9C10-2B6E8F0A1D34", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
 private val PIXEL_DEVICE = DeviceListing(id = "28241FDH20031K", name = "Pixel 7", kind = DeviceKind.AndroidDevice, osVersion = null)
 
-private val DEVICES = listOf(PIXEL, PIXEL_DEVICE, IPHONE)
+private val DEVICES = listOf(PIXEL_EMULATOR, PIXEL_DEVICE, IPHONE)
 
 /** Each device's frame size, at a third of its real resolution: enough for the pane it is shown in. */
 private val SCREEN_SIZES = mapOf(
-    PIXEL.id to (360 to 800),
+    PIXEL_EMULATOR.id to (360 to 800),
     IPHONE.id to (393 to 852),
     PIXEL_DEVICE.id to (360 to 780),
 )
@@ -228,10 +228,10 @@ private fun capture(kind: CaptureKind, capturedAt: Long, durationMillis: Long?):
     return Capture(
         file = File("$CAPTURES_DIRECTORY/${time.toLocalDate()}/%02d%02d%02d-${kind.suffix}.${kind.extension}".format(time.hour, time.minute, time.second)),
         info = CaptureInfo(
-            deviceId = PIXEL.id,
-            deviceName = PIXEL.name,
+            deviceId = PIXEL_EMULATOR.id,
+            deviceName = PIXEL_EMULATOR.name,
             platform = "Android",
-            deviceKind = PIXEL.kind.label,
+            deviceKind = PIXEL_EMULATOR.kind.label,
             osVersion = null,
             kind = kind,
             widthPx = 1080,
@@ -257,42 +257,42 @@ private fun sampleAppScreenImage(size: Pair<Int, Int>): ImageBitmap {
  */
 private class SampleAppScreenPainter(private val canvas: Canvas, private val width: Int, private val height: Int) {
     private val scale = width / BASE_WIDTH
-    private val regular = checkNotNull(FontMgr.default.legacyMakeTypeface("", FontStyle.NORMAL))
-    private val bold = checkNotNull(FontMgr.default.legacyMakeTypeface("", FontStyle.BOLD))
+    private val regularTypeface = checkNotNull(FontMgr.default.legacyMakeTypeface("", FontStyle.NORMAL))
+    private val boldTypeface = checkNotNull(FontMgr.default.legacyMakeTypeface("", FontStyle.BOLD))
 
     fun drawScreen() {
         canvas.clear(SCREEN_BACKGROUND)
         drawHeader()
-        PRODUCTS.forEachIndexed { index, product -> drawProduct(product, top = px(PRODUCTS_TOP + index * (PRODUCT_HEIGHT + PRODUCT_GAP))) }
-        drawButton()
+        PRODUCTS.forEachIndexed { index, product -> drawProduct(product, top = dpToPx(PRODUCTS_TOP + index * (PRODUCT_HEIGHT + PRODUCT_GAP))) }
+        drawButtonAndGestureHandle()
     }
 
     private fun drawHeader() {
-        canvas.drawString(s = "9:41", x = px(16), y = px(17), font = Font(bold, px(12)), paint = paint(TEXT_PRIMARY))
-        canvas.drawRRect(RRect.makeXYWH(l = width - px(40), t = px(7), w = px(22), h = px(11), radius = px(3)), paint(TEXT_PRIMARY))
-        canvas.drawString(s = "Sample App", x = px(16), y = px(62), font = Font(bold, px(22)), paint = paint(TEXT_PRIMARY))
-        canvas.drawRRect(RRect.makeXYWH(l = px(16), t = px(80), w = width - px(32), h = px(40), radius = px(20)), paint(SEARCH_FIELD))
-        canvas.drawString(s = "Search products", x = px(36), y = px(105), font = Font(regular, px(14)), paint = paint(TEXT_SECONDARY))
+        canvas.drawString(s = "9:41", x = dpToPx(16), y = dpToPx(17), font = Font(boldTypeface, dpToPx(12)), paint = paint(TEXT_PRIMARY))
+        canvas.drawRRect(RRect.makeXYWH(l = width - dpToPx(40), t = dpToPx(7), w = dpToPx(22), h = dpToPx(11), radius = dpToPx(3)), paint(TEXT_PRIMARY))
+        canvas.drawString(s = "Sample App", x = dpToPx(16), y = dpToPx(62), font = Font(boldTypeface, dpToPx(22)), paint = paint(TEXT_PRIMARY))
+        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = dpToPx(80), w = width - dpToPx(32), h = dpToPx(40), radius = dpToPx(20)), paint(SEARCH_FIELD_COLOR))
+        canvas.drawString(s = "Search products", x = dpToPx(36), y = dpToPx(105), font = Font(regularTypeface, dpToPx(14)), paint = paint(TEXT_SECONDARY))
     }
 
     private fun drawProduct(product: Product, top: Float) {
-        canvas.drawRRect(RRect.makeXYWH(l = px(16), t = top, w = width - px(32), h = px(PRODUCT_HEIGHT), radius = px(12)), paint(CARD))
-        canvas.drawRRect(RRect.makeXYWH(l = px(28), t = top + px(12), w = px(60), h = px(60), radius = px(8)), paint(product.thumbnailColor))
-        canvas.drawString(s = product.name, x = px(104), y = top + px(36), font = Font(bold, px(16)), paint = paint(TEXT_PRIMARY))
-        canvas.drawString(s = product.price, x = px(104), y = top + px(60), font = Font(regular, px(14)), paint = paint(TEXT_SECONDARY))
+        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(PRODUCT_HEIGHT), radius = dpToPx(12)), paint(CARD_COLOR))
+        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(28), t = top + dpToPx(12), w = dpToPx(60), h = dpToPx(60), radius = dpToPx(8)), paint(product.thumbnailColor))
+        canvas.drawString(s = product.name, x = dpToPx(104), y = top + dpToPx(36), font = Font(boldTypeface, dpToPx(16)), paint = paint(TEXT_PRIMARY))
+        canvas.drawString(s = product.price, x = dpToPx(104), y = top + dpToPx(60), font = Font(regularTypeface, dpToPx(14)), paint = paint(TEXT_SECONDARY))
     }
 
-    private fun drawButton() {
-        val top = height - px(88)
-        canvas.drawRRect(RRect.makeXYWH(l = px(16), t = top, w = width - px(32), h = px(48), radius = px(24)), paint(ACCENT))
+    private fun drawButtonAndGestureHandle() {
+        val top = height - dpToPx(88)
+        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(48), radius = dpToPx(24)), paint(ACCENT))
         val label = "Add to cart"
-        val font = Font(bold, px(16))
-        canvas.drawString(s = label, x = (width - font.measureTextWidth(label)) / 2, y = top + px(30), font = font, paint = paint(ON_ACCENT))
-        canvas.drawRect(Rect.makeXYWH(l = width / 2f - px(54), t = height - px(14), w = px(108), h = px(4)), paint(TEXT_SECONDARY))
+        val font = Font(boldTypeface, dpToPx(16))
+        canvas.drawString(s = label, x = (width - font.measureTextWidth(label)) / 2, y = top + dpToPx(30), font = font, paint = paint(ON_ACCENT))
+        canvas.drawRect(Rect.makeXYWH(l = width / 2f - dpToPx(54), t = height - dpToPx(14), w = dpToPx(108), h = dpToPx(4)), paint(TEXT_SECONDARY))
     }
 
     /** [dp] of the 360-wide layout the app is designed at, in this screen's pixels. */
-    private fun px(dp: Int): Float = dp * scale
+    private fun dpToPx(dp: Int): Float = dp * scale
 
     private fun paint(argb: Int) = Paint().apply {
         color = argb
@@ -319,9 +319,9 @@ private val PRODUCTS = listOf(
 
 private const val SCREEN_BACKGROUND = 0xFFF4F5F8.toInt()
 
-private const val SEARCH_FIELD = 0xFFE6E8EE.toInt()
+private const val SEARCH_FIELD_COLOR = 0xFFE6E8EE.toInt()
 
-private const val CARD = 0xFFFFFFFF.toInt()
+private const val CARD_COLOR = 0xFFFFFFFF.toInt()
 
 private const val TEXT_PRIMARY = 0xFF1D1F23.toInt()
 

@@ -9,8 +9,8 @@ import com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
 import com.kitakkun.jetwhale.plugins.actions.protocol.ParameterType
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.onSurface
@@ -24,11 +24,11 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class DebugActionsDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the actions with one selected and its runs`() = recorder.record(
-        DocsShot(page = "debug-actions", name = "actions", surfaceSize = DpSize(860.dp, 520.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = "debug-actions", name = "actions", surfaceSize = DpSize(860.dp, 520.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {

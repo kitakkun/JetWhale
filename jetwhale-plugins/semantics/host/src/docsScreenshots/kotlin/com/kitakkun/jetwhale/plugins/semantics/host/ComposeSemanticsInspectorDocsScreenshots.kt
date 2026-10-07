@@ -19,8 +19,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -33,22 +33,22 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class ComposeSemanticsInspectorDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the tree with a button selected`() = recorder.record(
-        DocsShot(page = PAGE, name = "tree", surfaceSize = DpSize(860.dp, 440.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "tree", surfaceSize = DpSize(860.dp, 440.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setInspector(darkTheme)
+        setSemanticsInspectorContent(darkTheme)
         onNodeWithText("Button · Add to cart").mouseClickThenMovePointerAway()
         onSurface()
     }
 
     @Test
     fun `the attributes of a selected View`() = recorder.record(
-        DocsShot(page = PAGE, name = "view-attributes", surfaceSize = DpSize(860.dp, 560.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "view-attributes", surfaceSize = DpSize(860.dp, 560.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setInspector(darkTheme)
+        setSemanticsInspectorContent(darkTheme)
         onNodeWithText("TextView · @id/promo_banner · Free shipping on orders over $30").mouseClickThenMovePointerAway()
         // performScrollTo stops as soon as the header is in view, at the pane's bottom edge;
         // scrolling by its offset brings it to the top, so the attributes below it are in the
@@ -62,7 +62,7 @@ class ComposeSemanticsInspectorDocsScreenshots {
 }
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setInspector(darkTheme: Boolean) {
+private fun SkikoComposeUiTest.setSemanticsInspectorContent(darkTheme: Boolean) {
     setContent {
         PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
             ComposeSemanticsInspectorScreenRoot(

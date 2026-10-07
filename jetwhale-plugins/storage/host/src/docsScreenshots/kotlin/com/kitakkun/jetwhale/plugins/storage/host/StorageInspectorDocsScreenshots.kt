@@ -11,8 +11,8 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -28,41 +28,41 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class StorageInspectorDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the files with a Preferences DataStore file previewed`() = recorder.record(
-        DocsShot(page = PAGE, name = "files", surfaceSize = DpSize(860.dp, 480.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "files", surfaceSize = DpSize(860.dp, 480.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setStorageInspector(darkTheme, tab = StorageTab.Files)
+        setStorageInspectorContent(darkTheme, tab = StorageTab.Files)
         onSurface()
     }
 
     @Test
     fun `a key-value store with an entry selected`() = recorder.record(
-        DocsShot(page = PAGE, name = "key-value", surfaceSize = DpSize(860.dp, 300.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = PAGE, name = "key-value", surfaceSize = DpSize(860.dp, 300.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
-        setStorageInspector(darkTheme, tab = StorageTab.KeyValue)
+        setStorageInspectorContent(darkTheme, tab = StorageTab.KeyValue)
         onNodeWithText("theme").mouseClickThenMovePointerAway()
         onSurface()
     }
 }
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setStorageInspector(darkTheme: Boolean, tab: StorageTab) {
-    val treeRows = flattenFileTree(roots = FILE_ROOTS, children = DIRECTORY_CONTENT, expanded = setOf(FILES, DATASTORE))
+private fun SkikoComposeUiTest.setStorageInspectorContent(darkTheme: Boolean, tab: StorageTab) {
+    val treeRows = flattenFileTree(roots = FILE_ROOTS, children = DIRECTORY_CONTENT, expanded = setOf(FILES_ROOT, DATASTORE_DIRECTORY))
     val selectedRow = treeRows.single { it.location == SETTINGS_FILE }
     setContent {
         PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
             StorageInspectorScreen(
                 tab = tab,
-                locations = StorageLocations(fileRoots = FILE_ROOTS, keyValueStores = STORES),
+                locations = StorageLocations(fileRoots = FILE_ROOTS, keyValueStores = KEY_VALUE_STORES),
                 treeRows = treeRows,
                 selectedRow = selectedRow,
                 loadedFile = LoadedFile(location = SETTINGS_FILE, bytes = SETTINGS_FILE_BYTES, totalSizeBytes = SETTINGS_FILE_BYTES.size.toLong()),
                 directoryMeasurement = null,
                 fileSha256 = null,
-                selectedStore = STORES.first().name,
+                selectedStore = KEY_VALUE_STORES.first().name,
                 storeContent = KeyValueStoreContent(entries = PREFERENCES_ENTRIES, error = null),
                 status = null,
                 actions = NoStorageInspectorActions,
@@ -108,13 +108,13 @@ private val FILE_ROOTS = listOf(
     FileRootInfo(name = "External cache", absolutePath = "/storage/emulated/0/Android/data/com.example.sampleapp/cache"),
 )
 
-private val FILES = FileLocation(rootName = "Files", path = emptyList())
+private val FILES_ROOT = FileLocation(rootName = "Files", path = emptyList())
 
-private val DATASTORE = FileLocation(rootName = "Files", path = listOf("datastore"))
+private val DATASTORE_DIRECTORY = FileLocation(rootName = "Files", path = listOf("datastore"))
 
 private val SETTINGS_FILE = FileLocation(rootName = "Files", path = listOf("datastore", "settings.preferences_pb"))
 
-private val STORES = listOf(KeyValueStoreInfo(name = "settings"), KeyValueStoreInfo(name = "session"))
+private val KEY_VALUE_STORES = listOf(KeyValueStoreInfo(name = "settings"), KeyValueStoreInfo(name = "session"))
 
 private val PREFERENCES_ENTRIES = listOf(
     KeyValueEntry(key = "launch_count", value = "12", type = "Int"),
@@ -122,19 +122,19 @@ private val PREFERENCES_ENTRIES = listOf(
     KeyValueEntry(key = "theme", value = "dark", type = "String"),
 )
 
-private val SETTINGS_FILE_BYTES = preferencesDataStoreFile(
+private val SETTINGS_FILE_BYTES = encodePreferencesDataStoreFile(
     "launch_count" to 12,
     "onboarding_done" to true,
     "theme" to "dark",
 )
 
 private val DIRECTORY_CONTENT = mapOf(
-    FILES to listOf(
+    FILES_ROOT to listOf(
         directory(name = "datastore"),
         directory(name = "images"),
         file(name = "notes.txt", sizeBytes = 1_204),
     ),
-    DATASTORE to listOf(
+    DATASTORE_DIRECTORY to listOf(
         file(name = "settings.preferences_pb", sizeBytes = SETTINGS_FILE_BYTES.size.toLong()),
     ),
 )
@@ -157,7 +157,7 @@ private fun file(name: String, sizeBytes: Long) = FileEntry(
  * The bytes Jetpack DataStore writes for these preferences: a `PreferenceMap` whose field 1 holds one
  * map entry per key, each with its key (1) and a `Value` (2) of boolean (1), integer (3) or string (5).
  */
-private fun preferencesDataStoreFile(vararg preferences: Pair<String, Any>): ByteArray {
+private fun encodePreferencesDataStoreFile(vararg preferences: Pair<String, Any>): ByteArray {
     val file = ByteArrayOutputStream()
     preferences.forEach { (key, value) ->
         val encodedValue = ByteArrayOutputStream()
@@ -181,7 +181,7 @@ private fun ByteArrayOutputStream.writeVarintField(field: Int, value: Int) {
 }
 
 private fun ByteArrayOutputStream.writeLengthDelimitedField(field: Int, bytes: ByteArray) {
-    writeVarint((field shl 3) or LENGTH_DELIMITED)
+    writeVarint((field shl 3) or WIRE_LENGTH_DELIMITED)
     writeVarint(bytes.size)
     write(bytes)
 }
@@ -195,7 +195,7 @@ private fun ByteArrayOutputStream.writeVarint(value: Int) {
     write(remaining)
 }
 
-private const val LENGTH_DELIMITED = 2
+private const val WIRE_LENGTH_DELIMITED = 2
 
 private const val VARINT_CONTINUATION = 0x80
 

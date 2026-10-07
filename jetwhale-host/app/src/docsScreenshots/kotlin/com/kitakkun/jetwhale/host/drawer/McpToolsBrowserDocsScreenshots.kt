@@ -21,8 +21,8 @@ import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.network.host.NetworkHostPluginFactory
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.HostWindowSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -42,16 +42,16 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class McpToolsBrowserDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the tools browser with a tool selected`() = recorder.record(
-        DocsShot(
+        DocsScreenshot(
             page = "mcp-server",
             name = "tools-browser",
-            surfaceSize = DpSize(BROWSER_WIDTH * WINDOW_PER_BROWSER, 600.dp),
+            surfaceSize = DpSize(TOOLS_BROWSER_WIDTH * WINDOW_PER_TOOLS_BROWSER, 600.dp),
             density = 2f,
-            displayWidth = BROWSER_WIDTH.value.toInt(),
+            displayWidthCssPx = TOOLS_BROWSER_WIDTH.value.toInt(),
         ),
     ) { darkTheme ->
         setContent {
@@ -73,14 +73,14 @@ class McpToolsBrowserDocsScreenshots {
 
 private const val TOOLS_BROWSER_TAG = "tools-browser"
 
-private val BROWSER_WIDTH = 688.dp
+private val TOOLS_BROWSER_WIDTH = 688.dp
 
 /** The window the browser is laid out in, per unit of browser: the browser takes 80% of it. */
-private const val WINDOW_PER_BROWSER = 1.25f
+private const val WINDOW_PER_TOOLS_BROWSER = 1.25f
 
-private const val NETWORK_ID = "com.kitakkun.jetwhale.network"
+private const val NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
 
-private const val NETWORK_NAME = "Network Inspector"
+private const val NETWORK_PLUGIN_NAME = "Network Inspector"
 
 @OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
 private fun toolsBrowserUiState(): McpToolsScreenUiState {
@@ -90,8 +90,8 @@ private fun toolsBrowserUiState(): McpToolsScreenUiState {
     plugin.bindStorage(InMemoryPluginStorage(emptyMap()))
     val toolRows = (plugin as JetWhaleMcpCapablePlugin).mcpCommands.map { command ->
         McpToolRowUiState(
-            pluginId = NETWORK_ID,
-            pluginName = NETWORK_NAME,
+            pluginId = NETWORK_PLUGIN_ID,
+            pluginName = NETWORK_PLUGIN_NAME,
             tool = command.toToolSummary(),
             callCount = CALLS.count { it.toolName == command.name },
             running = false,
@@ -99,9 +99,9 @@ private fun toolsBrowserUiState(): McpToolsScreenUiState {
     }
     pluginScope.cancel()
     return McpToolsScreenUiState(
-        pluginOptions = persistentListOf(McpFilterOption(id = NETWORK_ID, label = NETWORK_NAME)),
+        pluginOptions = persistentListOf(McpFilterOption(id = NETWORK_PLUGIN_ID, label = NETWORK_PLUGIN_NAME)),
         sessionOptions = sessionFilterOptions(sessions = listOf(SESSION), hostLabel = "Host", disconnectedLabel = "disconnected"),
-        selectedPluginIds = persistentSetOf(NETWORK_ID),
+        selectedPluginIds = persistentSetOf(NETWORK_PLUGIN_ID),
         selectedSessionIds = persistentSetOf(SESSION.id),
         toolRows = toolRows.sortedBy { it.tool.name }.toImmutableList(),
         callHistory = CALLS,
@@ -146,7 +146,7 @@ private val CALLS = persistentListOf(
     McpCallRecord(
         id = 3,
         toolName = "com.kitakkun.jetwhale.network.getTransaction",
-        pluginId = NETWORK_ID,
+        pluginId = NETWORK_PLUGIN_ID,
         sessionId = SESSION.id,
         succeeded = true,
         finishedAtEpochMillis = FIRST_CALL_AT + 9_000,
@@ -156,7 +156,7 @@ private val CALLS = persistentListOf(
     McpCallRecord(
         id = 2,
         toolName = "com.kitakkun.jetwhale.network.listTransactions",
-        pluginId = NETWORK_ID,
+        pluginId = NETWORK_PLUGIN_ID,
         sessionId = SESSION.id,
         succeeded = true,
         finishedAtEpochMillis = FIRST_CALL_AT + 4_000,

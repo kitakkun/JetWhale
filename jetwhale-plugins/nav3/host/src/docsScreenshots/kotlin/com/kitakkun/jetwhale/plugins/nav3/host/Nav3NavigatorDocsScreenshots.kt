@@ -9,8 +9,8 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.onSurface
@@ -21,11 +21,11 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class Nav3NavigatorDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
     fun `the back stack beside a filtered list of key types`() = recorder.record(
-        DocsShot(page = "nav3-navigator", name = "back-stack", surfaceSize = DpSize(860.dp, 440.dp), density = 1.6f, displayWidth = 688),
+        DocsScreenshot(page = "nav3-navigator", name = "back-stack", surfaceSize = DpSize(860.dp, 440.dp), density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(mapOf("push-draft" to JsonPrimitive(DRAFT).toString()))) {

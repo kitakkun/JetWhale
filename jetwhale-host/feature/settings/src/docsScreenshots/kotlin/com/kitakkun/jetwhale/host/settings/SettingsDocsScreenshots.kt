@@ -28,8 +28,8 @@ import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreen
 import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenUiState
 import com.kitakkun.jetwhale.host.settings.server.ServerState
 import com.kitakkun.jetwhale.plugins.network.host.NetworkHostPluginFactory
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShot
-import com.kitakkun.jetwhale.tools.docsscreenshots.DocsShotRecorder
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshot
+import com.kitakkun.jetwhale.tools.docsscreenshots.DocsScreenshotRecorder
 import com.kitakkun.jetwhale.tools.docsscreenshots.HostWindowSurface
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import com.kitakkun.jetwhale.tools.docsscreenshots.mouseClickThenMovePointerAway
@@ -47,17 +47,17 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class SettingsDocsScreenshots {
-    private val recorder = DocsShotRecorder.forImagesDirectoryProperty()
+    private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
-    fun `the official plugins on the Add Plugins page`() = recorder.record(dialogShot(page = "getting-started", name = "official-plugins", height = 700)) { darkTheme ->
-        setSettingsDialog(darkTheme, SettingsScreenPage.AddPlugins) { page ->
+    fun `the official plugins on the Add Plugins page`() = recorder.record(dialogScreenshot(guidePage = "getting-started", name = "official-plugins", windowHeightDp = 700)) { darkTheme ->
+        setSettingsDialogContent(darkTheme, SettingsScreenPage.AddPlugins) { page ->
             PluginSettingsScreen(
                 page = page,
                 uiState = PluginSettingsScreenUiState(
                     plugins = persistentListOf(),
                     officialPlugins = OfficialPluginCatalog.plugins
-                        .map { OfficialPluginUiState(plugin = it, isInstalled = it.pluginId == NETWORK_ID, installJob = null) }
+                        .map { OfficialPluginUiState(plugin = it, isInstalled = it.pluginId == NETWORK_PLUGIN_ID, installJob = null) }
                         .toImmutableList(),
                     failedJars = persistentListOf(),
                     untrustedJarPaths = persistentListOf(),
@@ -80,23 +80,23 @@ class SettingsDocsScreenshots {
     }
 
     @Test
-    fun `the MCP Server page with the client setups`() = recorder.record(dialogShot(page = "mcp-server", name = "setup", height = 680)) { darkTheme ->
-        setSettingsDialog(darkTheme, SettingsScreenPage.McpServer) { page -> ServerSettings(page, serverSettingsUiState(McpPermissionsUiState(DEFAULT_HOST_GROUPS, emptyList(), isOverriddenForLaunch = false))) }
+    fun `the MCP Server page with the client setups`() = recorder.record(dialogScreenshot(guidePage = "mcp-server", name = "setup", windowHeightDp = 680)) { darkTheme ->
+        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpServer) { page -> ServerSettings(page, serverSettingsUiState(McpPermissionsUiState(DEFAULT_ALLOWED_HOST_GROUPS, emptyList(), isOverriddenForLaunch = false))) }
         onNodeWithTag(SETTINGS_DIALOG_TAG)
     }
 
     @Test
-    fun `the permissions tree with a plugin open`() = recorder.record(dialogShot(page = "mcp-server", name = "permissions", height = 680)) { darkTheme ->
+    fun `the permissions tree with a plugin open`() = recorder.record(dialogScreenshot(guidePage = "mcp-server", name = "permissions", windowHeightDp = 680)) { darkTheme ->
         val permissions = McpPermissionsUiState(
-            allowedHostGroups = DEFAULT_HOST_GROUPS,
+            allowedHostGroups = DEFAULT_ALLOWED_HOST_GROUPS,
             plugins = listOf(
-                McpPluginPermissionUiState(pluginId = NETWORK_ID, displayName = "Network Inspector", inspectAllowed = true, interactAllowed = true, tools = networkToolPermissions()),
+                McpPluginPermissionUiState(pluginId = NETWORK_PLUGIN_ID, displayName = "Network Inspector", inspectAllowed = true, interactAllowed = true, tools = networkToolPermissions()),
                 McpPluginPermissionUiState(pluginId = "com.kitakkun.jetwhale.semantics", displayName = "Compose Semantics Inspector", inspectAllowed = true, interactAllowed = true, tools = emptyList()),
                 McpPluginPermissionUiState(pluginId = "com.kitakkun.jetwhale.mirror", displayName = "Device Mirror", inspectAllowed = true, interactAllowed = false, tools = emptyList()),
             ),
             isOverriddenForLaunch = false,
         )
-        setSettingsDialog(darkTheme, SettingsScreenPage.McpPermissions) { page -> ServerSettings(page, serverSettingsUiState(permissions)) }
+        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpPermissions) { page -> ServerSettings(page, serverSettingsUiState(permissions)) }
         onNodeWithText("Network Inspector").mouseClickThenMovePointerAway()
         onNodeWithTag(SETTINGS_DIALOG_TAG)
     }
@@ -104,23 +104,23 @@ class SettingsDocsScreenshots {
 
 private const val SETTINGS_DIALOG_TAG = "settings-dialog"
 
-private const val NETWORK_ID = "com.kitakkun.jetwhale.network"
+private const val NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
 
 private val DIALOG_WIDTH = 688.dp
 
-private fun dialogShot(page: String, name: String, height: Int) = DocsShot(
-    page = page,
+private fun dialogScreenshot(guidePage: String, name: String, windowHeightDp: Int) = DocsScreenshot(
+    page = guidePage,
     name = name,
-    surfaceSize = DpSize(DIALOG_WIDTH * WINDOW_PER_DIALOG, height.dp),
+    surfaceSize = DpSize(DIALOG_WIDTH * WINDOW_PER_DIALOG, windowHeightDp.dp),
     density = 2f,
-    displayWidth = DIALOG_WIDTH.value.toInt(),
+    displayWidthCssPx = DIALOG_WIDTH.value.toInt(),
 )
 
 /** The window the dialog is laid out in, per unit of dialog: the dialog takes 80% of it. */
 private const val WINDOW_PER_DIALOG = 1.25f
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setSettingsDialog(darkTheme: Boolean, page: SettingsScreenPage, pageContent: @Composable (SettingsScreenPage) -> Unit) {
+private fun SkikoComposeUiTest.setSettingsDialogContent(darkTheme: Boolean, page: SettingsScreenPage, pageContent: @Composable (SettingsScreenPage) -> Unit) {
     setContent {
         HostWindowSurface(darkTheme = darkTheme) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -166,7 +166,7 @@ private fun ServerSettings(page: SettingsScreenPage, uiState: ServerSettingsScre
 }
 
 /** The groups a fresh install allows: looking around, but no installing and no server restarts. */
-private val DEFAULT_HOST_GROUPS = setOf(McpHostToolGroup.OBSERVE, McpHostToolGroup.NAVIGATE)
+private val DEFAULT_ALLOWED_HOST_GROUPS = setOf(McpHostToolGroup.OBSERVE, McpHostToolGroup.NAVIGATE)
 
 /** Both servers running on their default ports, nothing being edited. */
 private fun serverSettingsUiState(permissions: McpPermissionsUiState): ServerSettingsScreenUiState {
