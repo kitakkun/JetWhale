@@ -1,0 +1,6 @@
+# The docsScreenshots compilation: each test renders a screen into the user guides' images, which a
+# person reviews in the pull request, so there is nothing for the test itself to assert.
+rules:
+  test.mustAssert: off
+  # The composables here frame a screen for one capture; the screens they show have their previews.
+  compose.previewRequired: off

@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.debuggerComposeFeature)
+    alias(libs.plugins.docsScreenshots)
 }
 
 dependencies {
@@ -15,6 +16,8 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
+    // The permissions shot lists the tools the Network Inspector publishes.
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.network.host)
 }
 
 compose.resources {

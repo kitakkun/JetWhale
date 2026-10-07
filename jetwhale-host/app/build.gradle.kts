@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.metro)
     alias(libs.plugins.aboutLibraries)
     alias(libs.plugins.jetwhaleHostRelease)
+    alias(libs.plugins.docsScreenshots)
 }
 
 val generateBuildConfig by tasks.registering {
@@ -115,6 +116,14 @@ dependencies {
     compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
+    // The window shots show the Network Inspector in the plugin area, and every official plugin's
+    // icon in the sidebar.
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.network.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.semantics.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.nav3.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.actions.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.storage.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.mirror.host)
 }
 
 aboutLibraries {
