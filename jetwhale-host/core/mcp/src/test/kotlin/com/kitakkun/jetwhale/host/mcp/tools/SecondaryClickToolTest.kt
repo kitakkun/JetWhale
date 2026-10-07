@@ -6,6 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -16,10 +21,16 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.kitakkun.jetwhale.host.mcp.FakeMcpActivityRepository
 import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
@@ -29,6 +40,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
 import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
@@ -216,6 +228,47 @@ class SecondaryClickToolTest {
         assertContains(texts.last(), "popupClickableNodes is left out")
     }
 
+    @Test
+    fun `secondaryClick reads a popup's nodes as the plugin redacts them for capture and leaves the live popup unredacted`(): Unit = runBlocking(Dispatchers.Main) {
+        val scene = createTestScene {
+            var isPopupOpen by remember { mutableStateOf(false) }
+            Box(Modifier.size(200.dp).onPointerEvent(PointerEventType.Press) { isPopupOpen = true })
+            if (isPopupOpen) {
+                Popup(onDismissRequest = { isPopupOpen = false }) {
+                    BasicText(if (LocalIsMcpCapture.current) REDACTED_LABEL else SECRET_LABEL, Modifier.clickable {})
+                }
+            }
+        }
+        renderTestScene(scene)
+
+        val result = callSecondaryClickTool(scene, x = 100, y = 100, permissions = McpPermissions.AllowAll)
+        renderTestScene(scene)
+
+        val resultText = (result.content.single() as TextContent).text
+        val outcome = Json.decodeFromString<SecondaryClickOutcome>(resultText)
+        assertEquals(listOf(REDACTED_LABEL), outcome.popupClickableNodes?.map(NodeInfo::text))
+        assertFalse(SECRET_LABEL in resultText, "The value the plugin redacts for capture leaked into the result: $resultText")
+        assertContains(scene.semanticsOwners.flatMap { semanticsTextsInSubtree(it.rootSemanticsNode) }, SECRET_LABEL)
+    }
+
+    @Test
+    fun `secondaryClick reads a ContextMenuArea's items as the plugin redacts them for capture`(): Unit = runBlocking(Dispatchers.Main) {
+        val scene = createTestScene {
+            val label = if (LocalIsMcpCapture.current) REDACTED_LABEL else SECRET_LABEL
+            ContextMenuArea(items = { listOf(ContextMenuItem(label) {}) }) {
+                Box(Modifier.size(200.dp))
+            }
+        }
+        renderTestScene(scene)
+
+        val result = callSecondaryClickTool(scene, x = 100, y = 100, permissions = McpPermissions.AllowAll)
+
+        val resultText = (result.content.single() as TextContent).text
+        val outcome = Json.decodeFromString<SecondaryClickOutcome>(resultText)
+        assertEquals(listOf(REDACTED_LABEL), outcome.popupClickableNodes?.map(NodeInfo::text))
+        assertFalse(SECRET_LABEL in resultText, "The item label the plugin redacts for capture leaked into the result: $resultText")
+    }
+
     /** A rendered scene whose top-left 200×200 black box is clickable, like a table row, and opens a two-item context menu. */
     private fun contextMenuScene(): PluginComposeScene {
         val scene = createTestScene {
@@ -253,3 +306,8 @@ class SecondaryClickToolTest {
 }
 
 private fun selfAndDescendants(node: NodeInfo): List<NodeInfo> = listOf(node) + node.children.flatMap(::selfAndDescendants)
+
+private fun semanticsTextsInSubtree(node: SemanticsNode): List<String> = node.config.getOrNull(SemanticsProperties.Text).orEmpty().map(AnnotatedString::text) + node.children.flatMap(::semanticsTextsInSubtree)
+
+private const val SECRET_LABEL = "SECRET-LABEL"
+private const val REDACTED_LABEL = "<redacted>"
