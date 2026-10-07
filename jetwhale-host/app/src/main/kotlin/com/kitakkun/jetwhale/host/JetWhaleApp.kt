@@ -50,6 +50,7 @@ import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
+import com.kitakkun.jetwhale.host.navigation.openInfo
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.openSettings
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
@@ -188,7 +189,7 @@ private fun ThemedHostWindow(
                     ToolingScaffoldRoot(
                         onClickSettings = { backStack.openSettings(SettingsScreenPage.Appearance) },
                         onClickPluginSettings = { backStack.openSettings(SettingsScreenPage.InstalledPlugins) },
-                        onClickInfo = { backStack.addSingleTop(InfoNavKey) },
+                        onClickInfo = backStack::openInfo,
                         onClickInactivePlugin = { pluginId, pluginName, sessionId, notInApp ->
                             backStack.addSingleTop(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
                         },

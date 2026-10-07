@@ -179,7 +179,8 @@ to confirm, and reports `applied: false` with a reason if it does not.
 the Settings pages, it is for the person at the window: `jetwhale.screenshot` and the other UI tools
 read plugin screens only, so an agent cannot read the browser's call history through it. The result
 and `jetwhale.getStatus` report the page or tab the screen opened on, not one picked by hand inside
-it afterwards.
+it afterwards. Settings, Info and the MCP tools browser open as dialogs, and opening one closes any
+other that is open.
 
 `jetwhale.getStatus` can report destinations the tool cannot request — `DISABLED_PLUGIN` and
 `LICENSES`.

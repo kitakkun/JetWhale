@@ -16,28 +16,41 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
     add(index, navKey)
 }
 
-/**
- * Shows Settings at [page]. An open Settings is replaced rather than stacked under it: every dialog
- * draws its own scrim, so each stacked one would darken the window further.
- */
+/** Shows Settings at [page], closing any other dialog the window has open. */
 fun NavBackStack<NavKey>.openSettings(page: SettingsScreenPage) {
-    removeAll { it is SettingsNavKey }
+    removeAll(NavKey::isDialogDestination)
     add(SettingsNavKey(initialPage = page))
 }
 
+/** Shows Info, closing any other dialog the window has open. */
+fun NavBackStack<NavKey>.openInfo() {
+    removeAll(NavKey::isDialogDestination)
+    add(InfoNavKey)
+}
+
 /**
- * Shows the MCP tools browser on [tab], seeded with the scope it was opened from.
+ * Shows the MCP tools browser on [tab], seeded with the scope it was opened from, closing any other
+ * dialog the window has open.
  *
  * At most one browser window exists: opening it from a different scope or on a different tab
- * re-seeds it rather than stacking a second window, and re-opening it the same way leaves the window
- * as it is so the user does not lose its position or their own filter changes.
+ * re-seeds it rather than stacking a second window, and re-opening it the same way while it is on
+ * screen leaves the window as it is so the user does not lose its position or their own filter
+ * changes.
  */
 fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?, tab: McpToolsTab) {
     val navKey = McpToolsNavKey(pluginId = pluginId, sessionId = sessionId, initialTab = tab)
-    if (any { it == navKey }) return
-    removeAll { it is McpToolsNavKey }
+    if (lastOrNull { it !is PluginPopoutNavKey } == navKey) return
+    removeAll(NavKey::isDialogDestination)
     add(navKey)
 }
+
+/**
+ * The destinations shown as dialogs over the window, which the openers above close before showing
+ * theirs. An entry moved up the back stack keeps its dialog, and that dialog stays drawn under any
+ * dialog created after it, so one left open could cover the destination just opened. Each open
+ * dialog also adds its own scrim.
+ */
+private fun NavKey.isDialogDestination(): Boolean = this is SettingsNavKey || this is McpToolsNavKey || this is InfoNavKey || this is LicensesNavKey
 
 /**
  * Whether the given plugin is currently shown in a separate popout window for [sessionId].
