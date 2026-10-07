@@ -142,7 +142,7 @@ original bytes — the exact file the server sent — where you choose. **Mock t
 response keeps those bytes, so the mock serves the same image back.
 
 The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
-arrives. Use **clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
+arrives. Use **Clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
 issue so what you capture afterwards is only what the reproduction produced.
 
 Traffic captured while the host is away is **not** lost: the agent buffers up to **256** events

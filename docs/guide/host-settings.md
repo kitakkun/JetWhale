@@ -1,7 +1,7 @@
 # Host Settings
 
 The JetWhale host's behavior is configured from its **Settings** screen, opened from the gear icon in
-the [drawer](/guide/host-window#the-rest-of-the-drawer).
+the [sidebar footer](/guide/host-window#the-sidebar-footer).
 
 Settings are organized into four **sections**, each holding one or more **pages**:
 
@@ -85,8 +85,9 @@ picked.
 
 ::: tip Also settable outside the UI
 The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
-to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). Before connecting over
-wss, generate a certificate under [SSL Certificate](#ssl-certificates).
+to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). The certificate wss
+serves is generated the first time the wss connector starts; [SSL Certificate](#ssl-certificates)
+is where to export, replace or switch it.
 :::
 
 ### SSL certificates

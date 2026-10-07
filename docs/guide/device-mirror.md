@@ -6,8 +6,9 @@ type and press hardware buttons on the mirrored screen; an iPhone is view-only. 
 take screenshots and recordings. Captures are kept per device, so the
 ones from a test run are easy to find again. An AI agent can do the same over MCP.
 
-It is a host-only plugin: the app you debug needs no agent for it, and it appears for every
-session once one is selected.
+It needs no app: nothing is added to the app you debug, and it is listed at the top of the
+sidebar, above the app picker, usable as soon as the host starts with nothing connected — see
+[Plugins that need no app](/guide/host-window#plugins-that-need-no-app).
 
 ## Setup
 
@@ -55,6 +56,10 @@ When a tool is missing, the device list says which one and what it would enable.
   meanwhile. Tiles are view-only: click one, or press Enter on it, to open that device. Hovering a
   tile offers **Open** and **Screenshot** for that device, and the camera button in the toolbar
   saves one screenshot per device into the captures; what was saved shows briefly at the bottom.
+  The record button next to it starts recording every device that can record; while any device
+  records it turns into **Stop all**, with a count of the devices recording. Until you tick
+  **Don't show again**, it asks before starting, because recording several devices at once is heavy
+  on this machine — iOS simulators most, since they encode their video on the Mac.
 - **Live view.** The mirrored screen fills the pane at its own aspect ratio, and the video is
   decoded at the size it is shown. A click is a tap and a drag is a swipe, at the matching point
   on the device. When an Android device rotates or a foldable folds, the view follows within a
@@ -152,8 +157,9 @@ most recently shown ones are kept in memory.
 ## MCP tools
 
 With the [MCP server](./mcp-server) running, the same operations are available to an AI agent.
-Each tool takes the `sessionId` of any active session, like other plugin tools. The `deviceId`
-can be left out to use the device selected in the mirror.
+The tools live in the `host` session, which `jetwhale.listSessions` always lists first, so pass
+`host` as their `sessionId`. The `deviceId` can be left out to use the device selected in the
+mirror.
 
 | Tool | What it does |
 |------|--------------|
@@ -164,8 +170,8 @@ can be left out to use the device selected in the mirror.
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
 | `com.kitakkun.jetwhale.mirror.inputText` | Types text into the focused field |
 | `com.kitakkun.jetwhale.mirror.setScreen` | Turns an Android device's screen on (`on: true`, also lifting a lock screen without a credential) or off; returns `screenOn` and `locked` afterwards, where `locked: true` means the device still needs unlocking |
-| `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording the screen |
-| `com.kitakkun.jetwhale.mirror.stopRecording` | Stops it; returns the video's path and length |
+| `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording one device's screen, several devices' (`deviceIds`), or every device that can record (`all: true`) |
+| `com.kitakkun.jetwhale.mirror.stopRecording` | Stops one recording, several (`deviceIds`), or all of them (`all: true`); returns each video's path and length |
 | `com.kitakkun.jetwhale.mirror.listCaptures` | Saved captures, newest first, optionally only one `deviceId`, one `kind` (`Screenshot` or `Recording`), or those taken at or after `since` (epoch milliseconds) |
 
 An agent can read a returned path to look at the capture. On a physical iPhone, input is
