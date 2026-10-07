@@ -122,6 +122,7 @@ class DefaultDebugWebSocketServer(
                         sessionId = sessionId,
                         event = JetWhaleDebuggerEvent.PluginActivated(pluginId = event.pluginId),
                     )
+                    pluginInstanceService.startPluginInstancePreparation(pluginId = event.pluginId, sessionId = sessionId)
                 }
 
                 is PluginReconciliationEvent.Deactivated ->

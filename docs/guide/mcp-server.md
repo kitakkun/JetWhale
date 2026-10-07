@@ -87,9 +87,9 @@ Worth knowing when a call does not do what you expect:
 - **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
   point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
   back as *No clickable element found*, rather than silently doing nothing.
-- **`jetwhale.type`'s `text` goes to the first editable node in the scene**, not to whatever has
-  focus. Use `specialKey` (or a click first) when the target matters. A special key is dispatched as
-  a real key-down/key-up pair.
+- **`jetwhale.type`'s `text` goes to the focused text field**, where a user's keystrokes would land,
+  or to the first text field in the scene when none has focus. Click a field first when the target
+  matters. A special key is dispatched as a real key-down/key-up pair.
 - `jetwhale.drag` is for drag-and-drop gestures; use `jetwhale.scroll` to scroll a list.
 
 `jetwhale.getAccessibilityTree` returns each node's `id`, `role`, `text`, `contentDescription`,

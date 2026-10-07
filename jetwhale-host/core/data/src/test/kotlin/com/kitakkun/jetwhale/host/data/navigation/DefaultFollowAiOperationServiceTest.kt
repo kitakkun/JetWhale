@@ -5,6 +5,8 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
@@ -41,7 +43,7 @@ class DefaultFollowAiOperationServiceTest {
     fun `a plugin tool call points the window at that plugin`() = runBlocking {
         val following = startFollowing()
 
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-1")
 
         assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
@@ -50,9 +52,10 @@ class DefaultFollowAiOperationServiceTest {
     private fun CoroutineScope.startFollowing(): Job = launch { service.followAiOperations() }
 
     /** Starts a tool call the way `McpToolRegistrar` does when it wraps a handler. */
-    private fun startCall(toolName: String, pluginId: String?, sessionId: String?) {
+    private fun startCall(toolName: String, permission: McpToolPermission, pluginId: String?, sessionId: String?) {
         activityRepository.toolInvocationStarted(
             toolName = toolName,
+            permission = permission,
             pluginId = pluginId,
             sessionId = sessionId,
             arguments = emptyMap(),
@@ -66,7 +69,7 @@ class DefaultFollowAiOperationServiceTest {
         followEnabled.value = false
         val following = startFollowing()
 
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-1")
 
         assertNull(awaitNoRequest())
         following.cancel()
@@ -82,11 +85,11 @@ class DefaultFollowAiOperationServiceTest {
     fun `turning the mode back on follows the next call`() = runBlocking {
         followEnabled.value = false
         val following = startFollowing()
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-1")
         assertNull(awaitNoRequest())
 
         followEnabled.value = true
-        startCall("jetwhale.click", pluginId = "plugin-2", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-2", sessionId = "session-1")
 
         assertEquals(HostNavigationRequest.Plugin("plugin-2", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
@@ -96,7 +99,17 @@ class DefaultFollowAiOperationServiceTest {
     fun `a call that names no plugin is not followed`() = runBlocking {
         val following = startFollowing()
 
-        startCall("jetwhale.host_status", pluginId = null, sessionId = "session-1")
+        startCall("jetwhale.listSessions", McpToolPermission.Unrestricted, pluginId = null, sessionId = "session-1")
+
+        assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a host-level call that names a plugin is not followed`() = runBlocking {
+        val following = startFollowing()
+
+        startCall("jetwhale.navigate", McpToolPermission.HostGroup(McpHostToolGroup.NAVIGATE), pluginId = "plugin-1", sessionId = "session-1")
 
         assertNull(awaitNoRequest())
         following.cancel()
@@ -114,7 +127,7 @@ class DefaultFollowAiOperationServiceTest {
         )
         val following = startFollowing()
 
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-1")
 
         assertNull(awaitNoRequest())
         following.cancel()
@@ -132,7 +145,7 @@ class DefaultFollowAiOperationServiceTest {
         )
         val following = startFollowing()
 
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-2")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-2")
 
         assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-2", followsAgent = true), awaitRequest())
         following.cancel()
@@ -149,7 +162,7 @@ class DefaultFollowAiOperationServiceTest {
         )
         val following = startFollowing()
 
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+        startCall("jetwhale.click", McpToolPermission.PluginInteract, pluginId = "plugin-1", sessionId = "session-1")
 
         assertNull(awaitNoRequest())
         following.cancel()
