@@ -266,7 +266,7 @@ class KtorWebSocketServer(
         }
 
         routing {
-            get("/jetwhale/ca") {
+            get(CA_CERTIFICATE_URL_PATH) {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {
                     call.respond(HttpStatusCode.NotFound, "No active certificate")
@@ -338,6 +338,9 @@ class KtorWebSocketServer(
         sessions.values.forEach { session -> session.sendSerialized(event) }
     }
 }
+
+/** Where both servers serve the active CA certificate, for agents that trust it on first use. */
+internal const val CA_CERTIFICATE_URL_PATH = "/jetwhale/ca"
 
 /** Hosts treated as loopback for [SessionTransportSecurity.LOOPBACK] classification. */
 private val LOOPBACK_HOSTS = setOf("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "localhost")

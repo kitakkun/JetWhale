@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpCallArgument
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ class FakeMcpActivityRepository : McpActivityRepository {
 
     override fun toolInvocationStarted(
         toolName: String,
+        permission: McpToolPermission,
         pluginId: String?,
         sessionId: String?,
         arguments: Map<String, String>,
@@ -44,6 +46,7 @@ class FakeMcpActivityRepository : McpActivityRepository {
         val invocation = McpToolInvocation(
             id = nextInvocationId.incrementAndGet(),
             toolName = toolName,
+            permission = permission,
             pluginId = pluginId,
             sessionId = sessionId,
             arguments = arguments

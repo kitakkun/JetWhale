@@ -170,4 +170,4 @@ final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_pl
 final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter(){}[0]
 
 // Targets: [ios]
-final fun com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe(): kotlin/AutoCloseable // com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe|installJetWhaleSemanticsProbe(){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe(kotlin/Boolean = ...): kotlin/AutoCloseable // com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe|installJetWhaleSemanticsProbe(kotlin.Boolean){}[0]

@@ -13,7 +13,6 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
-import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -47,7 +46,7 @@ class NetworkMcpCommandsTest {
         assertNull(nextCursorOf(result))
     }
 
-    private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
+    private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, mcpRedactionRules = { emptyList() })
 
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
 
@@ -94,7 +93,7 @@ class NetworkMcpCommandsTest {
         val mcpOnlyRules = listOf(RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER))
         val command = ListTransactionsCommand(
             transactions = { listOf(tx("a", 100, url = "https://api.example.com/a?token=secret&page=2")) },
-            redactForMcp = { it.copy(request = mcpOnlyRules.redact(it.request)) },
+            mcpRedactionRules = { mcpOnlyRules },
         )
         assertEquals(emptyList(), txIdsOf(execute(command, "urlContains" to "token=s")))
         assertEquals(listOf("a"), txIdsOf(execute(command, "urlContains" to "page=2")))

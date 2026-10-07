@@ -25,6 +25,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -51,7 +52,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  *   instance belongs to.
  * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
- *   cannot outrace disposal. Null for a pure plugin.
+ *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
+ *   unstarted, for [PluginInstanceService.startPluginInstancePreparation].
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  */
 private class LoadedInstance(
@@ -156,14 +158,16 @@ class DefaultPluginInstanceService(
         }
         dispatchCreateGuarded(plugin, descriptor)
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            instanceScope.launchPeerPreparation(
-                peer = peer,
-                descriptor = descriptor,
-                prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
-                dispatchPrepare = plugin::dispatchPrepare,
-                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
-                onReady = {},
-            )
+            instanceScope.launch(start = if (loaded.manifest.requiresAgent) CoroutineStart.LAZY else CoroutineStart.DEFAULT) {
+                launchPeerPreparation(
+                    peer = peer,
+                    descriptor = descriptor,
+                    prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
+                    dispatchPrepare = plugin::dispatchPrepare,
+                    warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+                    onReady = {},
+                )
+            }
         } else {
             null
         }
@@ -210,6 +214,10 @@ class DefaultPluginInstanceService(
         } catch (e: Throwable) {
             logger.warning("onCreate for $descriptor failed: ${e.message}")
         }
+    }
+
+    override fun startPluginInstancePreparation(pluginId: String, sessionId: String) {
+        loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.prepareJob?.start()
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {

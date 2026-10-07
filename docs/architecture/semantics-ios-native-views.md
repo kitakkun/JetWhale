@@ -17,7 +17,10 @@ Before this, iOS had no support at all: Compose Multiplatform hands out no `Sema
 ## What was established first
 
 All of it from Kotlin/Native in `iosMain`, against `platform.UIKit` cinterop, with no Swift in the
-path and VoiceOver off. iOS 26.2 simulator, Compose Multiplatform 1.11.1.
+path and VoiceOver off. iOS 26.2 simulator, Compose Multiplatform 1.11.1. Application accessibility
+was on for that simulator, and the table holds only while it is: on a simulator where nothing has
+turned it on, the walk finds the window and three empty views. See
+[Application accessibility](#application-accessibility).
 
 | Question | Answer |
 |---|---|
@@ -26,7 +29,7 @@ path and VoiceOver off. iOS 26.2 simulator, Compose Multiplatform 1.11.1.
 | Can Kotlin act on SwiftUI? | `accessibilityActivate()` on a `Button` incremented its `@State` counter; on a `Toggle` it flipped the binding. |
 | SwiftUI `TextField`? | It is a real `UITextField` (`PlatformTextFieldAdaptor`). Setting `text` and sending `UIControlEventEditingChanged` updated the SwiftUI binding. |
 | Are SwiftUI node objects stable? | Yes: the same `AccessibilityNode` instances came back across captures seconds apart. |
-| Does Compose Multiplatform show up? | Yes, always, VoiceOver or not: `ComposeContainerView` → `OverlayInputView` carries an `AccessibilityRoot` whose `AccessibilityElement` children mirror the semantics tree. `Modifier.testTag` arrives as `accessibilityIdentifier`, `Text` as `accessibilityLabel`, `Disabled` as the `NotEnabled` trait, selection as the `Selected` trait. |
+| Does Compose Multiplatform show up? | Yes, VoiceOver or not, as long as application accessibility is on: `ComposeContainerView` → `OverlayInputView` carries an `AccessibilityRoot` whose `AccessibilityElement` children mirror the semantics tree. `Modifier.testTag` arrives as `accessibilityIdentifier`, `Text` as `accessibilityLabel`, `Disabled` as the `NotEnabled` trait, selection as the `Selected` trait. |
 | Can Kotlin act on Compose? | `accessibilityActivate()` on `increment-button` changed its label to `Clicked 1 time(s)`; on `demo-checkbox` it set the `Selected` trait; `accessibilityScroll(down)` paged the `LazyColumn`; `accessibilityPerformEscape()` closed a Compose `Dialog`. |
 | Are Compose element objects stable? | Same instances across captures while the item stays composed; a `LazyColumn` item that scrolls out and back is a new element. |
 | Where do dialogs live? | In the **same** `UIWindow`. A SwiftUI `.alert` is a `_UIAlertControllerPhoneTVMacView` under a second `UITransitionView`; a Compose `Dialog` is a second, full-window `ComposeContainerView` with its own `AccessibilityRoot`, and the content underneath is hidden from accessibility while it is up. Neither opens a new window. |
@@ -131,6 +134,54 @@ the app's window, a normal app has one root.
 
 The in-composition `JetWhaleSemanticsProbe()` composable is not needed on iOS: it exists on Android
 for apps that cannot touch the `Application`, and on iOS the walk starts from the application anyway.
+
+### Application accessibility
+
+UIKit loads its accessibility support into an app only while libAccessibility's
+`_AXSApplicationAccessibilityEnabled()` answers true: `-[UIApplication _updateApplicationAccessibility]`
+checks it before loading the accessibility bundle (read from the iOS 26.2 simulator runtime's
+UIKitCore). VoiceOver, the other assistive features, the Accessibility Inspector and UI automation
+turn it on; a fresh simulator has it off. While it is off, a `UIView` answers `CGRectZero` for
+`accessibilityFrame`, and SwiftUI's hosting view lists no `accessibilityElements`, so the walk stops
+there. The capture is then `UIWindow` → `UITransitionView` → `UIDropShadowView` → `_UIHostingView`,
+every one invisible with empty bounds, and Compose is never reached.
+
+Compose itself needs nothing. Compose Multiplatform 1.11.1 has no accessibility sync option any
+more: its `AccessibilityRoot` builds the element tree when something reads `accessibilityElements`,
+and drops it two seconds after the last read. It is reached only through the views it is hosted in,
+though, and under SwiftUI that is the hosting view.
+
+Observed on a fresh iPhone 17 simulator, iOS 26.2, with the demo:
+
+| `com.apple.Accessibility` preference | After a relaunch |
+|---|---|
+| neither | the four empty views above |
+| `AccessibilityEnabled` only | SwiftUI and Compose elements with frames, but every `UIView` invisible with empty bounds, and SwiftUI's `UITextField` missing |
+| `ApplicationAccessibilityEnabled` only | the whole tree; `Click` works on SwiftUI and on Compose |
+
+A preference written from outside (`xcrun simctl spawn … defaults write`) is read at launch only;
+posting `com.apple.accessibility.cache.app.ax` with `notifyutil` did not make the running app pick
+it up. Called in the app, `_AXSApplicationAccessibilitySetEnabled(true)` takes effect at once. It
+writes `ApplicationAccessibilityEnabled` and `AccessibilityEnabled` into the simulator's preferences
+through backboardd's accessibility server, so both stay on, for every app on that simulator, after
+the app exits. EarlGrey's simulator setup writes the same two preferences through the same server
+call, `setAccessibilityPreferenceAsMobile:value:notification:`. `_AXSSetAutomationEnabled(true)`,
+KIF's fallback and EarlGrey's device path, works the same here and also writes `AutomationEnabled`. No route that leaves the preferences alone turned up: even with
+libAccessibility's `__AX_UNIT_TEST_SETTER` set, the setter wrote both preferences.
+
+So `installJetWhaleSemanticsProbe()` calls `_AXSApplicationAccessibilitySetEnabled(true)` on a
+simulator, when `_AXSApplicationAccessibilityEnabled()` says it is off, through `dlsym` on the copy
+of libAccessibility UIKit has already loaded. The call lives in `iosSimulatorArm64Main`;
+`iosArm64Main` has a no-op, so no device build carries the private symbol names.
+`enableSimulatorApplicationAccessibility = false` skips it for a developer who wants the
+simulator's setting left alone.
+
+On a device the probe does not try. There the preference is the user's, and whether an app could
+change it is doubtful: libAccessibility writes it through the same accessibility server, which
+checks its clients' entitlements, and EarlGrey's device path needed XCTest's `XCAXClient_iOS`
+on top of `_AXSSetAutomationEnabled`. A device without VoiceOver or another assistive feature on
+is expected to show the same four empty views; that is inferred from the simulator and not yet
+confirmed on hardware.
 
 ### Threading
 
@@ -262,6 +313,11 @@ first package, which ships the official plugins only.
 7. **Follow-up**: the Swift package, per the section above.
 
 ## Risks
+
+- **Private API on the simulator.** `_AXSApplicationAccessibilityEnabled` and
+  `_AXSApplicationAccessibilitySetEnabled` have no header and could change in any iOS release; the
+  probe then finds no symbol and turns nothing on, and the tree is empty until the setting is turned
+  on by hand. They are in the simulator slice only, so an App Store build cannot contain them.
 
 - **Cost of reading `accessibilityElements`.** Compose builds its accessibility tree lazily; a
   capture forces it. Captures of the demo take about fifty milliseconds, but a long `LazyColumn`

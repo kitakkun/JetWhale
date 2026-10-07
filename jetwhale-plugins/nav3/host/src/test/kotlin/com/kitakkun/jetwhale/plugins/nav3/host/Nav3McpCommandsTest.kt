@@ -18,6 +18,7 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -140,6 +141,40 @@ class Nav3McpCommandsTest {
         assertTrue(result.getValue("keyTypes").jsonArray.isEmpty())
         assertTrue(result.containsKey("note"))
     }
+
+    @Test
+    fun `listNavKeyTypes lists every key type when no query is given`() {
+        val result = ListNavKeyTypesCommand(controllerWithKeyTypes()).runCommand()
+
+        assertEquals(listOf("com.example.navigation.ProfileKey", "com.example.settings.SettingsKey", "Detail"), result.serialNames())
+        assertFalse(result.containsKey("note"))
+    }
+
+    @Test
+    fun `listNavKeyTypes lists only the key types whose serial name contains the query`() {
+        val result = ListNavKeyTypesCommand(controllerWithKeyTypes()).runCommand(buildJsonObject { put("query", "settings") })
+
+        assertEquals(listOf("com.example.settings.SettingsKey"), result.serialNames())
+        assertFalse(result.containsKey("note"))
+    }
+
+    @Test
+    fun `listNavKeyTypes names the query when no key type matches it`() {
+        val result = ListNavKeyTypesCommand(controllerWithKeyTypes()).runCommand(buildJsonObject { put("query", "Checkout") })
+
+        assertTrue(result.getValue("keyTypes").jsonArray.isEmpty())
+        assertEquals(
+            "No key type matches \"Checkout\". The app has 3; call listNavKeyTypes without query to list them all.",
+            result.getValue("note").jsonPrimitive.content,
+        )
+    }
+
+    private fun controllerWithKeyTypes() = FakeNav3BackStackController(
+        stacks = listOf(snapshot("main", "Home")),
+        keyTypes = listOf(keyType("com.example.navigation.ProfileKey"), keyType("com.example.settings.SettingsKey"), keyType("Detail")),
+    )
+
+    private fun JsonObject.serialNames(): List<String> = getValue("keyTypes").jsonArray.map { it.jsonObject.getValue("serialName").jsonPrimitive.content }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

@@ -209,6 +209,45 @@ Not covered on iOS: `LongClick`; `SetText` / `InsertText` / `ImeAction` / `Reque
 a handler block; and text entry into a secure field's contents, which are never captured either:
 a password field stays `isEditable` with no `editableText`, on Android as on iOS.
 
+### Application accessibility
+
+The tree is there to read only while iOS has **application accessibility** on: the setting that
+VoiceOver, the other assistive features and Xcode's Accessibility Inspector turn on, and that UIKit
+checks before it loads its accessibility support into an app. While it is off, UIKit reports no
+accessibility frames and SwiftUI lists none of its content, Compose included. A capture then comes
+back empty; with `includeInvisible` it holds the window and the few views SwiftUI sits in, each of
+them invisible with empty bounds.
+
+**On a simulator** the probe turns it on when you install it, and the running app picks it up at
+once. The setting belongs to the simulator, not to your app: it stays on for every app on that
+simulator after yours exits. UI test frameworks such as KIF and EarlGrey turn the same setting on.
+The call that does it is private API, compiled into the simulator slice only, so nothing built for
+a device contains it.
+
+To leave the simulator's setting alone, install the probe with
+`installJetWhaleSemanticsProbe(enableSimulatorApplicationAccessibility = false)` and turn the
+setting on yourself when you want a tree. Relaunch the app afterwards: a setting written from
+outside the app is read when the app starts.
+
+```bash
+xcrun simctl spawn booted defaults write com.apple.Accessibility ApplicationAccessibilityEnabled -bool true
+```
+
+To turn it off again, delete it, along with `AccessibilityEnabled`, which the probe turns on with
+it, and relaunch:
+
+```bash
+xcrun simctl spawn booted defaults delete com.apple.Accessibility ApplicationAccessibilityEnabled
+xcrun simctl spawn booted defaults delete com.apple.Accessibility AccessibilityEnabled
+```
+
+With several simulators booted, put the simulator's UDID in place of `booted`.
+
+**On a device** the probe changes nothing. Application accessibility is on there while VoiceOver or
+another assistive feature is, or while the Accessibility Inspector inspects the device, and the tree
+is complete only then. That is how UIKit decides on a simulator; it has not been confirmed on a
+device yet.
+
 ## Setup
 
 ### Install the host plugin
@@ -308,9 +347,11 @@ installJetWhaleSemanticsProbe()
 
 Call it once at startup, on the main thread — before or after `startJetWhale`. It registers every
 window the app has and follows `UIWindowDidBecomeVisible` / `UIWindowDidBecomeHidden` for the ones
-that open later; there is nothing per screen to add, and no composition to put a call inside. A
-pure Swift app cannot call it yet: the agent's start API has no Swift surface, so the call has to
-sit in Kotlin the app links, as in the demo's `cmpAppViewController()`.
+that open later; there is nothing per screen to add, and no composition to put a call inside. On a
+simulator it also turns on application accessibility, which the tree depends on; see
+[Application accessibility](#application-accessibility). A pure Swift app cannot call it yet: the
+agent's start API has no Swift surface, so the call has to sit in Kotlin the app links, as in the
+demo's `cmpAppViewController()`.
 
 ::: warning Debug builds only
 The probe makes your app's UI structure readable, and the actions below make it drivable, over the
@@ -724,6 +765,11 @@ your classpath; pass your own `ComposeUiThread` to `registerSemanticsOwner` if t
 **"No root is registered."** No probe is installed. Add `installJetWhaleSemanticsProbe(application)`
 on Android, `installJetWhaleSemanticsProbe()` on iOS, or `JetWhaleSemanticsProbe()` inside your
 composition. On JS and Wasm this is expected — see [Web](#web).
+
+**On iOS the tree is empty, and `includeInvisible` shows only the window and a few views with empty
+bounds.** Application accessibility is off: on a device where nothing has turned it on, or on a
+simulator where the probe was installed with `enableSimulatorApplicationAccessibility = false`.
+See [Application accessibility](#application-accessibility).
 
 **A dialog's contents are missing.** On Android a dialog is a separate window. The Application-level
 probe finds it; an in-composition probe only registers the window it was called in. A dialog built
