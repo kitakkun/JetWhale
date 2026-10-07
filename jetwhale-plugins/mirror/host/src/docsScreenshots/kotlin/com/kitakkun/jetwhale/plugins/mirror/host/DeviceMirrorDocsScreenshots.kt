@@ -22,9 +22,11 @@ import org.jetbrains.skia.Paint
 import org.jetbrains.skia.RRect
 import org.jetbrains.skia.Rect
 import java.io.File
-import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.test.Test
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * [MirrorScreen] and [DeviceGrid] rather than the Root: the Root drives a live [DeviceMirror],
@@ -52,9 +54,7 @@ class DeviceMirrorDocsScreenshots {
             IPHONE.id to ThumbnailState.Live,
             PIXEL_DEVICE.id to ThumbnailState.ScreenOff,
         ).mapValues { (id, state) ->
-            // The grid measures a thumbnail's age against the system clock, so the current time is
-            // what keeps its caption at "just now".
-            DeviceThumbnail(image = sampleAppScreenImage(SCREEN_SIZES.getValue(id)), updatedAtMillis = System.currentTimeMillis(), state = state)
+            DeviceThumbnail(image = sampleAppScreenImage(SCREEN_SIZES.getValue(id)), updatedAtMillis = DOCS_SCREENSHOT_TIME_MILLIS, state = state)
         }
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
@@ -71,6 +71,7 @@ class DeviceMirrorDocsScreenshots {
                     onOpen = {},
                     onScreenshot = {},
                     onScreenshotAll = {},
+                    clock = DocsScreenshotTimeClock,
                 )
             }
         }
@@ -210,21 +211,29 @@ private val SCREEN_SIZES = mapOf(
 /** Absolute, as the panel shows a capture's absolute path: a relative one would resolve against this checkout. */
 private const val CAPTURES_DIRECTORY = "/Users/sample/.jetwhale/plugin-data/com.kitakkun.jetwhale.mirror/captures/Pixel-9-3fa2c1d0"
 
-/** 2026-10-01 09:30 UTC. */
-private const val FIRST_CAPTURE_AT = 1_790_847_000_000
+/** When the shots are taken, after every capture below: 2026-10-01 10:15 UTC. */
+private const val DOCS_SCREENSHOT_TIME_MILLIS = 1_790_849_700_000
 
-private const val MINUTE_MILLIS = 60_000L
+/** Stands still at [DOCS_SCREENSHOT_TIME_MILLIS], so the grid's "Updated … ago" reads the same in every run. */
+private object DocsScreenshotTimeClock : Clock {
+    override fun now(): Instant = Instant.fromEpochMilliseconds(DOCS_SCREENSHOT_TIME_MILLIS)
+}
+
+private const val MILLIS_PER_MINUTE = 60_000L
+
+private const val MILLIS_PER_SECOND = 1_000L
 
 /** Newest first, as the panel lists them. */
 private val CAPTURES = listOf(
-    capture(kind = CaptureKind.Screenshot, capturedAt = FIRST_CAPTURE_AT + 42 * MINUTE_MILLIS, durationMillis = null),
-    capture(kind = CaptureKind.Recording, capturedAt = FIRST_CAPTURE_AT + 17 * MINUTE_MILLIS, durationMillis = 18_400),
-    capture(kind = CaptureKind.Screenshot, capturedAt = FIRST_CAPTURE_AT + 5 * MINUTE_MILLIS, durationMillis = null),
-    capture(kind = CaptureKind.Screenshot, capturedAt = FIRST_CAPTURE_AT, durationMillis = null),
+    pixelEmulatorCapture(kind = CaptureKind.Screenshot, minutesBeforeDocsScreenshot = 3, durationMillis = null),
+    pixelEmulatorCapture(kind = CaptureKind.Recording, minutesBeforeDocsScreenshot = 28, durationMillis = 18_400),
+    pixelEmulatorCapture(kind = CaptureKind.Screenshot, minutesBeforeDocsScreenshot = 40, durationMillis = null),
+    pixelEmulatorCapture(kind = CaptureKind.Screenshot, minutesBeforeDocsScreenshot = 45, durationMillis = null),
 )
 
-private fun capture(kind: CaptureKind, capturedAt: Long, durationMillis: Long?): Capture {
-    val time = Instant.ofEpochMilli(capturedAt).atZone(ZoneOffset.UTC)
+private fun pixelEmulatorCapture(kind: CaptureKind, minutesBeforeDocsScreenshot: Int, durationMillis: Long?): Capture {
+    val capturedAtEpochMillis = DOCS_SCREENSHOT_TIME_MILLIS - minutesBeforeDocsScreenshot * MILLIS_PER_MINUTE
+    val time = LocalDateTime.ofEpochSecond(capturedAtEpochMillis / MILLIS_PER_SECOND, 0, ZoneOffset.UTC)
     return Capture(
         file = File("$CAPTURES_DIRECTORY/${time.toLocalDate()}/%02d%02d%02d-${kind.suffix}.${kind.extension}".format(time.hour, time.minute, time.second)),
         info = CaptureInfo(
@@ -236,7 +245,7 @@ private fun capture(kind: CaptureKind, capturedAt: Long, durationMillis: Long?):
             kind = kind,
             widthPx = 1080,
             heightPx = 2400,
-            capturedAtEpochMillis = capturedAt,
+            capturedAtEpochMillis = capturedAtEpochMillis,
             durationMillis = durationMillis,
         ),
     )

@@ -9,8 +9,8 @@ public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingleton
 	public fun <init> ()V
 	public final fun getLambda$-1242686455$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-1415925332$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1519462993$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-1791270260$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-2054911375$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$17989664$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 }
 

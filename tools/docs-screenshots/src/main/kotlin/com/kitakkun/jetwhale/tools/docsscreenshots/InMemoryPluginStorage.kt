@@ -22,8 +22,8 @@ class InMemoryPluginStorage(initial: Map<String, String>) : JetWhalePluginStorag
 
     override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? {
         // The host's store reads from disk, so a stored value arrives after the screen's own
-        // effects have started; a Root that mirrors it into other state, like the Network
-        // Inspector's split pane, counts on that order.
+        // effects have started; the Network Inspector's split pane, which mirrors the stored value
+        // into its own state, counts on that order.
         yield()
         return values.value[key]?.let { Json.decodeFromString(serializer, it) }
     }
