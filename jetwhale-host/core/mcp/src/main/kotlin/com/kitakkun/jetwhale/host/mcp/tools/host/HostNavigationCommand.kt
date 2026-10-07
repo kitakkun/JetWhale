@@ -43,7 +43,7 @@ class HostNavigationCommand(
     override val name: String = "jetwhale.navigate"
     override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
-        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show."
+        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show. LOG_VIEWER opens the log viewer in a window of its own: the result's destination stays the main window's screen, and logViewerOpen reports the log viewer."
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
@@ -74,6 +74,7 @@ class HostNavigationCommand(
                 sessionId = applied.sessionId,
                 settingsSection = applied.settingsSection?.name,
                 poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+                logViewerOpen = applied.logViewerOpen,
             ),
         )
     }
@@ -126,7 +127,7 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
 
     is HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
-    is HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
+    is HostNavigationRequest.LogViewer -> destination.logViewerOpen
 
     is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
 
@@ -144,5 +145,6 @@ data class NavigateResult(
     val sessionId: String? = null,
     val settingsSection: String? = null,
     val poppedOut: Boolean = false,
+    val logViewerOpen: Boolean = false,
     val reason: String? = null,
 )

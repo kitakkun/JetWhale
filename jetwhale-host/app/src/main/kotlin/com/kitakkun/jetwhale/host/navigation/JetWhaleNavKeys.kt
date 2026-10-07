@@ -48,6 +48,13 @@ data class DisabledPluginNavKey(
 data object LogViewerNavKey : NavKey
 
 /**
+ * Whether this entry is drawn in the main window. The log viewer and popped-out plugins sit in the
+ * same back stack but each have a window of their own, which only that window closes.
+ */
+val NavKey.showsInMainWindow: Boolean
+    get() = this !is LogViewerNavKey && this !is PluginPopoutNavKey
+
+/**
  * The MCP tools browser. [pluginId] and [sessionId] seed the screen's filters — null means
  * "all", so opening it from a plugin's badge lands on that plugin while the screen itself can
  * widen the view afterwards.

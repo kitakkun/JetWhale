@@ -1,0 +1,7 @@
+<resources>
+    <string name="menu_go">Go</string>
+    <string name="menu_home">Home</string>
+    <string name="menu_no_plugins">No plugins to open</string>
+    <string name="menu_window">Window</string>
+    <string name="menu_close_window">Close Window</string>
+</resources>

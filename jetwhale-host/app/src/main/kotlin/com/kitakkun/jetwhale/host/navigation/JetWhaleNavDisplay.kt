@@ -16,6 +16,9 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 
 // This builds its entries from the whole dependency graph it takes as a context parameter, which a
@@ -40,6 +43,7 @@ fun JetWhaleNavDisplay(
 
     NavDisplay<NavKey>(
         backStack = backStack,
+        onBack = backStack::popMainWindowEntry,
         sceneStrategies = listOf(dialogSceneStrategy, windowSceneStrategy, listDetailSceneStrategy),
         transitionSpec = {
             ContentTransform(
@@ -63,12 +67,9 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(
                 onClickClose = { backStack.removeIf { it is SettingsNavKey } },
-                // At the bottom of the stack, not on top: dismissing a dialog pops the last entry,
-                // so with the log viewer window last, closing Settings would close the log viewer
-                // instead.
-                onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) },
+                onOpenLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
             )
-            licensesEntry(onClickBack = backStack::removeLastOrNull)
+            licensesEntry(onClickBack = backStack::popMainWindowEntry)
             logViewerEntry()
             mcpToolsEntry()
             pluginEntries(
@@ -78,5 +79,23 @@ fun JetWhaleNavDisplay(
             disabledPluginEntry(onEnabled = backStack::openEnabledPlugin)
         },
         modifier = modifier.fillMaxSize(),
+    )
+    MainWindowBackHandler(backStack)
+}
+
+/**
+ * Goes back one step in the main window per back event. NavDisplay's own handler calls `onBack`
+ * once for the entry its main scene shows and once more for every dialog or window on top of it, so
+ * with a window open it would remove more than the top entry. This handler is registered after it, and a
+ * dispatcher asks the newest handler first; a dialog's handler, newer still, keeps its own back.
+ */
+// It only registers a back handler and draws nothing, so a preview would show an empty frame.
+@Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
+@Composable
+internal fun MainWindowBackHandler(backStack: NavBackStack<NavKey>) {
+    NavigationBackHandler(
+        state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+        isBackEnabled = backStack.canPopMainWindowEntry(),
+        onBackCompleted = backStack::popMainWindowEntry,
     )
 }

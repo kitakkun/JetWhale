@@ -74,7 +74,7 @@ import java.nio.file.Path
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 context(appGraph: JetWhaleAppGraph)
-fun JetWhaleApp() {
+fun JetWhaleApp(menuBar: @Composable () -> Unit) {
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration {
             serializersModule = SerializersModule {
@@ -91,27 +91,24 @@ fun JetWhaleApp() {
 
     HostWindowEffects(backStack)
 
-    KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
-    ) {
-        SwrClientProvider(appGraph.swrClient) {
-            val checkForHostUpdateMutation = rememberMutation(appGraph.checkForHostUpdateMutationKey)
-            LaunchedEffect(Unit) {
-                if (appGraph.hostLaunch is HostLaunch.ByLauncher && appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    checkForHostUpdateMutation.mutateAsync(Unit)
-                }
+    SwrClientProvider(appGraph.swrClient) {
+        val checkForHostUpdateMutation = rememberMutation(appGraph.checkForHostUpdateMutationKey)
+        LaunchedEffect(Unit) {
+            if (appGraph.hostLaunch is HostLaunch.ByLauncher && appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                checkForHostUpdateMutation.mutateAsync(Unit)
             }
-            SoilDataBoundary(
-                state1 = rememberSubscription(appGraph.themeSubscriptionKey),
-                state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
-                fallback = SoilFallbackDefaults.none(),
-            ) { theme, settings ->
-                ThemedHostWindow(
-                    colorScheme = theme.colorScheme,
-                    appLanguage = settings.appLanguage,
-                    backStack = backStack,
-                )
-            }
+        }
+        SoilDataBoundary(
+            state1 = rememberSubscription(appGraph.themeSubscriptionKey),
+            state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
+            fallback = SoilFallbackDefaults.none(),
+        ) { theme, settings ->
+            ThemedHostWindow(
+                colorScheme = theme.colorScheme,
+                appLanguage = settings.appLanguage,
+                backStack = backStack,
+                menuBar = menuBar,
+            )
         }
     }
 }
@@ -179,9 +176,12 @@ private fun ThemedHostWindow(
     colorScheme: JetWhaleColorScheme,
     appLanguage: AppLanguage,
     backStack: NavBackStack<NavKey>,
+    menuBar: @Composable () -> Unit,
 ) {
     HostTheme(colorScheme) {
         AppEnvironment(appLanguage) {
+            // Inside AppEnvironment, so the menus' labels follow the host's language setting.
+            menuBar()
             JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                 context(retain { appGraph.toolingScaffoldScreenContext }) {
                     ToolingScaffoldRoot(
@@ -211,7 +211,7 @@ private fun ThemedHostWindow(
                         isPoppedOut = backStack::isPluginPoppedOut,
                         onClickBringBack = backStack::bringPluginBackToMainWindow,
                         onNavigateHome = {
-                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
+                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey && it !is LogViewerNavKey }
                         },
                         onNavigateSettings = { page ->
                             backStack.addSingleTop(SettingsNavKey(initialPage = page))

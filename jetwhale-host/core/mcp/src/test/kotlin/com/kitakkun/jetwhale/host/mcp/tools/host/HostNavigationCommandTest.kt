@@ -84,7 +84,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate reports the destination the host switched to`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER, logViewerOpen = false),
         )
 
         val result = command
@@ -97,9 +97,22 @@ class HostNavigationCommandTest {
     }
 
     @Test
+    fun `opening the log viewer is confirmed by its window being open whatever the main window shows`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL, logViewerOpen = true),
+        )
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("LOG_VIEWER"))).decode()
+
+        assertTrue(result.applied)
+        assertTrue(result.logViewerOpen)
+        assertEquals("SETTINGS", result.destination)
+    }
+
+    @Test
     fun `navigate does not confirm a settings section other than the one requested`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL, logViewerOpen = false),
         )
 
         val result = command
@@ -125,6 +138,7 @@ class HostNavigationCommandTest {
                 pluginId = "com.example.agent",
                 sessionId = "session-1",
                 poppedOutPlugins = listOf(PoppedOutPlugin("com.example.agent", "session-1")),
+                logViewerOpen = false,
             ),
         )
 
@@ -205,7 +219,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens a plugin that needs no app in the host session whatever session was named`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID),
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID, logViewerOpen = false),
         )
 
         val result = command

@@ -13,23 +13,26 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenSection
  * publishes. Nav keys and the settings menu are app-level types, so the mapping lives here rather
  * than leaking into `core/model`.
  *
- * The top-most entry that is not a popout wins: popouts render in their own windows and are
- * reported alongside whatever the main window shows.
+ * The top-most entry the main window shows wins. Popouts and the log viewer render in windows of
+ * their own and are reported alongside it.
  */
 fun List<NavKey>.toHostDestination(): HostDestination {
     val poppedOut = filterIsInstance<PluginPopoutNavKey>().map { PoppedOutPlugin(it.pluginId, it.sessionId) }
-    return when (val top = lastOrNull { it !is PluginPopoutNavKey }) {
+    val logViewerOpen = LogViewerNavKey in this
+    return when (val top = lastOrNull(NavKey::showsInMainWindow)) {
         is PluginNavKey -> HostDestination(
             kind = HostDestinationKind.PLUGIN,
             pluginId = top.pluginId,
             sessionId = top.sessionId,
             poppedOutPlugins = poppedOut,
+            logViewerOpen = logViewerOpen,
         )
 
         is SettingsNavKey -> HostDestination(
             kind = HostDestinationKind.SETTINGS,
             settingsSection = top.initialPage.toHostSettingsSection(),
             poppedOutPlugins = poppedOut,
+            logViewerOpen = logViewerOpen,
         )
 
         is McpToolsNavKey -> HostDestination(
@@ -37,22 +40,22 @@ fun List<NavKey>.toHostDestination(): HostDestination {
             pluginId = top.pluginId,
             sessionId = top.sessionId,
             poppedOutPlugins = poppedOut,
+            logViewerOpen = logViewerOpen,
         )
 
-        InfoNavKey -> HostDestination(HostDestinationKind.INFO, poppedOutPlugins = poppedOut)
+        InfoNavKey -> HostDestination(HostDestinationKind.INFO, poppedOutPlugins = poppedOut, logViewerOpen = logViewerOpen)
 
-        LicensesNavKey -> HostDestination(HostDestinationKind.LICENSES, poppedOutPlugins = poppedOut)
-
-        LogViewerNavKey -> HostDestination(HostDestinationKind.LOG_VIEWER, poppedOutPlugins = poppedOut)
+        LicensesNavKey -> HostDestination(HostDestinationKind.LICENSES, poppedOutPlugins = poppedOut, logViewerOpen = logViewerOpen)
 
         is DisabledPluginNavKey -> HostDestination(
             kind = HostDestinationKind.DISABLED_PLUGIN,
             pluginId = top.pluginId,
             sessionId = top.sessionId,
             poppedOutPlugins = poppedOut,
+            logViewerOpen = logViewerOpen,
         )
 
-        else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut)
+        else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut, logViewerOpen = logViewerOpen)
     }
 }
 

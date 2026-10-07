@@ -102,6 +102,7 @@ private fun HostViewState.toJson() = UiStateJson(
     sessionId = destination.sessionId,
     settingsSection = destination.settingsSection?.name,
     poppedOutPlugins = destination.poppedOutPlugins.map { PoppedOutPluginJson(it.pluginId, it.sessionId) },
+    logViewerOpen = destination.logViewerOpen,
     selectedSessionId = selectedSessionId,
     selectedPluginId = selectedPluginId,
 )
@@ -162,6 +163,7 @@ data class UiStateJson(
     val sessionId: String? = null,
     val settingsSection: String? = null,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
+    val logViewerOpen: Boolean,
     val selectedSessionId: String? = null,
     val selectedPluginId: String? = null,
 )
