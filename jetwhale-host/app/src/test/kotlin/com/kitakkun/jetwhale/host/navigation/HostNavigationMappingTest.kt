@@ -13,17 +13,17 @@ class HostNavigationMappingTest {
     @Test
     fun `every settings page an agent requests opens that page and is reported back`() {
         HostSettingsPage.entries.forEach { page ->
-            val reported = listOf(EmptyPluginNavKey, SettingsNavKey(initialPage = page.toPage())).toHostDestination()
+            val reportedDestination = listOf(EmptyPluginNavKey, SettingsNavKey(initialPage = page.toPage())).toHostDestination()
 
-            assertEquals(page, reported.settingsPage)
+            assertEquals(page, reportedDestination.settingsPage)
         }
     }
 
     @Test
     fun `the host's settings pages are the menu's pages in the menu's order`() {
-        val reported = SettingsScreenPage.entries.map { listOf(SettingsNavKey(initialPage = it)).toHostDestination().settingsPage }
+        val reportedSettingsPages = SettingsScreenPage.entries.map { listOf(SettingsNavKey(initialPage = it)).toHostDestination().settingsPage }
 
-        assertEquals(HostSettingsPage.entries, reported)
+        assertEquals(HostSettingsPage.entries, reportedSettingsPages)
     }
 
     @Test
@@ -35,18 +35,18 @@ class HostNavigationMappingTest {
             SettingsScreenSection.Plugins to HostSettingsSection.PLUGINS,
         )
         SettingsScreenPage.entries.forEach { page ->
-            val reported = listOf(SettingsNavKey(initialPage = page)).toHostDestination()
+            val reportedDestination = listOf(SettingsNavKey(initialPage = page)).toHostDestination()
 
-            assertEquals(hostSectionByMenuSection.getValue(page.section), reported.settingsPage?.section, page.name)
+            assertEquals(hostSectionByMenuSection.getValue(page.section), reportedDestination.settingsPage?.section, page.name)
         }
     }
 
     @Test
     fun `every tools browser tab an agent requests opens that tab and is reported back`() {
         McpToolsTab.entries.forEach { tab ->
-            val reported = listOf(McpToolsNavKey(pluginId = null, sessionId = null, initialTab = tab)).toHostDestination()
+            val reportedDestination = listOf(McpToolsNavKey(pluginId = null, sessionId = null, initialTab = tab)).toHostDestination()
 
-            assertEquals(tab, reported.mcpToolsTab?.toMcpToolsTab())
+            assertEquals(tab, reportedDestination.mcpToolsTab?.toMcpToolsTab())
         }
     }
 }

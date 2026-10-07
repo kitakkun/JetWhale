@@ -142,10 +142,10 @@ class HostSettingsCommandsTest {
             "dark" to JetWhaleColorSchemeId.BuiltInDark,
             "dynamic" to JetWhaleColorSchemeId.BuiltInDynamic,
         )
-        expected.forEach { (name, colorSchemeId) ->
-            updateSettings.execute(arguments("theme" to JsonPrimitive(name)))
+        expected.forEach { (themeName, colorSchemeId) ->
+            updateSettings.execute(arguments("theme" to JsonPrimitive(themeName)))
 
-            assertEquals(colorSchemeId, appAppearanceRepository.preferredColorSchemeIdFlow.value, name)
+            assertEquals(colorSchemeId, appAppearanceRepository.preferredColorSchemeIdFlow.value, themeName)
         }
     }
 
