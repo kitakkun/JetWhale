@@ -386,8 +386,9 @@ same window coordinates — and a node in a dialog is highlighted in the dialog'
 Four things to know:
 
 - **It is off by default, on purpose.** The box is drawn into the app itself, so anything that takes
-  a screenshot of the device while it is up captures the box too — a `screencap`, the Android Device
-  plugin, a QA run. Turn it on to find something, turn it off before you capture.
+  a screenshot of the device while it is up captures the box too — a `screencap`, the
+  [Device Mirror](/guide/device-mirror), a QA run. Turn it on to find something, turn it off
+  before you capture.
 - **It never appears in the captured tree.** The box is a window overlay (`View.getOverlay()`), drawn
   after the root view's children but not one of them, so the tree you are reading is not changed by
   reading it.

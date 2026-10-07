@@ -27,7 +27,7 @@ While enabled, the host:
    adb -s <serial> reverse tcp:<serverPort> tcp:<serverPort>
    ```
 
-   for **each** active server port — the plain ws port and, when a certificate is active, the
+   for **each** active server port — the plain ws port and, while wss is enabled, the
    [wss](/guide/getting-started#secure-connections-wss) port too — so both endpoints reach the host.
 4. When a device goes offline, removes its reverse mappings.
 

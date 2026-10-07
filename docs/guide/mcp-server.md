@@ -287,7 +287,7 @@ that keeps values visible to you but hidden from AI agents.
 ## The MCP tools browser
 
 The host has its own view of what agents can do and what they have done. Open it from the **wrench
-icon** at the top of the [drawer](/guide/host-window#the-rest-of-the-drawer), or from the **MCP
+icon** in the [sidebar footer](/guide/host-window#the-sidebar-footer), or from the **MCP
 badge** on a plugin's sidebar row — which lands you already filtered to that plugin.
 
 Two filter rows across the top narrow everything below by **Plugin** and by **Session**. Each is a

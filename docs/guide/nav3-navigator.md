@@ -100,7 +100,8 @@ nav3Plugin.TrackNavBackStack(sheetBackStack, stackId = "sheet")
   middle, which rewrites where "back" will land without leaving the current screen.
 - **Push a NavKey.** The right-hand pane lists the key types the app can construct, each with its
   fields and a ready-to-fill JSON template. Click one, edit the values, and *Push* — or *Replace
-  stack* to make it the only entry.
+  stack* to make it the only entry. The filter above the list narrows it to the types whose name
+  contains what you type, case aside — a simple name such as `Detail`, or part of a qualified one.
 - **Copy to editor.** Any entry's key can be copied into the editor and pushed again, which also
   covers key types that are not in the catalog.
 
@@ -111,7 +112,7 @@ With the [MCP server](./mcp-server) running, the same operations are available t
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.nav3.getBackStack` | The current stack(s), indexed, with each entry's JSON key |
-| `com.kitakkun.jetwhale.nav3.listNavKeyTypes` | The constructible key types, with fields and templates |
+| `com.kitakkun.jetwhale.nav3.listNavKeyTypes` | The constructible key types, with fields and templates; `query` lists only the types whose name contains it |
 | `com.kitakkun.jetwhale.nav3.pushNavKey` | Navigate to a key (optionally inserting it below the top) |
 | `com.kitakkun.jetwhale.nav3.popBackStack` | Go back — by a count, or down to an index |
 | `com.kitakkun.jetwhale.nav3.removeNavKeyAt` | Drop one entry from the middle |

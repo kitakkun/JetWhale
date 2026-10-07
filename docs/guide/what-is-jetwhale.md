@@ -41,7 +41,7 @@ Each session in the host shows a lock indicator for how its transport is secured
 ## Next steps
 
 - [Getting Started](/guide/getting-started) — install the host and integrate the agent into your app
-- [The Host Window](/guide/host-window) — sessions, the plugin drawer, and popping a plugin out
+- [The Host Window](/guide/host-window) — sessions, the sidebar, and popping a plugin out
 - [ADB auto port mapping](/guide/adb-auto-port-mapping) — zero-setup Android debugging
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [MCP Server](/guide/mcp-server) *(experimental)* — let an AI agent drive the app
