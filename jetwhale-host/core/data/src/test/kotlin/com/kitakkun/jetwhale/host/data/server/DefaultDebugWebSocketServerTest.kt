@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiati
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.data.server.negotiation.SessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.session.DefaultDebugSessionRepository
+import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingService
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDiscoveryAdvertiser
@@ -39,8 +40,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -51,6 +55,7 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultDebugWebSocketServerTest {
+    private val adbAutoPortMappingService = FakeAdbAutoPortMappingService()
     private val ktorWebSocketServer = KtorWebSocketServer(
         json = JetWhaleJson,
         negotiationStrategy = AcceptingNegotiationStrategy(),
@@ -79,11 +84,11 @@ class DefaultDebugWebSocketServerTest {
         },
     )
     private val server = DefaultDebugWebSocketServer(
-        adbAutoPortMappingService = mock(),
+        adbAutoPortMappingService = adbAutoPortMappingService,
         sessionRepository = sessionRepository,
         pluginInstanceService = pluginInstanceService,
         settingsRepository = mock<DebuggerSettingsRepository> {
-            everySuspend { readAdbAutoPortMappingEnabled() } returns false
+            everySuspend { readAdbAutoPortMappingEnabled() } returns true
         },
         reconciliationService = DefaultPluginSessionReconciliationService(
             sessionRepository = sessionRepository,
@@ -117,6 +122,20 @@ class DefaultDebugWebSocketServerTest {
             client.close()
             server.stop()
         }
+    }
+
+    // Removing a mapping is slower than the server takes to stop, so a stop() that does not wait for
+    // the removal returns before it.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
+    @Test
+    fun `stopping the server removes the adb port mappings before it returns`() = runBlocking {
+        val port = ServerSocket(0).use(ServerSocket::getLocalPort)
+        server.start(host = "localhost", port = port, wssPort = null)
+        withTimeout(MAPPING_TIMEOUT_MILLIS) { adbAutoPortMappingService.mappedPorts.first { port in it } }
+
+        server.stop()
+
+        assertEquals(emptySet(), adbAutoPortMappingService.mappedPorts.value)
     }
 
     /** Connects one agent to the server and returns what it receives, in arrival order. */
@@ -161,6 +180,19 @@ class DefaultDebugWebSocketServerTest {
         )
     }
 
+    private class FakeAdbAutoPortMappingService : AdbAutoPortMappingService {
+        val mappedPorts = MutableStateFlow(emptySet<Int>())
+
+        override fun startPortMapping(port: Int) {
+            mappedPorts.update { it + port }
+        }
+
+        override suspend fun stopPortMapping(port: Int) {
+            delay(UNMAPPING_DURATION_MILLIS)
+            mappedPorts.update { it - port }
+        }
+    }
+
     private class FakeEnabledPluginsRepository(enabledPluginIds: Set<String>) : EnabledPluginsRepository {
         override val enabledPluginIdsFlow: MutableStateFlow<Set<String>> = MutableStateFlow(enabledPluginIds)
         override val disabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 1)
@@ -186,5 +218,7 @@ class DefaultDebugWebSocketServerTest {
         const val ACTIVATED = "activated $PLUGIN_ID"
         const val DEACTIVATED = "deactivated $PLUGIN_ID"
         const val PREPARE_REQUEST = "request $PREPARE_REQUEST_TYPE for $PLUGIN_ID"
+        const val MAPPING_TIMEOUT_MILLIS = 10_000L
+        const val UNMAPPING_DURATION_MILLIS = 2_000L
     }
 }
