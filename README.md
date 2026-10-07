@@ -15,7 +15,7 @@ It is built with Kotlin and Jetpack Compose, making it especially familiar and a
 Kotlin / Android developers.
 Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal learning curve.
 
-![The JetWhale host window next to a desktop app it is debugging. The app's HTTP requests appear in the Network Inspector; one is mocked with an edited JSON body, and the app's next request gets the mocked response; then a screen is pushed from the Nav3 Navigator, and the app navigates to it.](docs/images/readme/demo.gif)
+![The JetWhale host window next to a desktop app it is debugging. The app's HTTP requests appear in the Network Inspector; one is mocked with an edited JSON body, and the app's next request gets the mocked response; then a screen is pushed from the Nav3 Navigator, and the app navigates to it.](docs/images/readme/demo.webp)
 
 *The host (left) debugging the desktop demo app (right): live traffic, a mocked response, and a
 screen pushed from the Nav3 Navigator.*
