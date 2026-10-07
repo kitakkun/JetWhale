@@ -19,6 +19,7 @@ are experimental.
 - Device Mirror records several devices at once: the grid's record button starts every device that can record and **Stop all** ends them, and the `startRecording` and `stopRecording` MCP tools take `all: true` or `deviceIds` (#338).
 - Device Mirror takes screenshots and recordings of a physical iPhone from its video stream; both need ffmpeg (#334, #344).
 - Device Mirror copies a capture to the clipboard: **Copy** in the notice that names a saved capture, and **Copy image** or **Copy file** in the Captures panel (#347).
+- The Nav3 Navigator's Push pane filters the NavKey types by name, and `nav3.listNavKeyTypes` takes an optional `query` (#416).
 
 ### Changed
 
@@ -30,6 +31,7 @@ are experimental.
 - Device Mirror draws each frame without copying it, and finds USB iPhones with `idb_companion` instead of idb's Python client, so the device list refreshes every 3 seconds instead of every 5 to 10 (#367, #368).
 - Plugin installs that finish together, such as several from Official Plugins, share one notice instead of queuing one each (#340).
 - Context menus, including the cut/copy/paste menu of text fields, follow the JetWhale theme instead of Compose's default light menu, in plugins too (#385).
+- With **Follow the plugin an AI agent operates** on, a run of moves ends with one 2-second *Following the AI* notice instead of a 4-second notice queued per move, and host-level MCP calls (`jetwhale.navigate`, `jetwhale.setPluginEnabled`, `jetwhale.installOfficialPlugin`) no longer move the window (#420).
 - MCP calls no longer hold up the host UI: `jetwhale.screenshot` stops freezing every window while it encodes, and clicks, typing and tree captures no longer recompose the plugin (#363).
 - The agent does less work for each captured event, and the Storage and Compose Semantics Inspectors stop redoing work on every change and hover (#364, #365, #366, #373).
 
@@ -44,6 +46,9 @@ are experimental.
 - The Network Inspector's traffic list keeps updating while a filter is typed (#360).
 - The Network Inspector's traffic list has its right-click menu back: Copy as cURL, Copy URL, Copy request body and Copy response body (#384).
 - The Network Inspector's traffic list no longer cuts URLs short to keep room for a mostly empty MOCK column; a mocked row shows its MOCK tag before the URL instead (#417).
+- After a plugin is disabled and enabled again, its host side waits for the app to activate it before the first exchange, so plugins such as Storage and Nav3 load their state again (#422).
+- The host no longer logs a TLS handshake failure, with a stack trace, each time an app connects with trust on first use (#421).
+- On an iOS simulator, the Compose Semantics Inspector turns on application accessibility for the app it runs in, so a fresh simulator no longer shows an empty tree; pass `enableSimulatorApplicationAccessibility = false` to `installJetWhaleSemanticsProbe` to opt out. A physical device needs application accessibility turned on as the guide describes (#423).
 - The Compose Semantics Inspector keeps a node's `#id` tag when the node's own text starts with `#` (#352).
 - In Windows desktop apps, the Storage Inspector recognizes symbolic links and junctions, so deleting a directory from the host no longer deletes the files a link inside it points to, and a link no longer leads a listing out of its root (#387).
 - The host's log viewer keeps every captured line whole and once, shows non-ASCII text intact, files java.util.logging records at their own level instead of as errors, and no longer gains about sixteen Ktor and MCP SDK entries per MCP call (#362, #374).
@@ -65,6 +70,7 @@ are experimental.
 
 - Network Inspector redaction rules could be bypassed, so a value an app asked to hide reached the host, or reached MCP clients under an `MCP_ONLY` rule. `bodyField(...)` rules now withhold JSON that doesn't parse (cut at `maxBodyChars`, several documents, or malformed) when it names a redacted field; `urlQueryParam(...)` rules match percent-encoded names and hide values in failure messages; and `listTransactions`' `urlContains` matches only the redacted URL. Update the network agent in your app and the host together (#361).
 - `urlQueryParam(...)` rules also hide a value quoted in a header value, such as a redirect's `Location` or a `Referer` (#412).
+- Re-enabling the Network Inspector for a connected app no longer turns its `MCP_ONLY` redaction off: MCP clients received the hidden values in clear, and the Mocks tab showed no rules, until the debug server restarted. While the rules are still being read, MCP sees no transactions (#422).
 
 ## [1.0.0-alpha12] - 2026-09-28
 
