@@ -1,21 +1,35 @@
 # The Host Window
 
 The JetWhale host is one window: a **sidebar** down the left side that picks what you are debugging
-and which tool you are looking at, and the selected plugin's own UI filling the rest. From top to
-bottom, the sidebar holds the [AI activity](#ai-activity) header, the
-[plugins that need no app](#plugins-that-need-no-app), the [app picker](#choosing-an-app), the
-selected app's [plugin list](#the-plugin-list), and the [footer](#the-sidebar-footer).
+and which tool you are looking at, and the selected plugin's own UI filling the rest.
+
+![The host window with its parts numbered: 1 the AI activity header, 2 the plugins that need no app, 3 the app picker, 4 the plugin list, 5 the sidebar footer, 6 the selected plugin's UI](../images/host-window/annotated-light.webp){.light-only width=688}
+![The host window with its parts numbered: 1 the AI activity header, 2 the plugins that need no app, 3 the app picker, 4 the plugin list, 5 the sidebar footer, 6 the selected plugin's UI](../images/host-window/annotated-dark.webp){.dark-only width=688}
+
+The numbers follow the sidebar from top to bottom:
+
+1. The [AI activity](#ai-activity) header
+2. The [plugins that need no app](#plugins-that-need-no-app)
+3. The [app picker](#choosing-an-app)
+4. The selected app's [plugin list](#the-plugin-list)
+5. The [sidebar footer](#the-sidebar-footer)
+6. The selected plugin's own UI
 
 The plugins are documented on their own pages; this page covers the host around them.
 
 ## AI activity
 
-The sidebar header shows whether an AI agent is connected over [MCP](/guide/mcp-server); with none
-connected it holds only the collapse control. While one is connected it reads *AI agent connected*.
+The sidebar header shows whether an AI agent is connected over [MCP](/guide/mcp-server). With none
+connected it reads *Connect an AI agent*, and clicking it shows the endpoint and the setups to copy;
+while the MCP server is not running it reads *MCP is off*. While an agent is connected it reads
+*AI agent connected*.
 While a call runs, a rotating ring goes round the header and the tool's short name (`mirror.tap`)
 takes the text's place, with the full name on hover. Clicking it opens the details — the tool, the
 plugin it operates, the app — and the **Follow the AI** switch, the same setting as
 [AI Activity](/guide/host-settings#ai-activity).
+
+![The sidebar header showing network.listTransactions while an AI agent calls it, with its details open: the tool, the plugin, the app and the Follow the AI switch](../images/host-window/ai-activity-light.webp){.light-only width=688}
+![The sidebar header showing network.listTransactions while an AI agent calls it, with its details open: the tool, the plugin, the app and the Follow the AI switch](../images/host-window/ai-activity-dark.webp){.dark-only width=688}
 
 ## Plugins that need no app
 
@@ -58,6 +72,9 @@ groups, each under a fold row:
 - **N not in this app** — installed in the host, but the app's agent never advertised the plugin;
   folded to begin with. Clicking one shows how to add it to the app: the Gradle dependency of its
   agent and its `register(...)` call to copy, with a link to an official plugin's guide.
+
+![The plugin list: three enabled plugins with MCP badges, Debug Actions under 1 disabled, and Storage Inspector under 1 not in this app](../images/host-window/plugin-groups-light.webp){.light-only width=280}
+![The plugin list: three enabled plugins with MCP badges, Debug Actions under 1 disabled, and Storage Inspector under 1 not in this app](../images/host-window/plugin-groups-dark.webp){.dark-only width=280}
 
 With no app connected, the list says *Connect an app to see its plugins.* With no plugins installed
 at all, the sidebar says so, with a shortcut to the plugin settings when some jars failed to load;

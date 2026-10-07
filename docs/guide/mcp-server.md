@@ -22,6 +22,9 @@ claude mcp add --transport sse jetwhale http://localhost:7080/sse
 **Settings → AI Agents → MCP Server** shows this command, and a JSON config block for other MCP
 clients, already filled in with the port the server is running on.
 
+![Settings → AI Agents → MCP Server: the running port, and the Claude Code command and JSON config to copy](../images/mcp-server/setup-light.webp){.light-only width=688}
+![Settings → AI Agents → MCP Server: the running port, and the Claude Code command and JSON config to copy](../images/mcp-server/setup-dark.webp){.dark-only width=688}
+
 The tool list is computed **when a client connects** and never changes for that connection, so a
 plugin enabled, or a permission allowed again, mid-session shows up only after the client
 reconnects.
@@ -85,6 +88,9 @@ Each installed plugin gets a subtree of its own:
 | **UI → Interact** | `click`, `type`, `scroll`, `drag`, for that plugin | on |
 | **Own tools** | one checkbox per MCP tool the plugin contributes | on |
 
+![Settings → AI Agents → Permissions: Manage plugins and Settings & servers unticked, and the Network Inspector's UI and own tools opened](../images/mcp-server/permissions-light.webp){.light-only width=688}
+![Settings → AI Agents → Permissions: Manage plugins and Settings & servers unticked, and the Network Inspector's UI and own tools opened](../images/mcp-server/permissions-dark.webp){.dark-only width=688}
+
 - **Looking and pressing are separate.** Letting an agent look at a plugin's screen is not the same
   risk as letting it press the buttons on it, so any leaf can be revoked on its own.
 - **The two groups that are off do something unticking cannot undo:** installing a plugin runs new
@@ -131,6 +137,9 @@ plugins** group, which is off by default. Installing does not enable, so the seq
 The host has its own view of what agents can do and what they have done. Open it from the **wrench
 icon** in the [sidebar footer](/guide/host-window#the-sidebar-footer), or from the **MCP badge** on a
 plugin's sidebar row, which opens it filtered to that plugin.
+
+![The MCP tools browser narrowed to the Network Inspector and Sample App, with listTransactions selected and its parameters listed](../images/mcp-server/tools-browser-light.webp){.light-only width=688}
+![The MCP tools browser narrowed to the Network Inspector and Sample App, with listTransactions selected and its parameters listed](../images/mcp-server/tools-browser-dark.webp){.dark-only width=688}
 
 **Plugin** and **Session** filters across the top narrow everything below; each is a multi-select,
 and with nothing picked it reads *All*. A label at the right says *MCP available*, or *MCP executing*
