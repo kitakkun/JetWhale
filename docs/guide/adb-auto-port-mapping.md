@@ -41,16 +41,27 @@ the *next* server start wires anything up.
 
 ## How adb is found
 
-JetWhale looks for the `adb` executable in the usual locations, in order:
+JetWhale looks for the `adb` executable in these locations, in order:
 
-- Common binary directories such as `/usr/bin` and `/usr/local/bin`
-- The default Android SDK location — `$HOME/Android/Sdk/platform-tools` on Linux,
-  `$HOME/Library/Android/sdk/platform-tools` on macOS
 - `$ANDROID_HOME/platform-tools` and `$ANDROID_SDK_ROOT/platform-tools`
-- Finally, plain `adb` resolved via your `PATH`
+- The default Android SDK location — `$HOME/Android/Sdk/platform-tools` on Linux,
+  `$HOME/Library/Android/sdk/platform-tools` on macOS, `%LOCALAPPDATA%\Android\Sdk\platform-tools`
+  on Windows
+- Each directory on the `PATH` your login shell sets up (macOS and Linux)
+- Each directory on the host's own `PATH`
+- Finally, the fixed directories `/usr/bin`, `/usr/local/bin` and `/opt/homebrew/bin` (macOS and
+  Linux)
 
-If none of these work in your environment, make sure `adb` is on the `PATH` of the shell that
-launches the JetWhale host, or set `ANDROID_HOME`.
+An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`, so the
+host reads the `PATH` your login shell sets up. It runs your shell (`$SHELL`, or `/bin/zsh` on macOS
+and `/bin/sh` elsewhere when it is unset) as an interactive login shell, as a terminal does, once per
+run, the first time it looks for adb. The shell runs your startup files, `.zshrc` and `.bashrc`
+included, so whatever they start runs again. When the shell has not answered within 5 seconds, exits
+with an error or prints no `PATH`, the host falls back to its own `PATH` and the fixed directories.
+On Windows an app gets your `PATH` however it is started, so no shell is run.
+
+If none of these find adb, check in a new terminal that `command -v adb` prints its path, or set
+`ANDROID_HOME`, then restart the host.
 
 On a machine with no `adb` at all — a desktop-, iOS-, or web-only setup — there is nothing to wire,
 so the host reports it once in its logs and leaves auto port mapping inactive. Nothing else about

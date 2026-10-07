@@ -7,6 +7,8 @@ import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import soil.query.QueryId
 import soil.query.buildQueryKey
 
@@ -14,10 +16,11 @@ import soil.query.buildQueryKey
 @Inject
 class DefaultDiagnosticsQueryKey(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
+    private val adbLocator: AdbLocator,
 ) : DiagnosticsQueryKey by buildQueryKey(
     id = QueryId("DefaultDiagnosticsQueryKey"),
     fetch = {
-        val adbPath = AdbLocator.ofCurrentProcess().find()?.path.orEmpty()
+        val adbPath = withContext(Dispatchers.IO) { adbLocator.find()?.path.orEmpty() }
         val appDataPath = appDataDirectoryProvider.getAppDataPath()
         DebuggingToolsDiagnostics(
             adbPath = adbPath,

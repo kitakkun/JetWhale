@@ -8,13 +8,17 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -22,16 +26,46 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = MirrorHostPlugin()
 }
 
-private val toolPaths: MirrorToolPaths by lazy(MirrorToolPaths::locate)
+private val toolLocationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+/**
+ * The tools this plugin drives, located once per process when first awaited. They are looked for
+ * on the login shell's PATH, which can take seconds to read, so callers suspend on it rather than
+ * block the thread that first needs a tool, which may be the UI thread.
+ */
+private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val loginShellPathVariable = if (runsOnWindows) {
+        null
+    } else {
+        val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
+        LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds).resolveLoginShellPathVariable()
+    }
+    val searchDirectories = toolDirectories(loginShellPathVariable = loginShellPathVariable, pathVariable = System.getenv("PATH"))
+    if (loginShellPathVariable != null) SystemProcessLauncher.launchedProcessPathVariable = searchDirectories.joinToString(File.pathSeparator)
+    val home = System.getProperty("user.home")
+    MirrorToolLocator(
+        searchDirectories = searchDirectories,
+        androidSdkDirectories = listOfNotNull(
+            System.getenv("ANDROID_HOME"),
+            System.getenv("ANDROID_SDK_ROOT"),
+            "$home/Library/Android/sdk",
+            "$home/Android/Sdk",
+            System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
+        ),
+    ).locateToolPaths()
+}
+
+private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
 
 /** How long a device's idb companion outlives its last user, so switching back to it is instant. */
 private val COMPANION_IDLE_TIMEOUT = 3.minutes
 
 // A host-only plugin gets an instance per debug session, but a device has one screen: the
 // instances share the companions, so two of them watching one iPhone start one companion.
-private val companions: IdbCompanions? by lazy {
-    val idbPath = toolPaths.idbPath ?: return@lazy null
-    val idbCompanionPath = toolPaths.idbCompanionPath ?: return@lazy null
+private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val located = toolPaths.await()
+    val idbPath = located.idbPath ?: return@async null
+    val idbCompanionPath = located.idbCompanionPath ?: return@async null
     IdbCompanions(
         idbCompanionPath = idbCompanionPath,
         idbPath = idbPath,
@@ -72,7 +106,7 @@ private class MirrorHostPlugin :
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
             discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, toolPaths.ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
             scope = pluginScope,
         )
@@ -85,7 +119,9 @@ private class MirrorHostPlugin :
             try {
                 mirror.dispose()
             } finally {
-                if (liveInstances.decrementAndGet() == 0) companions?.releaseAll()
+                // await() starts a lazy Deferred, so awaiting companions that no look has asked for
+                // would locate the tools only to release nothing.
+                if (liveInstances.decrementAndGet() == 0 && companions.isCompleted) companions.await()?.releaseAll()
             }
         }
     }

@@ -8,11 +8,13 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.time.Duration.Companion.seconds
 
 class AdbLocatorTest {
     private val folder: File = Files.createTempDirectory("adb-locator").toFile()
     private val home = File(folder, "home").apply { mkdirs() }
     private val emptyDirectory = File(folder, "empty").apply { mkdirs() }
+    private val shellRunLogFile = File(folder, "shell-runs")
     private val onWindows = HostOs.current == HostOs.WINDOWS
 
     @AfterTest
@@ -59,6 +61,72 @@ class AdbLocatorTest {
     }
 
     @Test
+    fun `adb on the login shell's PATH is found before one on the host's PATH or in a fixed directory`() {
+        assumeFalse("the login shell stands in as a /bin/sh script, which Windows cannot launch", onWindows)
+        val loginShellAdb = executableAdbIn(File(folder, "login"))
+        val hostPathAdb = executableAdbIn(File(folder, "host"))
+        val fixedAdb = executableAdbIn(File(folder, "fixed"))
+
+        val locator = AdbLocator(
+            environment = mapOf("PATH" to hostPathAdb.parent),
+            userHome = home.path,
+            isWindows = false,
+            loginShellPathVariableResolver = loginShellPrinting("${emptyDirectory.path}:${loginShellAdb.parent}"),
+            fixedDirectories = listOf(fixedAdb.parent),
+        )
+
+        assertEquals(loginShellAdb, locator.find())
+    }
+
+    @Test
+    fun `adb on the host's PATH is found before one in a fixed directory`() {
+        assumeFalse("a Windows path holds the colon that separates the entries of this PATH", onWindows)
+        val hostPathAdb = executableAdbIn(File(folder, "host"))
+        val fixedAdb = executableAdbIn(File(folder, "fixed"))
+
+        val locator = AdbLocator(environment = mapOf("PATH" to hostPathAdb.parent), userHome = home.path, isWindows = false, loginShellPathVariableResolver = null, fixedDirectories = listOf(fixedAdb.parent))
+
+        assertEquals(hostPathAdb, locator.find())
+    }
+
+    @Test
+    fun `adb in a fixed directory is found when the login shell gives no PATH`() {
+        assumeFalse("the login shell stands in as a /bin/sh script, which Windows cannot launch", onWindows)
+        val fixedAdb = executableAdbIn(File(folder, "fixed"))
+        val failingShell = File(folder, "shell").apply {
+            writeText("#!/bin/sh\nexit 1\n")
+            setExecutable(true)
+        }
+
+        val locator = AdbLocator(
+            environment = mapOf("PATH" to emptyDirectory.path),
+            userHome = home.path,
+            isWindows = false,
+            loginShellPathVariableResolver = LoginShellPathVariableResolver(failingShell.path, timeout = 5.seconds),
+            fixedDirectories = listOf(fixedAdb.parent),
+        )
+
+        assertEquals(fixedAdb, locator.find())
+    }
+
+    @Test
+    fun `the login shell is read once however often adb is looked for`() {
+        assumeFalse("the login shell stands in as a /bin/sh script, which Windows cannot launch", onWindows)
+        val locator = AdbLocator(
+            environment = mapOf("PATH" to emptyDirectory.path),
+            userHome = home.path,
+            isWindows = false,
+            loginShellPathVariableResolver = loginShellPrinting(emptyDirectory.path),
+            fixedDirectories = emptyList(),
+        )
+
+        locator.find()
+        locator.find()
+
+        assertEquals(1, shellRunLogFile.readLines().size)
+    }
+
+    @Test
     fun `an adb file that cannot be executed is not taken`() {
         assumeFalse("Windows has no execute permission for java.io.File to clear", onWindows)
         val notExecutable = File(File(folder, "bin").apply { mkdirs() }, "adb").apply {
@@ -75,8 +143,18 @@ class AdbLocatorTest {
         environment = environment,
         userHome = home.path,
         isWindows = isWindows,
+        loginShellPathVariableResolver = null,
         fixedDirectories = emptyList(),
     )
+
+    /** A resolver whose login shell is a script that sets [pathVariable] as its PATH and logs each run to [shellRunLogFile]. */
+    private fun loginShellPrinting(pathVariable: String): LoginShellPathVariableResolver {
+        val shell = File(folder, "shell").apply {
+            writeText("#!/bin/sh\necho run >> '${shellRunLogFile.path}'\nPATH='$pathVariable'\neval \"\$4\"\n")
+            setExecutable(true)
+        }
+        return LoginShellPathVariableResolver(shell.path, timeout = 5.seconds)
+    }
 
     private fun executableAdbIn(directory: File): File = File(directory.apply { mkdirs() }, if (onWindows) "adb.exe" else "adb").apply {
         writeText("#!/bin/sh\n")
