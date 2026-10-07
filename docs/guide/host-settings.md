@@ -92,7 +92,7 @@ is where to export, replace or switch it.
 
 ### SSL certificates
 
-To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
+To let agents connect over [wss](/guide/connecting#secure-connections-wss), the host serves TLS
 using a **locally-issued certificate**. Each entry is a self-contained local PKI: a root CA plus a
 `localhost` server certificate signed by it. The host serves wss with the server certificate; the
 agent trusts the CA.

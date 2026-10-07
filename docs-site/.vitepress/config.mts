@@ -56,8 +56,13 @@ export default defineConfig({
     logo: '/icon.svg',
     nav: [
       { text: 'Guide', link: '/guide/what-is-jetwhale' },
+      {
+        text: 'Plugins',
+        link: '/guide/network-inspector',
+        activeMatch: '^/guide/(network-inspector|compose-semantics-inspector|nav3-navigator|debug-actions|storage-inspector|device-mirror)',
+      },
       { text: 'Plugin Development', link: '/guide/developing-plugins' },
-      { text: 'Reference', link: '/reference/protocol' },
+      { text: 'Reference', link: '/reference/protocol', activeMatch: '^/reference/' },
       {
         text: docsVersion ?? 'latest',
         items: [
@@ -78,18 +83,30 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Guide',
+        text: 'Connecting Apps',
+        items: [
+          { text: 'Connecting Devices', link: '/guide/connecting' },
+          { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
+          { text: 'Configuring the Agent', link: '/guide/agent-configuration' },
+        ],
+      },
+      {
+        text: 'The Host',
         items: [
           { text: 'The Host Window', link: '/guide/host-window' },
-          { text: 'Network Inspector', link: '/guide/network-inspector' },
-          { text: 'Nav3 Navigator', link: '/guide/nav3-navigator' },
-          { text: 'Compose Semantics Inspector', link: '/guide/compose-semantics-inspector' },
-          { text: 'Storage Inspector', link: '/guide/storage-inspector' },
-          { text: 'Debug Actions', link: '/guide/debug-actions' },
-          { text: 'Device Mirror', link: '/guide/device-mirror' },
-          { text: 'MCP Server', link: '/guide/mcp-server' },
           { text: 'Host Settings', link: '/guide/host-settings' },
-          { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
+          { text: 'MCP Server', link: '/guide/mcp-server' },
+        ],
+      },
+      {
+        text: 'Official Plugins',
+        items: [
+          { text: 'Network Inspector', link: '/guide/network-inspector' },
+          { text: 'Compose Semantics Inspector', link: '/guide/compose-semantics-inspector' },
+          { text: 'Nav3 Navigator', link: '/guide/nav3-navigator' },
+          { text: 'Debug Actions', link: '/guide/debug-actions' },
+          { text: 'Storage Inspector', link: '/guide/storage-inspector' },
+          { text: 'Device Mirror', link: '/guide/device-mirror' },
         ],
       },
       {
@@ -101,7 +118,12 @@ export default defineConfig({
       },
       {
         text: 'Reference',
-        items: [{ text: 'Protocol', link: '/reference/protocol' }],
+        items: [
+          { text: 'Protocol', link: '/reference/protocol' },
+          { text: 'Artifacts & Compatibility', link: '/reference/artifacts' },
+          { text: 'Built-in MCP Tools', link: '/reference/mcp-tools' },
+          { text: 'Semantics Tree', link: '/reference/semantics-tree' },
+        ],
       },
     ],
     socialLinks: [
