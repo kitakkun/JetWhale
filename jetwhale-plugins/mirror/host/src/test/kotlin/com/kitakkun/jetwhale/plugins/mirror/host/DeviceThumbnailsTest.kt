@@ -16,11 +16,14 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 private const val INTERVAL_MILLIS = 1_000L
@@ -190,6 +193,31 @@ class DeviceThumbnailsTest {
     }
 
     @Test
+    fun `a capture that runs out of time reads as failed and frees its slot for another tile`() = runTest(StandardTestDispatcher(scheduler)) {
+        assumeShellScriptsLaunch()
+        val hungScreen = FirstCaptureHangingScreen(FakeScreen())
+        val answeringScreen = FakeScreen()
+        DeviceThumbnails(refreshIntervalMillis = INTERVAL_MILLIS, maxConcurrentCaptures = 1, decodeDispatcher = StandardTestDispatcher(scheduler), clock = FixedClock).use { oneSlotThumbnails ->
+            val polls = listOf(
+                launch { oneSlotThumbnails.keepFresh(heightPx = 40) { device("hung", hungScreen) } },
+                launch { oneSlotThumbnails.keepFresh(heightPx = 40) { device("answering", answeringScreen) } },
+            )
+
+            hungScreen.firstCaptureEnded.await()
+            runCurrent()
+            val hungThumbnailState = oneSlotThumbnails.thumbnailOf("hung").state
+            val answeringThumbnailState = oneSlotThumbnails.thumbnailOf("answering").state
+            advanceTimeBy(INTERVAL_MILLIS + 1)
+            val hungThumbnailStateAfterNextCapture = oneSlotThumbnails.thumbnailOf("hung").state
+            polls.forEach { it.cancel() }
+
+            assertContains(assertIs<ThumbnailState.Failed>(hungThumbnailState).reason, "did not finish within")
+            assertEquals(ThumbnailState.Live, answeringThumbnailState)
+            assertEquals(ThumbnailState.Live, hungThumbnailStateAfterNextCapture)
+        }
+    }
+
+    @Test
     fun `another screenshot of a device waits for the tile capturing it`() = runTest(StandardTestDispatcher(scheduler)) {
         val gate = CompletableDeferred<Unit>()
         val poll = launch { thumbnails.keepFresh(heightPx = 40) { device("a", FakeScreen(gate)) } }
@@ -259,6 +287,22 @@ private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
+}
+
+/** [screen], except that its first capture runs a command that outlasts its time limit. */
+private class FirstCaptureHangingScreen(private val screen: DeviceController) : DeviceController by screen {
+    val firstCaptureEnded = CompletableDeferred<Unit>()
+
+    override suspend fun captureScreenshot(): ByteArray {
+        if (!firstCaptureEnded.isCompleted) {
+            try {
+                runCommandChecked(500.milliseconds, "/bin/sh", "-c", "exec sleep 30")
+            } finally {
+                firstCaptureEnded.complete(Unit)
+            }
+        }
+        return screen.captureScreenshot()
+    }
 }
 
 private val SCREEN_PNG: ByteArray = Surface.makeRasterN32Premul(100, 200).use { surface ->

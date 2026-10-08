@@ -7,6 +7,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * An Android emulator or device, driven through the adb at [adbPath]. An emulator's screen comes
@@ -35,7 +38,7 @@ internal class AndroidDeviceController(
     private var displayReading: DisplayReading? = null
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
-    override suspend fun captureScreenshot(): ByteArray = runCommandChecked(adbPath, "-s", serial, "exec-out", "screencap", "-p", *panelArguments(option = "-d", display = display())).stdout
+    override suspend fun captureScreenshot(): ByteArray = runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "exec-out", "screencap", "-p", *panelArguments(option = "-d", display = display())).stdout
 
     // Reads the display afresh, since the mirror polls the size to notice a fold or a rotation. `wm
     // size` reports the upright size, which taps on a turned screen do not use, so it is only a
@@ -43,41 +46,41 @@ internal class AndroidDeviceController(
     override suspend fun screenSize(): IntSize {
         val reading = readDisplay()
         return reading.size
-            ?: parseWmSize(runCommandChecked(adbPath, "-s", serial, "shell", "wm", "size", *displayArguments(reading.display)).stdoutText)
+            ?: parseWmSize(runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "wm", "size", *displayArguments(reading.display)).stdoutText)
             ?: throw deviceControlError("'adb shell wm size' reported no screen size")
     }
 
     override suspend fun tap(x: Int, y: Int) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "tap", "$x", "$y")
+        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "tap", "$x", "$y")
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "swipe", "$fromX", "$fromY", "$toX", "$toY", "$durationMillis")
+        runCommandChecked(ADB_COMMAND_TIMEOUT + durationMillis.milliseconds, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "swipe", "$fromX", "$fromY", "$toX", "$toY", "$durationMillis")
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "keyevent", androidKeycodeOf(button))
+        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "keyevent", androidKeycodeOf(button))
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "text", escapeForAdbInputText(text))
+        runCommandChecked(ADB_TEXT_INPUT_TIMEOUT, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "text", escapeForAdbInputText(text))
     }
 
     override suspend fun screenPower(): ScreenPower {
         // A grep that matches nothing exits non-zero, so the exit code is not checked.
-        val result = runCommand(adbPath, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
+        val result = runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
         return parseScreenPower(result.stdoutText)
             ?: throw deviceControlError("could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}")
     }
 
     override suspend fun wake() {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP")
         // Dismisses only a lock screen without a PIN, pattern or password; one with them stays.
-        runCommandChecked(adbPath, "-s", serial, "shell", "wm", "dismiss-keyguard")
+        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "wm", "dismiss-keyguard")
     }
 
     override suspend fun sleep() {
-        runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_SLEEP")
+        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "input", "keyevent", "KEYCODE_SLEEP")
     }
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
@@ -86,7 +89,7 @@ internal class AndroidDeviceController(
         // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
         // it, and the stream would stretch that panel's picture to the framebuffer's shape.
         val emulatorStream = emulatorScreens?.takeUnless {
-            display() != null && isPostureOverridden(runCommand(adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
+            display() != null && isPostureOverridden(runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
         }?.open(serial, wanted)
         emulatorStream ?: run {
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
@@ -106,14 +109,14 @@ internal class AndroidDeviceController(
                 // SIGINT lets screenrecord finish the mp4; killing the local adb client would leave
                 // it unplayable. The path pattern spares the screenrecord that feeds the mirror, and
                 // pkill's exit code is ignored because the recorder may already have hit its limit.
-                runCommand(adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
+                runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
                 process.waitFor(10, TimeUnit.SECONDS)
                 // The device writes the file out after the process exits.
                 delay(500)
                 try {
-                    runCommandChecked(adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
+                    runCommandChecked(RECORDING_PULL_TIMEOUT, adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
                 } finally {
-                    runCommand(adbPath, "-s", serial, "shell", "rm", "-f", remotePath)
+                    runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "rm", "-f", remotePath)
                 }
                 outputFile
             }
@@ -130,7 +133,7 @@ internal class AndroidDeviceController(
 
     private suspend fun readDisplay(): DisplayReading {
         // grep exits non-zero when nothing matches, which reads as a device with one panel.
-        val output = runCommand(adbPath, "-s", serial, "shell", "dumpsys display | grep -F -e DisplayDeviceInfo -e mOverrideDisplayInfo").stdoutText
+        val output = runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys display | grep -F -e DisplayDeviceInfo -e mOverrideDisplayInfo").stdoutText
         val display = parseActiveAndroidDisplay(output)
         return DisplayReading(display, parseDisplaySize(output, displayId = display?.logicalId ?: DEFAULT_DISPLAY_ID), System.nanoTime()).also { displayReading = it }
     }
@@ -145,6 +148,21 @@ internal class AndroidDeviceController(
 }
 
 private const val DISPLAY_READING_MAX_AGE_NANOS = 2_000_000_000L
+
+/**
+ * How long a screenshot, a reading such as dumpsys, or a tap or key may take. A device answers them
+ * in a second or two even over Wi-Fi, so one still running this long is no longer answering.
+ */
+private val ADB_COMMAND_TIMEOUT = 10.seconds
+
+/** How long typing may take: `input text` waits for the app to take each key, so long text takes a while. */
+private val ADB_TEXT_INPUT_TIMEOUT = 2.minutes
+
+/**
+ * How long pulling a recording may take. screenrecord's default 20 Mbps over its time limit comes to
+ * about 450 MB, which takes minutes over Wi-Fi.
+ */
+private val RECORDING_PULL_TIMEOUT = 10.minutes
 
 /**
  * One of an Android device's displays, by the two ids its tools take: `input` and `wm` its logical

@@ -47,7 +47,7 @@ internal class IosPhysicalDeviceController(
         screen?.let { return it }
         companions.acquire(udid)
         val description = try {
-            runCommandChecked(idbPath, "describe", "--udid", udid, "--json").stdoutText
+            runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "describe", "--udid", udid, "--json").stdoutText
         } finally {
             companions.release(udid)
         }
