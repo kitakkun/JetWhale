@@ -80,7 +80,9 @@ What did not work, or needed care:
   XCTest has no public way to ask which app that is. The private text-input event types into
   whatever has focus, like `idb ui text`.
 - **Recent apps.** Two `press(.home)` calls land 940 ms apart, too slow for the app switcher, and a
-  synthesized swipe up from the bottom edge scrolled the app instead. No command opens it yet.
+  quick synthesized swipe up from the bottom edge scrolls the app instead. A Face ID iPhone's own
+  gesture opens it: from the bottom edge up to 60 % of the screen in 0.3 s, held until 1 s, then
+  lifted. It opened the switcher 5 times in 5 on iOS 26.2, each in about 1.3 s.
 - **Volume** buttons are unavailable in the Simulator by declaration
   (`XCUIDeviceButtonVolumeUp XCUI_SIMULATOR_UNAVAILABLE`); they exist on devices.
 - **idb no longer sends input with Xcode 27.** On the same simulator, `idb ui tap` failed: "SimulatorKit
@@ -192,6 +194,7 @@ Points come in one of two spaces, which a command names with `space`:
 | `/swipe` | `fromX`, `fromY`, `toX`, `toY`, `durationMillis` | 1 |
 | `/typeText` | `text` | 1 |
 | `/pressButton` | `home`, `lock`, `volumeUp`, `volumeDown` | 1 |
+| `/openAppSwitcher` | — | 1 |
 | `/activateApp` | `bundleId` | 1 |
 | `/shutdown` | — | 1 |
 | `/tree` | `bundleId` (foreground app or SpringBoard) → element tree with frames | 2 |
@@ -215,7 +218,8 @@ interface XcTestRunner {
     val screen: XcTestRunnerScreen                                 // pixels and scale
     suspend fun tap(x: Double, y: Double)
     suspend fun longPress(…); suspend fun swipe(…); suspend fun typeText(text: String)
-    suspend fun pressButton(button: XcTestRunnerButton); suspend fun activateApp(bundleId: String)
+    suspend fun pressButton(button: XcTestRunnerButton); suspend fun openAppSwitcher()
+    suspend fun activateApp(bundleId: String)
 }
 ```
 
@@ -232,9 +236,9 @@ change.
 
 - **Simulators:** the runner replaces idb for input. idb's input no longer works with Xcode 27, its
   last release is from 2022, and XCTest is Apple's supported automation API, released with each
-  Xcode. idb stays for the live stream, for input when the runner cannot be built or started, and
-  for Recent apps, which no runner command opens; that button is left out when idb cannot send
-  input. Buttons: Home and Power (lock); the Simulator has no volume buttons to press.
+  Xcode. idb stays for the live stream and for input when the runner cannot be built or started.
+  Buttons: Home, Recent apps (the gesture above) and Power (lock); the Simulator has no volume
+  buttons to press. They are left out only when neither the runner nor idb can send input.
 - **Devices:** with a development team set under the mirror, input stops being view-only: taps,
   swipes, text, Home, Power and volume. Every failure is a notice: no team or no `iproxy` in the
   device's banner, and signing, Developer Mode, UI Automation or a locked device, read from
@@ -335,8 +339,6 @@ runs WebDriverAgent the same way:
 - **Private event synthesis.** Taps are 30 % faster and swipes five times faster than through public
   API, and text entry needs it. The alternative is public API only, with slower swipes and text that
   must name the target app.
-- **Recent apps on simulators**: it still goes through idb, which no longer sends input with Xcode 27.
-  Drop the button, or find a gesture that opens the switcher.
 - **A host-provided runner service**: whether starting, stopping and the signing team move from the
   plugins into the host, which would hand plugins an `XcTestRunners`.
 - **The runner's bundle ID on devices**: derived from the team ID, as now, or set by the user.
