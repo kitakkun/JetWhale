@@ -270,7 +270,7 @@ What Swift export does well is exactly where Objective-C export is weakest: `sus
 `async` closures, enums become Swift enums, and, per its docs, a nullable primitive stays `Int32?`
 rather than becoming a boxed `KotlinInt`.
 
-**Recommendation.** Now: Objective-C export, with the Kotlin facade and the hand-written Swift layer.
+**Decision.** Now: Objective-C export, with the Kotlin facade and the hand-written Swift layer.
 It is the only one of the three that is both stable and distributable as a binary, and the facade
 removes most of what SKIE would fix. SKIE does not fix the hardest cases here (`suspend` lambda
 parameters, erased reified functions, `Codable`), and adopting it ties every Kotlin upgrade in this
@@ -685,7 +685,7 @@ The Network core is exported and callable from Swift (`recordRequest(request:)`,
 1. **Ship a JetWhale XCFramework?** Recommended: yes. The checks show a Swift-only app works with
    it, and owning a Gradle build is what keeps those teams out. The umbrella stays as the
    documented route for apps that have Kotlin of their own, with the shim above.
-2. **Objective-C export, SKIE or Swift export?** Recommended: Objective-C export with the Kotlin
+2. **Objective-C export, SKIE or Swift export?** Decided: Objective-C export with the Kotlin
    facade and a hand-written Swift layer now, Swift export later. SKIE fixes less than the facade
    does here and couples every Kotlin upgrade to a third-party release.
 3. **Where does `Package.swift` live?** Recommended: a thin repository, so SwiftPM does not clone
