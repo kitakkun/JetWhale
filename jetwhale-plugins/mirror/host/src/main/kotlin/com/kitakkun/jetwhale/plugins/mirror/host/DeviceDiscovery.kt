@@ -3,6 +3,14 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * How long a tool may take to list its devices. Listing can first start adb's server or the simulator
+ * service, and goes through idb's Python client when the companion cannot list. A look waits for
+ * every listing, so one that never finished would stop the device list from updating.
+ */
+private val DEVICE_LISTING_TIMEOUT = 30.seconds
 
 /** What one look for devices found, and what kept it from finding more. */
 internal class Discovery(
@@ -48,12 +56,12 @@ internal class DeviceDiscovery(
 
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val adbPath = locatedToolPaths.adbPath ?: return emptyList()
-        return tryList { parseAdbDevices(runCommandChecked(adbPath, "devices", "-l").stdoutText) }
+        return tryList { parseAdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "devices", "-l").stdoutText) }
     }
 
     private suspend fun listSimulators(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val xcrunPath = locatedToolPaths.xcrunPath ?: return emptyList()
-        return tryList { parseBootedSimulators(runCommandChecked(xcrunPath, "simctl", "list", "devices", "booted", "-j").stdoutText) }
+        return tryList { parseBootedSimulators(runCommandChecked(DEVICE_LISTING_TIMEOUT, xcrunPath, "simctl", "list", "devices", "booted", "-j").stdoutText) }
     }
 
     private suspend fun listIosDevices(locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?): List<DeviceListing>? {
@@ -63,8 +71,8 @@ internal class DeviceDiscovery(
         // idb list-targets goes through idb's Python client, which takes 2–7 s and 0.45–0.73 s of
         // CPU on every look; the companion lists the same devices in about 0.7 s for 0.25 s of CPU.
         // idb stays for a companion that fails or prints output this does not read.
-        return tryList { parseCompanionDevices(runCommandChecked(idbCompanionPath, "--list", "1", "--only", "device").stdoutText) }
-            ?: tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
+        return tryList { parseCompanionDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, idbCompanionPath, "--list", "1", "--only", "device").stdoutText) }
+            ?: tryList { parseIdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, idbPath, "list-targets").stdoutText) }
     }
 
     private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?): DeviceController = when (listing.kind) {

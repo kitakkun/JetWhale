@@ -153,7 +153,7 @@ class DeviceDiscoveryTest {
                 idbCompanionPath = fakeCompanion.absolutePath,
                 idbPath = fakeIdb.absolutePath,
                 launcher = SystemProcessLauncher,
-                commands = { command -> runCommandChecked(*command.toTypedArray()) },
+                commands = { command -> runCommandChecked(IDB_COMMAND_TIMEOUT, *command.toTypedArray()) },
                 ports = LocalPorts,
                 idleTimeout = 1.minutes,
                 scope = companionScope,
