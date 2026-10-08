@@ -383,7 +383,9 @@ updates a table every frame sends the latest one at most every 250 ms. Log entri
 sequence number per panel. `log_appended` is sent with `trySend`, not buffered: after a reconnect
 the host asks for the content again and gets the log's latest entries with their sequence numbers,
 so nothing is counted twice, and a gap in the numbers says that entries fell out of the log's
-capacity.
+capacity. `trySend` also fails while connected when the outgoing queue is full, and then no
+reconnect follows. So a failed `log_appended` marks the panel stale, and each 250 ms tick sends a
+stale panel's `content_changed`, with the log's latest entries, until a send succeeds.
 
 MCP, fixed per plugin:
 
@@ -643,9 +645,14 @@ is one static library with one runtime, split into several Swift modules.
 
 ## Network over URLSession (proposed)
 
-The Network core is exported and callable from Swift (`recordRequest(request:)`,
+In the check, with the Network core exported, Swift could call it directly (`recordRequest(request:)`,
 `recordResponse(response:)`, `recordFailure(failure:)`, `findMock(method:url:)`,
-`doNewTransactionId()`), so a `URLSession` adapter needs no Kotlin change:
+`doNewTransactionId()`). Under the facade the Network core stays unexported, and the facade-owned
+`SwiftNetworkCapture` that `addNetworkInspector` returns carries the same five operations in the
+facade's own types: `newTransactionId(): String`, `recordRequest(requestJson: String)`,
+`recordResponse(responseJson: String)`, `recordFailure(failureJson: String)` and
+`findMock(method: String, url: String): String?`, which returns the mock as JSON. Each delegates to
+the Network core, so the `URLSession` adapter needs no change to the plugin itself:
 
 - A `URLProtocol` subclass in the Swift layer, inserted first into
   `URLSessionConfiguration.protocolClasses` for sessions the app creates, and registered with
