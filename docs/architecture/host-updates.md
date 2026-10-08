@@ -3,7 +3,7 @@
 The desktop host ships as a jpackage installer (`.dmg`, `.msi`, `.deb`) whose app is a launcher,
 installed once. An update replaces only the host jar. The host finds a newer release, downloads its
 jar and verifies it. The launcher runs the newest good jar in its own process, and goes back to the
-previous one when a new one does not start. This shipped in 1.0.0-alpha13.
+previous one when a new one fails to start twice. This shipped in 1.0.0-alpha13.
 
 [host-launcher.md](./host-launcher.md) walks through one launch step by step. This document is the
 design behind it and the reasons for it. Two questions stay open, signing and channels, and crash
@@ -30,8 +30,8 @@ The installed host had no working way to update itself:
 - **An update takes one click and one restart.** No reinstall, no admin rights, no OS installer.
 - **No update is applied behind the user's back.** Some users keep an older host to match an older
   agent SDK. The host offers an update, and the user downloads it and restarts.
-- **A bad update does not lock the user out.** A version that fails to start is set aside, and the
-  previous one runs.
+- **A bad update does not lock the user out.** A version that fails to start twice is set aside,
+  and the previous one runs.
 - **Only what a release published runs.** Every downloaded jar is checked against its release's
   metadata before it is installed and before every start; the bundled jar is trusted as part of the
   package the user installed. Only signed metadata proves that the release job built the jar; with
@@ -247,10 +247,11 @@ Before it calls the host, the launcher sets these system properties:
 - **Properties read at the JVM's start.** A `-D…` property that the JVM reads only as it starts has
   no effect when set this way, and it too belongs in the package's JVM arguments. A plugin's
   in-place hot reload needs one: `jdk.attach.allowAttachSelf`, which allows the self-attach it uses.
-  The metadata format cannot tell such properties apart, and no released host asks for one. A host
-  that needs one raises `launcherContract`, and the package that implements the new contract
-  starts its JVM with the property, so an older launcher refuses that host instead of running it
-  without the property.
+  Only `runJetWhale` sets up hot reload, and it starts the host without the launcher, so the
+  package does not set the property. The metadata format cannot tell such properties apart, and no
+  released host asks for one. A host that needs one raises `launcherContract`, and the package that
+  implements the new contract starts its JVM with the property, so an older launcher refuses that
+  host instead of running it without the property.
 - **`skiko.library.path`.** The launcher clears the `skiko.library.path` that Compose's packaging
   sets to the app directory. With the property set, skiko looks for its library in that directory
   only, which holds none, and fails. Without it, skiko extracts the library that matches the jar
@@ -258,8 +259,8 @@ Before it calls the host, the launcher sets these system properties:
 - **Modules on the application class loader.** Modules the runtime defines to the application class
   loader, `jdk.attach` and `jdk.internal.jvmstat` in this runtime, are not visible to host classes,
   so the launcher treats them as missing when a version declares one (see *What the launcher
-  refuses*). ByteBuddy's self-attach loads the attach API through the system class loader and
-  still works.
+  refuses*). ByteBuddy's self-attach loads the attach API through the system class loader, so it
+  can still use `jdk.attach`.
 - **Crash logs.** A JVM fatal error log (hs_err) goes where the JVM puts it by default: the working
   directory, or the temporary directory when that is not writable. `-XX:ErrorFile` can only be set
   when the JVM starts, and the package cannot name the user's app data directory.
@@ -290,9 +291,9 @@ before the host's `main` is called, and the first of these ends it, recorded onc
   user quit, the host ended the JVM with any exit status, the user chose **Restart to Update** or
   **Try Again**, or `main` returned and the host's threads ended. A shutdown hook clears the mark.
 
-A crash, a JVM fatal error or a kill leaves the mark behind; a SIGTERM runs the shutdown hook and is
-neither. The next launch, before anything else, finds that the mark's process no longer runs, or
-runs with another start time, and counts a failed start of that version. A mark whose process
+A crash, a JVM fatal error or a `kill -9` leaves the mark behind; a SIGTERM runs the shutdown hook
+and is neither. The next launch, as soon as it holds `launch.lock`, finds that the mark's process no
+longer runs, or runs with another start time, and counts a failed start of that version. A mark whose process
 still runs belongs to a host in its startup time window, and the instance check hands the launch
 to it.
 

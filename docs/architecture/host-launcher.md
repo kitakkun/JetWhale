@@ -36,9 +36,9 @@ JetWhale Debugger (.app / .exe / deb)
 6. **Choose a version.** Go through the downloaded versions newer than the bundled one, newest
    first, then the bundled one. Take the first that:
    - is not set aside (two failed starts in a row set a version aside here);
-   - has readable metadata for this version;
-   - this launcher can run: its contract, Java version, modules visible to the host, platform,
-     and every non-`-D` JVM argument (see
+   - has well-formed, trusted metadata for this version;
+   - this launcher can run: its metadata format, contract, Java version, modules visible to the
+     host, platform, and every non-`-D` JVM argument (see
      [What the launcher refuses](./host-updates.md#what-the-launcher-refuses));
    - has a jar matching its pinned size and SHA-256.
 
@@ -62,8 +62,8 @@ recorded, under `launch.lock`:
 |---|---|---|
 | Still running after 30 s | completed | Clears its failures. Deletes every downloaded version except this one and the newest newer one |
 | The host's `main` throws | failed | Counts a failure, exits 1 |
-| JVM shuts down without a throw (a quit, a restart) | neither | Clears `startedHostProcess` |
-| Crash, hs_err or kill: nothing gets recorded | failed | Counted at the next launch (step 3) |
+| JVM shuts down without a throw (a quit, a restart, a SIGTERM) | neither | Clears `startedHostProcess` |
+| Crash, hs_err or `kill -9`: nothing gets recorded | failed | Counted at the next launch (step 3) |
 
 A version that has completed a start before is never counted as failing again, so it is never set
 aside. A crash after the startup time window is recorded nowhere: the next launch starts the same
