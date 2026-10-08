@@ -1,6 +1,7 @@
 # iOS input through an XCTest runner
 
-Status: **proposed**. Checked on an iOS simulator only; nothing here has run on a physical device.
+Status: **proposed**; phase 1 is in #438. Checked on an iOS simulator only; nothing here has run on a
+physical device.
 
 ## Goal
 
@@ -196,7 +197,7 @@ Small, and free of any plugin's types:
 interface XcTestRunners {
     fun refusalFor(target: XcTestRunnerTarget): String?          // no team, no iproxy: known without trying
     suspend fun runnerFor(target: XcTestRunnerTarget): XcTestRunner
-    fun startInBackground(target: XcTestRunnerTarget)
+    fun startRunnerInBackground(target: XcTestRunnerTarget)
     companion object { fun onThisMac(stateDirectory, xcrunPath, iproxyPath, settings): XcTestRunners }
 }
 interface XcTestRunner {
