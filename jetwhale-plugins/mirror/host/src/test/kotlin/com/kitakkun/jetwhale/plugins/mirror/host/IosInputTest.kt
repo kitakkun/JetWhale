@@ -52,9 +52,10 @@ class IosInputTest {
         simulator.swipe(fromX = 300, fromY = 2400, toX = 300, toY = 1200, durationMillis = 250)
         simulator.inputText("hello")
         simulator.pressButton(DeviceButton.Home)
+        simulator.pressButton(DeviceButton.Recents)
         simulator.pressButton(DeviceButton.Power)
 
-        assertEquals(listOf("tap 201.0,437.0", "swipe 100.0,800.0 -> 100.0,400.0 in 250", "type hello", "press Home", "press Lock"), runners.runner.calls)
+        assertEquals(listOf("tap 201.0,437.0", "swipe 100.0,800.0 -> 100.0,400.0 in 250", "type hello", "press Home", "open app switcher", "press Lock"), runners.runner.calls)
         assertEquals(setOf("SIM-1"), runners.askedFor.map(XcTestRunnerTarget::udid).toSet())
         assertFalse(idbCalls.exists())
     }
@@ -89,25 +90,36 @@ class IosInputTest {
     }
 
     @Test
-    fun `Recent apps on a simulator goes through idb, since no runner command opens the switcher`() = runTest {
+    fun `Recent apps on a simulator presses home twice through idb when the runner cannot start`() = runTest {
         assumeShellScriptsLaunch()
+        runners.startFailure = "the XCTest runner did not start: error: something broke"
 
         simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).pressButton(DeviceButton.Recents)
 
         assertEquals(listOf("ui button --udid SIM-1 HOME", "ui button --udid SIM-1 HOME"), idbCalls.readLines())
-        assertTrue(runners.runner.calls.isEmpty())
     }
 
     @Test
-    fun `an idb that cannot send input leaves Recent apps out, refuses it with the reason, and is not fallen back on`() = runTest {
+    fun `an idb that cannot send input is not fallen back on`() = runTest {
         runners.startFailure = "the XCTest runner did not start: error: something broke"
         val simulator = simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = false)
 
-        assertEquals(listOf(DeviceButton.Home, DeviceButton.Power), simulator.capabilities.buttons)
-        val recentsFailure = assertFailsWith<DeviceControlException> { simulator.pressButton(DeviceButton.Recents) }
-        assertEquals("Recent apps on a simulator goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it", recentsFailure.message)
+        assertEquals("the XCTest runner did not start: error: something broke", assertFailsWith<DeviceControlException> { simulator.pressButton(DeviceButton.Recents) }.message)
         assertEquals("the XCTest runner did not start: error: something broke", assertFailsWith<DeviceControlException> { simulator.tap(x = 1, y = 1) }.message)
         assertFalse(idbCalls.exists())
+    }
+
+    @Test
+    fun `a simulator offers Recent apps through its runner alone, and refuses it when neither the runner nor idb can press it`() = runTest {
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
+
+        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, runnerInput = null)
+        assertEquals(emptyList(), simulatorWithoutInput.capabilities.buttons)
+        assertEquals("input to a simulator needs Xcode's xcodebuild, or an idb that can send input", simulatorWithoutInput.capabilities.inputRefusal)
+        assertEquals(
+            "input to a simulator goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it",
+            assertFailsWith<DeviceControlException> { simulatorWithoutInput.pressButton(DeviceButton.Recents) }.message,
+        )
     }
 
     @Test
@@ -126,11 +138,6 @@ class IosInputTest {
 
         assertEquals(listOf("SIM-1"), runners.startedInBackground.map(XcTestRunnerTarget::udid))
         assertTrue(runners.askedFor.isEmpty())
-    }
-
-    @Test
-    fun `a simulator without idb offers the buttons its runner presses`() = runTest {
-        assertEquals(listOf(DeviceButton.Home, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
     }
 
     @Test
@@ -222,6 +229,8 @@ private class FakeXcTestRunner : XcTestRunner {
     override suspend fun typeText(text: String) = note("type $text")
 
     override suspend fun pressButton(button: XcTestRunnerButton) = note("press ${button.name}")
+
+    override suspend fun openAppSwitcher() = note("open app switcher")
 
     override suspend fun activateApp(bundleId: String) = note("activate $bundleId")
 

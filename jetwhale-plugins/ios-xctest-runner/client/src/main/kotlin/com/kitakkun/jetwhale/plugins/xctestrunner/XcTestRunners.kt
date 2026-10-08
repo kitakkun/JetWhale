@@ -78,6 +78,9 @@ public interface XcTestRunner {
 
     public suspend fun pressButton(button: XcTestRunnerButton)
 
+    /** Opens the app switcher with the swipe up from the bottom edge that a Face ID iPhone takes. */
+    public suspend fun openAppSwitcher()
+
     /** Brings the app with [bundleId] to the foreground, launching it if it is not running. */
     public suspend fun activateApp(bundleId: String)
 }

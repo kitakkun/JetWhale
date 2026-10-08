@@ -11,6 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSError *)pressAtPoint:(CGPoint)point duration:(double)duration;
 + (nullable NSError *)dragFrom:(CGPoint)from to:(CGPoint)to duration:(double)duration;
 + (nullable NSError *)typeText:(NSString *)text;
++ (nullable NSError *)openAppSwitcherOnScreenOfHeight:(double)screenHeight;
 + (BOOL)pressLockButton;
 @end
 

@@ -30,6 +30,8 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
 
     suspend fun pressButton(target: XcTestRunnerTarget, button: XcTestRunnerButton) = withRunner(target) { it.pressButton(button) }
 
+    suspend fun openAppSwitcher(target: XcTestRunnerTarget) = withRunner(target, XcTestRunner::openAppSwitcher)
+
     /** The screen's size in pixels, as the runner reported it. */
     suspend fun screenSize(target: XcTestRunnerTarget): IntSize = withRunner(target) { IntSize(it.screen.widthPixels, it.screen.heightPixels) }
 

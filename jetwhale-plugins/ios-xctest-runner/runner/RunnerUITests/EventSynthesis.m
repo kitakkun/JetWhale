@@ -53,6 +53,17 @@ static const NSTimeInterval SynthesisTimeout = 60;
     return [self synthesize:path name:@"drag"];
 }
 
+// The swipe up from the bottom edge that Face ID iPhones open the app switcher with: up to 60 % of
+// the screen, then held with a small move so it is not taken for a flick home. XCUIDevice's two
+// Home presses land too far apart to count as a double press.
++ (nullable NSError *)openAppSwitcherOnScreenOfHeight:(double)screenHeight {
+    id<JWPointerEventPath> path = [self touchAt:CGPointMake(100, screenHeight - 1)];
+    [path moveToPoint:CGPointMake(100, screenHeight * 0.6) atOffset:0.3];
+    [path moveToPoint:CGPointMake(100, screenHeight * 0.6 - 2) atOffset:1.0];
+    [path liftUpAtOffset:1.05];
+    return [self synthesize:path name:@"appSwitcher"];
+}
+
 + (nullable NSError *)typeText:(NSString *)text {
     id<JWPointerEventPath> path = [(id<JWPointerEventPath>)[NSClassFromString(@"XCPointerEventPath") alloc] initForTextInput];
     [path typeText:text atOffset:0 typingSpeed:TypingSpeed shouldRedact:NO];

@@ -347,6 +347,8 @@ private class AttachedXcTestRunner(
 
     override suspend fun pressButton(button: XcTestRunnerButton) = send("/pressButton", buildJsonObject { put("button", button.wireName) })
 
+    override suspend fun openAppSwitcher() = send("/openAppSwitcher", JsonObject(emptyMap()))
+
     override suspend fun activateApp(bundleId: String) = send("/activateApp", buildJsonObject { put("bundleId", bundleId) })
 
     private suspend fun send(path: String, body: JsonObject) {

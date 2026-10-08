@@ -68,6 +68,12 @@ final class Commands {
         case "/pressButton":
             try pressButton(body["button"] as? String)
 
+        case "/openAppSwitcher":
+            guard EventSynthesis.isAvailable(), let height = screen["screenHeightPixels"] as? Int, let scale = screen["scale"] as? Double else {
+                throw RunnerError(description: "this Xcode's XCTest cannot synthesize the swipe that opens the app switcher")
+            }
+            try check(EventSynthesis.openAppSwitcher(onScreenOfHeight: Double(height) / scale))
+
         case "/activateApp":
             guard let bundleId = body["bundleId"] as? String else { throw RunnerError(description: "bundleId is missing") }
             XCUIApplication(bundleIdentifier: bundleId).activate()
