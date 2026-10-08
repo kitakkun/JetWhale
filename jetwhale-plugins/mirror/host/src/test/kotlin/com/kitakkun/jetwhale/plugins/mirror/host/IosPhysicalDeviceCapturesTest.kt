@@ -208,7 +208,7 @@ class IosPhysicalDeviceCapturesTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", toolDirectories(loginShellPathVariable = null, pathVariable = System.getenv("PATH")))
+        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + wellKnownToolDirectories(File(System.getProperty("user.home"))))
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }

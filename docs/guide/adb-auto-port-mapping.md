@@ -47,18 +47,27 @@ JetWhale looks for the `adb` executable in these locations, in order:
 - The default Android SDK location — `$HOME/Android/Sdk/platform-tools` on Linux,
   `$HOME/Library/Android/sdk/platform-tools` on macOS, `%LOCALAPPDATA%\Android\Sdk\platform-tools`
   on Windows
-- Each directory on the `PATH` your login shell sets up (macOS and Linux)
 - Each directory on the host's own `PATH`
-- Finally, the fixed directories `/usr/bin`, `/usr/local/bin` and `/opt/homebrew/bin` (macOS and
-  Linux)
+- `/opt/homebrew/bin` and `/usr/local/bin`, Homebrew's on Apple silicon and on Intel Macs, where its
+  `android-platform-tools` cask puts adb (macOS and Linux)
+- Only when none of the above has adb, each directory on the `PATH` your login shell sets up (macOS
+  and Linux)
 
-An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`, so the
-host reads the `PATH` your login shell sets up. It runs your shell (`$SHELL`, or `/bin/zsh` on macOS
-and `/bin/sh` elsewhere when it is unset) as an interactive login shell, as a terminal does, once per
-run, the first time it looks for adb. The shell runs your startup files, `.zshrc` and `.bashrc`
-included, so whatever they start runs again. When the shell has not answered within 5 seconds, exits
-with an error or prints no `PATH`, the host falls back to its own `PATH` and the fixed directories.
+An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`, so when
+the other locations have no adb, the host reads the `PATH` your login shell sets up. It runs your
+shell (`$SHELL`, or `/bin/zsh` on macOS and `/bin/sh` elsewhere when it is unset) as an interactive
+login shell, as a terminal does, at most once per run, the first time it looks for adb. The shell
+runs your startup files, `.zshrc` and `.bashrc` included, so whatever they start runs again. When the
+shell has not answered within 5 seconds, exits with an error or prints no `PATH`, adb is not found.
 On Windows an app gets your `PATH` however it is started, so no shell is run.
+
+If your startup files live in a folder macOS protects, such as Documents, Desktop or iCloud Drive,
+macOS asks whether JetWhale Debugger may access that folder when the shell starts. If you choose
+**Don't Allow**, the shell cannot read those files, and what they add to `PATH` is not searched.
+Either keep adb where the host finds it without the shell — in the SDK's default location, where
+Android Studio installs it, or through Homebrew with `brew install --cask android-platform-tools` —
+or allow the access later under **System Settings → Privacy & Security → Files & Folders**. Then
+restart the host.
 
 If none of these find adb, check in a new terminal that `command -v adb` prints its path, or set
 `ANDROID_HOME`, then restart the host.

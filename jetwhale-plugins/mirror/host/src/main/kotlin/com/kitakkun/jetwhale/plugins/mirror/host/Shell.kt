@@ -109,34 +109,48 @@ internal class MirrorToolPaths(
     val ffmpegPath: String?,
 )
 
-/**
- * Finds the tools this plugin drives in [searchDirectories], and adb first in the Android SDKs at
- * [androidSdkDirectories].
- */
-internal class MirrorToolLocator(
-    private val searchDirectories: List<String>,
-    private val androidSdkDirectories: List<String>,
-) {
-    fun locateToolPaths(): MirrorToolPaths {
-        val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
-        return MirrorToolPaths(
-            adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, searchDirectories),
-            idbPath = findToolPath("idb", searchDirectories),
-            idbCompanionPath = findToolPath("idb_companion", searchDirectories),
-            xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
-            ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
-        )
-    }
-}
+/** The tools [MirrorToolLocator] found, and the directories it searched for them, in the order it searched them. */
+internal class MirrorToolSearchResult(
+    val toolPaths: MirrorToolPaths,
+    val searchedDirectories: List<String>,
+)
 
 /**
- * The directories searched for a tool: those on [loginShellPathVariable], when the login shell's PATH
- * could be read, then those on [pathVariable], this process's own PATH, then Homebrew's. A GUI app on
- * macOS does not inherit the login shell's PATH, so Homebrew's directories are searched even when
- * neither PATH lists them.
+ * Finds the tools this plugin drives: adb first in the Android SDKs at [androidSdkDirectories], then
+ * each tool on [hostPathVariable], this process's own PATH, then in [wellKnownDirectories]. Only when
+ * one of them is still missing is the PATH that [loginShellPathVariableResolver] reads searched after
+ * those: starting the login shell runs the user's startup files, which can take seconds, and on macOS
+ * asks the user for access when those files live in a protected folder such as Documents.
  */
-@VisibleForTesting
-internal fun toolDirectories(loginShellPathVariable: String?, pathVariable: String?): List<String> = listOfNotNull(loginShellPathVariable, pathVariable).flatMap { it.split(File.pathSeparator) }.filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
+internal class MirrorToolLocator(
+    private val hostPathVariable: String?,
+    private val wellKnownDirectories: List<String>,
+    private val androidSdkDirectories: List<String>,
+    private val loginShellPathVariableResolver: LoginShellPathVariableResolver?,
+) {
+    fun locateTools(): MirrorToolSearchResult {
+        val directories = (directoriesOn(hostPathVariable) + wellKnownDirectories).distinct()
+        val toolPaths = findToolPathsIn(directories)
+        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath).any { it == null }
+        val loginShellPathVariable = if (isAnySearchedToolMissing) loginShellPathVariableResolver?.resolveLoginShellPathVariable() else null
+        if (loginShellPathVariable == null) return MirrorToolSearchResult(toolPaths, directories)
+        val directoriesWithLoginShell = (directories + directoriesOn(loginShellPathVariable)).distinct()
+        return MirrorToolSearchResult(findToolPathsIn(directoriesWithLoginShell), directoriesWithLoginShell)
+    }
+
+    private fun findToolPathsIn(directories: List<String>): MirrorToolPaths {
+        val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
+        return MirrorToolPaths(
+            adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, directories),
+            idbPath = findToolPath("idb", directories),
+            idbCompanionPath = findToolPath("idb_companion", directories),
+            xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
+            ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", directories),
+        )
+    }
+
+    private fun directoriesOn(pathVariable: String?): List<String> = pathVariable?.split(File.pathSeparator).orEmpty().filter(String::isNotEmpty)
+}
 
 /** The path of the first executable file named [name] in [directories], or null. */
 @VisibleForTesting

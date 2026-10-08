@@ -51,13 +51,6 @@ class FfmpegDecodingTest {
     }
 
     @Test
-    fun `Homebrew's directories are searched even when PATH lacks them`() {
-        val directories = toolDirectories(loginShellPathVariable = null, pathVariable = null)
-
-        assertTrue("/opt/homebrew/bin" in directories && "/usr/local/bin" in directories)
-    }
-
-    @Test
     fun `an Android device without ffmpeg opens no stream and says how to install it`() = runBlocking {
         val controller = AndroidDeviceController(adbPath = File(folder, "adb").path, serial = "device-1", emulatorScreens = null, ffmpegPath = null)
 
@@ -143,7 +136,7 @@ class FfmpegDecodingTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", toolDirectories(loginShellPathVariable = null, pathVariable = System.getenv("PATH")))
+        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + wellKnownToolDirectories(File(System.getProperty("user.home"))))
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }
