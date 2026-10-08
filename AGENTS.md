@@ -27,6 +27,8 @@
 Read these before editing; they apply to every change.
 - `agents/rules/comments.md` — comment only what the code cannot say.
 - `agents/rules/function-placement.md` — put a helper next to its use, with no more visibility than it needs.
+- `agents/rules/naming.md` — name a function after what it does, not after its role or the moment it runs.
+- `agents/rules/data-and-behavior.md` — data only holds values; behavior lives in an object that holds what it works with.
 - `agents/rules/jetwhale-host-architecture.md` — what belongs in a Repository and what in a Service.
 - `agents/rules/pr-descriptions.md` — a PR description states the goal and where a reviewer should look.
 
@@ -40,6 +42,7 @@ Read these before editing; they apply to every change.
 - Keep PRs focused, include a short description of changes, and note how they were tested. See `agents/rules/pr-descriptions.md` for the shape.
 - For UI changes in the host or demo apps, include screenshots or a short recording.
 - User-facing changes are recorded in `CHANGELOG.md` when a release is prepared, not in each PR. Before tagging, a release-prep PR renames `[Unreleased]` to `[<version>] - <date>`, adds a fresh empty `[Unreleased]` and updates the links at the bottom; the tag's draft release takes its notes from that section and fails without one.
+- To prepare a release, follow `agents/release.md`: what goes in the changelog, the release-prep PR, and the tag.
 - Record third-party assets (icons, fonts) with their source and license in `THIRD_PARTY_NOTICES.md`.
 - Open work-in-progress PRs as drafts: PR workflows skip drafts and run once the PR is marked *Ready for review*.
 - To push without running CI, put `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`) in the head commit message.

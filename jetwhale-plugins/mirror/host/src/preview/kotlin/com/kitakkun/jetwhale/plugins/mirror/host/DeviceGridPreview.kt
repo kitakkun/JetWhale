@@ -7,6 +7,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.awaitCancellation
+import kotlin.time.Clock
 
 private val gridDevices = listOf(
     DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null),
@@ -37,6 +38,7 @@ private fun DeviceGridPreview() {
             onOpen = {},
             onScreenshot = {},
             onScreenshotAll = {},
+            clock = Clock.System,
         )
     }
 }
@@ -58,6 +60,7 @@ private fun DeviceGridEmptyPreview() {
             onOpen = {},
             onScreenshot = {},
             onScreenshotAll = {},
+            clock = Clock.System,
         )
     }
 }

@@ -14,8 +14,8 @@ class AppleNodeIdsTest {
     @Test
     fun `an object keeps its id across captures while it is still reported`() {
         val obj = NSObject()
-        val first = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
-        val second = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+        val first = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
+        val second = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
 
         assertEquals(first, second)
         assertSame(obj, AppleNodeIds.objectOf(first, window))
@@ -24,8 +24,8 @@ class AppleNodeIdsTest {
     @Test
     fun `an object a capture no longer reports is released and its id resolves to nothing`() {
         val obj = NSObject()
-        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
-        AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
+        val id = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
+        AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(NSObject(), window) }
 
         assertNull(AppleNodeIds.objectOf(id, window))
     }
@@ -33,9 +33,9 @@ class AppleNodeIdsTest {
     @Test
     fun `a capture that throws keeps the previous capture's objects`() {
         val obj = NSObject()
-        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+        val id = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
 
-        runCatching { AppleNodeIds.trackingCapture(window) { throw IllegalStateException("detached mid-capture") } }
+        runCatching { AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { throw IllegalStateException("detached mid-capture") } }
 
         assertSame(obj, AppleNodeIds.objectOf(id, window))
     }
@@ -44,9 +44,9 @@ class AppleNodeIdsTest {
     fun `releasing a window drops its objects and leaves another window's in place`() {
         val other = UIWindow()
         val kept = NSObject()
-        val keptId = AppleNodeIds.trackingCapture(other) { AppleNodeIds.idOf(kept, other) }
+        val keptId = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(other) { AppleNodeIds.idOf(kept, other) }
         val released = NSObject()
-        val releasedId = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(released, window) }
+        val releasedId = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(released, window) }
 
         AppleNodeIds.release(window)
 
@@ -59,9 +59,9 @@ class AppleNodeIdsTest {
     fun `an object captured under another window keeps its id and follows that window`() {
         val other = UIWindow()
         val obj = NSObject()
-        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+        val id = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
 
-        val idUnderOther = AppleNodeIds.trackingCapture(other) { AppleNodeIds.idOf(obj, other) }
+        val idUnderOther = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(other) { AppleNodeIds.idOf(obj, other) }
 
         assertEquals(id, idUnderOther)
         assertSame(obj, AppleNodeIds.objectOf(id, other))
@@ -71,8 +71,8 @@ class AppleNodeIdsTest {
 
     @Test
     fun `ids are negative and never reused`() {
-        val first = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
-        val second = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
+        val first = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(NSObject(), window) }
+        val second = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(NSObject(), window) }
 
         assertEquals(true, first < 0)
         assertNotEquals(first, second)
@@ -82,7 +82,7 @@ class AppleNodeIdsTest {
     fun `an id from another window does not resolve`() {
         val obj = NSObject()
         val other = UIWindow()
-        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+        val id = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
 
         assertNull(AppleNodeIds.objectOf(id, other))
         assertSame(window, AppleNodeIds.windowOf(obj))
@@ -92,8 +92,8 @@ class AppleNodeIdsTest {
     fun `a capture of one window leaves another window's objects in place`() {
         val other = UIWindow()
         val obj = NSObject()
-        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
-        AppleNodeIds.trackingCapture(other) { AppleNodeIds.idOf(NSObject(), other) }
+        val id = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { AppleNodeIds.idOf(obj, window) }
+        AppleNodeIds.runTreeCaptureReleasingUnseenObjects(other) { AppleNodeIds.idOf(NSObject(), other) }
 
         assertSame(obj, AppleNodeIds.objectOf(id, window))
     }

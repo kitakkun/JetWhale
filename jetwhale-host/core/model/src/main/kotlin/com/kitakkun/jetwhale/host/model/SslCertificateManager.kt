@@ -51,7 +51,7 @@ interface SslCertificateManager {
      * @param name Optional display name; a timestamp-based name is generated when null.
      * @return The newly created entry.
      */
-    fun generateAndAddCertificate(name: String?): SslCertificateEntry
+    fun generateAndActivateCertificate(name: String?): SslCertificateEntry
 
     /**
      * Marks the certificate identified by [id] as active.

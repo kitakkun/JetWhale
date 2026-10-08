@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
@@ -23,11 +24,12 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
-import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -36,6 +38,8 @@ class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
 }
 
 private const val MAX_RETAINED_TRANSACTIONS = 500
+
+private val MCP_REDACTION_RULES_RETRY_INTERVAL = 2.seconds
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class NetworkHostPlugin :
@@ -47,7 +51,8 @@ private class NetworkHostPlugin :
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
 
-    private var mcpRedactionRules: List<RedactionRule> = emptyList()
+    /** Null until the agent has answered GetRedactionConfig: until then MCP sees no transaction. */
+    private var mcpRedactionRules: List<RedactionRule>? by mutableStateOf(null)
 
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: RequestSent ->
@@ -63,21 +68,33 @@ private class NetworkHostPlugin :
     }
 
     override suspend fun onPrepare() {
+        mcpRedactionRules = requestMcpRedactionRules()
+        if (mcpRedactionRules == null) {
+            // onPrepare is cancelled at the prepare timeout and holds inbound events until it
+            // returns, so the retry runs on pluginScope.
+            pluginScope.launch {
+                while (mcpRedactionRules == null) {
+                    delay(MCP_REDACTION_RULES_RETRY_INTERVAL)
+                    mcpRedactionRules = requestMcpRedactionRules()
+                }
+            }
+        }
         val config = messenger.request(GetMockConfig)
         mockingEnabled = config.enabled
         mockRules.apply {
             clear()
             addAll(config.rules)
         }
-        // An agent that predates redaction has no handler for GetRedactionConfig; treat it as
-        // having no MCP-only rules instead of failing the whole prepare.
-        mcpRedactionRules = try {
-            messenger.request(GetRedactionConfig).mcpOnlyRules
-        } catch (_: JetWhaleMessagingException) {
-            // An agent built before GetRedactionConfig existed cannot answer; it has no
-            // MCP_ONLY rules to enforce either.
-            emptyList()
-        }
+    }
+
+    /**
+     * The agent's MCP_ONLY rules, or null when it did not answer. A failed request never stands for
+     * "no rules": an agent that has not activated the plugin yet fails it too.
+     */
+    private suspend fun requestMcpRedactionRules(): List<RedactionRule>? = try {
+        messenger.request(GetRedactionConfig).mcpOnlyRules
+    } catch (_: JetWhaleMessagingException) {
+        null
     }
 
     private inline fun updateTransaction(txId: String, transform: (HttpTransaction) -> HttpTransaction) {
@@ -87,27 +104,27 @@ private class NetworkHostPlugin :
 
     @Composable
     override fun Content() {
-        val shouldRedactForMcpCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
-        NetworkInspectorScreenRoot(
-            transactions = if (shouldRedactForMcpCapture) transactions.map { it.redactedForMcp() } else transactions,
-            mockRules = mockRules,
-            mockingEnabled = mockingEnabled,
-            onClearTransactions = transactions::clear,
-            onToggleMocking = { enabled ->
-                pluginScope.launch { syncMockingEnabled(enabled) }
-            },
-            onMockRulesChanged = { rules ->
-                pluginScope.launch { syncMockRules(rules) }
-            },
-        )
-    }
-
-    private fun HttpTransaction.redactedForMcp(): HttpTransaction {
-        if (mcpRedactionRules.isEmpty()) return this
-        return copy(
-            request = mcpRedactionRules.redact(request),
-            response = response?.let { mcpRedactionRules.redact(it) },
-        )
+        val isMcpCapture = LocalIsMcpCapture.current
+        val redactionRules = mcpRedactionRules
+        if (isMcpCapture && redactionRules == null) {
+            JwEmptyState(
+                title = "Network traffic is hidden from MCP",
+                description = "The app's MCP-only redaction rules have not been read yet.",
+            )
+        } else {
+            NetworkInspectorScreenRoot(
+                transactions = if (isMcpCapture && redactionRules != null) transactions.map(redactionRules::redact) else transactions,
+                mockRules = mockRules,
+                mockingEnabled = mockingEnabled,
+                onClearTransactions = transactions::clear,
+                onToggleMocking = { enabled ->
+                    pluginScope.launch { syncMockingEnabled(enabled) }
+                },
+                onMockRulesChanged = { rules ->
+                    pluginScope.launch { syncMockRules(rules) }
+                },
+            )
+        }
     }
 
     private suspend fun syncMockRules(newRules: List<MockRule>): JetWhaleMessagingException? {
@@ -134,8 +151,8 @@ private class NetworkHostPlugin :
     }
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
-        ListTransactionsCommand(transactions = transactions::toList, redactForMcp = { it.redactedForMcp() }),
-        GetTransactionCommand(transactions = transactions::toList, redactForMcp = { it.redactedForMcp() }),
+        ListTransactionsCommand(transactions = transactions::toList, mcpRedactionRules = { mcpRedactionRules }),
+        GetTransactionCommand(transactions = transactions::toList, mcpRedactionRules = { mcpRedactionRules }),
         ClearTransactionsCommand(
             clearTransactions = {
                 val cleared = transactions.size

@@ -79,7 +79,7 @@ internal class IdbCompanions(
     }
 
     /** Stops the companion of a device that is gone, whoever still uses it: it has nothing left to reach. */
-    suspend fun forget(udid: String): Unit = mutex.withLock {
+    suspend fun stopCompanionEvenIfInUse(udid: String): Unit = mutex.withLock {
         val companion = running.remove(udid) ?: return@withLock
         companion.idleStop?.cancel()
         stop(companion)

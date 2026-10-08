@@ -9,6 +9,10 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -42,7 +46,7 @@ class NetworkMcpCommandsTest {
         assertNull(nextCursorOf(result))
     }
 
-    private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
+    private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, mcpRedactionRules = { emptyList() })
 
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
 
@@ -82,6 +86,17 @@ class NetworkMcpCommandsTest {
     fun `cursor resolves against the unfiltered list so filters can change between pages`() {
         val result = execute(listCommand(), "afterTxId" to "b", "urlContains" to "/d")
         assertEquals(listOf("d"), txIdsOf(result))
+    }
+
+    @Test
+    fun `urlContains cannot probe a query value hidden from MCP`() {
+        val mcpOnlyRules = listOf(RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER))
+        val command = ListTransactionsCommand(
+            transactions = { listOf(tx("a", 100, url = "https://api.example.com/a?token=secret&page=2")) },
+            mcpRedactionRules = { mcpOnlyRules },
+        )
+        assertEquals(emptyList(), txIdsOf(execute(command, "urlContains" to "token=s")))
+        assertEquals(listOf("a"), txIdsOf(execute(command, "urlContains" to "page=2")))
     }
 
     @Test

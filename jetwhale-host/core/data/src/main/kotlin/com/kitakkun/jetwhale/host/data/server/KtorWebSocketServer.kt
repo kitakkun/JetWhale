@@ -113,8 +113,8 @@ class KtorWebSocketServer(
     private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
     val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
 
-    private val mutableNegotiationCompletedFlow: MutableSharedFlow<SessionOpened> = MutableSharedFlow()
-    val negotiationCompletedFlow: SharedFlow<SessionOpened> = mutableNegotiationCompletedFlow
+    private val mutableSessionOpenedFlow: MutableSharedFlow<SessionOpened> = MutableSharedFlow()
+    val sessionOpenedFlow: SharedFlow<SessionOpened> = mutableSessionOpenedFlow
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
@@ -185,7 +185,7 @@ class KtorWebSocketServer(
      */
     private suspend fun startTlsServerLocked(wssPort: Int): Boolean {
         if (!sslCertificateManager.hasCertificate()) {
-            sslCertificateManager.generateAndAddCertificate(null)
+            sslCertificateManager.generateAndActivateCertificate(null)
         }
 
         val keyStore = sslCertificateManager.getActiveKeyStore()
@@ -266,7 +266,7 @@ class KtorWebSocketServer(
         }
 
         routing {
-            get("/jetwhale/ca") {
+            get(CA_CERTIFICATE_URL_PATH) {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {
                     call.respond(HttpStatusCode.NotFound, "No active certificate")
@@ -276,14 +276,14 @@ class KtorWebSocketServer(
             }
             webSocket {
                 context(log) {
-                    configureSession()
+                    serveSession()
                 }
             }
         }
     }
 
     context(log: Logger)
-    private suspend fun DefaultWebSocketServerSession.configureSession() {
+    private suspend fun DefaultWebSocketServerSession.serveSession() {
         val transportSecurity = when {
             call.request.origin.scheme == "https" -> SessionTransportSecurity.TLS
 
@@ -316,7 +316,7 @@ class KtorWebSocketServer(
                         }
                 }
 
-                mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
+                mutableSessionOpenedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
 
                 val reason = closeReason.await()
 
@@ -338,6 +338,9 @@ class KtorWebSocketServer(
         sessions.values.forEach { session -> session.sendSerialized(event) }
     }
 }
+
+/** Where both servers serve the active CA certificate, for agents that trust it on first use. */
+internal const val CA_CERTIFICATE_URL_PATH = "/jetwhale/ca"
 
 /** Hosts treated as loopback for [SessionTransportSecurity.LOOPBACK] classification. */
 private val LOOPBACK_HOSTS = setOf("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "localhost")

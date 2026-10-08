@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.REDACTED_PLACEHOLDER
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
@@ -9,7 +10,9 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
 import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class NetworkRedactionRulesTest {
     private val formHeaders = mapOf("Content-Type" to listOf("application/x-www-form-urlencoded"))
@@ -34,6 +37,7 @@ class NetworkRedactionRulesTest {
         url = url,
         headers = headers,
         body = body,
+        bodyTruncated = false,
         timestampMs = 0L,
     )
 
@@ -78,8 +82,8 @@ class NetworkRedactionRulesTest {
     @Test
     fun `query param rule redacts only matching params and preserves fragment`() {
         val rules = NetworkRedactionRules { urlQueryParam("token") }
-        val redacted = rules.redactAtCapture(request(url = "https://x.dev/a?token=abc&page=2#frag"))
-        assertEquals("https://x.dev/a?token=$REDACTED_PLACEHOLDER&page=2#frag", redacted.url)
+        val redacted = rules.redactAtCapture(request(url = "https://api.example.com/a?token=abc&page=2#frag"))
+        assertEquals("https://api.example.com/a?token=$REDACTED_PLACEHOLDER&page=2#frag", redacted.url)
     }
 
     @Test
@@ -193,6 +197,147 @@ class NetworkRedactionRulesTest {
         )
         assertEquals(listOf(REDACTED_PLACEHOLDER, REDACTED_PLACEHOLDER), redacted.headers["Set-Cookie"])
         assertEquals("""{"access_token":"$REDACTED_PLACEHOLDER","expires_in":3600}""", redacted.body)
+    }
+
+    @Test
+    fun `a truncated JSON body that names a redacted field never carries its value`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(
+            request(body = """{"user":"alice","password":"hunter2","items":[1,2,3"""),
+        )
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
+    fun `a body of several JSON documents that names a redacted field never carries its value`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(request(body = "{\"password\":\"first-secret\"}\n{\"password\":\"second-secret\"}"))
+        assertFalse("secret" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
+    fun `a field name spelled with JSON escapes in a truncated body is still caught`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(
+            request(body = """{"pass\u0077ord":"hunter2","items":["""),
+        )
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
+    fun `a field name holding a control-character escape in a truncated body is still caught`() {
+        val rules = NetworkRedactionRules { bodyField("pass\tword") }
+        val redacted = rules.redactAtCapture(
+            request(body = """{"pass\tword":"hunter2","items":["""),
+        )
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
+    fun `a malformed JSON body with a stray quote before a redacted field never carries its value`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(request(body = """{"name":"5" screen","password":"hunter2"}"""))
+        assertFalse("hunter2" in redacted.body.orEmpty(), redacted.body)
+    }
+
+    @Test
+    fun `a truncated JSON body that names no redacted field is kept as captured`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val body = """{"user":"alice","items":[1,2,3"""
+        assertEquals(body, rules.redactAtCapture(request(body = body)).body)
+    }
+
+    @Test
+    fun `a markup body that only mentions a redacted field name is kept`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val body = """<form><input type="password" name="pw"></form>"""
+        assertEquals(body, rules.redactAtCapture(request(body = body)).body)
+    }
+
+    @Test
+    fun `a failure message quoting the request URL has its redacted query values hidden`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val failure = HttpRequestFailure(txId = "tx-1", message = "Request timeout has expired [url=https://api.example.com/a?token=abc&page=2, request_timeout=1000 ms]", durationMs = 1000L)
+        val redacted = rules.redactAtCapture(failure)
+        assertFalse("abc" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
+    fun `a failure message hides a redacted query value whatever the scheme of the URL`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        listOf("ws", "wss", "HTTPS").forEach { scheme ->
+            val message = "Connect timeout has expired [url=$scheme://api.example.com/socket?token=abc&page=2, connect_timeout=unknown ms]"
+            val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+            assertFalse("abc" in redacted.message, redacted.message)
+            assertTrue("page=2" in redacted.message, redacted.message)
+        }
+    }
+
+    @Test
+    fun `a failure message hides a redacted query value in a URL quoted right after another`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val message = """{"origin":"https://api.example.com/a?page=2","url":"https://api.example.com/a?token=abc"}"""
+        val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+        assertFalse("abc" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
+    fun `a redacted query value in a failure message that runs into another redacted name is hidden whole`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token", "sig") }
+        val message = "Connect timeout has expired [url=wss://api.example.com/socket?token=abc?sig=def&page=2, connect_timeout=unknown ms]"
+        val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+        assertFalse("abc" in redacted.message || "def" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
+    fun `a failure message hides a redacted query value whose name the client percent-encoded`() {
+        val rules = NetworkRedactionRules { urlQueryParam("user[api_key]") }
+        val message = "Request timeout has expired [url=https://api.example.com/a?user%5Bapi_key%5D=secret-value&page=2, request_timeout=1000 ms]"
+        val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
+        assertFalse("secret-value" in redacted.message, redacted.message)
+        assertTrue("page=2" in redacted.message, redacted.message)
+    }
+
+    @Test
+    fun `a query parameter whose name is percent-encoded is still redacted`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(request(url = "https://api.example.com/a?tok%65n=abc&page=2"))
+        assertFalse("abc" in redacted.url, redacted.url)
+    }
+
+    @Test
+    fun `a redirect's Location header has its redacted query values hidden`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            CapturedHttpResponse(
+                txId = "tx-1",
+                statusCode = 302,
+                headers = mapOf("Location" to listOf("https://api.example.com/callback?token=secret-value&page=2")),
+                durationMs = 10L,
+            ),
+        )
+        assertEquals(listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["Location"])
+    }
+
+    @Test
+    fun `a Referer header has its redacted query values hidden`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            request(headers = mapOf("Referer" to listOf("https://app.example.com/page?token=secret-value&page=2"))),
+        )
+        assertEquals(listOf("https://app.example.com/page?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["Referer"])
+    }
+
+    @Test
+    fun `a header that is not a standard URL header has its redacted query values hidden too`() {
+        val rules = NetworkRedactionRules { urlQueryParam("token") }
+        val redacted = rules.redactAtCapture(
+            request(headers = mapOf("X-Callback-Url" to listOf("https://app.example.com/done?token=secret-value&page=2"))),
+        )
+        assertEquals(listOf("https://app.example.com/done?token=$REDACTED_PLACEHOLDER&page=2"), redacted.headers["X-Callback-Url"])
     }
 
     @Test

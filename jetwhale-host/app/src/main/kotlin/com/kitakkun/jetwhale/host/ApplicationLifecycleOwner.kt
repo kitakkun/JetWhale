@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 @Inject
 @SingleIn(AppScope::class)
 class ApplicationLifecycleOwner(
-    private val server: DebugWebSocketServer,
+    private val debugWebSocketServer: DebugWebSocketServer,
     private val mcpServerService: McpServerService,
     private val pluginTrustService: PluginTrustService,
     private val pluginHotReloadService: PluginHotReloadService,
@@ -49,7 +49,7 @@ class ApplicationLifecycleOwner(
             } else {
                 null
             }
-            server.start(
+            debugWebSocketServer.start(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
                 wssPort = wssPort,
@@ -75,7 +75,7 @@ class ApplicationLifecycleOwner(
             pluginHotReloadService.stop()
             pluginDirectoryWatchService.stop()
             mcpServerService.stop()
-            server.stop()
+            debugWebSocketServer.stop()
             mutableApplicationStateFlow.update { ApplicationState.STOPPED }
         }
     }

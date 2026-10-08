@@ -84,7 +84,7 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
     val notices = object : MirrorNoticeActions {
         override val notice: MirrorNotice? get() = mirror.notices.current
 
-        override fun perform(action: NoticeAction) {
+        override fun dismissAndRun(action: NoticeAction) {
             mirror.notices.dismiss()
             when (action) {
                 is NoticeAction.OpenCapture -> openCapture(action.capture, mirror) {

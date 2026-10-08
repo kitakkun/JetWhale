@@ -97,6 +97,7 @@ class McpToolRegistrar(
             }
             val invocationId = activityRepository.toolInvocationStarted(
                 toolName = name,
+                permission = permission,
                 pluginId = targetPluginId,
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
                 arguments = request.arguments.orEmpty().mapValues { (_, value) ->

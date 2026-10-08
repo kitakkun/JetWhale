@@ -15,6 +15,11 @@ It is built with Kotlin and Jetpack Compose, making it especially familiar and a
 Kotlin / Android developers.
 Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal learning curve.
 
+![The JetWhale host window next to a desktop app it is debugging. The app's HTTP requests appear in the Network Inspector; one is mocked with an edited JSON body, and the app's next request gets the mocked response; then a screen is pushed from the Nav3 Navigator, and the app navigates to it.](docs/images/readme/demo.webp)
+
+*The host (left) debugging the desktop demo app (right): live traffic, a mocked response, and a
+screen pushed from the Nav3 Navigator.*
+
 ## Features
 
 - 🐳 **Multi-session debugging.** Several apps stay connected at once, grouped by the device they
@@ -40,7 +45,9 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 
 **1. Install the host** — download the installer for your OS from
 the [releases page](https://github.com/kitakkun/JetWhale/releases) (`.dmg` for macOS, `.deb` for
-Linux, `.msi` for Windows), and launch it.
+Linux, `.msi` for Windows), and launch it. macOS and Windows ask you to approve its first launch;
+see [First launch](https://kitakkun.github.io/JetWhale/guide/getting-started#first-launch). After
+that, you update it from inside the app.
 
 **2. Add the runtime** to the app you want to debug:
 
@@ -68,14 +75,15 @@ startJetWhale {
 
 That is the whole integration — the app shows up in the host as soon as it runs.
 
-See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for physical iOS
-devices, secure connections, and the rest.
+See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for the rest,
+and **[Connecting Devices](https://kitakkun.github.io/JetWhale/guide/connecting)** for physical
+devices and secure connections.
 
 ## Official plugins
 
 The debugging tools themselves are plugins. These ship with JetWhale — install one into the host
-from its plugin catalog, add the matching artifact to your app, and register it in
-`startJetWhale { }`:
+from its plugin catalog; for one that works inside your app, also add the matching artifact to your
+app and register it in `startJetWhale { }`:
 
 - **[Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector)** — HTTP
   traffic with request and response bodies, plus mock rules that reshape responses without touching
@@ -88,11 +96,10 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   the app's debug menu as typed actions the host and AI agents can run
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
-
-The **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* shows the live
-screens of Android devices and emulators, iOS simulators and iPhones, one at a time or all together
-in a grid, and records screenshots and videos per device. Android devices and simulators also take
-input; an iPhone is view-only. It needs no agent in your app; install it from the host's official plugins.
+- **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* — the
+  live screens of Android devices and emulators, iOS simulators and iPhones, one at a time or in a
+  grid, with screenshots and recordings per device; Android devices and simulators also take input.
+  It runs in the host alone, with nothing to add to your app
 
 ## Developing plugins
 

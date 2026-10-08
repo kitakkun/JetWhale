@@ -1,5 +1,4 @@
 import org.gradle.process.CommandLineArgumentProvider
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.jvm)
@@ -7,27 +6,17 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
     alias(libs.plugins.aboutLibraries)
-    alias(libs.plugins.conveyor)
-}
-
-// Conveyor packages require a purely numeric version. Map the pre-release suffix
-// to a numeric 4th component so successive pre-releases are recognized as updates
-// (e.g. 1.0.0-alpha08 -> 1.0.0.8). The final stable release must bump the base
-// version (e.g. 1.0.1) so it sorts above its own pre-releases.
-// Snapshot builds never go through Conveyor, so they keep the root convention's
-// `-SNAPSHOT`-suffixed version instead of this numeric override.
-if (!hasProperty("jetwhaleSnapshot")) {
-    version = libs.versions.jetwhale.get().let { full ->
-        val base = full.substringBefore("-")
-        val preReleaseNumber = full.substringAfter("-", "").filter { it.isDigit() }.toIntOrNull()
-        if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
-    }
+    alias(libs.plugins.jetwhaleHostRelease)
+    alias(libs.plugins.docsScreenshots)
 }
 
 val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/buildconfig")
     val version = libs.versions.jetwhale.get()
+    val testBuildReleaseSourceVariable = if (providers.gradleProperty("jetwhaleTestBuild").isPresent) "\"JETWHALE_RELEASE_SOURCE\"" else "null"
 
+    inputs.property("version", version)
+    inputs.property("testBuildReleaseSourceVariable", testBuildReleaseSourceVariable)
     outputs.dir(outputDir)
 
     doLast {
@@ -39,6 +28,7 @@ val generateBuildConfig by tasks.registering {
             |
             |object BuildConfig {
             |    const val VERSION: String = "$version"
+            |    val TEST_BUILD_RELEASE_SOURCE_VARIABLE: String? = $testBuildReleaseSourceVariable
             |}
             """.trimMargin(),
         )
@@ -48,42 +38,7 @@ val generateBuildConfig by tasks.registering {
 compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
-        nativeDistributions {
-            packageName = "JetWhale Debugger"
-            copyright = "© 2026 kitakkun"
-            // The DMG and MSI formats take only a numeric MAJOR.MINOR.PATCH, so the pre-release
-            // suffix is dropped; the four-part Conveyor version above would not pass either.
-            packageVersion = libs.versions.jetwhale.get().substringBefore("-")
-            licenseFile = rootProject.rootDir.resolve("LICENSE")
-
-            // The packaged app's runtime image lacks these modules unless they are listed, which
-            // shows up only there as a NoClassDefFoundError.
-            modules("jdk.unsupported")
-            modules("java.naming")
-            modules("java.sql")
-            // java.lang.instrument.Instrumentation (ByteBuddy self-attach for plugin hot-reload)
-            // lives in java.instrument; without it the packaged app crashes on startup.
-            modules("java.instrument")
-
-            targetFormats(
-                TargetFormat.Dmg,
-                TargetFormat.Msi,
-                TargetFormat.Deb,
-            )
-            jvmArgs(
-                "-Dapple.awt.application.appearance=system",
-            )
-
-            macOS {
-                iconFile.set(file("src/main/resources/icon.icns"))
-            }
-            windows {
-                iconFile.set(file("src/main/resources/icon.ico"))
-            }
-            linux {
-                iconFile.set(file("src/main/resources/icon.png"))
-            }
-        }
+        jvmArgs(*JetWhaleHostRuntime.jvmArgs.toTypedArray())
     }
 }
 
@@ -120,14 +75,7 @@ tasks.register<JavaExec>("runHeadless") {
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
 
 kotlin {
-    // 21 (not the repo-wide 17): app-runtime dependencies such as aboutlibraries 14+ ship Java 21
-    // bytecode, and the Metro build plugins already require a 21 build JVM anyway. Published
-    // SDK/agent artifacts stay on 17 for consumer compatibility. Vendor pin makes Conveyor bundle
-    // a maintained Corretto build instead of the stale OpenJDK GA archive it would pick by default.
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-        vendor.set(JvmVendorSpec.AMAZON)
-    }
+    jvmToolchain(JetWhaleHostRuntime.JAVA_FEATURE_VERSION)
 
     compilerOptions {
         freeCompilerArgs.add("-opt-in=soil.query.annotation.ExperimentalSoilQueryApi")
@@ -154,6 +102,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.ui)
+    implementation(projects.jetwhaleHost.releaseMetadata)
 
     implementation(libs.bundles.navigation3)
     implementation(libs.kotlinxSerializationJson)
@@ -167,16 +116,14 @@ dependencies {
     compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
-
-    // Resolved by Conveyor when cross-building packages for each platform. Written out because the
-    // Compose plugin deprecated the `compose.desktop.<platform>` accessors; these are the
-    // coordinates they resolved to.
-    val composeDesktop = "org.jetbrains.compose.desktop:desktop-jvm"
-    val composeVersion = libs.versions.jetbrainsCompose.get()
-    linuxAmd64("$composeDesktop-linux-x64:$composeVersion")
-    macAmd64("$composeDesktop-macos-x64:$composeVersion")
-    macAarch64("$composeDesktop-macos-arm64:$composeVersion")
-    windowsAmd64("$composeDesktop-windows-x64:$composeVersion")
+    // The window shots show the Network Inspector in the plugin area, and every official plugin's
+    // icon, read from its jar, in the sidebar.
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.network.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.semantics.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.nav3.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.actions.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.storage.host)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.mirror.host)
 }
 
 aboutLibraries {

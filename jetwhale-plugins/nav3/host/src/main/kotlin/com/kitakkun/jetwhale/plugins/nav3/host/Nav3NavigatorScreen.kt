@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.nav3.host
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -11,9 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +31,7 @@ import com.kitakkun.jetwhale.host.ui.JwFormField
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
@@ -240,6 +241,9 @@ private fun PushPane(
     modifier: Modifier = Modifier,
 ) {
     var editorError by remember { mutableStateOf<String?>(null) }
+    var typedKeyTypeQueryText by remember { mutableStateOf("") }
+    val keyTypeQuery = NavKeyTypeQuery(typedKeyTypeQueryText)
+    val matchingKeyTypes = remember(keyTypes, keyTypeQuery.text) { keyTypes.filter(keyTypeQuery::matches) }
 
     fun withParsedKey(action: (JsonObject) -> Unit) {
         when (val key = parseNavKey(draft)) {
@@ -252,50 +256,74 @@ private fun PushPane(
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
-        JwFormField(
-            label = "Push a NavKey",
-            supportingText = editorError,
-            isError = editorError != null,
-        ) {
-            JwTextField(
-                value = draft,
-                onValueChange = onDraftChange,
-                placeholder = "{\"type\": \"…\"}",
-                singleLine = false,
-                textStyle = JwTheme.textStyles.code,
-                modifier = Modifier.fillMaxWidth().heightIn(min = EditorMinHeight),
-            )
+        item {
+            JwFormField(
+                label = "Push a NavKey",
+                supportingText = editorError,
+                isError = editorError != null,
+            ) {
+                JwTextField(
+                    value = draft,
+                    onValueChange = onDraftChange,
+                    placeholder = "{\"type\": \"…\"}",
+                    singleLine = false,
+                    textStyle = JwTheme.textStyles.code,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = EditorMinHeight),
+                )
+            }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-            JwButton(
-                text = "Push",
-                onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.Push(key = it, index = null)) } },
-                enabled = draft.isNotBlank(),
-                style = JwButtonStyle.Primary,
-            )
-            JwButton(
-                text = "Replace stack",
-                onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.ReplaceAll(keys = listOf(it))) } },
-                enabled = draft.isNotBlank(),
-            )
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+                JwButton(
+                    text = "Push",
+                    onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.Push(key = it, index = null)) } },
+                    enabled = draft.isNotBlank(),
+                    style = JwButtonStyle.Primary,
+                )
+                JwButton(
+                    text = "Replace stack",
+                    onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.ReplaceAll(keys = listOf(it))) } },
+                    enabled = draft.isNotBlank(),
+                )
+            }
         }
 
-        JwHorizontalDivider()
+        item { JwHorizontalDivider() }
 
         if (keyTypes.isEmpty()) {
-            JwText(
-                "The app exposed no constructible key types. You can still copy an existing entry's key with \"Copy to editor\" and edit it.",
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-            )
+            item {
+                JwText(
+                    "The app exposed no constructible key types. You can still copy an existing entry's key with \"Copy to editor\" and edit it.",
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
+                )
+            }
         } else {
-            JwSectionHeader(title = "Key types · click one to fill the editor", contentPadding = PaddingValues(0.dp))
-            keyTypes.forEach { type ->
+            item { JwSectionHeader(title = "Key types · click one to fill the editor", contentPadding = PaddingValues(0.dp)) }
+            stickyHeader {
+                KeyTypeSearchRow(
+                    queryText = typedKeyTypeQueryText,
+                    matchingCount = matchingKeyTypes.size,
+                    totalCount = keyTypes.size,
+                    onQueryTextChange = { typedKeyTypeQueryText = it },
+                )
+            }
+            if (matchingKeyTypes.isEmpty()) {
+                item {
+                    JwText(
+                        "No key type matches \"${keyTypeQuery.text}\".",
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
+                    )
+                }
+            }
+            items(matchingKeyTypes, key = NavKeyTypeDescriptor::serialName) { type ->
                 KeyTypeRow(
                     type = type,
                     onClick = {
@@ -305,6 +333,36 @@ private fun PushPane(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun KeyTypeSearchRow(
+    queryText: String,
+    matchingCount: Int,
+    totalCount: Int,
+    onQueryTextChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        // Opaque because the key-type rows scroll underneath this row while the sticky header is
+        // pinned.
+        modifier = modifier.fillMaxWidth().background(JwTheme.colors.surface).padding(vertical = JwSpacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+    ) {
+        JwSearchField(
+            value = queryText,
+            clearLabel = "Clear filter",
+            onValueChange = onQueryTextChange,
+            placeholder = "Filter by type name",
+            modifier = Modifier.weight(1f),
+        )
+        JwText(
+            text = "$matchingCount / $totalCount",
+            style = JwTheme.textStyles.labelSmall,
+            color = JwTheme.colors.textSecondary,
+        )
     }
 }
 

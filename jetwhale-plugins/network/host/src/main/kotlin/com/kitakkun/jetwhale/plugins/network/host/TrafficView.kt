@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTable
+import com.kitakkun.jetwhale.host.ui.JwTableCellText
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
@@ -61,9 +63,6 @@ private val MethodColumnWidth = 44.dp
 
 /** Fits a three-digit status so the method column lines up. */
 private val StatusTagWidth = 36.dp
-
-/** Room for the MOCK tag. */
-private val MockColumnWidth = 44.dp
 
 /** Fits "1234ms". */
 private val DurationColumnWidth = 52.dp
@@ -163,6 +162,7 @@ private fun TrafficList(
         key = HttpTransaction::txId,
         isSelected = { it.txId == selectedTxId },
         onClick = { onSelectTx(it.txId) },
+        contextMenuItems = ::transactionContextMenuItems,
         state = listState,
         modifier = modifier
             .fillMaxSize()
@@ -189,6 +189,17 @@ private fun TrafficList(
     )
 }
 
+private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuItem> = buildList {
+    add(ContextMenuItem("Copy as cURL") { copyToClipboard(buildCurlCommand(tx.request)) })
+    add(ContextMenuItem("Copy URL") { copyToClipboard(tx.request.url) })
+    copyableBody(tx.request.body, tx.request.bodyEncoding)?.let { body ->
+        add(ContextMenuItem("Copy request body") { copyToClipboard(body) })
+    }
+    tx.response?.let { copyableBody(it.body, it.bodyEncoding) }?.let { body ->
+        add(ContextMenuItem("Copy response body") { copyToClipboard(body) })
+    }
+}
+
 @Composable
 private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
     val urlStyle = JwTheme.textStyles.bodySmall
@@ -198,14 +209,14 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
                 JwText(text = it.request.method, style = JwTheme.textStyles.label)
             },
-            JwTableColumn.text(
-                header = "URL",
-                width = JwColumnWidth.Weight(1f),
-                overflow = JwColumnOverflow.Scroll,
-                style = urlStyle,
-            ) { it.request.url },
-            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
-                if (it.response?.fromMock == true) MockChip()
+            JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Scroll) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+                ) {
+                    if (it.response?.fromMock == true) MockChip()
+                    JwTableCellText(text = it.request.url, style = urlStyle)
+                }
             },
             JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {
                 it.response?.let { response ->

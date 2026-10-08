@@ -35,7 +35,8 @@ share this machine.
 
 Add `--headless` to either launcher. The agent WebSocket server, the MCP server, plugin instances
 and adb auto-wiring all come up as usual; only the window is skipped, so every MCP tool that works
-against a plugin's UI — screenshot, accessibility tree, click, drag, scroll, type — works unchanged.
+against a plugin's UI — screenshot, accessibility tree, click, secondary click, drag, scroll,
+type — works unchanged.
 
 ```bash
 ./gradlew :jetwhale-plugins:<plugin>:host:runJetWhaleLocal \
@@ -52,7 +53,10 @@ that line rather than sleeping. Unlike a windowed run, it **exits 1** if a port 
 
 What is not there: `jetwhale.navigate` reports `applied: false` (there is no window to navigate),
 and nothing enables a plugin for you — either reuse an app-data dir where it is already enabled, or
-call `jetwhale.setPluginEnabled` over MCP first.
+call `jetwhale.setPluginEnabled` over MCP first. There is no system clipboard either: a plugin
+action that copies, such as a **Copy …** context menu item, throws `HeadlessException`, and the
+`jetwhale.click` that picked it comes back as an error. The host log (`jetwhale.getLogs`) shows
+the stack trace, which is how to tell that the action ran.
 
 ## Run the QA agent from this build
 
@@ -73,9 +77,10 @@ requests rather than injected ones.
 
 Scene-level infrastructure exists here and nowhere else:
 `jetwhale-host/core/mcp/src/test/kotlin/.../TestSceneFactory.kt` (`createTestScene`,
-`renderTestScene`), driven with the `dispatchClick` / `dispatchDrag` / `dispatchScroll` helpers the
-tools themselves expose (`ClickTool.kt`, `DragTool.kt`, `ScrollTool.kt`). A behaviour pinned there
-survives; a manual MCP pass proves it worked once, on one machine.
+`renderTestScene`), driven with the `dispatchClick` / `dispatchSecondaryClick` / `dispatchDrag` /
+`dispatchScroll` helpers the tools themselves expose (`ClickTool.kt`, `SecondaryClickTool.kt`,
+`DragTool.kt`, `ScrollTool.kt`). A behaviour pinned there survives; a manual MCP pass proves it
+worked once, on one machine.
 
 Mutation-check every new test: break the production code, confirm the test fails, restore.
 

@@ -18,6 +18,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleProtocol.core)
+    implementation(projects.jetwhaleHost.releaseMetadata)
 
     implementation(compose.desktop.currentOs)
 
@@ -34,7 +35,6 @@ dependencies {
     implementation(libs.bundles.ktorServer)
     implementation(libs.ktorClientCore)
     implementation(libs.ktorClientCio)
-    implementation(libs.conveyorControl)
     implementation(libs.logbackClassic)
     implementation(libs.bouncyCastleBcprov)
     implementation(libs.bouncyCastleBcpkix)

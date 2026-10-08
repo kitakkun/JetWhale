@@ -21,7 +21,7 @@ internal const val MAX_APP_ICON_BASE64_LENGTH: Int = 32 * 1024
 internal fun resolveAppMetadata(config: ResolvedAppConfiguration): JetWhaleAppMetadata = JetWhaleAppMetadata(
     appName = config.appName ?: resolveDefaultAppName(),
     deviceId = config.deviceId ?: getDeviceId(),
-    deviceName = config.deviceName ?: getDeviceModelName(),
+    deviceName = config.deviceName ?: resolveDefaultDeviceName(),
     appIconPngBase64 = encodeAppIconOrNull(config.appIconPng ?: resolveDefaultAppIconPng()),
 )
 

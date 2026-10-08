@@ -6,9 +6,11 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
+import com.kitakkun.jetwhale.host.model.HostMcpToolsTab
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -29,7 +31,7 @@ import kotlinx.serialization.json.Json
 /** How long to wait for the window to report that it applied the request before giving up on confirming it. */
 private const val CONFIRMATION_TIMEOUT_MILLIS = 2_000L
 
-enum class NavigationDestination { HOME, PLUGIN, SETTINGS, INFO, LOG_VIEWER }
+enum class NavigationDestination { HOME, PLUGIN, SETTINGS, INFO, LOG_VIEWER, MCP_TOOLS }
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
@@ -43,14 +45,19 @@ class HostNavigationCommand(
     override val name: String = "jetwhale.navigate"
     override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
-        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show."
+        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show. The other screens, such as a Settings page or the MCP tools browser, are for the person at the window: jetwhale.screenshot captures plugins only."
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
     private val sessionId by stringOrNull(
         "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in \"${HostSession.ID}\".",
     )
-    private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
+    private val settingsSection by enumOrNull("Only for SETTINGS: opens the first page of that section. Defaults to GENERAL.", HostSettingsSection.entries)
+    private val settingsPage by enumOrNull(
+        "Only for SETTINGS: the page to open, named as the settings menu labels it. Takes the place of settingsSection; if both are given, the page has to be in that section.",
+        HostSettingsPage.entries,
+    )
+    private val mcpToolsTab by enumOrNull("Only for MCP_TOOLS: the tab to open. Defaults to TOOLS.", HostMcpToolsTab.entries)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val request = arguments.toRequest()
@@ -72,7 +79,9 @@ class HostNavigationCommand(
                 destination = applied.kind.name,
                 pluginId = applied.pluginId,
                 sessionId = applied.sessionId,
-                settingsSection = applied.settingsSection?.name,
+                settingsSection = applied.settingsPage?.section?.name,
+                settingsPage = applied.settingsPage?.name,
+                mcpToolsTab = applied.mcpToolsTab?.name,
                 poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
             ),
         )
@@ -85,7 +94,16 @@ class HostNavigationCommand(
 
         NavigationDestination.LOG_VIEWER -> HostNavigationRequest.LogViewer
 
-        NavigationDestination.SETTINGS -> HostNavigationRequest.Settings(this[settingsSection] ?: HostSettingsSection.GENERAL)
+        NavigationDestination.SETTINGS -> {
+            val section = this[settingsSection]
+            val page = this[settingsPage] ?: (section ?: HostSettingsSection.GENERAL).firstPage
+            if (section != null && page.section != section) {
+                throw JetWhaleMcpArgumentException("invalid settingsPage: ${page.name} is in ${page.section.name}, not ${section.name}. Pass settingsPage alone to open it.")
+            }
+            HostNavigationRequest.Settings(page)
+        }
+
+        NavigationDestination.MCP_TOOLS -> HostNavigationRequest.McpTools(this[mcpToolsTab] ?: HostMcpToolsTab.TOOLS)
 
         NavigationDestination.PLUGIN -> {
             val targetPluginId = this[pluginId]
@@ -128,7 +146,13 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
 
     is HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
 
-    is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
+    is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsPage == page
+
+    is HostNavigationRequest.McpTools ->
+        destination.kind == HostDestinationKind.MCP_TOOLS &&
+            destination.mcpToolsTab == tab &&
+            destination.pluginId == null &&
+            destination.sessionId == null
 
     is HostNavigationRequest.Plugin ->
         destination.kind == HostDestinationKind.PLUGIN &&
@@ -143,6 +167,8 @@ data class NavigateResult(
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: String? = null,
+    val settingsPage: String? = null,
+    val mcpToolsTab: String? = null,
     val poppedOut: Boolean = false,
     val reason: String? = null,
 )

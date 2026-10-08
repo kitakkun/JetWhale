@@ -1,7 +1,7 @@
 # Host Settings
 
 The JetWhale host's behavior is configured from its **Settings** screen, opened from the gear icon in
-the [drawer](/guide/host-window#the-rest-of-the-drawer).
+the [sidebar footer](/guide/host-window#the-sidebar-footer).
 
 Settings are organized into four **sections**, each holding one or more **pages**:
 
@@ -27,23 +27,47 @@ configure.
 | **Language** | UI language of the host: **English** or **Japanese**. |
 | **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
 
+An AI agent can change the theme through `jetwhale.updateSettings` (`theme`: `DYNAMIC`, `LIGHT` or
+`DARK`).
+
 ### Application
 
 Everything about *this install* of the host.
 
 **Maintenance**
 
+- **Current Version** — the running host version.
 - **Application Data Directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
   shortcut to open it in your file manager.
 - **View Application Logs** — opens the built-in [log viewer](/guide/host-window#the-log-viewer).
 
 **Updates**
 
-- **Current Version** — the running host version.
-- **Check for updates on startup (notify only)** — toggle the automatic check. Updates are never
-  applied automatically.
-- **Check for Updates** — check immediately. When one is found you can **Install and Relaunch** (on
-  the platforms that support in-app updates) or **Open Download Page**.
+The installed JetWhale Debugger app updates its host in place: it downloads the newer host version,
+checks it against the SHA-256 its release publishes, and starts it the next time it opens. Nothing
+is downloaded or applied without a click.
+
+- **Check for updates on startup (notify only)** — look for a newer release when the app starts,
+  and show a banner when there is one.
+- **Check for Updates** — look now. A newer release can be **Downloaded**; once it is, **Restart to
+  Update**, or keep working and the next start runs it.
+- A release that needs a newer launcher or Java runtime than your install has says so, and links to
+  its release page: install its package to get it. A release with no build for your operating
+  system and processor says that instead.
+- When a new version fails to start twice in a row, the next start goes back to the previous one
+  and sets the new one aside. This section then names it, with **View Log** for the output of its
+  failed start and **Try Again**.
+
+A host started any other way (`java -jar`, the Gradle tasks) does not update itself; the section
+links to the release page instead. In the IDE plugin the section is hidden.
+
+Banners above the host's plugin area report on the same states:
+
+- A newer release is available, or needs a new installer: **View in Settings** opens this section.
+- A newer version is installed and starts next time: **Restart to Update** restarts into it now.
+- A new version failed to start, so the previous one is running: **View Log** opens the failed
+  start's output, and **Try Again** restarts into the new version once more.
+- A restart could not happen: quit the app and open it again.
 
 ## Connection
 
@@ -72,13 +96,14 @@ picked.
 
 ::: tip Also settable outside the UI
 The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
-to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). Before connecting over
-wss, generate a certificate under [SSL Certificate](#ssl-certificates).
+to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). The certificate wss
+serves is generated the first time the wss connector starts; [SSL Certificate](#ssl-certificates)
+is where to export, replace or switch it.
 :::
 
 ### SSL certificates
 
-To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
+To let agents connect over [wss](/guide/connecting#secure-connections-wss), the host serves TLS
 using a **locally-issued certificate**. Each entry is a self-contained local PKI: a root CA plus a
 `localhost` server certificate signed by it. The host serves wss with the server certificate; the
 agent trusts the CA.
@@ -309,7 +334,7 @@ When you launch the host from a plugin project with
 
 | Option | Default | What it does |
 |--------|---------|--------------|
-| `--plugin-dir <path>` | — | Also load the jars in this directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** Not trust-gated — naming the directory on the command line *is* the approval — and not managed: these jars do not appear as installed plugins and cannot be uninstalled or revoked from the UI. |
+| `--plugin-dir <path>` | — | Also load the jars in this directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** Not trust-gated — naming the directory on the command line *is* the approval. Their plugins are listed under Installed Plugins and by `jetwhale.listInstalledPlugins` like any other, but the host does not manage the jars: to stop loading them, start the host without the option. |
 | `--log-level <level>` | the host's configured level | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Lower it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
 | `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
 | `--headless` | off | Runs without the application window — see [Headless mode](#headless-mode) below. |

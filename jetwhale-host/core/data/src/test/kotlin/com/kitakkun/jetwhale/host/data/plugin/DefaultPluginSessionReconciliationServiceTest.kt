@@ -204,6 +204,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             return newSessionIds
         }
 
+        override fun startPluginInstancePreparation(pluginId: String, sessionId: String) = Unit
         override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
