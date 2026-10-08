@@ -256,13 +256,18 @@ internal class LocalXcTestRunners(
         }
     }
 
-    /** The runner's status once it answers, or null when its xcodebuild exits first. */
+    /**
+     * The runner's status once it answers, or null when its xcodebuild exits first. A runner that
+     * answers without a status it can report did not start, as far as its callers are concerned.
+     */
     private suspend fun awaitStatus(connection: RunnerConnection, xcodebuild: Process): RunnerStatus? {
         while (xcodebuild.isAlive) {
             try {
                 return connection.status()
             } catch (_: RunnerUnreachableException) {
                 delay(RUNNER_POLL_MILLIS)
+            } catch (e: XcTestRunnerException) {
+                throw XcTestRunnerStartException("the XCTest runner started but did not report its status: ${e.message}", e)
             }
         }
         return null

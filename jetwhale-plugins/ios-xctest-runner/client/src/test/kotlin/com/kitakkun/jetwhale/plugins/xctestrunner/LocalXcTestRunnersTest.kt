@@ -161,6 +161,16 @@ class LocalXcTestRunnersTest {
     }
 
     @Test
+    fun `a new runner that answers without its status did not start, and its xcodebuild is ended`() = runTest {
+        connections[20_000] = FakeRunnerConnection(answering = true).apply { statusFailure = "the XCTest runner failed to status: no screenshot" }
+
+        val failure = assertFailsWith<XcTestRunnerStartException> { runners().runnerFor(simulator) }
+
+        assertEquals("the XCTest runner started but did not report its status: the XCTest runner failed to status: no screenshot", failure.message)
+        assertTrue(xcodebuildProcesses.single().destroyed)
+    }
+
+    @Test
     fun `a device is refused before anything starts without iproxy or a development team`() = runTest {
         settings.developmentTeam = "ABCDE12345"
         assertEquals(IPROXY_MISSING_REFUSAL, runners(iproxyPath = null).refusalFor(device))

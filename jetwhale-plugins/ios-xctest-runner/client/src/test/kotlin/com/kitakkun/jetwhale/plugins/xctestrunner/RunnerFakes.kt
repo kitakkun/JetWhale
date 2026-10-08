@@ -28,8 +28,12 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     /** What the runner does when told to shut down, besides noting it. */
     var onShutdown: () -> Unit = {}
 
+    /** Set to make the status fail the way a runner that answers but cannot report one does. */
+    var statusFailure: String? = null
+
     override suspend fun status(): RunnerStatus {
         if (!answering || unreachable) throw RunnerUnreachableException("not listening", null)
+        statusFailure?.let { throw XcTestRunnerException(it, null) }
         return runnerStatus(protocolVersion)
     }
 
