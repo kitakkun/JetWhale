@@ -1,8 +1,10 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.FakeAppAppearanceRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.mokkery.MockMode
@@ -18,6 +20,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -39,7 +42,9 @@ class HostSettingsCommandsTest {
         every { statusFlow } returns MutableStateFlow(DebugWebSocketServerStatus.Started("localhost", 5080, 5443))
     }
 
-    private val updateSettings = UpdateSettingsCommand(settingsRepository, debugWebSocketServer)
+    private val appAppearanceRepository = FakeAppAppearanceRepository()
+
+    private val updateSettings = UpdateSettingsCommand(settingsRepository, appAppearanceRepository, debugWebSocketServer)
 
     @Test
     fun `updateSettings applies only the arguments that were supplied`() = runBlocking {
@@ -118,6 +123,48 @@ class HostSettingsCommandsTest {
     @Test
     fun `updateSettings rejects a call that changes nothing`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> { updateSettings.execute(arguments()) }
+    }
+
+    @Test
+    fun `updateSettings changes the theme without restarting the debug server`() = runBlocking {
+        val result = updateSettings.execute(arguments("theme" to JsonPrimitive("DARK"))).decodeSettings()
+
+        assertEquals(JetWhaleColorSchemeId.BuiltInDark, appAppearanceRepository.preferredColorSchemeIdFlow.value)
+        assertEquals(mapOf("theme" to "DARK"), result.applied)
+        assertFalse(result.debugServerRestarted)
+        verifySuspend(VerifyMode.not) { debugWebSocketServer.stop() }
+    }
+
+    @Test
+    fun `updateSettings stores each theme name as its built-in color scheme`() = runBlocking {
+        val expected = mapOf(
+            "light" to JetWhaleColorSchemeId.BuiltInLight,
+            "dark" to JetWhaleColorSchemeId.BuiltInDark,
+            "dynamic" to JetWhaleColorSchemeId.BuiltInDynamic,
+        )
+        expected.forEach { (themeName, colorSchemeId) ->
+            updateSettings.execute(arguments("theme" to JsonPrimitive(themeName)))
+
+            assertEquals(colorSchemeId, appAppearanceRepository.preferredColorSchemeIdFlow.value, themeName)
+        }
+    }
+
+    @Test
+    fun `updateSettings rejects an unknown theme before writing anything`(): Unit = runBlocking {
+        appAppearanceRepository.setPreferredColorSchemeId(JetWhaleColorSchemeId.BuiltInLight)
+
+        val error = assertFailsWith<JetWhaleMcpArgumentException> {
+            updateSettings.execute(
+                arguments(
+                    "persistData" to JsonPrimitive(true),
+                    "theme" to JsonPrimitive("system"),
+                ),
+            )
+        }
+
+        assertContains(error.message.orEmpty(), "LIGHT, DARK, DYNAMIC")
+        assertEquals(JetWhaleColorSchemeId.BuiltInLight, appAppearanceRepository.preferredColorSchemeIdFlow.value)
+        verifySuspend(VerifyMode.not) { settingsRepository.updatePersistData(any()) }
     }
 
     @Test

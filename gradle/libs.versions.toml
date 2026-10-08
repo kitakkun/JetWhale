@@ -212,3 +212,5 @@ jetwhaleAgent = { id = "com.kitakkun.jetwhale.agent" }
 jetwhaleHostLaunch = { id = "jetwhale-host-launch" }
 # In-repo only: release metadata for the host and the bundled host the launcher packages. Not published.
 jetwhaleHostRelease = { id = "jetwhale-host-release" }
+# In-repo only: renders the user guides' screenshots from a module's UI. Not published.
+docsScreenshots = { id = "docs-screenshots" }

@@ -1,12 +1,13 @@
 package com.kitakkun.jetwhale.host.navigation
 
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.drawer.McpToolsTab
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
-import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.HostMcpToolsTab
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
-import com.kitakkun.jetwhale.host.settings.SettingsScreenSection
 
 /**
  * Translates the back stack into the destination model that [com.kitakkun.jetwhale.host.model.HostNavigationService]
@@ -28,7 +29,7 @@ fun List<NavKey>.toHostDestination(): HostDestination {
 
         is SettingsNavKey -> HostDestination(
             kind = HostDestinationKind.SETTINGS,
-            settingsSection = top.initialPage.toHostSettingsSection(),
+            settingsPage = top.initialPage.toHostSettingsPage(),
             poppedOutPlugins = poppedOut,
         )
 
@@ -36,6 +37,7 @@ fun List<NavKey>.toHostDestination(): HostDestination {
             kind = HostDestinationKind.MCP_TOOLS,
             pluginId = top.pluginId,
             sessionId = top.sessionId,
+            mcpToolsTab = top.initialTab.toHostMcpToolsTab(),
             poppedOutPlugins = poppedOut,
         )
 
@@ -56,16 +58,40 @@ fun List<NavKey>.toHostDestination(): HostDestination {
     }
 }
 
-fun HostSettingsSection.toPage(): SettingsScreenPage = when (this) {
-    HostSettingsSection.GENERAL -> SettingsScreenSection.General.firstPage
-    HostSettingsSection.SERVER -> SettingsScreenSection.Connection.firstPage
-    HostSettingsSection.AI_AGENTS -> SettingsScreenSection.AiAgents.firstPage
-    HostSettingsSection.PLUGINS -> SettingsScreenSection.Plugins.firstPage
+fun HostSettingsPage.toPage(): SettingsScreenPage = when (this) {
+    HostSettingsPage.APPEARANCE -> SettingsScreenPage.Appearance
+    HostSettingsPage.APPLICATION -> SettingsScreenPage.Application
+    HostSettingsPage.DEBUG_SERVER -> SettingsScreenPage.DebugServer
+    HostSettingsPage.SSL_CERTIFICATE -> SettingsScreenPage.SslCertificate
+    HostSettingsPage.ADB_SUPPORT -> SettingsScreenPage.Adb
+    HostSettingsPage.MCP_SERVER -> SettingsScreenPage.McpServer
+    HostSettingsPage.PERMISSIONS -> SettingsScreenPage.McpPermissions
+    HostSettingsPage.ACTIVITY -> SettingsScreenPage.AiActivity
+    HostSettingsPage.INSTALLED_PLUGINS -> SettingsScreenPage.InstalledPlugins
+    HostSettingsPage.ADD_PLUGINS -> SettingsScreenPage.AddPlugins
+    HostSettingsPage.SECURITY -> SettingsScreenPage.PluginSecurity
 }
 
-private fun SettingsScreenPage.toHostSettingsSection(): HostSettingsSection = when (section) {
-    SettingsScreenSection.General -> HostSettingsSection.GENERAL
-    SettingsScreenSection.Connection -> HostSettingsSection.SERVER
-    SettingsScreenSection.AiAgents -> HostSettingsSection.AI_AGENTS
-    SettingsScreenSection.Plugins -> HostSettingsSection.PLUGINS
+private fun SettingsScreenPage.toHostSettingsPage(): HostSettingsPage = when (this) {
+    SettingsScreenPage.Appearance -> HostSettingsPage.APPEARANCE
+    SettingsScreenPage.Application -> HostSettingsPage.APPLICATION
+    SettingsScreenPage.DebugServer -> HostSettingsPage.DEBUG_SERVER
+    SettingsScreenPage.SslCertificate -> HostSettingsPage.SSL_CERTIFICATE
+    SettingsScreenPage.Adb -> HostSettingsPage.ADB_SUPPORT
+    SettingsScreenPage.McpServer -> HostSettingsPage.MCP_SERVER
+    SettingsScreenPage.McpPermissions -> HostSettingsPage.PERMISSIONS
+    SettingsScreenPage.AiActivity -> HostSettingsPage.ACTIVITY
+    SettingsScreenPage.InstalledPlugins -> HostSettingsPage.INSTALLED_PLUGINS
+    SettingsScreenPage.AddPlugins -> HostSettingsPage.ADD_PLUGINS
+    SettingsScreenPage.PluginSecurity -> HostSettingsPage.SECURITY
+}
+
+fun HostMcpToolsTab.toMcpToolsTab(): McpToolsTab = when (this) {
+    HostMcpToolsTab.TOOLS -> McpToolsTab.Tools
+    HostMcpToolsTab.HISTORY -> McpToolsTab.History
+}
+
+private fun McpToolsTab.toHostMcpToolsTab(): HostMcpToolsTab = when (this) {
+    McpToolsTab.Tools -> HostMcpToolsTab.TOOLS
+    McpToolsTab.History -> HostMcpToolsTab.HISTORY
 }

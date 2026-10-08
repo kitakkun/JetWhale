@@ -121,7 +121,7 @@ data class McpToolsScreenUiState(
 )
 
 /** The panes the MCP browser can show: the tools plugins publish, or the calls already made. */
-internal enum class McpToolsTab {
+enum class McpToolsTab {
     Tools,
     History,
 }
@@ -131,6 +131,7 @@ private const val MCP_TOOLS_DIALOG_WINDOW_FRACTION = 0.8f
 @Composable
 fun McpToolsScreen(
     uiState: McpToolsScreenUiState,
+    initialTab: McpToolsTab,
     onSelectPluginFilters: (Set<String>) -> Unit,
     onSelectSessionFilters: (Set<String>) -> Unit,
     modifier: Modifier = Modifier,
@@ -179,7 +180,7 @@ fun McpToolsScreen(
             }
             Spacer(Modifier.size(12.dp))
 
-            var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
+            var selectedTab by remember { mutableStateOf(initialTab) }
             JwTabRow {
                 JwTab(
                     text = stringResource(Res.string.mcp_tools_tab_tools),
@@ -904,6 +905,7 @@ private fun McpToolsScreenPreview() {
                 ),
                 runningToolName = null,
             ),
+            initialTab = McpToolsTab.Tools,
             onSelectPluginFilters = {},
             onSelectSessionFilters = {},
         )
