@@ -136,7 +136,7 @@ class FfmpegDecodingTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + wellKnownToolDirectories(File(System.getProperty("user.home"))))
+        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + WellKnownToolDirectories(File(System.getProperty("user.home"))).list())
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }

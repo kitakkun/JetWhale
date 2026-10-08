@@ -103,7 +103,7 @@ class MirrorToolLocatorTest {
         val home = File(folder, "home")
         listOf("3.9", "3.12", "3.10").forEach { File(home, "Library/Python/$it/bin").mkdirs() }
 
-        val directories = wellKnownToolDirectories(home)
+        val directories = WellKnownToolDirectories(home).list()
 
         val expected = listOf("/opt/homebrew/bin", "/usr/local/bin", File(home, ".local/bin").path) +
             listOf("3.12", "3.10", "3.9").map { File(home, "Library/Python/$it/bin").path } +

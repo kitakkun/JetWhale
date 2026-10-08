@@ -38,7 +38,7 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
     val home = System.getProperty("user.home")
     val toolSearchResult = MirrorToolLocator(
         hostPathVariable = System.getenv("PATH"),
-        wellKnownDirectories = if (runsOnWindows) emptyList() else wellKnownToolDirectories(File(home)),
+        wellKnownDirectories = if (runsOnWindows) emptyList() else WellKnownToolDirectories(File(home)).list(),
         androidSdkDirectories = listOfNotNull(
             System.getenv("ANDROID_HOME"),
             System.getenv("ANDROID_SDK_ROOT"),
@@ -60,8 +60,8 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
 }
 
 /**
- * The directories this plugin's tools are commonly installed in on macOS and Linux, searched whether
- * or not a PATH lists them:
+ * The directories this plugin's tools are commonly installed in on macOS and Linux, for the user
+ * whose home is [homeDirectory], searched whether or not a PATH lists them:
  * - Homebrew's, where it links idb_companion, ffmpeg and the adb of its android-platform-tools cask:
  *   `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
  * - `~/.local/bin`, where pipx and uv install idb's client;
@@ -70,11 +70,13 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
  * - pyenv's shims, where idb lands when pip runs under a pyenv Python.
  */
 @VisibleForTesting
-internal fun wellKnownToolDirectories(home: File): List<String> {
-    val pipUserDirectories = File(home, "Library/Python").listFiles(File::isDirectory).orEmpty()
-        .sortedWith(compareByDescending<File> { it.name.substringBefore('.').toIntOrNull() }.thenByDescending { it.name.substringAfter('.').toIntOrNull() })
-        .map { File(it, "bin").path }
-    return listOf("/opt/homebrew/bin", "/usr/local/bin", File(home, ".local/bin").path) + pipUserDirectories + File(home, ".pyenv/shims").path
+internal class WellKnownToolDirectories(private val homeDirectory: File) {
+    fun list(): List<String> {
+        val pipUserDirectories = File(homeDirectory, "Library/Python").listFiles(File::isDirectory).orEmpty()
+            .sortedWith(compareByDescending<File> { it.name.substringBefore('.').toIntOrNull() }.thenByDescending { it.name.substringAfter('.').toIntOrNull() })
+            .map { File(it, "bin").path }
+        return listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path) + pipUserDirectories + File(homeDirectory, ".pyenv/shims").path
+    }
 }
 
 private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
