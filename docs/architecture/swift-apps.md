@@ -454,6 +454,12 @@ integer, floating-point and `Bool` reads give their input types; a `CaseIterable
 type gives an enum with its cases; anything else is JSON. Swift's synthesized `Codable` ignores
 property defaults, so "may be left out" means `Optional`.
 
+Only a synthesized `init(from:)` is supported. A hand-written one can validate, branch, require
+`userInfo` or throw before it has asked for every key, so recording it can miss parameters or fail.
+Registration therefore refuses a type whose recording throws, or asks for anything other than
+keyed `decode`/`decodeIfPresent` calls, and the error names the type. A type that needs its own
+decoding declares its parameters explicitly instead.
+
 Custom Panels:
 
 ```swift
@@ -515,7 +521,15 @@ class SwiftAgentConfiguration {
 }
 
 class SwiftAgentStarter {
-    fun start(configuration: SwiftAgentConfiguration): JetWhaleSession
+    fun start(configuration: SwiftAgentConfiguration): SwiftSessionHandle
+}
+
+class SwiftSessionHandle internal constructor(private val session: JetWhaleSession) {
+    fun stop() = session.stop()
+}
+
+class SwiftActionRegistration internal constructor(private val registration: DebugActionsRegistration) {
+    fun unregister() = registration.unregister()
 }
 
 class SwiftDebugActions {
@@ -524,13 +538,15 @@ class SwiftDebugActions {
         runsOnMainThread: Boolean, timeoutMillis: Long, parametersJson: String,
         options: (parameter: String, complete: (values: List<String>) -> Unit) -> Unit,
         perform: (argumentsJson: String, complete: (resultJson: String?, error: String?) -> Unit) -> (() -> Unit),
-    ): DebugActionsRegistration
+    ): SwiftActionRegistration
 }
 ```
 
 `perform` returns the function that cancels the run, so a `CancelActionRun` or a timeout reaches the
-Swift `Task`. `JetWhaleSession` and `DebugActionsRegistration` are the only runtime types the header
-names, each with one method.
+Swift `Task`. The facade returns handles of its own, `SwiftSessionHandle` and
+`SwiftActionRegistration`, rather than the runtime's `JetWhaleSession` and
+`DebugActionsRegistration`, so every type Swift calls into is declared in the facade and no runtime
+module has to be exported for Swift to stop a session or remove an action.
 
 ## Distribution (proposed)
 
@@ -540,8 +556,8 @@ names, each with one method.
   change and the Swift change that follows it land in one PR and one CI run.
 - **A thin repository publishes `Package.swift`** (name to be decided, e.g. `JetWhale-Swift`). The
   release workflow copies the Swift layer into it, with a
-  `binaryTarget(name: "JetWhaleKotlin", url:checksum:)` pointing at a zip on the JetWhale GitHub
-  release, and tags it with the JetWhale version. SwiftPM clones a package's whole repository, and
+  `.binaryTarget(name: "JetWhaleKotlin", url: "<zip on the JetWhale GitHub release>", checksum: "<swift package compute-checksum output>")`,
+  and tags it with the JetWhale version. SwiftPM clones a package's whole repository, and
   this one's pack is 25 MiB and growing with screenshots; a thin repository keeps resolution fast.
 - **The XCFramework is built in the release workflow** from the facade module, with a release link,
   from a clean output directory. The XCFramework task does not remove files an earlier build left
