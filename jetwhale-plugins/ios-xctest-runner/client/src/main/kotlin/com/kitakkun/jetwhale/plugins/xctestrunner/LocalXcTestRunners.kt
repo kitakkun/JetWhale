@@ -119,7 +119,7 @@ internal class LocalXcTestRunners(
 
     /**
      * Records that [attachment]'s runner is kept alive for [leaseSeconds] from now, unless its record
-     * is already another runner's, and returns when the lease ends.
+     * is already another runner's, and returns the time the lease ends.
      */
     suspend fun recordLease(attachment: Attachment, leaseSeconds: Long): Instant {
         val until = clock.instant().plusSeconds(leaseSeconds)

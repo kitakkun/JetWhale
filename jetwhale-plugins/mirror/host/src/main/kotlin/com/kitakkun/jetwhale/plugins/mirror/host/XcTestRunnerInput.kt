@@ -33,7 +33,7 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
     /** The size of a screenshot in pixels: the screen as the interface shows it now. */
     suspend fun screenshotSize(target: XcTestRunnerTarget): IntSize = withRunner(target) { runner -> runner.interfaceScreen().let { IntSize(it.widthPixels, it.heightPixels) } }
 
-    /** Keeps [target]'s runner from stopping when idle for [duration]; returns when that ends. */
+    /** Keeps [target]'s runner from stopping when idle for [duration]; returns the time that ends. */
     suspend fun keepRunnerAlive(target: XcTestRunnerTarget, duration: Duration): Instant = withRunner(target) { it.keepAlive(duration) }
 
     /** Until when a lease keeps [target]'s runner from stopping when idle, or null. */

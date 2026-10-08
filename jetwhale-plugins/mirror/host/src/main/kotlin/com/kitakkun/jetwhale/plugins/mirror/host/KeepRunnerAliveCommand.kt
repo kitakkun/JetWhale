@@ -19,7 +19,7 @@ internal class KeepRunnerAliveCommand(
     override val description =
         "Keeps an iOS device's XCTest runner, which sends its input, from stopping after five idle minutes, for a long session with pauses between inputs. " +
             "The lease lasts the given minutes, at most $MAX_KEEP_ALIVE_MINUTES, and ends on its own; call again to renew it, or with 0 to end it. " +
-            "Returns when it ends; $TOOL_PREFIX.listDevices shows it as runnerKeptAliveUntil."
+            "Returns at once, with the time the lease ends as runnerKeptAliveUntil, which $TOOL_PREFIX.listDevices also shows."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val minutes by int("How long to keep the runner alive, from 0 to $MAX_KEEP_ALIVE_MINUTES minutes; 0 ends the lease.")

@@ -202,7 +202,7 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
 | `com.kitakkun.jetwhale.mirror.inputText` | Types text into the focused field |
-| `com.kitakkun.jetwhale.mirror.keepRunnerAlive` | Keeps an iOS device's XCTest runner from stopping after five idle minutes, for the given `minutes`, at most 120; returns when the lease ends. Call it again to renew the lease, or with `0` to end it. A lease nobody renews ends on its own |
+| `com.kitakkun.jetwhale.mirror.keepRunnerAlive` | Keeps an iOS device's XCTest runner from stopping after five idle minutes, for the given `minutes`, at most 120; returns at once, with the time the lease ends. Call it again to renew the lease, or with `0` to end it. A lease nobody renews ends on its own |
 | `com.kitakkun.jetwhale.mirror.setScreen` | Turns an Android device's screen on (`on: true`, also lifting a lock screen without a credential) or off; returns `screenOn` and `locked` afterwards, where `locked: true` means the device still needs unlocking |
 | `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording one device's screen, several devices' (`deviceIds`), or every device that can record (`all: true`) |
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops one recording, several (`deviceIds`), or all of them (`all: true`); returns each video's path and length |
