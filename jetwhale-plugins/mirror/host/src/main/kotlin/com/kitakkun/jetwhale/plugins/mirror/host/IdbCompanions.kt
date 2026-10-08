@@ -5,16 +5,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 import java.io.InputStream
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
@@ -62,14 +59,17 @@ internal class IdbCompanions(
         }
         val port = ports.freePort()
         val process = launcher.start(listOf(idbCompanionPath, "--udid", udid, "--grpc-port", "$port"))
+        // Until it is recorded below, nothing else stops this companion, not even the host's exit, so
+        // any failure ends it here, a cancelled caller's included.
+        var recorded = false
         try {
             awaitReady(process)
             commands.runChecked(listOf(idbPath, "connect", "localhost", "$port"))
-        } catch (e: DeviceControlException) {
-            process.destroyForcibly()
-            throw e
+            running[udid] = RunningCompanion(process, port, users = 1)
+            recorded = true
+        } finally {
+            if (!recorded) process.destroyForcibly()
         }
-        running[udid] = RunningCompanion(process, port, users = 1)
     }
 
     suspend fun release(udid: String): Unit = mutex.withLock {
@@ -112,10 +112,16 @@ internal class IdbCompanions(
         running.values.forEach { it.process.destroyForcibly() }
         // idb records a companion it was told about in state that every idb client shares, and an
         // `idb --udid` call for that device or simulator fails on the dead one until it is disconnected.
-        runBlocking {
-            withTimeoutOrNull(EXIT_DISCONNECT_TIMEOUT_MILLIS) {
-                running.values.map { companion -> async(Dispatchers.IO) { disconnectIdb(companion.port) } }.awaitAll()
+        val disconnectProcesses = running.values.mapNotNull { companion ->
+            try {
+                launcher.start(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
+            } catch (_: IOException) {
+                null
             }
+        }
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(EXIT_DISCONNECT_TIMEOUT_MILLIS)
+        disconnectProcesses.forEach { disconnectProcess ->
+            if (!disconnectProcess.waitFor(maxOf(deadlineNanos - System.nanoTime(), 0), TimeUnit.NANOSECONDS)) disconnectProcess.destroyForcibly()
         }
     }
 

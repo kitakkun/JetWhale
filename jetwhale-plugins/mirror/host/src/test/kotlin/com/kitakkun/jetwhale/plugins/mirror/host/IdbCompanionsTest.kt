@@ -1,14 +1,17 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
-import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,8 +23,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class IdbCompanionsTest {
     private val started = mutableListOf<FakeCompanionProcess>()
-    // The host's exit disconnects idb from every companion at once, from several threads.
-    private val commands: MutableList<List<String>> = Collections.synchronizedList(mutableListOf())
+    private val commands = mutableListOf<List<String>>()
     private var nextPort = 10_000
     private var companionsReport = true
 
@@ -109,8 +111,24 @@ class IdbCompanionsTest {
 
         companions.destroyAllNow()
 
-        assertTrue(started.all(FakeCompanionProcess::destroyed))
-        assertEquals(setOf(listOf("idb", "disconnect", "localhost", "10000"), listOf("idb", "disconnect", "localhost", "10001")), commands.filter { it[1] == "disconnect" }.toSet())
+        assertTrue(started.filter { it.command.first() == "idb_companion" }.all(FakeCompanionProcess::destroyed))
+        val disconnects = started.filter { it.command.getOrNull(1) == "disconnect" }
+        assertEquals(setOf(listOf("idb", "disconnect", "localhost", "10000"), listOf("idb", "disconnect", "localhost", "10001")), disconnects.map(FakeCompanionProcess::command).toSet())
+        assertTrue(disconnects.all(FakeCompanionProcess::destroyed), "a disconnect still running at the deadline is ended")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a caller cancelled while the companion starts leaves no companion running`() = runTest {
+        val companions = companions()
+        companionsReport = false
+        val acquiring = launch { companions.acquire("udid-1") }
+        runCurrent()
+
+        acquiring.cancelAndJoin()
+
+        assertTrue(started.single().destroyed)
+        assertFalse(companions.isRunning("udid-1"))
     }
 
     @Test
