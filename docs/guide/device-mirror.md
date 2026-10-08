@@ -43,28 +43,54 @@ foldable emulator folded through `adb shell cmd device_state state`.
 ### How the tools are found
 
 An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`. So on
-macOS and Linux the host reads the `PATH` your login shell sets up and searches it first, then the
-host's own `PATH`, and then, as a fallback, Homebrew's `/opt/homebrew/bin` and `/usr/local/bin`. adb
-is looked for in the Android SDK before all of these: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, then the
-SDK's default location. On Windows an app gets your `PATH` however it is started, so the plugin uses
-it as it is.
+macOS and Linux the plugin looks for each tool in these places, in order:
 
-To read that `PATH`, the plugin runs your shell (`$SHELL`, or `/bin/zsh` on macOS and `/bin/sh`
-elsewhere when it is unset) as an interactive login shell, as a terminal does. It does so once per
-run of the host, the first time it looks for devices; the host does the same once for
+1. For adb only, the Android SDK: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, then the SDK's default location.
+2. The host's own `PATH`.
+3. The directories these tools are usually installed in, whether or not a `PATH` lists them:
+   - `/opt/homebrew/bin` and `/usr/local/bin`, Homebrew's on Apple silicon and on Intel Macs:
+     `idb_companion`, `ffmpeg`, and adb from the `android-platform-tools` cask
+   - `~/.local/bin`, where pipx and `uv tool install` put idb's client
+   - `~/Library/Python/<version>/bin`, newest Python first, where `pip3 install fb-idb` puts it when
+     it cannot write to its Python's own directories, as with the Python that comes with Xcode
+   - `~/.pyenv/shims`, where it lands when pip runs under a pyenv Python
+4. The `PATH` your login shell sets up, only when a tool is still missing after these.
+
+On Windows an app gets your `PATH` however it is started, so the plugin uses it as it is.
+
+To read the login shell's `PATH`, the plugin runs your shell (`$SHELL`, or `/bin/zsh` on macOS and
+`/bin/sh` elsewhere when it is unset) as an interactive login shell, as a terminal does. It does so
+at most once per run of the host, the first time it looks for devices; the host does the same for
 [its own adb](/guide/adb-auto-port-mapping#how-adb-is-found). The shell runs your startup files,
 `.zshrc` and `.bashrc` included, so whatever they start runs again. When the shell has not answered
-within 5 seconds, exits with an error or prints no `PATH`, the plugin searches only the host's
-`PATH` and Homebrew's directories.
+within 5 seconds, exits with an error or prints no `PATH`, the plugin goes on with what it found
+before.
 
 The tools the plugin starts get the directories it searched as their `PATH`, so a tool that looks
 for others on `PATH` finds them too: a pyenv or asdf shim finds the program it stands for, and idb
 finds `idb_companion`.
 
+If your startup files live in a folder macOS protects, such as Documents, Desktop or iCloud Drive —
+for example when `.zshrc` is a link to a file kept in Documents — macOS asks whether JetWhale
+Debugger may access that folder when the shell starts. The shell waits for the answer, so an answer
+given after 5 seconds takes effect from the next run of the host. If you choose **Don't Allow**, the
+shell cannot read those files, and the tools they put on `PATH`, through pyenv or asdf for example,
+are not found. Either make the tool reachable from one of the directories in step 3, for example by
+linking it in a terminal:
+
+```shell
+mkdir -p ~/.local/bin
+ln -s "$(command -v idb)" ~/.local/bin/idb
+```
+
+or allow the access later under **System Settings → Privacy & Security → Files & Folders**. Then
+restart the host.
+
 If a tool is reported missing although it is installed, open a new terminal and check that
 `command -v <tool>` prints its path. If it prints nothing, add the tool's directory to `PATH` in your
-shell's startup files. If it prints a path, check that your startup files finish within 5 seconds
-without asking for input. Then restart the host, which reads the `PATH` again.
+shell's startup files. If it prints a path, link it into `~/.local/bin` as above, or check that your
+startup files finish within 5 seconds without asking for input. Then restart the host, which looks
+for the tools again.
 
 ## Using it
 

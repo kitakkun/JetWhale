@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -29,22 +30,15 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
 private val toolLocationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /**
- * The tools this plugin drives, located once per process when first awaited. They are looked for
- * on the login shell's PATH, which can take seconds to read, so callers suspend on it rather than
- * block the thread that first needs a tool, which may be the UI thread.
+ * The tools this plugin drives, located once per process when first awaited. A tool found nowhere
+ * else is looked for on the login shell's PATH, which can take seconds to read, so callers suspend on
+ * it rather than block the thread that first needs a tool, which may be the UI thread.
  */
 private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    val loginShellPathVariable = if (runsOnWindows) {
-        null
-    } else {
-        val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
-        LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds).resolveLoginShellPathVariable()
-    }
-    val searchDirectories = toolDirectories(loginShellPathVariable = loginShellPathVariable, pathVariable = System.getenv("PATH"))
-    if (loginShellPathVariable != null) SystemProcessLauncher.launchedProcessPathVariable = searchDirectories.joinToString(File.pathSeparator)
     val home = System.getProperty("user.home")
-    MirrorToolLocator(
-        searchDirectories = searchDirectories,
+    val toolSearchResult = MirrorToolLocator(
+        hostPathVariable = System.getenv("PATH"),
+        wellKnownDirectories = if (runsOnWindows) emptyList() else WellKnownToolDirectories(File(home)).list(),
         androidSdkDirectories = listOfNotNull(
             System.getenv("ANDROID_HOME"),
             System.getenv("ANDROID_SDK_ROOT"),
@@ -52,7 +46,37 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
             "$home/Android/Sdk",
             System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
         ),
-    ).locateToolPaths()
+        loginShellPathVariableResolver = if (runsOnWindows) {
+            null
+        } else {
+            val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
+            LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds)
+        },
+    ).locateTools()
+    // On Windows the search adds nothing to the PATH, and the variable is spelled `Path` there, so
+    // setting `PATH` would add a second one beside it.
+    if (!runsOnWindows) SystemProcessLauncher.launchedProcessPathVariable = toolSearchResult.searchedDirectories.joinToString(File.pathSeparator)
+    toolSearchResult.toolPaths
+}
+
+/**
+ * The directories this plugin's tools are commonly installed in on macOS and Linux, for the user
+ * whose home is [homeDirectory], searched whether or not a PATH lists them:
+ * - Homebrew's, where it links idb_companion, ffmpeg and the adb of its android-platform-tools cask:
+ *   `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
+ * - `~/.local/bin`, where pipx and uv install idb's client;
+ * - pip's per-user directories on macOS, newest Python first, where `pip3 install fb-idb` puts idb
+ *   when it cannot write to the Python it runs under, as with Xcode's;
+ * - pyenv's shims, where idb lands when pip runs under a pyenv Python.
+ */
+@VisibleForTesting
+internal class WellKnownToolDirectories(private val homeDirectory: File) {
+    fun list(): List<String> {
+        val pipUserDirectories = File(homeDirectory, "Library/Python").listFiles(File::isDirectory).orEmpty()
+            .sortedWith(compareByDescending<File> { it.name.substringBefore('.').toIntOrNull() }.thenByDescending { it.name.substringAfter('.').toIntOrNull() })
+            .map { File(it, "bin").path }
+        return listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path) + pipUserDirectories + File(homeDirectory, ".pyenv/shims").path
+    }
 }
 
 private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
