@@ -101,7 +101,7 @@ internal suspend fun runCommandChecked(vararg command: String): CommandResult {
 }
 
 /** The paths of the external tools this plugin drives; a missing tool is null. */
-internal class MirrorToolPaths(
+internal data class MirrorToolPaths(
     val adbPath: String?,
     val idbPath: String?,
     val idbCompanionPath: String?,
@@ -110,7 +110,7 @@ internal class MirrorToolPaths(
 )
 
 /** The tools [MirrorToolLocator] found, and the directories it searched for them, in the order it searched them. */
-internal class MirrorToolSearchResult(
+internal data class MirrorToolSearchResult(
     val toolPaths: MirrorToolPaths,
     val searchedDirectories: List<String>,
 )
