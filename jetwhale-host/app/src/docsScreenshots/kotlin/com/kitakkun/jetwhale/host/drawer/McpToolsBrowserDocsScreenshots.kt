@@ -59,6 +59,7 @@ class McpToolsBrowserDocsScreenshots {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     McpToolsScreen(
                         uiState = toolsBrowserUiState(),
+                        initialTab = McpToolsTab.Tools,
                         onSelectPluginFilters = {},
                         onSelectSessionFilters = {},
                         modifier = Modifier.testTag(TOOLS_BROWSER_TAG),
