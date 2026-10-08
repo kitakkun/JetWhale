@@ -23,8 +23,9 @@ private const val APP_PATH_PROPERTY = "jpackage.app-path"
 private const val RELEASES_PAGE = "https://github.com/kitakkun/JetWhale/releases"
 
 /**
- * The time after a host's start in which a crash counts against the start. It is the startup grace of
- * the host's crash recovery, so the launcher and the host count the same crashes as startup crashes.
+ * How long after the host's main is called a crash, a kill or a throw from that main still counts as
+ * a failed start of its version. A host that runs past it has completed its start, and the launcher
+ * counts none of that version's later failures.
  */
 private val STARTUP_TIME_WINDOW = 30.seconds
 private val AFTER_PROCESS_TIMEOUT = 60.seconds
