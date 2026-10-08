@@ -374,7 +374,7 @@ Wire messages, named the way Debug Actions names its own:
 | `panels/list_panels` → `panels/catalog` | host → agent | Every panel declared now; asked on connect |
 | `panels/get_panel_content {panelId}` → `panels/panel_content {revision, content}` | host → agent | A panel's current content |
 | `panels/panels_changed {catalog}` | agent → host | A panel was added or removed |
-| `panels/content_changed {panelId, revision, content}` | agent → host | A table, key-value list or tree changed |
+| `panels/content_changed {panelId, revision, content}` | agent → host | A table, key-value list or tree changed; or an event log's latest entries, resent after a `log_appended` failed |
 | `panels/log_appended {panelId, entries}` | agent → host | New log entries |
 
 The agent keeps the latest content of every panel, so a host that connects late, or enables the
@@ -424,6 +424,12 @@ launching, which avoids the `App.init` crash above. `JETWHALE` is the app's own 
 condition, set in the configurations that should carry JetWhale; see
 [Keeping it out of release builds](#keeping-it-out-of-release-builds).
 
+`.serverCertificate` is `trustServerCertificate()`: trust on first use, since the CA download is
+not authenticated. Combined with LAN discovery, a device on the same network can hand out its own
+CA and pose as the host. On a network that is not trusted, pin a CA exported from the host instead
+(`.certificate(pem:)`, which is `trustCertificate(pem)`), as the
+[connecting guide](../guide/connecting.md) describes for Kotlin apps.
+
 Debug Actions, with arguments from a `Codable` type:
 
 ```swift
@@ -453,7 +459,8 @@ CheckoutView().debugActions { actions in
 The parameter list comes from running `SignIn.init(from:)` once against a decoder that records what
 it is asked for: a key read with `decode` is required, with `decodeIfPresent` optional; `String`,
 integer, floating-point and `Bool` reads give their input types; a `CaseIterable` `RawRepresentable`
-type gives an enum with its cases; anything else is JSON. Swift's synthesized `Codable` ignores
+type whose raw value is `String` gives an enum with its cases, since the host's form sends the
+chosen case as a string; anything else is JSON. Swift's synthesized `Codable` ignores
 property defaults, so "may be left out" means `Optional`.
 
 Only a synthesized `init(from:)` is supported. A hand-written one can validate, branch, require
