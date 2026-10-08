@@ -314,8 +314,9 @@ Proposed, for option 3:
    it writes `nil` as `null` wherever Kotlin has no default, and the `"type"` discriminator for
    sealed types. A type it cannot map fails the task with the property's path. The Kotlin author
    keeps writing data classes.
-2. **Send a contract hash.** The generator also writes a hash of the descriptors, and the agent
-   sends it per plugin. `capabilities` is one session-wide `Map<String, String>`, so it needs either
+2. **Send a contract hash.** The generator also writes a hash of the descriptors and of each
+   request's reply type, so a request that keeps its serializer but changes `R` changes the hash, and
+   the agent sends it per plugin. `capabilities` is one session-wide `Map<String, String>`, so it needs either
    a key scheme (`contract.<pluginId>`) or a new field on `JetWhalePluginInfo`; both are wire-visible
    and have to be settled before the first release that uses them. The host warns when the hashes
    differ and decodes leniently, which keeps the cross-version tolerance `ignoreUnknownKeys` exists
@@ -383,7 +384,8 @@ updates a table every frame sends the latest one at most every 250 ms. Log entri
 sequence number per panel. `log_appended` is sent with `trySend`, not buffered: after a reconnect
 the host asks for the content again and gets the log's latest entries with their sequence numbers,
 so nothing is counted twice, and a gap in the numbers says that entries fell out of the log's
-capacity. `trySend` also fails while connected when the outgoing queue is full, and then no
+capacity. The host keeps each panel's revision and ignores content older than it holds, such as a
+`get_panel_content` answer that arrives after a newer `content_changed`. `trySend` also fails while connected when the outgoing queue is full, and then no
 reconnect follows. So a failed `log_appended` marks the panel stale, and each 250 ms tick sends a
 stale panel's `content_changed`, with the log's latest entries, until a send succeeds.
 
@@ -418,7 +420,8 @@ struct MyApp: App {
             config.appName = "My App (staging)"
             config.endpoints = [.ws(host: "localhost", port: 5080), .discoverWss(allowHostNames: ["my-mac"])]
             config.trust = .serverCertificate
-            config.plugins = [.semanticsInspector, .storageInspector, .networkInspector(.urlSession)]
+            config.plugins = [.semanticsInspector, .storageInspector, .networkInspector(.urlSession),
+                              .debugActions, .customPanels]
         }
         #endif
     }
@@ -426,7 +429,9 @@ struct MyApp: App {
 ```
 
 `start` returns at once and installs the semantics probe when the application has finished
-launching, which avoids the `App.init` crash above. `JETWHALE` is the app's own compilation
+launching, which avoids the `App.init` crash above. The plugin list is fixed when `start` runs, as
+`startJetWhale` fixes it, so `.debugActions` and `.customPanels` have to be in it for the
+`JetWhale.actions` and `JetWhale.panel` calls below to reach the host. `JETWHALE` is the app's own compilation
 condition, set in the configurations that should carry JetWhale; see
 [Keeping it out of release builds](#keeping-it-out-of-release-builds).
 
@@ -676,6 +681,9 @@ the Network core, so the `URLSession` adapter needs no change to the plugin itse
   `HTTPURLResponse` and body after the mock's `delayMs`, or performs the request on an inner session
   whose requests carry a `URLProtocol.setProperty` marker so the adapter does not intercept itself.
   The response is recorded with timing and a body truncated as the Ktor adapter truncates it.
+- `stopLoading` cancels the pending mock delay or the inner task, and the adapter calls the
+  protocol client no more after that, so a cancelled request neither reaches the network nor
+  records a response.
 - Not covered: background sessions (`URLProtocol` does not run for them), `URLSessionWebSocketTask`,
   and upload bodies given as streams, which are recorded as absent. Streaming responses are passed
   through as they arrive and recorded when complete.
