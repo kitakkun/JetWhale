@@ -112,7 +112,14 @@ struct HttpRequest {
         let bodyStart = headerEnd.upperBound
         guard data.endIndex - bodyStart >= length else { return .incomplete }
         let body = data[bodyStart..<(bodyStart + length)]
-        let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
+        let json: [String: Any]
+        if body.isEmpty {
+            json = [:]
+        } else if let object = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] {
+            json = object
+        } else {
+            return .malformed("the body is not a JSON object")
+        }
         return .complete(HttpRequest(path: String(requestLine[1]), headers: headers, json: json), rest: Data(data[(bodyStart + length)...]))
     }
 }

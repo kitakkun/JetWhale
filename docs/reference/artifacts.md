@@ -23,7 +23,7 @@ same version as the host release they belong to.
 | `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 | `jetwhale-debug-actions`, `-agent`, `-agent-compose`, `-protocol` | [Debug Actions](/guide/debug-actions). |
 | `jetwhale-device-mirror` | [Device Mirror](/guide/device-mirror); host-only, no app artifact. |
-| `jetwhale-ios-xctest-runner` | A host plugin that drives iOS simulators or iPhones, bundled into its jar: the client of the XCTest runner that Device Mirror sends input through, shared by every plugin on the machine — see [Input on iOS](/guide/device-mirror#input-on-ios). |
+| `jetwhale-ios-xctest-runner` | A JVM library, not a plugin: a host plugin that drives iOS simulators or iPhones bundles it into its own jar. It is the client of the XCTest runner that Device Mirror sends input through, shared by every plugin on the machine — see [Input on iOS](/guide/device-mirror#input-on-ios). |
 
 In each plugin row, the first artifact (the one without an `-agent` or `-protocol` suffix) is the
 **host** plugin jar. You install it into the host rather than into your app; see
