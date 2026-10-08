@@ -23,8 +23,10 @@ private const val APP_PATH_PROPERTY = "jpackage.app-path"
 private const val RELEASES_PAGE = "https://github.com/kitakkun/JetWhale/releases"
 
 /**
- * How long after the host's main is called a crash, a kill or a throw from that main still counts as
- * a failed start of its version. A host that runs past it has completed its start, and the launcher
+ * How long a start of the host is watched, from just before the launcher calls the host's main. Within
+ * it, a throw from that main, or an end that skips the shutdown hook (a crash, `kill -9`), counts as a
+ * failed start of its version; an end that runs the shutdown hook (quitting, a restart, SIGTERM)
+ * counts as neither. A host still running when it ends has completed its start, and the launcher
  * counts none of that version's later failures.
  */
 private val STARTUP_TIME_WINDOW = 30.seconds
