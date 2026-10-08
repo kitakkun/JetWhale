@@ -4,6 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -11,7 +12,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import java.io.IOException
 import java.io.InputStream
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
@@ -22,8 +22,8 @@ import kotlin.time.Duration
 /** How long a companion gets to report its port; a device that needs pairing never does. */
 private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
 
-/** How long the host's exit waits for idb to forget the companions it killed. */
-private const val EXIT_DISCONNECT_TIMEOUT_MILLIS = 3_000L
+/** How long a cleanup that cannot wait, such as the host's exit, waits for idb to forget companions. */
+private const val DISCONNECT_DEADLINE_MILLIS = 3_000L
 
 /**
  * The idb companions of iOS devices and simulators: a companion process per device, which idb is
@@ -60,15 +60,20 @@ internal class IdbCompanions(
         val port = ports.freePort()
         val process = launcher.start(listOf(idbCompanionPath, "--udid", udid, "--grpc-port", "$port"))
         // Until it is recorded below, nothing else stops this companion, not even the host's exit, so
-        // any failure ends it here, a cancelled caller's included.
+        // any failure ends it here, a cancelled caller's included. idb may have recorded it already.
         var recorded = false
+        var connectStarted = false
         try {
             awaitReady(process)
+            connectStarted = true
             commands.runChecked(listOf(idbPath, "connect", "localhost", "$port"))
             running[udid] = RunningCompanion(process, port, users = 1)
             recorded = true
         } finally {
-            if (!recorded) process.destroyForcibly()
+            if (!recorded) {
+                process.destroyForcibly()
+                if (connectStarted) withContext(NonCancellable + Dispatchers.IO) { disconnectIdbWithDeadline(listOf(port)) }
+            }
         }
     }
 
@@ -104,22 +109,27 @@ internal class IdbCompanions(
 
     fun isRunning(udid: String): Boolean = running.containsKey(udid)
 
-    /**
-     * Kills every companion at once and tells idb they are gone, waiting at most
-     * [EXIT_DISCONNECT_TIMEOUT_MILLIS] for idb; for when the host exits.
-     */
+    /** Kills every companion at once and tells idb they are gone; for when the host exits. */
     fun destroyAllNow() {
         running.values.forEach { it.process.destroyForcibly() }
         // idb records a companion it was told about in state that every idb client shares, and an
         // `idb --udid` call for that device or simulator fails on the dead one until it is disconnected.
-        val disconnectProcesses = running.values.mapNotNull { companion ->
+        disconnectIdbWithDeadline(running.values.map(RunningCompanion::port))
+    }
+
+    /**
+     * Tells idb to forget the companions at [companionPorts], ending any disconnect still running
+     * after [DISCONNECT_DEADLINE_MILLIS].
+     */
+    private fun disconnectIdbWithDeadline(companionPorts: List<Int>) {
+        val disconnectProcesses = companionPorts.mapNotNull { port ->
             try {
-                launcher.start(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
-            } catch (_: IOException) {
+                launcher.start(listOf(idbPath, "disconnect", "localhost", "$port"))
+            } catch (_: DeviceControlException) {
                 null
             }
         }
-        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(EXIT_DISCONNECT_TIMEOUT_MILLIS)
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DISCONNECT_DEADLINE_MILLIS)
         disconnectProcesses.forEach { disconnectProcess ->
             if (!disconnectProcess.waitFor(maxOf(deadlineNanos - System.nanoTime(), 0), TimeUnit.NANOSECONDS)) disconnectProcess.destroyForcibly()
         }

@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,6 +28,12 @@ class IdbCompanionsTest {
     private val commands = mutableListOf<List<String>>()
     private var nextPort = 10_000
     private var companionsReport = true
+
+    /** Set to make `idb connect` run until its caller is cancelled, completing [connectReached] once it starts. */
+    private var connectHangs = false
+    private val connectReached = CompletableDeferred<Unit>()
+
+    private var disconnectLaunchFails = false
 
     private val idleTimeout = 3.minutes
 
@@ -132,6 +140,33 @@ class IdbCompanionsTest {
     }
 
     @Test
+    fun `an idb that cannot be launched to disconnect does not stop the exit from killing every companion`() = runTest {
+        val companions = companions()
+        companions.acquire("udid-1")
+        companions.acquire("udid-2")
+        disconnectLaunchFails = true
+
+        companions.destroyAllNow()
+
+        assertTrue(started.all(FakeCompanionProcess::destroyed))
+    }
+
+    @Test
+    fun `a caller cancelled while idb connects to the companion has idb forget it`() = runTest {
+        val companions = companions()
+        connectHangs = true
+        val acquiring = launch { companions.acquire("udid-1") }
+        connectReached.await()
+
+        acquiring.cancelAndJoin()
+
+        val (companionProcess, disconnectProcess) = started
+        assertTrue(companionProcess.destroyed)
+        assertEquals(listOf("idb", "disconnect", "localhost", "10000"), disconnectProcess.command)
+        assertFalse(companions.isRunning("udid-1"))
+    }
+
+    @Test
     fun `releasing everything stops every device's companion`() = runTest {
         val companions = companions()
         companions.acquire("udid-1")
@@ -146,9 +181,16 @@ class IdbCompanionsTest {
         idbCompanionPath = "idb_companion",
         idbPath = "idb",
         launcher = { command ->
+            if (disconnectLaunchFails && command[1] == "disconnect") throw deviceControlError("idb could not be launched")
             FakeCompanionProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
         },
-        commands = { command -> commands += command },
+        commands = { command ->
+            commands += command
+            if (connectHangs && command[1] == "connect") {
+                connectReached.complete(Unit)
+                awaitCancellation()
+            }
+        },
         ports = { nextPort++ },
         idleTimeout = idleTimeout,
         scope = backgroundScope,
