@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -137,6 +138,23 @@ class IdbCompanionsTest {
 
         assertTrue(started.single().destroyed)
         assertFalse(companions.isRunning("udid-1"))
+    }
+
+    @Test
+    fun `the host's exit also kills a companion still starting, and starts none after it`() = runTest {
+        val companions = companions()
+        companionsReport = false
+        val acquiring = launch { companions.acquire("udid-1") }
+        while (started.isEmpty()) yield()
+
+        companions.destroyAllNow()
+        acquiring.cancelAndJoin()
+
+        val (companionProcess, disconnectProcess) = started
+        assertTrue(companionProcess.destroyed)
+        assertEquals(listOf("idb", "disconnect", "localhost", "10000"), disconnectProcess.command)
+        assertFailsWith<DeviceControlException> { companions.acquire("udid-2") }
+        assertEquals(2, started.size)
     }
 
     @Test
