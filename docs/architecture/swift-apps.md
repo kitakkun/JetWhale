@@ -371,9 +371,9 @@ Wire messages, named the way Debug Actions names its own:
 
 | Message | Direction | Purpose |
 |---|---|---|
-| `panels/list_panels` → `panels/catalog` | host → agent | Every panel declared now; asked on connect |
+| `panels/list_panels` → `panels/catalog {catalogRevision, panels}` | host → agent | Every panel declared now; asked on connect |
 | `panels/get_panel_content {panelId}` → `panels/panel_content {revision, content}` | host → agent | A panel's current content |
-| `panels/panels_changed {catalog}` | agent → host | A panel was added or removed |
+| `panels/panels_changed {catalogRevision, panels}` | agent → host | A panel was added or removed |
 | `panels/content_changed {panelId, revision, content}` | agent → host | A table, key-value list or tree changed; or an event log's latest entries, resent after a `log_appended` failed |
 | `panels/log_appended {panelId, entries}` | agent → host | New log entries |
 
@@ -386,6 +386,12 @@ so nothing is counted twice, and a gap in the numbers says that entries fell out
 capacity. `trySend` also fails while connected when the outgoing queue is full, and then no
 reconnect follows. So a failed `log_appended` marks the panel stale, and each 250 ms tick sends a
 stale panel's `content_changed`, with the log's latest entries, until a send succeeds.
+
+The catalog follows the same rules. Its revision rises with every panel added or removed, and both
+`catalog` and `panels_changed` carry it, so a host ignores a catalog older than the one it holds,
+such as a `list_panels` answer that arrives after a newer `panels_changed`. A `panels_changed` that
+cannot be queued marks the catalog stale, and the 250 ms tick sends the latest catalog until a send
+succeeds.
 
 MCP, fixed per plugin:
 
