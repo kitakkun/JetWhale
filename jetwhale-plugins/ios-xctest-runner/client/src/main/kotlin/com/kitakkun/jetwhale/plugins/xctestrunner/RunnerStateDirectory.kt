@@ -51,14 +51,15 @@ internal class RunnerStateDirectory(private val directory: File) {
     /** Records [state] at once, readable by this user only: it holds the runner's token. */
     fun writeRunnerState(udid: String, runnerState: RunnerState) {
         directory.mkdirs()
-        val staging = File(directory, "$udid.json.partial")
-        staging.writeText(StateJson.encodeToString(RunnerState.serializer(), runnerState))
+        val staging = File(directory, "$udid.json.partial").toPath()
+        Files.deleteIfExists(staging)
         try {
-            Files.setPosixFilePermissions(staging.toPath(), PosixFilePermissions.fromString("rw-------"))
+            Files.createFile(staging, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
         } catch (_: UnsupportedOperationException) {
             // Not a POSIX file system, which runners never meet: they exist on macOS only.
         }
-        Files.move(staging.toPath(), stateFileOf(udid).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        Files.writeString(staging, StateJson.encodeToString(RunnerState.serializer(), runnerState))
+        Files.move(staging, stateFileOf(udid).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 
     /**

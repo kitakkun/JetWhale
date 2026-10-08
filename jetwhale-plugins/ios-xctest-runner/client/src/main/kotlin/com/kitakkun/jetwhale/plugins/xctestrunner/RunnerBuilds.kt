@@ -83,7 +83,11 @@ internal class RunnerBuilds(
 
     private suspend fun build(projectDirectory: File, derivedData: File, destination: RunnerDestination): File {
         val source = File(projectDirectory, "source")
-        if (!source.isDirectory) withContext(Dispatchers.IO) { unpack(runnerProjectZip, source) }
+        // Each destination builds under its own lock, so a simulator's and a device's build may
+        // reach here together; they share the one unpacked source.
+        withFileLock(File(projectDirectory, "source.lock"), lockTimeout) {
+            if (!source.isDirectory) withContext(Dispatchers.IO) { unpack(runnerProjectZip, source) }
+        }
         File(derivedData, BUILD_COMPLETE_MARKER).delete()
         val result = commandOutputRunner.run(buildCommand(source, derivedData, destination))
         if (result.exitCode != 0) throw XcTestRunnerStartException(XcodebuildFailures.reasonOf(result.text, destination), null)

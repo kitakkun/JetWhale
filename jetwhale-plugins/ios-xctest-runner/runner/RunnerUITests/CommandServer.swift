@@ -95,6 +95,7 @@ struct HttpRequest {
         guard let headerEnd = data.range(of: Data("\r\n\r\n".utf8)) else {
             return data.count > maxHeaderBytes ? .malformed("the request's headers are too long") : .incomplete
         }
+        guard headerEnd.lowerBound - data.startIndex <= maxHeaderBytes else { return .malformed("the request's headers are too long") }
         let lines = String(decoding: data[data.startIndex..<headerEnd.lowerBound], as: UTF8.self).components(separatedBy: "\r\n")
         let requestLine = lines.first?.split(separator: " ") ?? []
         guard requestLine.count >= 2 else { return .malformed("the request line is not METHOD PATH VERSION") }

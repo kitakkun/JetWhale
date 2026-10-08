@@ -463,7 +463,11 @@ internal class DeviceMirror(
 
     override val developmentTeam: String? get() = developmentTeamSetting.developmentTeam
 
-    override fun updateDevelopmentTeam(team: String?) = developmentTeamSetting.updateDevelopmentTeam(team)
+    override fun updateDevelopmentTeam(team: String?) {
+        developmentTeamSetting.updateDevelopmentTeam(team)
+        // The shown iPhone's stream opened before it had a team, so it started no runner then.
+        (selectedDevice?.controller as? IosPhysicalDeviceController)?.startRunnerInBackground()
+    }
 
     override fun saveScreenshot() {
         val device = selectedDevice ?: return

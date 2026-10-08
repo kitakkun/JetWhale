@@ -155,6 +155,18 @@ class IosInputTest {
     }
 
     @Test
+    fun `an iPhone starts its runner in the background once a team lets it take input`() = runTest {
+        val iphone = iphone()
+        runners.refusal = "driving an iPhone needs your Apple development team"
+
+        iphone.startRunnerInBackground()
+        runners.refusal = null
+        iphone.startRunnerInBackground()
+
+        assertEquals(listOf("00008110"), runners.startedInBackground.map(XcTestRunnerTarget::udid))
+    }
+
+    @Test
     fun `an iPhone's input goes to the runner of that device`() = runTest {
         val iphone = iphone()
 

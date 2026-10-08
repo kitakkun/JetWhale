@@ -99,6 +99,11 @@ internal class IosPhysicalDeviceController(
         }
     }
 
+    /** Starts the runner ahead of the first input, once the iPhone can take input; until then, does nothing. */
+    fun startRunnerInBackground() {
+        if (inputRefusal() == null) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+    }
+
     private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -133,7 +138,7 @@ internal class IosPhysicalDeviceController(
 
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        if (inputRefusal() == null) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+        startRunnerInBackground()
         val ffmpegPath = requireFfmpegPath("mirroring a physical iOS device")
         holdCompanion()
         return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand()), ffmpegPath) }
