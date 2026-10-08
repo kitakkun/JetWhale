@@ -198,16 +198,18 @@ The rules behind them:
   launch.lock, instance.lock, instance.json
 ```
 
-The directory keeps at most two versions, a download under way included: the one running and one
-newer one.
+Once its deletes succeed, the directory keeps at most two versions, a download under way included:
+the one running and one newer one.
 - After a version completes a start, the launcher deletes every downloaded version older than it.
   Of the newer ones it keeps only the newest, which is set aside or finished downloading during
   the start, so the user can try it again or restart to it.
 - When a download starts, the host deletes every downloaded version except the one running. The
   new version supersedes a set-aside one, or one waiting for a restart, so a set-aside version
   stays until the user downloads a newer one.
-- On Windows a running host keeps its jar open, so a version still in use is deleted at a later
-  start.
+- A delete can fail, as it does on Windows for a jar a process still holds open, and the version
+  then stays until a later attempt removes it. The launcher logs the failure and tries again the
+  next time a start completes. The host's cleanup before a download ignores the failure, and the
+  next download's cleanup tries again.
 
 Only the launcher writes `launcher-state.json`, and only while it holds `launch.lock` (see *Single
 instance, reopen and restart*). Each write replaces the file through a rename, so the host, which
@@ -425,9 +427,12 @@ verifies and installs the one the user asks for, and restarts through the launch
     disk, is this kind, not unreachable.
 - **Every end is defined.** Whatever ends a check or a download, the section leaves *Checking* or
   *Downloading*. A check that ends in an error the service does not know goes back to not checked,
-  and a download that is cancelled or ends in such an error offers the release again. `staging/` is
-  cleared in every case. One that cannot be cleared, such as a file another program holds on
-  Windows, fails the download as not saved, and the next download tries again.
+  and a download that is cancelled or ends in such an error offers the release again.
+- **`staging/` is cleared on both sides of a download.** At its end, whatever ended it, a download
+  tries to clear `staging/`. A failure there is only logged: the status stays what the download
+  ended with, and `staging/`, which the launcher never reads, can be left behind. A download also
+  clears `staging/` before it starts, and one that cannot, such as when another program holds a
+  file there on Windows, fails as not saved.
 
 Without `jetwhale.launcher.contract`, the host was not started by the launcher, and the service
 downloads nothing. For `java -jar` and the Gradle tasks, the Updates section only links to the
@@ -595,8 +600,10 @@ launcher.
   The extra modules make that rare, and the check before download makes it clear.
 - **GitHub API limits.** 60 unauthenticated requests an hour per address can run out behind a
   shared NAT. A failed check is shown and changes nothing.
-- **Disk.** Up to three host jars of about 120 MB each: the bundled one, the running one, and one
-  newer one that is set aside, waiting for a restart, or being downloaded.
+- **Disk.** Up to three host jars of about 120 MB each once deletes succeed: the bundled one, the
+  running one, and one newer one that is set aside, waiting for a restart, or being downloaded. A
+  version whose delete failed, such as a jar still held open on Windows, adds to that until a later
+  completed start or download removes it.
 
 ## Open questions
 
