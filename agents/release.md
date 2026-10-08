@@ -85,13 +85,17 @@ git push origin <version>
 
 The tag starts two workflows:
 
-- **Publish** releases the SDKs, the official plugins, the Gradle plugins and the agent compiler
-  plugin to Maven Central.
+- **Publish** uploads the SDKs, the official plugins, the Gradle plugins and the agent compiler
+  plugin to the Central Portal as one deployment, and passes once the Portal has validated it.
+  Sonatype counts every deployment against the namespace's monthly release limit, so a release does
+  not run `publishToMavenCentral`, which uploads one deployment per Gradle build.
 - **Distribute Desktop Application** builds the host installers and creates a draft GitHub release.
   Its notes are the changelog section, followed by GitHub's list of merged PRs. It fails when the
   changelog has no section for the tag.
 
-The maintainer checks the draft release and publishes it as a pre-release.
+The deployment is not released on its own: the maintainer publishes it at
+<https://central.sonatype.com/publishing/deployments>. The maintainer also checks the draft release
+and publishes it as a pre-release.
 
 ## After the release
 

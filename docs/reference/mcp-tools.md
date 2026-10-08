@@ -24,6 +24,7 @@ semantics tree, so an agent can use any plugin the way you do.
 |------|--------------|
 | `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
 | `jetwhale.click` | Invokes the `OnClick` action of the deepest clickable node at pixel coordinates in a plugin's UI; no pointer event is sent |
+| `jetwhale.secondaryClick` | Sends a secondary-button (right) press and release at pixel coordinates, to open a context menu |
 | `jetwhale.type` | Types text or a special key into a plugin's UI |
 | `jetwhale.scroll` | Dispatches a scroll event in a plugin's UI |
 | `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |
@@ -42,6 +43,7 @@ Beyond that pair, each tool takes:
 | `screenshot` | `width`, `height` | no | the UI's current size (fallback 1280×720) | Render at a different size for this capture only. Must be supplied **together**. |
 | | `density` | no | the scene's own density | e.g. `2` for HiDPI. Must be finite and greater than 0. |
 | `click` | `x`, `y` | yes | — | Pixels from the plugin UI's left/top edge. |
+| `secondaryClick` | `x`, `y` | yes | — | Pixels from the plugin UI's left/top edge. |
 | `type` | `text` | no | — | Printable characters to type. |
 | | `specialKey` | no | — | A key name instead of text. **Exactly one** of `text` / `specialKey` must be given. |
 | `scroll` | `x`, `y` | yes | — | Where to scroll. |
@@ -58,6 +60,21 @@ Beyond that pair, each tool takes:
 - **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
   point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
   back as *No clickable element found* rather than silently doing nothing.
+- **`jetwhale.secondaryClick` is a raw pointer event**: a secondary-button press and release at the
+  point, so a `ContextMenuArea` or a handler that checks for the secondary button reacts as it would
+  to a right-click. It answers with `consumed` (whether a handler consumed the press or release),
+  `openedPopup` and `closedPopup`, and `popupClickableNodes`: the clickable nodes of every popup
+  still open, such as a menu's items, topmost popup first and in the node shape
+  `jetwhale.getAccessibilityTree` returns. Pick an item with `jetwhale.click` at the center of its
+  `bounds`. The nodes are left out when the plugin's UI may not be inspected (see
+  [Permissions](/guide/mcp-server#permissions)). When nothing consumed the click and no popup opened,
+  closed or is open, it comes back as an error; a handler that reacts without consuming the event is
+  not detected, so check with a screenshot.
+- **An open menu stays open until something closes it.** Picking an item closes it. To close it
+  without picking one, `jetwhale.secondaryClick` outside it: like a real click outside a menu, that
+  press only closes the menu (`closedPopup: true`) and reaches nothing beneath it. `jetwhale.click`
+  outside the menu leaves it open: it invokes the clickable element beneath the point as if the menu
+  were not there.
 - **`jetwhale.type`'s `text` goes to the focused text field**, where a user's keystrokes would land,
   or to the first text field in the scene when none has focus. Click a field first when the target
   matters. A special key is dispatched as a real key-down/key-up pair.
@@ -65,10 +82,12 @@ Beyond that pair, each tool takes:
 
 `jetwhale.getAccessibilityTree` returns each node's `id`, `role`, `text`, `contentDescription`,
 `bounds` (relative to the plugin UI's root) and the `isClickable` / `isEnabled` / `isFocused` /
-`isSelected` / `isChecked` / `isEditable` flags, nested by `children`. It and `jetwhale.screenshot`
-both raise the plugin's `LocalIsMcpCapture`, so a plugin's
+`isSelected` / `isChecked` / `isEditable` flags, nested by `children`. An open popup or dialog,
+such as a context menu, comes after the plugin's own content as a top-level node of its own, and
+`jetwhale.screenshot` draws it over that content. The tree and the screenshot both raise the
+plugin's `LocalIsMcpCapture`, so a plugin's
 [sensitive-value hiding](/guide/developing-plugins#hiding-sensitive-ui-from-mcp-captures) applies to
-either.
+either, and so does `jetwhale.secondaryClick` when it reads the items of a popup.
 
 ::: tip Reading the *app's* UI, not the plugin's
 These tools read the **host window's** Compose UI. To read the debugged app's own Compose tree, and
@@ -118,27 +137,42 @@ Every argument is optional; only the ones you supply are touched.
 | `mcpServerPort` | integer | The MCP server's port. Persisted only; see the warning below. |
 | `adbAutoPortMappingEnabled` | boolean | [ADB auto port mapping](/guide/adb-auto-port-mapping). |
 | `persistData` | boolean | Whether captured debug data survives a host restart. |
+| `theme` | string | The window's theme, as on [Settings → Appearance](/guide/host-settings#appearance): `LIGHT`, `DARK`, or `DYNAMIC`, which follows the OS light or dark appearance. |
 | `restartDebugServer` | boolean | Whether to restart the debug server now. Defaults to `true` when any of `serverPort`, `wssPort`, `wssEnabled` or `adbAutoPortMappingEnabled` changed. |
 
-Ports are validated (`1..65535`) before anything is written, and a call that supplies no settings is
-rejected. The result reports which keys were applied, whether the debug server was restarted, and
-notes explaining any deferred effect.
+Ports and the theme name are validated before anything is written, and a call that supplies no
+settings is rejected. The result reports which keys were applied, whether the debug server was
+restarted, and notes explaining any deferred effect. `jetwhale.getStatus` reports the theme under
+`settings.theme`.
+
+A theme change re-themes the window at once, as choosing it in Settings does. On macOS the title bar
+is the exception: it follows the system's light or dark appearance whichever theme is chosen,
+because macOS takes the window frame's appearance once, when the host starts.
 
 ### `jetwhale.navigate`
 
 | Argument | Required | Accepted values |
 |----------|----------|-----------------|
-| `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
+| `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER`, `MCP_TOOLS` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
 | `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the sidebar. |
-| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. `SERVER` is the page the window titles **Connection**. |
+| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`, opening the section's first page. Defaults to `GENERAL`. `SERVER` is the section the window titles **Connection**. |
+| `settingsPage` | no | Only for `SETTINGS`: `APPEARANCE`, `APPLICATION`, `DEBUG_SERVER`, `SSL_CERTIFICATE`, `ADB_SUPPORT`, `MCP_SERVER`, `PERMISSIONS`, `ACTIVITY`, `INSTALLED_PLUGINS`, `ADD_PLUGINS`, `SECURITY`, the pages of the settings menu. Takes the place of `settingsSection`; if both are given, the page has to be in that section. |
+| `mcpToolsTab` | no | Only for `MCP_TOOLS`: `TOOLS` or `HISTORY`. Defaults to `TOOLS`. |
 
 Navigating to `PLUGIN` also selects that session in the sidebar, which is what a following
 `jetwhale.screenshot` of the same plugin shows. The call waits up to two seconds for the window to
 confirm, and reports `applied: false` with a reason if it does not.
 
-`jetwhale.getStatus` can report destinations the tool cannot request: `DISABLED_PLUGIN`, `LICENSES`
-and `MCP_TOOLS`.
+`MCP_TOOLS` opens the [MCP tools browser](/guide/mcp-server#the-mcp-tools-browser) with no plugin or
+session filter. Like the Settings pages, it is for the person at the window: `jetwhale.screenshot`
+and the other UI tools read plugin screens only, so an agent cannot read the browser's call history
+through it. The result and `jetwhale.getStatus` report the page or tab the screen opened on, not one
+picked by hand inside it afterwards. Settings, Info and the MCP tools browser open as dialogs, and
+opening one closes any other that is open.
+
+`jetwhale.getStatus` can report destinations the tool cannot request: `DISABLED_PLUGIN` and
+`LICENSES`.
 
 ::: warning Destructive host tools
 `jetwhale.restartDebugServer`, and `jetwhale.updateSettings` when it changes a ws/wss setting, stop
