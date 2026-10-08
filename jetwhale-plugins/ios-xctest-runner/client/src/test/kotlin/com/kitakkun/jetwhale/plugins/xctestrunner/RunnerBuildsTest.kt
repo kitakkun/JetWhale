@@ -2,13 +2,19 @@ package com.kitakkun.jetwhale.plugins.xctestrunner
 
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.io.RandomAccessFile
 import java.nio.file.Files
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
 class RunnerBuildsTest {
@@ -44,13 +50,50 @@ class RunnerBuildsTest {
     }
 
     @Test
-    fun `another Xcode build builds the runner again`() = runBlocking {
-        builds().xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+    fun `an Xcode installed while the host runs gets a build of its own`() = runBlocking {
+        val builds = builds()
+        builds.xctestrunFor(RunnerDestination.Simulator("SIM-1"))
         xcodebuildCommands.buildVersion = "27B100"
 
-        builds().xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+        builds.xctestrunFor(RunnerDestination.Simulator("SIM-1"))
 
         assertEquals(2, xcodebuildCommands.buildCommands.size)
+    }
+
+    @Test
+    fun `an xctestrun that no completed build left is built again`() = runBlocking {
+        val builds = builds()
+        val first = builds.xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+        File(first.parentFile.parentFile.parentFile, "build-complete").delete()
+
+        builds.xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+
+        assertEquals(2, xcodebuildCommands.buildCommands.size)
+    }
+
+    @Test
+    fun `a build deletes builds for another Xcode, and another project's once unused for a week`() = runBlocking {
+        val otherXcodeProject = createProjectDirectory("26E100-0000000000000000", lastUsed = NOW)
+        val recentProject = createProjectDirectory("27A266a-1111111111111111", lastUsed = NOW.minus(Duration.ofDays(6)))
+        val unusedProject = createProjectDirectory("27A266a-2222222222222222", lastUsed = NOW.minus(Duration.ofDays(8)))
+
+        builds().xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+
+        assertFalse(otherXcodeProject.exists())
+        assertTrue(recentProject.exists())
+        assertFalse(unusedProject.exists())
+    }
+
+    @Test
+    fun `a stale build another plugin holds locked is left for later`() = runBlocking {
+        val otherXcodeProject = createProjectDirectory("26E100-0000000000000000", lastUsed = NOW)
+        RandomAccessFile(File(otherXcodeProject, "simulator.lock"), "rw").channel.use { channel ->
+            channel.lock().use {
+                builds().xctestrunFor(RunnerDestination.Simulator("SIM-1"))
+            }
+        }
+
+        assertTrue(otherXcodeProject.exists())
     }
 
     @Test
@@ -102,5 +145,25 @@ class RunnerBuildsTest {
         assertTrue(xcodebuildCommands.buildCommands.isEmpty())
     }
 
-    private fun builds(zip: ByteArray = runnerProjectZip()) = RunnerBuilds(buildsDirectory = buildsDirectory, runnerProjectZip = zip, xcrunPath = "xcrun", commandOutputRunner = xcodebuildCommands, lockTimeout = 1.minutes)
+    private fun builds(zip: ByteArray = runnerProjectZip()) = RunnerBuilds(
+        buildsDirectory = buildsDirectory,
+        runnerProjectZip = zip,
+        xcrunPath = "xcrun",
+        commandOutputRunner = xcodebuildCommands,
+        lockTimeout = 1.minutes,
+        unusedBuildLifetime = 7.days,
+        clock = Clock.fixed(NOW, ZoneOffset.UTC),
+    )
+
+    /** A project directory another client left, last used at [lastUsed], with a build lock in it. */
+    private fun createProjectDirectory(directoryName: String, lastUsed: Instant): File = File(buildsDirectory, directoryName).apply {
+        mkdirs()
+        File(this, "simulator.lock").createNewFile()
+        File(this, "last-used").apply {
+            createNewFile()
+            setLastModified(lastUsed.toEpochMilli())
+        }
+    }
 }
+
+private val NOW: Instant = Instant.parse("2026-10-09T00:00:00Z")

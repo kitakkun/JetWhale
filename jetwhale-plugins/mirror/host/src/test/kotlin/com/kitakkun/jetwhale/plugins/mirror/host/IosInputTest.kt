@@ -46,7 +46,7 @@ class IosInputTest {
 
     @Test
     fun `a simulator's input goes through its XCTest runner, in points, and not idb`() = runTest {
-        val simulator = simulator(idbPath = fakeIdb.path)
+        val simulator = simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true)
 
         simulator.tap(x = 603, y = 1311)
         simulator.swipe(fromX = 300, fromY = 2400, toX = 300, toY = 1200, durationMillis = 250)
@@ -64,7 +64,7 @@ class IosInputTest {
         assumeShellScriptsLaunch()
         runners.startFailure = "the XCTest runner did not start: error: something broke"
 
-        simulator(idbPath = fakeIdb.path).tap(x = 603, y = 1311)
+        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).tap(x = 603, y = 1311)
 
         assertEquals(listOf("describe --udid SIM-1 --json", "ui tap --udid SIM-1 201 437"), idbCalls.readLines())
     }
@@ -73,7 +73,7 @@ class IosInputTest {
     fun `without idb, a runner that cannot start is the reason the input failed`() = runTest {
         runners.startFailure = "the XCTest runner did not start: error: something broke"
 
-        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = null).inputText("hello") }
+        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = null, idbCanSendSimulatorInput = false).inputText("hello") }
 
         assertEquals("the XCTest runner did not start: error: something broke", failure.message)
     }
@@ -82,7 +82,7 @@ class IosInputTest {
     fun `a command the runner refuses fails with the runner's reason and does not fall back to idb`() = runTest {
         runners.runner.refusal = "the XCTest runner failed to typeText: this Xcode's XCTest has no text-input events"
 
-        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = fakeIdb.path).inputText("hello") }
+        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).inputText("hello") }
 
         assertEquals("the XCTest runner failed to typeText: this Xcode's XCTest has no text-input events", failure.message)
         assertFalse(idbCalls.exists())
@@ -92,15 +92,45 @@ class IosInputTest {
     fun `Recent apps on a simulator goes through idb, since no runner command opens the switcher`() = runTest {
         assumeShellScriptsLaunch()
 
-        simulator(idbPath = fakeIdb.path).pressButton(DeviceButton.Recents)
+        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).pressButton(DeviceButton.Recents)
 
         assertEquals(listOf("ui button --udid SIM-1 HOME", "ui button --udid SIM-1 HOME"), idbCalls.readLines())
         assertTrue(runners.runner.calls.isEmpty())
     }
 
     @Test
+    fun `an idb that cannot send input leaves Recent apps out, refuses it with the reason, and is not fallen back on`() = runTest {
+        runners.startFailure = "the XCTest runner did not start: error: something broke"
+        val simulator = simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = false)
+
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Power), simulator.capabilities.buttons)
+        val recentsFailure = assertFailsWith<DeviceControlException> { simulator.pressButton(DeviceButton.Recents) }
+        assertEquals("Recent apps on a simulator goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it", recentsFailure.message)
+        assertEquals("the XCTest runner did not start: error: something broke", assertFailsWith<DeviceControlException> { simulator.tap(x = 1, y = 1) }.message)
+        assertFalse(idbCalls.exists())
+    }
+
+    @Test
+    fun `idb sends input only where it finds SimulatorKit`() {
+        val developerDirectory = File(folder, "Developer")
+        assertFalse(isSimulatorKitInPrivateFrameworks(developerDirectory))
+
+        File(developerDirectory, "Library/PrivateFrameworks/SimulatorKit.framework").mkdirs()
+
+        assertTrue(isSimulatorKitInPrivateFrameworks(developerDirectory))
+    }
+
+    @Test
+    fun `showing a simulator starts its runner in the background, before any input`() = runTest {
+        assertFailsWith<DeviceControlException> { simulator(idbPath = null, idbCanSendSimulatorInput = false).openVideoStream(wanted = null) }
+
+        assertEquals(listOf("SIM-1"), runners.startedInBackground.map(XcTestRunnerTarget::udid))
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
     fun `a simulator without idb offers the buttons its runner presses`() = runTest {
-        assertEquals(listOf(DeviceButton.Home, DeviceButton.Power), simulator(idbPath = null).capabilities.buttons)
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
     }
 
     @Test
@@ -136,7 +166,7 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator(idbPath: String?) = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = idbPath, runnerInput = XcTestRunnerInput(runners))
+    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, runnerInput = XcTestRunnerInput(runners))
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
         udid = "00008110",
@@ -159,6 +189,7 @@ class IosInputTest {
 private class FakeXcTestRunners : XcTestRunners {
     val runner = FakeXcTestRunner()
     val askedFor = mutableListOf<XcTestRunnerTarget>()
+    val startedInBackground = mutableListOf<XcTestRunnerTarget>()
     var refusal: String? = null
     var startFailure: String? = null
 
@@ -170,7 +201,9 @@ private class FakeXcTestRunners : XcTestRunners {
         return runner
     }
 
-    override fun startRunnerInBackground(target: XcTestRunnerTarget) = Unit
+    override fun startRunnerInBackground(target: XcTestRunnerTarget) {
+        startedInBackground += target
+    }
 }
 
 /** A runner on a 1206x2622-pixel screen at 3x that notes what it is told, or refuses with [refusal]. */

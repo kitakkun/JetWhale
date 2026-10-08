@@ -22,6 +22,9 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     /** Set to make every command fail as if the runner had gone away. */
     var unreachable = false
 
+    /** Set to make every command fail as if the runner had stopped answering after taking it. */
+    var stopsAnsweringMidCommand = false
+
     /** What the runner does when told to shut down, besides noting it. */
     var onShutdown: () -> Unit = {}
 
@@ -33,6 +36,7 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     override suspend fun send(path: String, body: JsonObject) {
         if (unreachable) throw RunnerUnreachableException("connection refused", null)
         sent += path to body
+        if (stopsAnsweringMidCommand) throw XcTestRunnerException("the XCTest runner stopped answering during ${path.removePrefix("/")}", null)
         if (path == "/shutdown") onShutdown()
     }
 

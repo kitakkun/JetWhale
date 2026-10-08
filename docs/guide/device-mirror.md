@@ -102,7 +102,7 @@ field; it tries the video again after 5 seconds, then 15, then once a minute.
 
 The toolbar's buttons are grouped — navigation, volume, screen power, captures — and wrap as a whole
 in a narrow window. Android has Home, Back, Recent apps, Power, Volume up and Volume down; a simulator
-has Home and Power, plus Recent apps when idb is installed; an iPhone that takes input has Home,
+has Home and Power, plus Recent apps when idb can send input; an iPhone that takes input has Home,
 Power, Volume up and Volume down. On Android, **Screen off** and **Wake** turn the screen off and on,
 and Wake lifts a lock screen that has no PIN, pattern or password. **Stats** under the screen shows
 frames received and shown per second, the longest gap between frames, and how long decoding, copying
@@ -123,7 +123,7 @@ and system alerts included.
   data, in `xctest-runner/`.
 - **On a simulator**, when the runner cannot be built or started, input goes through idb instead, as
   it did before. idb's input no longer works with Xcode 27, though, so there the runner is the only
-  way. Recent apps still goes through idb.
+  way. Recent apps still goes through idb, and the button is left out when idb cannot send input.
 
 #### Input on a physical iPhone <Badge type="warning" text="experimental" />
 

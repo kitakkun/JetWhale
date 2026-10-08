@@ -61,7 +61,11 @@ internal class RunnerStateDirectory(private val directory: File) {
         Files.move(staging.toPath(), stateFileOf(udid).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 
-    /** Forgets the runner of [udid], unless the record is already another runner's than [pid]'s. */
+    /**
+     * Forgets the runner of [udid], unless the record is already another runner's than [pid]'s. Hold
+     * [withDeviceLock] around it, or another plugin may record a new runner between the check and
+     * the deletion.
+     */
     fun deleteRunnerState(udid: String, pid: Long) {
         if (readRunnerState(udid)?.pid == pid) stateFileOf(udid).delete()
     }

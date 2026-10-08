@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 
@@ -16,6 +17,7 @@ internal class InputTextCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
+        device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
         deviceOperation { device.controller.inputText(arguments[text]) }
         return okJson()
     }

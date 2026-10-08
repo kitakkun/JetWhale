@@ -15,6 +15,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.ConnectException
 
 /** The commands this client sends; `/status` reports the runner's, and an older runner is replaced. */
 internal const val PROTOCOL_VERSION = 1
@@ -31,7 +32,11 @@ internal data class RunnerStatus(
     val eventSynthesis: Boolean,
 )
 
-/** A runner that does not answer at all, as opposed to one that answers with an error. */
+/**
+ * A runner that took no connection, so the command was never sent and can be sent again. A runner
+ * that stops answering after taking the command throws [XcTestRunnerException] instead: it may have
+ * carried the command out.
+ */
 internal class RunnerUnreachableException(message: String, cause: Throwable?) : Exception(message, cause)
 
 /** One runner's HTTP endpoint. */
@@ -78,8 +83,10 @@ internal class HttpRunnerConnection(
             .build()
         val text = try {
             httpClient.newCall(request).execute().use { it.body.string() }
-        } catch (e: IOException) {
+        } catch (e: ConnectException) {
             throw RunnerUnreachableException("the XCTest runner did not answer: ${e.message}", e)
+        } catch (e: IOException) {
+            throw XcTestRunnerException("the XCTest runner stopped answering during ${path.removePrefix("/")}: ${e.message}", e)
         }
         val answer = try {
             RunnerJson.parseToJsonElement(text).jsonObject

@@ -4,7 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.RandomAccessFile
+import java.nio.channels.FileChannel
+import java.nio.channels.OverlappingFileLockException
 import java.security.MessageDigest
+import java.time.Clock
 import java.util.zip.ZipInputStream
 import kotlin.time.Duration
 
@@ -37,12 +41,22 @@ internal sealed interface RunnerDestination {
     }
 }
 
+/** A file each build writes once xcodebuild has finished it; an `.xctestrun` alone may be half-built. */
+private const val BUILD_COMPLETE_MARKER = "build-complete"
+
+/** Touched on every lookup, so a build other clients still use is not pruned. */
+private const val LAST_USED_MARKER = "last-used"
+
 /**
  * The runner's builds, made with the Xcode on this machine under [buildsDirectory]: once per Xcode
  * build and project content, and once more per team and device for a device, which needs a signed
  * runner. Building against the installed Xcode keeps the runner's use of XCTest's private event API
- * in step with the XCTest it runs with. A build holds a file lock, so plugins that share the
- * directory never build the same thing at once.
+ * in step with the XCTest it runs with, so Xcode's build version is read again on every lookup.
+ *
+ * A build holds a file lock, so plugins that share the directory never build the same thing at
+ * once, and a build is used only once it is complete. After a build, builds for another Xcode are
+ * deleted, and so are those of another project unused for [unusedBuildLifetime]: another plugin may
+ * bundle a newer or older client, and alternating between them should not rebuild every time.
  */
 internal class RunnerBuilds(
     private val buildsDirectory: File,
@@ -50,28 +64,47 @@ internal class RunnerBuilds(
     private val xcrunPath: String,
     private val commandOutputRunner: CommandOutputRunner,
     private val lockTimeout: Duration,
+    private val unusedBuildLifetime: Duration,
+    private val clock: Clock,
 ) {
-    @Volatile
-    private var xcodeBuildVersion: String? = null
-
-    /** The `.xctestrun` file for [destination], building the runner first when there is none. */
+    /** The `.xctestrun` file for [destination], building the runner first when there is no complete build. */
     suspend fun xctestrunFor(destination: RunnerDestination): File {
-        val projectDirectory = File(buildsDirectory, "${readXcodeBuildVersion()}-${sha256Hex(runnerProjectZip).take(16)}")
+        val xcodeBuildVersion = readXcodeBuildVersion()
+        val projectDirectory = File(buildsDirectory, "$xcodeBuildVersion-${sha256Hex(runnerProjectZip).take(16)}")
         val derivedData = File(projectDirectory, destination.buildDirectoryName)
-        findXctestrun(derivedData)?.let { return it }
         return withFileLock(File(projectDirectory, "${destination.buildDirectoryName}.lock"), lockTimeout) {
-            findXctestrun(derivedData) ?: build(projectDirectory, derivedData, destination)
+            File(projectDirectory, LAST_USED_MARKER).apply {
+                createNewFile()
+                setLastModified(clock.millis())
+            }
+            findCompleteXctestrun(derivedData) ?: build(projectDirectory, derivedData, destination).also { deleteStaleBuilds(projectDirectory, xcodeBuildVersion) }
         }
     }
 
     private suspend fun build(projectDirectory: File, derivedData: File, destination: RunnerDestination): File {
         val source = File(projectDirectory, "source")
         if (!source.isDirectory) withContext(Dispatchers.IO) { unpack(runnerProjectZip, source) }
+        File(derivedData, BUILD_COMPLETE_MARKER).delete()
         val result = commandOutputRunner.run(buildCommand(source, derivedData, destination))
         if (result.exitCode != 0) throw XcTestRunnerStartException(XcodebuildFailures.reasonOf(result.text, destination), null)
-        return findXctestrun(derivedData) ?: throw XcTestRunnerStartException("xcodebuild built the XCTest runner but wrote no .xctestrun under $derivedData", null)
+        val xctestrun = findXctestrun(derivedData) ?: throw XcTestRunnerStartException("xcodebuild built the XCTest runner but wrote no .xctestrun under $derivedData", null)
+        File(derivedData, BUILD_COMPLETE_MARKER).createNewFile()
+        return xctestrun
     }
 
+    /**
+     * Deletes the project directories beside [currentProjectDirectory] that are built with another Xcode than
+     * [xcodeBuildVersion], or that nothing has used for [unusedBuildLifetime]. A directory whose
+     * builds another plugin holds locked is left for a later pass.
+     */
+    private fun deleteStaleBuilds(currentProjectDirectory: File, xcodeBuildVersion: String) {
+        val now = clock.millis()
+        buildsDirectory.listFiles(File::isDirectory).orEmpty().filter { it != currentProjectDirectory }.forEach { projectDirectory ->
+            val lastUsedMillis = File(projectDirectory, LAST_USED_MARKER).takeIf(File::isFile)?.lastModified() ?: projectDirectory.lastModified()
+            val stale = !projectDirectory.name.startsWith("$xcodeBuildVersion-") || now - lastUsedMillis > unusedBuildLifetime.inWholeMilliseconds
+            if (stale) deleteUnlessLocked(projectDirectory)
+        }
+    }
     private fun buildCommand(source: File, derivedData: File, destination: RunnerDestination): List<String> {
         val common = listOf(
             xcrunPath, "xcodebuild", "build-for-testing",
@@ -95,12 +128,31 @@ internal class RunnerBuilds(
     }
 
     private suspend fun readXcodeBuildVersion(): String {
-        xcodeBuildVersion?.let { return it }
         val result = commandOutputRunner.run(listOf(xcrunPath, "xcodebuild", "-version"))
         if (result.exitCode != 0) throw XcTestRunnerStartException("the XCTest runner needs Xcode, and 'xcodebuild -version' failed: ${result.text.trim().take(300)}", null)
         val version = Regex("""Build version (\S+)""").find(result.text)?.groupValues?.get(1)
             ?: throw XcTestRunnerStartException("'xcodebuild -version' printed no build version: ${result.text.trim().take(200)}", null)
-        return version.also { xcodeBuildVersion = it }
+        return version
+    }
+}
+
+/** The runner's `.xctestrun` under [derivedData], once its build has completed. */
+private fun findCompleteXctestrun(derivedData: File): File? = findXctestrun(derivedData)?.takeIf { File(derivedData, BUILD_COMPLETE_MARKER).isFile }
+
+/** Deletes [projectDirectory] when no one holds any of its builds' locks, holding them all meanwhile. */
+private fun deleteUnlessLocked(projectDirectory: File) {
+    val channels = projectDirectory.listFiles { file -> file.extension == "lock" }.orEmpty().map { RandomAccessFile(it, "rw").channel }
+    try {
+        val locks = channels.map { channel ->
+            try {
+                channel.tryLock()
+            } catch (_: OverlappingFileLockException) {
+                null
+            }
+        }
+        if (locks.all { it != null }) projectDirectory.deleteRecursively()
+    } finally {
+        channels.forEach(FileChannel::close)
     }
 }
 

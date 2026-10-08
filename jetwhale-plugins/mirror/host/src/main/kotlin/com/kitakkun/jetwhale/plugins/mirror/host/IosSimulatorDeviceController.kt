@@ -17,19 +17,24 @@ import kotlin.io.path.readBytes
  * A booted iOS simulator. Screenshots and recordings go through `simctl` and the live stream through
  * idb, since simctl can neither stream nor send touches. Input goes through the XCTest runner
  * ([runnerInput]), and through idb when the runner cannot start; Recent apps always goes through
- * idb, since no runner command opens the app switcher.
+ * idb, since no runner command opens the app switcher. idb sends input only when
+ * [idbCanSendSimulatorInput]: it streams with every Xcode, but cannot send input with one that moved
+ * SimulatorKit.
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
     private val xcrunPath: String,
     private val idbPath: String?,
+    idbCanSendSimulatorInput: Boolean,
     private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid)
 
+    private val idbInputPath = idbPath?.takeIf { idbCanSendSimulatorInput }
+
     override val capabilities = DeviceCapabilities(
-        inputRefusal = if (runnerInput == null && idbPath == null) "input to a simulator needs Xcode's xcodebuild or idb" else null,
-        buttons = if (runnerInput == null && idbPath == null) emptyList() else listOfNotNull(DeviceButton.Home, DeviceButton.Recents.takeIf { idbPath != null }, DeviceButton.Power),
+        inputRefusal = if (runnerInput == null && idbInputPath == null) "input to a simulator needs Xcode's xcodebuild, or an idb that can send input" else null,
+        buttons = if (runnerInput == null && idbInputPath == null) emptyList() else listOfNotNull(DeviceButton.Home, DeviceButton.Recents.takeIf { idbInputPath != null }, DeviceButton.Power),
         recording = true,
         screenPower = false,
     )
@@ -80,7 +85,7 @@ internal class IosSimulatorDeviceController(
             else -> null
         }
         if (runnerButton == null) {
-            pressThroughIdb(requireIdbPath())
+            pressThroughIdb(idbInputPath ?: throw deviceControlError(idbInputRefusal("${button.label} on a simulator")))
         } else {
             sendInput(throughRunner = { it.pressButton(runnerTarget, runnerButton) }, throughIdb = pressThroughIdb)
         }
@@ -101,7 +106,7 @@ internal class IosSimulatorDeviceController(
                 e
             }
         }
-        val idbPath = idbPath ?: throw DeviceControlException(runnerFailure?.message ?: IDB_MISSING, runnerFailure)
+        val idbPath = idbInputPath ?: throw DeviceControlException(runnerFailure?.message ?: idbInputRefusal("input to a simulator"), runnerFailure)
         try {
             throughIdb(idbPath)
         } catch (e: DeviceControlException) {
@@ -157,6 +162,8 @@ internal class IosSimulatorDeviceController(
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
+    private fun idbInputRefusal(refusedInput: String): String = if (idbPath == null) "$refusedInput goes through idb, which is not installed: $IDB_INSTALL" else "$refusedInput goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it"
+
     override suspend fun screenSize(): IntSize {
         if (idbPath != null || runnerInput == null) return readSimulatorScreenFromIdb().size
         return try {
@@ -194,3 +201,9 @@ internal fun iosSimulatorPressesOf(button: DeviceButton): List<String>? = when (
     DeviceButton.Power -> listOf("LOCK")
     DeviceButton.Back, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> null
 }
+
+/**
+ * Whether idb can send input to simulators with the Xcode at [developerDirectory]: idb_companion
+ * loads SimulatorKit from `Library/PrivateFrameworks` there, and Xcode 27 keeps it elsewhere.
+ */
+internal fun isSimulatorKitInPrivateFrameworks(developerDirectory: File): Boolean = File(developerDirectory, "Library/PrivateFrameworks/SimulatorKit.framework").isDirectory

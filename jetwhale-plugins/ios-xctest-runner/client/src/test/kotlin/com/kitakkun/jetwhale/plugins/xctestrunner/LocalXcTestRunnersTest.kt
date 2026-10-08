@@ -7,6 +7,7 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.nio.file.Files
+import java.time.Clock
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,7 +15,9 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class LocalXcTestRunnersTest {
     private val stateRoot: File = Files.createTempDirectory("xctest-runners").toFile()
@@ -124,6 +127,17 @@ class LocalXcTestRunnersTest {
     }
 
     @Test
+    fun `a command the runner stopped answering after taking is not sent again`() = runTest {
+        val runner = runners().runnerFor(simulator)
+        connections.getValue(20_000).stopsAnsweringMidCommand = true
+
+        assertFailsWith<XcTestRunnerException> { runner.tap(x = 1.0, y = 2.0) }
+
+        assertEquals(1, xcodebuildProcesses.size)
+        assertEquals(listOf("/tap"), connections.getValue(20_000).paths)
+    }
+
+    @Test
     fun `a runner whose xcodebuild exits before it answers is explained from what xcodebuild printed`() = runTest {
         xcodebuildOutput = "xcodebuild: error: Unable to find a destination matching the provided destination specifier\n"
         xcodebuildExitsAtOnce = true
@@ -176,6 +190,7 @@ class LocalXcTestRunnersTest {
         runners(iproxyPath = "iproxy").runnerFor(device)
 
         xcodebuildProcesses.single().exit()
+        delay(1.seconds)
 
         assertNull(stateDirectory.readRunnerState(device.udid))
         assertTrue(launched.first { it.command.first() == "iproxy" }.destroyed)
@@ -216,7 +231,7 @@ class LocalXcTestRunnersTest {
 
     private fun TestScope.runners(iproxyPath: String? = null) = LocalXcTestRunners(
         runnerStateDirectory = stateDirectory,
-        builds = RunnerBuilds(File(stateRoot, "builds"), runnerProjectZip(), "xcrun", xcodebuildCommands, lockTimeout = 1.minutes),
+        builds = RunnerBuilds(File(stateRoot, "builds"), runnerProjectZip(), "xcrun", xcodebuildCommands, lockTimeout = 1.minutes, unusedBuildLifetime = 7.days, clock = Clock.systemUTC()),
         xcrunPath = "xcrun",
         iproxyPath = iproxyPath,
         settings = settings,

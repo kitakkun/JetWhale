@@ -9,10 +9,12 @@ import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class HttpRunnerConnectionTest {
     private val httpClient = OkHttpClient()
@@ -49,6 +51,13 @@ class HttpRunnerConnectionTest {
         val failure = assertFailsWith<XcTestRunnerException> { connection.send("/tap", buildJsonObject { }) }
 
         assertEquals("the XCTest runner answered something other than JSON: <html>", failure.message)
+    }
+
+    @Test
+    fun `a runner that drops the connection after taking a command did not refuse to take it`() = withConnection(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)) { connection, _ ->
+        val failure = assertFailsWith<XcTestRunnerException> { connection.send("/tap", buildJsonObject { }) }
+
+        assertTrue(failure.message.orEmpty().startsWith("the XCTest runner stopped answering during tap"))
     }
 
     @Test

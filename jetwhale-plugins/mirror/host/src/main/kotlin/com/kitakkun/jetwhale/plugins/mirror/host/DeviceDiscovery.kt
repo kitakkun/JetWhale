@@ -27,6 +27,7 @@ internal class DeviceDiscovery(
     private val companions: Deferred<IdbCompanions?>,
     private val xcTestRunners: Deferred<XcTestRunners?>,
     private val iproxyPath: Deferred<String?>,
+    private val idbCanSendSimulatorInput: Deferred<Boolean>,
     private val emulatorScreens: EmulatorScreens,
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
@@ -37,6 +38,7 @@ internal class DeviceDiscovery(
         val locatedToolPaths = toolPaths.await()
         val sharedCompanions = companions.await()
         val runnerInput = xcTestRunners.await()?.let(::XcTestRunnerInput)
+        val idbCanSendSimulatorInput = idbCanSendSimulatorInput.await()
         val looks = listOf(
             listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
             listSimulators(locatedToolPaths) to setOf(DeviceKind.IosSimulator),
@@ -45,7 +47,7 @@ internal class DeviceDiscovery(
         // A tool that fails to list (adb's server starting, say) keeps the devices it listed before,
         // so a passing failure neither drops the selected device nor forgets an iPhone's companion.
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, runnerInput)) }
+        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, runnerInput, idbCanSendSimulatorInput)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { sharedCompanions?.stopCompanionEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
@@ -74,12 +76,18 @@ internal class DeviceDiscovery(
             ?: tryList { parseIdbDevices(runCommandChecked(idbPath, "list-targets").stdoutText) }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, runnerInput: XcTestRunnerInput?): DeviceController = when (listing.kind) {
+    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, runnerInput: XcTestRunnerInput?, idbCanSendSimulatorInput: Boolean): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
 
-        DeviceKind.IosSimulator -> IosSimulatorDeviceController(udid = listing.id, xcrunPath = checkNotNull(locatedToolPaths.xcrunPath), idbPath = locatedToolPaths.idbPath, runnerInput = runnerInput)
+        DeviceKind.IosSimulator -> IosSimulatorDeviceController(
+            udid = listing.id,
+            xcrunPath = checkNotNull(locatedToolPaths.xcrunPath),
+            idbPath = locatedToolPaths.idbPath,
+            idbCanSendSimulatorInput = idbCanSendSimulatorInput,
+            runnerInput = runnerInput,
+        )
 
         DeviceKind.IosDevice -> IosPhysicalDeviceController(
             udid = listing.id,

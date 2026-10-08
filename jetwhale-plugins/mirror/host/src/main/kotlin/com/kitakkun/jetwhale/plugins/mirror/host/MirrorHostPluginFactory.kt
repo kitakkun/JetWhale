@@ -86,6 +86,16 @@ private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start
     }
 }
 
+private val idbCanSendSimulatorInput: Deferred<Boolean> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    if (toolPaths.await().xcrunPath == null) return@async false
+    val developerDirectoryPath = try {
+        runCommandChecked("/usr/bin/xcode-select", "-p").stdoutText.trim()
+    } catch (_: DeviceControlException) {
+        return@async false
+    }
+    isSimulatorKitInPrivateFrameworks(File(developerDirectoryPath))
+}
+
 /** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
 private val runnerSigningTeam = RunnerSigningTeam()
 
@@ -124,7 +134,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, iproxyPath, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, iproxyPath, idbCanSendSimulatorInput, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,

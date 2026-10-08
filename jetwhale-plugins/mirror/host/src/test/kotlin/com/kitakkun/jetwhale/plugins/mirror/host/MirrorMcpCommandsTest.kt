@@ -114,6 +114,21 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `text for an iPhone that takes no input is refused with the reason before it reaches the device`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            InputTextCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "00008110")
+                    put("text", "hello")
+                },
+            )
+        }
+
+        assertEquals(IPHONE_REFUSAL, failure.message)
+        assertEquals(0, iphone.inputAttempts)
+    }
+
+    @Test
     fun `a tap off the screen never reaches the device`() {
         val refused = listOf(1080 to 600, 540 to 2400).map { (x, y) ->
             runCatching {
@@ -387,7 +402,11 @@ private class FakeController(
 
     override suspend fun release() = Unit
 
+    /** Every input that reached the controller, refused or not. */
+    var inputAttempts = 0
+
     private fun record(call: String) {
+        inputAttempts++
         refusal?.let { throw deviceControlError(it) }
         calls += call
     }

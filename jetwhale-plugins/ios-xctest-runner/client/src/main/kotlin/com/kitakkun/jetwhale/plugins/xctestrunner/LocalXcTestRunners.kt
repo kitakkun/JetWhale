@@ -12,10 +12,12 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import java.io.File
+import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
 internal const val IPROXY_INSTALL_COMMAND = "brew install libimobiledevice"
@@ -245,8 +247,8 @@ internal class LocalXcTestRunners(
         startedRunnerProcesses[runnerState.pid] = StartedRunnerProcesses(xcodebuild, forward?.process)
         xcodebuild.onExit().thenRun {
             forward?.process?.destroy()
-            runnerStateDirectory.deleteRunnerState(destination.udid, runnerState.pid)
             startedRunnerProcesses.remove(runnerState.pid)
+            scope.launch { runnerStateDirectory.withDeviceLock(destination.udid, lockTimeout) { runnerStateDirectory.deleteRunnerState(destination.udid, runnerState.pid) } }
         }
     }
 
@@ -272,6 +274,9 @@ internal class LocalXcTestRunners(
         /** Long enough for another plugin to build and start a device's runner. */
         private val LOCK_TIMEOUT = 10.minutes
 
+        /** How long a build another client made is kept after it was last used. */
+        private val UNUSED_BUILD_LIFETIME = 7.days
+
         fun onThisMac(stateDirectory: File, xcrunPath: String, iproxyPath: String?, settings: XcTestRunnerSettings): XcTestRunners {
             val zip = checkNotNull(LocalXcTestRunners::class.java.getResourceAsStream(RUNNER_PROJECT_RESOURCE)) { "$RUNNER_PROJECT_RESOURCE is missing from the client's jar" }.use { it.readBytes() }
             // The runner answers a command only once it has run, which for a long text or a slow
@@ -279,7 +284,7 @@ internal class LocalXcTestRunners(
             val httpClient = OkHttpClient.Builder().readTimeout(2, TimeUnit.MINUTES).build()
             return LocalXcTestRunners(
                 runnerStateDirectory = RunnerStateDirectory(File(stateDirectory, "runners")),
-                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, SystemCommandOutputRunner, LOCK_TIMEOUT),
+                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, SystemCommandOutputRunner, LOCK_TIMEOUT, UNUSED_BUILD_LIFETIME, Clock.systemUTC()),
                 xcrunPath = xcrunPath,
                 iproxyPath = iproxyPath,
                 settings = settings,

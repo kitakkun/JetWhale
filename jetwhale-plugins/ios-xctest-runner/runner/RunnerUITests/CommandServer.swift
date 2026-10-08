@@ -43,11 +43,14 @@ final class CommandServer {
             guard let self else { return }
             var buffered = buffered
             if let data { buffered.append(data) }
-            if let (request, rest) = HttpRequest.parse(buffered) {
+            switch HttpRequest.parse(buffered) {
+            case .complete(let request, let rest):
                 self.respond(to: request, on: connection) { self.receive(on: connection, buffered: rest) }
-            } else if isComplete || error != nil {
+            case .malformed(let reason):
+                self.send(status: "400 Bad Request", body: ["ok": false, "error": reason], on: connection) { connection.cancel() }
+            case .incomplete where isComplete || error != nil:
                 connection.cancel()
-            } else {
+            case .incomplete:
                 self.receive(on: connection, buffered: buffered)
             }
         }
@@ -73,26 +76,42 @@ final class CommandServer {
 }
 
 struct HttpRequest {
+    enum Parsed {
+        case complete(HttpRequest, rest: Data)
+        case incomplete
+        case malformed(String)
+    }
+
+    /// Larger than any command's headers or body; more is refused rather than buffered.
+    private static let maxHeaderBytes = 16 * 1024
+    private static let maxBodyBytes = 1 << 20
+
     let path: String
     let headers: [String: String]
     let json: [String: Any]
 
-    /// The first complete request in [data] and the bytes after it, or nil while it is incomplete.
-    static func parse(_ data: Data) -> (HttpRequest, Data)? {
-        guard let headerEnd = data.range(of: Data("\r\n\r\n".utf8)) else { return nil }
+    /// The first request in [data] and the bytes after it, once all of it has arrived.
+    static func parse(_ data: Data) -> Parsed {
+        guard let headerEnd = data.range(of: Data("\r\n\r\n".utf8)) else {
+            return data.count > maxHeaderBytes ? .malformed("the request's headers are too long") : .incomplete
+        }
         let lines = String(decoding: data[data.startIndex..<headerEnd.lowerBound], as: UTF8.self).components(separatedBy: "\r\n")
         let requestLine = lines.first?.split(separator: " ") ?? []
-        guard requestLine.count >= 2 else { return nil }
+        guard requestLine.count >= 2 else { return .malformed("the request line is not METHOD PATH VERSION") }
         var headers: [String: String] = [:]
         for line in lines.dropFirst() {
             let pair = line.split(separator: ":", maxSplits: 1)
             if pair.count == 2 { headers[pair[0].lowercased()] = pair[1].trimmingCharacters(in: .whitespaces) }
         }
-        let length = headers["content-length"].flatMap(Int.init) ?? 0
+        var length = 0
+        if let declared = headers["content-length"] {
+            guard let parsed = Int(declared), (0...maxBodyBytes).contains(parsed) else { return .malformed("Content-Length must be 0 to \(maxBodyBytes)") }
+            length = parsed
+        }
         let bodyStart = headerEnd.upperBound
-        guard data.endIndex - bodyStart >= length else { return nil }
+        guard data.endIndex - bodyStart >= length else { return .incomplete }
         let body = data[bodyStart..<(bodyStart + length)]
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
-        return (HttpRequest(path: String(requestLine[1]), headers: headers, json: json), Data(data[(bodyStart + length)...]))
+        return .complete(HttpRequest(path: String(requestLine[1]), headers: headers, json: json), rest: Data(data[(bodyStart + length)...]))
     }
 }
