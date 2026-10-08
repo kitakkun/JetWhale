@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -133,7 +134,8 @@ internal class IosSimulatorDeviceController(
         try {
             return runCommandChecked(idb, *arguments)
         } finally {
-            companions?.release(udid)
+            // A cancelled caller still gives its use back, or the companion would never stop when idle.
+            withContext(NonCancellable) { companions?.release(udid) }
         }
     }
 
