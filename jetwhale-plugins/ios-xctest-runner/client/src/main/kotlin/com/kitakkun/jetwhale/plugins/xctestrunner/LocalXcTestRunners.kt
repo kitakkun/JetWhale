@@ -8,11 +8,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import java.io.File
 import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -62,6 +66,7 @@ internal class LocalXcTestRunners(
     private val idleTimeout: Duration,
     private val startTimeout: Duration,
     private val lockTimeout: Duration,
+    private val clock: Clock,
     private val scope: CoroutineScope,
 ) : XcTestRunners {
     private class StartedRunnerProcesses(val xcodebuild: Process, val forwarder: Process?)
@@ -105,6 +110,24 @@ internal class LocalXcTestRunners(
                 // it fails.
             }
         }
+    }
+
+    override fun keptAliveUntil(target: XcTestRunnerTarget): Instant? {
+        val keptAliveUntil = runnerStateDirectory.readRunnerState(target.udid)?.keptAliveUntilEpochMillis?.let(Instant::ofEpochMilli) ?: return null
+        return keptAliveUntil.takeIf { it.isAfter(clock.instant()) }
+    }
+
+    /**
+     * Records that [attachment]'s runner is kept alive for [leaseSeconds] from now, unless its record
+     * is already another runner's, and returns when the lease ends.
+     */
+    suspend fun recordLease(attachment: Attachment, leaseSeconds: Long): Instant {
+        val until = clock.instant().plusSeconds(leaseSeconds)
+        runnerStateDirectory.withDeviceLock(attachment.destination.udid, lockTimeout) {
+            val runnerState = runnerStateDirectory.readRunnerState(attachment.destination.udid)?.takeIf { it.pid == attachment.pid } ?: return@withDeviceLock
+            runnerStateDirectory.writeRunnerState(attachment.destination.udid, runnerState.copy(keptAliveUntilEpochMillis = until.toEpochMilli()))
+        }
+        return until
     }
 
     /** Kills what this process started, without waiting; for when it exits. */
@@ -304,6 +327,7 @@ internal class LocalXcTestRunners(
                 idleTimeout = IDLE_TIMEOUT,
                 startTimeout = START_TIMEOUT,
                 lockTimeout = LOCK_TIMEOUT,
+                clock = Clock.systemUTC(),
                 scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
             ).also { runners -> Runtime.getRuntime().addShutdownHook(Thread(runners::destroyStartedRunnerProcesses)) }
         }
@@ -324,53 +348,88 @@ private class AttachedXcTestRunner(
     override val screen: XcTestRunnerScreen
         get() = attachment.status.let { XcTestRunnerScreen(widthPixels = it.screenWidthPixels, heightPixels = it.screenHeightPixels, scale = it.scale) }
 
-    override suspend fun tap(x: Double, y: Double) = send(
-        "/tap",
-        buildJsonObject {
-            put("x", x)
-            put("y", y)
-        },
-    )
+    override suspend fun tap(x: Double, y: Double, space: XcTestRunnerPointSpace) {
+        send(
+            "/tap",
+            buildJsonObject {
+                put("x", x)
+                put("y", y)
+                put("space", space.wireName)
+            },
+        )
+    }
 
-    override suspend fun longPress(x: Double, y: Double, durationMillis: Int) = send(
-        "/longPress",
-        buildJsonObject {
-            put("x", x)
-            put("y", y)
-            put("durationMillis", durationMillis)
-        },
-    )
+    override suspend fun longPress(x: Double, y: Double, durationMillis: Int, space: XcTestRunnerPointSpace) {
+        send(
+            "/longPress",
+            buildJsonObject {
+                put("x", x)
+                put("y", y)
+                put("durationMillis", durationMillis)
+                put("space", space.wireName)
+            },
+        )
+    }
 
-    override suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int) = send(
-        "/swipe",
-        buildJsonObject {
-            put("fromX", fromX)
-            put("fromY", fromY)
-            put("toX", toX)
-            put("toY", toY)
-            put("durationMillis", durationMillis)
-        },
-    )
+    override suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int, space: XcTestRunnerPointSpace) {
+        send(
+            "/swipe",
+            buildJsonObject {
+                put("fromX", fromX)
+                put("fromY", fromY)
+                put("toX", toX)
+                put("toY", toY)
+                put("durationMillis", durationMillis)
+                put("space", space.wireName)
+            },
+        )
+    }
 
-    override suspend fun typeText(text: String) = send("/typeText", buildJsonObject { put("text", text) })
+    override suspend fun interfaceScreen(): XcTestRunnerInterfaceScreen {
+        val answer = send("/interfaceScreen", JsonObject(emptyMap()))
+        val orientationName = answer.stringField("orientation")
+        return XcTestRunnerInterfaceScreen(
+            orientation = XcTestRunnerOrientation.entries.firstOrNull { it.wireName == orientationName } ?: throw XcTestRunnerException("the XCTest runner reported an unknown orientation: $orientationName", null),
+            widthPixels = answer.intField("widthPixels"),
+            heightPixels = answer.intField("heightPixels"),
+        )
+    }
 
-    override suspend fun pressButton(button: XcTestRunnerButton) = send("/pressButton", buildJsonObject { put("button", button.wireName) })
+    override suspend fun typeText(text: String) {
+        send("/typeText", buildJsonObject { put("text", text) })
+    }
 
-    override suspend fun openAppSwitcher() = send("/openAppSwitcher", JsonObject(emptyMap()))
+    override suspend fun pressButton(button: XcTestRunnerButton) {
+        send("/pressButton", buildJsonObject { put("button", button.wireName) })
+    }
 
-    override suspend fun activateApp(bundleId: String) = send("/activateApp", buildJsonObject { put("bundleId", bundleId) })
+    override suspend fun openAppSwitcher() {
+        send("/openAppSwitcher", JsonObject(emptyMap()))
+    }
 
-    private suspend fun send(path: String, body: JsonObject) {
+    override suspend fun activateApp(bundleId: String) {
+        send("/activateApp", buildJsonObject { put("bundleId", bundleId) })
+    }
+
+    override suspend fun keepAlive(duration: Duration): Instant {
+        val answer = send("/lease", buildJsonObject { put("seconds", duration.inWholeSeconds) })
+        return runners.recordLease(attachment, answer.intField("leaseSeconds").toLong())
+    }
+
+    private suspend fun send(path: String, body: JsonObject): JsonObject {
         try {
-            attachment.connection.send(path, body)
-            return
+            return attachment.connection.send(path, body)
         } catch (_: RunnerUnreachableException) {
             attachment = runners.reattach(attachment)
         }
         try {
-            attachment.connection.send(path, body)
+            return attachment.connection.send(path, body)
         } catch (e: RunnerUnreachableException) {
             throw XcTestRunnerException(e.message.orEmpty(), e)
         }
     }
 }
+
+private fun JsonObject.stringField(name: String): String = (this[name] as? JsonPrimitive)?.contentOrNull ?: throw XcTestRunnerException("the XCTest runner's answer has no $name", null)
+
+private fun JsonObject.intField(name: String): Int = (this[name] as? JsonPrimitive)?.doubleOrNull?.toInt() ?: throw XcTestRunnerException("the XCTest runner's answer has no number $name", null)

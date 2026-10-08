@@ -3,15 +3,18 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
+import kotlin.time.Duration
 
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl` and the live stream through
@@ -27,7 +30,9 @@ internal class IosSimulatorDeviceController(
     private val idbPath: String?,
     idbCanSendSimulatorInput: Boolean,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController {
+) : DeviceController,
+    ScreenshotSpaceInput,
+    XcTestRunnerDriven {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     private val idbInputPath = idbPath?.takeIf { idbCanSendSimulatorInput }
@@ -59,16 +64,47 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun tap(x: Int, y: Int) = sendInput(
-        throughRunner = { it.tap(runnerTarget, x, y) },
+    override suspend fun tap(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Device, x, y)
+
+    // A screenshot follows the interface orientation, while the stream and tap() keep the screen's
+    // portrait pixels; the runner turns screenshot points into those.
+    override suspend fun tapScreenshotPixel(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Screen, x, y)
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Device, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+
+    override suspend fun swipeScreenshotPixels(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Screen, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+
+    override suspend fun screenshotSize(): IntSize {
+        if (runnerInput == null) return screenSize()
+        return try {
+            runnerInput.screenshotSize(runnerTarget)
+        } catch (_: XcTestRunnerStartException) {
+            // idb, which takes over, knows only the portrait screen.
+            screenSize()
+        }
+    }
+
+    override suspend fun keepRunnerAlive(duration: Duration): Instant {
+        val input = runnerInput ?: throw deviceControlError("this simulator has no XCTest runner to keep alive: Xcode's xcodebuild was not found")
+        return try {
+            input.keepRunnerAlive(runnerTarget, duration)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
+        }
+    }
+
+    override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
+
+    private suspend fun tapIn(space: XcTestRunnerPointSpace, x: Int, y: Int) = sendInput(
+        throughRunner = { it.tap(runnerTarget, x, y, space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
             runCommandChecked(idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
         },
     )
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput(
-        throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis) },
+    private suspend fun swipeIn(space: XcTestRunnerPointSpace, fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput(
+        throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
             runCommandChecked(

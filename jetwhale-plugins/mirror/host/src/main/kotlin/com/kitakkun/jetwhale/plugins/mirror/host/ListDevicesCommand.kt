@@ -34,6 +34,7 @@ internal class ListDevicesCommand(
                         put("selected", device.id == selected)
                         put("input", device.controller.capabilities.inputRefusal == null)
                         device.controller.capabilities.inputRefusal?.let { put("inputUnavailableReason", it) }
+                        (device.controller as? XcTestRunnerDriven)?.runnerKeptAliveUntil()?.let { put("runnerKeptAliveUntil", it.toString()) }
                         put("recording", device.controller.capabilities.recording)
                         putJsonArray("buttons") { device.controller.capabilities.buttons.forEach { add(it.name) } }
                         screenPowers.getValue(device.id)?.let { power ->

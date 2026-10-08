@@ -6,10 +6,15 @@ struct RunnerError: Error, CustomStringConvertible {
 
 /// The version of the commands below, which `/status` reports. A client restarts a runner older
 /// than itself; commands are only added, so a newer runner serves an older client.
-let protocolVersion = 1
+let protocolVersion = 2
 
-/// The commands the host sends. Points are device-native: portrait, whatever the interface
-/// orientation, which is the space XCTest's event synthesis takes.
+/// The longest one `/lease` keeps the runner from stopping when idle. A client that wants longer
+/// renews it, so a lease nobody renews ends within this.
+let maxLeaseSeconds: TimeInterval = 2 * 60 * 60
+
+/// The commands the host sends. Points are device-native unless a command's `space` is `screen`:
+/// device-native points are portrait whatever the interface orientation, the space XCTest's event
+/// synthesis takes; screen points follow the interface orientation, the space of screenshots.
 @MainActor
 final class Commands {
     static var recordedIssue: String?
@@ -17,6 +22,9 @@ final class Commands {
     private(set) var isShutdownRequested = false
 
     private(set) var lastCommandAt = Date()
+
+    /// Until when a lease keeps the runner from stopping when idle.
+    private(set) var leaseEnd = Date.distantPast
 
     private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
@@ -49,14 +57,23 @@ final class Commands {
         case "/status":
             return screen.merging(["protocolVersion": protocolVersion, "eventSynthesis": EventSynthesis.isAvailable()]) { first, _ in first }
 
+        case "/interfaceScreen":
+            return try interfaceScreen()
+
+        case "/lease":
+            guard let requested = (body["seconds"] as? NSNumber)?.doubleValue, requested >= 0 else { throw RunnerError(description: "seconds must be 0 or more") }
+            let granted = min(requested, maxLeaseSeconds)
+            leaseEnd = Date(timeIntervalSinceNow: granted)
+            return ["leaseSeconds": granted]
+
         case "/tap":
-            try press(at: point(body, "x", "y"), forSeconds: 0)
+            try press(at: devicePoint(body, "x", "y"), forSeconds: 0)
 
         case "/longPress":
-            try press(at: point(body, "x", "y"), forSeconds: seconds(body, "durationMillis"))
+            try press(at: devicePoint(body, "x", "y"), forSeconds: seconds(body, "durationMillis"))
 
         case "/swipe":
-            try swipe(from: point(body, "fromX", "fromY"), to: point(body, "toX", "toY"), forSeconds: seconds(body, "durationMillis"))
+            try swipe(from: devicePoint(body, "fromX", "fromY"), to: devicePoint(body, "toX", "toY"), forSeconds: seconds(body, "durationMillis"))
 
         case "/typeText":
             guard let text = body["text"] as? String else { throw RunnerError(description: "text is missing") }
@@ -127,6 +144,40 @@ final class Commands {
 
     private func coordinate(_ point: CGPoint) -> XCUICoordinate {
         springboard.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: point.x, dy: point.y))
+    }
+
+    /// The point that `body` gives under the keys `x` and `y`, in device-native points: converted from
+    /// screen points when the body's `space` is `screen`.
+    private func devicePoint(_ body: [String: Any], _ x: String, _ y: String) throws -> CGPoint {
+        let given = try point(body, x, y)
+        switch body["space"] as? String ?? "device" {
+        case "device":
+            return given
+        case "screen":
+            return coordinate(given).screenPoint
+        default:
+            throw RunnerError(description: "space must be device or screen")
+        }
+    }
+
+    /// The screen as the interface shows it: its orientation, and its size in pixels that way round.
+    /// Where the interface's origin lands in device-native points says how it is turned.
+    private func interfaceScreen() throws -> [String: Any] {
+        guard let width = screen["screenWidthPixels"] as? Int, let height = screen["screenHeightPixels"] as? Int, let scale = screen["scale"] as? Double else {
+            throw RunnerError(description: "the screen's size is unknown")
+        }
+        let origin = coordinate(.zero).screenPoint
+        let atRight = Double(origin.x) * scale > Double(width) / 2
+        let atBottom = Double(origin.y) * scale > Double(height) / 2
+        let orientation: String
+        switch (atRight, atBottom) {
+        case (false, false): orientation = "portrait"
+        case (true, false): orientation = "landscapeRight"
+        case (false, true): orientation = "landscapeLeft"
+        case (true, true): orientation = "portraitUpsideDown"
+        }
+        let landscape = atRight != atBottom
+        return ["orientation": orientation, "widthPixels": landscape ? height : width, "heightPixels": landscape ? width : height, "scale": scale]
     }
 
     private func point(_ body: [String: Any], _ x: String, _ y: String) throws -> CGPoint {

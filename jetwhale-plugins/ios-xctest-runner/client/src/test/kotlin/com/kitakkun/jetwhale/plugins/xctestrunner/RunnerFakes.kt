@@ -31,17 +31,21 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     /** Set to make the status fail the way a runner that answers but cannot report one does. */
     var statusFailure: String? = null
 
+    /** The answer to each command by path, besides `ok`; an empty one for a path not listed. */
+    val answers = mutableMapOf<String, JsonObject>()
+
     override suspend fun status(): RunnerStatus {
         if (!answering || unreachable) throw RunnerUnreachableException("not listening", null)
         statusFailure?.let { throw XcTestRunnerException(it, null) }
         return runnerStatus(protocolVersion)
     }
 
-    override suspend fun send(path: String, body: JsonObject) {
+    override suspend fun send(path: String, body: JsonObject): JsonObject {
         if (unreachable) throw RunnerUnreachableException("connection refused", null)
         sent += path to body
         if (stopsAnsweringMidCommand) throw XcTestRunnerException("the XCTest runner stopped answering during ${path.removePrefix("/")}", null)
         if (path == "/shutdown") onShutdown()
+        return answers[path] ?: JsonObject(emptyMap())
     }
 
     val paths: List<String> get() = sent.map { it.first }

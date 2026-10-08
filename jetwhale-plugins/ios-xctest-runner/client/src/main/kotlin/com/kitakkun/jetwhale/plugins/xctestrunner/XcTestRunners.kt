@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
 import java.io.File
+import java.time.Instant
+import kotlin.time.Duration
 
 /** An iOS simulator or physical device that an XCTest runner drives, by its UDID. */
 public sealed interface XcTestRunnerTarget {
@@ -52,6 +54,12 @@ public interface XcTestRunners {
      */
     public fun startRunnerInBackground(target: XcTestRunnerTarget)
 
+    /**
+     * Until when a lease keeps [target]'s runner from stopping when idle, as recorded for every
+     * client; null when no lease runs. See [XcTestRunner.keepAlive].
+     */
+    public fun keptAliveUntil(target: XcTestRunnerTarget): Instant?
+
     public companion object {
         /**
          * The runners this Mac starts with Xcode, through [xcrunPath], keeping their builds and
@@ -63,9 +71,9 @@ public interface XcTestRunners {
 }
 
 /**
- * One device's runner. Points are device-native: portrait, whatever the interface orientation,
- * which is the space XCTest's event synthesis takes; divide pixels by [XcTestRunnerScreen.scale].
- * A runner that went away between commands is replaced, and the command sent to the new one.
+ * One device's runner. A point is in the [XcTestRunnerPointSpace] its command names; divide pixels
+ * by [XcTestRunnerScreen.scale] to get points. A runner that went away between commands is
+ * replaced, and the command sent to the new one.
  *
  * Every command throws [XcTestRunnerException] when the runner refuses it, and
  * [XcTestRunnerStartException] when no runner can be started in place of one that went away.
@@ -73,11 +81,14 @@ public interface XcTestRunners {
 public interface XcTestRunner {
     public val screen: XcTestRunnerScreen
 
-    public suspend fun tap(x: Double, y: Double)
+    public suspend fun tap(x: Double, y: Double, space: XcTestRunnerPointSpace)
 
-    public suspend fun longPress(x: Double, y: Double, durationMillis: Int)
+    public suspend fun longPress(x: Double, y: Double, durationMillis: Int, space: XcTestRunnerPointSpace)
 
-    public suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int)
+    public suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int, space: XcTestRunnerPointSpace)
+
+    /** The screen as the interface shows it now, which a device turned to landscape shows sideways. */
+    public suspend fun interfaceScreen(): XcTestRunnerInterfaceScreen
 
     /** Types [text] into whatever has keyboard focus on the device. */
     public suspend fun typeText(text: String)
@@ -89,7 +100,38 @@ public interface XcTestRunner {
 
     /** Brings the app with [bundleId] to the foreground, launching it if it is not running. */
     public suspend fun activateApp(bundleId: String)
+
+    /**
+     * Keeps the runner from stopping when idle for [duration] from now, at most two hours, and
+     * records the lease where every client sees it; [Duration.ZERO] ends a lease. A lease nobody
+     * renews ends, so a forgotten one cannot keep a runner going. Returns when the lease ends.
+     */
+    public suspend fun keepAlive(duration: Duration): Instant
 }
+
+/** The space a point is given in. */
+public enum class XcTestRunnerPointSpace(internal val wireName: String) {
+    /** Device-native portrait points, whatever the interface orientation: the space of a simulator's stream. */
+    Device("device"),
+
+    /** Points in the interface orientation: the space of screenshots and of XCTest's element frames. */
+    Screen("screen"),
+}
+
+/** How the interface is turned, by UIKit's names: `LandscapeRight` has the home side on the right. */
+public enum class XcTestRunnerOrientation(internal val wireName: String) {
+    Portrait("portrait"),
+    PortraitUpsideDown("portraitUpsideDown"),
+    LandscapeLeft("landscapeLeft"),
+    LandscapeRight("landscapeRight"),
+}
+
+/** The screen as the interface shows it: how it is turned, and its size in pixels that way round. */
+public class XcTestRunnerInterfaceScreen(
+    public val orientation: XcTestRunnerOrientation,
+    public val widthPixels: Int,
+    public val heightPixels: Int,
+)
 
 /** The device's screen in portrait: its size in pixels, and how many pixels make a point. */
 public class XcTestRunnerScreen(public val widthPixels: Int, public val heightPixels: Int, public val scale: Double)
