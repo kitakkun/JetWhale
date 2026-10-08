@@ -113,13 +113,26 @@ class IosInputTest {
     fun `a simulator offers Recent apps through its runner alone, and refuses it when neither the runner nor idb can press it`() = runTest {
         assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
 
-        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, runnerInput = null)
+        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, runnerInput = null)
         assertEquals(emptyList(), simulatorWithoutInput.capabilities.buttons)
         assertEquals("input to a simulator needs Xcode's xcodebuild, or an idb that can send input", simulatorWithoutInput.capabilities.inputRefusal)
         assertEquals(
             "input to a simulator goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it",
             assertFailsWith<DeviceControlException> { simulatorWithoutInput.pressButton(DeviceButton.Recents) }.message,
         )
+    }
+
+    @Test
+    fun `a simulator whose iOS the runner refuses takes input through idb, or is refused with the runner's reason`() = runTest {
+        assumeShellScriptsLaunch()
+        runners.refusal = "the XCTest runner needs iOS 17 or later, and this one runs iOS 16"
+
+        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).tap(x = 603, y = 1311)
+
+        assertEquals(listOf("describe --udid SIM-1 --json", "ui tap --udid SIM-1 201 437"), idbCalls.readLines())
+        val simulatorWithoutIdb = simulator(idbPath = null, idbCanSendSimulatorInput = false)
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", simulatorWithoutIdb.capabilities.inputRefusal)
+        assertEquals(emptyList(), simulatorWithoutIdb.capabilities.buttons)
     }
 
     @Test
@@ -185,10 +198,11 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, runnerInput = XcTestRunnerInput(runners))
+    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, runnerInput = XcTestRunnerInput(runners))
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
         udid = "00008110",
+        iosMajorVersion = 26,
         idbPath = "idb",
         companions = IdbCompanions(
             idbCompanionPath = "idb_companion",
@@ -216,7 +230,7 @@ private class FakeXcTestRunners : XcTestRunners {
 
     override suspend fun runnerFor(target: XcTestRunnerTarget): XcTestRunner {
         askedFor += target
-        startFailure?.let { throw XcTestRunnerStartException(it, null) }
+        (refusal ?: startFailure)?.let { throw XcTestRunnerStartException(it, null) }
         return runner
     }
 

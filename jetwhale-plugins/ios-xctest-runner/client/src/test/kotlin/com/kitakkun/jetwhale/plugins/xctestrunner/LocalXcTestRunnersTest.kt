@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.nio.file.Files
 import java.time.Clock
+import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,8 +35,8 @@ class LocalXcTestRunnersTest {
     private var xcodebuildExitsAtOnce = false
     private var runnersAnswer = true
 
-    private val simulator = XcTestRunnerTarget.Simulator("SIM-1")
-    private val device = XcTestRunnerTarget.Device("00008110")
+    private val simulator = XcTestRunnerTarget.Simulator("SIM-1", iosMajorVersion = 26)
+    private val device = XcTestRunnerTarget.Device("00008110", iosMajorVersion = 26)
 
     private val xcodebuildProcesses: List<FakeToolProcess> get() = launched.filter { it.command.first() == "/usr/bin/env" }
 
@@ -171,6 +172,32 @@ class LocalXcTestRunnersTest {
         assertEquals(NO_DEVELOPMENT_TEAM_REFUSAL, failure.message)
         assertTrue(launched.isEmpty())
         assertNull(runners(iproxyPath = null).refusalFor(simulator))
+    }
+
+    @Test
+    fun `an iOS older than the runner's deployment target is refused before anything is built, and an unknown one is tried`() = runTest {
+        settings.developmentTeam = "ABCDE12345"
+        val runners = runners(iproxyPath = "iproxy")
+
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", runners.refusalFor(XcTestRunnerTarget.Simulator("SIM-16", iosMajorVersion = 16)))
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", runners.refusalFor(XcTestRunnerTarget.Device("00008020", iosMajorVersion = 16)))
+        assertFailsWith<XcTestRunnerStartException> { runners.runnerFor(XcTestRunnerTarget.Simulator("SIM-16", iosMajorVersion = 16)) }
+        assertTrue(launched.isEmpty())
+        assertNull(runners.refusalFor(XcTestRunnerTarget.Simulator("SIM-17", iosMajorVersion = 17)))
+        assertNull(runners.refusalFor(XcTestRunnerTarget.Simulator("SIM-X", iosMajorVersion = null)))
+    }
+
+    @Test
+    fun `the oldest iOS the client accepts is the runner project's deployment target`() {
+        val runnerProjectZip = checkNotNull(LocalXcTestRunners::class.java.getResourceAsStream("/com/kitakkun/jetwhale/plugins/xctestrunner/JetWhaleRunner.zip"))
+        val pbxproj = ZipInputStream(runnerProjectZip).use { zipInput ->
+            generateSequence { zipInput.nextEntry }.first { it.name == "JetWhaleRunner.xcodeproj/project.pbxproj" }
+            zipInput.readBytes().decodeToString()
+        }
+
+        val deploymentTargetMajorVersions = Regex("""IPHONEOS_DEPLOYMENT_TARGET = (\d+)\.\d+;""").findAll(pbxproj).map { it.groupValues[1].toInt() }.toSet()
+
+        assertEquals(setOf(RUNNER_MINIMUM_IOS_MAJOR_VERSION), deploymentTargetMajorVersions)
     }
 
     @Test

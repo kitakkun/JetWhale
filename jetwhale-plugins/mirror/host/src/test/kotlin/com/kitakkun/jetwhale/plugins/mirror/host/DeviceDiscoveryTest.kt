@@ -18,11 +18,19 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
 class DeviceDiscoveryTest {
+    @Test
+    fun `a major OS version is the first number of an OS version`() {
+        assertEquals(26, majorVersionOf("iOS 26.2"))
+        assertEquals(16, majorVersionOf("16.7.10"))
+        assertNull(majorVersionOf(null))
+    }
+
     private val folder: File = Files.createTempDirectory("mirror-discovery").toFile()
 
     // Slow to answer, so the simultaneous looks overlap.

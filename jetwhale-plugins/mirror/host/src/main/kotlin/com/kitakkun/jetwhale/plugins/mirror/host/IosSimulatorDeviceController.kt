@@ -22,18 +22,21 @@ import kotlin.io.path.readBytes
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
+    iosMajorVersion: Int?,
     private val xcrunPath: String,
     private val idbPath: String?,
     idbCanSendSimulatorInput: Boolean,
     private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController {
-    private val runnerTarget = XcTestRunnerTarget.Simulator(udid)
+    private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     private val idbInputPath = idbPath?.takeIf { idbCanSendSimulatorInput }
 
+    private val runnerRefusal = if (runnerInput == null) "input to a simulator needs Xcode's xcodebuild, or an idb that can send input" else runnerInput.refusalFor(runnerTarget)
+
     override val capabilities = DeviceCapabilities(
-        inputRefusal = if (runnerInput == null && idbInputPath == null) "input to a simulator needs Xcode's xcodebuild, or an idb that can send input" else null,
-        buttons = if (runnerInput == null && idbInputPath == null) emptyList() else listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power),
+        inputRefusal = runnerRefusal.takeIf { idbInputPath == null },
+        buttons = if (runnerRefusal != null && idbInputPath == null) emptyList() else listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power),
         recording = true,
         screenPower = false,
     )

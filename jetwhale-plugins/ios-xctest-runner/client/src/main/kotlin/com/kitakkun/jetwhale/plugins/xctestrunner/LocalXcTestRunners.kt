@@ -74,13 +74,17 @@ internal class LocalXcTestRunners(
     /** Destinations whose last start failed; a background start leaves them alone until [runnerFor] tries again. */
     private val failedDestinations: MutableSet<RunnerDestination> = ConcurrentHashMap.newKeySet()
 
-    override fun refusalFor(target: XcTestRunnerTarget): String? = when (target) {
-        is XcTestRunnerTarget.Simulator -> null
+    override fun refusalFor(target: XcTestRunnerTarget): String? {
+        val iosMajorVersion = target.iosMajorVersion
+        if (iosMajorVersion != null && iosMajorVersion < RUNNER_MINIMUM_IOS_MAJOR_VERSION) return "the XCTest runner needs iOS $RUNNER_MINIMUM_IOS_MAJOR_VERSION or later, and this one runs iOS $iosMajorVersion"
+        return when (target) {
+            is XcTestRunnerTarget.Simulator -> null
 
-        is XcTestRunnerTarget.Device -> when {
-            iproxyPath == null -> IPROXY_MISSING_REFUSAL
-            settings.developmentTeam == null -> NO_DEVELOPMENT_TEAM_REFUSAL
-            else -> null
+            is XcTestRunnerTarget.Device -> when {
+                iproxyPath == null -> IPROXY_MISSING_REFUSAL
+                settings.developmentTeam == null -> NO_DEVELOPMENT_TEAM_REFUSAL
+                else -> null
+            }
         }
     }
 

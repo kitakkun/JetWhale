@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.sync.Mutex
@@ -83,6 +84,7 @@ internal class DeviceDiscovery(
 
         DeviceKind.IosSimulator -> IosSimulatorDeviceController(
             udid = listing.id,
+            iosMajorVersion = majorVersionOf(listing.osVersion),
             xcrunPath = checkNotNull(locatedToolPaths.xcrunPath),
             idbPath = locatedToolPaths.idbPath,
             idbCanSendSimulatorInput = idbCanSendSimulatorInput,
@@ -91,6 +93,7 @@ internal class DeviceDiscovery(
 
         DeviceKind.IosDevice -> IosPhysicalDeviceController(
             udid = listing.id,
+            iosMajorVersion = majorVersionOf(listing.osVersion),
             idbPath = checkNotNull(locatedToolPaths.idbPath),
             companions = checkNotNull(sharedCompanions),
             ffmpegPath = locatedToolPaths.ffmpegPath,
@@ -114,3 +117,7 @@ internal class DeviceDiscovery(
 }
 
 private const val IPROXY_INSTALL = "brew install libimobiledevice"
+
+/** The major version in [osVersion], such as 17 for `iOS 17.5`; null when it has none. */
+@VisibleForTesting
+internal fun majorVersionOf(osVersion: String?): Int? = osVersion?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() }

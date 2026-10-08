@@ -6,10 +6,16 @@ import java.io.File
 public sealed interface XcTestRunnerTarget {
     public val udid: String
 
-    public class Simulator(override val udid: String) : XcTestRunnerTarget
+    /**
+     * The major version of the iOS it runs, such as 17, which decides whether a runner can run on it;
+     * null when unknown, in which case a runner is tried.
+     */
+    public val iosMajorVersion: Int?
+
+    public class Simulator(override val udid: String, override val iosMajorVersion: Int?) : XcTestRunnerTarget
 
     /** A physical device, which needs a runner signed for the development team in [XcTestRunnerSettings]. */
-    public class Device(override val udid: String) : XcTestRunnerTarget
+    public class Device(override val udid: String, override val iosMajorVersion: Int?) : XcTestRunnerTarget
 }
 
 /** What starting a runner needs from the user. */
@@ -25,8 +31,8 @@ public interface XcTestRunnerSettings {
  */
 public interface XcTestRunners {
     /**
-     * Why [target] cannot be driven, when that is known without trying: no Xcode, no development
-     * team or no `iproxy` for a device. Null when a runner can be tried, which may still fail to
+     * Why [target] cannot be driven, when that is known without trying: an iOS older than the
+     * runner runs on, or no development team or no `iproxy` for a device. Null when a runner can be tried, which may still fail to
      * start; [runnerFor] then says why.
      */
     public fun refusalFor(target: XcTestRunnerTarget): String?

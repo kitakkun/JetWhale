@@ -22,12 +22,13 @@ import kotlin.concurrent.thread
  */
 internal class IosPhysicalDeviceController(
     private val udid: String,
+    iosMajorVersion: Int?,
     private val idbPath: String,
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
     private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController {
-    private val runnerTarget = XcTestRunnerTarget.Device(udid)
+    private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
     override val capabilities: DeviceCapabilities
         get() {

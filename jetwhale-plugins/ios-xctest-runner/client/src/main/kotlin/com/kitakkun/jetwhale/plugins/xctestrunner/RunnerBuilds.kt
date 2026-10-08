@@ -17,6 +17,12 @@ internal const val RUNNER_SCHEME = "JetWhaleRunner"
 
 internal const val RUNNER_TEST_IDENTIFIER = "JetWhaleRunnerUITests/RunnerTests/testServe"
 
+/**
+ * The oldest iOS the runner runs on: its project's deployment target, which is also the oldest iOS
+ * that the XCTest of Xcode 27 runs on.
+ */
+internal const val RUNNER_MINIMUM_IOS_MAJOR_VERSION = 17
+
 /** The runner's bundle IDs start with this; a device build appends the team, since an ID belongs to one team. */
 private const val RUNNER_BUNDLE_ID_PREFIX = "com.kitakkun.jetwhale.xctestrunner"
 

@@ -113,7 +113,7 @@ and drawing take.
 Taps, swipes, text and buttons reach an iOS simulator or iPhone through an **XCTest runner**: a small
 UI-test bundle that Xcode builds on this Mac, installs on the device and keeps running while it sends
 the input. It is the way WebDriverAgent drives iOS, and it reaches the whole screen, the home screen
-and system alerts included.
+and system alerts included. It runs on iOS 17 or later, the oldest that Xcode 27's XCTest runs on.
 
 - **The first use builds it**, which takes ten to twenty seconds once per Xcode version; after that
   a runner starts in about three seconds. The mirror starts it as soon as it shows the device, so the
@@ -121,8 +121,8 @@ and system alerts included.
 - **One runner per device**, shared with any other plugin that drives iOS. It stops by itself after
   five minutes without input, and when the host quits. Its build and state live under the host's app
   data, in `xctest-runner/`.
-- **On a simulator**, when the runner cannot be built or started, input goes through idb instead, as
-  it did before. idb's input no longer works with Xcode 27, though, so there the runner is the only
+- **On a simulator**, when the runner cannot be built or started, or the simulator runs an iOS older
+  than 17, input goes through idb instead, as it did before. idb's input no longer works with Xcode 27, though, so there the runner is the only
   way. Recent apps opens the app switcher with the swipe up from the bottom edge that a Face ID
   iPhone takes; through idb, it presses Home twice.
 
