@@ -23,10 +23,9 @@ with the host under the host's version.
 
 ### Tools on your machine
 
-The plugin drives the command-line tools you already use for devices. It looks for them on `PATH`,
-and also in Homebrew's `/opt/homebrew/bin` and `/usr/local/bin`, because an app started from the Dock
-does not inherit your shell's `PATH`. When a tool is missing, the device list says which one and what
-it would enable.
+The plugin drives the command-line tools you already use for devices, and looks for them where a
+terminal would find them (see [How the tools are found](#how-the-tools-are-found)). When a tool is
+missing, the device list says which one and what it would enable.
 
 | To mirror | You need |
 |-----------|----------|
@@ -40,6 +39,32 @@ command. Without it an Android device is shown through screenshots a few times a
 iPhone cannot be mirrored. iOS simulators, and Android emulators that expose their own gRPC screen
 stream, need no ffmpeg; an emulator without that stream is decoded like a device, and so is a
 foldable emulator folded through `adb shell cmd device_state state`.
+
+### How the tools are found
+
+An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`. So on
+macOS and Linux the host reads the `PATH` your login shell sets up and searches it first, then the
+host's own `PATH`, and then, as a fallback, Homebrew's `/opt/homebrew/bin` and `/usr/local/bin`. adb
+is looked for in the Android SDK before all of these: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, then the
+SDK's default location. On Windows an app gets your `PATH` however it is started, so the plugin uses
+it as it is.
+
+To read that `PATH`, the plugin runs your shell (`$SHELL`, or `/bin/zsh` on macOS and `/bin/sh`
+elsewhere when it is unset) as an interactive login shell, as a terminal does. It does so once per
+run of the host, the first time it looks for devices; the host does the same once for
+[its own adb](/guide/adb-auto-port-mapping#how-adb-is-found). The shell runs your startup files,
+`.zshrc` and `.bashrc` included, so whatever they start runs again. When the shell has not answered
+within 5 seconds, exits with an error or prints no `PATH`, the plugin searches only the host's
+`PATH` and Homebrew's directories.
+
+The tools the plugin starts get the directories it searched as their `PATH`, so a tool that looks
+for others on `PATH` finds them too: a pyenv or asdf shim finds the program it stands for, and idb
+finds `idb_companion`.
+
+If a tool is reported missing although it is installed, open a new terminal and check that
+`command -v <tool>` prints its path. If it prints nothing, add the tool's directory to `PATH` in your
+shell's startup files. If it prints a path, check that your startup files finish within 5 seconds
+without asking for input. Then restart the host, which reads the `PATH` again.
 
 ## Using it
 

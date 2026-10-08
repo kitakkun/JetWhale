@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -31,7 +32,7 @@ class MirrorCapturesTest {
         scope = scope,
         zone = ZoneOffset.UTC,
         notices = MirrorNotices(scope),
-        ffmpegPath = null,
+        ffmpegPath = CompletableDeferred(value = null),
         clipboard = CaptureClipboard(osascriptPath = fakeOsascript.absolutePath),
     )
 

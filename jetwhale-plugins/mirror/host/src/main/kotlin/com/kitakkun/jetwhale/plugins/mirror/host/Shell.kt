@@ -17,15 +17,24 @@ internal fun interface ProcessLauncher {
     fun start(command: List<String>): Process
 }
 
-internal val SystemProcessLauncher = ProcessLauncher { command ->
-    try {
-        ProcessBuilder(if (runsOnWindows) command.take(1) + command.drop(1).map(::windowsCommandLineArgument) else command).start()
+internal object SystemProcessLauncher : ProcessLauncher {
+    /**
+     * The PATH the started processes get, or null to leave them the host's. A tool can search PATH
+     * itself: a pyenv or asdf shim looks there for what it runs, and idb for idb_companion.
+     */
+    @Volatile
+    var launchedProcessPathVariable: String? = null
+
+    override fun start(command: List<String>): Process = try {
+        ProcessBuilder(if (runsOnWindows) command.take(1) + command.drop(1).map(::windowsCommandLineArgument) else command)
+            .apply { launchedProcessPathVariable?.let { environment()["PATH"] = it } }
+            .start()
     } catch (e: IOException) {
         throw DeviceControlException("failed to launch '${command.first()}': ${e.message}", e)
     }
 }
 
-private val runsOnWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
+internal val runsOnWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 
 /**
  * [argument] written so that a Windows program parsing its command line with the C runtime's
@@ -91,44 +100,43 @@ internal suspend fun runCommandChecked(vararg command: String): CommandResult {
     return result
 }
 
-/** The paths of the external tools this plugin drives, located once; a missing tool is null. */
+/** The paths of the external tools this plugin drives; a missing tool is null. */
 internal class MirrorToolPaths(
     val adbPath: String?,
     val idbPath: String?,
     val idbCompanionPath: String?,
     val xcrunPath: String?,
     val ffmpegPath: String?,
+)
+
+/**
+ * Finds the tools this plugin drives in [searchDirectories], and adb first in the Android SDKs at
+ * [androidSdkDirectories].
+ */
+internal class MirrorToolLocator(
+    private val searchDirectories: List<String>,
+    private val androidSdkDirectories: List<String>,
 ) {
-    companion object {
-        fun locate(): MirrorToolPaths {
-            val home = System.getProperty("user.home")
-            val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
-            val sdkDirectories = listOfNotNull(
-                System.getenv("ANDROID_HOME"),
-                System.getenv("ANDROID_SDK_ROOT"),
-                "$home/Library/Android/sdk",
-                "$home/Android/Sdk",
-                System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
-            )
-            val searchDirectories = toolDirectories(System.getenv("PATH"))
-            return MirrorToolPaths(
-                adbPath = findToolPath(adbFileName, sdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, searchDirectories),
-                idbPath = findToolPath("idb", searchDirectories),
-                idbCompanionPath = findToolPath("idb_companion", searchDirectories),
-                xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
-                ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
-            )
-        }
+    fun locateToolPaths(): MirrorToolPaths {
+        val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
+        return MirrorToolPaths(
+            adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, searchDirectories),
+            idbPath = findToolPath("idb", searchDirectories),
+            idbCompanionPath = findToolPath("idb_companion", searchDirectories),
+            xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
+            ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
+        )
     }
 }
 
 /**
- * The directories searched for a tool: those on [pathVariable] (the PATH environment variable),
- * then Homebrew's. A GUI app on macOS does not inherit the login shell's PATH, so Homebrew's
- * directories are searched even when PATH lacks them.
+ * The directories searched for a tool: those on [loginShellPathVariable], when the login shell's PATH
+ * could be read, then those on [pathVariable], this process's own PATH, then Homebrew's. A GUI app on
+ * macOS does not inherit the login shell's PATH, so Homebrew's directories are searched even when
+ * neither PATH lists them.
  */
 @VisibleForTesting
-internal fun toolDirectories(pathVariable: String?): List<String> = pathVariable.orEmpty().split(File.pathSeparator).filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
+internal fun toolDirectories(loginShellPathVariable: String?, pathVariable: String?): List<String> = listOfNotNull(loginShellPathVariable, pathVariable).flatMap { it.split(File.pathSeparator) }.filter(String::isNotEmpty) + listOf("/opt/homebrew/bin", "/usr/local/bin")
 
 /** The path of the first executable file named [name] in [directories], or null. */
 @VisibleForTesting

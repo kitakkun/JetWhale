@@ -31,6 +31,28 @@ class ShellTest {
 
         assertEquals(arguments, received.split(EchoArguments.SEPARATOR))
     }
+
+    @Test
+    fun `a process is launched with launchedProcessPathVariable as its PATH`() {
+        assumeShellScriptsLaunch()
+        SystemProcessLauncher.launchedProcessPathVariable = "/opt/login/bin:/usr/bin:/bin"
+        try {
+            val process = SystemProcessLauncher.start(listOf("/bin/sh", "-c", "printf %s \"\$PATH\""))
+
+            assertEquals("/opt/login/bin:/usr/bin:/bin", process.inputStream.bufferedReader().readText())
+        } finally {
+            SystemProcessLauncher.launchedProcessPathVariable = null
+        }
+    }
+
+    @Test
+    fun `a process is launched with the host's PATH while launchedProcessPathVariable is null`() {
+        assumeShellScriptsLaunch()
+
+        val process = SystemProcessLauncher.start(listOf("/bin/sh", "-c", "printf %s \"\$PATH\""))
+
+        assertEquals(System.getenv("PATH"), process.inputStream.bufferedReader().readText())
+    }
 }
 
 /** Prints its arguments, so a test can see what a launched program read from its command line. */

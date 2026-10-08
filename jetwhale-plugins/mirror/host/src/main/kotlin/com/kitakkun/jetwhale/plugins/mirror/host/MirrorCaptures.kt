@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -68,7 +69,7 @@ internal class MirrorCaptures(
     private val scope: CoroutineScope,
     private val zone: ZoneId,
     private val notices: MirrorNotices,
-    private val ffmpegPath: String?,
+    private val ffmpegPath: Deferred<String?>,
     private val clipboard: CaptureClipboard,
 ) : CapturesActions,
     ThumbnailSource {
@@ -152,7 +153,7 @@ internal class MirrorCaptures(
     override fun cachedThumbnail(capture: Capture): ImageBitmap? = synchronized(thumbnails) { thumbnails[capture.file] }
 
     override suspend fun loadThumbnail(capture: Capture): ImageBitmap? = withContext(Dispatchers.IO) {
-        val file = thumbnailOf(library, capture, ffmpegPath) ?: return@withContext null
+        val file = thumbnailOf(library, capture, ffmpegPath.await()) ?: return@withContext null
         val bitmap = Image.makeFromEncoded(file.readBytes()).use(Image::toComposeImageBitmap)
         synchronized(thumbnails) { thumbnails[capture.file] = bitmap }
         bitmap
