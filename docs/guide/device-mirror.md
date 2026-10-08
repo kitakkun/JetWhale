@@ -1,10 +1,11 @@
 # Device Mirror <Badge type="warning" text="experimental" />
 
 The Device Mirror shows the live screen of an Android emulator or device, an iOS simulator, or a
-physical iPhone inside the host window. On Android devices and simulators you can tap, swipe, type
-and press hardware buttons on the mirrored screen; an iPhone is view-only. Every device can take
-screenshots and recordings, kept per device so the ones from a test run are easy to find again. An
-AI agent can do the same over MCP.
+physical iPhone inside the host window. On Android devices and iOS simulators you can tap, swipe,
+type and press hardware buttons on the mirrored screen; a physical iPhone takes input too once you
+set your development team, which is experimental. Every device can take screenshots and recordings,
+kept per device so the ones from a test run are easy to find again. An AI agent can do the same over
+MCP.
 
 It needs no app: nothing is added to the app you debug, and it is listed at the top of the sidebar,
 above the app picker, usable as soon as the host starts with nothing connected — see
@@ -30,8 +31,8 @@ missing, the device list says which one and what it would enable.
 | To mirror | You need |
 |-----------|----------|
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
-| iOS simulators (macOS) | Xcode's `xcrun simctl`, plus [idb](https://fbidb.io): `brew install facebook/fb/idb`, which installs the command-line client and its companion |
-| iPhones connected by USB (macOS) | idb as above |
+| iOS simulators (macOS) | Xcode, for `simctl` and for input; [idb](https://fbidb.io) for live video: `brew install facebook/fb/idb`, which installs the command-line client and its companion |
+| iPhones connected by USB (macOS) | idb as above; for input, also Xcode, `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
@@ -101,10 +102,45 @@ field; it tries the video again after 5 seconds, then 15, then once a minute.
 
 The toolbar's buttons are grouped — navigation, volume, screen power, captures — and wrap as a whole
 in a narrow window. Android has Home, Back, Recent apps, Power, Volume up and Volume down; a simulator
-has Home, Recent apps and Power. On Android, **Screen off** and **Wake** turn the screen off and on,
+has Home and Power, plus Recent apps when idb is installed; an iPhone that takes input has Home,
+Power, Volume up and Volume down. On Android, **Screen off** and **Wake** turn the screen off and on,
 and Wake lifts a lock screen that has no PIN, pattern or password. **Stats** under the screen shows
 frames received and shown per second, the longest gap between frames, and how long decoding, copying
 and drawing take.
+
+### Input on iOS
+
+Taps, swipes, text and buttons reach an iOS simulator or iPhone through an **XCTest runner**: a small
+UI-test bundle that Xcode builds on this Mac, installs on the device and keeps running while it sends
+the input. It is the way WebDriverAgent drives iOS, and it reaches the whole screen, the home screen
+and system alerts included.
+
+- **The first use builds it**, which takes ten to twenty seconds once per Xcode version; after that
+  a runner starts in about three seconds. The mirror starts it as soon as it shows the device, so the
+  first tap seldom waits.
+- **One runner per device**, shared with any other plugin that drives iOS. It stops by itself after
+  five minutes without input, and when the host quits. Its build and state live under the host's app
+  data, in `xctest-runner/`.
+- **On a simulator**, when the runner cannot be built or started, input goes through idb instead, as
+  it did before. idb's input no longer works with Xcode 27, though, so there the runner is the only
+  way. Recent apps still goes through idb.
+
+#### Input on a physical iPhone <Badge type="warning" text="experimental" />
+
+Driving a physical iPhone follows Apple's and Appium's documentation for running an XCTest runner on
+a device, and has not been tried on one yet. It needs:
+
+1. **Your development team**, which signs the runner. Choose **Set team…** in the banner under the
+   iPhone's screen and enter the ten-character team ID shown under Membership in your Apple
+   Developer account. Xcode must be signed in to that team (**Xcode → Settings → Accounts**); a free
+   personal team works.
+2. **`iproxy`**, which forwards the runner's port over USB: `brew install libimobiledevice`.
+3. **On the iPhone**: trust this Mac, turn on **Developer Mode** (Settings → Privacy & Security →
+   Developer Mode, then restart), turn on **Enable UI Automation** (Settings → Developer), and keep it
+   unlocked while it is driven. Signing also needs the iPhone online.
+
+The banner under an iPhone says what is missing. A failure that only shows when the runner starts —
+signing, Developer Mode, UI Automation, a locked iPhone — comes back as a notice when you first tap.
 
 ### Captures
 
@@ -157,7 +193,7 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. An iOS device or simulator also reports `osVersion`; an Android device reports `screenOn` and `locked` |
+| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`; an Android device reports `screenOn` and `locked` |
 | `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
@@ -172,13 +208,14 @@ An agent can read a returned path to look at the capture.
 
 ## Limits
 
-- **A physical iPhone is view-only.** idb can show its screen but cannot send touches, buttons or
-  text to a real device, so the mirror shows **View only** and refuses input over MCP with the
-  reason. Screenshots and recordings, taken from its video stream, work, and need ffmpeg.
+- **Input on a physical iPhone is experimental** and needs a development team, `iproxy` and the
+  iPhone settings in [Input on a physical iPhone](#input-on-a-physical-iphone). Without them it is
+  view-only, and MCP refuses input with the reason. Screenshots and recordings, taken from its video
+  stream, work either way, and need ffmpeg.
 - **If an iPhone stays black**, unlock it and keep its screen on; allow **Camera** access for the app
   that runs JetWhale (the host, or the terminal or IDE that launched it) in **System Settings →
   Privacy & Security → Camera**, since macOS delivers a USB device's screen as a camera; and check
   that it is connected by USB and trusts this Mac. The mirror lists the same hints.
-- **A simulator's volume buttons** are shown disabled: idb cannot press them.
+- **A simulator's volume buttons** are shown disabled: XCTest cannot press them on a simulator.
 - **Android stops a recording on its own after 180 seconds.**
 - **On Android, text with a line break is refused**; type each line separately.

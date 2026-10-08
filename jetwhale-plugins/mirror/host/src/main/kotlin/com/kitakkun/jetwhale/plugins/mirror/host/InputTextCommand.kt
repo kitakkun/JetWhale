@@ -9,7 +9,7 @@ internal class InputTextCommand(
     private val mirror: MirrorDevices,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.inputText"
-    override val description = "Types text into whatever has focus on the device. Not available for a physical iOS device."
+    override val description = "Types text into whatever has focus on the device. Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val text by string("The text to type.")

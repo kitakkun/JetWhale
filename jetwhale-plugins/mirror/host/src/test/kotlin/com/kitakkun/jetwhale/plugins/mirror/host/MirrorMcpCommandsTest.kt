@@ -25,10 +25,12 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+private const val IPHONE_REFUSAL = "driving an iPhone needs your Apple development team"
+
 @OptIn(ExperimentalJetWhaleApi::class)
 class MirrorMcpCommandsTest {
-    private val emulator = FakeController(DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true))
-    private val iphone = FakeController(DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false), refusal = VIEW_ONLY)
+    private val emulator = FakeController(DeviceCapabilities(inputRefusal = null, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true))
+    private val iphone = FakeController(DeviceCapabilities(inputRefusal = IPHONE_REFUSAL, buttons = emptyList(), recording = false, screenPower = false), refusal = IPHONE_REFUSAL)
     private val mirror = FakeMirrorDevices(
         listOf(
             MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
@@ -37,13 +39,16 @@ class MirrorMcpCommandsTest {
     )
 
     @Test
-    fun `listDevices tells a view-only iPhone from a device that takes input`() {
+    fun `listDevices tells an iPhone that takes no input, and why, from a device that takes input`() {
         val devices = ListDevicesCommand(mirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
 
         val phone = devices.single { it.getValue("deviceId").jsonPrimitive.content == "00008110" }
         assertEquals("iOS", phone.getValue("platform").jsonPrimitive.content)
         assertFalse(phone.getValue("input").jsonPrimitive.boolean)
-        assertTrue(devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }.getValue("input").jsonPrimitive.boolean)
+        assertEquals(IPHONE_REFUSAL, phone.getValue("inputUnavailableReason").jsonPrimitive.content)
+        val android = devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }
+        assertTrue(android.getValue("input").jsonPrimitive.boolean)
+        assertFalse("inputUnavailableReason" in android)
     }
 
     @Test
@@ -104,7 +109,7 @@ class MirrorMcpCommandsTest {
             )
         }
 
-        assertTrue("view-only" in failure.message.orEmpty())
+        assertEquals(IPHONE_REFUSAL, failure.message)
         assertEquals(0, iphone.screenSizeQueries)
     }
 
@@ -168,7 +173,7 @@ class MirrorMcpCommandsTest {
             )
         }
 
-        assertTrue("view-only" in failure.message.orEmpty())
+        assertEquals(IPHONE_REFUSAL, failure.message)
         assertEquals(0, iphone.screenSizeQueries)
     }
 

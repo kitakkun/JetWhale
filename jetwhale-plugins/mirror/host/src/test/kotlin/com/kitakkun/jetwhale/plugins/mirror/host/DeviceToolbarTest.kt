@@ -26,7 +26,7 @@ class DeviceToolbarTest {
     fun `a simulator's disabled volume buttons are announced with the reason once`() = runComposeUiTest {
         setContent { JwTheme(darkTheme = false) { Toolbar(simulator, simulatorCapabilities, screenPower = null) } }
 
-        val label = "Volume up: idb cannot press a simulator's volume buttons"
+        val label = "Volume up: a simulator's volume buttons cannot be pressed from here"
         assertEquals(listOf(label), contentDescriptionOf(label))
     }
 
@@ -36,10 +36,10 @@ class DeviceToolbarTest {
 
     private val simulator = DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
-    private val androidCapabilities = DeviceCapabilities(input = true, buttons = DeviceButton.entries, recording = true, screenPower = true)
+    private val androidCapabilities = DeviceCapabilities(inputRefusal = null, buttons = DeviceButton.entries, recording = true, screenPower = true)
 
     private val simulatorCapabilities = DeviceCapabilities(
-        input = true,
+        inputRefusal = null,
         buttons = listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power),
         recording = true,
         screenPower = false,
@@ -85,4 +85,8 @@ private object NoMirrorActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override val developmentTeam: String? get() = null
+
+    override fun updateDevelopmentTeam(team: String?) = Unit
 }

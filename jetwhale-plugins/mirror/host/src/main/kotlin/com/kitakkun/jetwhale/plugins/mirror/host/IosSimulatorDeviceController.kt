@@ -2,6 +2,9 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -11,17 +14,22 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
 
 /**
- * A booted iOS simulator. Screenshots and recordings go through `simctl`; the live stream and all
- * input need idb, since simctl can neither stream nor send touches.
+ * A booted iOS simulator. Screenshots and recordings go through `simctl` and the live stream through
+ * idb, since simctl can neither stream nor send touches. Input goes through the XCTest runner
+ * ([runnerInput]), and through idb when the runner cannot start; Recent apps always goes through
+ * idb, since no runner command opens the app switcher.
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
     private val xcrunPath: String,
     private val idbPath: String?,
+    private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController {
+    private val runnerTarget = XcTestRunnerTarget.Simulator(udid)
+
     override val capabilities = DeviceCapabilities(
-        input = idbPath != null,
-        buttons = if (idbPath != null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
+        inputRefusal = if (runnerInput == null && idbPath == null) "input to a simulator needs Xcode's xcodebuild or idb" else null,
+        buttons = if (runnerInput == null && idbPath == null) emptyList() else listOfNotNull(DeviceButton.Home, DeviceButton.Recents.takeIf { idbPath != null }, DeviceButton.Power),
         recording = true,
         screenPower = false,
     )
@@ -44,26 +52,62 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun tap(x: Int, y: Int) {
-        val scale = pixelsPerPoint()
-        runCommandChecked(requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
-    }
+    override suspend fun tap(x: Int, y: Int) = sendInput(
+        throughRunner = { it.tap(runnerTarget, x, y) },
+        throughIdb = { idbPath ->
+            val scale = pixelsPerPoint()
+            runCommandChecked(idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        },
+    )
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        val scale = pixelsPerPoint()
-        runCommandChecked(
-            requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
-            "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
-        )
-    }
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput(
+        throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis) },
+        throughIdb = { idbPath ->
+            val scale = pixelsPerPoint()
+            runCommandChecked(
+                idbPath, "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+                "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
+            )
+        },
+    )
 
     override suspend fun pressButton(button: DeviceButton) {
         val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
-        presses.forEach { idbButton -> runCommandChecked(requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
+        val pressThroughIdb: suspend (String) -> Unit = { idbPath -> presses.forEach { idbButton -> runCommandChecked(idbPath, "ui", "button", "--udid", udid, idbButton) } }
+        val runnerButton = when (button) {
+            DeviceButton.Home -> XcTestRunnerButton.Home
+            DeviceButton.Power -> XcTestRunnerButton.Lock
+            else -> null
+        }
+        if (runnerButton == null) {
+            pressThroughIdb(requireIdbPath())
+        } else {
+            sendInput(throughRunner = { it.pressButton(runnerTarget, runnerButton) }, throughIdb = pressThroughIdb)
+        }
     }
 
-    override suspend fun inputText(text: String) {
-        runCommandChecked(requireIdbPath(), "ui", "text", "--udid", udid, text)
+    override suspend fun inputText(text: String) = sendInput(
+        throughRunner = { it.typeText(runnerTarget, text) },
+        throughIdb = { idbPath -> runCommandChecked(idbPath, "ui", "text", "--udid", udid, text) },
+    )
+
+    /** Sends input through the runner, or through idb when the runner cannot start. */
+    private suspend fun sendInput(throughRunner: suspend (XcTestRunnerInput) -> Unit, throughIdb: suspend (idbPath: String) -> Unit) {
+        val runnerFailure = runnerInput?.let { input ->
+            try {
+                throughRunner(input)
+                return
+            } catch (e: XcTestRunnerStartException) {
+                e
+            }
+        }
+        val idbPath = idbPath ?: throw DeviceControlException(runnerFailure?.message ?: IDB_MISSING, runnerFailure)
+        try {
+            throughIdb(idbPath)
+        } catch (e: DeviceControlException) {
+            if (runnerFailure == null) throw e
+            throw DeviceControlException("${runnerFailure.message}; idb failed as well: ${e.message}", e)
+        }
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -76,11 +120,13 @@ internal class IosSimulatorDeviceController(
     // current CoreSimulator does so rarely that the picture freezes for seconds. Its raw stream is
     // paced by --fps and scaled by the simulator instead, so there is nothing to decode.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        runnerInput?.startRunnerInBackground(runnerTarget)
+        val idbPath = requireIdbPath()
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
                 // idb names its raw format rbga; the bytes it writes are BGRA.
-                listOf(requireIdbPath(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
+                listOf(idbPath, "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
             )
         }
         return VideoStream.RawBgra(process, layout.frameSize, layout.rowBytes, layout.fps) { arrivedFps ->
@@ -111,7 +157,14 @@ internal class IosSimulatorDeviceController(
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
-    override suspend fun screenSize(): IntSize = readSimulatorScreenFromIdb().size
+    override suspend fun screenSize(): IntSize {
+        if (idbPath != null || runnerInput == null) return readSimulatorScreenFromIdb().size
+        return try {
+            runnerInput.screenSize(runnerTarget)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
+        }
+    }
 
     // idb takes points; the mirror works in pixels, so the screen's density converts between them.
     private suspend fun pixelsPerPoint(): Double = readSimulatorScreenFromIdb().pixelsPerPoint
@@ -126,7 +179,7 @@ internal class IosSimulatorDeviceController(
 // The formula installs the command-line client and the companion together, at matching versions.
 internal const val IDB_INSTALL = "brew install facebook/fb/idb"
 
-internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): $IDB_INSTALL"
+internal const val IDB_MISSING = "iOS live streaming needs idb (https://fbidb.io): $IDB_INSTALL"
 
 /**
  * The idb buttons pressed, in order, for [button] on a simulator, or null for a button it lacks.

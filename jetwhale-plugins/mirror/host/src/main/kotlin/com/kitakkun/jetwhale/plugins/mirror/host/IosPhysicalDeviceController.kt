@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -8,8 +11,10 @@ import java.io.InputStream
 import kotlin.concurrent.thread
 
 /**
- * A physical iOS device over USB. idb streams its screen through the device's companion, but idb
- * sends touches, buttons and text to simulators only, so a device is watched and not driven.
+ * A physical iOS device over USB. idb streams its screen through the device's companion, but sends
+ * touches, buttons and text to simulators only; input goes through the XCTest runner instead, signed
+ * with the user's development team and reached through `iproxy`. Driving a device that way is
+ * experimental: it follows Apple's and Appium's documentation and has not been tried on one.
  *
  * Its screenshots and recordings come from that H.264 stream through ffmpeg: `idb screenshot` does
  * not reach a device running iOS 17 or later. The companion outlives each use by
@@ -20,8 +25,20 @@ internal class IosPhysicalDeviceController(
     private val idbPath: String,
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
+    private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController {
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = ffmpegPath != null, screenPower = false)
+    private val runnerTarget = XcTestRunnerTarget.Device(udid)
+
+    override val capabilities: DeviceCapabilities
+        get() {
+            val refusal = inputRefusal()
+            return DeviceCapabilities(
+                inputRefusal = refusal,
+                buttons = if (refusal == null) listOf(DeviceButton.Home, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown) else emptyList(),
+                recording = ffmpegPath != null,
+                screenPower = false,
+            )
+        }
 
     private var holdsStreamCompanion = false
 
@@ -54,13 +71,35 @@ internal class IosPhysicalDeviceController(
         return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 
-    override suspend fun tap(x: Int, y: Int) = throw deviceControlError(VIEW_ONLY)
+    override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y) }
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = throw deviceControlError(VIEW_ONLY)
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput { input, target ->
+        input.swipe(target, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+    }
 
-    override suspend fun pressButton(button: DeviceButton) = throw deviceControlError(VIEW_ONLY)
+    override suspend fun pressButton(button: DeviceButton) {
+        val runnerButton = when (button) {
+            DeviceButton.Home -> XcTestRunnerButton.Home
+            DeviceButton.Power -> XcTestRunnerButton.Lock
+            DeviceButton.VolumeUp -> XcTestRunnerButton.VolumeUp
+            DeviceButton.VolumeDown -> XcTestRunnerButton.VolumeDown
+            DeviceButton.Back, DeviceButton.Recents -> throw deviceControlError("an iPhone has no ${button.label} button to press from here")
+        }
+        sendInput { input, target -> input.pressButton(target, runnerButton) }
+    }
 
-    override suspend fun inputText(text: String) = throw deviceControlError(VIEW_ONLY)
+    override suspend fun inputText(text: String) = sendInput { input, target -> input.typeText(target, text) }
+
+    private suspend fun sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> Unit) {
+        inputRefusal()?.let { throw deviceControlError(it) }
+        try {
+            command(checkNotNull(runnerInput), runnerTarget)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
+        }
+    }
+
+    private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 
@@ -94,6 +133,7 @@ internal class IosPhysicalDeviceController(
 
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        if (inputRefusal() == null) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
         val ffmpegPath = requireFfmpegPath("mirroring a physical iOS device")
         holdCompanion()
         return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand()), ffmpegPath) }
@@ -135,5 +175,3 @@ private const val DEVICE_STREAM_COMPRESSION_QUALITY = 0.8
 
 /** How long a screenshot waits for the device's stream to send its first frame. */
 private const val STILL_FRAME_TIMEOUT_MILLIS = 10_000L
-
-internal const val VIEW_ONLY = "a physical iOS device is view-only: idb sends touches, buttons and text to simulators only"

@@ -43,7 +43,8 @@ class DeviceMirrorTest {
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        developmentTeamSetting = emptyDevelopmentTeamSetting(),
         captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
         scope = scope,
@@ -106,7 +107,8 @@ class DeviceMirrorTest {
     fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
         val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
-            discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+            discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+            developmentTeamSetting = emptyDevelopmentTeamSetting(),
             captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
             notices = notices,
             scope = clicks,
@@ -472,7 +474,7 @@ private class SlowRecorder : DeviceController {
     /** Thrown by the next stop, as a pull that fails would. */
     var stopFailure: DeviceControlException? = null
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = true, screenPower = false)
 
     /** Completes when a start has begun. */
     val entered = CompletableDeferred<Unit>()
@@ -537,7 +539,7 @@ private class EndingStream(private val power: ScreenPower?) : DeviceController {
     /** Completes when the mirror first reads the screen's size. */
     val screenSizeRead = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = power != null)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = power != null)
 
     /** Completes when the screen state is read a second time. */
     val readTwice = CompletableDeferred<Unit>()
@@ -585,7 +587,7 @@ private class ClosingStream : DeviceController {
     /** Completes once the mirror is blocked reading the stream. */
     val reading = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.RawBgra(ClosedUnderReadProcess(reading), frameSize = IntSize(1, 1), rowBytes = 64, fps = 30, onFellBehind = { false })
 
@@ -617,7 +619,7 @@ private class StillEmulator : DeviceController {
     /** Completes if the mirror asks for a screenshot. */
     val screenshotTaken = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 
@@ -660,7 +662,7 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
     /** Completes with the mirror's state once it opens a second stream. */
     val reopened = CompletableDeferred<MirrorState>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun screenSize(): IntSize = if (opened.get() == 0) UNFOLDED_SCREEN else FOLDED_SCREEN
 
@@ -712,7 +714,7 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
     /** Completes when the mirror asks for a third screenshot, once the second one's outcome is shown. */
     val polledAgain = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
@@ -758,7 +760,7 @@ private class FlakyStreamDevice(private val stateNow: () -> MirrorState) : Devic
     /** Completes with the mirror's state when it opens a second stream. */
     val triedAgain = CompletableDeferred<MirrorState>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
+    override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
 

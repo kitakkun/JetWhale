@@ -224,7 +224,7 @@ private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : 
     @Volatile
     var png: ByteArray = SCREEN_PNG
 
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = true)
+    override val capabilities = DeviceCapabilities(inputRefusal = "not driven in this fixture", buttons = emptyList(), recording = false, screenPower = true)
 
     override suspend fun captureScreenshot(): ByteArray {
         failure?.let { throw deviceControlError(it) }
