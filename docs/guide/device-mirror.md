@@ -122,9 +122,9 @@ and system alerts included. It runs on iOS 17 or later, the oldest that Xcode 27
   five minutes without input, and when the host quits. Its build and state live under the host's app
   data, in `xctest-runner/`.
 - **On a simulator**, when the runner cannot be built or started, or the simulator runs an iOS older
-  than 17, input goes through idb instead, as it did before. idb's input no longer works with Xcode 27, though, so there the runner is the only
-  way. Recent apps opens the app switcher with the swipe up from the bottom edge that a Face ID
-  iPhone takes; through idb, it presses Home twice.
+  than 17, input goes through idb instead, as it did before. idb's input no longer works with Xcode
+  27, though, so there the runner is the only way. Recent apps opens the app switcher with the swipe
+  up from the bottom edge that a Face ID iPhone takes; through idb, it presses Home twice.
 
 #### Input on a physical iPhone <Badge type="warning" text="experimental" />
 
