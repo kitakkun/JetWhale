@@ -23,7 +23,7 @@ class MirrorToolLocatorTest {
 
         val located = MirrorToolLocator(toolDirectories(loginShellPathVariable = loginShellDirectory.path, pathVariable = hostPathDirectory.path), androidSdkDirectories = emptyList()).locateToolPaths()
 
-        assertEquals(loginShellIdb.path, located.idbPath)
+        assertEquals(loginShellIdb, located.idbPath?.let(::File))
     }
 
     @Test
@@ -32,7 +32,7 @@ class MirrorToolLocatorTest {
 
         val located = MirrorToolLocator(toolDirectories(loginShellPathVariable = null, pathVariable = hostPathDirectory.path), androidSdkDirectories = emptyList()).locateToolPaths()
 
-        assertEquals(hostPathIdb.path, located.idbPath)
+        assertEquals(hostPathIdb, located.idbPath?.let(::File))
     }
 
     @Test
