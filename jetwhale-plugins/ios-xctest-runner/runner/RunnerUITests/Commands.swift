@@ -67,13 +67,13 @@ final class Commands {
             return ["leaseSeconds": granted]
 
         case "/tap":
-            try press(at: devicePoint(body, "x", "y"), forSeconds: 0)
+            try press(at: point(body, "x", "y"), in: space(body), forSeconds: 0)
 
         case "/longPress":
-            try press(at: devicePoint(body, "x", "y"), forSeconds: seconds(body, "durationMillis"))
+            try press(at: point(body, "x", "y"), in: space(body), forSeconds: seconds(body, "durationMillis"))
 
         case "/swipe":
-            try swipe(from: devicePoint(body, "fromX", "fromY"), to: devicePoint(body, "toX", "toY"), forSeconds: seconds(body, "durationMillis"))
+            try swipe(from: point(body, "fromX", "fromY"), to: point(body, "toX", "toY"), in: space(body), forSeconds: seconds(body, "durationMillis"))
 
         case "/typeText":
             guard let text = body["text"] as? String else { throw RunnerError(description: "text is missing") }
@@ -105,10 +105,11 @@ final class Commands {
     }
 
     // XCUICoordinate waits for the app to idle around every gesture, about two seconds after a
-    // scroll, and takes interface-orientation points; it is only the fallback.
-    private func press(at point: CGPoint, forSeconds duration: Double) throws {
+    // scroll, and takes interface-orientation points; it is only the fallback. It gets the points as
+    // given, which for device-native ones is right in portrait only.
+    private func press(at point: CGPoint, in space: PointSpace, forSeconds duration: Double) throws {
         if EventSynthesis.isAvailable() {
-            try check(EventSynthesis.press(at: point, duration: max(duration, 0.05)))
+            try check(EventSynthesis.press(at: devicePoint(point, in: space), duration: max(duration, 0.05)))
         } else if duration > 0 {
             coordinate(point).press(forDuration: duration)
         } else {
@@ -116,9 +117,9 @@ final class Commands {
         }
     }
 
-    private func swipe(from start: CGPoint, to end: CGPoint, forSeconds duration: Double) throws {
+    private func swipe(from start: CGPoint, to end: CGPoint, in space: PointSpace, forSeconds duration: Double) throws {
         if EventSynthesis.isAvailable() {
-            try check(EventSynthesis.drag(from: start, to: end, duration: max(duration, 0.05)))
+            try check(EventSynthesis.drag(from: devicePoint(start, in: space), to: devicePoint(end, in: space), duration: max(duration, 0.05)))
         } else {
             let velocity = hypot(end.x - start.x, end.y - start.y) / max(duration, 0.05)
             coordinate(start).press(forDuration: 0.05, thenDragTo: coordinate(end), withVelocity: XCUIGestureVelocity(velocity), thenHoldForDuration: 0)
@@ -146,18 +147,26 @@ final class Commands {
         springboard.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: point.x, dy: point.y))
     }
 
-    /// The point that `body` gives under the keys `x` and `y`, in device-native points: converted from
-    /// screen points when the body's `space` is `screen`.
-    private func devicePoint(_ body: [String: Any], _ x: String, _ y: String) throws -> CGPoint {
-        let given = try point(body, x, y)
+    private enum PointSpace {
+        case device
+        case screen
+    }
+
+    /// The space `body` gives its points in: device-native unless its `space` is `screen`.
+    private func space(_ body: [String: Any]) throws -> PointSpace {
         switch body["space"] as? String ?? "device" {
         case "device":
-            return given
+            return .device
         case "screen":
-            return coordinate(given).screenPoint
+            return .screen
         default:
             throw RunnerError(description: "space must be device or screen")
         }
+    }
+
+    /// `point` in device-native points, the space event synthesis takes.
+    private func devicePoint(_ point: CGPoint, in space: PointSpace) -> CGPoint {
+        space == .screen ? coordinate(point).screenPoint : point
     }
 
     /// The screen as the interface shows it: its orientation, and its size in pixels that way round.
