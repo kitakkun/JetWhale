@@ -125,7 +125,11 @@ jetwhale-plugins/ios-xctest-runner/
 The client carries the Xcode project in its jar. On first use it builds the project with the
 user's own Xcode (`build-for-testing`), keyed by Xcode's build version and the project's hash, and
 per team and device for a device. Building on the user's machine keeps the private-API use in step
-with the XCTest it runs against.
+with the XCTest it runs against, so the build version is read again whenever a runner starts, and
+an Xcode update gets a build of its own. The first build starts in the background when a device is
+shown, so the first tap does not wait for it. A build is used only once a marker written after
+`xcodebuild` succeeded says it is complete, and builds for another Xcode, or of another project
+unused for a week, are deleted after a build, unless another plugin holds them locked.
 
 ### Shared through the OS
 
@@ -170,9 +174,16 @@ to push events (an alert appearing) rather than answer requests.
 
 ### Commands
 
-HTTP/1.1 `POST` with a JSON body, one request per command, the connection kept alive. Points are
-device-native: portrait, whatever the interface orientation, which is what the private event record
-takes and what the mirror's screen size is in.
+HTTP/1.1 `POST` with a JSON body, one request per command, the connection kept alive.
+
+Points come in one of two spaces, which a command names with `space`:
+
+- **`device`**, the default: device-native portrait points, whatever the interface orientation.
+  This is what the private event record takes, and the space of the mirror's screen size.
+- **`screen`**: points in the interface orientation, the space of screenshots and of the frames
+  `/tree` returns. The runner converts them with `XCUICoordinate.screenPoint` before synthesizing,
+  at about 74 ms a point. A caller that read a frame from `/tree` taps its center in `screen` and
+  needs no conversion of its own.
 
 | Command | Body | Phase |
 |---|---|---|
@@ -209,8 +220,9 @@ interface XcTestRunner {
 ```
 
 A target is a simulator or a device by UDID; the signing team comes from `XcTestRunnerSettings`,
-given when the runners are made, not with each call. A runner that went away between commands is
-replaced and the command sent once more. If the host later takes over starting, stopping and
+given when the runners are made, not with each call. A runner that took no connection is replaced
+and the command sent once more; one that stopped answering after taking a command is not, since it
+may have carried it out. If the host later takes over starting, stopping and
 settings as a service it hands to plugins, it implements `XcTestRunners`, and its callers do not
 change.
 
@@ -221,8 +233,8 @@ change.
 - **Simulators:** the runner replaces idb for input. idb's input no longer works with Xcode 27, its
   last release is from 2022, and XCTest is Apple's supported automation API, released with each
   Xcode. idb stays for the live stream, for input when the runner cannot be built or started, and
-  for Recent apps, which no runner command opens. Buttons: Home and Power (lock); the Simulator has
-  no volume buttons to press.
+  for Recent apps, which no runner command opens; that button is left out when idb cannot send
+  input. Buttons: Home and Power (lock); the Simulator has no volume buttons to press.
 - **Devices:** with a development team set under the mirror, input stops being view-only: taps,
   swipes, text, Home, Power and volume. Every failure is a notice: no team or no `iproxy` in the
   device's banner, and signing, Developer Mode, UI Automation or a locked device, read from
@@ -237,7 +249,10 @@ An XCTest node source for the host session, through the same client: one root pe
 `elementType` as the class, `identifier` as `accessibilityIdentifier`, `label` as `text`, `value` as
 `accessibilityValue`, the frame as bounds in points, plus `enabled`, `selected` and `hasFocus`. It
 has no action list and no traits, so actions become coordinate gestures: `Click` taps the center,
-`SetText` taps and types, `ScrollBy` drags. The in-process agent stays the richer source when the
+`ScrollBy` drags, all in `screen` points. `SetText` replaces the field's content, as the action
+requires: it taps the field at its trailing edge so the caret is at the end, deletes one character
+for each character of the value XCTest reports, and types the new text, so an empty text clears
+the field. A secure field reports no value to delete, so `SetText` on one is refused. The in-process agent stays the richer source when the
 app runs it; the XCTest source covers apps without it, other apps, and system alerts.
 
 ### MCP
@@ -295,9 +310,8 @@ runs WebDriverAgent the same way:
 - **Other UI tests on the same device.** Two runners ran side by side here, but a developer's own UI
   tests on the device the mirror drives would still compete with it for the screen. The idle stop
   ends the runner when nothing uses it.
-- **Landscape.** Points are device-native; a landscape screenshot's coordinates have to be rotated
-  first. `XCUICoordinate.screenPoint` does that conversion, at 74 ms a point; the mirror does not use
-  it yet.
+- **Landscape.** A landscape screenshot's coordinates are in `screen` points and cost a conversion
+  per point; Semantics and the MCP tools that take screenshot pixels send them that way.
 - **Loopback is shared.** Any local process can reach a loopback port; the per-run token keeps them
   from driving the device.
 - **Devices are unverified**: signing, Developer Mode, UI Automation, a locked device and `iproxy`
