@@ -21,9 +21,11 @@ trap 'rm -rf "$work"' EXIT
 bundle="$work/bundle.zip"
 response="$work/response"
 
-# Central needs each file's .asc, .md5 and .sha1. Gradle also writes maven-metadata.xml, .sha256 and
-# .sha512, and checksums of the signatures; Central reads none of them, and every file counts against
-# the namespace's monthly file limit.
+# Central requires a .asc, .md5 and .sha1 for each file; .sha256 and .sha512 are optional, and
+# signatures need no checksums (https://central.sonatype.org/publish/requirements/). Every file
+# counts against the monthly file limit
+# (https://central.sonatype.org/publish/maven-central-publishing-limits/), so the bundle leaves out
+# the rest of what Gradle writes: maven-metadata.xml, .sha256, .sha512 and the signatures' checksums.
 files="$(cd "$repository" && find . -type f \
   ! -name 'maven-metadata*' ! -name '*.sha256' ! -name '*.sha512' ! -name '*.asc.md5' ! -name '*.asc.sha1' |
   sed 's|^\./||' | sort)"
