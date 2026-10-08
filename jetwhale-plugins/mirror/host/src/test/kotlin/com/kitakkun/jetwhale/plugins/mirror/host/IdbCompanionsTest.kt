@@ -8,6 +8,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,8 +19,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class IdbCompanionsTest {
-    private val started = mutableListOf<FakeProcess>()
-    private val commands = mutableListOf<List<String>>()
+    private val started = mutableListOf<FakeCompanionProcess>()
+    // The host's exit disconnects idb from every companion at once, from several threads.
+    private val commands: MutableList<List<String>> = Collections.synchronizedList(mutableListOf())
     private var nextPort = 10_000
     private var companionsReport = true
 
@@ -100,6 +102,18 @@ class IdbCompanionsTest {
     }
 
     @Test
+    fun `the host's exit kills every companion and has idb forget each one`() = runTest {
+        val companions = companions()
+        companions.acquire("udid-1")
+        companions.acquire("udid-2")
+
+        companions.destroyAllNow()
+
+        assertTrue(started.all(FakeCompanionProcess::destroyed))
+        assertEquals(setOf(listOf("idb", "disconnect", "localhost", "10000"), listOf("idb", "disconnect", "localhost", "10001")), commands.filter { it[1] == "disconnect" }.toSet())
+    }
+
+    @Test
     fun `releasing everything stops every device's companion`() = runTest {
         val companions = companions()
         companions.acquire("udid-1")
@@ -107,14 +121,14 @@ class IdbCompanionsTest {
 
         companions.releaseAll()
 
-        assertTrue(started.all(FakeProcess::destroyed))
+        assertTrue(started.all(FakeCompanionProcess::destroyed))
     }
 
     private fun TestScope.companions() = IdbCompanions(
         idbCompanionPath = "idb_companion",
         idbPath = "idb",
         launcher = { command ->
-            FakeProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
+            FakeCompanionProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
         },
         commands = { command -> commands += command },
         ports = { nextPort++ },
@@ -127,7 +141,7 @@ class IdbCompanionsTest {
  * A process whose output is [readyLine], if any, and that then stays open until destroyed, the
  * way idb_companion does.
  */
-private class FakeProcess(val command: List<String>, readyLine: String?) : Process() {
+internal class FakeCompanionProcess(val command: List<String>, readyLine: String?) : Process() {
     private val pipe = PipedOutputStream()
     private val output = PipedInputStream(pipe)
     var destroyed = false

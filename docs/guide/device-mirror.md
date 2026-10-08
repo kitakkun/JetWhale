@@ -40,6 +40,9 @@ iPhone cannot be mirrored. iOS simulators, and Android emulators that expose the
 stream, need no ffmpeg; an emulator without that stream is decoded like a device, and so is a
 foldable emulator folded through `adb shell cmd device_state state`.
 
+The plugin starts an `idb_companion` for each simulator and iPhone it uses, and ends it three
+minutes after its last use, when the device goes away, and when the host quits.
+
 ### How the tools are found
 
 An app started from Finder, the Dock or a desktop entry does not inherit your shell's `PATH`. So on
