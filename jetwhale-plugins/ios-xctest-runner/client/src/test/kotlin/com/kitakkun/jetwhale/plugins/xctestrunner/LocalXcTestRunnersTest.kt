@@ -23,6 +23,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -166,11 +167,22 @@ class LocalXcTestRunnersTest {
 
         val until = runner.keepAlive(10.minutes)
 
-        assertEquals(600, connections.getValue(20_000).sent.last().second.getValue("seconds").jsonPrimitive.int)
+        assertEquals(600.0, connections.getValue(20_000).sent.last().second.getValue("seconds").jsonPrimitive.double)
         assertEquals(Instant.parse("2026-10-09T00:10:00Z"), until)
         assertEquals(until, runners().keptAliveUntil(simulator))
         clock.now = Instant.parse("2026-10-09T00:10:01Z")
         assertNull(runners().keptAliveUntil(simulator))
+    }
+
+    @Test
+    fun `a lease shorter than a second keeps its length rather than ending the lease`() = runTest {
+        val runner = runners().runnerFor(simulator)
+        connections.getValue(20_000).answers["/lease"] = buildJsonObject { put("leaseSeconds", 0.5) }
+
+        val until = runner.keepAlive(500.milliseconds)
+
+        assertEquals(0.5, connections.getValue(20_000).sent.last().second.getValue("seconds").jsonPrimitive.double)
+        assertEquals(Instant.parse("2026-10-09T00:00:00.500Z"), until)
     }
 
     @Test

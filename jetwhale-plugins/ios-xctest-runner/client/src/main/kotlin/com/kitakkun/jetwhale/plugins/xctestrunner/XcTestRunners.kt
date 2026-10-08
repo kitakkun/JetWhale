@@ -103,9 +103,9 @@ public interface XcTestRunner {
 
     /**
      * Keeps the runner from stopping when idle for [duration] from now, at most two hours, and
-     * records the lease where every client sees it; [Duration.ZERO] ends a lease. A lease nobody
-     * renews ends, so a forgotten one cannot keep a runner going. Returns at once, with the time the
-     * lease ends.
+     * records the lease where every client sees it; [Duration.ZERO] ends a lease, and a negative
+     * [duration] is refused. A lease nobody renews ends, so a forgotten one cannot keep a runner
+     * going. Returns at once, with the time the lease ends.
      */
     public suspend fun keepAlive(duration: Duration): Instant
 }

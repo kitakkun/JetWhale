@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 internal const val IPROXY_INSTALL_COMMAND = "brew install libimobiledevice"
 
@@ -118,11 +120,11 @@ internal class LocalXcTestRunners(
     }
 
     /**
-     * Records that [attachment]'s runner is kept alive for [leaseSeconds] from now, unless its record
-     * is already another runner's, and returns the time the lease ends.
+     * Records that [attachment]'s runner is kept alive for [leaseDuration] from now, unless its record is
+     * already another runner's, and returns the time the lease ends.
      */
-    suspend fun recordLease(attachment: Attachment, leaseSeconds: Long): Instant {
-        val until = clock.instant().plusSeconds(leaseSeconds)
+    suspend fun recordLease(attachment: Attachment, leaseDuration: Duration): Instant {
+        val until = clock.instant().plusMillis(leaseDuration.inWholeMilliseconds)
         runnerStateDirectory.withDeviceLock(attachment.destination.udid, lockTimeout) {
             val runnerState = runnerStateDirectory.readRunnerState(attachment.destination.udid)?.takeIf { it.pid == attachment.pid } ?: return@withDeviceLock
             runnerStateDirectory.writeRunnerState(attachment.destination.udid, runnerState.copy(keptAliveUntilEpochMillis = until.toEpochMilli()))
@@ -412,8 +414,8 @@ private class AttachedXcTestRunner(
     }
 
     override suspend fun keepAlive(duration: Duration): Instant {
-        val answer = send("/lease", buildJsonObject { put("seconds", duration.inWholeSeconds) })
-        return runners.recordLease(attachment, answer.intField("leaseSeconds").toLong())
+        val answer = send("/lease", buildJsonObject { put("seconds", duration.toDouble(DurationUnit.SECONDS)) })
+        return runners.recordLease(attachment, answer.doubleField("leaseSeconds").seconds)
     }
 
     private suspend fun send(path: String, body: JsonObject): JsonObject {
@@ -432,4 +434,6 @@ private class AttachedXcTestRunner(
 
 private fun JsonObject.stringField(name: String): String = (this[name] as? JsonPrimitive)?.contentOrNull ?: throw XcTestRunnerException("the XCTest runner's answer has no $name", null)
 
-private fun JsonObject.intField(name: String): Int = (this[name] as? JsonPrimitive)?.doubleOrNull?.toInt() ?: throw XcTestRunnerException("the XCTest runner's answer has no number $name", null)
+private fun JsonObject.intField(name: String): Int = doubleField(name).toInt()
+
+private fun JsonObject.doubleField(name: String): Double = (this[name] as? JsonPrimitive)?.doubleOrNull ?: throw XcTestRunnerException("the XCTest runner's answer has no number $name", null)
