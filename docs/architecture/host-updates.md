@@ -32,11 +32,12 @@ The installed host had no working way to update itself:
   agent SDK. The host offers an update, and the user downloads it and restarts.
 - **A bad update does not lock the user out.** A version that fails to start is set aside, and the
   previous one runs.
-- **Only what a release published runs.** Every jar is checked against its release's metadata
-  before it is installed and before every start. Only signed metadata proves that the release job
-  built the jar; with SHA-256 alone, which is what releases have, the check catches corruption and
-  truncated downloads (see *Signing the release metadata*). A process that can write to
-  `~/.jetwhale` is out of scope (see *Verification and security*).
+- **Only what a release published runs.** Every downloaded jar is checked against its release's
+  metadata before it is installed and before every start; the bundled jar is trusted as part of the
+  package the user installed. Only signed metadata proves that the release job built the jar; with
+  SHA-256 alone, which is what releases have, the check catches corruption and truncated downloads
+  (see *Signing the release metadata*). A process that can write to `~/.jetwhale` is out of scope
+  (see *Verification and security*).
 - **No Apple Developer ID or Windows code-signing certificate is needed.**
 
 ## Non-goals
@@ -442,9 +443,10 @@ Updates section is hidden (`LocalEmbeddedInIde`), and no banner shows.
 
 ## Verification and security
 
-- **The metadata decides what runs.** The jar must match the metadata's size and SHA-256 after the
-  download and before every start. On an Apple Silicon Mac, hashing the 125 MB macOS jar takes
-  0.1–0.2 s, which is small next to the host's own start.
+- **The metadata decides what runs.** A downloaded jar must match the metadata's size and SHA-256
+  after the download and before every start. The bundled jar is not checked: it came with the
+  package the user installed (see *Choosing a version*). On an Apple Silicon Mac, hashing the
+  125 MB macOS jar takes 0.1–0.2 s, which is small next to the host's own start.
 - **GitHub's per-asset digest** is computed from whatever was uploaded. It guards the transfer, not
   against a replaced asset. The metadata's hash is the one that counts.
 - **Immutable releases are off** (`immutable: false` on 1.0.0-alpha13). With GitHub's immutable
