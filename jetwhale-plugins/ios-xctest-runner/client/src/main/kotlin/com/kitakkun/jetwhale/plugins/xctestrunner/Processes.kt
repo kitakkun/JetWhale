@@ -45,14 +45,14 @@ internal class ProcessCommandOutputRunner(
     override suspend fun run(command: List<String>): CommandOutput = withContext(Dispatchers.IO) {
         val process = processLauncher.start(command)
         coroutineScope {
-            // Both pipes are read at once, since either one filling up would stall the process.
+            // A process stalls once either of its pipes fills, so both are read at once.
             val output = async { process.inputStream.bufferedReader().use { it.readText() } }
             val errorOutput = async { process.errorStream.bufferedReader().use { it.readText() } }
             try {
                 withTimeoutOrNull(timeout) { CommandOutput(exitCode = process.onExit().await().exitValue(), text = "${output.await()}\n${errorOutput.await()}") }
                     ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
             } finally {
-                // Reading a pipe ignores cancellation, and ends only once the process does.
+                // A blocking pipe read ignores cancellation and ends only once the process does.
                 process.destroyForcibly()
             }
         }
@@ -114,8 +114,7 @@ internal class KeptOutput(process: Process) {
                 }
             }
         } catch (_: IOException) {
-            // Destroying the process closes its streams under this reader; the lines read so far
-            // are kept.
+            // Destroying the process closes its streams under this reader.
         }
     }
 }

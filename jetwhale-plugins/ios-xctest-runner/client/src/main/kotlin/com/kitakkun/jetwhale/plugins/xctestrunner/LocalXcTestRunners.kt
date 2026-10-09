@@ -159,8 +159,8 @@ internal class LocalXcTestRunners(
         if (status != null && status.protocolVersion >= PROTOCOL_VERSION && runnerState.developmentTeam == destination.developmentTeam) {
             return Attachment(destination, runnerState.pid, connection, status)
         }
-        // Only a runner that answered is shut down: a recorded pid that is alive may by now belong
-        // to an unrelated process.
+        // Only a runner that answered is shut down: a live recorded pid may by now belong to an
+        // unrelated process.
         if (status != null) shutDownRunner(connection, runnerState.pid)
         runnerStateDirectory.deleteRunnerState(destination.udid, runnerState.pid)
         return null
@@ -224,11 +224,11 @@ internal class LocalXcTestRunners(
 
     private suspend fun launchRunnerTest(xctestrun: File, udid: String, runnerPort: Int, token: String): LaunchedTest {
         val xcodebuild = withContext(Dispatchers.IO) {
-            // xcodebuild passes TEST_RUNNER_-prefixed variables to the test runner with the prefix
-            // removed.
             processLauncher.start(
                 listOf(
                     "/usr/bin/env",
+                    // xcodebuild passes TEST_RUNNER_-prefixed variables to the test runner with the
+                    // prefix removed.
                     "TEST_RUNNER_JETWHALE_RUNNER_PORT=$runnerPort",
                     "TEST_RUNNER_JETWHALE_RUNNER_TOKEN=$token",
                     "TEST_RUNNER_JETWHALE_RUNNER_IDLE_SECONDS=${idleTimeout.inWholeSeconds}",
@@ -294,7 +294,7 @@ internal class LocalXcTestRunners(
 
         fun onThisMac(stateDirectory: File, xcrunPath: String, iproxyPath: String?, settings: XcTestRunnerSettings): XcTestRunners {
             val zip = checkNotNull(LocalXcTestRunners::class.java.getResourceAsStream(RUNNER_PROJECT_RESOURCE)) { "$RUNNER_PROJECT_RESOURCE is missing from the client's jar" }.use { it.readBytes() }
-            // The runner answers a command only once it has run, and waits up to 60 seconds for
+            // The runner answers a command only once it has run it, and waits up to 60 seconds for
             // each event.
             val httpClient = OkHttpClient.Builder().readTimeout(2, TimeUnit.MINUTES).build()
             return LocalXcTestRunners(
@@ -368,7 +368,7 @@ private class AttachedXcTestRunner(
         var start = 0
         while (start < text.length) {
             var end = minOf(start + MAX_TYPED_CHARS_PER_COMMAND, text.length)
-            // UTF-8 encodes each half of a split surrogate pair as '?'.
+            // UTF-8 encoding turns each half of a split surrogate pair into '?'.
             if (end < text.length && text[end - 1].isHighSurrogate()) end--
             send("/typeText", buildJsonObject { put("text", text.substring(start, end)) })
             start = end
