@@ -78,9 +78,8 @@ compose.desktop {
             macOS {
                 bundleID = "com.kitakkun.jetwhale.host"
                 iconFile.set(rootProject.file("jetwhale-host/app/src/main/resources/icon.icns"))
-                // Device Mirror reads a USB iPhone's screen in a helper process the host starts.
-                // macOS asks for the Camera on this app's behalf, and stops a process whose app
-                // declares no usage description for it.
+                // Device Mirror's iPhone capture helper asks for the Camera on this app's behalf,
+                // and macOS stops it when this app declares no usage description.
                 infoPlist {
                     extraKeysRawXml = """
                         <key>NSCameraUsageDescription</key>

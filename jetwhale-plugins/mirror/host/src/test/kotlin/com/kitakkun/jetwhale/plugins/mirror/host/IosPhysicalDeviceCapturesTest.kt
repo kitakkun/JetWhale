@@ -94,7 +94,6 @@ class IosPhysicalDeviceCapturesTest {
         val ffmpegPath = installedFfmpegPath()
         val output = File(folder, "clip.mp4")
         val source = DrainTrackingInputStream(PacedInputStream(h264Sample(ffmpegPath), chunks = SAMPLE_FRAMES, pauseMillis = 30))
-        // The paced stream ends by itself, so there is nothing more to end.
         val recorder = H264FileRecorder(source, ffmpegPath, output) {}
         source.awaitDrained()
 
@@ -108,8 +107,8 @@ class IosPhysicalDeviceCapturesTest {
     fun `a screenshot is the key frame a new reader of the capture asks for, at the iPhone's own size`() = runBlocking {
         val ffmpegPath = installedFfmpegPath()
         val sample = h264Sample(ffmpegPath)
-        // The sample is shorter than what ffmpeg probes before it decodes, so the capture ends after
-        // it rather than leave ffmpeg waiting for more.
+        // ffmpeg probes further than the sample reaches before it decodes, so the helper exits
+        // after sending it rather than leave ffmpeg waiting.
         val iphone = iosDevice(ffmpegPath = ffmpegPath, idleTimeout = 1.minutes) { command ->
             if (command == "keyframe") {
                 send(sample)
@@ -129,8 +128,8 @@ class IosPhysicalDeviceCapturesTest {
         val sample = h264Sample(ffmpegPath)
         val iphone = iosDevice(ffmpegPath = ffmpegPath, idleTimeout = Duration.ZERO) { command -> if (command == "keyframe") send(sample) }
 
-        // The stand-in capture can end before ffmpeg reads any of it, which fails the file; the
-        // capture must be released either way.
+        // The recording can end before ffmpeg gets a frame, which fails stop(); the capture is
+        // released either way.
         try {
             iphone.startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {
@@ -181,7 +180,8 @@ class IosPhysicalDeviceCapturesTest {
         val file = File(folder, "sample.h264")
         val encode = ProcessBuilder(
             ffmpegPath, "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=${SAMPLE_WIDTH}x$SAMPLE_HEIGHT:rate=30",
-            // An access unit delimiter starts each frame, so the capture's reader can tell them apart.
+            // Raw H.264 from ffmpeg has no access unit delimiters unless this filter inserts them,
+            // and the capture's reader splits frames at them.
             "-frames:v", "$SAMPLE_FRAMES", "-pix_fmt", "yuv420p", "-bsf:v", "h264_metadata=aud=insert", "-f", "h264", "-y", file.path,
         ).redirectErrorStream(true).start()
         val log = encode.inputStream.use(InputStream::readAllBytes).decodeToString()

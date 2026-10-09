@@ -58,9 +58,8 @@ internal class IphoneCaptureHelperBuilds(
             val sourceFile = File(staging, HELPER_SOURCE_FILE_NAME).apply { writeBytes(source) }
             val compileResult = runCommand(listOf(xcrunPath, "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o", File(staging, HELPER_EXECUTABLE_FILE_NAME).path, sourceFile.path))
             if (compileResult.exitCode != 0) throw deviceControlError("the iPhone capture helper did not compile with this Mac's Swift compiler: ${outputOf(compileResult)}")
-            // A directory left without its executable, by hand or by a crash, would refuse the move.
+            // renameTo does not replace a directory that is not empty.
             if (buildDirectory.isDirectory && !File(buildDirectory, HELPER_EXECUTABLE_FILE_NAME).canExecute()) buildDirectory.deleteRecursively()
-            // A host that finished the same build first has already moved its own into place.
             if (!staging.renameTo(buildDirectory) && !File(buildDirectory, HELPER_EXECUTABLE_FILE_NAME).canExecute()) {
                 throw deviceControlError("could not move the iPhone capture helper into $buildDirectory")
             }

@@ -79,8 +79,8 @@ private val IPHONE_CAPTURE_FAILURE_REUSE_PERIOD = 5.seconds
 /** Builds of the iPhone capture helper not run for this long are deleted by the next build. */
 private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
 
-// A host-only plugin gets an instance per debug session, but a device has one screen: the
-// instances share the captures, so two of them watching one iPhone start one capture.
+// A host-only plugin gets an instance per debug session, but an iPhone has one screen: the
+// instances share the captures, so two of them watching one iPhone start one helper.
 private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
     val builds = IphoneCaptureHelperBuilds(
@@ -154,8 +154,7 @@ private class MirrorHostPlugin :
             try {
                 mirror.dispose()
             } finally {
-                // await() starts a lazy Deferred, so awaiting captures that no look has asked for
-                // would locate the tools only to stop nothing.
+                // await() would start the lazy Deferred, locating the tools only to stop nothing.
                 if (liveInstances.decrementAndGet() == 0 && iphoneScreenCaptures.isCompleted) iphoneScreenCaptures.await()?.stopAll()
             }
         }

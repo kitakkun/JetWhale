@@ -94,6 +94,9 @@ internal class IosPhysicalDeviceController(
 
     private suspend fun <T> sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> T): T {
         inputRefusal()?.let { throw deviceControlError(it) }
+        // Starting the capture switches the iPhone's USB connection over and drops iproxy's
+        // connection to the runner, so it comes before the input; a capture that cannot start
+        // leaves input to the runner alone.
         try {
             withStartedScreenCapture(::awaitFrameSize)
         } catch (_: DeviceControlException) {

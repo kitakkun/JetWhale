@@ -33,7 +33,7 @@ import kotlin.time.TimeSource
  * other connection to it, iproxy's among them, and turns its status bar to the 9:41 one, so a
  * capture nobody uses keeps running for [idleTimeout] before it stops.
  *
- * A run that failed is not started again for [failureReuse], measured by [timeSource]: its failure
+ * A run that failed is not started again for [failureReusePeriod], measured by [timeSource]: its failure
  * is thrown to whoever asks meanwhile, so callers asking one after the other wait for the iPhone
  * once.
  *
@@ -198,7 +198,6 @@ internal class IphoneScreenCapture(private val process: Process, private val tim
             try {
                 process.outputStream.close()
             } catch (_: IOException) {
-                // The helper has already exited, so its stdin is closed anyway.
             }
         }
         thread(isDaemon = true, name = "mirror-iphone-capture-stop") {
@@ -213,7 +212,6 @@ internal class IphoneScreenCapture(private val process: Process, private val tim
             process.outputStream.write("$command\n".toByteArray())
             process.outputStream.flush()
         } catch (_: IOException) {
-            // The helper has exited or is stopping; its readers' streams end with it.
         }
     }
 
@@ -258,7 +256,6 @@ internal class IphoneScreenCapture(private val process: Process, private val tim
                 }
             }
         } catch (_: IOException) {
-            // The pipe closed as the helper exited; its exit code says the rest.
         }
         val exitCode = process.waitFor()
         val stdoutReadFailure = stdoutReadFailure
@@ -267,8 +264,6 @@ internal class IphoneScreenCapture(private val process: Process, private val tim
             stopRequested.get() -> null
             else -> DeviceControlException(iphoneCaptureFailureMessage(exitCode, reportedFailureMessage, logTail.toList()), null)
         }
-        // Recorded before anyone waiting on this run hears, so a caller that tries again at once
-        // finds the failure rather than a run that seems to be starting.
         ending = Ending(failure, timeSource.markNow())
         val cause = failure ?: deviceControlError("the iPhone's screen capture was stopped")
         started.completeExceptionally(cause)

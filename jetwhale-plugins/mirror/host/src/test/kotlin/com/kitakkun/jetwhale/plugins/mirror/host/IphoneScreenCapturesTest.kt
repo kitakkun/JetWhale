@@ -40,7 +40,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `the first user starts the helper for the iPhone and a second shares it`() = runTest {
-        val captures = captures(this, failureReuse = 5.seconds)
+        val captures = captures(this, failureReusePeriod = 5.seconds)
 
         val first = captures.acquire("udid-1", "Test iPhone")
         val second = captures.acquire("udid-1", "Test iPhone")
@@ -51,7 +51,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a capture keeps running for the idle timeout after its last user and then closes the helper's stdin`() = runTest {
-        val captures = captures(this, failureReuse = 5.seconds)
+        val captures = captures(this, failureReusePeriod = 5.seconds)
         val capture = captures.acquire("udid-1", "Test iPhone")
         captures.acquire("udid-1", "Test iPhone")
 
@@ -66,7 +66,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a user who comes back within the idle timeout keeps the running capture`() = runTest {
-        val captures = captures(this, failureReuse = 5.seconds)
+        val captures = captures(this, failureReusePeriod = 5.seconds)
         val capture = captures.acquire("udid-1", "Test iPhone")
         captures.release(capture)
         delay(idleTimeout / 2)
@@ -79,7 +79,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `an iPhone that is gone has its capture stopped at once even while in use`() = runTest {
-        val captures = captures(this, failureReuse = 5.seconds)
+        val captures = captures(this, failureReusePeriod = 5.seconds)
         captures.acquire("udid-1", "Test iPhone")
 
         captures.stopCaptureEvenIfInUse("udid-1")
@@ -89,7 +89,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `stopping everything stops every iPhone's capture`() = runTest {
-        val captures = captures(this, failureReuse = 5.seconds)
+        val captures = captures(this, failureReusePeriod = 5.seconds)
         captures.acquire("udid-1", "Test iPhone")
         captures.acquire("udid-2", "Other iPhone")
 
@@ -100,7 +100,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a started capture says so, and the frames' size once the first is sent`() = runBlocking {
-        val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         helper.reportCapturing(IntSize(1170, 2532))
@@ -112,7 +112,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a reader asks the helper for a key frame and reads the access units from it on`() = runBlocking {
-        val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         val subscription = capture.subscribe()
@@ -125,7 +125,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a helper that fails tells whoever waits for it to start what to do`() = runBlocking {
-        val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         helper.report("""{"event":"error","message":"no capture device showed the iPhone within 15 s","reason":"deviceNotFound"}""")
@@ -137,7 +137,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `after a failure the iPhone is not tried again until the failure reuse has passed`() = runBlocking {
-        val captures = captures(realScope, failureReuse = 5.seconds)
+        val captures = captures(realScope, failureReusePeriod = 5.seconds)
         val capture = captures.acquire("udid-1", "Test iPhone")
         helpers.single().exit(IphoneCaptureExit.PermissionDenied.code)
         val failure = assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
@@ -153,7 +153,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a stopped capture ends its readers and is no failure to try again after`() = runBlocking {
-        val captures = captures(realScope, failureReuse = 5.seconds)
+        val captures = captures(realScope, failureReusePeriod = 5.seconds)
         val capture = captures.acquire("udid-1", "Test iPhone")
         val subscription = capture.subscribe()
 
@@ -165,7 +165,7 @@ class IphoneScreenCapturesTest {
         assertEquals(2, helpers.size)
     }
 
-    private fun captures(scope: CoroutineScope, failureReuse: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReuse, timeSource, scope, CompletableDeferred(HELPER_EXECUTABLE))
+    private fun captures(scope: CoroutineScope, failureReusePeriod: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReusePeriod, timeSource, scope, CompletableDeferred(HELPER_EXECUTABLE))
 }
 
 private val HELPER_EXECUTABLE = File("/builds/jetwhale-iphone-capture")

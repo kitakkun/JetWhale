@@ -94,7 +94,7 @@ internal class AndroidDeviceController(
             val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
             val panel = panelArguments(option = "--display-id", display = display())
             val screenrecordProcess = SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", "-"))
-            // Its log goes unread otherwise, and a full pipe would stall it.
+            // A stderr pipe nobody reads fills up and stalls the process.
             thread(isDaemon = true, name = "mirror-screenrecord-log") { screenrecordProcess.errorStream.use(InputStream::readAllBytes) }
             VideoStream.H264(screenrecordProcess.inputStream, ffmpegPath, screenrecordProcess::destroyForcibly)
         }

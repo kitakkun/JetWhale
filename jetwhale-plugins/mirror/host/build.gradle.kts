@@ -59,8 +59,6 @@ tasks.named("check") {
     dependsOn("compilePreviewKotlin")
 }
 
-// The iPhone capture helper is compiled on the user's Mac, with the Xcode there, so the plugin
-// carries its source.
 tasks.processResources {
     from("src/main/swift") { into("com/kitakkun/jetwhale/plugins/mirror/host") }
 }
