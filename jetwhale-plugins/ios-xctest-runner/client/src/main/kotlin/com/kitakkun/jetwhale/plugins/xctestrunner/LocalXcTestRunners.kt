@@ -12,6 +12,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import java.io.File
+import java.io.IOException
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -137,6 +138,9 @@ internal class LocalXcTestRunners(
         } catch (e: XcTestRunnerStartException) {
             failedDestinations += destination
             throw e
+        } catch (e: IOException) {
+            failedDestinations += destination
+            throw XcTestRunnerStartException("the XCTest runner's state or builds could not be read or written: ${e.message}", e)
         }
         failedDestinations -= destination
         attachments[destination.udid] = attachment
@@ -195,11 +199,13 @@ internal class LocalXcTestRunners(
         var launchedTest: LaunchedTest? = null
         try {
             launchedTest = launchRunnerTest(xctestrun, destination.udid, runnerPort, token)
+            startedRunnerProcesses[launchedTest.xcodebuild.pid()] = StartedRunnerProcesses(launchedTest.xcodebuild, forward?.process)
             val connection = connector.connect(forward?.localPort ?: runnerPort, token)
             val status = awaitRunnerAnswer(connection, launchedTest, destination)
             recordStartedRunner(destination, launchedTest.xcodebuild, forward, RunnerState(status.protocolVersion, launchedTest.xcodebuild.pid(), forward?.localPort ?: runnerPort, token, destination.developmentTeam))
             return Attachment(destination, launchedTest.xcodebuild.pid(), connection, status)
         } catch (e: Throwable) {
+            launchedTest?.xcodebuild?.let { startedRunnerProcesses.remove(it.pid()) }
             launchedTest?.xcodebuild?.destroyForcibly()
             forward?.process?.destroyForcibly()
             throw e
@@ -246,7 +252,6 @@ internal class LocalXcTestRunners(
     /** Records a runner this process started for other plugins, and forgets it once its test ends. */
     private fun recordStartedRunner(destination: RunnerDestination, xcodebuild: Process, forward: Forward?, runnerState: RunnerState) {
         runnerStateDirectory.writeRunnerState(destination.udid, runnerState)
-        startedRunnerProcesses[runnerState.pid] = StartedRunnerProcesses(xcodebuild, forward?.process)
         xcodebuild.onExit().thenRun {
             forward?.process?.destroy()
             startedRunnerProcesses.remove(runnerState.pid)
@@ -278,6 +283,9 @@ internal class LocalXcTestRunners(
         /** A simulator's runner starts in seconds; a device's may first be signed and installed. */
         private val START_TIMEOUT = 3.minutes
 
+        /** Far longer than a build takes: one still running after this is waiting on something that will not come. */
+        private val BUILD_TIMEOUT = 5.minutes
+
         /** Long enough for another plugin to build and start a device's runner. */
         private val LOCK_TIMEOUT = 10.minutes
 
@@ -291,7 +299,7 @@ internal class LocalXcTestRunners(
             val httpClient = OkHttpClient.Builder().readTimeout(2, TimeUnit.MINUTES).build()
             return LocalXcTestRunners(
                 runnerStateDirectory = RunnerStateDirectory(File(stateDirectory, "runners")),
-                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, SystemCommandOutputRunner, LOCK_TIMEOUT, UNUSED_BUILD_LIFETIME, Clock.systemUTC()),
+                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, ProcessCommandOutputRunner(SystemProcessLauncher, BUILD_TIMEOUT), LOCK_TIMEOUT, UNUSED_BUILD_LIFETIME, Clock.systemUTC()),
                 xcrunPath = xcrunPath,
                 iproxyPath = iproxyPath,
                 settings = settings,

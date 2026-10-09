@@ -273,6 +273,31 @@ class LocalXcTestRunnersTest {
         assertTrue(xcodebuildProcesses.single().destroyed)
     }
 
+    @Test
+    fun `a process that exits while a runner starts ends that runner's xcodebuild`() = runTest {
+        val runners = runners()
+        var destroyedByExit = false
+        connections[20_000] = FakeRunnerConnection(answering = false).apply {
+            onStatus = {
+                runners.destroyStartedRunnerProcesses()
+                destroyedByExit = xcodebuildProcesses.single().destroyed
+            }
+        }
+
+        assertFailsWith<XcTestRunnerStartException> { runners.runnerFor(simulator) }
+
+        assertTrue(destroyedByExit)
+    }
+
+    @Test
+    fun `a start whose files cannot be written fails as a start, with nothing launched`() = runTest {
+        File(stateRoot, "runners").writeText("a file where the runners' directory should be")
+
+        assertFailsWith<XcTestRunnerStartException> { runners().runnerFor(simulator) }
+
+        assertTrue(launched.isEmpty())
+    }
+
     /** Records a runner some other plugin started, answering on port 19000 with [protocolVersion]. */
     private fun recordRunner(protocolVersion: Int, developmentTeam: String?, udid: String = simulator.udid) {
         val process = FakeToolProcess(listOf("xcodebuild started by another plugin"), pid = 400, output = "", exitsAtOnce = false).also(launched::add)

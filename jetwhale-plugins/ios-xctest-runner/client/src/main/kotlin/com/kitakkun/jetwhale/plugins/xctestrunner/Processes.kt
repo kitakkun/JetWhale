@@ -3,11 +3,14 @@ package com.kitakkun.jetwhale.plugins.xctestrunner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.io.InputStream
 import java.net.ServerSocket
 import kotlin.concurrent.thread
+import kotlin.time.Duration
 
 /** Starts external processes; tests replace it to run without xcodebuild or iproxy. */
 internal fun interface ProcessLauncher {
@@ -30,14 +33,28 @@ internal fun interface CommandOutputRunner {
     suspend fun run(command: List<String>): CommandOutput
 }
 
-internal val SystemCommandOutputRunner = CommandOutputRunner { command ->
-    withContext(Dispatchers.IO) {
-        val process = SystemProcessLauncher.start(command)
+/**
+ * Runs commands as processes started by [processLauncher]. One that has not finished within
+ * [timeout], or whose caller is cancelled, is ended, so that a build waiting on something that never
+ * comes does not hold its lock and its caller forever.
+ */
+internal class ProcessCommandOutputRunner(
+    private val processLauncher: ProcessLauncher,
+    private val timeout: Duration,
+) : CommandOutputRunner {
+    override suspend fun run(command: List<String>): CommandOutput = withContext(Dispatchers.IO) {
+        val process = processLauncher.start(command)
         coroutineScope {
             // Both pipes are read at once, since either one filling up would stall the process.
+            val output = async { process.inputStream.bufferedReader().use { it.readText() } }
             val errorOutput = async { process.errorStream.bufferedReader().use { it.readText() } }
-            val output = process.inputStream.bufferedReader().use { it.readText() }
-            CommandOutput(exitCode = process.waitFor(), text = "$output\n${errorOutput.await()}")
+            try {
+                withTimeoutOrNull(timeout) { CommandOutput(exitCode = process.onExit().await().exitValue(), text = "${output.await()}\n${errorOutput.await()}") }
+                    ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
+            } finally {
+                // Reading a pipe ignores cancellation, and ends only once the process does.
+                process.destroyForcibly()
+            }
         }
     }
 }
