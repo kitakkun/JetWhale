@@ -311,8 +311,11 @@ Proposed, for option 3:
    names, element names, nullability, optional elements, enum entries, sealed subclasses) and the
    `R` type argument by reflection, and writes Swift `Codable` structs with
    `static let messageType` and a `Reply` type for requests. Their `encode(to:)` is generated too:
-   it writes `nil` as `null` wherever Kotlin has no default, and the `"type"` discriminator for
-   sealed types. A type it cannot map fails the task with the property's path. The Kotlin author
+   it writes every field, `nil` as `null`, and the `"type"` discriminator for sealed types.
+   Defaults are not in a descriptor and need not be: the plugin peer's `Json` encodes defaults
+   (`encodeDefaults = true`), so a Kotlin side always sends every field, and since Swift always
+   sends every field too, a Kotlin default never fills one in. A default never reaches the wire, so
+   the hash below, which covers what does, is not weakened by leaving defaults out. A type it cannot map fails the task with the property's path. The Kotlin author
    keeps writing data classes.
 2. **Send a contract hash.** The generator also writes a hash of the descriptors and of each
    request's reply type, so a request that keeps its serializer but changes `R` changes the hash, and
@@ -376,7 +379,7 @@ Wire messages, named the way Debug Actions names its own:
 | `panels/get_panel_content {panelId}` → `panels/panel_content {revision, content}` | host → agent | A panel's current content |
 | `panels/panels_changed {catalogRevision, panels}` | agent → host | A panel was added or removed |
 | `panels/content_changed {panelId, revision, content}` | agent → host | A table, key-value list or tree changed; or an event log's latest entries, resent after a `log_appended` failed |
-| `panels/log_appended {panelId, entries}` | agent → host | New log entries |
+| `panels/log_appended {panelId, revision, entries}` | agent → host | New log entries |
 
 The agent keeps the latest content of every panel, so a host that connects late, or enables the
 plugin later, asks once and is current. Content changes are coalesced per panel, so an app that
@@ -387,7 +390,10 @@ so nothing is counted twice, and a gap in the numbers says that entries fell out
 capacity. The host keeps each panel's revision and ignores content older than it holds, such as a
 `get_panel_content` answer that arrives after a newer `content_changed`. `trySend` also fails while connected when the outgoing queue is full, and then no
 reconnect follows. So a failed `log_appended` marks the panel stale, and each 250 ms tick sends a
-stale panel's `content_changed`, with the log's latest entries, until a send succeeds.
+stale panel's `content_changed`, with the log's latest entries, until a send succeeds. An append
+advances the panel's revision too, and `log_appended` carries it, so the host applies an append or a
+snapshot only when its revision is newer than the one it holds, and an older `get_panel_content`
+answer that arrives after an append cannot erase it.
 
 The catalog follows the same rules. Its revision rises with every panel added or removed, and both
 `catalog` and `panels_changed` carry it, so a host ignores a catalog older than the one it holds,
@@ -495,7 +501,8 @@ analytics.append("screen_view", level: .info, attributes: ["screen": "Home"])
 
 A table's columns are the rows' encoded keys in the order they first appear, or an explicit
 `columns:` list. The first row alone would not do: synthesized `Encodable` leaves out `nil`
-properties.
+properties. Every row is then sent with one cell per column in that order, and a key a row left
+out becomes `null`, so a value never shifts under another column's heading.
 
 A custom plugin's agent side (option 3), with message types generated from the Kotlin protocol
 module:
@@ -680,6 +687,10 @@ the Network core, so the `URLSession` adapter needs no change to the plugin itse
 - `startLoading` records the request, asks `findMock`, and either answers with a synthesized
   `HTTPURLResponse` and body after the mock's `delayMs`, or performs the request on an inner session
   whose requests carry a `URLProtocol.setProperty` marker so the adapter does not intercept itself.
+  `startLoading` cannot see the configuration the intercepted task's session was made with, so the
+  inner session is built from `.default`: a session's own cookie and cache stores, proxy,
+  credential storage, connectivity policy and timeouts do not apply to requests the adapter performs.
+  That is why interception is opt-in per session; an app leaves out a session that depends on them.
   The response is recorded with timing and a body truncated as the Ktor adapter truncates it.
 - `stopLoading` cancels the pending mock delay or the inner task, and the adapter calls the
   protocol client no more after that, so a cancelled request neither reaches the network nor
