@@ -24,6 +24,7 @@ import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
@@ -236,6 +237,26 @@ class IosInputTest {
     }
 
     @Test
+    fun `an iPhone whose idb fails to describe it takes its screen size from its runner`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize()
+
+        assertEquals(IntSize(1206, 2622), size)
+    }
+
+    @Test
+    fun `an iPhone whose idb fails to describe it and that takes no input reports idb's failure`() = runTest {
+        assumeShellScriptsLaunch()
+        runners.refusal = "driving an iPhone needs your Apple development team"
+
+        val failure = assertFailsWith<DeviceControlException> { iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize() }
+
+        assertContains(failure.message.orEmpty(), "no companion for the device")
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
     fun `an iPhone whose runner cannot start says why`() = runTest {
         runners.startFailure = "Developer Mode is off on the iPhone"
 
@@ -247,9 +268,12 @@ class IosInputTest {
     private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
 
     /** An iPhone whose idb describes a screen of [width] by [height] pixels, as `idb describe` does a device's. */
-    private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int): IosPhysicalDeviceController {
+    private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int) = iphoneWithIdbScript("""echo '{"screen_dimensions":{"width":$width,"height":$height,"density":3}}'""")
+
+    /** An iPhone with idb, whose commands run [script]. */
+    private fun TestScope.iphoneWithIdbScript(script: String): IosPhysicalDeviceController {
         val fakeIdb = File(folder, "idb").apply {
-            writeText("#!/bin/sh\necho '{\"screen_dimensions\":{\"width\":$width,\"height\":$height,\"density\":3}}'\n")
+            writeText("#!/bin/sh\n$script\n")
             setExecutable(true)
         }
         val companions = IdbCompanions(

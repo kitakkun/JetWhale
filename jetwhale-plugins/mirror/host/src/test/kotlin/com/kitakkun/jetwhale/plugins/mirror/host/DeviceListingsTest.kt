@@ -69,12 +69,13 @@ class DeviceListingsTest {
     }
 
     @Test
-    fun `a device devicectl lists on USB that is simulated or not iOS or has no UDID is left out`() {
+    fun `a device devicectl lists on USB that is simulated or not iOS or disconnected or has no UDID is left out`() {
         val json = """
             {"result":{"devices":[
               {"properties":{"hardware":{"platform":"iOS","reality":"simulated","udid":"5C9E2B7A-0000-4000-8000-000000000001"},"connection":{"transportType":"wired"}}},
               {"properties":{"hardware":{"platform":"watchOS","udid":"00008301-0000000000000001"},"connection":{"transportType":"wired"}}},
-              {"properties":{"hardware":{"platform":"iOS"},"connection":{"transportType":"wired"}}}
+              {"properties":{"hardware":{"platform":"iOS"},"connection":{"transportType":"wired"}}},
+              {"properties":{"hardware":{"platform":"iOS","udid":"00008110-0000000000000002"},"connection":{"transportType":"wired","state":"disconnected"}}}
             ]}}
         """.trimIndent()
 

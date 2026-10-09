@@ -66,7 +66,13 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun screenSize(): IntSize {
         screen?.let { return it }
-        val size = companions?.let { readIdbScreenSize(it) } ?: readRunnerScreenSize()
+        val idbScreenSize = try {
+            companions?.let { readIdbScreenSize(it) }
+        } catch (e: DeviceControlException) {
+            if (inputRefusal() != null) throw e
+            null
+        }
+        val size = idbScreenSize ?: readRunnerScreenSize()
         return size.also { screen = it }
     }
 

@@ -57,8 +57,9 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
 /**
  * The iOS devices connected to this Mac by USB, in the JSON that `xcrun devicectl list devices
  * --json-output <file>` writes, or null when the JSON is not such a list. devicectl lists
- * simulators too, which simctl already reports, and devices paired over the network, which idb and
- * `iproxy` reach only by USB; both are left out, and so are watches, TVs and Macs.
+ * simulators too, which simctl already reports, devices paired over the network, which idb and
+ * `iproxy` reach only by USB, and paired devices no longer connected; all are left out, and so are
+ * watches, TVs and Macs.
  */
 internal fun parseDevicectlDevices(json: String): List<DeviceListing>? {
     val devices = try {
@@ -69,7 +70,8 @@ internal fun parseDevicectlDevices(json: String): List<DeviceListing>? {
     return devices.mapNotNull { element ->
         val properties = (element as? JsonObject)?.objectAt("properties") ?: return@mapNotNull null
         val hardware = properties.objectAt("hardware") ?: return@mapNotNull null
-        val isUsbIosDevice = hardware.text("reality") != "simulated" && hardware.text("platform") == "iOS" && properties.objectAt("connection")?.text("transportType") == "wired"
+        val connection = properties.objectAt("connection")
+        val isUsbIosDevice = hardware.text("reality") != "simulated" && hardware.text("platform") == "iOS" && connection?.text("transportType") == "wired" && connection.text("state") != "disconnected"
         val udid = hardware.text("udid")?.takeIf { isUsbIosDevice } ?: return@mapNotNull null
         DeviceListing(
             id = udid,
