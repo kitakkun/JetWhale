@@ -78,6 +78,15 @@ object OfficialPluginCatalog {
             guidePath = "debug-actions",
         ),
         OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.soil",
+            displayName = "Soil Inspector",
+            description = "Inspect the Soil queries, mutations and subscriptions of connected debug sessions.",
+            artifactId = "jetwhale-soil-inspector",
+            agentArtifactId = "jetwhale-soil-inspector-agent",
+            agentRegistration = null,
+            guidePath = "soil-inspector",
+        ),
+        OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.mirror",
             displayName = "Device Mirror",
             description = "Mirror Android devices, iOS simulators and iPhones, drive Android devices and simulators, and record their screens.",

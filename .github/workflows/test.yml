@@ -137,6 +137,7 @@ jobs:
           :jetwhale-plugins:nav3:host:test
           :jetwhale-plugins:network:host:test
           :jetwhale-plugins:semantics:host:test
+          :jetwhale-plugins:soil:host:test
           :jetwhale-plugins:storage:host:test
           :tools:qa-agent:test
           :jetwhale-agent-runtime:jvmTest
@@ -150,6 +151,8 @@ jobs:
           :jetwhale-plugins:network:agent-okhttp:test
           :jetwhale-plugins:semantics:agent:jvmTest
           :jetwhale-plugins:semantics:protocol:jvmTest
+          :jetwhale-plugins:soil:agent:jvmTest
+          :jetwhale-plugins:soil:protocol:jvmTest
           :jetwhale-plugins:storage:agent:jvmTest
           :jetwhale-plugins:storage:agent-datastore:jvmTest
           --continue
