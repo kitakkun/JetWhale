@@ -355,10 +355,10 @@ A panel is one titled view of app state, of one kind:
     @SerialName("json_tree") JSON_TREE, @SerialName("event_log") EVENT_LOG,
 }
 @Serializable sealed interface PanelContent {
-    @SerialName("table") data class Table(val columns: List<PanelColumn>, val rows: List<List<JsonPrimitive>>) : PanelContent
-    @SerialName("key_value") data class KeyValues(val entries: List<PanelEntry>) : PanelContent
-    @SerialName("json_tree") data class JsonTree(val value: JsonElement) : PanelContent
-    @SerialName("event_log") data class EventLog(val entries: List<PanelLogEntry>, val capacity: Int) : PanelContent
+    @Serializable @SerialName("table") data class Table(val columns: List<PanelColumn>, val rows: List<List<JsonPrimitive>>) : PanelContent
+    @Serializable @SerialName("key_value") data class KeyValues(val entries: List<PanelEntry>) : PanelContent
+    @Serializable @SerialName("json_tree") data class JsonTree(val value: JsonElement) : PanelContent
+    @Serializable @SerialName("event_log") data class EventLog(val entries: List<PanelLogEntry>, val capacity: Int) : PanelContent
 }
 @Serializable data class PanelColumn(val key: String, val title: String)
 @Serializable data class PanelEntry(val key: String, val value: JsonPrimitive, val note: String?)
@@ -366,6 +366,10 @@ A panel is one titled view of app state, of one kind:
     val sequence: Long, val timestampMillis: Long, val level: PanelLogLevel, val message: String,
     val attributes: JsonObject?,
 )
+@Serializable enum class PanelLogLevel {
+    @SerialName("debug") DEBUG, @SerialName("info") INFO,
+    @SerialName("warning") WARNING, @SerialName("error") ERROR,
+}
 ```
 
 These types are not exported to Swift: the facade takes the content as JSON, so the protocol
@@ -377,7 +381,7 @@ Wire messages, named the way Debug Actions names its own:
 |---|---|---|
 | `panels/list_panels` → `panels/catalog {catalogRevision, panels}` | host → agent | Every panel declared now; asked on connect |
 | `panels/get_panel_content {panelId}` → `panels/panel_content {revision, content}` | host → agent | A panel's current content |
-| `panels/panels_changed {catalogRevision, panels}` | agent → host | A panel was added or removed |
+| `panels/panels_changed {catalogRevision, panels}` | agent → host | A panel was added, removed or retitled |
 | `panels/content_changed {panelId, revision, content}` | agent → host | A table, key-value list or tree changed; or an event log's latest entries, resent after a `log_appended` failed |
 | `panels/log_appended {panelId, revision, entries}` | agent → host | New log entries |
 
@@ -398,7 +402,8 @@ revision is the same as or newer than the held one, so the stale panel's resend 
 missed an append, while an older `get_panel_content` answer that arrives after an append is still
 ignored.
 
-The catalog follows the same rules. Its revision rises with every panel added or removed, and both
+The catalog follows the same rules. Its revision rises with every change to a panel's descriptor
+(a panel added or removed, or its title, group or description changed), and both
 `catalog` and `panels_changed` carry it, so a host ignores a catalog older than the one it holds,
 such as a `list_panels` answer that arrives after a newer `panels_changed`. A `panels_changed` that
 cannot be queued marks the catalog stale, and the 250 ms tick sends the latest catalog until a send
@@ -471,8 +476,13 @@ JetWhale.actions.register("Reset onboarding", destructive: true) {
 }
 
 // Actions that exist while a view is shown
-CheckoutView().debugActions { actions in
-    actions.register("Fill test card") { await form.fill(.visa) }
+struct CheckoutScreen: View {
+    var body: some View {
+        CheckoutView()
+            .debugActions { actions in
+                actions.register("Fill test card") { await form.fill(.visa) }
+            }
+    }
 }
 ```
 
@@ -492,7 +502,10 @@ decoding declares its parameters explicitly instead.
 Custom Panels. The string passed to `panel` is the panel's id: stable for the session, and calling
 `panel` again with the same id returns the same panel, so updates from different places reach one
 panel. The title shown on the host is the id unless `.titled(_:)` sets another, which changes only
-the title. A panel lasts until `remove()` or the end of the session.
+the title. A panel lasts until `remove()` or the end of the session. Its revision counter outlives
+it: a panel declared again with a removed panel's id continues from that id's last revision, so the
+host never mistakes the new panel's content for older content, and a late message from the removed
+one is still ordered before it.
 
 ```swift
 struct FlagRow: Encodable { let flag: String; let enabled: Bool; let source: String }
@@ -699,8 +712,9 @@ the Network core, so the `URLSession` adapter needs no change to the plugin itse
   That is why interception is opt-in per session; an app leaves out a session that depends on them.
   The response is recorded with timing and a body truncated as the Ktor adapter truncates it.
 - `stopLoading` cancels the pending mock delay or the inner task, and the adapter calls the
-  protocol client no more after that, so a cancelled request neither reaches the network nor
-  records a response.
+  protocol client no more after that and records no response. A cancelled mock never answers; a
+  cancelled inner task stops what is still to come, but bytes it already sent may have reached the
+  server, as with any cancelled `URLSessionTask`.
 - Not covered: background sessions (`URLProtocol` does not run for them), `URLSessionWebSocketTask`,
   and upload bodies given as streams, which are recorded as absent. Streaming responses are passed
   through as they arrive and recorded when complete.
