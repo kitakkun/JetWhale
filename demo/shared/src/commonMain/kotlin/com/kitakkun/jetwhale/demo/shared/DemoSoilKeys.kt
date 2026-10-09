@@ -112,12 +112,27 @@ internal val demoFeedQueryKey: InfiniteQueryKey<DemoPostPage, Int> = buildInfini
     loadMoreParam = { chunks -> (chunks.last().param + 1).takeIf { it < 5 } },
 )
 
-/** A query that always fails, to show an error in the inspector. */
-internal val demoFailingQueryKey: QueryKey<String> = buildQueryKey(
-    id = QueryId("demo/failing"),
+/**
+ * A query that always fails, after Soil's retries, and is then paused for thirty seconds, so the
+ * inspector calls out both a failure and a pause.
+ */
+internal class DemoFailingQueryKey :
+    QueryKey<String> by buildQueryKey(
+        id = QueryId("demo/failing"),
+        fetch = {
+            delay(300.milliseconds)
+            error("The demo server is down")
+        },
+    ) {
+    override fun onConfigureOptions(): QueryOptionsOverride = { options -> options.copy(pauseDurationAfter = { 30.seconds }) }
+}
+
+/** A query that takes fifteen seconds, so the inspector calls out a fetch running long. */
+internal val demoSlowReportQueryKey: QueryKey<String> = buildQueryKey(
+    id = QueryId("demo/slow-report"),
     fetch = {
-        delay(300.milliseconds)
-        error("The demo server is down")
+        delay(15.seconds)
+        "Report ready"
     },
 )
 

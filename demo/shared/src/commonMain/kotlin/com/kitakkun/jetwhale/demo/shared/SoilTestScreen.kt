@@ -11,8 +11,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +43,7 @@ internal fun SoilTestScreen() {
         ) {
             item { Text("Watch this tab's queries, mutation and subscription in the host's Soil Inspector.") }
             item { ProfileSection() }
+            item { SlowReportSection() }
             item { FeedSection() }
             item { ClockSection() }
             item { EnvelopeSection() }
@@ -51,7 +55,7 @@ internal fun SoilTestScreen() {
 private fun ProfileSection() {
     val profile = rememberQuery(remember { DemoProfileQueryKey() })
     val rename = rememberMutation(remember { DemoRenameProfileMutationKey() })
-    val failingQuery = rememberQuery(demoFailingQueryKey)
+    val failingQuery = rememberQuery(remember { DemoFailingQueryKey() })
     val scope = rememberCoroutineScope()
     Section(title = "Query and mutation") {
         Text("Profile: ${profile.data ?: profile.status.name}")
@@ -68,16 +72,41 @@ private fun ProfileSection() {
     }
 }
 
+/** Hidden until asked for, so its fifteen-second fetch starts when the button is pressed. */
+@Composable
+private fun SlowReportSection() {
+    var isShown by remember { mutableStateOf(false) }
+    Section(title = "Slow query") {
+        if (isShown) {
+            val report = rememberQuery(demoSlowReportQueryKey)
+            Text("Report: ${report.data ?: report.status.name}")
+        }
+        OutlinedButton(onClick = { isShown = !isShown }) {
+            Text(if (isShown) "Hide slow report" else "Load slow report")
+        }
+    }
+}
+
+/** Hiding the feed lets go of its query, which Soil then moves into the cache. */
 @Composable
 private fun FeedSection() {
+    var isShown by remember { mutableStateOf(true) }
+    Section(title = "Infinite query") {
+        if (isShown) FeedPages()
+        OutlinedButton(onClick = { isShown = !isShown }) {
+            Text(if (isShown) "Hide feed" else "Show feed")
+        }
+    }
+}
+
+@Composable
+private fun FeedPages() {
     val feed = rememberInfiniteQuery(demoFeedQueryKey)
     val scope = rememberCoroutineScope()
-    Section(title = "Infinite query") {
-        Text("Pages: ${feed.data?.size ?: 0}, posts: ${feed.data?.sumOf { it.data.posts.size } ?: 0}")
-        val nextPage = feed.loadMoreParam
-        Button(onClick = { nextPage?.let { scope.launch { feed.loadMore(it) } } }, enabled = nextPage != null) {
-            Text(if (nextPage != null) "Load page $nextPage" else "All pages loaded")
-        }
+    Text("Pages: ${feed.data?.size ?: 0}, posts: ${feed.data?.sumOf { it.data.posts.size } ?: 0}")
+    val nextPage = feed.loadMoreParam
+    Button(onClick = { nextPage?.let { scope.launch { feed.loadMore(it) } } }, enabled = nextPage != null) {
+        Text(if (nextPage != null) "Load page $nextPage" else "All pages loaded")
     }
 }
 
