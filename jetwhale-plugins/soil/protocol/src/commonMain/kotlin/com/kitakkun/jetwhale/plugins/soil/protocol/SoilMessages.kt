@@ -22,8 +22,8 @@ data object GetSoilCacheSnapshot : JetWhaleRequest<SoilCacheSnapshot>
  * @property coverage What part of the cache the agent can read.
  * @property revision Orders this snapshot among the [SoilEntriesChanged] events: an event whose
  *   revision is not greater was already accounted for here.
- * @property agentEpochSeconds The app's clock when the snapshot was taken, in epoch seconds, the
- *   unit Soil records its timestamps in. Staleness is judged against this clock, not the host's.
+ * @property agentEpochMillis The app's clock when the snapshot was taken, in epoch milliseconds.
+ *   Soil's timestamps, in epoch seconds, are judged against this clock rather than the host's.
  */
 @SerialName("soil/cache_snapshot")
 @Serializable
@@ -31,7 +31,7 @@ data class SoilCacheSnapshot(
     val coverage: SoilCacheCoverage,
     val entries: List<SoilEntry>,
     val revision: Long,
-    val agentEpochSeconds: Long,
+    val agentEpochMillis: Long,
 )
 
 /**
@@ -41,7 +41,7 @@ data class SoilCacheSnapshot(
  * @property upserts Entries that are new or changed, each in full.
  * @property removedHandles Entries Soil no longer holds, active or inactive.
  * @property revision Greater than the revision of every snapshot and event sent before it.
- * @property agentEpochSeconds The app's clock when the changes were read, in epoch seconds.
+ * @property agentEpochMillis The app's clock when the changes were read, in epoch milliseconds.
  */
 @SerialName("soil/entries_changed")
 @Serializable
@@ -49,7 +49,7 @@ data class SoilEntriesChanged(
     val upserts: List<SoilEntry>,
     val removedHandles: List<String>,
     val revision: Long,
-    val agentEpochSeconds: Long,
+    val agentEpochMillis: Long,
 ) : JetWhaleEvent
 
 /** Asks for the value the entry named by [handle] holds: its last reply. */

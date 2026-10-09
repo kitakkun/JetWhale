@@ -501,8 +501,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage { // c
 final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot|null[0]
     constructor <init>(com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage, kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.<init>|<init>(com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheCoverage;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.Long;kotlin.Long){}[0]
 
-    final val agentEpochSeconds // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochSeconds|{}agentEpochSeconds[0]
-        final fun <get-agentEpochSeconds>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochSeconds.<get-agentEpochSeconds>|<get-agentEpochSeconds>(){}[0]
+    final val agentEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochMillis|{}agentEpochMillis[0]
+        final fun <get-agentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochMillis.<get-agentEpochMillis>|<get-agentEpochMillis>(){}[0]
     final val coverage // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.coverage|{}coverage[0]
         final fun <get-coverage>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.coverage.<get-coverage>|<get-coverage>(){}[0]
     final val entries // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.entries|{}entries[0]
@@ -538,8 +538,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // c
 final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged|null[0]
     constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin.collections/List<kotlin/String>, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Long){}[0]
 
-    final val agentEpochSeconds // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochSeconds|{}agentEpochSeconds[0]
-        final fun <get-agentEpochSeconds>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochSeconds.<get-agentEpochSeconds>|<get-agentEpochSeconds>(){}[0]
+    final val agentEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochMillis|{}agentEpochMillis[0]
+        final fun <get-agentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochMillis.<get-agentEpochMillis>|<get-agentEpochMillis>(){}[0]
     final val removedHandles // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.removedHandles|{}removedHandles[0]
         final fun <get-removedHandles>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.removedHandles.<get-removedHandles>|<get-removedHandles>(){}[0]
     final val revision // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.revision|{}revision[0]

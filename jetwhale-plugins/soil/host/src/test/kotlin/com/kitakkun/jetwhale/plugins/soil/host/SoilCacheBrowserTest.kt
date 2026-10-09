@@ -143,6 +143,6 @@ class SoilCacheBrowserTest {
         upserts = upserts,
         removedHandles = removedHandles,
         revision = revision,
-        agentEpochSeconds = HOST_NOW,
+        agentEpochMillis = HOST_NOW * 1000,
     )
 }

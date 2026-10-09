@@ -48,7 +48,7 @@ class SoilMessagesTest {
                 ),
             ),
             revision = 7,
-            agentEpochSeconds = 200,
+            agentEpochMillis = 200_000,
         )
 
         assertEquals(snapshot, json.decodeFromString(SoilCacheSnapshot.serializer(), json.encodeToString(SoilCacheSnapshot.serializer(), snapshot)))

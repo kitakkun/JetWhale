@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import soil.query.core.epoch
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -33,6 +33,7 @@ private val CHANGE_COALESCING_DELAY: Duration = 100.milliseconds
 internal class SoilCacheReporter(
     private val cache: InspectedSoilCache,
     private val handles: SoilEntryHandles,
+    private val clock: Clock,
 ) {
     private val tracker = SoilCacheTracker(handles)
     private val trackerLock = Mutex()
@@ -40,7 +41,7 @@ internal class SoilCacheReporter(
 
     suspend fun takeSnapshot(): SoilCacheSnapshot = trackerLock.withLock {
         tracker.replaceEntriesWith(cache.readRecords())
-        SoilCacheSnapshot(coverage = cache.coverage, entries = tracker.entries, revision = tracker.revision, agentEpochSeconds = epoch())
+        SoilCacheSnapshot(coverage = cache.coverage, entries = tracker.entries, revision = tracker.revision, agentEpochMillis = clock.now().toEpochMilliseconds())
     }
 
     suspend fun keyOf(handle: String): SoilEntryKey? = trackerLock.withLock { handles.keyOf(handle) }
@@ -64,7 +65,7 @@ internal class SoilCacheReporter(
                 val records = cache.readRecords()
                 val changes = tracker.replaceEntriesWith(records)
                 if (!changes.isEmpty) {
-                    send(SoilEntriesChanged(upserts = changes.upserts, removedHandles = changes.removedHandles, revision = changes.revision, agentEpochSeconds = epoch()))
+                    send(SoilEntriesChanged(upserts = changes.upserts, removedHandles = changes.removedHandles, revision = changes.revision, agentEpochMillis = clock.now().toEpochMilliseconds()))
                 }
                 records
             }

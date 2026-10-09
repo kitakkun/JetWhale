@@ -105,7 +105,7 @@ public final class com/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheSnapshot
 	public final fun copy (Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheCoverage;Ljava/util/List;JJ)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheSnapshot;
 	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheSnapshot;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheCoverage;Ljava/util/List;JJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheSnapshot;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getAgentEpochSeconds ()J
+	public final fun getAgentEpochMillis ()J
 	public final fun getCoverage ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilCacheCoverage;
 	public final fun getEntries ()Ljava/util/List;
 	public final fun getRevision ()J
@@ -138,7 +138,7 @@ public final class com/kitakkun/jetwhale/plugins/soil/protocol/SoilEntriesChange
 	public final fun copy (Ljava/util/List;Ljava/util/List;JJ)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntriesChanged;
 	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntriesChanged;Ljava/util/List;Ljava/util/List;JJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntriesChanged;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getAgentEpochSeconds ()J
+	public final fun getAgentEpochMillis ()J
 	public final fun getRemovedHandles ()Ljava/util/List;
 	public final fun getRevision ()J
 	public final fun getUpserts ()Ljava/util/List;

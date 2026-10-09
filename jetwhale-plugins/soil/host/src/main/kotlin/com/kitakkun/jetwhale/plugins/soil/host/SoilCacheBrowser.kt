@@ -86,11 +86,11 @@ internal class SoilCacheBrowser(
 
     private val adoptionLock = Any()
     private var appliedRevision = -1L
-    private var agentClockOffsetSeconds = 0L
+    private var agentClockOffsetMillis = 0L
     private var valueRequestNumber = 0L
 
     /** The app's clock now, in epoch seconds, as far as the agent's last timestamp tells. */
-    fun agentNowEpochSeconds(): Long = clock.now().epochSeconds + agentClockOffsetSeconds
+    fun agentNowEpochSeconds(): Long = (clock.now().toEpochMilliseconds() + agentClockOffsetMillis) / 1000
 
     suspend fun load() {
         adopt(client.takeSnapshot())
@@ -104,7 +104,7 @@ internal class SoilCacheBrowser(
         synchronized(adoptionLock) {
             if (snapshot.revision < appliedRevision) return
             appliedRevision = snapshot.revision
-            agentClockOffsetSeconds = snapshot.agentEpochSeconds - clock.now().epochSeconds
+            agentClockOffsetMillis = snapshot.agentEpochMillis - clock.now().toEpochMilliseconds()
             coverage = snapshot.coverage
             val reportedHandles = snapshot.entries.mapTo(mutableSetOf(), SoilEntry::handle)
             val droppedMutations = listedEntries.filter { it.entry.handle !in reportedHandles && it.entry.kind == SoilEntryKind.MUTATION }
@@ -117,7 +117,7 @@ internal class SoilCacheBrowser(
         synchronized(adoptionLock) {
             if (changes.revision <= appliedRevision) return
             appliedRevision = changes.revision
-            agentClockOffsetSeconds = changes.agentEpochSeconds - clock.now().epochSeconds
+            agentClockOffsetMillis = changes.agentEpochMillis - clock.now().toEpochMilliseconds()
             val upsertsByHandle = changes.upserts.associateBy(SoilEntry::handle)
             val removedHandles = changes.removedHandles.toSet()
             val previousSelection = selectedEntry?.entry

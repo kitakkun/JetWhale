@@ -86,5 +86,5 @@ internal fun snapshotOf(vararg entries: SoilEntry, revision: Long = 1, agentEpoc
     coverage = readableCoverage,
     entries = entries.toList(),
     revision = revision,
-    agentEpochSeconds = agentEpochSeconds,
+    agentEpochMillis = agentEpochSeconds * 1000,
 )

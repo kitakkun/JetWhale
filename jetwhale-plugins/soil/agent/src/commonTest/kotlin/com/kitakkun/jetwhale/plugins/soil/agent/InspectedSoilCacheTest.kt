@@ -25,6 +25,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InspectedSoilCacheTest {
@@ -107,7 +108,7 @@ class InspectedSoilCacheTest {
     fun `a query that appears after the snapshot is reported with a greater revision`() = runTest {
         val policy = testPolicy()
         val client = SwrCache(policy)
-        val reporter = SoilCacheReporter(InspectedSoilCache(client, policy), SoilEntryHandles())
+        val reporter = SoilCacheReporter(InspectedSoilCache(client, policy), SoilEntryHandles(), Clock.System)
         val snapshot = reporter.takeSnapshot()
         val events = mutableListOf<SoilEntriesChanged>()
         backgroundScope.launch { reporter.reportChanges { events += it } }

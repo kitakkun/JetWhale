@@ -137,7 +137,7 @@ private fun stateRowsOf(state: SoilEntryState, agentNowEpochSeconds: Long): List
         add("errorUpdatedAt" to time(state.errorUpdatedAt, whenZero = "never"))
         when (state) {
             is SoilEntryState.Query -> {
-                add("staleAt" to time(state.staleAt, whenZero = "0 (stale from the start)"))
+                add("staleAt" to time(state.staleAt, whenZero = if (state.hasReply) "0 (stale from the start)" else "never"))
                 add("isInvalidated" to state.isInvalidated.toString())
             }
 

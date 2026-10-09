@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import soil.query.SwrCachePolicy
 import soil.query.SwrClient
+import kotlin.time.Clock
 
 /**
  * Agent plugin that shows the host what an app's Soil cache holds — queries, infinite queries,
@@ -59,7 +60,7 @@ class JetWhaleSoilAgentPlugin(
     override val pluginVersion: String get() = "1.0.0"
 
     private val cache = InspectedSoilCache(client, policy)
-    private val reporter = SoilCacheReporter(cache, SoilEntryHandles())
+    private val reporter = SoilCacheReporter(cache, SoilEntryHandles(), Clock.System)
     private val valueEncoder = SoilValueEncoder(valueSerializers)
 
     /** Whether a connected host has taken a snapshot, so that changes are worth reading for it. */

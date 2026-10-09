@@ -49,7 +49,7 @@ class SoilMcpCommandsTest {
 
     @Test
     fun `listEntries keeps a mutation the app dropped and marks it gone`() {
-        browser.adopt(SoilEntriesChanged(upserts = emptyList(), removedHandles = listOf(rename.handle), revision = 2, agentEpochSeconds = HOST_NOW))
+        browser.adopt(SoilEntriesChanged(upserts = emptyList(), removedHandles = listOf(rename.handle), revision = 2, agentEpochMillis = HOST_NOW * 1000))
 
         val listed = ListSoilEntriesCommand(browser).run(buildJsonObject { put("kind", "mutation") }).getValue("entries").jsonArray.single().jsonObject
 
