@@ -1,17 +1,18 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.AgentVersionCompatibility
+import com.kitakkun.jetwhale.host.model.BoundPluginVersions
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginStorageService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
@@ -48,8 +49,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  * A plugin instance paired with the messaging peer that delivers its frames. The peer's outbound
  * frames are sent to this instance's session; inbound frames are routed to it by the server.
  *
- * @property factory The factory that produced [plugin]; identifies the classloader generation this
- *   instance belongs to.
+ * @property loadedVersion The plugin version that produced [plugin]. Its factory identifies the classloader
+ *   generation this instance belongs to.
  * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
  *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
@@ -57,7 +58,7 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  */
 private class LoadedInstance(
-    val factory: JetWhaleHostPluginFactory,
+    val loadedVersion: LoadedHostPlugin,
     val plugin: JetWhaleHostPlugin,
     val peer: JetWhalePluginPeer?,
     val prepareJob: Job?,
@@ -71,7 +72,7 @@ private class LoadedInstance(
 class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
-    private val pluginDataStoreRepository: PluginDataStoreRepository,
+    private val pluginStorageService: PluginStorageService,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -79,6 +80,13 @@ class DefaultPluginInstanceService(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val loadedPlugins: ConcurrentHashMap<PluginInstanceKey, LoadedInstance> = ConcurrentHashMap()
+
+    /**
+     * The version each app instance ran when it was disposed to be rebuilt from new code, until the
+     * session gets an instance again. A reload disposes before it loads the jar again, so by the time
+     * the instance is rebuilt nothing else records which version the session was on.
+     */
+    private val versionsBeforeRebuild: ConcurrentHashMap<PluginInstanceKey, String> = ConcurrentHashMap()
 
     // Unbounded: the server stopping disposes every app session's instances in one burst, and a
     // dropped Disposed would leave that instance's MCP tools listed.
@@ -88,30 +96,58 @@ class DefaultPluginInstanceService(
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
 
+    override val boundPluginVersionsFlow: StateFlow<BoundPluginVersions>
+        field = MutableStateFlow(BoundPluginVersions.Empty)
+
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
-        LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
+        LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin, version = instance.loadedVersion.manifest.version)
     }
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
 
-    override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-        val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
+    override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, agentVersionsBySession: Map<String, String?>): Set<String> {
+        val versions = pluginFactoryRepository.loadedPluginVersions[pluginId].orEmpty()
+        if (versions.isEmpty()) return emptySet()
 
+        // The host session lasts as long as the host, so it moves to the newest version as soon as
+        // one loads; an app session keeps its version until that version is reloaded or removed.
         loadedPlugins.entries
-            .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
-            .map { it.key }
-            .forEach(::disposeInstance)
+            .filter { (key, instance) ->
+                key.pluginId == pluginId &&
+                    if (key.sessionId == HostSession.ID) {
+                        instance.loadedVersion.factory !== versions.first().factory
+                    } else {
+                        versions.none { it.factory === instance.loadedVersion.factory }
+                    }
+            }
+            .forEach { (key, instance) -> disposeInstanceRememberingVersion(key, instance) }
 
         val newlyInitializedSessions = mutableSetOf<String>()
-        for (sessionId in sessionIds) {
-            if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
+        for ((sessionId, agentVersion) in agentVersionsBySession) {
+            val key = PluginInstanceKey(pluginId, sessionId)
+            val loaded = selectVersionToBind(versions, agentVersion, versionBeforeRebuild = versionsBeforeRebuild[key]) ?: continue
+            if (createInstanceIfAbsent(pluginId, sessionId, loaded)) {
+                versionsBeforeRebuild.remove(key)
+                newlyInitializedSessions += sessionId
+            }
         }
 
-        publishHeadlessPlugins()
+        publishHeadlessPluginsAndBoundVersions()
         newlyInitializedSessions.forEach { sessionId ->
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
+            val version = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.loadedVersion?.manifest?.version ?: return@forEach
+            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId = pluginId, sessionId = sessionId, version = version))
         }
         return newlyInitializedSessions
+    }
+
+    /**
+     * The version a session gets: the one it ran before its instance was rebuilt, while that version is
+     * still loaded and still serves the session's agent, otherwise the newest that does.
+     */
+    private fun selectVersionToBind(versions: List<LoadedHostPlugin>, agentVersion: String?, versionBeforeRebuild: String?): LoadedHostPlugin? {
+        val compatibility = AgentVersionCompatibility(agentVersion)
+        return compatibility.newestCompatibleOf(versions.filter { it.manifest.version == versionBeforeRebuild })
+            ?: compatibility.newestCompatibleOf(versions)
     }
 
     /**
@@ -148,7 +184,7 @@ class DefaultPluginInstanceService(
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
 
-        plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
+        plugin.bindStorage(pluginStorageService.storageFor(loaded))
 
         val descriptor = "plugin '$pluginId' in session '$sessionId'"
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
@@ -171,7 +207,7 @@ class DefaultPluginInstanceService(
         } else {
             null
         }
-        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope)
+        return LoadedInstance(loaded, plugin, peer, prepareJob, instanceScope)
     }
 
     /**
@@ -236,15 +272,27 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
+        versionsBeforeRebuild.keys.removeIf { it.sessionId == sessionId }
         loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach(::disposeInstance)
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
+        versionsBeforeRebuild.keys.removeIf { it.pluginId == pluginId }
         loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach(::disposeInstance)
     }
 
+    override fun unloadPluginInstancesForJar(jarPath: String) {
+        loadedPlugins.entries.filter { (_, instance) -> instance.loadedVersion.jarPath == jarPath }.forEach { (key, instance) -> disposeInstanceRememberingVersion(key, instance) }
+    }
+
     override fun clearAppSessionPluginInstances() {
+        versionsBeforeRebuild.clear()
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
+    }
+
+    private fun disposeInstanceRememberingVersion(key: PluginInstanceKey, instance: LoadedInstance) {
+        if (!HostSession.isHost(key.sessionId)) versionsBeforeRebuild[key] = instance.loadedVersion.manifest.version
+        disposeInstance(key)
     }
 
     private fun disposeInstance(key: PluginInstanceKey) {
@@ -265,21 +313,29 @@ class DefaultPluginInstanceService(
                 }
             }
         }
-        publishHeadlessPlugins()
+        publishHeadlessPluginsAndBoundVersions()
         mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**
-     * Recomputes the headless set from the live instances. Republishing the whole set (rather than
-     * patching it) is what keeps it correct across a reload, where the same pluginId is replaced by
-     * an instance from a new classloader that may not answer the same way.
+     * Recomputes the headless set and the bound versions from the live instances. Republishing them
+     * whole (rather than patching them) is what keeps them correct across a reload, where the same
+     * pluginId is replaced by an instance from a new classloader that may not answer the same way.
      */
-    private fun publishHeadlessPlugins() {
+    private fun publishHeadlessPluginsAndBoundVersions() {
+        // toMutableList() copies the live view in one pass; toList() on a single instance reads the
+        // size, then the entry, and throws if the instance leaves in between.
+        val entries = loadedPlugins.entries.toMutableList()
         headlessPluginsFlow.value = HeadlessPlugins(
-            loadedPlugins.entries
+            entries
                 .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
+        )
+        boundPluginVersionsFlow.value = BoundPluginVersions(
+            entries
+                .groupBy({ it.key.sessionId }, { (key, instance) -> key.pluginId to instance.loadedVersion.manifest.version })
+                .mapValues { (_, versions) -> versions.toMap() },
         )
     }
 }
