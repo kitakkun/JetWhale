@@ -105,7 +105,9 @@ internal class InspectedSoilCache(
                     val queryCache = policy?.queryCache
                     when {
                         queryCache == null -> NO_POLICY_REFUSAL
+
                         key.id in view.queryStoreView -> BECAME_ACTIVE_REFUSAL
+
                         else -> {
                             queryCache.delete(key.id)
                             null
@@ -115,7 +117,9 @@ internal class InspectedSoilCache(
 
                 SoilEntryKind.SUBSCRIPTION -> when {
                     subscriptionCache == null -> NO_POLICY_REFUSAL
+
                     subscriptionView?.subscriptionStoreView?.containsKey(key.id) == true -> BECAME_ACTIVE_REFUSAL
+
                     else -> {
                         subscriptionCache.delete(key.id)
                         null

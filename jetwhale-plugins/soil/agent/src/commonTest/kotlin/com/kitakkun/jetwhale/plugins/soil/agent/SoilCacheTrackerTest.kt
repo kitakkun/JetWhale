@@ -14,8 +14,8 @@ import soil.query.QueryFetchStatus
 import soil.query.QueryId
 import soil.query.QueryState
 import soil.query.QueryStatus
-import soil.query.core.Reply
 import soil.query.core.DataModel
+import soil.query.core.Reply
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
