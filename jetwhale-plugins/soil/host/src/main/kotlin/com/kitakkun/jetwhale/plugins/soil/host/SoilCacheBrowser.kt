@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryActionResult
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -19,6 +20,9 @@ import kotlin.time.Clock
 
 /** How many mutations Soil has dropped stay listed; the oldest goes first. */
 private const val GONE_MUTATION_LIMIT = 50
+
+/** How many events the timeline keeps; the oldest goes first. */
+private const val EVENT_LIMIT = 1_000
 
 internal data class SoilBrowserStatus(val message: String, val isError: Boolean)
 
@@ -49,6 +53,14 @@ internal interface SoilInspectorActions {
     fun reloadSelectedValue()
 
     fun runActionOnSelected(action: SoilEntryAction)
+
+    /** Marks the event [sequence] numbers as the one looked at, and selects its entry if Soil still holds it. */
+    fun selectEvent(sequence: Long)
+
+    /** Empties the timeline; events that arrive later still show. */
+    fun clearEvents()
+
+    fun dismissStatus()
 }
 
 /**
@@ -80,6 +92,17 @@ internal class SoilCacheBrowser(
     var status: SoilBrowserStatus? by mutableStateOf(null)
         private set
 
+    /** What happened to the entries, oldest first, since the timeline was last cleared. */
+    var events: List<SoilEvent> by mutableStateOf(emptyList())
+        private set
+
+    var selectedEventSequence: Long? by mutableStateOf(null)
+        private set
+
+    /** When each entry last had an event, by the app's clock; clearing the timeline keeps these. */
+    var lastActivityEpochMillisByHandle: Map<String, Long> by mutableStateOf(emptyMap())
+        private set
+
     val selectedEntry: ListedSoilEntry?
         get() = listedEntries.firstOrNull { it.entry.handle == selectedHandle }
 
@@ -87,9 +110,10 @@ internal class SoilCacheBrowser(
     private var appliedRevision = -1L
     private var agentClockOffsetMillis = 0L
     private var valueRequestNumber = 0L
+    private var lastEventSequence = 0L
 
-    /** The app's clock now, in epoch seconds, as far as the agent's last timestamp tells. */
-    fun agentNowEpochSeconds(): Long = (clock.now().toEpochMilliseconds() + agentClockOffsetMillis) / 1000
+    /** The app's clock now, in epoch milliseconds, as far as the agent's last timestamp tells. */
+    fun agentNowEpochMillis(): Long = clock.now().toEpochMilliseconds() + agentClockOffsetMillis
 
     suspend fun load() {
         adopt(client.takeSnapshot())
@@ -110,6 +134,7 @@ internal class SoilCacheBrowser(
             val droppedMutations = listedEntries.filter { it.entry.handle !in reportedHandles && it.entry.kind == SoilEntryKind.MUTATION }
             replaceListedEntries(snapshot.entries.map { ListedSoilEntry(entry = it, isGone = false) } + droppedMutations.map { it.copy(isGone = true) })
             reloadSelectedValueIfReplyReplaced(previousSelection)
+            appendEvents(snapshot.recentEvents)
         }
     }
 
@@ -139,6 +164,7 @@ internal class SoilCacheBrowser(
             val listedHandles = updated.mapTo(mutableSetOf()) { it.entry.handle }
             replaceListedEntries(updated + changes.upserts.filter { it.handle !in listedHandles }.map { ListedSoilEntry(entry = it, isGone = false) })
             reloadSelectedValueIfReplyReplaced(previousSelection)
+            appendEvents(changes.events)
             if (isEventMissing) launchReporting(::load)
         }
     }
@@ -150,6 +176,7 @@ internal class SoilCacheBrowser(
 
     override fun select(handle: String) {
         if (handle == selectedHandle) return
+        if (events.firstOrNull { it.sequence == selectedEventSequence }?.handle != handle) selectedEventSequence = null
         selectedHandle = handle
         selectedValue = SoilValueLoad.Loading
         loadValue(handle)
@@ -168,6 +195,23 @@ internal class SoilCacheBrowser(
                 else -> SoilBrowserStatus(message = "${action.label} ${entry.id.namespace}: $error", isError = true)
             }
         }
+    }
+
+    override fun selectEvent(sequence: Long) {
+        val event = events.firstOrNull { it.sequence == sequence } ?: return
+        selectedEventSequence = sequence
+        if (listedEntries.any { it.entry.handle == event.handle }) select(event.handle)
+    }
+
+    override fun clearEvents() {
+        synchronized(adoptionLock) {
+            events = emptyList()
+            selectedEventSequence = null
+        }
+    }
+
+    override fun dismissStatus() {
+        status = null
     }
 
     /** Runs [action] on the entry [handle] names; the MCP commands wait on it directly. */
@@ -192,6 +236,15 @@ internal class SoilCacheBrowser(
             selectedHandle = null
             selectedValue = null
         }
+    }
+
+    private fun appendEvents(newEvents: List<SoilEvent>) {
+        val unseen = newEvents.filter { it.sequence > lastEventSequence }
+        if (unseen.isEmpty()) return
+        lastEventSequence = unseen.last().sequence
+        events = (events + unseen).takeLast(EVENT_LIMIT)
+        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle + unseen.associate { it.handle to it.atEpochMillis }
+        if (selectedEventSequence != null && events.none { it.sequence == selectedEventSequence }) selectedEventSequence = null
     }
 
     private fun reloadSelectedValueIfReplyReplaced(previousSelection: SoilEntry?) {

@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.milliseconds
 private val STORE_POLL_INTERVAL: Duration = 500.milliseconds
 
 /** How long a change waits for others before the cache is read, so a burst arrives as one event. */
-private val CHANGE_COALESCING_DELAY: Duration = 100.milliseconds
+private val CHANGE_COALESCING_DELAY: Duration = 50.milliseconds
 
 /**
  * Reports the app's Soil cache to the host: whole on request, then as changes. Readings and the
@@ -35,13 +35,13 @@ internal class SoilCacheReporter(
     private val handles: SoilEntryHandles,
     private val clock: Clock,
 ) {
-    private val tracker = SoilCacheTracker(handles)
+    private val tracker = SoilCacheTracker(handles, clock)
     private val trackerLock = Mutex()
     private val wakeUps = Channel<Unit>(Channel.CONFLATED)
 
     suspend fun takeSnapshot(): SoilCacheSnapshot = trackerLock.withLock {
         tracker.replaceEntriesWith(cache.readRecords())
-        SoilCacheSnapshot(coverage = cache.coverage, entries = tracker.entries, revision = tracker.revision, agentEpochMillis = clock.now().toEpochMilliseconds())
+        SoilCacheSnapshot(coverage = cache.coverage, entries = tracker.entries, revision = tracker.revision, agentEpochMillis = clock.now().toEpochMilliseconds(), recentEvents = tracker.recentEvents)
     }
 
     suspend fun keyOf(handle: String): SoilEntryKey? = trackerLock.withLock { handles.keyOf(handle) }
@@ -65,7 +65,7 @@ internal class SoilCacheReporter(
                 val records = cache.readRecords()
                 val changes = tracker.replaceEntriesWith(records)
                 if (!changes.isEmpty) {
-                    send(SoilEntriesChanged(upserts = changes.upserts, removedHandles = changes.removedHandles, revision = changes.revision, agentEpochMillis = clock.now().toEpochMilliseconds()))
+                    send(SoilEntriesChanged(upserts = changes.upserts, removedHandles = changes.removedHandles, revision = changes.revision, agentEpochMillis = clock.now().toEpochMilliseconds(), events = changes.events))
                 }
                 records
             }

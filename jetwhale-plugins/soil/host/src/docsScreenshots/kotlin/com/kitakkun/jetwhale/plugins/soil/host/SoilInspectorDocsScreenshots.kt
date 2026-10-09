@@ -11,32 +11,38 @@ import com.kitakkun.jetwhale.tools.docsscreenshots.onSurface
 import kotlin.test.Test
 
 /**
- * [SoilInspectorScreen] rather than its Root: the Root binds a live [SoilCacheBrowser], which needs
- * the app on the other end, and a ticking clock.
+ * [SoilInspectorScreen] over the preview fixtures rather than its Root: the Root binds a live
+ * [SoilCacheBrowser], which needs the app on the other end, and a ticking clock.
  */
 @OptIn(ExperimentalTestApi::class)
 class SoilInspectorDocsScreenshots {
     private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
-    fun `the cache grouped by kind beside a selected query with its value`() = recorder.record(
-        DocsScreenshot(page = "soil-inspector", name = "cache", surfaceSize = DpSize(860.dp, 720.dp), density = 1.6f, displayWidthCssPx = 688),
+    fun `a query explained beside the cache with the timeline below`() = recorder.record(
+        DocsScreenshot(page = "soil-inspector", name = "cache", surfaceSize = SURFACE_SIZE, density = 1.6f, displayWidthCssPx = 688),
     ) { darkTheme ->
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
-                SoilInspectorScreen(
-                    coverage = FixtureCoverage,
-                    listedEntries = FixtureEntries,
-                    selectedEntry = FixtureUserQuery,
-                    selectedValue = FixtureUserValue,
-                    status = null,
-                    searchQuery = "",
-                    agentNowEpochSeconds = FIXTURE_NOW,
-                    actions = NoSoilInspectorActions,
-                    onSearchQueryChange = {},
-                )
+                FixtureSoilInspectorScreen(selectedEntry = FixtureUserQuery, selectedValue = FixtureUserValue, selectedEventSequence = null, isFollowingEvents = true)
             }
         }
         onSurface()
+    }
+
+    @Test
+    fun `a mutation with what followed its last run`() = recorder.record(
+        DocsScreenshot(page = "soil-inspector", name = "mutation", surfaceSize = SURFACE_SIZE, density = 1.6f, displayWidthCssPx = 688),
+    ) { darkTheme ->
+        setContent {
+            PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
+                FixtureSoilInspectorScreen(selectedEntry = FixtureRenameMutation, selectedValue = FixtureRenamedUserValue, selectedEventSequence = 2, isFollowingEvents = false)
+            }
+        }
+        onSurface()
+    }
+
+    private companion object {
+        val SURFACE_SIZE = DpSize(860.dp, 760.dp)
     }
 }

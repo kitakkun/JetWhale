@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryActionResult
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.request
+import java.time.ZoneId
 import kotlin.time.Clock
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -34,6 +35,7 @@ private class SoilHostPlugin :
     SoilCacheClient {
 
     private val browser by lazy { SoilCacheBrowser(client = this, scope = pluginScope, clock = Clock.System) }
+    private val timeOfDayFormatter = TimeOfDayFormatter(ZoneId.systemDefault())
 
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: SoilEntriesChanged -> browser.adopt(event) }
@@ -51,10 +53,10 @@ private class SoilHostPlugin :
 
     @Composable
     override fun Content() {
-        SoilInspectorScreenRoot(browser)
+        SoilInspectorScreenRoot(browser, timeOfDayFormatter)
     }
 
     override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
-        listOf(ListSoilEntriesCommand(browser), GetSoilEntryCommand(browser)) + SoilEntryAction.entries.map { SoilEntryActionCommand(browser, it) }
+        listOf(ListSoilEntriesCommand(browser), ListSoilEventsCommand(browser), GetSoilEntryCommand(browser, timeOfDayFormatter)) + SoilEntryAction.entries.map { SoilEntryActionCommand(browser, it) }
     }
 }

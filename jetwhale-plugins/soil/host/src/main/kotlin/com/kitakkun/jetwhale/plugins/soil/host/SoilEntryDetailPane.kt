@@ -9,16 +9,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwStatusDot
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
@@ -27,21 +33,38 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryActionPolicy
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilFetchStatus
 
+/** Fits `+1.2s`, the offset of an event from the run it followed. */
+private val OffsetColumnWidth = 52.dp
+
+/** Fits `00:00:00.000`. */
+private val TimeOfDayColumnWidth = 92.dp
+
 /**
- * The selected entry: its id, the actions that apply to it, its state field by field with times
- * relative to the app's clock, its options, and its value.
+ * The selected entry: what its state means in words, the actions that apply, what a mutation's run
+ * set off and the entry's latest events, then its state field by field, options and value.
+ *
+ * @param followUps For a mutation, what other entries did right after its last run; null when that
+ *   run's end is not in the timeline, as for every other kind of entry.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SoilEntryDetailPane(
     listed: ListedSoilEntry,
+    notes: List<SoilEntryNote>,
+    recentEvents: List<SoilEvent>,
+    followUps: SoilMutationFollowUps?,
     value: SoilValueLoad?,
     agentNowEpochSeconds: Long,
+    timeOfDayFormatter: TimeOfDayFormatter,
     onRunAction: (SoilEntryAction) -> Unit,
     onReloadValue: () -> Unit,
+    onSelectEvent: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val entry = listed.entry
@@ -50,16 +73,49 @@ internal fun SoilEntryDetailPane(
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-            JwText(text = entry.id.namespace, style = JwTheme.textStyles.title)
+            JwText(text = entry.id.namespace + entry.id.tags.joinToString(prefix = " [", postfix = "]").takeIf { entry.id.tags.isNotEmpty() }.orEmpty(), style = JwTheme.textStyles.title)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
                 JwTag(text = entry.kind.label)
                 badgesOf(listed, agentNowEpochSeconds).forEach { JwTag(text = it.text, tone = it.tone, style = JwTagStyle.Tinted) }
             }
         }
-        if (listed.isGone) {
-            JwText(text = "Soil dropped this mutation; this is the last state the app reported.", color = JwTheme.colors.textSecondary)
-        } else {
-            EntryActions(listed = listed, onRunAction = onRunAction)
+        Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+            notes.forEach { note ->
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+                    JwStatusDot(tone = note.tone, modifier = Modifier.padding(top = JwSpacing.small))
+                    JwText(text = note.text)
+                }
+            }
+        }
+        if (!listed.isGone && entry.kind != SoilEntryKind.MUTATION) EntryActions(listed = listed, onRunAction = onRunAction)
+        if (followUps != null && followUps.events.isNotEmpty()) {
+            Section(title = "What followed the last run", trailing = null) {
+                followUps.events.forEach { event ->
+                    EventLine(
+                        time = "+${describeDurationMillis(event.atEpochMillis - followUps.runEnd.atEpochMillis)}",
+                        timeWidth = OffsetColumnWidth,
+                        kind = event.kind,
+                        description = listOfNotNull(event.entryId.namespace, event.durationMillis?.let(::describeDurationMillis), event.detail).joinToString("  ·  "),
+                        onClick = { onSelectEvent(event.sequence) },
+                    )
+                }
+            }
+        }
+        Section(title = "Value", trailing = { JwButton(text = "Reload", onClick = onReloadValue, style = JwButtonStyle.Text, enabled = !listed.isGone) }) {
+            SoilValueView(value)
+        }
+        if (recentEvents.isNotEmpty()) {
+            Section(title = "Recent events", trailing = null) {
+                recentEvents.forEach { event ->
+                    EventLine(
+                        time = timeOfDayFormatter.formatTimeOfDay(event.atEpochMillis),
+                        timeWidth = TimeOfDayColumnWidth,
+                        kind = event.kind,
+                        description = listOfNotNull(event.durationMillis?.let(::describeDurationMillis), event.detail).joinToString("  ·  "),
+                        onClick = { onSelectEvent(event.sequence) },
+                    )
+                }
+            }
         }
         Section(title = "State", trailing = null) {
             stateRowsOf(entry.state, agentNowEpochSeconds).forEach { (key, text) -> JwKeyValueRow(key = key, value = text) }
@@ -69,9 +125,6 @@ internal fun SoilEntryDetailPane(
                 JwKeyValueRow(key = "Class", value = error.className, monospace = true)
                 JwKeyValueRow(key = "Message", value = error.message ?: "none")
             }
-        }
-        Section(title = "Value", trailing = { JwButton(text = "Reload", onClick = onReloadValue, style = JwButtonStyle.Text, enabled = !listed.isGone) }) {
-            SoilValueView(value)
         }
         if (entry.options.isNotEmpty()) {
             Section(title = "Options", trailing = null) {
@@ -107,6 +160,16 @@ private fun EntryActions(listed: ListedSoilEntry, onRunAction: (SoilEntryAction)
         refusals.forEach { (action, refusal) ->
             if (refusal != null) JwText(text = "${action.label}: $refusal", style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
         }
+    }
+}
+
+/** An event in the detail pane: when, what happened, and the rest in [description]. */
+@Composable
+private fun EventLine(time: String, timeWidth: Dp, kind: SoilEventKind, description: String, onClick: () -> Unit) {
+    JwListItem(selected = false, onClick = onClick) {
+        JwText(text = time, style = JwTheme.textStyles.code, color = JwTheme.colors.textSecondary, modifier = Modifier.width(timeWidth))
+        JwTag(text = kind.label, tone = kind.tone, style = JwTagStyle.Tinted)
+        JwText(text = description, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
     }
 }
 

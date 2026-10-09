@@ -58,6 +58,38 @@ final enum class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation :
     }
 }
 
+final enum class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind : kotlin/Enum<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind> { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind|null[0]
+    enum entry APPEARED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.APPEARED|null[0]
+    enum entry BECAME_ACTIVE // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.BECAME_ACTIVE|null[0]
+    enum entry BECAME_INACTIVE // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.BECAME_INACTIVE|null[0]
+    enum entry DATA_UPDATED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.DATA_UPDATED|null[0]
+    enum entry FETCH_FAILED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.FETCH_FAILED|null[0]
+    enum entry FETCH_PAUSED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.FETCH_PAUSED|null[0]
+    enum entry FETCH_STARTED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.FETCH_STARTED|null[0]
+    enum entry FETCH_SUCCEEDED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.FETCH_SUCCEEDED|null[0]
+    enum entry INVALIDATED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.INVALIDATED|null[0]
+    enum entry MUTATION_FAILED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.MUTATION_FAILED|null[0]
+    enum entry MUTATION_STARTED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.MUTATION_STARTED|null[0]
+    enum entry MUTATION_SUCCEEDED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.MUTATION_SUCCEEDED|null[0]
+    enum entry OBSERVED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.OBSERVED|null[0]
+    enum entry REMOVED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.REMOVED|null[0]
+    enum entry SUBSCRIPTION_DATA_RECEIVED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.SUBSCRIPTION_DATA_RECEIVED|null[0]
+    enum entry SUBSCRIPTION_FAILED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.SUBSCRIPTION_FAILED|null[0]
+    enum entry SUBSCRIPTION_RESTARTED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.SUBSCRIPTION_RESTARTED|null[0]
+    enum entry UNOBSERVED // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.UNOBSERVED|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
 final enum class com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus : kotlin/Enum<com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus> { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus|null[0]
     enum entry FAILURE // com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus.FAILURE|null[0]
     enum entry IDLE // com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus.IDLE|null[0]
@@ -104,6 +136,8 @@ sealed interface com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState { //
         abstract fun <get-replyUpdatedAt>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.replyUpdatedAt.<get-replyUpdatedAt>|<get-replyUpdatedAt>(){}[0]
     abstract val status // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.status|{}status[0]
         abstract fun <get-status>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.status.<get-status>|<get-status>(){}[0]
+    open val isInFlight // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.isInFlight|{}isInFlight[0]
+        open fun <get-isInFlight>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.isInFlight.<get-isInFlight>|<get-isInFlight>(){}[0]
 
     final class Mutation : com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.Mutation|null[0]
         constructor <init>(com.kitakkun.jetwhale.plugins.soil.protocol/SoilStatus, kotlin/Boolean, kotlin/Long, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryError?, kotlin/Long, kotlin/Int, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState.Mutation.<init>|<init>(com.kitakkun.jetwhale.plugins.soil.protocol.SoilStatus;kotlin.Boolean;kotlin.Long;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryError?;kotlin.Long;kotlin.Int;kotlin.Long){}[0]
@@ -499,7 +533,7 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage { // c
 }
 
 final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot|null[0]
-    constructor <init>(com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage, kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.<init>|<init>(com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheCoverage;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.Long;kotlin.Long){}[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage, kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin/Long, kotlin/Long, kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent>) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.<init>|<init>(com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheCoverage;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.Long;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent>){}[0]
 
     final val agentEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochMillis|{}agentEpochMillis[0]
         final fun <get-agentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.agentEpochMillis.<get-agentEpochMillis>|<get-agentEpochMillis>(){}[0]
@@ -507,6 +541,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // c
         final fun <get-coverage>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.coverage.<get-coverage>|<get-coverage>(){}[0]
     final val entries // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.entries|{}entries[0]
         final fun <get-entries>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.entries.<get-entries>|<get-entries>(){}[0]
+    final val recentEvents // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.recentEvents|{}recentEvents[0]
+        final fun <get-recentEvents>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.recentEvents.<get-recentEvents>|<get-recentEvents>(){}[0]
     final val revision // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.revision|{}revision[0]
         final fun <get-revision>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.revision.<get-revision>|<get-revision>(){}[0]
 
@@ -514,7 +550,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // c
     final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.component2|component2(){}[0]
     final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.component3|component3(){}[0]
     final fun component4(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.component4|component4(){}[0]
-    final fun copy(com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> = ..., kotlin/Long = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.copy|copy(com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheCoverage;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.Long;kotlin.Long){}[0]
+    final fun component5(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.component5|component5(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheCoverage = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.copy|copy(com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheCoverage;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.Long;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot.toString|toString(){}[0]
@@ -536,10 +573,12 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilCacheSnapshot { // c
 }
 
 final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged|null[0]
-    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin.collections/List<kotlin/String>, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Long){}[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry>, kotlin.collections/List<kotlin/String>, kotlin/Long, kotlin/Long, kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent>) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent>){}[0]
 
     final val agentEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochMillis|{}agentEpochMillis[0]
         final fun <get-agentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.agentEpochMillis.<get-agentEpochMillis>|<get-agentEpochMillis>(){}[0]
+    final val events // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.events|{}events[0]
+        final fun <get-events>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.events.<get-events>|<get-events>(){}[0]
     final val removedHandles // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.removedHandles|{}removedHandles[0]
         final fun <get-removedHandles>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.removedHandles.<get-removedHandles>|<get-removedHandles>(){}[0]
     final val revision // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.revision|{}revision[0]
@@ -551,7 +590,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged : com
     final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.component2|component2(){}[0]
     final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.component3|component3(){}[0]
     final fun component4(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.component4|component4(){}[0]
-    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Long = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Long){}[0]
+    final fun component5(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.component5|component5(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry> = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry>;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged.toString|toString(){}[0]
@@ -573,12 +613,18 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntriesChanged : com
 }
 
 final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry|null[0]
-    constructor <init>(kotlin/String, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState, kotlin/Boolean, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin/Long) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.<init>|<init>(kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState;kotlin.Boolean;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Long){}[0]
+    constructor <init>(kotlin/String, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState, kotlin/Boolean, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin/Long, kotlin/Long?, kotlin/Long?, kotlin.collections/List<kotlin/String>?) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.<init>|<init>(kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState;kotlin.Boolean;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Long;kotlin.Long?;kotlin.Long?;kotlin.collections.List<kotlin.String>?){}[0]
 
+    final val chunkParams // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.chunkParams|{}chunkParams[0]
+        final fun <get-chunkParams>(): kotlin.collections/List<kotlin/String>? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.chunkParams.<get-chunkParams>|<get-chunkParams>(){}[0]
     final val handle // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.handle|{}handle[0]
         final fun <get-handle>(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.handle.<get-handle>|<get-handle>(){}[0]
     final val id // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.id|{}id[0]
         final fun <get-id>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.id.<get-id>|<get-id>(){}[0]
+    final val inFlightSinceEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.inFlightSinceEpochMillis|{}inFlightSinceEpochMillis[0]
+        final fun <get-inFlightSinceEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.inFlightSinceEpochMillis.<get-inFlightSinceEpochMillis>|<get-inFlightSinceEpochMillis>(){}[0]
+    final val inactiveSinceEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.inactiveSinceEpochMillis|{}inactiveSinceEpochMillis[0]
+        final fun <get-inactiveSinceEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.inactiveSinceEpochMillis.<get-inactiveSinceEpochMillis>|<get-inactiveSinceEpochMillis>(){}[0]
     final val isObserved // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.isObserved|{}isObserved[0]
         final fun <get-isObserved>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.isObserved.<get-isObserved>|<get-isObserved>(){}[0]
     final val kind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.kind|{}kind[0]
@@ -593,6 +639,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry { // com.kitak
         final fun <get-state>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.state.<get-state>|<get-state>(){}[0]
 
     final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component1|component1(){}[0]
+    final fun component10(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component10|component10(){}[0]
+    final fun component11(): kotlin.collections/List<kotlin/String>? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component11|component11(){}[0]
     final fun component2(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component2|component2(){}[0]
     final fun component3(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component3|component3(){}[0]
     final fun component4(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component4|component4(){}[0]
@@ -600,7 +648,8 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry { // com.kitak
     final fun component6(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component6|component6(){}[0]
     final fun component7(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component7|component7(){}[0]
     final fun component8(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component8|component8(){}[0]
-    final fun copy(kotlin/String = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState = ..., kotlin/Boolean = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.copy|copy(kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState;kotlin.Boolean;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Long){}[0]
+    final fun component9(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.component9|component9(){}[0]
+    final fun copy(kotlin/String = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryLocation = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryState = ..., kotlin/Boolean = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/Long = ..., kotlin/Long? = ..., kotlin/Long? = ..., kotlin.collections/List<kotlin/String>? = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.copy|copy(kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState;kotlin.Boolean;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Long;kotlin.Long?;kotlin.Long?;kotlin.collections.List<kotlin.String>?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntry.toString|toString(){}[0]
@@ -707,6 +756,55 @@ final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId { // com.kit
         final val $childSerializers // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId.Companion.$childSerializers|{}$childSerializers[0]
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent|null[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/String, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind, kotlin/Long?, kotlin/String?) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind;kotlin.Long?;kotlin.String?){}[0]
+
+    final val atEpochMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.atEpochMillis|{}atEpochMillis[0]
+        final fun <get-atEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.atEpochMillis.<get-atEpochMillis>|<get-atEpochMillis>(){}[0]
+    final val detail // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.detail|{}detail[0]
+        final fun <get-detail>(): kotlin/String? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.detail.<get-detail>|<get-detail>(){}[0]
+    final val durationMillis // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.durationMillis|{}durationMillis[0]
+        final fun <get-durationMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.durationMillis.<get-durationMillis>|<get-durationMillis>(){}[0]
+    final val entryId // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.entryId|{}entryId[0]
+        final fun <get-entryId>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.entryId.<get-entryId>|<get-entryId>(){}[0]
+    final val entryKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.entryKind|{}entryKind[0]
+        final fun <get-entryKind>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.entryKind.<get-entryKind>|<get-entryKind>(){}[0]
+    final val handle // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.handle|{}handle[0]
+        final fun <get-handle>(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.handle.<get-handle>|<get-handle>(){}[0]
+    final val kind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.kind|{}kind[0]
+        final fun <get-kind>(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.kind.<get-kind>|<get-kind>(){}[0]
+    final val sequence // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.sequence|{}sequence[0]
+        final fun <get-sequence>(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.sequence.<get-sequence>|<get-sequence>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component4|component4(){}[0]
+    final fun component5(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component5|component5(){}[0]
+    final fun component6(): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component6|component6(){}[0]
+    final fun component7(): kotlin/Long? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component7|component7(){}[0]
+    final fun component8(): kotlin/String? // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.component8|component8(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryKind = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEntryId = ..., com.kitakkun.jetwhale.plugins.soil.protocol/SoilEventKind = ..., kotlin/Long? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.copy|copy(kotlin.Long;kotlin.Long;kotlin.String;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind;kotlin.Long?;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent) // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent> // com.kitakkun.jetwhale.plugins.soil.protocol/SoilEvent.Companion.serializer|serializer(){}[0]
     }
 }
 

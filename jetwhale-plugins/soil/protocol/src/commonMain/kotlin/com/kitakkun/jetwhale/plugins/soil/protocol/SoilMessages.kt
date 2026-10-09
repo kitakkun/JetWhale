@@ -24,6 +24,8 @@ data object GetSoilCacheSnapshot : JetWhaleRequest<SoilCacheSnapshot>
  *   revision is not greater was already accounted for here.
  * @property agentEpochMillis The app's clock when the snapshot was taken, in epoch milliseconds.
  *   Soil's timestamps, in epoch seconds, are judged against this clock rather than the host's.
+ * @property recentEvents The latest events the agent keeps, oldest first, so a host that connects
+ *   late still sees what just happened.
  */
 @SerialName("soil/cache_snapshot")
 @Serializable
@@ -32,6 +34,7 @@ data class SoilCacheSnapshot(
     val entries: List<SoilEntry>,
     val revision: Long,
     val agentEpochMillis: Long,
+    val recentEvents: List<SoilEvent>,
 )
 
 /**
@@ -42,6 +45,7 @@ data class SoilCacheSnapshot(
  * @property removedHandles Entries Soil no longer holds, active or inactive.
  * @property revision Greater than the revision of every snapshot and event sent before it.
  * @property agentEpochMillis The app's clock when the changes were read, in epoch milliseconds.
+ * @property events What the changes amount to, oldest first.
  */
 @SerialName("soil/entries_changed")
 @Serializable
@@ -50,6 +54,7 @@ data class SoilEntriesChanged(
     val removedHandles: List<String>,
     val revision: Long,
     val agentEpochMillis: Long,
+    val events: List<SoilEvent>,
 ) : JetWhaleEvent
 
 /** Asks for the value the entry named by [handle] holds: its last reply. */

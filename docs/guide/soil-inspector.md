@@ -1,14 +1,16 @@
 # Soil Inspector
 
 The Soil Inspector shows what the [Soil](https://github.com/soil-kt/soil) cache of the app you are
-debugging holds: its queries, infinite queries, mutations and subscriptions, each with its state as
-Soil keeps it, its options and its value. From the host or from an AI agent over MCP, you can
-invalidate a query, resume a query or subscription, or remove an inactive entry from the cache.
+debugging holds — its queries, infinite queries, mutations and subscriptions — and what happens to
+it as you use the app. It explains in words why an entry is stale or not refetching, calls out
+failures, and shows what a tap or a mutation set off. From the host or from an AI agent over MCP,
+you can invalidate a query, resume a query or subscription, or remove an inactive entry from the
+cache.
 
 **Works with:** Android, iOS, desktop (JVM) and the web, the platforms Soil supports.
 
-![The Soil Inspector: the cache grouped into queries, infinite queries, mutations and subscriptions, each with its status badges, beside a stale query with its actions, state, value and options](../images/soil-inspector/cache-light.webp){.light-only width=688}
-![The Soil Inspector: the cache grouped into queries, infinite queries, mutations and subscriptions, each with its status badges, beside a stale query with its actions, state, value and options](../images/soil-inspector/cache-dark.webp){.dark-only width=688}
+![The Soil Inspector: a failure called out above the cache, the entries grouped by kind with condition filters, a query whose detail pane says how long it stays fresh, and the timeline of a mutation, the refetch it set off and a failed fetch below](../images/soil-inspector/cache-light.webp){.light-only width=688}
+![The Soil Inspector: a failure called out above the cache, the entries grouped by kind with condition filters, a query whose detail pane says how long it stays fresh, and the timeline of a mutation, the refetch it set off and a failed fetch below](../images/soil-inspector/cache-dark.webp){.dark-only width=688}
 
 ::: warning Built against one Soil version
 Soil has no public API for listing its cache, so the agent reads it through Soil's internal API.
@@ -78,17 +80,54 @@ serializer of one chunk's data. The detail pane says which way each value was en
 
 ## Using it
 
-- **The cache, live.** Entries grouped by kind, with badges for the status, **Fetching**,
-  **Validating**, **Paused**, **Stale**, **Invalidated**, **Inactive** and **Observed** (a screen is
-  attached). Search by namespace or tag.
-- **State.** Every field of the entry's state under Soil's own name, with times relative to the
-  app's clock: `0` reads as initial or preloaded data, and an infinite `staleTime` as never.
-- **Value.** Read from the app when you select the entry, and again when its reply changes, shown
-  as a JSON tree or as JSON text.
-- **Actions.** **Invalidate**, **Resume** and **Remove**, each disabled where it does not apply,
-  with the reason underneath.
-- **Mutations stay visible.** Soil drops a mutation once its screen leaves; the inspector keeps the
-  last state it saw, marked **Gone**.
+The entries are on the left, what the selected one's state means on the right, and the timeline of
+what happened below. Each answers a question you would otherwise answer with log statements:
+
+- **Why does this screen show old data?** Search for the key, or sort by **Recent activity**. The
+  detail pane says whether the data is fresh, and for how long, or stale: when it was last updated,
+  its `staleTime`, whether it is invalidated and whether a screen observes it. Soil refetches stale
+  data only when something asks — a screen starting to observe it, an invalidation, a resume, or
+  focus and reconnect events where the app reports them — never on a timer, and the pane says so.
+- **What did my tap trigger?** Watch the timeline as you tap. Fetches, invalidations, mutations and
+  subscription values appear in order, with how long each fetch or run took, and a gap line marks
+  where one burst ends and the next begins. Repeats in a row, such as a subscription's values, share
+  one line with a count. Click an event to select its entry; **Follow newest** keeps the latest in
+  view.
+- **Something failed.** Failures, queries paused after an error and fetches running over ten seconds
+  are called out above the list, and **Show them** narrows the list to them. The detail pane gives
+  the error, how often the entry failed in the timeline, and whether Soil still holds back fetches.
+  Soil retries within a fetch, and only for the errors the query's `shouldRetry` accepts, so the
+  inspector shows the outcome rather than each attempt.
+- **Does my mutation invalidate the right queries?** Select the mutation: the detail pane lists what
+  other entries did within two seconds after its last run, such as the queries it invalidated and
+  their refetches.
+
+![The detail pane of a mutation listing the invalidation and refetch of users/profile that followed its last run, with the same sequence in the timeline below](../images/soil-inspector/mutation-light.webp){.light-only width=688}
+![The detail pane of a mutation listing the invalidation and refetch of users/profile that followed its last run, with the same sequence in the timeline below](../images/soil-inspector/mutation-dark.webp){.dark-only width=688}
+
+- **What is cached, and when does it go away?** Filter by **Inactive**. A cached entry says how long
+  it has been unused and when Soil drops it, from its `gcTime`.
+- **How far did my infinite query page?** Its detail pane counts the pages loaded and lists the
+  param each was fetched with.
+
+The chips above the list filter by condition and show how many entries meet each. Conditions in
+one group add up (**Failed** or **Stale**), groups narrow each other (**Failed** and
+**Inactive**). The search, the chips and the sort are kept when you reopen the inspector; **Clear
+filters** brings every entry back. Up and down move the selection in the list and in the timeline.
+
+Below the explanation, the detail pane has **Invalidate**, **Resume** and **Remove**, each disabled
+with the reason where it does not apply, then the entry's value as a JSON tree or text, its latest
+events, its state field by field under Soil's own names, and its options. A mutation Soil drops
+once its screen leaves stays listed with its last state, marked **Gone**.
+
+::: info The timeline is read, not recorded
+Soil does not report what happens to its cache, so the agent compares one reading of it with the
+next and records the difference. Soil's state flows keep only the latest state, so a fetch that
+starts and ends between two readings shows up as **Data updated** without a duration, and a state
+shorter than a reading can be missed altogether. A new entry is noticed within half a second, so
+a fetch it was already running when it was noticed gets no duration, and the detail pane says how
+long it has run *at least*.
+:::
 
 ## MCP tools
 
@@ -98,8 +137,9 @@ Each takes the `sessionId` of the app's session; entries are named by the `handl
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.soil.listEntries` | Every entry with its state, location, options and whether it is stale; narrows by `kind`, `namespace` or `status` |
-| `com.kitakkun.jetwhale.soil.getEntry` | One entry with its value, how the value was encoded, and which actions apply |
+| `com.kitakkun.jetwhale.soil.listEntries` | The entries with their state, options and the conditions they meet, and the problems the list calls out; narrows by `search` and `conditions` and orders by `sort` as the list does, and by `kind` or `status` |
+| `com.kitakkun.jetwhale.soil.listEvents` | The timeline, oldest first; pass the `lastSequence` of one call as `since` to the next to read only what happened in between, and narrow by `handle`, `search` or `categories` |
+| `com.kitakkun.jetwhale.soil.getEntry` | One entry with its value, the explanation the detail pane gives, its latest events, what followed a mutation's last run, and which actions apply |
 | `com.kitakkun.jetwhale.soil.invalidateEntry` | Invalidates a query or infinite query, active or inactive |
 | `com.kitakkun.jetwhale.soil.resumeEntry` | Resumes a query or subscription a screen observes |
 | `com.kitakkun.jetwhale.soil.removeInactiveEntry` | Removes an inactive query or subscription from the cache |
@@ -114,5 +154,7 @@ Each takes the `sessionId` of the app's session; entries are named by the `handl
 - **Resume reaches observed entries only.** Soil hands a resume to the screens that observe an entry,
   so an entry nothing observes ignores it.
 - **A value is cut at 256 K characters.** The detail pane says when one was.
+- **The timeline keeps the latest 1,000 events.** The app keeps its latest 500 for a host that
+  connects later; **Clear** empties the host's.
 - **Additions and removals take up to half a second to show.** Soil announces neither, so the agent
   reads its stores twice a second. A change to an active entry's state shows within a moment.

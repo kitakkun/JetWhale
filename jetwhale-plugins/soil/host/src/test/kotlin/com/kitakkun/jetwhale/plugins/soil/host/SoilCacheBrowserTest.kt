@@ -5,6 +5,8 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryActionResult
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilValueEncoding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +30,7 @@ class SoilCacheBrowserTest {
 
         assertEquals(listOf("users/profile", "settings"), browser.listedEntries.map { it.entry.id.namespace })
         assertEquals(readableCoverage, browser.coverage)
-        assertEquals(HOST_NOW + 30, browser.agentNowEpochSeconds())
+        assertEquals((HOST_NOW + 30) * 1000, browser.agentNowEpochMillis())
     }
 
     @Test
@@ -133,7 +135,7 @@ class SoilCacheBrowserTest {
 
         browser.adopt(changesOf(upserts = listOf(profile.copy(isObserved = false)), revision = 5))
 
-        assertEquals(2, client.snapshotRequests)
+        assertEquals(2, client.snapshotRequestCount)
         assertEquals(listOf("settings"), browser.listedEntries.map { it.entry.id.namespace })
     }
 
@@ -160,10 +162,76 @@ class SoilCacheBrowserTest {
         assertEquals(SoilBrowserStatus(message = "Remove users/profile: The entry is active, and active entries are not removed.", isError = true), browser.status)
     }
 
-    private fun changesOf(upserts: List<SoilEntry> = emptyList(), removedHandles: List<String> = emptyList(), revision: Long) = SoilEntriesChanged(
+    @Test
+    fun `events from the snapshot and the changes are kept in order without repeats`() {
+        client.snapshot = snapshotOf(profile, settings, revision = 3, recentEvents = listOf(eventOf(1, profile, SoilEventKind.APPEARED), eventOf(2, settings, SoilEventKind.APPEARED)))
+        runBlocking { browser.load() }
+
+        browser.adopt(changesOf(revision = 4, events = listOf(eventOf(2, settings, SoilEventKind.APPEARED), eventOf(3, profile, SoilEventKind.INVALIDATED))))
+
+        assertEquals(listOf(1L, 2L, 3L), browser.events.map(SoilEvent::sequence))
+    }
+
+    @Test
+    fun `selecting an event selects its entry and reads its value`() {
+        client.snapshot = snapshotOf(profile, settings, revision = 3, recentEvents = listOf(eventOf(1, settings, SoilEventKind.FETCH_STARTED)))
+        runBlocking { browser.load() }
+
+        browser.selectEvent(1)
+
+        assertEquals(1L, browser.selectedEventSequence)
+        assertEquals(settings.handle, browser.selectedEntry?.entry?.handle)
+        assertEquals(listOf(settings.handle), client.valueRequests)
+    }
+
+    @Test
+    fun `selecting another entry lets go of the event selected for the previous one`() {
+        client.snapshot = snapshotOf(profile, settings, revision = 3, recentEvents = listOf(eventOf(1, settings, SoilEventKind.FETCH_STARTED)))
+        runBlocking { browser.load() }
+        browser.selectEvent(1)
+
+        browser.select(profile.handle)
+
+        assertNull(browser.selectedEventSequence)
+    }
+
+    @Test
+    fun `clearing the timeline keeps later events and when each entry was last active`() {
+        client.snapshot = snapshotOf(profile, revision = 3, recentEvents = listOf(eventOf(1, profile, SoilEventKind.APPEARED, atEpochMillis = 500)))
+        runBlocking { browser.load() }
+
+        browser.clearEvents()
+        browser.adopt(changesOf(revision = 4, events = listOf(eventOf(1, profile, SoilEventKind.APPEARED), eventOf(2, settings, SoilEventKind.APPEARED, atEpochMillis = 700))))
+
+        assertEquals(listOf(2L), browser.events.map(SoilEvent::sequence))
+        assertEquals(mapOf(profile.handle to 500L, settings.handle to 700L), browser.lastActivityEpochMillisByHandle)
+    }
+
+    @Test
+    fun `a later snapshot adds only the events not seen yet`() {
+        client.snapshot = snapshotOf(profile, revision = 3, recentEvents = (1L..2L).map { eventOf(it, profile, SoilEventKind.DATA_UPDATED) })
+        runBlocking { browser.load() }
+
+        browser.adopt(snapshotOf(profile, revision = 7, recentEvents = (1L..4L).map { eventOf(it, profile, SoilEventKind.DATA_UPDATED) }))
+
+        assertEquals(listOf(1L, 2L, 3L, 4L), browser.events.map(SoilEvent::sequence))
+    }
+
+    @Test
+    fun `the timeline keeps only the latest thousand events`() {
+        runBlocking { browser.load() }
+
+        browser.adopt(changesOf(revision = 4, events = (1L..1_001L).map { eventOf(it, profile, SoilEventKind.DATA_UPDATED) }))
+
+        assertEquals(1_000, browser.events.size)
+        assertEquals(2L, browser.events.first().sequence)
+    }
+
+    private fun changesOf(upserts: List<SoilEntry> = emptyList(), removedHandles: List<String> = emptyList(), revision: Long, events: List<SoilEvent> = emptyList()) = SoilEntriesChanged(
         upserts = upserts,
         removedHandles = removedHandles,
         revision = revision,
         agentEpochMillis = HOST_NOW * 1000,
+        events = events,
     )
 }

@@ -29,6 +29,9 @@ class SoilMessagesTest {
         isObserved = true,
         options = mapOf("staleTime" to "Infinity", "gcTime" to "5m"),
         replyRevision = 3,
+        inactiveSinceEpochMillis = 110_000,
+        inFlightSinceEpochMillis = null,
+        chunkParams = null,
     )
 
     @Test
@@ -50,6 +53,18 @@ class SoilMessagesTest {
             ),
             revision = 7,
             agentEpochMillis = 200_000,
+            recentEvents = listOf(
+                SoilEvent(
+                    sequence = 12,
+                    atEpochMillis = 199_500,
+                    handle = "query-1",
+                    entryKind = SoilEntryKind.QUERY,
+                    entryId = queryEntry.id,
+                    kind = SoilEventKind.FETCH_FAILED,
+                    durationMillis = 340,
+                    detail = "IOException",
+                ),
+            ),
         )
 
         assertEquals(snapshot, json.decodeFromString(SoilCacheSnapshot.serializer(), json.encodeToString(SoilCacheSnapshot.serializer(), snapshot)))

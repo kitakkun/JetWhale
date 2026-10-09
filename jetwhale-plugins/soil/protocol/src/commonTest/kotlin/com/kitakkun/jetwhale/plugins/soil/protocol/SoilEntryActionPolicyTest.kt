@@ -51,5 +51,8 @@ class SoilEntryActionPolicyTest {
         isObserved = isObserved,
         options = emptyMap(),
         replyRevision = 0,
+        inactiveSinceEpochMillis = null,
+        inFlightSinceEpochMillis = null,
+        chunkParams = null,
     )
 }

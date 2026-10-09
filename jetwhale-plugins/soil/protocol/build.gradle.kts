@@ -9,8 +9,7 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Distinct group so this module's coordinates don't collide with the other plugins' `protocol`.
 group = "com.kitakkun.jetwhale.plugins.soil"
 
 kotlin {

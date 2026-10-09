@@ -10,6 +10,8 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilFetchStatus
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilStatus
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilValueEncoding
@@ -32,10 +34,10 @@ internal class FakeSoilCacheClient(
     val valueRequests = mutableListOf<String>()
     val actionRequests = mutableListOf<Pair<String, SoilEntryAction>>()
 
-    var snapshotRequests = 0
+    var snapshotRequestCount = 0
 
     override suspend fun takeSnapshot(): SoilCacheSnapshot {
-        snapshotRequests++
+        snapshotRequestCount++
         return snapshot
     }
 
@@ -76,6 +78,23 @@ internal fun queryEntry(
     isObserved = isObserved,
     options = emptyMap(),
     replyRevision = 0,
+    inactiveSinceEpochMillis = null,
+    inFlightSinceEpochMillis = null,
+    chunkParams = null,
+)
+
+internal fun subscriptionEntry(handle: String, namespace: String) = SoilEntry(
+    handle = handle,
+    kind = SoilEntryKind.SUBSCRIPTION,
+    location = SoilEntryLocation.ACTIVE,
+    id = SoilEntryId(className = "SubscriptionId", namespace = namespace, tags = emptyList()),
+    state = SoilEntryState.Subscription(status = SoilStatus.SUCCESS, hasReply = true, replyUpdatedAt = 999, error = null, errorUpdatedAt = 0, restartedAt = 0),
+    isObserved = true,
+    options = emptyMap(),
+    replyRevision = 0,
+    inactiveSinceEpochMillis = null,
+    inFlightSinceEpochMillis = null,
+    chunkParams = null,
 )
 
 internal fun mutationEntry(handle: String, namespace: String) = SoilEntry(
@@ -87,11 +106,26 @@ internal fun mutationEntry(handle: String, namespace: String) = SoilEntry(
     isObserved = false,
     options = emptyMap(),
     replyRevision = 0,
+    inactiveSinceEpochMillis = null,
+    inFlightSinceEpochMillis = null,
+    chunkParams = null,
 )
 
-internal fun snapshotOf(vararg entries: SoilEntry, revision: Long = 1, agentEpochSeconds: Long = HOST_NOW) = SoilCacheSnapshot(
+internal fun snapshotOf(vararg entries: SoilEntry, revision: Long = 1, agentEpochSeconds: Long = HOST_NOW, recentEvents: List<SoilEvent> = emptyList()) = SoilCacheSnapshot(
     coverage = readableCoverage,
     entries = entries.toList(),
     revision = revision,
     agentEpochMillis = agentEpochSeconds * 1000,
+    recentEvents = recentEvents,
+)
+
+internal fun eventOf(sequence: Long, entry: SoilEntry, kind: SoilEventKind, atEpochMillis: Long = HOST_NOW * 1000) = SoilEvent(
+    sequence = sequence,
+    atEpochMillis = atEpochMillis,
+    handle = entry.handle,
+    entryKind = entry.kind,
+    entryId = entry.id,
+    kind = kind,
+    durationMillis = null,
+    detail = null,
 )

@@ -3,11 +3,15 @@ package com.kitakkun.jetwhale.plugins.soil.agent
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryError
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilFetchStatus
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilStatus
 import soil.query.MutationModel
 import soil.query.MutationStatus
+import soil.query.QueryChunk
 import soil.query.QueryFetchStatus
 import soil.query.QueryModel
 import soil.query.QueryStatus
@@ -15,17 +19,21 @@ import soil.query.SubscriptionModel
 import soil.query.SubscriptionStatus
 import soil.query.core.DataModel
 import soil.query.core.UniqueId
+import soil.query.core.getOrNull
 import soil.query.core.isNone
+import kotlin.time.Clock
 
 /**
  * What changed between two readings of the cache.
  *
  * @property revision The tracker's revision after the reading, bumped whenever anything changed.
+ * @property events What the changes amount to, oldest first.
  */
 internal data class SoilCacheChanges(
     val upserts: List<SoilEntry>,
     val removedHandles: List<String>,
     val revision: Long,
+    val events: List<SoilEvent>,
 ) {
     val isEmpty: Boolean get() = upserts.isEmpty() && removedHandles.isEmpty()
 }
@@ -35,7 +43,11 @@ internal data class SoilCacheChanges(
  * replaces a state object on every change, so a model that is the same instance as last time is
  * not converted again. Not thread-safe.
  */
-internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
+internal class SoilCacheTracker(
+    private val handles: SoilEntryHandles,
+    private val clock: Clock,
+) {
+    private val eventLog = SoilEventLog()
     private var trackedEntries: Map<SoilEntryKey, TrackedEntry> = emptyMap()
 
     var revision: Long = 0
@@ -43,49 +55,89 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
 
     val entries: List<SoilEntry> get() = trackedEntries.values.map(TrackedEntry::entry)
 
+    /** The latest events, oldest first, as far back as the log keeps them. */
+    val recentEvents: List<SoilEvent> get() = eventLog.recentEvents
+
     fun entryOf(key: SoilEntryKey): SoilEntry? = trackedEntries[key]?.entry
 
     /** Takes [records] as the cache's current contents and returns how they differ from the last ones. */
     fun replaceEntriesWith(records: List<SoilCacheRecord>): SoilCacheChanges {
+        val nowEpochMillis = clock.now().toEpochMilliseconds()
         val updatedTrackedEntries = LinkedHashMap<SoilEntryKey, TrackedEntry>()
-        val upserts = mutableListOf<SoilEntry>()
+        val changedEntries = mutableListOf<Pair<SoilEntry?, SoilEntry>>()
         records.forEach { record ->
             val previous = trackedEntries[record.key]
             val isSameReading = previous != null &&
                 previous.model === record.model &&
                 previous.entry.location == record.location &&
                 previous.entry.isObserved == record.isObserved &&
-                previous.entry.options == record.options
+                previous.recordOptions == record.options
             val replyRevision = when {
                 previous == null -> 0L
                 previous.model.reply !== record.model.reply -> previous.entry.replyRevision + 1
                 else -> previous.entry.replyRevision
             }
-            val entry = if (isSameReading) previous.entry else record.toSoilEntry(handle = handles.handleOf(record.key), replyRevision = replyRevision)
-            if (entry != previous?.entry) upserts += entry
-            updatedTrackedEntries[record.key] = TrackedEntry(model = record.model, entry = entry)
+            val entry = if (isSameReading) {
+                previous.entry
+            } else {
+                record.toSoilEntry(previous?.entry, handles.handleOf(record.key), replyRevision, nowEpochMillis)
+            }
+            if (entry != previous?.entry) changedEntries += previous?.entry to entry
+            updatedTrackedEntries[record.key] = TrackedEntry(model = record.model, recordOptions = record.options, entry = entry)
         }
         val removedKeys = trackedEntries.keys - updatedTrackedEntries.keys
-        val removedHandles = removedKeys.mapNotNull { key -> trackedEntries[key]?.entry?.handle }
+        val removedEntries = removedKeys.mapNotNull { trackedEntries[it]?.entry }
         removedKeys.forEach(handles::retire)
         trackedEntries = updatedTrackedEntries
-        if (upserts.isNotEmpty() || removedHandles.isNotEmpty()) revision++
-        return SoilCacheChanges(upserts = upserts, removedHandles = removedHandles, revision = revision)
+        val upserts = changedEntries.map { (_, entry) -> entry }
+        if (upserts.isNotEmpty() || removedEntries.isNotEmpty()) revision++
+        // Mutations first: Soil applies a mutation's effects, such as invalidations, when its run
+        // ends, so in a reading that catches both, the run's end comes before what it set off. The
+        // host finds what followed a run by sequence.
+        val events = changedEntries.sortedBy { (_, entry) -> entry.kind != SoilEntryKind.MUTATION }.flatMap { (previous, entry) -> eventLog.recordChange(previous, entry, nowEpochMillis) } +
+            removedEntries.flatMap { eventLog.recordChange(it, null, nowEpochMillis) }
+        return SoilCacheChanges(upserts = upserts, removedHandles = removedEntries.map(SoilEntry::handle), revision = revision, events = events)
     }
 
-    private class TrackedEntry(val model: DataModel<*>, val entry: SoilEntry)
+    /**
+     * @property recordOptions The options as read, which an inactive entry no longer has: its
+     *   [entry] carries the ones it had while active.
+     */
+    private class TrackedEntry(val model: DataModel<*>, val recordOptions: Map<String, String>, val entry: SoilEntry)
 }
 
-private fun SoilCacheRecord.toSoilEntry(handle: String, replyRevision: Long): SoilEntry = SoilEntry(
-    handle = handle,
-    kind = key.kind,
-    location = location,
-    id = key.id.toSoilEntryId(),
-    state = model.toSoilEntryState(),
-    isObserved = isObserved,
-    options = options,
-    replyRevision = replyRevision,
-)
+/**
+ * The entry this record describes, carrying over from [previous] what Soil does not keep: the
+ * options of an entry that moved into the cache, when it moved, and since when it has been seen
+ * fetching or running, all as of [nowEpochMillis]. The stores are read only every so often, so an entry
+ * seen for the first time may have been cached or in flight for a while already: when it moved is
+ * not known, and its fetch or run is at least as old as this reading.
+ */
+private fun SoilCacheRecord.toSoilEntry(previous: SoilEntry?, handle: String, replyRevision: Long, nowEpochMillis: Long): SoilEntry {
+    val isInactive = location == SoilEntryLocation.INACTIVE
+    val state = model.toSoilEntryState()
+    return SoilEntry(
+        handle = handle,
+        kind = key.kind,
+        location = location,
+        id = key.id.toSoilEntryId(),
+        state = state,
+        isObserved = isObserved,
+        options = if (isInactive && options.isEmpty()) previous?.options.orEmpty() else options,
+        replyRevision = replyRevision,
+        inactiveSinceEpochMillis = when {
+            !isInactive || previous == null -> null
+            previous.location == SoilEntryLocation.INACTIVE -> previous.inactiveSinceEpochMillis
+            else -> nowEpochMillis
+        },
+        inFlightSinceEpochMillis = when {
+            !state.isInFlight -> null
+            previous != null && previous.state.isInFlight -> previous.inFlightSinceEpochMillis
+            else -> nowEpochMillis
+        },
+        chunkParams = if (key.kind == SoilEntryKind.INFINITE_QUERY) (model.reply.getOrNull() as? List<*>)?.map { (it as? QueryChunk<*, *>)?.param.toString() } else null,
+    )
+}
 
 private fun UniqueId.toSoilEntryId(): SoilEntryId = SoilEntryId(
     className = this::class.simpleName ?: "UniqueId",

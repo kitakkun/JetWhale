@@ -34,14 +34,28 @@ class SoilEntryFactsTest {
 
         assertEquals(
             listOf(
-                SoilEntryBadge("Success", JwTone.Success),
-                SoilEntryBadge("Validating", JwTone.Accent),
-                SoilEntryBadge("Stale", JwTone.Warning),
-                SoilEntryBadge("Invalidated", JwTone.Warning),
-                SoilEntryBadge("Inactive", JwTone.Neutral),
+                SoilEntryBadge("Success", JwTone.Success, isRoutine = true),
+                SoilEntryBadge("Validating", JwTone.Accent, isRoutine = false),
+                SoilEntryBadge("Stale", JwTone.Warning, isRoutine = false),
+                SoilEntryBadge("Invalidated", JwTone.Warning, isRoutine = false),
+                SoilEntryBadge("Inactive", JwTone.Neutral, isRoutine = false),
             ),
             badges,
         )
+    }
+
+    @Test
+    fun `an active entry no screen observes is labelled unobserved and an observed one routinely`() {
+        val unobserved = badgesOf(ListedSoilEntry(queryEntry(handle = "query-1", namespace = "users", isObserved = false), isGone = false), agentNowEpochSeconds = 900)
+        val observed = badgesOf(ListedSoilEntry(queryEntry(handle = "query-1", namespace = "users"), isGone = false), agentNowEpochSeconds = 900)
+
+        assertEquals(SoilEntryBadge("Unobserved", JwTone.Neutral, isRoutine = false), unobserved.last())
+        assertEquals(SoilEntryBadge("Observed", JwTone.Info, isRoutine = true), observed.last())
+    }
+
+    @Test
+    fun `durations read in milliseconds under a second and in tenths of a second under a minute`() {
+        assertEquals(listOf("340ms", "2.4s", "1m 5s"), listOf(340L, 2_450L, 65_000L).map(::describeDurationMillis))
     }
 
     @Test

@@ -5,11 +5,15 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEventKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilFetchStatus
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilStatus
+import soil.query.InfiniteQueryId
 import soil.query.MutationId
 import soil.query.MutationState
 import soil.query.MutationStatus
+import soil.query.QueryChunk
 import soil.query.QueryFetchStatus
 import soil.query.QueryId
 import soil.query.QueryState
@@ -18,11 +22,13 @@ import soil.query.core.DataModel
 import soil.query.core.Reply
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SoilCacheTrackerTest {
     private val handles = SoilEntryHandles()
-    private val tracker = SoilCacheTracker(handles)
+    private val clock = SteppedClock(nowEpochMillis = 1_000_000)
+    private val tracker = SoilCacheTracker(handles, clock)
 
     private val profileKey = SoilEntryKey(SoilEntryKind.QUERY, QueryId<String>("users/profile", 42))
     private val renameMutationKey = SoilEntryKey(SoilEntryKind.MUTATION, MutationId<Unit, String>("users/rename"))
@@ -129,6 +135,77 @@ class SoilCacheTrackerTest {
     }
 
     @Test
+    fun `an entry moving into the cache keeps its options and says when it moved`() {
+        val state = QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success)
+        tracker.replaceEntriesWith(listOf(record(profileKey, state, options = mapOf("gcTime" to "5m"))))
+        clock.nowEpochMillis += 5_000
+
+        val cached = tracker.replaceEntriesWith(listOf(record(profileKey, state, location = SoilEntryLocation.INACTIVE, isObserved = false))).upserts.single()
+
+        assertEquals(mapOf("gcTime" to "5m"), cached.options)
+        assertEquals(1_005_000, cached.inactiveSinceEpochMillis)
+    }
+
+    @Test
+    fun `a fetch that starts after the first reading carries when it started`() {
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success))))
+        clock.nowEpochMillis += 2_000
+
+        val fetching = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success, fetchStatus = QueryFetchStatus.Fetching(isValidating = true))))).upserts.single()
+
+        assertEquals(1_002_000, fetching.inFlightSinceEpochMillis)
+    }
+
+    @Test
+    fun `a fetch already running when the entry is first seen counts from that reading and gets no start event`() {
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(fetchStatus = QueryFetchStatus.Fetching(isValidating = false)))))
+
+        assertEquals(1_000_000, changes.upserts.single().inFlightSinceEpochMillis)
+        assertEquals(listOf(SoilEventKind.APPEARED), changes.events.map(SoilEvent::kind))
+    }
+
+    @Test
+    fun `an entry first seen in the cache has no known time it went there`() {
+        val cached = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(), location = SoilEntryLocation.INACTIVE, isObserved = false))).upserts.single()
+
+        assertNull(cached.inactiveSinceEpochMillis)
+    }
+
+    @Test
+    fun `a mutation is recorded before the queries that changed in the same reading`() {
+        val reply = Reply.some("Ada")
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = reply, status = QueryStatus.Success)), record(renameMutationKey, MutationState.test<Unit>())))
+
+        val events = tracker.replaceEntriesWith(
+            listOf(
+                record(profileKey, QueryState.test(reply = reply, status = QueryStatus.Success, isInvalidated = true)),
+                record(renameMutationKey, MutationState.test(reply = Reply.some(Unit), status = MutationStatus.Success, mutatedCount = 1)),
+            ),
+        ).events
+
+        assertEquals(listOf(SoilEventKind.MUTATION_SUCCEEDED, SoilEventKind.INVALIDATED), events.map(SoilEvent::kind))
+    }
+
+    @Test
+    fun `an entry that is no longer read is recorded as removed`() {
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>())))
+
+        val events = tracker.replaceEntriesWith(emptyList()).events
+
+        assertEquals(listOf(SoilEventKind.REMOVED), events.map(SoilEvent::kind))
+    }
+
+    @Test
+    fun `an infinite query lists the param of each chunk`() {
+        val feedKey = SoilEntryKey(SoilEntryKind.INFINITE_QUERY, InfiniteQueryId<String, Int>("posts/feed"))
+        val chunks = listOf(QueryChunk(data = "first", param = 0), QueryChunk(data = "second", param = 1))
+
+        val entry = tracker.replaceEntriesWith(listOf(record(feedKey, QueryState.test(reply = Reply.some(chunks), status = QueryStatus.Success)))).upserts.single()
+
+        assertEquals(listOf("0", "1"), entry.chunkParams)
+    }
+
+    @Test
     fun `a mutation state carries its count and when it was submitted`() {
         val entry = tracker.replaceEntriesWith(listOf(record(renameMutationKey, MutationState.test(reply = Reply.some(Unit), replyUpdatedAt = 90, errorUpdatedAt = 95, status = MutationStatus.Success, mutatedCount = 3)))).upserts.single()
 
@@ -142,5 +219,6 @@ class SoilCacheTrackerTest {
         model: DataModel<*>,
         location: SoilEntryLocation = SoilEntryLocation.ACTIVE,
         isObserved: Boolean = true,
-    ) = SoilCacheRecord(key = key, location = location, model = model, isObserved = isObserved, options = emptyMap(), stateFlow = null)
+        options: Map<String, String> = emptyMap(),
+    ) = SoilCacheRecord(key = key, location = location, model = model, isObserved = isObserved, options = options, stateFlow = null)
 }

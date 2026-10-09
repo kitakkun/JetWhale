@@ -47,8 +47,17 @@ enum class SoilEntryLocation {
  *   [SoilEntryLocation.INACTIVE] entry.
  * @property replyRevision Changes whenever Soil replaces the entry's reply, even twice within the
  *   second its timestamps resolve to, so a host showing the value knows to read it again.
- * @property options The entry's options by name, durations in Kotlin's `Duration` notation. Empty
- *   for an [SoilEntryLocation.INACTIVE] entry, whose options Soil does not keep.
+ * @property options The entry's options by name, durations in Kotlin's `Duration` notation. Soil
+ *   keeps no options for an [SoilEntryLocation.INACTIVE] entry, so it carries the ones it had while
+ *   active, or none when the agent never saw it active.
+ * @property inactiveSinceEpochMillis When the agent saw the entry move from the store into the
+ *   cache, by the app's clock; null while it is active, or when it was already cached when the agent
+ *   first saw it.
+ * @property inFlightSinceEpochMillis Since when, by the app's clock, the agent has seen the query
+ *   fetching or the mutation running; null when neither is under way. For an entry that was already
+ *   in flight when the agent first saw it, the fetch or run started earlier than this.
+ * @property chunkParams For an infinite query, the param each loaded chunk was fetched with, in
+ *   order; null for every other kind.
  */
 @Serializable
 data class SoilEntry(
@@ -60,6 +69,9 @@ data class SoilEntry(
     val isObserved: Boolean,
     val options: Map<String, String>,
     val replyRevision: Long,
+    val inactiveSinceEpochMillis: Long?,
+    val inFlightSinceEpochMillis: Long?,
+    val chunkParams: List<String>?,
 )
 
 /**
@@ -118,6 +130,14 @@ sealed interface SoilEntryState {
     val replyUpdatedAt: Long
     val error: SoilEntryError?
     val errorUpdatedAt: Long
+
+    /** Whether a query is fetching or a mutation is running; a subscription never is. */
+    val isInFlight: Boolean
+        get() = when (this) {
+            is Query -> fetchStatus is SoilFetchStatus.Fetching
+            is Mutation -> status == SoilStatus.PENDING
+            is Subscription -> false
+        }
 
     /** The state of a query or an infinite query. [staleAt] is `Long.MAX_VALUE` when it never goes stale. */
     @SerialName("soil/state/query")
