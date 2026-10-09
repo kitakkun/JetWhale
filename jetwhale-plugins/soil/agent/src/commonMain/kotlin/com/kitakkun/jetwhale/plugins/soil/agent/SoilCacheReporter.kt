@@ -72,8 +72,8 @@ internal class SoilCacheReporter(
                 records
             }
             stateWatchers.watchOnlyStateFlowsOf(records)
-            withTimeoutOrNull(STORE_POLL_INTERVAL) { wakeUps.receive() }
-            delay(CHANGE_COALESCING_DELAY)
+            val isWokenByChange = withTimeoutOrNull(STORE_POLL_INTERVAL) { wakeUps.receive() } != null
+            if (isWokenByChange) delay(CHANGE_COALESCING_DELAY)
         }
     }
 }

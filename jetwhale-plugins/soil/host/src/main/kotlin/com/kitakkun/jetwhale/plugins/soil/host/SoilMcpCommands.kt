@@ -113,8 +113,9 @@ internal class ListSoilEventsCommand(
         val returnedEvents = if (sinceSequence == null) matchingEvents.takeLast(maxCount) else matchingEvents.take(maxCount)
         return buildJsonObject {
             putJsonArray("events") { returnedEvents.forEach { add(McpJson.encodeToJsonElement(SoilEvent.serializer(), it)) } }
-            put("lastSequence", listOfNotNull(returnedEvents.lastOrNull()?.sequence, sinceSequence, events.lastOrNull()?.sequence).firstOrNull() ?: 0)
-            put("hasMore", sinceSequence != null && matchingEvents.size > returnedEvents.size)
+            val hasMore = sinceSequence != null && matchingEvents.size > returnedEvents.size
+            put("lastSequence", if (hasMore) returnedEvents.last().sequence else maxOf(events.lastOrNull()?.sequence ?: 0, sinceSequence ?: 0))
+            put("hasMore", hasMore)
             events.firstOrNull()?.let { oldest ->
                 if (sinceSequence != null && sinceSequence < oldest.sequence - 1) put("note", "Events after $sinceSequence and before ${oldest.sequence} are no longer kept.")
             }

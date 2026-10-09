@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.soil.host
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryError
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
@@ -188,7 +189,7 @@ internal class SoilEntryExplainer(
 
     private fun followUpNoteOn(followUpEvents: List<SoilEvent>): SoilEntryNote {
         if (followUpEvents.isEmpty()) return SoilEntryNote("No query was invalidated, updated or refetched within ${FOLLOW_UP_WINDOW_MILLIS / 1000}s after the last run.", JwTone.Neutral)
-        val byEntry = followUpEvents.groupBy(SoilEvent::entryId).entries.joinToString("; ") { (entryId, events) -> "${entryId.label} (${events.map { it.kind.label.lowercase() }.distinct().joinToString()})" }
+        val byEntry = followUpEvents.groupBy(SoilEvent::handle).values.joinToString("; ") { events -> "${events.first().entryId.label} (${events.map { it.kind.label.lowercase() }.distinct().joinToString()})" }
         return SoilEntryNote("Within ${FOLLOW_UP_WINDOW_MILLIS / 1000}s after the last run: $byEntry.", JwTone.Info)
     }
 
@@ -211,7 +212,8 @@ internal class SoilEntryExplainer(
             entry.location == SoilEntryLocation.ACTIVE_AND_CACHED -> SoilEntryNote("Active, with an older copy still in the cache.", JwTone.Neutral)
 
             !entry.isObserved -> SoilEntryNote(
-                "No screen observes it. Soil keeps an entry active for keepAliveTime${entry.options["keepAliveTime"]?.let { " ($it)" }.orEmpty()} after the last screen lets go, then moves it into the cache.",
+                "No screen observes it. Soil keeps it active for keepAliveTime${entry.options["keepAliveTime"]?.let { " ($it)" }.orEmpty()} after the last screen lets go, then " +
+                    if (entry.kind == SoilEntryKind.MUTATION) "drops it: Soil caches no mutations." else "moves it into the cache.",
                 JwTone.Neutral,
             )
 

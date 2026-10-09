@@ -129,6 +129,19 @@ class SoilMcpCommandsTest {
     }
 
     @Test
+    fun `listEvents moves the cursor past events its filters skipped`() {
+        val result = ListSoilEventsCommand(browser).run(
+            buildJsonObject {
+                put("since", 2)
+                putJsonArray("categories") { add("MUTATIONS") }
+            },
+        )
+
+        assertEquals(emptyList(), result.sequences())
+        assertEquals(4L, result.getValue("lastSequence").jsonPrimitive.long)
+    }
+
+    @Test
     fun `listEvents narrows by entry and category`() {
         val byHandle = ListSoilEventsCommand(browser).run(buildJsonObject { put("handle", "query-1") })
         val invalidations = ListSoilEventsCommand(browser).run(buildJsonObject { putJsonArray("categories") { add("INVALIDATIONS") } })

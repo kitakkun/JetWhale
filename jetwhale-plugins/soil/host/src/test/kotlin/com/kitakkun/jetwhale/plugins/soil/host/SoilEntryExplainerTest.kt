@@ -129,6 +129,24 @@ class SoilEntryExplainerTest {
     }
 
     @Test
+    fun `what followed a mutation keeps entries apart that read the same`() {
+        val events = listOf(
+            eventOf(1, renameMutation, SoilEventKind.MUTATION_SUCCEEDED),
+            eventOf(2, profile, SoilEventKind.INVALIDATED),
+            eventOf(3, profile.copy(handle = "query-9"), SoilEventKind.FETCH_STARTED),
+        )
+
+        assertEquals("Within 2s after the last run: users/profile (invalidated); users/profile (fetch started).", explainerOf(events).notesOn(listed(renameMutation)).last().text)
+    }
+
+    @Test
+    fun `a mutation no screen observes is dropped rather than cached`() {
+        val unobserved = renameMutation.copy(isObserved = false)
+
+        assertEquals(true, explainerOf().notesOn(listed(unobserved)).last().text.endsWith("then drops it: Soil caches no mutations."))
+    }
+
+    @Test
     fun `a mutation nothing followed says no query was touched`() {
         val explainer = explainerOf(listOf(eventOf(1, renameMutation, SoilEventKind.MUTATION_SUCCEEDED)))
 
