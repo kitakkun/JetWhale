@@ -38,7 +38,11 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     /** The answer to each command by path, besides `ok`; an empty one for a path not listed. */
     val answers = mutableMapOf<String, JsonObject>()
 
+    /** What happens each time the status is asked for, before it is answered. */
+    var onStatus: () -> Unit = {}
+
     override suspend fun status(): RunnerStatus {
+        onStatus()
         if (!answering || unreachable) throw RunnerUnreachableException("not listening", null)
         statusFailure?.let { throw XcTestRunnerException(it, null) }
         return runnerStatus(protocolVersion)

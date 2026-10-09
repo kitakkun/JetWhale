@@ -25,6 +25,7 @@ internal class ListDevicesCommand(
         return buildJsonObject {
             putJsonArray("devices") {
                 devices.forEach { device ->
+                    val capabilities = device.controller.capabilities
                     addJsonObject {
                         put("deviceId", device.id)
                         put("name", device.name)
@@ -32,11 +33,11 @@ internal class ListDevicesCommand(
                         put("kind", device.kind.label)
                         device.listing.osVersion?.let { put("osVersion", it) }
                         put("selected", device.id == selected)
-                        put("input", device.controller.capabilities.inputRefusal == null)
-                        device.controller.capabilities.inputRefusal?.let { put("inputUnavailableReason", it) }
+                        put("input", capabilities.inputRefusal == null)
+                        capabilities.inputRefusal?.let { put("inputUnavailableReason", it) }
                         (device.controller as? XcTestRunnerDriven)?.runnerKeptAliveUntil()?.let { put("runnerKeptAliveUntil", it.toString()) }
-                        put("recording", device.controller.capabilities.recording)
-                        putJsonArray("buttons") { device.controller.capabilities.buttons.forEach { add(it.name) } }
+                        put("recording", capabilities.recording)
+                        putJsonArray("buttons") { capabilities.buttons.forEach { add(it.name) } }
                         screenPowers.getValue(device.id)?.let { power ->
                             put("screenOn", power.awake)
                             put("locked", power.locked)
