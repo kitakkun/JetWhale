@@ -128,6 +128,21 @@ class LocalXcTestRunnersTest {
     }
 
     @Test
+    fun `a long text is typed in parts that never split a surrogate pair`() = runTest {
+        val text = "a".repeat(999) + "😀" + "b".repeat(1_500)
+
+        runners().runnerFor(simulator).typeText(text)
+
+        val parts = connections.getValue(20_000).sent.map { (path, body) ->
+            assertEquals("/typeText", path)
+            body.getValue("text").jsonPrimitive.content
+        }
+        assertTrue(parts.size > 1)
+        assertTrue(parts.none { it.last().isHighSurrogate() })
+        assertEquals(text, parts.joinToString(""))
+    }
+
+    @Test
     fun `a command the runner stopped answering after taking is not sent again`() = runTest {
         val runner = runners().runnerFor(simulator)
         connections.getValue(20_000).stopsAnsweringMidCommand = true

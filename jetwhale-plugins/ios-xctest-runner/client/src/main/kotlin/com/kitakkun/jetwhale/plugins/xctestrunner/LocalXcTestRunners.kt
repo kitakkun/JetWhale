@@ -310,6 +310,12 @@ internal class LocalXcTestRunners(
     }
 }
 
+/**
+ * The most characters one `/typeText` carries; a longer text goes in parts. The runner types 60
+ * characters a second and gives an event 60 seconds, so a part takes about 17 seconds.
+ */
+private const val MAX_TYPED_CHARS_PER_COMMAND = 1_000
+
 /** The runner's Xcode project, zipped into this client's resources by its build. */
 private const val RUNNER_PROJECT_RESOURCE = "/com/kitakkun/jetwhale/plugins/xctestrunner/JetWhaleRunner.zip"
 
@@ -352,7 +358,16 @@ private class AttachedXcTestRunner(
         },
     )
 
-    override suspend fun typeText(text: String) = send("/typeText", buildJsonObject { put("text", text) })
+    override suspend fun typeText(text: String) {
+        var start = 0
+        while (start < text.length) {
+            var end = minOf(start + MAX_TYPED_CHARS_PER_COMMAND, text.length)
+            // UTF-8 encodes each half of a split surrogate pair as '?'.
+            if (end < text.length && text[end - 1].isHighSurrogate()) end--
+            send("/typeText", buildJsonObject { put("text", text.substring(start, end)) })
+            start = end
+        }
+    }
 
     override suspend fun pressButton(button: XcTestRunnerButton) = send("/pressButton", buildJsonObject { put("button", button.wireName) })
 
