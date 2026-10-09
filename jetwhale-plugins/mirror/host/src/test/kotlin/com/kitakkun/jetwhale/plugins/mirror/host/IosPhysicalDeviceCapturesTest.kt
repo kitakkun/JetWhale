@@ -118,7 +118,7 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
 
         // Record, stop, then ask the size, as a recording started from the grid does. The stand-in
         // stream can stop before ffmpeg reads any of it, which fails the file; the companion must
@@ -145,7 +145,7 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
 
         iphone.captureScreenshot()
 
@@ -172,7 +172,6 @@ class IosPhysicalDeviceCapturesTest {
     private fun iosDevice(ffmpegPath: String?) = IosPhysicalDeviceController(
         udid = "udid-1",
         iosMajorVersion = 26,
-        idbPath = "idb",
         companions = IdbCompanions(
             idbCompanionPath = "idb_companion",
             idbPath = "idb",

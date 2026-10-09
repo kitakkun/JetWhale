@@ -28,7 +28,7 @@ internal fun noFramesHints(kind: DeviceKind): List<String> = when (kind) {
         "Check that the device is connected by USB and trusts this Mac.",
     )
 
-    DeviceKind.IosSimulator -> listOf("Check that the simulator is still booted and that `idb video-stream --udid <udid>` works in a terminal.")
+    DeviceKind.IosSimulator -> listOf("Check that the simulator is still booted.")
 
     DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice -> listOf("Check that the device is unlocked and that `adb exec-out screenrecord --output-format=h264 -` works in a terminal.")
 }

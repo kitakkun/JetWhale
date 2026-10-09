@@ -2,8 +2,6 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class DeviceButtonMappingTest {
     @Test
@@ -16,32 +14,6 @@ class DeviceButtonMappingTest {
         val keycodes = DeviceButton.entries.map(::androidKeycodeOf)
 
         assertEquals(keycodes.size, keycodes.toSet().size)
-    }
-
-    @Test
-    fun `recent apps on a simulator presses home twice`() {
-        assertEquals(listOf("HOME", "HOME"), iosSimulatorPressesOf(DeviceButton.Recents))
-    }
-
-    @Test
-    fun `home and power on a simulator press once each`() {
-        assertEquals(listOf("HOME"), iosSimulatorPressesOf(DeviceButton.Home))
-        assertEquals(listOf("LOCK"), iosSimulatorPressesOf(DeviceButton.Power))
-    }
-
-    @Test
-    fun `buttons a simulator lacks have no presses`() {
-        assertNull(iosSimulatorPressesOf(DeviceButton.Back))
-        assertNull(iosSimulatorPressesOf(DeviceButton.VolumeUp))
-        assertNull(iosSimulatorPressesOf(DeviceButton.VolumeDown))
-    }
-
-    @Test
-    fun `a simulator offers exactly the buttons it can press`() {
-        val offered = IosSimulatorDeviceController(udid = "sim", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = "idb", idbCanSendSimulatorInput = true, runnerInput = null).capabilities.buttons
-
-        assertTrue(DeviceButton.Recents in offered)
-        assertTrue(offered.all { iosSimulatorPressesOf(it) != null })
     }
 
     @Test

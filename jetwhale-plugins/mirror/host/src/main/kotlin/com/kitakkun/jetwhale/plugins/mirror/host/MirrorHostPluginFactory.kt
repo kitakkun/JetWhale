@@ -67,8 +67,8 @@ private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = Coro
 /** How long a device's idb companion outlives its last user, so switching back to it is instant. */
 private val COMPANION_IDLE_TIMEOUT = 3.minutes
 
-// A host-only plugin gets an instance per debug session, but a device has one screen: the
-// instances share the companions, so two of them watching one iPhone start one companion.
+// A host-only plugin gets an instance per debug session, but a device has one screen: the instances
+// share the companions, so two of them watching one iPhone start one companion.
 private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val located = toolPaths.await()
     val idbPath = located.idbPath ?: return@async null
@@ -84,16 +84,6 @@ private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start
     ).also { shared ->
         Runtime.getRuntime().addShutdownHook(Thread(shared::destroyAllNow))
     }
-}
-
-private val idbCanSendSimulatorInput: Deferred<Boolean> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    if (toolPaths.await().xcrunPath == null) return@async false
-    val developerDirectoryPath = try {
-        runCommandChecked("/usr/bin/xcode-select", "-p").stdoutText.trim()
-    } catch (_: DeviceControlException) {
-        return@async false
-    }
-    isSimulatorKitInPrivateFrameworks(File(developerDirectoryPath))
 }
 
 /** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
@@ -134,7 +124,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, iproxyPath, idbCanSendSimulatorInput, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, iproxyPath, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,

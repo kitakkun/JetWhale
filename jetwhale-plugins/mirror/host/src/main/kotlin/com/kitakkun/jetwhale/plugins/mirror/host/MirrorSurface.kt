@@ -95,6 +95,12 @@ internal class MirrorSurface : AutoCloseable {
         fun writeFrame(width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) = writeStreamFrame(generation, width, height, colorType, write)
 
         /**
+         * Stores [frame], a bitmap the decoder filled for this surface alone, as the next frame. The
+         * surface owns it from now on and closes it once it is replaced.
+         */
+        fun publishFrame(frame: Bitmap) = publishStreamFrame(generation, frame, System.nanoTime())
+
+        /**
          * Records the time the decoder took for one frame, for [stats]. Leave out the time spent
          * waiting for the device to send it: a still screen sends nothing for seconds.
          */
@@ -114,6 +120,10 @@ internal class MirrorSurface : AutoCloseable {
             if (!written) frame.close()
         }
         if (!written) return
+        publishStreamFrame(generation, frame, copyStartedNanos = started)
+    }
+
+    private fun publishStreamFrame(generation: Long, frame: Bitmap, copyStartedNanos: Long) {
         frame.setImmutable()
         // Published under the lock together with showingKeptFrame and frameCounter, so a device
         // switch lands wholly before or after this frame.
@@ -124,7 +134,7 @@ internal class MirrorSurface : AutoCloseable {
                 val previous = ready
                 ready = frame
                 showingKeptFrame = false
-                window.recordCopy(System.nanoTime() - started)
+                window.recordCopy(System.nanoTime() - copyStartedNanos)
                 frameCounter++
                 previous
             }
