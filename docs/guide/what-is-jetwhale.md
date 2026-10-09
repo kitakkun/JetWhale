@@ -35,6 +35,7 @@ over plain ws on loopback, and physical devices over **wss**; see
 | [Nav3 Navigator](/guide/nav3-navigator) | The Navigation 3 back stack, and pushing or popping entries | Yes |
 | [Debug Actions](/guide/debug-actions) *(experimental)* | The app's debug menu as typed actions | Yes |
 | [Storage Inspector](/guide/storage-inspector) | The app's files, caches and key-value stores | Yes |
+| [Soil Inspector](/guide/soil-inspector) | The app's Soil queries, mutations and subscriptions, with their state and values | Yes |
 | [Device Mirror](/guide/device-mirror) *(experimental)* | Live screens of Android devices, iOS simulators and iPhones | No |
 
 The host also embeds an [MCP server](/guide/mcp-server) *(experimental)*, so an AI agent can use the
