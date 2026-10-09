@@ -79,10 +79,18 @@ class DefaultMcpServerService(
 
         lifecycleObserverJob = coroutineScope.launch {
             pluginInstanceService.pluginInstanceEventFlow.collect { event ->
-                when (event) {
-                    is PluginInstanceEvent.Ready -> onPluginInstanceReady(event.pluginId, event.sessionId)
-                    is PluginInstanceEvent.Disposed -> onPluginInstanceDisposed(event.pluginId, event.sessionId)
+                // A Disposed for a replaced instance can arrive after its successor's Ready,
+                // because disposal runs the plugin's onDispose before reporting it, so either event
+                // syncs to the instance live now.
+                val (pluginId, sessionId) = when (event) {
+                    is PluginInstanceEvent.Ready -> event.pluginId to event.sessionId
+                    is PluginInstanceEvent.Disposed -> event.pluginId to event.sessionId
                 }
+                toolRegistry.replace(
+                    pluginId = pluginId,
+                    sessionId = sessionId,
+                    plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) as? JetWhaleMcpCapablePlugin,
+                )
             }
         }
 
@@ -175,17 +183,6 @@ class DefaultMcpServerService(
         ktorServer = null
         mcpActivityRepository.clear()
         statusHolder.update(McpServerStatus.Stopped)
-    }
-
-    private fun onPluginInstanceReady(pluginId: String, sessionId: String) {
-        val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
-        if (plugin is JetWhaleMcpCapablePlugin) {
-            toolRegistry.register(pluginId, sessionId, plugin)
-        }
-    }
-
-    private fun onPluginInstanceDisposed(pluginId: String, sessionId: String) {
-        toolRegistry.unregister(pluginId, sessionId)
     }
 
     private fun createMcpServer(): Server {
