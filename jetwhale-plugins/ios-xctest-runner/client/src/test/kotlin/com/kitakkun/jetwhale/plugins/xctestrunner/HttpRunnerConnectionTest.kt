@@ -93,6 +93,13 @@ class HttpRunnerConnectionTest {
     }
 
     @Test
+    fun `a runner that drops the connection before its screen stream starts is unreachable rather than a refusal`() = withConnection(
+        MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST),
+    ) { connection, _ ->
+        assertFailsWith<RunnerUnreachableException> { connection.openScreenStream(maxFps = 30) }
+    }
+
+    @Test
     fun `a screen stream on a port nobody listens on is unreachable`() = runBlocking {
         val closedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
 
