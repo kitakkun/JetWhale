@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import kotlinx.coroutines.flow.Flow
 import java.io.File
 import java.time.Instant
 import kotlin.time.Duration
@@ -102,6 +103,21 @@ public interface XcTestRunner {
     public suspend fun activateApp(bundleId: String)
 
     /**
+     * The device's screen as JPEG frames, at most [maxFps] a second, from 1 to 60, for as long as the
+     * flow is collected; a collector slower than that gets the newest frame next, and the ones in
+     * between are dropped rather than queued. A frame shows the screen as the interface does, as a
+     * screenshot would: turned to landscape, its pixels stay portrait and its EXIF orientation turns
+     * them, which decoders that read EXIF, Skia among them, apply. While a stream is open the runner
+     * does not stop when idle.
+     *
+     * A runner that goes away while streaming is replaced, as for a command, and the stream goes on
+     * from the new one. The flow fails with [XcTestRunnerStartException] when no runner can be
+     * started in its place, and with [XcTestRunnerException] when the stream breaks again before
+     * its first frame.
+     */
+    public fun streamScreenAsJpeg(maxFps: Int): Flow<ByteArray>
+
+    /**
      * Keeps the runner from stopping when idle for [duration] from now, at most two hours, and
      * records the lease where every client sees it; [Duration.ZERO] ends a lease, and a negative
      * [duration] is refused. A lease nobody renews ends, so a forgotten one cannot keep a runner
@@ -112,10 +128,10 @@ public interface XcTestRunner {
 
 /** The space a point is given in. */
 public enum class XcTestRunnerPointSpace(internal val wireName: String) {
-    /** Device-native portrait points, whatever the interface orientation: the space of a simulator's stream. */
+    /** Device-native portrait points, whatever the interface orientation: the space XCTest synthesizes touches in. */
     Device("device"),
 
-    /** Points in the interface orientation: the space of screenshots and of XCTest's element frames. */
+    /** Points in the interface orientation: the space of screenshots, of [XcTestRunner.streamScreenAsJpeg]'s frames and of XCTest's element frames. */
     Screen("screen"),
 }
 

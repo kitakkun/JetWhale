@@ -6,7 +6,7 @@ struct RunnerError: Error, CustomStringConvertible {
 
 /// The version of the commands below, which `/status` reports. A client restarts a runner older
 /// than itself; commands are only added, so a newer runner serves an older client.
-let protocolVersion = 2
+let protocolVersion = 3
 
 /// The longest one `/lease` keeps the runner from stopping when idle. A client that wants longer
 /// renews it, so a lease nobody renews ends within this.
