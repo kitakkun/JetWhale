@@ -120,7 +120,7 @@ internal class LocalXcTestRunners(
         refusalFor(target)?.let { throw XcTestRunnerStartException(it, null) }
         return when (target) {
             is XcTestRunnerTarget.Simulator -> RunnerDestination.Simulator(target.udid)
-            is XcTestRunnerTarget.Device -> RunnerDestination.Device(target.udid, checkNotNull(settings.developmentTeam))
+            is XcTestRunnerTarget.Device -> RunnerDestination.Device(target.udid, settings.developmentTeam ?: throw XcTestRunnerStartException(NO_DEVELOPMENT_TEAM_REFUSAL, null))
         }
     }
 
