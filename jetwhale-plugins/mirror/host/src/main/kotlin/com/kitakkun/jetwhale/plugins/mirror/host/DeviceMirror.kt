@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,11 +23,9 @@ import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
@@ -122,7 +119,8 @@ internal interface MirrorActions {
 /**
  * The devices on this machine and the one being mirrored. Only the device on screen streams, and
  * only while the mirror is shown ([mirror] runs for as long as its caller does), so a hidden
- * mirror costs nothing and an iOS device's companion runs only while it is watched.
+ * mirror costs nothing and an iPhone's screen is captured only while it is watched, and briefly
+ * after.
  */
 @Stable
 internal class DeviceMirror(
@@ -194,7 +192,6 @@ internal class DeviceMirror(
                 streamUntilCancelled(device)
             }
         } finally {
-            withContext(NonCancellable) { device.controller.release() }
             state = MirrorState.Idle
             screenPower = null
         }
@@ -270,8 +267,6 @@ internal class DeviceMirror(
         // asked: a point maps onto the screen through each image's size, and a resized view has
         // nothing to reopen for.
         surface.deviceSize = screen.takeUnless { stream is VideoStream.EncodedImages }
-        // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
-        if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val isAndroid = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
@@ -559,16 +554,7 @@ internal class DeviceMirror(
         return devices.firstOrNull { it.id == deviceId } ?: throw deviceControlError("no device has the id '$deviceId'; call $TOOL_PREFIX.listDevices")
     }
 
-    override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, screenshotOf(device))
-
-    // A physical iOS device's screenshots come from its video stream. While the mirror streams it,
-    // the frame on screen is that screenshot, and a second stream is not opened beside the first.
-    private suspend fun screenshotOf(device: MirrorDevice): ByteArray {
-        if (device.kind == DeviceKind.IosDevice && state == MirrorState.Streaming) {
-            withContext(Dispatchers.IO) { surface.newestFramePng(device.id) }?.let { return it }
-        }
-        return device.controller.captureScreenshot()
-    }
+    override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, device.controller.captureScreenshot())
 
     override suspend fun startRecording(device: MirrorDevice) = recordingLockOf(device.id).withLock { startRecordingLocked(device) }
 

@@ -6,26 +6,31 @@ import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
-import java.io.InputStream
 import java.time.Instant
-import kotlin.concurrent.thread
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 
 /**
- * A physical iOS device over USB. idb streams its screen through the device's [companions], null when
- * idb or its companion is missing; input goes through the XCTest runner, signed with the user's
- * development team and reached through `iproxy`. Driving a device that way is experimental: it
- * follows Apple's and Appium's documentation and has not been tried on one.
+ * A physical iOS device over USB, called [deviceName]. Its screen comes from the iPhone capture
+ * helper through [iphoneScreenCaptures], shared with everything else that reads it: the live view,
+ * screenshots and recordings, which ffmpeg decodes and wraps. Input goes through the XCTest runner,
+ * signed with the user's development team and reached through `iproxy`; driving a device that way
+ * is experimental: it follows Apple's and Appium's documentation and has not been tried on one.
  *
- * Its screenshots and recordings come from that H.264 stream through ffmpeg: `idb screenshot` does
- * not reach a device running iOS 17 or later. The companion outlives each use by
- * [IdbCompanions]' idle timeout, so repeated screenshots do not restart it.
+ * The capture comes before the runner. Starting it switches the iPhone's USB connection over,
+ * which drops iproxy's connection to the runner, so the runner is started only once the capture
+ * sends frames, and input starts the capture before it reaches the runner. The capture outlives
+ * its last use by the captures' idle timeout, and its stop switches the connection back, after
+ * which the next input finds the runner gone and starts it again. A capture that cannot start
+ * leaves input, and the screen's size, to the runner alone.
  */
 internal class IosPhysicalDeviceController(
     private val udid: String,
+    private val deviceName: String,
     iosMajorVersion: Int?,
-    private val companions: IdbCompanions?,
+    private val iphoneScreenCaptures: IphoneScreenCaptures,
     private val ffmpegPath: String?,
     private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController,
@@ -40,61 +45,30 @@ internal class IosPhysicalDeviceController(
             return DeviceCapabilities(
                 inputRefusal = refusal,
                 buttons = if (refusal == null) listOf(DeviceButton.Home, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown) else emptyList(),
-                recording = ffmpegPath != null && companions != null,
+                recording = ffmpegPath != null,
                 screenPower = false,
             )
         }
 
-    private var holdsStreamCompanion = false
-
-    @Volatile
-    private var screen: IntSize? = null
-
+    /** A key frame of the current screen, asked of the capture for a reader of its own, as a PNG. */
     override suspend fun captureScreenshot(): ByteArray {
-        val companions = requireCompanions("a screenshot of a physical iOS device")
-        val ffmpegPath = requireFfmpegPath("a screenshot of a physical iOS device")
-        companions.acquire(udid)
-        try {
-            val stream = startVideoStream(companions.idbPath)
-            try {
-                return withContext(Dispatchers.IO) { firstH264FrameAsPng(stream.inputStream, ffmpegPath, STILL_FRAME_TIMEOUT_MILLIS) }
-            } finally {
-                stream.destroyForcibly()
+        val ffmpegPath = requireFfmpegPath("a screenshot of an iPhone")
+        return withStartedScreenCapture { screenCapture ->
+            screenCapture.subscribe().use { subscription ->
+                withContext(Dispatchers.IO) { firstH264FrameAsPng(subscription.stream, ffmpegPath, STILL_FRAME_TIMEOUT_MILLIS) }
             }
-        } finally {
-            companions.release(udid)
         }
     }
 
-    override suspend fun screenSize(): IntSize {
-        screen?.let { return it }
-        val idbScreenSize = try {
-            companions?.let { readIdbScreenSize(it) }
-        } catch (e: DeviceControlException) {
-            if (inputRefusal() != null) throw e
-            null
-        }
-        val size = idbScreenSize ?: readRunnerScreenSize()
-        return size.also { screen = it }
-    }
-
-    /** The size `idb describe` reports for the device, or null when it reports none. */
-    private suspend fun readIdbScreenSize(companions: IdbCompanions): IntSize? {
-        companions.acquire(udid)
-        val description = try {
-            runCommandChecked(companions.idbPath, "describe", "--udid", udid, "--json").stdoutText
-        } finally {
-            companions.release(udid)
-        }
-        return parseIdbScreen(description)
-    }
-
-    private suspend fun readRunnerScreenSize(): IntSize {
-        inputRefusal()?.let { refusal ->
-            val idbNoSizeReason = if (companions == null) "idb is not installed" else "'idb describe' reported no size"
-            throw deviceControlError("the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: $idbNoSizeReason, and $refusal")
-        }
-        return checkNotNull(runnerInput).screenSize(runnerTarget)
+    /**
+     * The size of the frames the capture sends, starting a capture when none runs, or the size the
+     * runner reports when the capture fails and the iPhone takes input.
+     */
+    override suspend fun screenSize(): IntSize = try {
+        withStartedScreenCapture(::awaitFrameSize)
+    } catch (e: DeviceControlException) {
+        if (inputRefusal() != null) throw e
+        checkNotNull(runnerInput).screenSize(runnerTarget)
     }
 
     override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y, XcTestRunnerPointSpace.Device) }
@@ -116,21 +90,28 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun inputText(text: String) = sendInput { input, target -> input.typeText(target, text) }
 
-    override suspend fun keepRunnerAlive(duration: Duration): Instant {
-        inputRefusal()?.let { throw deviceControlError(it) }
-        return checkNotNull(runnerInput).keepRunnerAlive(runnerTarget, duration)
-    }
+    override suspend fun keepRunnerAlive(duration: Duration): Instant = sendInput { input, target -> input.keepRunnerAlive(target, duration) }
 
     override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
 
-    private suspend fun sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> Unit) {
+    private suspend fun <T> sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> T): T {
         inputRefusal()?.let { throw deviceControlError(it) }
-        command(checkNotNull(runnerInput), runnerTarget)
+        // Starting the capture switches the iPhone's USB connection over and drops iproxy's
+        // connection to the runner, so it comes before the input; a capture that cannot start
+        // leaves input to the runner alone.
+        try {
+            withStartedScreenCapture(::awaitFrameSize)
+        } catch (_: DeviceControlException) {
+        }
+        return command(checkNotNull(runnerInput), runnerTarget)
     }
 
-    /** Starts the runner ahead of the first input, once the iPhone can take input; until then, does nothing. */
+    /**
+     * Starts the runner ahead of the first input, once the iPhone can take input and its screen is
+     * being captured; until then, does nothing.
+     */
     fun startRunnerInBackground() {
-        if (inputRefusal() == null) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+        if (inputRefusal() == null && iphoneScreenCaptures.isCapturing(udid)) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
     }
 
     private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
@@ -142,76 +123,72 @@ internal class IosPhysicalDeviceController(
     override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
-        val companions = requireCompanions("recording a physical iOS device")
-        val ffmpegPath = requireFfmpegPath("recording a physical iOS device")
-        companions.acquire(udid)
-        val recorder = try {
-            val stream = startVideoStream(companions.idbPath)
+        val ffmpegPath = requireFfmpegPath("recording an iPhone")
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
+        var recorder: H264FileRecorder? = null
+        try {
+            screenCapture.awaitStarted()
+            val subscription = screenCapture.subscribe()
             try {
-                withContext(Dispatchers.IO) { H264FileRecorder(stream, ffmpegPath, outputFile) }
-            } catch (e: DeviceControlException) {
-                stream.destroyForcibly()
-                throw e
+                recorder = withContext(Dispatchers.IO) { H264FileRecorder(subscription.stream, ffmpegPath, outputFile, subscription::endStreamAfterQueued) }
+            } finally {
+                if (recorder == null) subscription.close()
             }
-        } catch (e: DeviceControlException) {
-            companions.release(udid)
-            throw e
+        } finally {
+            if (recorder == null) iphoneScreenCaptures.release(screenCapture)
         }
+        val startedRecorder = checkNotNull(recorder)
         return object : DeviceRecording {
             override suspend fun stop(): File = try {
-                withContext(Dispatchers.IO) { recorder.stop() }
+                withContext(Dispatchers.IO) { startedRecorder.stop() }
             } finally {
-                companions.release(udid)
+                iphoneScreenCaptures.release(screenCapture)
             }
         }
     }
 
-    // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
+    /**
+     * A reader of the capture at its own size, which ffmpeg shrinks to the size it is shown at; the
+     * runner is started once the capture's first frame has arrived.
+     */
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        startRunnerInBackground()
-        val companions = requireCompanions("mirroring a physical iOS device")
-        val ffmpegPath = requireFfmpegPath("mirroring a physical iOS device")
-        if (!holdsStreamCompanion) {
-            companions.acquire(udid)
-            holdsStreamCompanion = true
+        val ffmpegPath = requireFfmpegPath("mirroring an iPhone")
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
+        var subscription: H264Subscription? = null
+        try {
+            screenCapture.awaitStarted()
+            screenCapture.firstFrameSize.invokeOnCompletion { failure -> if (failure == null) startRunnerInBackground() }
+            subscription = screenCapture.subscribe()
+        } finally {
+            if (subscription == null) iphoneScreenCaptures.release(screenCapture)
         }
-        return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand(companions.idbPath)), ffmpegPath) }
-    }
-
-    private fun videoStreamCommand(idbPath: String): List<String> = listOf(
-        idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30",
-        "--compression-quality", "$DEVICE_STREAM_COMPRESSION_QUALITY",
-    )
-
-    /** An idb stream of the device's screen as H.264 on stdout, its log drained so it never stalls on a full pipe. */
-    private suspend fun startVideoStream(idbPath: String): Process = withContext(Dispatchers.IO) {
-        SystemProcessLauncher.start(videoStreamCommand(idbPath)).also { stream ->
-            thread(isDaemon = true, name = "mirror-idb-stream-log") { stream.errorStream.use(InputStream::readAllBytes) }
+        val openedSubscription = checkNotNull(subscription)
+        val released = AtomicBoolean(false)
+        return VideoStream.H264(openedSubscription.stream, ffmpegPath) {
+            openedSubscription.close()
+            if (released.compareAndSet(false, true)) iphoneScreenCaptures.release(screenCapture)
         }
     }
 
-    private fun requireCompanions(use: String): IdbCompanions = companions ?: throw deviceControlError("$use needs idb, which streams the device's screen. $IDB_INSTALL_INSTRUCTIONS")
+    private suspend fun <T> withStartedScreenCapture(use: suspend (IphoneScreenCapture) -> T): T {
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
+        try {
+            screenCapture.awaitStarted()
+            return use(screenCapture)
+        } finally {
+            iphoneScreenCaptures.release(screenCapture)
+        }
+    }
+
+    private suspend fun awaitFrameSize(screenCapture: IphoneScreenCapture): IntSize = screenCapture.frameSize
+        ?: withTimeoutOrNull(FIRST_FRAME_WAIT_MILLIS) { screenCapture.firstFrameSize.await() }
+        ?: throw deviceControlError("the iPhone sent no picture of its screen within ${FIRST_FRAME_WAIT_MILLIS / 1000} s. Unlock it and keep its screen on.")
 
     private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
-
-    override suspend fun release() {
-        if (!holdsStreamCompanion) return
-        holdsStreamCompanion = false
-        checkNotNull(companions).release(udid)
-    }
 }
 
-// The formula installs the idb client and idb_companion together, at matching versions.
-internal const val IDB_INSTALL_COMMAND = "brew install facebook/fb/idb"
-
-internal const val IDB_INSTALL_INSTRUCTIONS = "Install idb (https://fbidb.io) with its companion: $IDB_INSTALL_COMMAND"
-
-/**
- * The VideoToolbox quality idb asks the device's H.264 encoder for. idb's own default of 0.2 leaves
- * a moving screen at about 1 Mbps, where edges break into blocks until the screen settles; at 0.8
- * a scrolling screen stays close to the source for about 10 Mbps, well within USB.
- */
-private const val DEVICE_STREAM_COMPRESSION_QUALITY = 0.8
-
-/** How long a screenshot waits for the device's stream to send its first frame. */
+/** How long a screenshot waits for the capture's key frame. */
 private const val STILL_FRAME_TIMEOUT_MILLIS = 10_000L
+
+/** How long a running capture gets to send its first frame. */
+private const val FIRST_FRAME_WAIT_MILLIS = 10_000L

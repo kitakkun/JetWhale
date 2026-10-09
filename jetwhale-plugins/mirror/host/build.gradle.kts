@@ -59,6 +59,10 @@ tasks.named("check") {
     dependsOn("compilePreviewKotlin")
 }
 
+tasks.processResources {
+    from("src/main/swift") { into("com/kitakkun/jetwhale/plugins/mirror/host") }
+}
+
 configure<KotrailExtension> {
     compilation("main") { configFile = file("kotrail-main.yaml") }
     compilation("preview") { configFile = file("kotrail-preview.yaml") }

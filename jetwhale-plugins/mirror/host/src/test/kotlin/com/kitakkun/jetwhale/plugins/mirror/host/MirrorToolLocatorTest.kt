@@ -18,21 +18,21 @@ class MirrorToolLocatorTest {
 
     @Test
     fun `a tool on the login shell's PATH is found before one on the host's own PATH`() {
-        val loginShellIdb = executableIdbIn(loginShellDirectory)
-        executableIdbIn(hostPathDirectory)
+        val loginShellFfmpeg = createExecutableFfmpegIn(loginShellDirectory)
+        createExecutableFfmpegIn(hostPathDirectory)
 
         val located = MirrorToolLocator(toolDirectories(loginShellPathVariable = loginShellDirectory.path, pathVariable = hostPathDirectory.path), androidSdkDirectories = emptyList()).locateToolPaths()
 
-        assertEquals(loginShellIdb, located.idbPath?.let(::File))
+        assertEquals(loginShellFfmpeg, located.ffmpegPath?.let(::File))
     }
 
     @Test
     fun `without the login shell's PATH a tool on the host's own PATH is still found`() {
-        val hostPathIdb = executableIdbIn(hostPathDirectory)
+        val hostPathFfmpeg = createExecutableFfmpegIn(hostPathDirectory)
 
         val located = MirrorToolLocator(toolDirectories(loginShellPathVariable = null, pathVariable = hostPathDirectory.path), androidSdkDirectories = emptyList()).locateToolPaths()
 
-        assertEquals(hostPathIdb, located.idbPath?.let(::File))
+        assertEquals(hostPathFfmpeg, located.ffmpegPath?.let(::File))
     }
 
     @Test
@@ -44,7 +44,7 @@ class MirrorToolLocatorTest {
         assertEquals(listOf("/opt/login/bin", "/usr/bin", "/bin", "/opt/homebrew/bin", "/usr/local/bin"), directories)
     }
 
-    private fun executableIdbIn(directory: File): File = File(directory, "idb").apply {
+    private fun createExecutableFfmpegIn(directory: File): File = File(directory, if (runsOnWindows) "ffmpeg.exe" else "ffmpeg").apply {
         writeText("#!/bin/sh\n")
         setExecutable(true)
     }

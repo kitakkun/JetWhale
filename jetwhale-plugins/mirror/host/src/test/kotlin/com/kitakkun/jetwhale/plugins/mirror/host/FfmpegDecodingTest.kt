@@ -6,7 +6,6 @@ import org.junit.Assume.assumeTrue
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
-import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.io.SequenceInputStream
@@ -99,7 +98,7 @@ class FfmpegDecodingTest {
         val stream = SequenceInputStream(ByteArrayInputStream(resized), PipedInputStream(held))
 
         val decoding = CompletableFuture.runAsync {
-            MirrorSurface().use { surface -> decodeH264Into(surface.startStream(), VideoStream.H264(DeviceToolProcess(stream), ffmpegPath), IntSize(180, 320), onInput = {}) {} }
+            MirrorSurface().use { surface -> decodeH264Into(surface.startStream(), VideoStream.H264(stream, ffmpegPath) {}, IntSize(180, 320), onInput = {}) {} }
         }
 
         val ended = try {
@@ -166,7 +165,7 @@ class FfmpegDecodingTest {
     /** Decodes [h264] and returns the size of every frame that reached the surface. */
     private fun decode(ffmpegPath: String, h264: ByteArray, outputSize: IntSize?): List<IntSize> = MirrorSurface().use { surface ->
         val sizes = mutableListOf<IntSize>()
-        decodeH264Into(surface.startStream(), VideoStream.H264(DeviceToolProcess(ByteArrayInputStream(h264)), ffmpegPath), outputSize, onInput = {}) {
+        decodeH264Into(surface.startStream(), VideoStream.H264(ByteArrayInputStream(h264), ffmpegPath) {}, outputSize, onInput = {}) {
             surface.drawFrame { sizes += IntSize(it.width, it.height) }
         }
         sizes
@@ -176,18 +175,3 @@ class FfmpegDecodingTest {
 private const val SAMPLE_FRAMES = 10
 
 private const val RESIZE_END_TIMEOUT_SECONDS = 10L
-
-/** A device tool whose stdout is [output]. */
-private class DeviceToolProcess(private val output: InputStream) : Process() {
-    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
-
-    override fun getInputStream(): InputStream = output
-
-    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
-
-    override fun waitFor(): Int = 0
-
-    override fun exitValue(): Int = 0
-
-    override fun destroy() = Unit
-}

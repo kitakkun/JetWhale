@@ -57,9 +57,9 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
 /**
  * The iOS devices connected to this Mac by USB, in the JSON that `xcrun devicectl list devices
  * --json-output <file>` writes, or null when the JSON is not such a list. devicectl lists
- * simulators too, which simctl already reports, devices paired over the network, which idb and
- * `iproxy` reach only by USB, and paired devices no longer connected; all are left out, and so are
- * watches, TVs and Macs.
+ * simulators too, which simctl already reports, devices paired over the network, whose screen
+ * capture and `iproxy` work only over USB, and paired devices no longer connected; all are left
+ * out, and so are watches, TVs and Macs.
  */
 internal fun parseDevicectlDevices(json: String): List<DeviceListing>? {
     val devices = try {
@@ -108,17 +108,4 @@ internal fun parseWmSize(output: String): IntSize? {
         match.groupValues[1] to IntSize(match.groupValues[2].toInt(), match.groupValues[3].toInt())
     }.toMap()
     return sizes["Override"] ?: sizes["Physical"]
-}
-
-/** The screen's size in pixels that `idb describe --json` reports, or null when it gives none: a physical device reports its sides as 0. */
-internal fun parseIdbScreen(json: String): IntSize? {
-    val screen = try {
-        (Json.parseToJsonElement(json) as? JsonObject)?.get("screen_dimensions") as? JsonObject
-    } catch (_: IllegalArgumentException) {
-        null
-    } ?: return null
-    val width = screen["width"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
-    val height = screen["height"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
-    if (width <= 0 || height <= 0) return null
-    return IntSize(width, height)
 }

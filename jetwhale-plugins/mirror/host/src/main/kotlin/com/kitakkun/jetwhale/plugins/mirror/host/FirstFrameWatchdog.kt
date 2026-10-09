@@ -4,10 +4,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Tells a stream that is working from one that never will. idb gives no error when it cannot see
- * a device's screen — it keeps the stream open and sends nothing — so silence past [timeoutMillis]
- * is the only sign. An Android mirror uses it the same way, against a screenrecord that stays
- * silent.
+ * Tells a stream that is working from one that never will. A stream can stay open and send nothing
+ * without an error, as a screenrecord does that cannot record, so silence past [timeoutMillis] is
+ * the only sign.
  */
 internal class FirstFrameWatchdog(private val timeoutMillis: Long) {
     private val firstFrame = CompletableDeferred<Unit>()
@@ -24,7 +23,6 @@ internal class FirstFrameWatchdog(private val timeoutMillis: Long) {
 internal fun noFramesHints(kind: DeviceKind): List<String> = when (kind) {
     DeviceKind.IosDevice -> listOf(
         "Unlock the iPhone and keep its screen on.",
-        "Allow Camera access for the app that runs JetWhale in System Settings → Privacy & Security → Camera; macOS delivers a USB device's screen as a camera, and without the permission it delivers nothing.",
         "Check that the device is connected by USB and trusts this Mac.",
     )
 

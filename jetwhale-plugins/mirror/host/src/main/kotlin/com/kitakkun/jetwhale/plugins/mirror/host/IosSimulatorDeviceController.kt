@@ -126,8 +126,6 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun release() = Unit
-
     private fun requireRunnerInput(): XcTestRunnerInput {
         runnerRefusal?.let { throw deviceControlError(it) }
         return checkNotNull(runnerInput)
