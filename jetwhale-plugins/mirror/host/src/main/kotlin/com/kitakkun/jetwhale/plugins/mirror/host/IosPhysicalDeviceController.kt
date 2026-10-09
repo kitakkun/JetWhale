@@ -2,13 +2,16 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
+import java.time.Instant
 import kotlin.concurrent.thread
+import kotlin.time.Duration
 
 /**
  * A physical iOS device over USB. idb streams its screen through the device's companion, but sends
@@ -27,7 +30,8 @@ internal class IosPhysicalDeviceController(
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController {
+) : DeviceController,
+    XcTestRunnerDriven {
     private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
     override val capabilities: DeviceCapabilities
@@ -72,10 +76,10 @@ internal class IosPhysicalDeviceController(
         return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 
-    override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y) }
+    override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y, XcTestRunnerPointSpace.Device) }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput { input, target ->
-        input.swipe(target, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+        input.swipe(target, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = XcTestRunnerPointSpace.Device)
     }
 
     override suspend fun pressButton(button: DeviceButton) {
@@ -90,6 +94,17 @@ internal class IosPhysicalDeviceController(
     }
 
     override suspend fun inputText(text: String) = sendInput { input, target -> input.typeText(target, text) }
+
+    override suspend fun keepRunnerAlive(duration: Duration): Instant {
+        inputRefusal()?.let { throw deviceControlError(it) }
+        return try {
+            checkNotNull(runnerInput).keepRunnerAlive(runnerTarget, duration)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
+        }
+    }
+
+    override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
 
     private suspend fun sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> Unit) {
         inputRefusal()?.let { throw deviceControlError(it) }

@@ -170,6 +170,7 @@ private class MirrorHostPlugin :
             PressButtonCommand(mirror),
             SetScreenCommand(mirror),
             InputTextCommand(mirror),
+            KeepRunnerAliveCommand(mirror),
             StartRecordingCommand(mirror),
             StopRecordingCommand(mirror),
             ListCapturesCommand(mirror),

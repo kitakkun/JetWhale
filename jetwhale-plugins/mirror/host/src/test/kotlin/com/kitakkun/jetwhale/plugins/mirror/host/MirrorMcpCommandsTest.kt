@@ -129,6 +129,29 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `keepRunnerAlive refuses a device no XCTest runner drives, and minutes out of range`() {
+        val android = assertFailsWith<JetWhaleMcpArgumentException> {
+            KeepRunnerAliveCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "emulator-5554")
+                    put("minutes", 30)
+                },
+            )
+        }
+        val tooLong = assertFailsWith<JetWhaleMcpArgumentException> {
+            KeepRunnerAliveCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "emulator-5554")
+                    put("minutes", 121)
+                },
+            )
+        }
+
+        assertEquals("Pixel 9 is not driven through an XCTest runner; only iOS simulators and devices are", android.message)
+        assertEquals("minutes must be from 0 to 120 (got 121)", tooLong.message)
+    }
+
+    @Test
     fun `a tap off the screen never reaches the device`() {
         val refused = listOf(1080 to 600, 540 to 2400).map { (x, y) ->
             runCatching {

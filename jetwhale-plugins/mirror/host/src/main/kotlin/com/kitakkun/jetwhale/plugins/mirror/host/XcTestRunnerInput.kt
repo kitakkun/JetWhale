@@ -4,9 +4,12 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
+import java.time.Instant
+import kotlin.time.Duration
 
 /**
  * Taps, swipes, text and buttons sent to iOS simulators and devices through their XCTest runners,
@@ -19,12 +22,22 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
     /** Why [target] takes no input, when that is known without starting a runner. */
     fun refusalFor(target: XcTestRunnerTarget): String? = runners.refusalFor(target)
 
-    suspend fun tap(target: XcTestRunnerTarget, x: Int, y: Int) = withRunner(target) { it.tap(x / it.screen.scale, y / it.screen.scale) }
+    /** Taps at [x], [y] in pixels of [space]: device-native ones, or a screenshot's. */
+    suspend fun tap(target: XcTestRunnerTarget, x: Int, y: Int, space: XcTestRunnerPointSpace) = withRunner(target) { it.tap(x / it.screen.scale, y / it.screen.scale, space) }
 
-    suspend fun swipe(target: XcTestRunnerTarget, fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = withRunner(target) {
+    suspend fun swipe(target: XcTestRunnerTarget, fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int, space: XcTestRunnerPointSpace) = withRunner(target) {
         val scale = it.screen.scale
-        it.swipe(fromX = fromX / scale, fromY = fromY / scale, toX = toX / scale, toY = toY / scale, durationMillis = durationMillis)
+        it.swipe(fromX = fromX / scale, fromY = fromY / scale, toX = toX / scale, toY = toY / scale, durationMillis = durationMillis, space = space)
     }
+
+    /** The size of a screenshot in pixels: the screen as the interface shows it now. */
+    suspend fun screenshotSize(target: XcTestRunnerTarget): IntSize = withRunner(target) { runner -> runner.interfaceScreen().let { IntSize(it.widthPixels, it.heightPixels) } }
+
+    /** Keeps [target]'s runner from stopping when idle for [duration]; returns the time that ends. */
+    suspend fun keepRunnerAlive(target: XcTestRunnerTarget, duration: Duration): Instant = withRunner(target) { it.keepAlive(duration) }
+
+    /** Until when a lease keeps [target]'s runner from stopping when idle, or null. */
+    fun runnerKeptAliveUntil(target: XcTestRunnerTarget): Instant? = runners.keptAliveUntil(target)
 
     suspend fun typeText(target: XcTestRunnerTarget, text: String) = withRunner(target) { it.typeText(text) }
 

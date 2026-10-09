@@ -119,12 +119,14 @@ and system alerts included. It runs on iOS 17 or later, the oldest that Xcode 27
   a runner starts in about three seconds. The mirror starts it as soon as it shows the device, so the
   first tap seldom waits.
 - **One runner per device**, shared with any other plugin that drives iOS. It stops by itself after
-  five minutes without input, and when the host quits. Its build and state live under the host's app
-  data, in `xctest-runner/`.
+  five minutes without input, unless an agent holds it with `keepRunnerAlive`, and when the host
+  quits. Its build and state live under the host's app data, in `xctest-runner/`.
 - **On a simulator**, when the runner cannot be built or started, or the simulator runs an iOS older
   than 17, input goes through idb instead, as it did before. idb's input no longer works with Xcode
   27, though, so there the runner is the only way. Recent apps opens the app switcher with the swipe
   up from the bottom edge that a Face ID iPhone takes; through idb, it presses Home twice.
+- **In landscape**, a simulator's screenshots are landscape too, and the MCP `tap` and `swipe` take
+  their pixels; the runner turns them into the simulator's own portrait points.
 
 #### Input on a physical iPhone <Badge type="warning" text="experimental" />
 
@@ -194,12 +196,13 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`; an Android device reports `screenOn` and `locked` |
+| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`, and `runnerKeptAliveUntil` while a lease holds its runner; an Android device reports `screenOn` and `locked` |
 | `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
 | `com.kitakkun.jetwhale.mirror.inputText` | Types text into the focused field |
+| `com.kitakkun.jetwhale.mirror.keepRunnerAlive` | Keeps an iOS device's XCTest runner from stopping after five idle minutes, for the given `minutes`, at most 120; returns at once, with the time the lease ends. Call it again to renew the lease, or with `0` to end it. A lease nobody renews ends on its own |
 | `com.kitakkun.jetwhale.mirror.setScreen` | Turns an Android device's screen on (`on: true`, also lifting a lock screen without a credential) or off; returns `screenOn` and `locked` afterwards, where `locked: true` means the device still needs unlocking |
 | `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording one device's screen, several devices' (`deviceIds`), or every device that can record (`all: true`) |
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops one recording, several (`deviceIds`), or all of them (`all: true`); returns each video's path and length |

@@ -3,11 +3,17 @@ package com.kitakkun.jetwhale.plugins.xctestrunner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.io.File
 import java.nio.file.Files
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -17,6 +23,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -27,6 +34,7 @@ class LocalXcTestRunnersTest {
     private val launched = mutableListOf<FakeToolProcess>()
     private val connections = mutableMapOf<Int, FakeRunnerConnection>()
     private val settings = TeamSettings()
+    private val clock = MutableClock(Instant.parse("2026-10-09T00:00:00Z"))
     private var nextPort = 20_000
     private var nextPid = 500L
 
@@ -63,7 +71,7 @@ class LocalXcTestRunnersTest {
     fun `another plugin uses the recorded runner rather than starting a second one`() = runTest {
         runners().runnerFor(simulator)
 
-        runners().runnerFor(simulator).tap(x = 201.0, y = 437.0)
+        runners().runnerFor(simulator).tap(x = 201.0, y = 437.0, space = XcTestRunnerPointSpace.Device)
 
         assertEquals(1, xcodebuildProcesses.size)
         assertEquals(listOf("/tap"), connections.getValue(20_000).paths)
@@ -119,12 +127,62 @@ class LocalXcTestRunnersTest {
         xcodebuildProcesses.single().exit()
         connections.getValue(20_000).unreachable = true
 
-        runner.tap(x = 1.0, y = 2.0)
+        runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device)
 
         assertEquals(2, xcodebuildProcesses.size)
         val (path, body) = connections.getValue(20_001).sent.single()
         assertEquals("/tap", path)
         assertEquals(2.0, body.getValue("y").jsonPrimitive.double)
+    }
+
+    @Test
+    fun `a point is sent with the space it is in`() = runTest {
+        val runner = runners().runnerFor(simulator)
+
+        runner.tap(x = 300.0, y = 100.0, space = XcTestRunnerPointSpace.Screen)
+        runner.swipe(fromX = 1.0, fromY = 2.0, toX = 3.0, toY = 4.0, durationMillis = 250, space = XcTestRunnerPointSpace.Device)
+
+        assertEquals(listOf("screen", "device"), connections.getValue(20_000).sent.map { (_, body) -> body.getValue("space").jsonPrimitive.content })
+    }
+
+    @Test
+    fun `the interface screen is how the runner reports it`() = runTest {
+        val runner = runners().runnerFor(simulator)
+        connections.getValue(20_000).answers["/interfaceScreen"] = buildJsonObject {
+            put("orientation", "landscapeRight")
+            put("widthPixels", 2622)
+            put("heightPixels", 1206)
+        }
+
+        val screen = runner.interfaceScreen()
+
+        assertEquals(XcTestRunnerOrientation.LandscapeRight, screen.orientation)
+        assertEquals(2622 to 1206, screen.widthPixels to screen.heightPixels)
+    }
+
+    @Test
+    fun `a lease the runner grants is recorded for every client until it ends`() = runTest {
+        val runner = runners().runnerFor(simulator)
+        connections.getValue(20_000).answers["/lease"] = buildJsonObject { put("leaseSeconds", 600) }
+
+        val until = runner.keepAlive(10.minutes)
+
+        assertEquals(600.0, connections.getValue(20_000).sent.last().second.getValue("seconds").jsonPrimitive.double)
+        assertEquals(Instant.parse("2026-10-09T00:10:00Z"), until)
+        assertEquals(until, runners().keptAliveUntil(simulator))
+        clock.now = Instant.parse("2026-10-09T00:10:01Z")
+        assertNull(runners().keptAliveUntil(simulator))
+    }
+
+    @Test
+    fun `a lease shorter than a second keeps its length rather than ending the lease`() = runTest {
+        val runner = runners().runnerFor(simulator)
+        connections.getValue(20_000).answers["/lease"] = buildJsonObject { put("leaseSeconds", 0.5) }
+
+        val until = runner.keepAlive(500.milliseconds)
+
+        assertEquals(0.5, connections.getValue(20_000).sent.last().second.getValue("seconds").jsonPrimitive.double)
+        assertEquals(Instant.parse("2026-10-09T00:00:00.500Z"), until)
     }
 
     @Test
@@ -147,7 +205,7 @@ class LocalXcTestRunnersTest {
         val runner = runners().runnerFor(simulator)
         connections.getValue(20_000).stopsAnsweringMidCommand = true
 
-        assertFailsWith<XcTestRunnerException> { runner.tap(x = 1.0, y = 2.0) }
+        assertFailsWith<XcTestRunnerException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device) }
 
         assertEquals(1, xcodebuildProcesses.size)
         assertEquals(listOf("/tap"), connections.getValue(20_000).paths)
@@ -328,10 +386,20 @@ class LocalXcTestRunnersTest {
         idleTimeout = 5.minutes,
         startTimeout = 2.minutes,
         lockTimeout = 1.minutes,
+        clock = clock,
         scope = backgroundScope,
     )
 }
 
 private class TeamSettings : XcTestRunnerSettings {
     override var developmentTeam: String? = null
+}
+
+/** A clock the test moves by hand. */
+private class MutableClock(var now: Instant) : Clock() {
+    override fun instant(): Instant = now
+
+    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+    override fun withZone(zone: ZoneId?): Clock = this
 }

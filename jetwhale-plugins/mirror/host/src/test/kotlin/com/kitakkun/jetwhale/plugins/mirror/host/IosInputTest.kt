@@ -1,8 +1,12 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerInterfaceScreen
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerOrientation
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerScreen
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
@@ -11,6 +15,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import java.io.File
 import java.nio.file.Files
+import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,6 +23,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 class IosInputTest {
@@ -154,6 +160,29 @@ class IosInputTest {
     }
 
     @Test
+    fun `screenshot pixels go to the runner as screen points, sized as the interface shows the screen`() = runTest {
+        val simulator = simulator(idbPath = null, idbCanSendSimulatorInput = false)
+        runners.runner.interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.LandscapeRight, widthPixels = 2622, heightPixels = 1206)
+        val input = ScreenshotPixelInput(simulator)
+
+        assertEquals(IntSize(2622, 1206), input.screenshotSize())
+        input.tap(x = 1311, y = 174)
+        input.swipe(fromX = 300, fromY = 600, toX = 900, toY = 600, durationMillis = 300)
+
+        assertEquals(listOf("tap 437.0,58.0 on screen", "swipe 100.0,200.0 -> 300.0,200.0 in 300 on screen"), runners.runner.calls)
+    }
+
+    @Test
+    fun `a lease on a device's runner is taken through the runner and read back from the runners`() = runTest {
+        val simulator = simulator(idbPath = null, idbCanSendSimulatorInput = false)
+        runners.keptAliveUntil = LEASE_END
+
+        assertEquals(LEASE_END, simulator.keepRunnerAlive(30.minutes))
+        assertEquals(listOf("keep alive for 30m"), runners.runner.calls)
+        assertEquals(LEASE_END, simulator.runnerKeptAliveUntil())
+    }
+
+    @Test
     fun `an iPhone's input is refused with the reason the runners give, until they give none`() = runTest {
         runners.refusal = "driving an iPhone needs your Apple development team"
         val iphone = iphone()
@@ -225,6 +254,7 @@ private class FakeXcTestRunners : XcTestRunners {
     val startedInBackground = mutableListOf<XcTestRunnerTarget>()
     var refusal: String? = null
     var startFailure: String? = null
+    var keptAliveUntil: Instant? = null
 
     override fun refusalFor(target: XcTestRunnerTarget): String? = refusal
 
@@ -237,20 +267,25 @@ private class FakeXcTestRunners : XcTestRunners {
     override fun startRunnerInBackground(target: XcTestRunnerTarget) {
         startedInBackground += target
     }
+
+    override fun keptAliveUntil(target: XcTestRunnerTarget): Instant? = keptAliveUntil
 }
 
 /** A runner on a 1206x2622-pixel screen at 3x that notes what it is told, or refuses with [refusal]. */
 private class FakeXcTestRunner : XcTestRunner {
     val calls = mutableListOf<String>()
     var refusal: String? = null
+    var interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.Portrait, widthPixels = 1206, heightPixels = 2622)
 
     override val screen = XcTestRunnerScreen(widthPixels = 1206, heightPixels = 2622, scale = 3.0)
 
-    override suspend fun tap(x: Double, y: Double) = note("tap $x,$y")
+    override suspend fun tap(x: Double, y: Double, space: XcTestRunnerPointSpace) = note("tap $x,$y${spaceSuffix(space)}")
 
-    override suspend fun longPress(x: Double, y: Double, durationMillis: Int) = note("long press $x,$y for $durationMillis")
+    override suspend fun longPress(x: Double, y: Double, durationMillis: Int, space: XcTestRunnerPointSpace) = note("long press $x,$y for $durationMillis${spaceSuffix(space)}")
 
-    override suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int) = note("swipe $fromX,$fromY -> $toX,$toY in $durationMillis")
+    override suspend fun swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMillis: Int, space: XcTestRunnerPointSpace) = note("swipe $fromX,$fromY -> $toX,$toY in $durationMillis${spaceSuffix(space)}")
+
+    override suspend fun interfaceScreen(): XcTestRunnerInterfaceScreen = interfaceScreen
 
     override suspend fun typeText(text: String) = note("type $text")
 
@@ -260,8 +295,17 @@ private class FakeXcTestRunner : XcTestRunner {
 
     override suspend fun activateApp(bundleId: String) = note("activate $bundleId")
 
+    override suspend fun keepAlive(duration: Duration): Instant {
+        note("keep alive for $duration")
+        return LEASE_END
+    }
+
     private fun note(call: String) {
         refusal?.let { throw XcTestRunnerException(it, null) }
         calls += call
     }
+
+    private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Screen) " on screen" else ""
 }
+
+private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")

@@ -48,6 +48,14 @@ class RunnerStateDirectoryTest {
     }
 
     @Test
+    fun `a record written before leases existed reads as having none`() {
+        File(folder, "runners").mkdirs()
+        File(folder, "runners/SIM-1.json").writeText("""{"protocolVersion":1,"pid":500,"port":20000,"token":"token-1","developmentTeam":null}""")
+
+        assertNull(stateDirectory.readRunnerState("SIM-1")?.keptAliveUntilEpochMillis)
+    }
+
+    @Test
     fun `an unreadable record counts as none`() {
         File(folder, "runners").mkdirs()
         File(folder, "runners/SIM-1.json").writeText("{not json")
