@@ -48,7 +48,7 @@ internal class RunnerStateDirectory(private val directory: File) {
         }
     }
 
-    /** Records [state] at once, readable by this user only: it holds the runner's token. */
+    /** Records [runnerState] at once, readable by this user only: it holds the runner's token. */
     fun writeRunnerState(udid: String, runnerState: RunnerState) {
         directory.mkdirs()
         val staging = File(directory, "$udid.json.partial").toPath()
