@@ -111,6 +111,12 @@ internal interface MirrorActions {
     fun wake()
 
     fun sleep()
+
+    /** The Apple development team that signs the XCTest runner driving iPhones; null until set. */
+    val developmentTeam: String?
+
+    /** Sets the development team, or forgets it when [team] is null. */
+    fun updateDevelopmentTeam(team: String?)
 }
 
 /**
@@ -121,6 +127,7 @@ internal interface MirrorActions {
 @Stable
 internal class DeviceMirror(
     private val discovery: DeviceDiscovery,
+    private val developmentTeamSetting: DevelopmentTeamSetting,
     val captures: MirrorCaptures,
     val notices: MirrorNotices,
     private val scope: CoroutineScope,
@@ -453,6 +460,13 @@ internal class DeviceMirror(
     override fun pressButton(button: DeviceButton) = control { it.pressButton(button) }
 
     override fun inputText(text: String) = control { it.inputText(text) }
+
+    override val developmentTeam: String? get() = developmentTeamSetting.developmentTeam
+
+    override fun updateDevelopmentTeam(team: String?) {
+        developmentTeamSetting.updateDevelopmentTeam(team)
+        (selectedDevice?.controller as? IosPhysicalDeviceController)?.startRunnerInBackground()
+    }
 
     override fun saveScreenshot() {
         val device = selectedDevice ?: return

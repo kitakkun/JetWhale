@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -29,11 +30,11 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
 private val toolLocationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /**
- * The tools this plugin drives, located once per process when first awaited. They are looked for
- * on the login shell's PATH, which can take seconds to read, so callers suspend on it rather than
- * block the thread that first needs a tool, which may be the UI thread.
+ * The directories the tools this plugin drives are looked for in, read once per process when first
+ * awaited. They include the login shell's PATH, which can take seconds to read, so callers suspend
+ * on it rather than block the thread that first needs a tool, which may be the UI thread.
  */
-private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+private val toolSearchDirectories: Deferred<List<String>> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val loginShellPathVariable = if (runsOnWindows) {
         null
     } else {
@@ -42,6 +43,12 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
     }
     val searchDirectories = toolDirectories(loginShellPathVariable = loginShellPathVariable, pathVariable = System.getenv("PATH"))
     if (loginShellPathVariable != null) SystemProcessLauncher.launchedProcessPathVariable = searchDirectories.joinToString(File.pathSeparator)
+    searchDirectories
+}
+
+/** The tools this plugin drives, located once per process when first awaited. */
+private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val searchDirectories = toolSearchDirectories.await()
     val home = System.getProperty("user.home")
     MirrorToolLocator(
         searchDirectories = searchDirectories,
@@ -79,6 +86,28 @@ private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start
     }
 }
 
+private val idbCanSendSimulatorInput: Deferred<Boolean> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    if (toolPaths.await().xcrunPath == null) return@async false
+    val developerDirectoryPath = try {
+        runCommandChecked("/usr/bin/xcode-select", "-p").stdoutText.trim()
+    } catch (_: DeviceControlException) {
+        return@async false
+    }
+    isSimulatorKitInPrivateFrameworks(File(developerDirectoryPath))
+}
+
+/** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
+private val runnerSigningTeam = RunnerSigningTeam()
+
+private val iproxyPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    toolSearchDirectories.await().map { File(it, "iproxy") }.firstOrNull { it.isFile && it.canExecute() }?.path
+}
+
+private val xcTestRunners: Deferred<XcTestRunners?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
+    XcTestRunners.onThisMac(stateDirectory = File(appDataDirectory(), "xctest-runner"), xcrunPath = xcrunPath, iproxyPath = iproxyPath.await(), settings = runnerSigningTeam)
+}
+
 private val liveInstances = AtomicInteger()
 
 private val emulatorScreens: EmulatorScreens by lazy {
@@ -105,8 +134,9 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
+            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, iproxyPath, idbCanSendSimulatorInput, emulatorScreens),
+            developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
+            captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
             scope = pluginScope,
         )
@@ -146,3 +176,10 @@ private class MirrorHostPlugin :
         )
     }
 }
+
+/**
+ * The host's app data: `jetwhale.appDataDir` (a sandbox for development launches) or `~/.jetwhale`.
+ * Captures go under this plugin's directory there unless the user picks a folder, and the XCTest
+ * runners keep their builds and shared state there, where every plugin finds them.
+ */
+private fun appDataDirectory(): File = File(System.getProperty("jetwhale.appDataDir")?.takeIf(String::isNotBlank) ?: "${System.getProperty("user.home")}/.jetwhale")

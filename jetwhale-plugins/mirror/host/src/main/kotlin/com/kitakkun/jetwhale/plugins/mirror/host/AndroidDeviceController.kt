@@ -25,7 +25,7 @@ internal class AndroidDeviceController(
     private val ffmpegPath: String?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
-        input = true,
+        inputRefusal = null,
         buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
         recording = true,
         screenPower = true,
