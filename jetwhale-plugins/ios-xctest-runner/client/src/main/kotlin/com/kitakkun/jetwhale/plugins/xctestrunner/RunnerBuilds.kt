@@ -89,8 +89,6 @@ internal class RunnerBuilds(
 
     private suspend fun build(projectDirectory: File, derivedData: File, destination: RunnerDestination): File {
         val source = File(projectDirectory, "source")
-        // Each destination builds under its own lock, so a simulator's and a device's build may
-        // reach here together; they share the one unpacked source.
         withFileLock(File(projectDirectory, "source.lock"), lockTimeout) {
             if (!source.isDirectory) withContext(Dispatchers.IO) { unpack(runnerProjectZip, source) }
         }

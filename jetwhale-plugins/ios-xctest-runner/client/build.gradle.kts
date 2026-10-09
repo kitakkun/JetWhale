@@ -31,8 +31,6 @@ val zipRunnerProject by tasks.registering(Zip::class) {
     }
     archiveFileName = "JetWhaleRunner.zip"
     destinationDirectory = layout.buildDirectory.dir("runner-project")
-    // The archive's hash keys the runner's builds on the user's Mac, so an unchanged project must
-    // zip to the same bytes.
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
 }

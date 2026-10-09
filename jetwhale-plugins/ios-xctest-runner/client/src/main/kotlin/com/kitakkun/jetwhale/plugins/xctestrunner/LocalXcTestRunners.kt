@@ -15,6 +15,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import java.io.File
+import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
@@ -144,7 +145,7 @@ internal class LocalXcTestRunners(
         refusalFor(target)?.let { throw XcTestRunnerStartException(it, null) }
         return when (target) {
             is XcTestRunnerTarget.Simulator -> RunnerDestination.Simulator(target.udid)
-            is XcTestRunnerTarget.Device -> RunnerDestination.Device(target.udid, checkNotNull(settings.developmentTeam))
+            is XcTestRunnerTarget.Device -> RunnerDestination.Device(target.udid, settings.developmentTeam ?: throw XcTestRunnerStartException(NO_DEVELOPMENT_TEAM_REFUSAL, null))
         }
     }
 
@@ -162,6 +163,9 @@ internal class LocalXcTestRunners(
         } catch (e: XcTestRunnerStartException) {
             failedDestinations += destination
             throw e
+        } catch (e: IOException) {
+            failedDestinations += destination
+            throw XcTestRunnerStartException("the XCTest runner's state or builds could not be read or written: ${e.message}", e)
         }
         failedDestinations -= destination
         attachments[destination.udid] = attachment
@@ -180,7 +184,7 @@ internal class LocalXcTestRunners(
         if (status != null && status.protocolVersion >= PROTOCOL_VERSION && runnerState.developmentTeam == destination.developmentTeam) {
             return Attachment(destination, runnerState.pid, connection, status)
         }
-        // Only a runner that answered is shut down: the recorded pid alone may by now belong to an
+        // Only a runner that answered is shut down: a live recorded pid may by now belong to an
         // unrelated process.
         if (status != null) shutDownRunner(connection, runnerState.pid)
         runnerStateDirectory.deleteRunnerState(destination.udid, runnerState.pid)
@@ -199,9 +203,7 @@ internal class LocalXcTestRunners(
         try {
             connection.send("/shutdown", JsonObject(emptyMap()))
         } catch (_: RunnerUnreachableException) {
-            // Not answering; the wait below terminates it if it is still alive.
         } catch (_: XcTestRunnerException) {
-            // Refused; the wait below terminates it.
         }
         val exited = withTimeoutOrNull(SHUTDOWN_GRACE_MILLIS) {
             while (processTable.isAlive(pid)) delay(RUNNER_POLL_MILLIS)
@@ -222,11 +224,13 @@ internal class LocalXcTestRunners(
         var launchedTest: LaunchedTest? = null
         try {
             launchedTest = launchRunnerTest(xctestrun, destination.udid, runnerPort, token)
+            startedRunnerProcesses[launchedTest.xcodebuild.pid()] = StartedRunnerProcesses(launchedTest.xcodebuild, forward?.process)
             val connection = connector.connect(forward?.localPort ?: runnerPort, token)
             val status = awaitRunnerAnswer(connection, launchedTest, destination)
             recordStartedRunner(destination, launchedTest.xcodebuild, forward, RunnerState(status.protocolVersion, launchedTest.xcodebuild.pid(), forward?.localPort ?: runnerPort, token, destination.developmentTeam))
             return Attachment(destination, launchedTest.xcodebuild.pid(), connection, status)
         } catch (e: Throwable) {
+            launchedTest?.xcodebuild?.let { startedRunnerProcesses.remove(it.pid()) }
             launchedTest?.xcodebuild?.destroyForcibly()
             forward?.process?.destroyForcibly()
             throw e
@@ -239,17 +243,17 @@ internal class LocalXcTestRunners(
         val localPort = portSource.freePort()
         val process = withContext(Dispatchers.IO) { processLauncher.start(listOf(iproxy, "$localPort:$runnerPort", "--udid", udid)) }
         // Drains iproxy's output, which would otherwise fill its pipes and stall it.
-        KeptOutput(process)
+        KeptOutput(process, KEPT_OUTPUT_LINES)
         return Forward(process, localPort)
     }
 
     private suspend fun launchRunnerTest(xctestrun: File, udid: String, runnerPort: Int, token: String): LaunchedTest {
         val xcodebuild = withContext(Dispatchers.IO) {
-            // xcodebuild passes TEST_RUNNER_-prefixed variables to the test runner with the prefix
-            // removed.
             processLauncher.start(
                 listOf(
                     "/usr/bin/env",
+                    // xcodebuild passes TEST_RUNNER_-prefixed variables to the test runner with the
+                    // prefix removed.
                     "TEST_RUNNER_JETWHALE_RUNNER_PORT=$runnerPort",
                     "TEST_RUNNER_JETWHALE_RUNNER_TOKEN=$token",
                     "TEST_RUNNER_JETWHALE_RUNNER_IDLE_SECONDS=${idleTimeout.inWholeSeconds}",
@@ -260,7 +264,7 @@ internal class LocalXcTestRunners(
                 ),
             )
         }
-        return LaunchedTest(xcodebuild, KeptOutput(xcodebuild))
+        return LaunchedTest(xcodebuild, KeptOutput(xcodebuild, KEPT_OUTPUT_LINES))
     }
 
     /** The runner's status once it answers; why it did not, when its xcodebuild exits or the start times out. */
@@ -273,7 +277,6 @@ internal class LocalXcTestRunners(
     /** Records a runner this process started for other plugins, and forgets it once its test ends. */
     private fun recordStartedRunner(destination: RunnerDestination, xcodebuild: Process, forward: Forward?, runnerState: RunnerState) {
         runnerStateDirectory.writeRunnerState(destination.udid, runnerState)
-        startedRunnerProcesses[runnerState.pid] = StartedRunnerProcesses(xcodebuild, forward?.process)
         xcodebuild.onExit().thenRun {
             forward?.process?.destroy()
             startedRunnerProcesses.remove(runnerState.pid)
@@ -305,6 +308,9 @@ internal class LocalXcTestRunners(
         /** A simulator's runner starts in seconds; a device's may first be signed and installed. */
         private val START_TIMEOUT = 3.minutes
 
+        /** Far longer than a build takes: one still running after this is waiting on something that will not come. */
+        private val BUILD_TIMEOUT = 5.minutes
+
         /** Long enough for another plugin to build and start a device's runner. */
         private val LOCK_TIMEOUT = 10.minutes
 
@@ -313,12 +319,12 @@ internal class LocalXcTestRunners(
 
         fun onThisMac(stateDirectory: File, xcrunPath: String, iproxyPath: String?, settings: XcTestRunnerSettings): XcTestRunners {
             val zip = checkNotNull(LocalXcTestRunners::class.java.getResourceAsStream(RUNNER_PROJECT_RESOURCE)) { "$RUNNER_PROJECT_RESOURCE is missing from the client's jar" }.use { it.readBytes() }
-            // The runner answers a command only once it has run, which for a long text or a slow
-            // swipe takes a while.
+            // The runner answers a command only once it has run it, and waits up to 60 seconds for
+            // each event.
             val httpClient = OkHttpClient.Builder().readTimeout(2, TimeUnit.MINUTES).build()
             return LocalXcTestRunners(
                 runnerStateDirectory = RunnerStateDirectory(File(stateDirectory, "runners")),
-                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, SystemCommandOutputRunner, LOCK_TIMEOUT, UNUSED_BUILD_LIFETIME, Clock.systemUTC()),
+                builds = RunnerBuilds(File(stateDirectory, "builds"), zip, xcrunPath, ProcessCommandOutputRunner(SystemProcessLauncher, BUILD_TIMEOUT), LOCK_TIMEOUT, UNUSED_BUILD_LIFETIME, Clock.systemUTC()),
                 xcrunPath = xcrunPath,
                 iproxyPath = iproxyPath,
                 settings = settings,
@@ -335,6 +341,12 @@ internal class LocalXcTestRunners(
         }
     }
 }
+
+/**
+ * The most characters one `/typeText` carries; a longer text goes in parts. The runner types 60
+ * characters a second and gives an event 60 seconds, so a part takes about 17 seconds.
+ */
+private const val MAX_TYPED_CHARS_PER_COMMAND = 1_000
 
 /** The runner's Xcode project, zipped into this client's resources by its build. */
 private const val RUNNER_PROJECT_RESOURCE = "/com/kitakkun/jetwhale/plugins/xctestrunner/JetWhaleRunner.zip"
@@ -398,7 +410,14 @@ private class AttachedXcTestRunner(
     }
 
     override suspend fun typeText(text: String) {
-        send("/typeText", buildJsonObject { put("text", text) })
+        var start = 0
+        while (start < text.length) {
+            var end = minOf(start + MAX_TYPED_CHARS_PER_COMMAND, text.length)
+            // UTF-8 encoding turns each half of a split surrogate pair into '?'.
+            if (end < text.length && text[end - 1].isHighSurrogate()) end--
+            send("/typeText", buildJsonObject { put("text", text.substring(start, end)) })
+            start = end
+        }
     }
 
     override suspend fun pressButton(button: XcTestRunnerButton) {
