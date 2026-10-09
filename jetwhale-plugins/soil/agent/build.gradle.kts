@@ -14,8 +14,8 @@ plugins {
 // (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.soil"
 
-// The targets Soil publishes, minus iosX64, which no JetWhale artifact has: Soil has no macOS,
-// Linux or mingw klibs to build against.
+// Not the `multiplatform` convention's targets: Soil's query-core is not published for macOS, Linux
+// or mingw.
 kotlin {
     abiValidation()
 

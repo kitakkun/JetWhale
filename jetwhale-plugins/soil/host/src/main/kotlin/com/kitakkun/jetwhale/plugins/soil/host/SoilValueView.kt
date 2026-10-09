@@ -82,7 +82,6 @@ private fun JsonValue(json: JsonElement) {
         JwSegmentedButtons(options = JsonValueMode.entries, selected = mode, onSelect = { mode = it }, label = JsonValueMode::label)
         when (mode) {
             JsonValueMode.TREE -> JwPanel(contentPadding = PaddingValues(JwSpacing.small)) {
-                // JwPanel spaces its children apart, and the rows of a tree read as one block.
                 Column {
                     flattenJsonTree(json, expandedPaths).forEach { line ->
                         val toggle = { expandedPaths = if (line.path in expandedPaths) expandedPaths - line.path else expandedPaths + line.path }
