@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
@@ -121,6 +122,8 @@ internal class DeviceDiscovery(
     private suspend fun tryList(list: suspend () -> List<DeviceListing>?): List<DeviceListing>? = try {
         list()
     } catch (_: DeviceControlException) {
+        null
+    } catch (_: IOException) {
         null
     }
 }
