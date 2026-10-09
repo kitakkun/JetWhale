@@ -219,7 +219,7 @@ private fun EventRow(event: SoilEvent, repeatCount: Int, isSelected: Boolean, is
         }
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
             JwText(
-                text = event.entryId.namespace + event.entryId.tags.joinToString(prefix = " [", postfix = "]").takeIf { event.entryId.tags.isNotEmpty() }.orEmpty(),
+                text = event.entryId.label,
                 style = JwTheme.textStyles.code,
                 color = if (isOfSelectedEntry) JwTheme.colors.accent else JwTheme.colors.onSurface,
                 maxLines = 1,

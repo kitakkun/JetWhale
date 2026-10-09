@@ -90,6 +90,16 @@ class SoilEventLogTest {
     }
 
     @Test
+    fun `a subscription that fails again within the second of its last failure still fails`() {
+        val failed = subscriptionEntry(SoilStatus.FAILURE, errorUpdatedAt = 1_000)
+        val recovered = subscriptionEntry(SoilStatus.SUCCESS, errorUpdatedAt = 1_000)
+
+        val event = eventLog.recordChange(recovered, failed, NOW).single()
+
+        assertEquals(SoilEventKind.SUBSCRIPTION_FAILED, event.kind)
+    }
+
+    @Test
     fun `a fetch already under way when its entry was first seen ends without a duration`() {
         eventLog.recordChange(null, fetchingProfile, NOW - 300)
 
@@ -189,6 +199,20 @@ class SoilEventLogTest {
             isInvalidated = isInvalidated,
         ),
         inFlightSinceEpochMillis = inFlightSinceEpochMillis,
+    )
+
+    private fun subscriptionEntry(status: SoilStatus, errorUpdatedAt: Long) = entry(
+        kind = SoilEntryKind.SUBSCRIPTION,
+        namespace = "clock/ticks",
+        state = SoilEntryState.Subscription(
+            status = status,
+            hasReply = true,
+            replyUpdatedAt = 900,
+            error = SoilEntryError("IllegalStateException", "disconnected"),
+            errorUpdatedAt = errorUpdatedAt,
+            restartedAt = 0,
+        ),
+        inFlightSinceEpochMillis = null,
     )
 
     private fun mutationEntry(status: SoilStatus, mutatedCount: Int, inFlightSinceEpochMillis: Long? = null) = entry(

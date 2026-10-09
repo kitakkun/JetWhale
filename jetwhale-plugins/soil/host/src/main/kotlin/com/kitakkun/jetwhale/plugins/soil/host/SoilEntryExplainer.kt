@@ -58,7 +58,7 @@ internal class SoilEntryExplainer(
             is SoilEntryState.Query -> {
                 addAll(queryProgressNotesOn(entry, state))
                 freshnessNoteOn(entry, state)?.let(::add)
-                if (state.isInvalidated) add(invalidationNoteOn(entry))
+                if (state.isInvalidated) add(invalidationNoteOn(entry, state))
                 entry.chunkParams?.let { chunkParams ->
                     val text = when (chunkParams.size) {
                         0 -> "No pages loaded yet."
@@ -157,8 +157,16 @@ internal class SoilEntryExplainer(
         }
     }
 
-    private fun invalidationNoteOn(entry: SoilEntry): SoilEntryNote = SoilEntryNote(
-        if (entry.isObserved) "Invalidated: an observed query refetches right away." else "Invalidated: it refetches when a screen next observes it.",
+    /**
+     * Soil refetches an observed query on invalidation even while it is paused after an error, but
+     * holds back the fetch a newly observing screen asks for until the pause ends.
+     */
+    private fun invalidationNoteOn(entry: SoilEntry, state: SoilEntryState.Query): SoilEntryNote = SoilEntryNote(
+        when {
+            entry.isObserved -> "Invalidated: an observed query refetches right away."
+            state.isPausedAt(agentNowEpochSeconds) -> "Invalidated: it refetches when a screen next observes it, once the pause after the error has ended."
+            else -> "Invalidated: it refetches when a screen next observes it."
+        },
         JwTone.Warning,
     )
 
@@ -180,7 +188,7 @@ internal class SoilEntryExplainer(
 
     private fun followUpNoteOn(followUpEvents: List<SoilEvent>): SoilEntryNote {
         if (followUpEvents.isEmpty()) return SoilEntryNote("No query was invalidated, updated or refetched within ${FOLLOW_UP_WINDOW_MILLIS / 1000}s after the last run.", JwTone.Neutral)
-        val byEntry = followUpEvents.groupBy { it.entryId.namespace }.entries.joinToString("; ") { (namespace, events) -> "$namespace (${events.map { it.kind.label.lowercase() }.distinct().joinToString()})" }
+        val byEntry = followUpEvents.groupBy(SoilEvent::entryId).entries.joinToString("; ") { (entryId, events) -> "${entryId.label} (${events.map { it.kind.label.lowercase() }.distinct().joinToString()})" }
         return SoilEntryNote("Within ${FOLLOW_UP_WINDOW_MILLIS / 1000}s after the last run: $byEntry.", JwTone.Info)
     }
 

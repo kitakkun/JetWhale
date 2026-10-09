@@ -75,6 +75,16 @@ class SoilEntryFactsTest {
     }
 
     @Test
+    fun `a container with more children than the tree shows ends in a line for the rest`() {
+        val json = Json.parseToJsonElement((1..205).joinToString(prefix = "[", postfix = "]"))
+
+        val lines = flattenJsonTree(json, expandedPaths = setOf(JSON_ROOT_PATH))
+
+        assertEquals(202, lines.size)
+        assertEquals(JsonTreeLine(path = "#more", depth = 1, text = "… 5 more, shown in the JSON view", isExpandable = false), lines.last())
+    }
+
+    @Test
     fun `keys with dots or slashes get paths of their own`() {
         val json = Json.parseToJsonElement("""{"a/b":{"c":1},"a":{"b":{"c":2}},"a.b":{"c":3}}""")
 

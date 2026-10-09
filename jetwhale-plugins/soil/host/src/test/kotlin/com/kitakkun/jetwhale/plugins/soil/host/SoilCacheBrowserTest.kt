@@ -218,6 +218,29 @@ class SoilCacheBrowserTest {
     }
 
     @Test
+    fun `an event the transport dropped comes back with the snapshot that makes up for it`() {
+        client.snapshot = snapshotOf(profile, revision = 1, recentEvents = listOf(eventOf(1, profile, SoilEventKind.APPEARED)))
+        runBlocking { browser.load() }
+        client.snapshot = snapshotOf(profile, revision = 3, recentEvents = (1L..3L).map { eventOf(it, profile, SoilEventKind.DATA_UPDATED) })
+
+        browser.adopt(changesOf(revision = 3, events = listOf(eventOf(3, profile, SoilEventKind.DATA_UPDATED))))
+
+        assertEquals(listOf(1L, 2L, 3L), browser.events.map(SoilEvent::sequence))
+    }
+
+    @Test
+    fun `a selected mutation that goes away shows no value`() {
+        val renameMutation = mutationEntry(handle = "mutation-3", namespace = "users/rename")
+        client.snapshot = snapshotOf(renameMutation, revision = 1)
+        runBlocking { browser.load() }
+        browser.select(renameMutation.handle)
+
+        browser.adopt(changesOf(removedHandles = listOf(renameMutation.handle), revision = 2))
+
+        assertEquals(SoilValueLoad.Loaded(SoilEntryValue.EntryGone), browser.selectedValue)
+    }
+
+    @Test
     fun `an entry that goes away no longer keeps its last activity`() {
         client.snapshot = snapshotOf(profile, settings, revision = 3, recentEvents = listOf(eventOf(1, settings, SoilEventKind.APPEARED, atEpochMillis = 500)))
         runBlocking { browser.load() }

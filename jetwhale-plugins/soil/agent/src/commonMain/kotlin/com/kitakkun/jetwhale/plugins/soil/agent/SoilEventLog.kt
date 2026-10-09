@@ -144,7 +144,9 @@ internal class SoilEventLog {
         if (previous == null) return@buildList
         if (current.restartedAt != previous.restartedAt) add(EntryChange(SoilEventKind.SUBSCRIPTION_RESTARTED))
         if (isReplyReplaced) add(EntryChange(SoilEventKind.SUBSCRIPTION_DATA_RECEIVED))
-        if (current.errorUpdatedAt != previous.errorUpdatedAt && current.error != null) add(EntryChange(SoilEventKind.SUBSCRIPTION_FAILED, detail = current.error?.describe()))
+        val isNewFailure = current.error != null &&
+            (current.errorUpdatedAt != previous.errorUpdatedAt || (previous.status != SoilStatus.FAILURE && current.status == SoilStatus.FAILURE))
+        if (isNewFailure) add(EntryChange(SoilEventKind.SUBSCRIPTION_FAILED, detail = current.error?.describe()))
     }
 
     private class EntryChange(val kind: SoilEventKind, val durationMillis: Long? = null, val detail: String? = null)

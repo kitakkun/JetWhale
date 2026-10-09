@@ -104,6 +104,31 @@ class SoilEntryExplainerTest {
     }
 
     @Test
+    fun `what followed a mutation tells entries with different tags apart`() {
+        val profile7 = profile.copy(handle = "query-7", id = profile.id.copy(tags = listOf("7")))
+        val profile42 = profile.copy(handle = "query-42", id = profile.id.copy(tags = listOf("42")))
+        val events = listOf(
+            eventOf(1, renameMutation, SoilEventKind.MUTATION_SUCCEEDED),
+            eventOf(2, profile7, SoilEventKind.INVALIDATED),
+            eventOf(3, profile42, SoilEventKind.INVALIDATED),
+        )
+
+        assertEquals("Within 2s after the last run: users/profile [7] (invalidated); users/profile [42] (invalidated).", explainerOf(events).notesOn(listed(renameMutation)).last().text)
+    }
+
+    @Test
+    fun `an unobserved invalidated query paused after an error refetches only after the pause`() {
+        val pausedInvalidated = profile.copy(
+            isObserved = false,
+            state = queryState(profile).copy(fetchStatus = SoilFetchStatus.Paused(unpauseAt = 1_030), isInvalidated = true),
+        )
+
+        val noteTexts = explainerOf().notesOn(listed(pausedInvalidated)).map(SoilEntryNote::text)
+
+        assertEquals(true, "Invalidated: it refetches when a screen next observes it, once the pause after the error has ended." in noteTexts)
+    }
+
+    @Test
     fun `a mutation nothing followed says no query was touched`() {
         val explainer = explainerOf(listOf(eventOf(1, renameMutation, SoilEventKind.MUTATION_SUCCEEDED)))
 

@@ -3,10 +3,12 @@ package com.kitakkun.jetwhale.plugins.soil.agent
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheSnapshot
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntriesChanged
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -59,7 +61,7 @@ internal class SoilCacheReporter(
      * the state watchers of active entries in the caller's scope.
      */
     suspend fun reportChanges(send: (SoilEntriesChanged) -> Unit) = coroutineScope {
-        val stateWatchers = mutableMapOf<SoilEntryKey, Job>()
+        val stateWatchers = StateWatchers(scope = this, wakeUps = wakeUps)
         while (true) {
             val records = trackerLock.withLock {
                 val records = cache.readRecords()
@@ -69,13 +71,29 @@ internal class SoilCacheReporter(
                 }
                 records
             }
-            val watchedFlows = records.mapNotNull { record -> record.stateFlow?.let { record.key to it } }.toMap()
-            (stateWatchers.keys - watchedFlows.keys).forEach { key -> stateWatchers.remove(key)?.cancel() }
-            watchedFlows.forEach { (key, stateFlow) ->
-                if (key !in stateWatchers) stateWatchers[key] = launch { stateFlow.drop(1).collect { wakeUps.trySend(Unit) } }
-            }
+            stateWatchers.watchOnlyStateFlowsOf(records)
             withTimeoutOrNull(STORE_POLL_INTERVAL) { wakeUps.receive() }
             delay(CHANGE_COALESCING_DELAY)
         }
     }
+}
+
+/** The jobs in [scope] that wake the reader through [wakeUps] when an active entry's state changes. */
+private class StateWatchers(private val scope: CoroutineScope, private val wakeUps: Channel<Unit>) {
+    private val watchersByKey = mutableMapOf<SoilEntryKey, StateWatcher>()
+
+    /**
+     * Watches the state flow of each active entry in [records] and lets go of the rest, including a
+     * flow Soil replaced when it dropped an entry and created it again between two readings.
+     */
+    fun watchOnlyStateFlowsOf(records: List<SoilCacheRecord>) {
+        val activeStateFlowsByKey = records.mapNotNull { record -> record.stateFlow?.let { record.key to it } }.toMap()
+        val staleKeys = watchersByKey.filter { (key, watcher) -> activeStateFlowsByKey[key] !== watcher.stateFlow }.keys
+        staleKeys.forEach { key -> watchersByKey.remove(key)?.job?.cancel() }
+        activeStateFlowsByKey.forEach { (key, stateFlow) ->
+            if (key !in watchersByKey) watchersByKey[key] = StateWatcher(stateFlow, scope.launch { stateFlow.drop(1).collect { wakeUps.trySend(Unit) } })
+        }
+    }
+
+    private class StateWatcher(val stateFlow: StateFlow<*>, val job: Job)
 }

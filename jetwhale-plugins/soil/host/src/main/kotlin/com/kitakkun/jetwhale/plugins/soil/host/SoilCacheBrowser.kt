@@ -24,6 +24,9 @@ private const val GONE_MUTATION_LIMIT = 50
 /** How many events the timeline keeps; the oldest goes first. */
 private const val EVENT_LIMIT = 1_000
 
+/** The value of a mutation Soil dropped: the agent can no longer read it, so none is shown. */
+private val GoneValue = SoilValueLoad.Loaded(SoilEntryValue.EntryGone)
+
 internal data class SoilBrowserStatus(val message: String, val isError: Boolean)
 
 /**
@@ -110,7 +113,9 @@ internal class SoilCacheBrowser(
     private var appliedRevision = -1L
     private var agentClockOffsetMillis = 0L
     private var valueRequestNumber = 0L
-    private var lastEventSequence = 0L
+
+    /** The last event the user cleared from the timeline; it and older ones do not come back. */
+    private var clearedThroughSequence = 0L
 
     /** The app's clock now, in epoch milliseconds, as far as the agent's last timestamp tells. */
     fun agentNowEpochMillis(): Long = clock.now().toEpochMilliseconds() + agentClockOffsetMillis
@@ -205,6 +210,7 @@ internal class SoilCacheBrowser(
 
     override fun clearEvents() {
         synchronized(adoptionLock) {
+            clearedThroughSequence = events.lastOrNull()?.sequence ?: clearedThroughSequence
             events = emptyList()
             selectedEventSequence = null
         }
@@ -238,15 +244,24 @@ internal class SoilCacheBrowser(
             selectedHandle = null
             selectedValue = null
         }
+        if (selectedEntry?.isGone == true && selectedValue != GoneValue) {
+            valueRequestNumber++
+            selectedValue = GoneValue
+        }
     }
 
+    /**
+     * Adds the [newEvents] not in the timeline yet, in sequence order. A snapshot taken to make up for
+     * a dropped change event brings that event's events too, older than some already shown.
+     */
     private fun appendEvents(newEvents: List<SoilEvent>) {
-        val unseen = newEvents.filter { it.sequence > lastEventSequence }
+        val knownSequences = events.mapTo(HashSet(), SoilEvent::sequence)
+        val unseen = newEvents.filter { it.sequence > clearedThroughSequence && it.sequence !in knownSequences }
         if (unseen.isEmpty()) return
-        lastEventSequence = unseen.last().sequence
-        events = (events + unseen).takeLast(EVENT_LIMIT)
+        events = (events + unseen).sortedBy(SoilEvent::sequence).takeLast(EVENT_LIMIT)
         val listedHandles = listedEntries.mapTo(mutableSetOf()) { it.entry.handle }
-        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle + unseen.filter { it.handle in listedHandles }.associate { it.handle to it.atEpochMillis }
+        val unseenActivityEpochMillisByHandle = unseen.filter { it.handle in listedHandles }.groupBy(SoilEvent::handle).mapValues { (_, eventsOfHandle) -> eventsOfHandle.maxOf(SoilEvent::atEpochMillis) }
+        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle + unseenActivityEpochMillisByHandle.mapValues { (handle, atEpochMillis) -> maxOf(atEpochMillis, lastActivityEpochMillisByHandle[handle] ?: atEpochMillis) }
         if (selectedEventSequence != null && events.none { it.sequence == selectedEventSequence }) selectedEventSequence = null
     }
 

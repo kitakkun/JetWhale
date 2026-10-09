@@ -29,6 +29,12 @@ import kotlinx.serialization.json.JsonPrimitive
 
 private val PrettyJson = Json { prettyPrint = true }
 
+/**
+ * How many children of one object or array the tree shows; a value can run to 256 K characters,
+ * and the JSON view shows the rest.
+ */
+private const val TREE_CHILD_LIMIT = 200
+
 /** The path of the root node in [JsonTreeLine.path]. */
 @VisibleForTesting
 internal const val JSON_ROOT_PATH = ""
@@ -37,7 +43,8 @@ internal const val JSON_ROOT_PATH = ""
  * One line of a JSON value shown as a tree.
  *
  * @property path Where the node sits, as a JSON Pointer such as `/items/2/name`: what expansion is
- *   remembered by, unambiguous whatever the keys contain.
+ *   remembered by, unambiguous whatever the keys contain. The line standing for the children past
+ *   the limit has its container's path with `#more` appended, which no node's path can be.
  * @property text The key or index, then the value of a primitive or the size of a container.
  */
 @VisibleForTesting
@@ -119,16 +126,27 @@ internal fun flattenJsonTree(json: JsonElement, expandedPaths: Set<String>): Lis
         when (element) {
             is JsonObject -> {
                 add(JsonTreeLine(path = path, depth = depth, text = "$prefix{${element.size}}", isExpandable = element.isNotEmpty()))
-                if (path in expandedPaths) element.forEach { (key, child) -> addNode(child, key, "$path/${key.replace("~", "~0").replace("/", "~1")}", depth + 1) }
+                if (path in expandedPaths) {
+                    element.entries.take(TREE_CHILD_LIMIT).forEach { (key, child) -> addNode(child, key, "$path/${key.replace("~", "~0").replace("/", "~1")}", depth + 1) }
+                    addRemainderLine(element.size, path, depth + 1)
+                }
             }
 
             is JsonArray -> {
                 add(JsonTreeLine(path = path, depth = depth, text = "$prefix[${element.size}]", isExpandable = element.isNotEmpty()))
-                if (path in expandedPaths) element.forEachIndexed { index, child -> addNode(child, "[$index]", "$path/$index", depth + 1) }
+                if (path in expandedPaths) {
+                    element.take(TREE_CHILD_LIMIT).forEachIndexed { index, child -> addNode(child, "[$index]", "$path/$index", depth + 1) }
+                    addRemainderLine(element.size, path, depth + 1)
+                }
             }
 
             is JsonPrimitive -> add(JsonTreeLine(path = path, depth = depth, text = prefix + element.toString(), isExpandable = false))
         }
     }
     addNode(json, label = null, path = JSON_ROOT_PATH, depth = 0)
+}
+
+/** The line standing for the children past the limit of a container with [childCount] of them, if there are any. */
+private fun MutableList<JsonTreeLine>.addRemainderLine(childCount: Int, path: String, depth: Int) {
+    if (childCount > TREE_CHILD_LIMIT) add(JsonTreeLine(path = "$path#more", depth = depth, text = "… ${childCount - TREE_CHILD_LIMIT} more, shown in the JSON view", isExpandable = false))
 }

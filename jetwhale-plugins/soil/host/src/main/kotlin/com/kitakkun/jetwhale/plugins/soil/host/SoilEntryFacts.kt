@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.soil.host
 
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryId
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryLocation
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
@@ -44,6 +45,10 @@ internal val SoilEntryKind.pluralLabel: String
         SoilEntryKind.MUTATION -> "Mutations"
         SoilEntryKind.SUBSCRIPTION -> "Subscriptions"
     }
+
+/** The id on one line: the namespace, then the tags in brackets when it has any. */
+internal val SoilEntryId.label: String
+    get() = if (tags.isEmpty()) namespace else namespace + tags.joinToString(prefix = " [", postfix = "]")
 
 internal val SoilEntryLocation.label: String
     get() = when (this) {

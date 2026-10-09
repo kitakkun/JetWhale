@@ -73,7 +73,7 @@ internal fun SoilEntryDetailPane(
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-            JwText(text = entry.id.namespace + entry.id.tags.joinToString(prefix = " [", postfix = "]").takeIf { entry.id.tags.isNotEmpty() }.orEmpty(), style = JwTheme.textStyles.title)
+            JwText(text = entry.id.label, style = JwTheme.textStyles.title)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
                 JwTag(text = entry.kind.label)
                 badgesOf(listed, agentNowEpochSeconds).forEach { JwTag(text = it.text, tone = it.tone, style = JwTagStyle.Tinted) }
@@ -95,7 +95,7 @@ internal fun SoilEntryDetailPane(
                         time = "+${describeDurationMillis(event.atEpochMillis - followUps.runEnd.atEpochMillis)}",
                         timeWidth = OffsetColumnWidth,
                         kind = event.kind,
-                        description = listOfNotNull(event.entryId.namespace, event.durationMillis?.let(::describeDurationMillis), event.detail).joinToString("  ·  "),
+                        description = listOfNotNull(event.entryId.label, event.durationMillis?.let(::describeDurationMillis), event.detail).joinToString("  ·  "),
                         onClick = { onSelectEvent(event.sequence) },
                     )
                 }
