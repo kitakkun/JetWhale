@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
@@ -98,6 +99,7 @@ internal class IosSimulatorDeviceController(
                 } catch (_: DeviceControlException) {
                     // A failed stand-in is skipped: the runner's frames replace screenshots soon,
                     // or its failure ends the stream.
+                } catch (_: IOException) {
                 }
                 delay(STAND_IN_SCREENSHOT_INTERVAL_MILLIS)
             }
