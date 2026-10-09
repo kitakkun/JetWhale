@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
 
 plugins {
     alias(libs.plugins.jvm)
@@ -97,6 +98,14 @@ compose.desktop {
 
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
     dependsOn(bundledHostResources)
+}
+
+// jpackage takes a DMG's volume icon from --icon and otherwise uses its default Java icon. Compose
+// before 1.13 passes --icon only when it builds the app image, not when it packages the DMG from
+// that image. It writes free arguments into jpackage's argument file verbatim, so the path carries
+// its own quotes.
+tasks.withType<AbstractJPackageTask>().matching { it.targetFormat == TargetFormat.Dmg }.configureEach {
+    freeArgs.addAll(iconFile.map { listOf("--icon", "\"${it.asFile.absolutePath}\"") })
 }
 
 /**
