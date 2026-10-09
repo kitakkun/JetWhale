@@ -66,8 +66,6 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun tap(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Device, x, y)
 
-    // A screenshot follows the interface orientation, while the stream and tap() keep the screen's
-    // portrait pixels; the runner turns screenshot points into those.
     override suspend fun tapScreenshotPixel(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Screen, x, y)
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Device, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)

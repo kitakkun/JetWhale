@@ -305,7 +305,6 @@ private class FakeXcTestRunner : XcTestRunner {
         calls += call
     }
 
-    // Device-space points, what the live view sends, are the common case and go unmarked.
     private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Screen) " on screen" else ""
 }
 
