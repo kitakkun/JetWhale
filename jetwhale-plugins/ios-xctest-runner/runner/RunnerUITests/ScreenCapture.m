@@ -34,8 +34,12 @@
 
 + (BOOL)isAvailable {
     Class session = NSClassFromString(@"XCTRunnerDaemonSession");
-    return [session respondsToSelector:@selector(sharedSession)]
-        && [session instancesRespondToSelector:@selector(daemonProxy)]
+    if (![session respondsToSelector:@selector(sharedSession)] || ![session instancesRespondToSelector:@selector(daemonProxy)]) return NO;
+    // A message the daemon's interface lacks raises an exception on the stream's queue, which
+    // nothing there catches.
+    id<JWRunnerDaemonSession> daemonSession = [(Class<JWRunnerDaemonSession>)session sharedSession];
+    id proxy = daemonSession.daemonProxy;
+    return [proxy respondsToSelector:@selector(_XCT_requestScreenshot:withReply:)]
         && [NSClassFromString(@"XCTScreenshotRequest") instancesRespondToSelector:@selector(initWithScreenID:rect:encoding:)]
         && [NSClassFromString(@"XCTImageEncoding") instancesRespondToSelector:@selector(initWithUniformTypeIdentifier:compressionQuality:)]
         && [XCUIScreen.mainScreen respondsToSelector:@selector(displayID)];
