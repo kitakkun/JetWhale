@@ -11,7 +11,6 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryActionResult
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
-import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryState
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
@@ -106,16 +105,23 @@ internal class SoilCacheBrowser(
             appliedRevision = snapshot.revision
             agentClockOffsetMillis = snapshot.agentEpochMillis - clock.now().toEpochMilliseconds()
             coverage = snapshot.coverage
+            val previousSelection = selectedEntry?.entry
             val reportedHandles = snapshot.entries.mapTo(mutableSetOf(), SoilEntry::handle)
             val droppedMutations = listedEntries.filter { it.entry.handle !in reportedHandles && it.entry.kind == SoilEntryKind.MUTATION }
             replaceListedEntries(snapshot.entries.map { ListedSoilEntry(entry = it, isGone = false) } + droppedMutations.map { it.copy(isGone = true) })
+            reloadSelectedValueIfReplyReplaced(previousSelection)
         }
     }
 
-    /** Applies [changes] unless the snapshot or an event already covered them. */
+    /**
+     * Applies [changes] unless the snapshot or an event already covered them. Each change on the
+     * agent bumps the revision by one, so a revision further ahead means an event never arrived,
+     * and a fresh snapshot is taken to make up for it.
+     */
     fun adopt(changes: SoilEntriesChanged) {
         synchronized(adoptionLock) {
             if (changes.revision <= appliedRevision) return
+            val isEventMissing = changes.revision > appliedRevision + 1
             appliedRevision = changes.revision
             agentClockOffsetMillis = changes.agentEpochMillis - clock.now().toEpochMilliseconds()
             val upsertsByHandle = changes.upserts.associateBy(SoilEntry::handle)
@@ -132,10 +138,8 @@ internal class SoilCacheBrowser(
             }
             val listedHandles = updated.mapTo(mutableSetOf()) { it.entry.handle }
             replaceListedEntries(updated + changes.upserts.filter { it.handle !in listedHandles }.map { ListedSoilEntry(entry = it, isGone = false) })
-            val currentSelection = selectedEntry?.entry
-            if (previousSelection != null && currentSelection != null && currentSelection.state.hasNewReplySince(previousSelection.state)) {
-                loadValue(currentSelection.handle)
-            }
+            reloadSelectedValueIfReplyReplaced(previousSelection)
+            if (isEventMissing) launchReporting(::load)
         }
     }
 
@@ -190,6 +194,11 @@ internal class SoilCacheBrowser(
         }
     }
 
+    private fun reloadSelectedValueIfReplyReplaced(previousSelection: SoilEntry?) {
+        val currentSelection = selectedEntry?.entry ?: return
+        if (previousSelection != null && currentSelection.replyRevision != previousSelection.replyRevision) loadValue(currentSelection.handle)
+    }
+
     private fun loadValue(handle: String) {
         val requestNumber = synchronized(adoptionLock) { ++valueRequestNumber }
         scope.launch {
@@ -210,7 +219,3 @@ internal class SoilCacheBrowser(
         }
     }
 }
-
-private fun SoilEntryState.hasNewReplySince(previous: SoilEntryState): Boolean = hasReply != previous.hasReply ||
-    replyUpdatedAt != previous.replyUpdatedAt ||
-    (this is SoilEntryState.Mutation && previous is SoilEntryState.Mutation && mutatedCount != previous.mutatedCount)

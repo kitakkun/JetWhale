@@ -110,6 +110,20 @@ class SoilValueEncoderTest {
     }
 
     @Test
+    fun `a map with keys alike as strings falls back to toString rather than lose an entry`() {
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("mixed-keys"), Reply.some(mapOf(1 to "number", "1" to "text")))
+
+        assertEquals(SoilValueEncoding.TO_STRING, (value as SoilEntryValue.Text).encoding)
+    }
+
+    @Test
+    fun `a value with a number JSON cannot hold falls back to toString`() {
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("ratios"), Reply.some(listOf(1.5, Double.NaN)))
+
+        assertEquals(SoilEntryValue.Text(encoding = SoilValueEncoding.TO_STRING, text = "[1.5, NaN]", fullLength = 10), value)
+    }
+
+    @Test
     fun `a value too long to send whole is cut and says how long it was`() {
         val longText = "x".repeat(MAX_SOIL_VALUE_TEXT_LENGTH + 10)
 

@@ -31,12 +31,13 @@ private val PrettyJson = Json { prettyPrint = true }
 
 /** The path of the root node in [JsonTreeLine.path]. */
 @VisibleForTesting
-internal const val JSON_ROOT_PATH = "$"
+internal const val JSON_ROOT_PATH = ""
 
 /**
  * One line of a JSON value shown as a tree.
  *
- * @property path Where the node sits, e.g. `$.items[2].name`; what expansion is remembered by.
+ * @property path Where the node sits, as a JSON Pointer such as `/items/2/name`: what expansion is
+ *   remembered by, unambiguous whatever the keys contain.
  * @property text The key or index, then the value of a primitive or the size of a container.
  */
 @VisibleForTesting
@@ -118,12 +119,12 @@ internal fun flattenJsonTree(json: JsonElement, expandedPaths: Set<String>): Lis
         when (element) {
             is JsonObject -> {
                 add(JsonTreeLine(path = path, depth = depth, text = "$prefix{${element.size}}", isExpandable = element.isNotEmpty()))
-                if (path in expandedPaths) element.forEach { (key, child) -> addNode(child, key, "$path.$key", depth + 1) }
+                if (path in expandedPaths) element.forEach { (key, child) -> addNode(child, key, "$path/${key.replace("~", "~0").replace("/", "~1")}", depth + 1) }
             }
 
             is JsonArray -> {
                 add(JsonTreeLine(path = path, depth = depth, text = "$prefix[${element.size}]", isExpandable = element.isNotEmpty()))
-                if (path in expandedPaths) element.forEachIndexed { index, child -> addNode(child, "[$index]", "$path[$index]", depth + 1) }
+                if (path in expandedPaths) element.forEachIndexed { index, child -> addNode(child, "[$index]", "$path/$index", depth + 1) }
             }
 
             is JsonPrimitive -> add(JsonTreeLine(path = path, depth = depth, text = prefix + element.toString(), isExpandable = false))

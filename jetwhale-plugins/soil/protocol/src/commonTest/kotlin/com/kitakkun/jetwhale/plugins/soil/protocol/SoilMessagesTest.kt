@@ -28,6 +28,7 @@ class SoilMessagesTest {
         ),
         isObserved = true,
         options = mapOf("staleTime" to "Infinity", "gcTime" to "5m"),
+        replyRevision = 3,
     )
 
     @Test

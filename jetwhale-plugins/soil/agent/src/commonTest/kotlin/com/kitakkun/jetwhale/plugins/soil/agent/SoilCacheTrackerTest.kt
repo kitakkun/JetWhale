@@ -47,10 +47,11 @@ class SoilCacheTrackerTest {
     }
 
     @Test
-    fun `a new state object with the same fields reports nothing`() {
-        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
+    fun `a new state object with the same fields and reply reports nothing`() {
+        val reply = Reply.some("Ada")
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = reply, replyUpdatedAt = 100))))
 
-        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = reply, replyUpdatedAt = 100, fetchStatus = QueryFetchStatus.Idle))))
 
         assertTrue(changes.isEmpty)
     }
@@ -64,6 +65,16 @@ class SoilCacheTrackerTest {
         assertEquals(first.handle, second.handle)
         assertEquals(SoilStatus.SUCCESS, second.state.status)
         assertEquals(2, tracker.revision)
+    }
+
+    @Test
+    fun `a new reply within the same second is reported with a new reply revision`() {
+        val first = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100, status = QueryStatus.Success)))).upserts.single()
+
+        val second = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Grace"), replyUpdatedAt = 100, status = QueryStatus.Success)))).upserts.single()
+
+        assertEquals(first.state, second.state)
+        assertEquals(first.replyRevision + 1, second.replyRevision)
     }
 
     @Test

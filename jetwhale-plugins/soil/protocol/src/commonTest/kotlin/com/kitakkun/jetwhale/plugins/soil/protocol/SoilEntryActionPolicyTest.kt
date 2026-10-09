@@ -50,5 +50,6 @@ class SoilEntryActionPolicyTest {
         state = SoilEntryState.Subscription(status = SoilStatus.SUCCESS, hasReply = true, replyUpdatedAt = 1, error = null, errorUpdatedAt = 0, restartedAt = 0),
         isObserved = isObserved,
         options = emptyMap(),
+        replyRevision = 0,
     )
 }

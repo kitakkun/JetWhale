@@ -107,6 +107,8 @@ internal class SoilValueEncoder(private val registeredSerializers: SoilValueSeri
         null -> JsonNull
         is String -> JsonPrimitive(value)
         is Boolean -> JsonPrimitive(value)
+        is Double -> value.takeIf(Double::isFinite)?.let(::JsonPrimitive)
+        is Float -> value.takeIf(Float::isFinite)?.let(::JsonPrimitive)
         is Number -> JsonPrimitive(value)
         is Char -> JsonPrimitive(value.toString())
         is QueryChunk<*, *> -> encodeFields("data" to value.data, "param" to value.param)
@@ -124,17 +126,21 @@ internal class SoilValueEncoder(private val registeredSerializers: SoilValueSeri
 
     private fun encodeElements(elements: Collection<*>): JsonElement? = JsonArray(elements.map { encodeWithClassSerializers(it) ?: return null })
 
-    /** JSON keys are strings, so only a map whose keys read as one unambiguously is walked. */
-    private fun encodeMap(map: Map<*, *>): JsonElement? = JsonObject(
-        map.entries.associate { (mapKey, mapValue) ->
+    /**
+     * JSON keys are strings, so only a map whose keys read as one unambiguously is walked: keys of
+     * plain values, no two of them alike as strings.
+     */
+    private fun encodeMap(map: Map<*, *>): JsonElement? {
+        val fields = map.entries.associate { (mapKey, mapValue) ->
             val jsonKey = when (mapKey) {
                 is String, is Number, is Boolean, is Char -> mapKey.toString()
                 is Enum<*> -> mapKey.name
                 else -> return null
             }
             jsonKey to (encodeWithClassSerializers(mapValue) ?: return null)
-        },
-    )
+        }
+        return if (fields.size == map.size) JsonObject(fields) else null
+    }
 
     /**
      * A generic class is looked up with [typeArgumentSerializer] for each of its type arguments, so

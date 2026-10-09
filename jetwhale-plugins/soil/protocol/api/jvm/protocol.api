@@ -163,7 +163,7 @@ public final class com/kitakkun/jetwhale/plugins/soil/protocol/SoilEntriesChange
 
 public final class com/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry$Companion;
-	public fun <init> (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;)V
+	public fun <init> (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;J)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;
 	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;
@@ -171,14 +171,16 @@ public final class com/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry {
 	public final fun component5 ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;
 	public final fun component6 ()Z
 	public final fun component7 ()Ljava/util/Map;
-	public final fun copy (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;
+	public final fun component8 ()J
+	public final fun copy (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;J)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;ZLjava/util/Map;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntry;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getHandle ()Ljava/lang/String;
 	public final fun getId ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryId;
 	public final fun getKind ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryKind;
 	public final fun getLocation ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryLocation;
 	public final fun getOptions ()Ljava/util/Map;
+	public final fun getReplyRevision ()J
 	public final fun getState ()Lcom/kitakkun/jetwhale/plugins/soil/protocol/SoilEntryState;
 	public fun hashCode ()I
 	public final fun isObserved ()Z

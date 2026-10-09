@@ -45,6 +45,8 @@ enum class SoilEntryLocation {
  *   entry under an equal id.
  * @property isObserved Whether a screen is attached to the entry right now. Always false for an
  *   [SoilEntryLocation.INACTIVE] entry.
+ * @property replyRevision Changes whenever Soil replaces the entry's reply, even twice within the
+ *   second its timestamps resolve to, so a host showing the value knows to read it again.
  * @property options The entry's options by name, durations in Kotlin's `Duration` notation. Empty
  *   for an [SoilEntryLocation.INACTIVE] entry, whose options Soil does not keep.
  */
@@ -57,6 +59,7 @@ data class SoilEntry(
     val state: SoilEntryState,
     val isObserved: Boolean,
     val options: Map<String, String>,
+    val replyRevision: Long,
 )
 
 /**

@@ -32,7 +32,12 @@ internal class FakeSoilCacheClient(
     val valueRequests = mutableListOf<String>()
     val actionRequests = mutableListOf<Pair<String, SoilEntryAction>>()
 
-    override suspend fun takeSnapshot(): SoilCacheSnapshot = snapshot
+    var snapshotRequests = 0
+
+    override suspend fun takeSnapshot(): SoilCacheSnapshot {
+        snapshotRequests++
+        return snapshot
+    }
 
     override suspend fun readValue(handle: String): SoilEntryValue {
         valueRequests += handle
@@ -70,6 +75,7 @@ internal fun queryEntry(
     ),
     isObserved = isObserved,
     options = emptyMap(),
+    replyRevision = 0,
 )
 
 internal fun mutationEntry(handle: String, namespace: String) = SoilEntry(
@@ -80,6 +86,7 @@ internal fun mutationEntry(handle: String, namespace: String) = SoilEntry(
     state = SoilEntryState.Mutation(status = SoilStatus.SUCCESS, hasReply = true, replyUpdatedAt = 990, error = null, errorUpdatedAt = 0, mutatedCount = 1, submittedAt = 990),
     isObserved = false,
     options = emptyMap(),
+    replyRevision = 0,
 )
 
 internal fun snapshotOf(vararg entries: SoilEntry, revision: Long = 1, agentEpochSeconds: Long = HOST_NOW) = SoilCacheSnapshot(

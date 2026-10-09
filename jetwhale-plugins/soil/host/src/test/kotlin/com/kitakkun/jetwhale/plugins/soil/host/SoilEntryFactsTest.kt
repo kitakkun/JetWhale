@@ -50,13 +50,22 @@ class SoilEntryFactsTest {
 
         assertEquals(
             listOf(
-                JsonTreeLine(path = "$", depth = 0, text = "{2}", isExpandable = true),
-                JsonTreeLine(path = "$.user", depth = 1, text = "user: {2}", isExpandable = true),
-                JsonTreeLine(path = "$.user.name", depth = 2, text = "name: \"Ada\"", isExpandable = false),
-                JsonTreeLine(path = "$.user.roles", depth = 2, text = "roles: [1]", isExpandable = true),
-                JsonTreeLine(path = "$.count", depth = 1, text = "count: 2", isExpandable = false),
+                JsonTreeLine(path = "", depth = 0, text = "{2}", isExpandable = true),
+                JsonTreeLine(path = "/user", depth = 1, text = "user: {2}", isExpandable = true),
+                JsonTreeLine(path = "/user/name", depth = 2, text = "name: \"Ada\"", isExpandable = false),
+                JsonTreeLine(path = "/user/roles", depth = 2, text = "roles: [1]", isExpandable = true),
+                JsonTreeLine(path = "/count", depth = 1, text = "count: 2", isExpandable = false),
             ),
-            flattenJsonTree(json, expandedPaths = setOf(JSON_ROOT_PATH, "$.user")),
+            flattenJsonTree(json, expandedPaths = setOf(JSON_ROOT_PATH, "/user")),
         )
+    }
+
+    @Test
+    fun `keys with dots or slashes get paths of their own`() {
+        val json = Json.parseToJsonElement("""{"a/b":{"c":1},"a":{"b":{"c":2}},"a.b":{"c":3}}""")
+
+        val paths = flattenJsonTree(json, expandedPaths = setOf(JSON_ROOT_PATH, "/a", "/a~1b")).map(JsonTreeLine::path)
+
+        assertEquals(listOf("", "/a~1b", "/a~1b/c", "/a", "/a/b", "/a.b"), paths)
     }
 }

@@ -110,10 +110,31 @@ class SoilCacheBrowserTest {
         runBlocking { browser.load() }
         browser.select(profile.handle)
 
-        browser.adopt(changesOf(upserts = listOf(settings.copy(isObserved = false)), revision = 4))
-        browser.adopt(changesOf(upserts = listOf(queryEntry(handle = profile.handle, namespace = "users/profile", replyUpdatedAt = 999)), revision = 5))
+        browser.adopt(changesOf(upserts = listOf(settings.copy(isObserved = false), profile.copy(isObserved = false)), revision = 4))
+        browser.adopt(changesOf(upserts = listOf(profile.copy(replyRevision = 1)), revision = 5))
 
         assertEquals(listOf(profile.handle, profile.handle), client.valueRequests)
+    }
+
+    @Test
+    fun `a snapshot with a new reply for the selected entry reads its value again`() {
+        runBlocking { browser.load() }
+        browser.select(profile.handle)
+
+        browser.adopt(snapshotOf(profile.copy(replyRevision = 1), settings, revision = 4))
+
+        assertEquals(listOf(profile.handle, profile.handle), client.valueRequests)
+    }
+
+    @Test
+    fun `a revision skipped by the events takes a fresh snapshot`() {
+        runBlocking { browser.load() }
+        client.snapshot = snapshotOf(settings, revision = 6)
+
+        browser.adopt(changesOf(upserts = listOf(profile.copy(isObserved = false)), revision = 5))
+
+        assertEquals(2, client.snapshotRequests)
+        assertEquals(listOf("settings"), browser.listedEntries.map { it.entry.id.namespace })
     }
 
     @Test

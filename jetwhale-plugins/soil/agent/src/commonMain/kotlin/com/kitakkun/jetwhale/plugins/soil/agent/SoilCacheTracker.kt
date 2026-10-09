@@ -56,7 +56,12 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
                 previous.entry.location == record.location &&
                 previous.entry.isObserved == record.isObserved &&
                 previous.entry.options == record.options
-            val entry = if (isSameReading) previous.entry else record.toSoilEntry(handles.handleOf(record.key))
+            val replyRevision = when {
+                previous == null -> 0L
+                previous.model.reply !== record.model.reply -> previous.entry.replyRevision + 1
+                else -> previous.entry.replyRevision
+            }
+            val entry = if (isSameReading) previous.entry else record.toSoilEntry(handle = handles.handleOf(record.key), replyRevision = replyRevision)
             if (entry != previous?.entry) upserts += entry
             updatedTrackedEntries[record.key] = TrackedEntry(model = record.model, entry = entry)
         }
@@ -71,7 +76,7 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
     private class TrackedEntry(val model: DataModel<*>, val entry: SoilEntry)
 }
 
-private fun SoilCacheRecord.toSoilEntry(handle: String): SoilEntry = SoilEntry(
+private fun SoilCacheRecord.toSoilEntry(handle: String, replyRevision: Long): SoilEntry = SoilEntry(
     handle = handle,
     kind = key.kind,
     location = location,
@@ -79,6 +84,7 @@ private fun SoilCacheRecord.toSoilEntry(handle: String): SoilEntry = SoilEntry(
     state = model.toSoilEntryState(),
     isObserved = isObserved,
     options = options,
+    replyRevision = replyRevision,
 )
 
 private fun UniqueId.toSoilEntryId(): SoilEntryId = SoilEntryId(
