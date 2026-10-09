@@ -97,20 +97,6 @@ class DeviceListingsTest {
     }
 
     @Test
-    fun `idb describe gives the screen in pixels`() {
-        val json = """{"screen_dimensions": {"width": 1206, "height": 2622, "density": 3.0, "width_points": 402, "height_points": 874}}"""
-
-        assertEquals(IntSize(1206, 2622), parseIdbScreen(json))
-    }
-
-    @Test
-    fun `a screen idb describes as zero by zero is no screen size at all`() {
-        val json = """{"screen_dimensions": {"width": 0, "height": 0, "density": 3.0, "width_points": 0, "height_points": 0}}"""
-
-        assertNull(parseIdbScreen(json))
-    }
-
-    @Test
     fun `text for adb input text has its shell characters and spaces escaped`() {
         assertEquals("""a%sb\&c\%d""", escapeForAdbInputText("a b&c%d"))
     }

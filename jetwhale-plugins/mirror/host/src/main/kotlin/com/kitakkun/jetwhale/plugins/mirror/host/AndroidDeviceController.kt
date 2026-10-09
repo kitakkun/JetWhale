@@ -125,8 +125,6 @@ internal class AndroidDeviceController(
         }
     }
 
-    override suspend fun release() = Unit
-
     private suspend fun display(): AndroidDisplay? {
         val reading = displayReading
         if (reading != null && System.nanoTime() - reading.readAtNanos < DISPLAY_READING_MAX_AGE_NANOS) return reading.display

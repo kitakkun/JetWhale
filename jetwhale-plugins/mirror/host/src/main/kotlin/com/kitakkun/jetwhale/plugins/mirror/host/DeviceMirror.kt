@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -120,7 +119,8 @@ internal interface MirrorActions {
 /**
  * The devices on this machine and the one being mirrored. Only the device on screen streams, and
  * only while the mirror is shown ([mirror] runs for as long as its caller does), so a hidden
- * mirror costs nothing and an iOS device's companion runs only while it is watched.
+ * mirror costs nothing and an iPhone's screen is captured only while it is watched, and briefly
+ * after.
  */
 @Stable
 internal class DeviceMirror(
@@ -192,7 +192,6 @@ internal class DeviceMirror(
                 streamUntilCancelled(device)
             }
         } finally {
-            withContext(NonCancellable) { device.controller.release() }
             state = MirrorState.Idle
             screenPower = null
         }

@@ -165,9 +165,6 @@ internal class IosPhysicalDeviceController(
         }
     }
 
-    /** Each stream releases the capture it holds as it closes, so nothing is left to release here. */
-    override suspend fun release() = Unit
-
     private suspend fun <T> withStartedCapture(use: suspend (IphoneScreenCapture) -> T): T {
         val capture = captures.acquire(udid, name)
         try {

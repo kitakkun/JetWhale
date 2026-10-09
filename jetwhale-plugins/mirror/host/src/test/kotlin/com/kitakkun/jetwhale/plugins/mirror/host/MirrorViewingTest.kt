@@ -89,11 +89,11 @@ class MirrorViewingTest {
     }
 
     @Test
-    fun `a silent iPhone is explained by the lock screen and the camera permission`() {
+    fun `a silent iPhone is explained by the lock screen and the USB connection`() {
         val hints = noFramesHints(DeviceKind.IosDevice).joinToString(" ")
 
         assertTrue("Unlock" in hints)
-        assertTrue("Camera" in hints)
+        assertTrue("USB" in hints)
     }
 
     @Test

@@ -12,7 +12,7 @@ internal class DeviceControlException(message: String, cause: Throwable?) : Exce
 
 internal fun deviceControlError(message: String): DeviceControlException = DeviceControlException(message, null)
 
-/** Starts external processes; tests replace it to run without adb, simctl or idb. */
+/** Starts external processes; tests replace it to run without adb, simctl or the iPhone capture helper. */
 internal fun interface ProcessLauncher {
     fun start(command: List<String>): Process
 }
@@ -20,7 +20,7 @@ internal fun interface ProcessLauncher {
 internal object SystemProcessLauncher : ProcessLauncher {
     /**
      * The PATH the started processes get, or null to leave them the host's. A tool can search PATH
-     * itself: a pyenv or asdf shim looks there for what it runs, and idb for idb_companion.
+     * itself, as an asdf shim does for what it runs.
      */
     @Volatile
     var launchedProcessPathVariable: String? = null
@@ -103,8 +103,6 @@ internal suspend fun runCommandChecked(vararg command: String): CommandResult {
 /** The paths of the external tools this plugin drives; a missing tool is null. */
 internal class MirrorToolPaths(
     val adbPath: String?,
-    val idbPath: String?,
-    val idbCompanionPath: String?,
     val xcrunPath: String?,
     val ffmpegPath: String?,
 )
@@ -121,8 +119,6 @@ internal class MirrorToolLocator(
         val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
         return MirrorToolPaths(
             adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, searchDirectories),
-            idbPath = findToolPath("idb", searchDirectories),
-            idbCompanionPath = findToolPath("idb_companion", searchDirectories),
             xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
             ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", searchDirectories),
         )
