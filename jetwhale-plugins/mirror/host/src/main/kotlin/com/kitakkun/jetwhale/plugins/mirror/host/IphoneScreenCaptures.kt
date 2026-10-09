@@ -27,12 +27,13 @@ import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 /**
- * The captures of iPhones' screens: one run of the capture helper per iPhone, shared by everything
- * that reads its screen. Starting or stopping a capture switches the iPhone's USB connection over,
- * which takes seconds, drops every other connection to it, iproxy's among them, and turns its status
- * bar to the 9:41 one, so a capture nobody uses keeps running for [idleTimeout] before it stops.
+ * The captures of iPhones' screens: one run per iPhone of the capture helper at [helperExecutable],
+ * which is built when first awaited, shared by everything that reads the iPhone's screen. Starting
+ * or stopping a capture switches the iPhone's USB connection over, which takes seconds, drops every
+ * other connection to it, iproxy's among them, and turns its status bar to the 9:41 one, so a
+ * capture nobody uses keeps running for [idleTimeout] before it stops.
  *
- * A run that fails is not started again for [failureReuse], measured by [timeSource]: its failure
+ * A run that failed is not started again for [failureReuse], measured by [timeSource]: its failure
  * is thrown to whoever asks meanwhile, so callers asking one after the other wait for the iPhone
  * once.
  *
@@ -44,7 +45,7 @@ internal class IphoneScreenCaptures(
     private val failureReuse: Duration,
     private val timeSource: TimeSource,
     private val scope: CoroutineScope,
-    private val helperExecutable: suspend () -> File,
+    private val helperExecutable: Deferred<File>,
 ) {
     private class Held(val udid: String, val capture: IphoneScreenCapture) {
         var users = 0
@@ -52,10 +53,9 @@ internal class IphoneScreenCaptures(
     }
 
     private val lock = Any()
-    private val held = HashMap<String, Held>()
-    private class Failure(val exception: DeviceControlException, val at: TimeMark)
 
-    private val lastFailures = HashMap<String, Failure>()
+    /** The runs by UDID, including one that ended, until the next run replaces it or it is let go. */
+    private val held = HashMap<String, Held>()
 
     /**
      * The running capture of the iPhone [udid], called [name], or a new one; pair every call with
@@ -65,11 +65,15 @@ internal class IphoneScreenCaptures(
      * run failed within [failureReuse].
      */
     suspend fun acquire(udid: String, name: String): IphoneScreenCapture {
-        synchronized(lock) { throwRecentFailure(udid) }
-        val executable = helperExecutable()
+        synchronized(lock) { held[udid]?.capture?.failureWithin(failureReuse)?.let { throw it } }
+        val executable = helperExecutable.await()
         return synchronized(lock) {
-            throwRecentFailure(udid)
-            val current = held[udid] ?: Held(udid, startCapture(udid, name, executable)).also { held[udid] = it }
+            val existing = held[udid]
+            existing?.capture?.failureWithin(failureReuse)?.let { throw it }
+            val current = existing?.takeUnless { it.capture.hasEnded } ?: Held(udid, startCapture(udid, name, executable)).also {
+                existing?.idleStop?.cancel()
+                held[udid] = it
+            }
             current.idleStop?.cancel()
             current.idleStop = null
             current.users++
@@ -91,6 +95,9 @@ internal class IphoneScreenCaptures(
         }
     }
 
+    /** Whether the iPhone [udid]'s screen is being captured, its frames arriving. */
+    fun isCapturing(udid: String): Boolean = synchronized(lock) { held[udid]?.capture?.takeUnless(IphoneScreenCapture::hasEnded)?.frameSize != null }
+
     /** Stops the capture of an iPhone that is gone, whoever still uses it: it has nothing left to show. */
     fun stopCaptureEvenIfInUse(udid: String): Unit = synchronized(lock) {
         val current = held.remove(udid) ?: return
@@ -107,33 +114,17 @@ internal class IphoneScreenCaptures(
         held.clear()
     }
 
-    private fun startCapture(udid: String, name: String, executable: File): IphoneScreenCapture {
-        val process = launcher.start(listOf(executable.path, "--udid", udid, "--name", name))
-        return IphoneScreenCapture(process) { capture, failure -> forget(udid, capture, failure) }
-    }
-
-    private fun forget(udid: String, capture: IphoneScreenCapture, failure: DeviceControlException?): Unit = synchronized(lock) {
-        held[udid]?.takeIf { it.capture === capture }?.let {
-            it.idleStop?.cancel()
-            held.remove(udid)
-        }
-        if (failure != null) lastFailures[udid] = Failure(failure, timeSource.markNow())
-    }
-
-    private fun throwRecentFailure(udid: String) {
-        val failure = lastFailures[udid] ?: return
-        if (failure.at.elapsedNow() < failureReuse) throw failure.exception
-        lastFailures.remove(udid)
-    }
+    private fun startCapture(udid: String, name: String, executable: File): IphoneScreenCapture = IphoneScreenCapture(launcher.start(listOf(executable.path, "--udid", udid, "--name", name)), timeSource)
 }
 
 /**
  * One run of the capture helper, showing one iPhone's screen to everyone reading it. Its stdout is
  * read as access units and handed to each [H264Subscription]; its stderr says when the capture
- * started, the frames' size, and why it failed. [onEnded] is told once the helper has exited, with
- * the failure that ended it, or null when it was stopped.
+ * started, the frames' size, and why it failed. When it ended is told by [timeSource].
  */
-internal class IphoneScreenCapture(private val process: Process, private val onEnded: (IphoneScreenCapture, DeviceControlException?) -> Unit) {
+internal class IphoneScreenCapture(private val process: Process, private val timeSource: TimeSource) {
+    private class Ending(val failure: DeviceControlException?, val at: TimeMark)
+
     private val started = CompletableDeferred<Unit>()
     private val firstFrame = CompletableDeferred<IntSize>()
     private val subscriptions = mutableListOf<H264Subscription>()
@@ -144,6 +135,12 @@ internal class IphoneScreenCapture(private val process: Process, private val onE
 
     @Volatile
     private var unreadableOutput: IOException? = null
+
+    @Volatile
+    private var ending: Ending? = null
+
+    /** Whether the helper has exited, failed or stopped. */
+    val hasEnded: Boolean get() = ending != null
 
     /** The size of the frames sent now; null until the first frame. */
     @Volatile
@@ -160,6 +157,9 @@ internal class IphoneScreenCapture(private val process: Process, private val onE
         thread(isDaemon = true, name = "mirror-iphone-capture-frames", block = ::distributeAccessUnits)
         thread(isDaemon = true, name = "mirror-iphone-capture-log", block = ::readLogUntilExit)
     }
+
+    /** The failure that ended this run, if it ended on one less than [window] ago. */
+    fun failureWithin(window: Duration): DeviceControlException? = ending?.takeIf { it.at.elapsedNow() < window }?.failure
 
     /**
      * Waits until the capture session runs, which includes waiting for the user to answer macOS's
@@ -267,12 +267,12 @@ internal class IphoneScreenCapture(private val process: Process, private val onE
             stopRequested.get() -> null
             else -> DeviceControlException(iphoneCaptureFailureMessage(exitCode, reportedFailure, logTail.toList()), null)
         }
-        // The owner forgets this run before anyone waiting on it hears, so a caller that tries again
-        // at once finds the failure rather than this run.
-        onEnded(this, failure)
-        val ending = failure ?: deviceControlError("the iPhone's screen capture was stopped")
-        started.completeExceptionally(ending)
-        firstFrame.completeExceptionally(ending)
+        // Recorded before anyone waiting on this run hears, so a caller that tries again at once
+        // finds the failure rather than a run that seems to be starting.
+        ending = Ending(failure, timeSource.markNow())
+        val cause = failure ?: deviceControlError("the iPhone's screen capture was stopped")
+        started.completeExceptionally(cause)
+        firstFrame.completeExceptionally(cause)
     }
 }
 

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -8,14 +9,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -30,8 +25,8 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 
 class IphoneScreenCapturesTest {
-    private val launched = CopyOnWriteArrayList<FakeHelperProcess>()
-    private val launcher = ProcessLauncher { command -> FakeHelperProcess(command).also(launched::add) }
+    private val launched = CopyOnWriteArrayList<FakeCaptureHelperProcess>()
+    private val launcher = ProcessLauncher { command -> FakeCaptureHelperProcess(command) {}.also(launched::add) }
     private val realScope = CoroutineScope(Job())
 
     private val idleTimeout = 30.seconds
@@ -100,7 +95,7 @@ class IphoneScreenCapturesTest {
 
         captures.stopAll()
 
-        assertEquals(listOf(true, true), launched.map(FakeHelperProcess::stdinClosed))
+        assertEquals(listOf(true, true), launched.map(FakeCaptureHelperProcess::stdinClosed))
     }
 
     @Test
@@ -108,9 +103,8 @@ class IphoneScreenCapturesTest {
         val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = launched.single()
 
-        helper.report("""{"event":"started","matchedBy":"name","name":"Test iPhone","uniqueId":"capture-1"}""")
+        helper.reportCapturing(IntSize(1170, 2532))
         withTimeout(TEST_TIMEOUT) { capture.awaitStarted() }
-        helper.report("""{"event":"format","height":2532,"passthrough":true,"width":1170}""")
 
         assertEquals(IntSize(1170, 2532), withTimeout(TEST_TIMEOUT) { capture.firstFrameSize.await() })
         assertEquals(IntSize(1170, 2532), capture.frameSize)
@@ -125,7 +119,7 @@ class IphoneScreenCapturesTest {
         helper.send(DELTA_FRAME + KEY_FRAME + DELTA_FRAME)
         helper.exit(0)
 
-        assertEquals("keyframe\n", helper.stdinText)
+        assertEquals(listOf("keyframe"), helper.commands)
         assertContentEquals(KEY_FRAME + DELTA_FRAME, subscription.stream.readAllBytes())
     }
 
@@ -171,7 +165,7 @@ class IphoneScreenCapturesTest {
         assertEquals(2, launched.size)
     }
 
-    private fun captures(scope: CoroutineScope, failureReuse: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReuse, timeSource, scope) { HELPER }
+    private fun captures(scope: CoroutineScope, failureReuse: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReuse, timeSource, scope, CompletableDeferred(HELPER))
 }
 
 private val HELPER = File("/builds/jetwhale-iphone-capture")
@@ -183,97 +177,3 @@ private val KEY_FRAME = byteArrayOf(0, 0, 0, 1, 0x65, 0x11, 0, 0, 0, 1, 0x09, 0x
 
 /** A slice of a frame that refers to others, then the delimiter. */
 private val DELTA_FRAME = byteArrayOf(0, 0, 0, 1, 0x41, 0x22, 0, 0, 0, 1, 0x09, 0xF0.toByte())
-
-/**
- * A capture helper that writes what the test sends, and ends when its stdin closes, as the helper
- * does, or when the test makes it exit.
- */
-private class FakeHelperProcess(val command: List<String>) : Process() {
-    private val stdout = QueueInputStream()
-    private val stderr = QueueInputStream()
-    private val exited = CountDownLatch(1)
-
-    @Volatile
-    private var exitCode = 0
-
-    @Volatile
-    var stdinClosed = false
-        private set
-
-    private val stdin = object : ByteArrayOutputStream() {
-        override fun close() {
-            stdinClosed = true
-            exit(0)
-        }
-    }
-
-    val stdinText: String get() = synchronized(stdin) { stdin.toString() }
-
-    fun report(line: String) = stderr.add("$line\n".toByteArray())
-
-    fun send(bytes: ByteArray) = stdout.add(bytes)
-
-    fun exit(code: Int) {
-        synchronized(exited) {
-            if (exited.count == 0L) return
-            exitCode = code
-            stdout.end()
-            stderr.end()
-            exited.countDown()
-        }
-    }
-
-    override fun getOutputStream(): OutputStream = stdin
-
-    override fun getInputStream(): InputStream = stdout
-
-    override fun getErrorStream(): InputStream = stderr
-
-    override fun waitFor(): Int {
-        exited.await()
-        return exitCode
-    }
-
-    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = exited.await(timeout, unit)
-
-    override fun exitValue(): Int = exitCode
-
-    override fun destroy() = exit(143)
-}
-
-/** A pipe the test writes chunks into, read until [end]. */
-private class QueueInputStream : InputStream() {
-    private val chunks = LinkedBlockingQueue<ByteArray>()
-    private var current = ByteArray(0)
-    private var position = 0
-
-    fun add(bytes: ByteArray) = chunks.put(bytes)
-
-    fun end() = chunks.put(END)
-
-    override fun read(): Int {
-        val single = ByteArray(1)
-        return if (read(single, 0, 1) < 0) -1 else single[0].toInt() and 0xFF
-    }
-
-    override fun read(b: ByteArray, off: Int, len: Int): Int {
-        if (len == 0) return 0
-        if (position == current.size) {
-            val next = chunks.take()
-            if (next === END) {
-                chunks.put(END)
-                return -1
-            }
-            current = next
-            position = 0
-        }
-        val count = minOf(len, current.size - position)
-        current.copyInto(b, destinationOffset = off, startIndex = position, endIndex = position + count)
-        position += count
-        return count
-    }
-
-    private companion object {
-        val END = ByteArray(0)
-    }
-}

@@ -556,16 +556,7 @@ internal class DeviceMirror(
         return devices.firstOrNull { it.id == deviceId } ?: throw deviceControlError("no device has the id '$deviceId'; call $TOOL_PREFIX.listDevices")
     }
 
-    override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, screenshotOf(device))
-
-    // A physical iOS device's screenshots come from its video stream. While the mirror streams it,
-    // the frame on screen is that screenshot, and a second stream is not opened beside the first.
-    private suspend fun screenshotOf(device: MirrorDevice): ByteArray {
-        if (device.kind == DeviceKind.IosDevice && state == MirrorState.Streaming) {
-            withContext(Dispatchers.IO) { surface.newestFramePng(device.id) }?.let { return it }
-        }
-        return device.controller.captureScreenshot()
-    }
+    override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, device.controller.captureScreenshot())
 
     override suspend fun startRecording(device: MirrorDevice) = recordingLockOf(device.id).withLock { startRecordingLocked(device) }
 

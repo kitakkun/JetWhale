@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -197,6 +198,7 @@ internal class MirrorSurface : AutoCloseable {
      * The newest frame streamed from [streamingDeviceId], encoded as PNG at the size it was decoded,
      * or null when the surface shows another device or only a frame kept from an earlier visit.
      */
+    @VisibleForTesting
     fun newestFramePng(streamingDeviceId: String): ByteArray? {
         // The image keeps the frame's pixels alive even once the bitmap is closed, so the PNG
         // encode runs outside the lock and holds up neither the decoder nor a draw.

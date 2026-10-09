@@ -12,16 +12,21 @@ import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.nio.file.Files
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -32,6 +37,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class IosInputTest {
     private val folder: File = Files.createTempDirectory("ios-input").toFile()
@@ -49,8 +55,19 @@ class IosInputTest {
         setExecutable(true)
     }
 
+    /** The capture helpers started for iPhones, which report frames at once unless a test says otherwise. */
+    private val helpers = CopyOnWriteArrayList<FakeCaptureHelperProcess>()
+    private val firstHelper = CompletableDeferred<FakeCaptureHelperProcess>()
+    private var helpersReportFrames = true
+
+    /** How the capture helpers started for iPhones fail at once, or null when they run. */
+    private var helpersFailWith: IphoneCaptureExit? = null
+    private val captureScope = CoroutineScope(Job())
+
     @AfterTest
     fun deleteFolder() {
+        helpers.forEach { it.exit(0) }
+        captureScope.cancel()
         folder.deleteRecursively()
     }
 
@@ -159,9 +176,9 @@ class IosInputTest {
     }
 
     @Test
-    fun `an iPhone's input is refused with the reason the runners give, until they give none`() = runTest {
+    fun `an iPhone's input is refused with the reason the runners give, until they give none`() = runBlocking {
         runners.refusal = "driving an iPhone needs your Apple development team"
-        val iphone = iphone()
+        val iphone = iphone(ffmpegPath = null)
         assertEquals("driving an iPhone needs your Apple development team", iphone.capabilities.inputRefusal)
         assertTrue(iphone.capabilities.buttons.isEmpty())
         assertEquals("driving an iPhone needs your Apple development team", assertFailsWith<DeviceControlException> { iphone.tap(x = 10, y = 10) }.message)
@@ -173,8 +190,9 @@ class IosInputTest {
     }
 
     @Test
-    fun `an iPhone starts its runner in the background once a team lets it take input`() = runTest {
-        val iphone = iphone()
+    fun `an iPhone starts its runner in the background once a team lets it take input`() = runBlocking {
+        val iphone = iphone(ffmpegPath = null)
+        iphone.screenSize()
         runners.refusal = "driving an iPhone needs your Apple development team"
 
         iphone.startRunnerInBackground()
@@ -185,8 +203,8 @@ class IosInputTest {
     }
 
     @Test
-    fun `an iPhone's input goes to the runner of that device`() = runTest {
-        val iphone = iphone()
+    fun `an iPhone's input goes to the runner of that device`() = runBlocking {
+        val iphone = iphone(ffmpegPath = null)
 
         iphone.pressButton(DeviceButton.VolumeUp)
 
@@ -195,112 +213,101 @@ class IosInputTest {
     }
 
     @Test
-    fun `an iPhone that takes input reads its screen size from its runner without idb`() = runTest {
-        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+    fun `an iPhone that takes input takes its screen size from its runner when its screen cannot be captured`() = runBlocking {
+        helpersFailWith = IphoneCaptureExit.PermissionDenied
 
-        assertEquals(IntSize(1206, 2622), iphone.screenSize())
+        assertEquals(IntSize(1206, 2622), iphone(ffmpegPath = null).screenSize())
         assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
     }
 
     @Test
-    fun `an iPhone that takes no input and has no idb says where its screen size would come from`() = runTest {
-        runners.refusal = "driving an iPhone needs your Apple development team"
-        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
-
-        val failure = assertFailsWith<DeviceControlException> { iphone.screenSize() }
-
-        assertEquals(
-            "the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: idb is not installed, and driving an iPhone needs your Apple development team",
-            failure.message,
-        )
-        assertTrue(runners.askedFor.isEmpty())
-    }
-
-    @Test
-    fun `an iPhone whose idb reports its screen size asks no runner for it`() = runTest {
-        assumeShellScriptsLaunch()
-
-        val size = iphoneWithIdbDescribing(width = 1170, height = 2532).screenSize()
-
-        assertEquals(IntSize(1170, 2532), size)
-        assertTrue(runners.askedFor.isEmpty())
-    }
-
-    @Test
-    fun `an iPhone whose idb reports no screen size takes it from its runner`() = runTest {
-        assumeShellScriptsLaunch()
-
-        val size = iphoneWithIdbDescribing(width = 0, height = 0).screenSize()
-
-        assertEquals(IntSize(1206, 2622), size)
-        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
-    }
-
-    @Test
-    fun `an iPhone whose idb fails to describe it takes its screen size from its runner`() = runTest {
-        assumeShellScriptsLaunch()
-
-        val size = iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize()
-
-        assertEquals(IntSize(1206, 2622), size)
-    }
-
-    @Test
-    fun `an iPhone whose idb fails to describe it and that takes no input reports idb's failure`() = runTest {
-        assumeShellScriptsLaunch()
+    fun `an iPhone that takes no input and cannot be captured says why its screen cannot be captured`() = runBlocking {
+        helpersFailWith = IphoneCaptureExit.PermissionDenied
         runners.refusal = "driving an iPhone needs your Apple development team"
 
-        val failure = assertFailsWith<DeviceControlException> { iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize() }
+        val failure = assertFailsWith<DeviceControlException> { iphone(ffmpegPath = null).screenSize() }
 
-        assertContains(failure.message.orEmpty(), "no companion for the device")
+        assertContains(failure.message.orEmpty(), "Camera")
         assertTrue(runners.askedFor.isEmpty())
     }
 
     @Test
-    fun `an iPhone whose runner cannot start says why`() = runTest {
+    fun `an iPhone whose screen cannot be captured still takes input through its runner`() = runBlocking {
+        helpersFailWith = IphoneCaptureExit.PermissionDenied
+
+        iphone(ffmpegPath = null).tap(x = 30, y = 60)
+
+        assertEquals(listOf("tap 10.0,20.0"), runners.runner.calls)
+    }
+
+    @Test
+    fun `an iPhone whose runner cannot start says why`() = runBlocking {
         runners.startFailure = "Developer Mode is off on the iPhone"
 
-        val failure = assertFailsWith<DeviceControlException> { iphone().inputText("hi") }
+        val failure = assertFailsWith<DeviceControlException> { iphone(ffmpegPath = null).inputText("hi") }
 
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
     private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
 
-    /** An iPhone whose idb describes a screen of [width] by [height] pixels, as `idb describe` does a device's. */
-    private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int) = iphoneWithIdbScript("""echo '{"screen_dimensions":{"width":$width,"height":$height,"density":3}}'""")
+    @Test
+    fun `an iPhone's input waits for its screen to be captured before it reaches the runner`() = runBlocking {
+        helpersReportFrames = false
+        val iphone = iphone(ffmpegPath = null)
 
-    /** An iPhone with idb, whose commands run [script]. */
-    private fun TestScope.iphoneWithIdbScript(script: String): IosPhysicalDeviceController {
-        val fakeIdb = File(folder, "idb").apply {
-            writeText("#!/bin/sh\n$script\n")
-            setExecutable(true)
-        }
-        val companions = IdbCompanions(
-            idbCompanionPath = "idb_companion",
-            idbPath = fakeIdb.path,
-            launcher = { ReadyCompanionProcess() },
-            commands = { },
-            ports = { 10_000 },
-            idleTimeout = 3.minutes,
-            scope = backgroundScope,
-        )
-        return IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = companions, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+        val tap = async(Dispatchers.IO) { iphone.tap(x = 30, y = 60) }
+        val helper = withTimeout(TEST_TIMEOUT) { firstHelper.await() }
+        helper.report("""{"event":"started","matchedBy":"usbSerialNumber","name":"Test iPhone","uniqueId":"capture-1"}""")
+        assertTrue(runners.askedFor.isEmpty())
+
+        helper.reportCapturing(IntSize(1206, 2622))
+        withTimeout(TEST_TIMEOUT) { tap.await() }
+
+        assertEquals(listOf("tap 10.0,20.0"), runners.runner.calls)
     }
 
-    private fun TestScope.iphone() = IosPhysicalDeviceController(
+    @Test
+    fun `an iPhone's live view starts the runner once the first frame has arrived, and not before`() = runBlocking {
+        helpersReportFrames = false
+        val iphone = iphone(ffmpegPath = "ffmpeg")
+
+        val opening = async(Dispatchers.IO) { iphone.openVideoStream(wanted = null) }
+        val helper = withTimeout(TEST_TIMEOUT) { firstHelper.await() }
+        helper.report("""{"event":"started","matchedBy":"usbSerialNumber","name":"Test iPhone","uniqueId":"capture-1"}""")
+        val stream = withTimeout(TEST_TIMEOUT) { opening.await() }
+        assertTrue(runners.startedInBackground.isEmpty())
+
+        helper.reportCapturing(IntSize(1206, 2622))
+        val started = withTimeout(TEST_TIMEOUT) { runners.firstStartedInBackground.await() }
+        stream.close()
+
+        assertEquals("00008110", started.udid)
+    }
+
+    private fun iphone(ffmpegPath: String?) = IosPhysicalDeviceController(
         udid = "00008110",
+        name = "Test iPhone",
         iosMajorVersion = 26,
-        companions = IdbCompanions(
-            idbCompanionPath = "idb_companion",
-            idbPath = "idb",
-            launcher = { throw deviceControlError("no companions in tests") },
-            commands = { },
-            ports = { 10_000 },
-            idleTimeout = 3.minutes,
-            scope = backgroundScope,
+        captures = IphoneScreenCaptures(
+            launcher = { command ->
+                FakeCaptureHelperProcess(command) {}.also { helper ->
+                    helpersFailWith?.let { failure ->
+                        helper.report("""{"event":"error","reason":"${failure.name}","message":"the capture failed in a test"}""")
+                        helper.exit(failure.code)
+                    }
+                    if (helpersReportFrames && helpersFailWith == null) helper.reportCapturing(IntSize(1206, 2622))
+                    helpers += helper
+                    firstHelper.complete(helper)
+                }
+            },
+            idleTimeout = 1.minutes,
+            failureReuse = 1.minutes,
+            timeSource = TimeSource.Monotonic,
+            scope = captureScope,
+            helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),
         ),
-        ffmpegPath = null,
+        ffmpegPath = ffmpegPath,
         runnerInput = XcTestRunnerInput(runners),
     )
 }
@@ -310,6 +317,7 @@ private class FakeXcTestRunners : XcTestRunners {
     val runner = FakeXcTestRunner()
     val askedFor = mutableListOf<XcTestRunnerTarget>()
     val startedInBackground = mutableListOf<XcTestRunnerTarget>()
+    val firstStartedInBackground = CompletableDeferred<XcTestRunnerTarget>()
     var refusal: String? = null
     var startFailure: String? = null
     var keptAliveUntil: Instant? = null
@@ -324,6 +332,7 @@ private class FakeXcTestRunners : XcTestRunners {
 
     override fun startRunnerInBackground(target: XcTestRunnerTarget) {
         startedInBackground += target
+        firstStartedInBackground.complete(target)
     }
 
     override fun keptAliveUntil(target: XcTestRunnerTarget): Instant? = keptAliveUntil
@@ -378,3 +387,5 @@ private class FakeXcTestRunner : XcTestRunner {
 }
 
 private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")
+
+private val TEST_TIMEOUT = 10.seconds
