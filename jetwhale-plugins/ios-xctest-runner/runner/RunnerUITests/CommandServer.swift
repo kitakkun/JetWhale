@@ -3,7 +3,8 @@ import Network
 
 /// A minimal HTTP/1.1 server on the loopback interface. Each request is a `POST` whose path names a
 /// command and whose body is a JSON object; the handler runs on the main thread, where XCTest must be
-/// called, one request at a time, and its result is the JSON response.
+/// called, one request at a time, and its result is the JSON response. A `GET /stream` instead turns
+/// its connection into a `ScreenStream` of the screen, at the `fps` its query asks for.
 final class CommandServer {
     typealias Handler = @MainActor (_ path: String, _ body: [String: Any]) -> [String: Any]
 
@@ -12,9 +13,10 @@ final class CommandServer {
     private let listener: NWListener
     private let queue = DispatchQueue(label: "jetwhale.runner.server")
     private let token: String
+    private let screenSource: ScreenStream.Source
     private let handler: Handler
 
-    init(port: UInt16, token: String, handler: @escaping Handler) throws {
+    init(port: UInt16, token: String, screenSource: ScreenStream.Source, handler: @escaping Handler) throws {
         let parameters = NWParameters.tcp
         // Loopback only: on a simulator this is the Mac's loopback, and on a device usbmux forwards
         // to it. Nothing on the network can reach the runner.
@@ -22,6 +24,7 @@ final class CommandServer {
         parameters.allowLocalEndpointReuse = true
         listener = try NWListener(using: parameters)
         self.token = token
+        self.screenSource = screenSource
         self.handler = handler
     }
 
@@ -61,6 +64,14 @@ final class CommandServer {
             send(status: "401 Unauthorized", body: ["ok": false, "error": "wrong or missing runner token"], on: connection, then: next)
             return
         }
+        if request.method == "GET" && request.path == "/stream" {
+            guard let fps = request.query["fps"].flatMap(Double.init), (1...60).contains(fps) else {
+                send(status: "400 Bad Request", body: ["ok": false, "error": "fps must be 1 to 60"], on: connection) { connection.cancel() }
+                return
+            }
+            ScreenStream(connection: connection, source: screenSource, fps: fps).start()
+            return
+        }
         DispatchQueue.main.async {
             let body = MainActor.assumeIsolated { self.handler(request.path, request.json) }
             self.send(status: "200 OK", body: body, on: connection, then: next)
@@ -86,7 +97,9 @@ struct HttpRequest {
     private static let maxHeaderBytes = 16 * 1024
     private static let maxBodyBytes = 1 << 20
 
+    let method: String
     let path: String
+    let query: [String: String]
     let headers: [String: String]
     let json: [String: Any]
 
@@ -120,6 +133,9 @@ struct HttpRequest {
         } else {
             return .malformed("the body is not a JSON object")
         }
-        return .complete(HttpRequest(path: String(requestLine[1]), headers: headers, json: json), rest: Data(data[(bodyStart + length)...]))
+        guard let target = URLComponents(string: String(requestLine[1])) else { return .malformed("the request's path is not a URL path") }
+        let query = Dictionary((target.queryItems ?? []).map { ($0.name, $0.value ?? "") }) { _, last in last }
+        let request = HttpRequest(method: String(requestLine[0]), path: target.path, query: query, headers: headers, json: json)
+        return .complete(request, rest: Data(data[(bodyStart + length)...]))
     }
 }

@@ -12,6 +12,8 @@
 		A3B9073855D4184DE6528E5A /* CommandServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FF0E65AE1FEA075E1976CB /* CommandServer.swift */; };
 		C43EB705D6FB9E78A25A9352 /* Commands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455B03B4C18B9AB9F30FA173 /* Commands.swift */; };
 		F938ED149EFDFA0CE493F6C4 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231FF97BF251B10C8E8E90AD /* RunnerTests.swift */; };
+		9A41F6B2063FA2031B7AE883 /* ScreenCapture.m in Sources */ = {isa = PBXBuildFile; fileRef = 9DE395F4C4EA9758AA227197 /* ScreenCapture.m */; };
+		90DBB357DEA8EF6511185544 /* ScreenStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090AC141204602CC88E4FDE7 /* ScreenStream.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +36,9 @@
 		D1EC555D6C6736B22FB82BCD /* JetWhaleRunnerHost.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JetWhaleRunnerHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4FF0E65AE1FEA075E1976CB /* CommandServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandServer.swift; sourceTree = "<group>"; };
 		EFD6C2B1891BB22A97B72672 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
+		8CF9EC8D90936BB267A38485 /* ScreenCapture.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenCapture.h; sourceTree = "<group>"; };
+		9DE395F4C4EA9758AA227197 /* ScreenCapture.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScreenCapture.m; sourceTree = "<group>"; };
+		090AC141204602CC88E4FDE7 /* ScreenStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenStream.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -54,6 +59,9 @@
 				48966CBE58D575D6FE3B09C2 /* EventSynthesis.h */,
 				CEA7F0661310BD6CB05C2B9E /* EventSynthesis.m */,
 				231FF97BF251B10C8E8E90AD /* RunnerTests.swift */,
+				8CF9EC8D90936BB267A38485 /* ScreenCapture.h */,
+				9DE395F4C4EA9758AA227197 /* ScreenCapture.m */,
+				090AC141204602CC88E4FDE7 /* ScreenStream.swift */,
 			);
 			path = RunnerUITests;
 			sourceTree = "<group>";
@@ -161,6 +169,8 @@
 				C43EB705D6FB9E78A25A9352 /* Commands.swift in Sources */,
 				8876C60C4239C23BF9189CAC /* EventSynthesis.m in Sources */,
 				F938ED149EFDFA0CE493F6C4 /* RunnerTests.swift in Sources */,
+				9A41F6B2063FA2031B7AE883 /* ScreenCapture.m in Sources */,
+				90DBB357DEA8EF6511185544 /* ScreenStream.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

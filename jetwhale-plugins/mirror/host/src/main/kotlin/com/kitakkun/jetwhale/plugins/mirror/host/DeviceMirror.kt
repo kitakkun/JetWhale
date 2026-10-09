@@ -257,7 +257,6 @@ internal class DeviceMirror(
         } catch (_: DeviceControlException) {
             null
         }
-        surface.deviceSize = screen
         withTimeoutOrNull(VIEW_SIZE_WAIT_MILLIS) {
             while (surface.viewSize == IntSize.Zero) delay(VIEW_SIZE_POLL_MILLIS)
         }
@@ -267,6 +266,10 @@ internal class DeviceMirror(
         } catch (e: DeviceControlException) {
             return StreamOutcome.Unavailable(e.message.orEmpty())
         }
+        // Whole images come at the screen's own size, turned as its interface is, whatever size was
+        // asked: a point maps onto the screen through each image's size, and a resized view has
+        // nothing to reopen for.
+        surface.deviceSize = screen.takeUnless { stream is VideoStream.EncodedImages }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
         if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val isAndroid = device.kind.platform == DevicePlatform.Android
@@ -274,7 +277,7 @@ internal class DeviceMirror(
             coroutineScope<StreamOutcome> {
                 val lastFrameAt = AtomicLong(System.nanoTime())
                 val watches = listOfNotNull(
-                    screen?.let { launch { reopenWhenResized(it, outputSize, stream) } },
+                    screen?.takeUnless { stream is VideoStream.EncodedImages }?.let { launch { reopenWhenResized(it, outputSize, stream) } },
                     screen?.takeIf { isAndroid }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
                     // Only screenrecord holds a still screen's last frame back; the emulator's own
                     // stream sends every change as it happens.
@@ -326,11 +329,11 @@ internal class DeviceMirror(
      * Shows [stream] until it ends. A failure comes back as a value, so a stream this side closed on
      * purpose is not mistaken for one that broke.
      */
-    private fun decode(stream: VideoStream, frames: MirrorSurface.FrameStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
+    private suspend fun decode(stream: VideoStream, frames: MirrorSurface.FrameStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
         when (stream) {
             is VideoStream.H264 -> decodeH264Into(frames, stream, outputSize, onInput, onFrame)
-            is VideoStream.RawBgra -> readRawBgraInto(frames, stream, onFrame)
             is VideoStream.EmulatorRgba -> readEmulatorFramesInto(frames, stream.frames, onFrame)
+            is VideoStream.EncodedImages -> readEncodedImagesInto(frames, stream, onFrame)
         }
         StreamOutcome.Ended
     } catch (e: DeviceControlException) {

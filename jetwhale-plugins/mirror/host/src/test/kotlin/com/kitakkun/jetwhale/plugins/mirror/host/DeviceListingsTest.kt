@@ -51,47 +51,42 @@ class DeviceListingsTest {
     }
 
     @Test
-    fun `idb lists physical devices and leaves simulators to simctl`() {
-        val output = """
-            Test iPhone | 00008110-0000000000000001 | Booted | device | iOS 26.6.1 | arm64e | No Companion Connected
-            iPhone 16 | 0A1B2C3D-4E5F | Shutdown | simulator | iOS 18.5 | arm64 | No Companion Connected
-            Apple TV | 37E509F4-ECF8 | Shutdown | simulator | tvOS 18.5 | x86_64 | No Companion Connected
-        """.trimIndent()
-
+    fun `devicectl lists the iPhones and iPads on USB and leaves simulators and those on the network out`() {
         assertEquals(
-            listOf(DeviceListing(id = "00008110-0000000000000001", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
-            parseIdbDevices(output),
+            listOf(
+                DeviceListing(id = "00008110-000A1B2C3D4E5F60", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1"),
+                DeviceListing(id = "00008112-0001A2B3C4D5E6F7", name = "Test iPad", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1"),
+            ),
+            parseDevicectlDevices(readResourceText("/devicectl/list-devices.json")),
         )
     }
 
     @Test
-    fun `idb_companion lists physical devices by their keys and leaves simulators to simctl`() {
-        val output = """
-            {"model":"iPhone 17","os_version":"iOS 26.0","udid":"00008150-0000000000000001","architecture":"arm64e","type":"Device","name":"iPhone","state":"Booted"}
-            {"model":"iPhone 16","os_version":"iOS 18.5","udid":"0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9","architecture":"arm64","type":"Simulator","name":"iPhone 16","state":"Booted"}
+    fun `devicectl output that is not a list of devices is not taken for no devices`() {
+        assertNull(parseDevicectlDevices("xcrun: error: unable to find utility \"devicectl\""))
+        assertNull(parseDevicectlDevices("""{"info":{"outcome":"failed"}}"""))
+        assertEquals(emptyList(), parseDevicectlDevices("""{"result":{"devices":[]}}"""))
+    }
+
+    @Test
+    fun `a device devicectl lists on USB that is simulated or not iOS or disconnected or has no UDID is left out`() {
+        val json = """
+            {"result":{"devices":[
+              {"properties":{"hardware":{"platform":"iOS","reality":"simulated","udid":"5C9E2B7A-0000-4000-8000-000000000001"},"connection":{"transportType":"wired"}}},
+              {"properties":{"hardware":{"platform":"watchOS","udid":"00008301-0000000000000001"},"connection":{"transportType":"wired"}}},
+              {"properties":{"hardware":{"platform":"iOS"},"connection":{"transportType":"wired"}}},
+              {"properties":{"hardware":{"platform":"iOS","udid":"00008110-0000000000000002"},"connection":{"transportType":"wired","state":"disconnected"}}}
+            ]}}
         """.trimIndent()
 
-        assertEquals(
-            listOf(DeviceListing(id = "00008150-0000000000000001", name = "iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.0")),
-            parseCompanionDevices(output),
-        )
+        assertEquals(emptyList(), parseDevicectlDevices(json))
     }
 
     @Test
-    fun `idb_companion with nothing attached lists no device`() {
-        assertEquals(emptyList(), parseCompanionDevices(""))
-    }
-
-    @Test
-    fun `idb_companion output without a single target in it is not taken for no devices`() {
-        assertNull(parseCompanionDevices("Unknown option --only\nUsage: idb_companion [options]"))
-    }
-
-    @Test
-    fun `idb_companion output with a target it cannot read is not taken for no devices`() {
-        assertNull(parseCompanionDevices("""{"type":"Device","name":"iPhone"}"""))
-        assertNull(parseCompanionDevices("""{"type":"Watch","udid":"00008150-0000000000000002","name":"Watch"}"""))
-        assertNull(parseCompanionDevices("""{"type":"Device","udid":null,"name":"iPhone"}"""))
+    fun `a simulator's screen is its pixel size turned the way simctl says its interface is`() {
+        assertEquals(IntSize(1206, 2622), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/portrait.txt")))
+        assertEquals(IntSize(2622, 1206), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/landscape-left.txt")))
+        assertNull(parseSimulatorScreen("Invalid device: SIM-1"))
     }
 
     @Test
@@ -102,10 +97,10 @@ class DeviceListingsTest {
     }
 
     @Test
-    fun `idb describe gives the screen in pixels and its pixels per point`() {
+    fun `idb describe gives the screen in pixels`() {
         val json = """{"screen_dimensions": {"width": 1206, "height": 2622, "density": 3.0, "width_points": 402, "height_points": 874}}"""
 
-        assertEquals(IdbScreen(IntSize(1206, 2622), pixelsPerPoint = 3.0), parseIdbScreen(json))
+        assertEquals(IntSize(1206, 2622), parseIdbScreen(json))
     }
 
     @Test
@@ -125,4 +120,6 @@ class DeviceListingsTest {
         assertFailsWith<DeviceControlException> { escapeForAdbInputText("hello\nreboot") }
         assertFailsWith<DeviceControlException> { escapeForAdbInputText("a\rb") }
     }
+
+    private fun readResourceText(path: String): String = checkNotNull(DeviceListingsTest::class.java.getResource(path)) { "$path is missing" }.readText()
 }

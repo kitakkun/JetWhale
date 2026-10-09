@@ -1,8 +1,19 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
@@ -48,8 +59,12 @@ class LocalXcTestRunnersTest {
 
     private val xcodebuildProcesses: List<FakeToolProcess> get() = launched.filter { it.command.first() == "/usr/bin/env" }
 
+    /** Where runners started outside [runTest] run their background work, on real time. */
+    private val realTimeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @AfterTest
     fun deleteStateRoot() {
+        realTimeScope.cancel()
         stateRoot.deleteRecursively()
     }
 
@@ -332,6 +347,79 @@ class LocalXcTestRunnersTest {
     }
 
     @Test
+    fun `a process that is exiting starts no runner in place of one that went away`() = runTest {
+        val runners = runners()
+        val runner = runners.runnerFor(simulator)
+        runners.destroyStartedRunnerProcesses()
+        connections.getValue(20_000).unreachable = true
+
+        val failure = assertFailsWith<XcTestRunnerStartException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device) }
+
+        assertEquals("this process is exiting, so it starts no XCTest runner", failure.message)
+        assertEquals(1, xcodebuildProcesses.size)
+    }
+
+    @Test
+    fun `a collector slower than the screen stream gets the newest frame next and none of those in between`() = runBlocking {
+        val runner = runners(realTimeScope, iproxyPath = null).runnerFor(simulator)
+        val stream = FakeScreenStream().also { connections.getValue(20_000).screenStreams += it }
+        val received = Channel<String>(Channel.UNLIMITED)
+        val firstFrameTaken = CompletableDeferred<Unit>()
+        val collectorCaughtUp = CompletableDeferred<Unit>()
+        val collecting = launch {
+            runner.streamScreenAsJpeg(maxFps = 30).collect { frame ->
+                received.send(frame.decodeToString())
+                firstFrameTaken.complete(Unit)
+                collectorCaughtUp.await()
+            }
+        }
+
+        stream.offer("frame-1")
+        withTimeout(5.seconds) { firstFrameTaken.await() }
+        listOf("frame-2", "frame-3", "frame-4").forEach(stream::offer)
+        // The fifth read begins only once the fourth frame has been passed on.
+        withTimeout(5.seconds) { stream.readsBegun.first { it >= 5 } }
+        collectorCaughtUp.complete(Unit)
+
+        assertEquals("frame-1", received.receive())
+        assertEquals("frame-4", withTimeout(5.seconds) { received.receive() })
+        collecting.cancelAndJoin()
+        assertTrue(stream.closed)
+    }
+
+    @Test
+    fun `a screen stream whose runner restarts goes on from the new runner`() = runBlocking {
+        val runner = runners(realTimeScope, iproxyPath = null).runnerFor(simulator)
+        val firstStream = FakeScreenStream().also { connections.getValue(20_000).screenStreams += it }
+        val secondStream = FakeScreenStream()
+        connections[20_001] = FakeRunnerConnection(answering = true).apply { screenStreams += secondStream }
+        val received = Channel<String>(Channel.UNLIMITED)
+        val collecting = launch { runner.streamScreenAsJpeg(maxFps = 30).collect { received.send(it.decodeToString()) } }
+
+        firstStream.offer("from the first runner")
+        assertEquals("from the first runner", withTimeout(5.seconds) { received.receive() })
+        xcodebuildProcesses.single().exit()
+        connections.getValue(20_000).unreachable = true
+        firstStream.end()
+        secondStream.offer("from the second runner")
+
+        assertEquals("from the second runner", withTimeout(5.seconds) { received.receive() })
+        assertEquals(2, xcodebuildProcesses.size)
+        collecting.cancelAndJoin()
+    }
+
+    @Test
+    fun `a screen stream that ends again before its first frame fails rather than reopening in a loop`() = runBlocking {
+        val runner = runners(realTimeScope, iproxyPath = null).runnerFor(simulator)
+        repeat(2) { connections.getValue(20_000).screenStreams += FakeScreenStream().apply { end() } }
+
+        val failure = assertFailsWith<XcTestRunnerException> { withTimeout(5.seconds) { runner.streamScreenAsJpeg(maxFps = 30).collect {} } }
+
+        assertEquals("the XCTest runner's screen stream ended before its first frame", failure.message)
+        assertEquals(1, xcodebuildProcesses.size)
+    }
+
+    @Test
     fun `a process that exits while a runner starts ends that runner's xcodebuild`() = runTest {
         val runners = runners()
         var destroyedByExit = false
@@ -364,7 +452,9 @@ class LocalXcTestRunnersTest {
         connections.getValue(19_000).onShutdown = process::exit
     }
 
-    private fun TestScope.runners(iproxyPath: String? = null) = LocalXcTestRunners(
+    private fun TestScope.runners(iproxyPath: String? = null) = runners(backgroundScope, iproxyPath)
+
+    private fun runners(scope: CoroutineScope, iproxyPath: String?) = LocalXcTestRunners(
         runnerStateDirectory = stateDirectory,
         builds = RunnerBuilds(File(stateRoot, "builds"), runnerProjectZip(), "xcrun", xcodebuildCommands, lockTimeout = 1.minutes, unusedBuildLifetime = 7.days, clock = Clock.systemUTC()),
         xcrunPath = "xcrun",
@@ -387,7 +477,7 @@ class LocalXcTestRunnersTest {
         startTimeout = 2.minutes,
         lockTimeout = 1.minutes,
         clock = clock,
-        scope = backgroundScope,
+        scope = scope,
     )
 }
 

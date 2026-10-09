@@ -1,16 +1,14 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
@@ -21,7 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class DeviceDiscoveryTest {
     @Test
@@ -39,27 +37,34 @@ class DeviceDiscoveryTest {
         setExecutable(true)
     }
 
-    private val idbRuns = File(folder, "idb-runs")
+    private val devicectlFixture = checkNotNull(DeviceDiscoveryTest::class.java.getResource("/devicectl/list-devices.json")).readText()
 
-    private val fakeIdb = File(folder, "idb").apply {
-        writeText("#!/bin/sh\necho run >> '${idbRuns.path}'\nprintf 'iPhone | 00008150-LISTED-BY-IDB | Booted | device | iOS 26.0 | arm64e | No Companion Connected\\n'\n")
+    private val devicectlJsonFile = File(folder, "devicectl-list-devices.json").apply { writeText(devicectlFixture) }
+
+    /** An xcrun that lists no booted simulator, and the devices of [devicectlJsonFile] through devicectl. */
+    private val fakeXcrun = File(folder, "xcrun").apply {
+        writeText(
+            """
+            #!/bin/sh
+            case "${'$'}1" in
+              simctl) printf '{"devices":{}}' ;;
+              devicectl) [ "${'$'}2 ${'$'}3 ${'$'}4" = 'list devices --json-output' ] || exit 64; cp '${devicectlJsonFile.path}' "${'$'}5" ;;
+              *) exit 64 ;;
+            esac
+            """.trimIndent() + "\n",
+        )
         setExecutable(true)
     }
 
-    private val fakeCompanion = File(folder, "idb_companion")
-
-    private val companionScope = CoroutineScope(SupervisorJob())
-
     @AfterTest
     fun cleanUp() {
-        companionScope.cancel()
         folder.deleteRecursively()
     }
 
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
 
@@ -71,7 +76,7 @@ class DeviceDiscoveryTest {
     fun `a look waits for the tools to be located before it reports one missing`() = runTest {
         assumeShellScriptsLaunch()
         val toolPaths = CompletableDeferred<MirrorToolPaths>()
-        val discovery = DeviceDiscovery(toolPaths, companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(toolPaths, companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val look = async { discovery.discover() }
         runCurrent()
@@ -86,7 +91,7 @@ class DeviceDiscoveryTest {
     @Test
     fun `a listing that fails keeps the devices it listed before with their controllers`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         val before = discovery.discover().devices.single()
         fakeAdb.writeText("#!/bin/sh\necho 'daemon not running' >&2\nexit 1\n")
 
@@ -98,7 +103,7 @@ class DeviceDiscoveryTest {
     @Test
     fun `a listing that succeeds without a device drops it`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
         discovery.discover()
         fakeAdb.writeText("#!/bin/sh\nprintf 'List of devices attached\\n'\n")
 
@@ -106,76 +111,67 @@ class DeviceDiscoveryTest {
     }
 
     @Test
-    fun `iPhones are listed by idb_companion without running idb`() = runBlocking {
+    fun `iPhones and iPads on USB are listed through devicectl without idb`() = runBlocking {
         assumeShellScriptsLaunch()
-        companionPrints("""{"udid":"00008150-LISTED-BY-COMPANION","name":"iPhone","os_version":"iOS 26.0","type":"Device","state":"Booted"}""")
 
-        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+        val listed = iosDeviceDiscovery(idbPath = null, idbCompanionPath = null).discover().devices.map(MirrorDevice::listing)
 
-        assertEquals(listOf("00008150-LISTED-BY-COMPANION"), listed)
-        assertFalse(idbRuns.exists())
+        assertEquals(
+            listOf(
+                DeviceListing(id = "00008110-000A1B2C3D4E5F60", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1"),
+                DeviceListing(id = "00008112-0001A2B3C4D5E6F7", name = "Test iPad", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1"),
+            ),
+            listed,
+        )
     }
 
     @Test
-    fun `a companion that lists nothing means no iPhone, without asking idb`() = runBlocking {
+    fun `no idb companion is asked for and no idb is asked to be installed while no iPhone is listed`() = runBlocking {
         assumeShellScriptsLaunch()
-        companionPrints("")
+        devicectlJsonFile.writeText(devicectlFixture.replace("\"wired\"", "\"localNetwork\""))
+        val discovery = DeviceDiscovery(
+            CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = fakeXcrun.absolutePath, ffmpegPath = null)),
+            companions = CompletableDeferred(),
+            xcTestRunners = CompletableDeferred(value = null),
+            iproxyPath = CompletableDeferred(value = null),
+            emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
+        )
 
-        val listed = iosDeviceDiscovery().discover().devices
+        val found = withTimeout(10.seconds) { discovery.discover() }
 
-        assertEquals(emptyList(), listed)
-        assertFalse(idbRuns.exists())
+        assertEquals(emptyList(), found.devices)
+        assertTrue(found.missingTools.none { "idb" in it })
     }
 
     @Test
-    fun `a companion that fails leaves the listing to idb`() = runBlocking {
+    fun `a machine without idb is told to install it from facebook's tap once an iPhone is listed`() = runBlocking {
         assumeShellScriptsLaunch()
-        fakeCompanion.writeText("#!/bin/sh\necho 'no such option' >&2\nexit 1\n")
-        fakeCompanion.setExecutable(true)
 
-        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+        val notice = iosDeviceDiscovery(idbPath = null, idbCompanionPath = null).discover().missingTools.single { it.startsWith("idb was not found") }
 
-        assertEquals(listOf("00008150-LISTED-BY-IDB"), listed)
+        assertContains(notice, "brew install facebook/fb/idb")
     }
 
     @Test
-    fun `a companion whose answer is not a list of targets leaves the listing to idb`() = runBlocking {
+    fun `a machine with idb but without its companion is told to install idb from facebook's tap once an iPhone is listed`() = runBlocking {
         assumeShellScriptsLaunch()
-        companionPrints("Usage: idb_companion [options]")
 
-        val listed = iosDeviceDiscovery().discover().devices.map(MirrorDevice::id)
+        val notice = iosDeviceDiscovery(idbPath = "/usr/bin/true", idbCompanionPath = null).discover().missingTools.single { it.startsWith("idb_companion was not found") }
 
-        assertEquals(listOf("00008150-LISTED-BY-IDB"), listed)
+        assertContains(notice, "brew install facebook/fb/idb")
     }
 
-    private fun companionPrints(output: String) {
-        val quoted = output.replace("'", "'\\''")
-        fakeCompanion.writeText("#!/bin/sh\n[ \"$*\" = '--list 1 --only device' ] || { echo \"unexpected arguments: $*\" >&2; exit 64; }\nprintf '%s' '$quoted'\n")
-        fakeCompanion.setExecutable(true)
-    }
-
-    private fun iosDeviceDiscovery() = DeviceDiscovery(
-        CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = fakeIdb.absolutePath, idbCompanionPath = fakeCompanion.absolutePath, xcrunPath = null, ffmpegPath = null)),
+    private fun iosDeviceDiscovery(idbPath: String?, idbCompanionPath: String?) = DeviceDiscovery(
+        CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = idbPath, idbCompanionPath = idbCompanionPath, xcrunPath = fakeXcrun.absolutePath, ffmpegPath = "/usr/bin/true")),
+        companions = CompletableDeferred(value = null),
         xcTestRunners = CompletableDeferred(value = null),
         iproxyPath = CompletableDeferred(value = null),
-        idbCanSendSimulatorInput = CompletableDeferred(value = false),
-        companions = CompletableDeferred(
-            IdbCompanions(
-                idbCompanionPath = fakeCompanion.absolutePath,
-                idbPath = fakeIdb.absolutePath,
-                launcher = SystemProcessLauncher,
-                commands = { command -> runCommandChecked(*command.toTypedArray()) },
-                ports = LocalPorts,
-                idleTimeout = 1.minutes,
-                scope = companionScope,
-            ),
-        ),
         emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
     )
 
     @Test
     fun `a machine without ffmpeg is told that Android devices fall back to screenshots and how to install it`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         val notice = discovery.discover().missingTools.single { "ffmpeg" in it }
 
@@ -184,26 +180,8 @@ class DeviceDiscoveryTest {
     }
 
     @Test
-    fun `a machine without idb is told to install it from facebook's tap`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = "/usr/bin/true", ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
-
-        val notice = discovery.discover().missingTools.single { it.startsWith("idb was not found") }
-
-        assertContains(notice, "brew install facebook/fb/idb")
-    }
-
-    @Test
-    fun `a machine with idb but without its companion is told to install idb from facebook's tap`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = "/usr/bin/true", idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
-
-        val notice = discovery.discover().missingTools.single { it.startsWith("idb_companion was not found") }
-
-        assertContains(notice, "brew install facebook/fb/idb")
-    }
-
-    @Test
     fun `a machine with ffmpeg is not told about it`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = "/usr/bin/true")), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), idbCanSendSimulatorInput = CompletableDeferred(value = false), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = "/usr/bin/true")), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), iproxyPath = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
 
         assertTrue(discovery.discover().missingTools.none { "ffmpeg" in it })
     }

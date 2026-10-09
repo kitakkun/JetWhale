@@ -55,46 +55,48 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
 }
 
 /**
- * The physical iOS devices in `idb_companion --list 1` output, which has one JSON object per target,
- * or null when the output is in a form this does not read: no line is such an object, a target is of
- * a type other than a device or a simulator, or a device has no UDID. The caller then takes the
- * devices from idb instead. Simulators can be listed there too, but simctl already reports those.
+ * The iOS devices connected to this Mac by USB, in the JSON that `xcrun devicectl list devices
+ * --json-output <file>` writes, or null when the JSON is not such a list. devicectl lists
+ * simulators too, which simctl already reports, devices paired over the network, which idb and
+ * `iproxy` reach only by USB, and paired devices no longer connected; all are left out, and so are
+ * watches, TVs and Macs.
  */
-internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
-    val targets = output.lineSequence().filter(String::isNotBlank).mapNotNull { line ->
-        try {
-            Json.parseToJsonElement(line) as? JsonObject
-        } catch (_: IllegalArgumentException) {
-            null
-        }
-    }.toList()
-    if (targets.isEmpty() && output.isNotBlank()) return null
-    return targets.mapNotNull { target ->
-        when (target.text("type")?.lowercase()) {
-            "simulator" -> null
-
-            "device" -> {
-                val udid = target.text("udid") ?: return null
-                DeviceListing(id = udid, name = target.text("name") ?: udid, kind = DeviceKind.IosDevice, osVersion = target.text("os_version"))
-            }
-
-            else -> return null
-        }
+internal fun parseDevicectlDevices(json: String): List<DeviceListing>? {
+    val devices = try {
+        Json.parseToJsonElement(json) as? JsonObject
+    } catch (_: IllegalArgumentException) {
+        null
+    }?.objectAt("result")?.get("devices") as? JsonArray ?: return null
+    return devices.mapNotNull { element ->
+        val properties = (element as? JsonObject)?.objectAt("properties") ?: return@mapNotNull null
+        val hardware = properties.objectAt("hardware") ?: return@mapNotNull null
+        val connection = properties.objectAt("connection")
+        val isUsbIosDevice = hardware.text("reality") != "simulated" && hardware.text("platform") == "iOS" && connection?.text("transportType") == "wired" && connection.text("state") != "disconnected"
+        val udid = hardware.text("udid")?.takeIf { isUsbIosDevice } ?: return@mapNotNull null
+        DeviceListing(
+            id = udid,
+            name = properties.objectAt("state")?.text("name") ?: udid,
+            kind = DeviceKind.IosDevice,
+            osVersion = properties.objectAt("software")?.objectAt("osVersionNumber")?.text("stringValue")?.let { "iOS $it" },
+        )
     }
 }
+
+private fun JsonObject.objectAt(key: String): JsonObject? = get(key) as? JsonObject
 
 private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull
 
 /**
- * The physical iOS devices in `idb list-targets` output, whose lines read
- * `name | udid | state | type | os | architecture | companion`. Simulators are listed there too,
- * but simctl already reports those.
+ * The size in pixels of a simulator's screen as its interface is turned, from `xcrun simctl io <udid>
+ * enumerate`: the integrated screen's pixel size, its sides swapped while its UI orientation is a
+ * landscape one. Null when the output lists no integrated screen.
  */
-internal fun parseIdbDevices(output: String): List<DeviceListing> = output.lineSequence()
-    .map { line -> line.split(" | ").map(String::trim) }
-    .filter { fields -> fields.size >= 5 && fields[3] == "device" }
-    .map { fields -> DeviceListing(id = fields[1], name = fields[0], kind = DeviceKind.IosDevice, osVersion = fields[4]) }
-    .toList()
+internal fun parseSimulatorScreen(output: String): IntSize? {
+    val screen = output.split(Regex("""\n\s*\(\d+\) """)).drop(1).firstOrNull { "Screen Type: Integrated" in it } ?: return null
+    val (width, height) = Regex("""Pixel Size: \{(\d+), (\d+)\}""").find(screen)?.destructured ?: return null
+    val size = IntSize(width.toInt(), height.toInt())
+    return if (Regex("""UI Orientation: Landscape""").containsMatchIn(screen)) IntSize(size.height, size.width) else size
+}
 
 /**
  * The screen size in `adb shell wm size` output. An override set with `wm size WxH` is what the
@@ -108,11 +110,8 @@ internal fun parseWmSize(output: String): IntSize? {
     return sizes["Override"] ?: sizes["Physical"]
 }
 
-/** A screen as `idb describe --json` reports it: pixels, and pixels per point. */
-internal data class IdbScreen(val size: IntSize, val pixelsPerPoint: Double)
-
-/** The screen `idb describe --json` reports, or null when it gives none: a physical device reports its sides as 0. */
-internal fun parseIdbScreen(json: String): IdbScreen? {
+/** The screen's size in pixels that `idb describe --json` reports, or null when it gives none: a physical device reports its sides as 0. */
+internal fun parseIdbScreen(json: String): IntSize? {
     val screen = try {
         (Json.parseToJsonElement(json) as? JsonObject)?.get("screen_dimensions") as? JsonObject
     } catch (_: IllegalArgumentException) {
@@ -120,7 +119,6 @@ internal fun parseIdbScreen(json: String): IdbScreen? {
     } ?: return null
     val width = screen["width"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
     val height = screen["height"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
-    val density = screen["density"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: return null
     if (width <= 0 || height <= 0) return null
-    return IdbScreen(IntSize(width, height), density)
+    return IntSize(width, height)
 }

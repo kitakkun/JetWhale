@@ -73,6 +73,45 @@ class HttpRunnerConnectionTest {
         Unit
     }
 
+    @Test
+    fun `a screen stream is asked for at its rate with the run's token and read frame by frame`() = withConnection(
+        MockResponse()
+            .setHeader("Content-Type", "multipart/x-mixed-replace; boundary=jetwhale-frame")
+            .setBody("--jetwhale-frame\r\nContent-Length: 5\r\n\r\nfirst\r\n--jetwhale-frame\r\nContent-Length: 6\r\n\r\nsecond\r\n"),
+    ) { connection, server ->
+        val frames = connection.openScreenStream(maxFps = 30).use { stream -> List(3) { stream.readJpegFrame()?.decodeToString() } }
+
+        assertEquals(listOf("first", "second", null), frames)
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/stream?fps=30", request.path)
+        assertEquals("token-1", request.getHeader(RUNNER_TOKEN_HEADER))
+    }
+
+    @Test
+    fun `a runner that answers its screen stream with anything but frames did not stream`() = withConnection(
+        MockResponse().setBody("""{"ok":false,"error":"unknown command /stream"}"""),
+    ) { connection, _ ->
+        val failure = assertFailsWith<XcTestRunnerException> { connection.openScreenStream(maxFps = 30) }
+
+        assertEquals("""the XCTest runner did not stream its screen: {"ok":false,"error":"unknown command /stream"}""", failure.message)
+    }
+
+    @Test
+    fun `a runner that drops the connection before its screen stream starts is unreachable rather than a refusal`() = withConnection(
+        MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST),
+    ) { connection, _ ->
+        assertFailsWith<RunnerUnreachableException> { connection.openScreenStream(maxFps = 30) }
+    }
+
+    @Test
+    fun `a screen stream on a port nobody listens on is unreachable`() = runBlocking {
+        val closedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
+
+        assertFailsWith<RunnerUnreachableException> { HttpRunnerConnection(closedPort, "token-1", httpClient).openScreenStream(maxFps = 30) }
+        Unit
+    }
+
     private fun withConnection(response: MockResponse, block: suspend (HttpRunnerConnection, MockWebServer) -> Unit) = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(response)

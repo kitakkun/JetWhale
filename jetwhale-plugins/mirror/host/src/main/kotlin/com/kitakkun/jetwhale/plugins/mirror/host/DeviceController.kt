@@ -50,36 +50,3 @@ internal interface DeviceController {
 internal interface DeviceRecording {
     suspend fun stop(): File
 }
-
-/**
- * A device whose screenshots are in another space than the one [DeviceController.tap] takes: an iOS
- * simulator turned to landscape takes landscape screenshots of a portrait screen. The MCP tools take
- * screenshot pixels, so they go through these when a device has them.
- */
-internal interface ScreenshotSpaceInput {
-    /** The size of a screenshot in pixels. */
-    suspend fun screenshotSize(): IntSize
-
-    suspend fun tapScreenshotPixel(x: Int, y: Int)
-
-    suspend fun swipeScreenshotPixels(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int)
-}
-
-/** Input to [controller] in the pixels of its screenshots, the space the MCP tools take. */
-internal class ScreenshotPixelInput(private val controller: DeviceController) {
-    private val screenshotSpaceInput = controller as? ScreenshotSpaceInput
-
-    suspend fun screenshotSize(): IntSize = screenshotSpaceInput?.screenshotSize() ?: controller.screenSize()
-
-    suspend fun tap(x: Int, y: Int) {
-        if (screenshotSpaceInput != null) screenshotSpaceInput.tapScreenshotPixel(x, y) else controller.tap(x, y)
-    }
-
-    suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        if (screenshotSpaceInput != null) {
-            screenshotSpaceInput.swipeScreenshotPixels(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
-        } else {
-            controller.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
-        }
-    }
-}

@@ -10,15 +10,25 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.Closeable
 import java.io.IOException
 import java.net.ConnectException
+import java.util.concurrent.TimeUnit
 
 /** The commands this client sends; `/status` reports the runner's, and an older runner is replaced. */
-internal const val PROTOCOL_VERSION = 2
+internal const val PROTOCOL_VERSION = 3
+
+/**
+ * How long a screen stream may send nothing before it counts as stalled. The runner sends a frame at
+ * least once a second whether the screen changes or not.
+ */
+private const val SCREEN_STREAM_STALL_SECONDS = 10L
 
 internal const val RUNNER_TOKEN_HEADER = "X-JetWhale-Runner-Token"
 
@@ -45,6 +55,18 @@ internal interface RunnerConnection {
 
     /** Sends the command at [path] and returns the runner's answer; its error becomes an [XcTestRunnerException]. */
     suspend fun send(path: String, body: JsonObject): JsonObject
+
+    /** Opens the runner's screen stream at no more than [maxFps] frames a second. */
+    suspend fun openScreenStream(maxFps: Int): RunnerScreenStream
+}
+
+/** A runner's screen stream, one JPEG frame at a time. */
+internal interface RunnerScreenStream : Closeable {
+    /**
+     * The next frame, blocking until it arrives; null once the stream ends. [close] from another
+     * thread ends a read that is waiting.
+     */
+    fun readJpegFrame(): ByteArray?
 }
 
 /** Opens the connection to the runner listening on [port] of this machine's loopback, which checks [token]. */
@@ -72,6 +94,23 @@ internal class HttpRunnerConnection(
     }
 
     override suspend fun send(path: String, body: JsonObject): JsonObject = post(path, body, isSafeToRepeat = false)
+
+    private val screenStreamHttpClient by lazy { httpClient.newBuilder().readTimeout(SCREEN_STREAM_STALL_SECONDS, TimeUnit.SECONDS).build() }
+
+    override suspend fun openScreenStream(maxFps: Int): RunnerScreenStream = withContext(Dispatchers.IO) {
+        val call = screenStreamHttpClient.newCall(Request.Builder().url("http://127.0.0.1:$port/stream?fps=$maxFps").header(RUNNER_TOKEN_HEADER, token).build())
+        val response = try {
+            call.execute()
+        } catch (e: IOException) {
+            throw RunnerUnreachableException("the XCTest runner did not open its screen stream: ${e.message}", e)
+        }
+        val boundary = response.body.contentType()?.takeIf { it.type == "multipart" && it.subtype == "x-mixed-replace" }?.parameter("boundary")
+        if (!response.isSuccessful || boundary == null) {
+            val text = response.use { it.body.string() }
+            throw XcTestRunnerException("the XCTest runner did not stream its screen: ${text.take(200)}", null)
+        }
+        HttpRunnerScreenStream(call, response, boundary)
+    }
 
     /**
      * Posts [body] to [path] and returns the runner's answer. A request that gets no answer is
@@ -103,5 +142,17 @@ internal class HttpRunnerConnection(
             throw XcTestRunnerException("the XCTest runner failed to ${path.removePrefix("/")}: $error", null)
         }
         answer
+    }
+}
+
+/** The frames of [response] to [call]. Closing cancels the call, which ends a read waiting on its socket. */
+private class HttpRunnerScreenStream(private val call: Call, private val response: Response, boundary: String) : RunnerScreenStream {
+    private val frameReader = MjpegFrameReader(response.body.source(), boundary)
+
+    override fun readJpegFrame(): ByteArray? = frameReader.readFrame()
+
+    override fun close() {
+        call.cancel()
+        response.close()
     }
 }
