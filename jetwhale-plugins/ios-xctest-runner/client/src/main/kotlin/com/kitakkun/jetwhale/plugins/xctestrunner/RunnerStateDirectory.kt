@@ -56,7 +56,8 @@ internal class RunnerStateDirectory(private val directory: File) {
         try {
             Files.createFile(staging, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
         } catch (_: UnsupportedOperationException) {
-            // Not a POSIX file system, which runners never meet: they exist on macOS only.
+            // Only a file system without POSIX permissions throws this, and runners exist on macOS
+            // only.
         }
         Files.writeString(staging, StateJson.encodeToString(RunnerState.serializer(), runnerState))
         Files.move(staging, stateFileOf(udid).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)

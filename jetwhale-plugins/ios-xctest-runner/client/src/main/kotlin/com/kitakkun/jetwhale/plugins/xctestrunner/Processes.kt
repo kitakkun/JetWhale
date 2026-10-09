@@ -97,7 +97,8 @@ internal class KeptOutput(process: Process) {
                 }
             }
         } catch (_: IOException) {
-            // The stream closed as the process ended; the lines read so far are kept.
+            // Destroying the process closes its streams under this reader; the lines read so far
+            // are kept.
         }
     }
 }

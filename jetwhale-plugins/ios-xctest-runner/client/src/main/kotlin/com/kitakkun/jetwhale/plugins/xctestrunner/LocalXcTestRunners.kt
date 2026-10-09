@@ -155,8 +155,8 @@ internal class LocalXcTestRunners(
         if (status != null && status.protocolVersion >= PROTOCOL_VERSION && runnerState.developmentTeam == destination.developmentTeam) {
             return Attachment(destination, runnerState.pid, connection, status)
         }
-        // Only a runner that answered is shut down: the recorded pid alone may by now belong to an
-        // unrelated process.
+        // Only a runner that answered is shut down: a recorded pid that is alive may by now belong
+        // to an unrelated process.
         if (status != null) shutDownRunner(connection, runnerState.pid)
         runnerStateDirectory.deleteRunnerState(destination.udid, runnerState.pid)
         return null
@@ -174,9 +174,7 @@ internal class LocalXcTestRunners(
         try {
             connection.send("/shutdown", JsonObject(emptyMap()))
         } catch (_: RunnerUnreachableException) {
-            // Not answering; the wait below terminates it if it is still alive.
         } catch (_: XcTestRunnerException) {
-            // Refused; the wait below terminates it.
         }
         val exited = withTimeoutOrNull(SHUTDOWN_GRACE_MILLIS) {
             while (processTable.isAlive(pid)) delay(RUNNER_POLL_MILLIS)
@@ -288,8 +286,8 @@ internal class LocalXcTestRunners(
 
         fun onThisMac(stateDirectory: File, xcrunPath: String, iproxyPath: String?, settings: XcTestRunnerSettings): XcTestRunners {
             val zip = checkNotNull(LocalXcTestRunners::class.java.getResourceAsStream(RUNNER_PROJECT_RESOURCE)) { "$RUNNER_PROJECT_RESOURCE is missing from the client's jar" }.use { it.readBytes() }
-            // The runner answers a command only once it has run, which for a long text or a slow
-            // swipe takes a while.
+            // The runner answers a command only once it has run, and waits up to 60 seconds for
+            // each event.
             val httpClient = OkHttpClient.Builder().readTimeout(2, TimeUnit.MINUTES).build()
             return LocalXcTestRunners(
                 runnerStateDirectory = RunnerStateDirectory(File(stateDirectory, "runners")),
