@@ -56,6 +56,7 @@ internal class IphoneCaptureHelperBuilds(
         val staging = File(buildsDirectory, "${buildDirectory.name}.partial-${UUID.randomUUID()}").apply { mkdirs() }
         try {
             val sourceFile = File(staging, HELPER_SOURCE_FILE_NAME).apply { writeBytes(source) }
+            // swiftc accepts the source's @main in a single-file build only with -parse-as-library.
             val compileResult = runCommand(listOf(xcrunPath, "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o", File(staging, HELPER_EXECUTABLE_FILE_NAME).path, sourceFile.path))
             if (compileResult.exitCode != 0) throw deviceControlError("the iPhone capture helper did not compile with this Mac's Swift compiler: ${outputOf(compileResult)}")
             // renameTo does not replace a directory that is not empty.
