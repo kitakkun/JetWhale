@@ -213,15 +213,15 @@ internal class SoilEntryExplainer(
 
     private fun cacheLifetimeOf(entry: SoilEntry): String {
         val gcTime = entry.options["gcTime"]?.let(Duration::parseOrNull)
-        val since = entry.inactiveSinceEpochMillis ?: return when (gcTime) {
-            null -> "Cached since before the inspector first read the cache, so when Soil drops it is not known."
-            else -> "Cached since before the inspector first read the cache; Soil drops it gcTime ($gcTime) after it became inactive."
+        val since = entry.inactiveSinceEpochMillis
+        val unused = if (since == null) "Cached since before the inspector first read the cache" else "Cached and unused for ${describeSeconds((agentNowEpochMillis - since) / 1000)}"
+        val dropped = when {
+            gcTime == null -> if (since == null) ", so when Soil drops it is not known" else ""
+            gcTime.isInfinite() -> "; Soil never drops it (gcTime $gcTime)"
+            since == null -> "; Soil drops it gcTime ($gcTime) after it became inactive"
+            else -> "; Soil drops it ${describeRelativeToNow((since + gcTime.inWholeMilliseconds) / 1000)} (gcTime $gcTime)"
         }
-        val unused = "Cached and unused for ${describeSeconds((agentNowEpochMillis - since) / 1000)}"
-        return when (gcTime) {
-            null -> "$unused."
-            else -> "$unused; Soil drops it ${describeRelativeToNow((since + gcTime.inWholeMilliseconds) / 1000)} (gcTime $gcTime)."
-        }
+        return "$unused$dropped."
     }
 
     private fun describeRelativeToNow(epochSeconds: Long): String = describeEpochSeconds(epochSeconds, agentNowEpochSeconds, whenZero = "at an unknown time")

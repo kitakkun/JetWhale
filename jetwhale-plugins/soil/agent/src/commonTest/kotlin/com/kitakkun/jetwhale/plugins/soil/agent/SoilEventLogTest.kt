@@ -79,6 +79,17 @@ class SoilEventLogTest {
     }
 
     @Test
+    fun `a fetch that fails again within the second of the last failure still fails`() {
+        val failed = queryEntry(SoilFetchStatus.Idle, status = SoilStatus.FAILURE, error = SoilEntryError("IllegalStateException", "offline"), errorUpdatedAt = 1_000)
+        val refetching = failed.copy(state = (failed.state as SoilEntryState.Query).copy(fetchStatus = SoilFetchStatus.Fetching(isValidating = false)))
+        eventLog.recordChange(failed, refetching, NOW - 200)
+
+        val event = eventLog.recordChange(refetching, failed, NOW).single()
+
+        assertEquals(SoilEventKind.FETCH_FAILED, event.kind)
+    }
+
+    @Test
     fun `a fetch already under way when its entry was first seen ends without a duration`() {
         eventLog.recordChange(null, fetchingProfile, NOW - 300)
 

@@ -151,7 +151,11 @@ internal class SoilEntryListFilter(
         current.count { meets(it, SoilEntryCondition.FAILED) }.takeIf { it > 0 }?.let { add(SoilProblem(SoilEntryCondition.FAILED, "$it failed", JwTone.Error)) }
         current.count { meets(it, SoilEntryCondition.PAUSED) }.takeIf { it > 0 }?.let { add(SoilProblem(SoilEntryCondition.PAUSED, "$it paused after an error", JwTone.Warning)) }
         val slowCount = current.count { listed -> listed.entry.inFlightSinceEpochMillis?.let { agentNowEpochMillis - it > SLOW_IN_FLIGHT_MILLIS } == true }
-        if (slowCount > 0) add(SoilProblem(SoilEntryCondition.FETCHING, "$slowCount running over ${SLOW_IN_FLIGHT_MILLIS / 1000}s", JwTone.Warning))
+        if (slowCount > 0) {
+            val runningCount = current.count { meets(it, SoilEntryCondition.FETCHING) }
+            val text = if (runningCount == slowCount) "$slowCount running over ${SLOW_IN_FLIGHT_MILLIS / 1000}s" else "$runningCount running, $slowCount of them over ${SLOW_IN_FLIGHT_MILLIS / 1000}s"
+            add(SoilProblem(SoilEntryCondition.FETCHING, text, JwTone.Warning))
+        }
     }
 
     private fun matchesSearch(listed: ListedSoilEntry, searchText: String): Boolean = searchText.isBlank() ||

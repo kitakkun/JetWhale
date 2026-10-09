@@ -106,14 +106,16 @@ internal class SoilEventLog {
 
     /**
      * How the fetch [previous] was running ended, or, when none was seen running, what one that
-     * came and went between the two readings left behind.
+     * came and went between the two readings left behind. Soil times errors to the second, so a
+     * fetch seen ending in a failure is one even when errorUpdatedAt did not move.
      */
     private fun fetchEndOf(previous: SoilEntryState.Query?, current: SoilEntryState.Query, isReplyReplaced: Boolean, durationMillis: Long?): EntryChange? {
         if (current.fetchStatus is SoilFetchStatus.Fetching) return null
         val wasFetching = previous?.fetchStatus is SoilFetchStatus.Fetching
-        val isNewError = previous != null && current.errorUpdatedAt != previous.errorUpdatedAt && current.error != null
+        val isNewFetchFailure = current.error != null &&
+            ((previous != null && current.errorUpdatedAt != previous.errorUpdatedAt) || (wasFetching && current.status == SoilStatus.FAILURE))
         return when {
-            isNewError -> EntryChange(SoilEventKind.FETCH_FAILED, durationMillis, current.error?.describe())
+            isNewFetchFailure -> EntryChange(SoilEventKind.FETCH_FAILED, durationMillis, current.error?.describe())
             !wasFetching -> if (isReplyReplaced) EntryChange(SoilEventKind.DATA_UPDATED) else null
             isReplyReplaced -> EntryChange(SoilEventKind.FETCH_SUCCEEDED, durationMillis)
             else -> EntryChange(SoilEventKind.FETCH_SUCCEEDED, durationMillis, "the data did not change")

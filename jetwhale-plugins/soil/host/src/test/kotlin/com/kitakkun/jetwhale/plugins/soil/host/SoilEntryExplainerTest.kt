@@ -66,6 +66,13 @@ class SoilEntryExplainerTest {
     }
 
     @Test
+    fun `a cached query with an infinite gcTime says Soil never drops it`() {
+        val cached = profile.copy(location = SoilEntryLocation.INACTIVE, isObserved = false, inactiveSinceEpochMillis = 920_000, options = mapOf("gcTime" to "Infinity"))
+
+        assertEquals("Cached and unused for 1m 20s; Soil never drops it (gcTime Infinity).", explainerOf().notesOn(listed(cached)).last().text)
+    }
+
+    @Test
     fun `a query found already cached says when it went inactive is not known`() {
         val cached = profile.copy(location = SoilEntryLocation.INACTIVE, isObserved = false, inactiveSinceEpochMillis = null)
 

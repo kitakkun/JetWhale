@@ -94,7 +94,8 @@ what happened below. Each answers a question you would otherwise answer with log
   one line with a count. Click an event to select its entry; **Follow newest** keeps the latest in
   view.
 - **Something failed.** Failures, queries paused after an error and fetches running over ten seconds
-  are called out above the list, and **Show them** narrows the list to them. The detail pane gives
+  are called out above the list, and **Show them** narrows the list to the failed, paused and
+  running entries. The detail pane gives
   the error, how often the entry failed in the timeline, and whether Soil still holds back fetches.
   Soil retries within a fetch, and only for the errors the query's `shouldRetry` accepts, so the
   inspector shows the outcome rather than each attempt.

@@ -201,7 +201,7 @@ class SoilCacheBrowserTest {
         runBlocking { browser.load() }
 
         browser.clearEvents()
-        browser.adopt(changesOf(revision = 4, events = listOf(eventOf(1, profile, SoilEventKind.APPEARED), eventOf(2, settings, SoilEventKind.APPEARED, atEpochMillis = 700))))
+        browser.adopt(changesOf(upserts = listOf(settings), revision = 4, events = listOf(eventOf(1, profile, SoilEventKind.APPEARED), eventOf(2, settings, SoilEventKind.APPEARED, atEpochMillis = 700))))
 
         assertEquals(listOf(2L), browser.events.map(SoilEvent::sequence))
         assertEquals(mapOf(profile.handle to 500L, settings.handle to 700L), browser.lastActivityEpochMillisByHandle)
@@ -215,6 +215,16 @@ class SoilCacheBrowserTest {
         browser.adopt(snapshotOf(profile, revision = 7, recentEvents = (1L..4L).map { eventOf(it, profile, SoilEventKind.DATA_UPDATED) }))
 
         assertEquals(listOf(1L, 2L, 3L, 4L), browser.events.map(SoilEvent::sequence))
+    }
+
+    @Test
+    fun `an entry that goes away no longer keeps its last activity`() {
+        client.snapshot = snapshotOf(profile, settings, revision = 3, recentEvents = listOf(eventOf(1, settings, SoilEventKind.APPEARED, atEpochMillis = 500)))
+        runBlocking { browser.load() }
+
+        browser.adopt(changesOf(removedHandles = listOf(settings.handle), revision = 4, events = listOf(eventOf(2, settings, SoilEventKind.REMOVED, atEpochMillis = 600))))
+
+        assertEquals(emptyMap(), browser.lastActivityEpochMillisByHandle)
     }
 
     @Test

@@ -232,6 +232,8 @@ internal class SoilCacheBrowser(
         val goneMutations = entries.filter(ListedSoilEntry::isGone)
         val evictedHandles = goneMutations.take((goneMutations.size - GONE_MUTATION_LIMIT).coerceAtLeast(0)).mapTo(mutableSetOf()) { it.entry.handle }
         listedEntries = entries.filter { it.entry.handle !in evictedHandles }
+        val listedHandles = listedEntries.mapTo(mutableSetOf()) { it.entry.handle }
+        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle.filterKeys(listedHandles::contains)
         if (selectedHandle != null && selectedEntry == null) {
             selectedHandle = null
             selectedValue = null
@@ -243,7 +245,8 @@ internal class SoilCacheBrowser(
         if (unseen.isEmpty()) return
         lastEventSequence = unseen.last().sequence
         events = (events + unseen).takeLast(EVENT_LIMIT)
-        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle + unseen.associate { it.handle to it.atEpochMillis }
+        val listedHandles = listedEntries.mapTo(mutableSetOf()) { it.entry.handle }
+        lastActivityEpochMillisByHandle = lastActivityEpochMillisByHandle + unseen.filter { it.handle in listedHandles }.associate { it.handle to it.atEpochMillis }
         if (selectedEventSequence != null && events.none { it.sequence == selectedEventSequence }) selectedEventSequence = null
     }
 

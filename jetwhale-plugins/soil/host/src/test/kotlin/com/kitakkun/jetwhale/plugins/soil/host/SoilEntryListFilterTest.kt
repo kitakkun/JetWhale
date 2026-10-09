@@ -73,13 +73,13 @@ class SoilEntryListFilterTest {
     }
 
     @Test
-    fun `a fetch running over ten seconds is a problem and a shorter one is not`() {
+    fun `a fetch running over ten seconds is a problem told among all that are running`() {
         val slow = listed(fetching(queryEntry(handle = "query-7", namespace = "slow"), inFlightSinceEpochMillis = HOST_NOW * 1000 - 12_000))
         val quick = listed(fetching(queryEntry(handle = "query-8", namespace = "quick"), inFlightSinceEpochMillis = HOST_NOW * 1000 - 2_000))
 
         val problems = listFilter.problemsOf(listOf(slow, quick, failedSettingsQuery))
 
-        assertEquals(listOf("1 failed", "1 running over 10s"), problems.map(SoilProblem::text))
+        assertEquals(listOf("1 failed", "2 running, 1 of them over 10s"), problems.map(SoilProblem::text))
         assertEquals(listOf(SoilEntryCondition.FAILED, SoilEntryCondition.FETCHING), problems.map(SoilProblem::condition))
     }
 
