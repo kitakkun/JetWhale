@@ -23,13 +23,8 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 internal fun IphoneInputBanner(inputRefusal: String?, developmentTeam: String?, onUpdateDevelopmentTeam: (String?) -> Unit) {
     var editingTeam by remember { mutableStateOf(false) }
     val takesInput = inputRefusal == null
-    val text = when {
-        takesInput -> "Input on iPhones is experimental · signed with team $developmentTeam"
-        developmentTeam == null -> "Input on an iPhone needs your Apple development team · experimental"
-        else -> "No input: $inputRefusal"
-    }
     JwBanner(
-        text = text,
+        text = if (takesInput) "Input on iPhones is experimental · signed with team $developmentTeam" else "No input: $inputRefusal",
         tone = if (takesInput) JwTone.Info else JwTone.Warning,
         actions = {
             JwButton(text = if (developmentTeam == null) "Set team…" else "Change team…", onClick = { editingTeam = true }, style = JwButtonStyle.Text)
