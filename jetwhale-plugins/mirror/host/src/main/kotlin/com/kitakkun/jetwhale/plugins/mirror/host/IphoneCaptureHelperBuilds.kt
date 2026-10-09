@@ -36,11 +36,11 @@ internal class IphoneCaptureHelperBuilds(
      * @throws DeviceControlException when the Swift compiler is missing or fails.
      */
     suspend fun findOrBuildHelperExecutable(): File = withContext(Dispatchers.IO) {
-        val version = runCommand(listOf(xcrunPath, "swiftc", "--version"))
-        if (version.exitCode != 0) throw deviceControlError("mirroring an iPhone builds a helper with Xcode's Swift compiler, and 'xcrun swiftc --version' failed: ${outputOf(version)}")
-        val compilerKey = sha256Hex(version.stdout).take(COMPILER_KEY_LENGTH)
+        val compilerVersionResult = runCommand(listOf(xcrunPath, "swiftc", "--version"))
+        if (compilerVersionResult.exitCode != 0) throw deviceControlError("mirroring an iPhone builds a helper with Xcode's Swift compiler, and 'xcrun swiftc --version' failed: ${outputOf(compilerVersionResult)}")
+        val compilerKey = sha256Hex(compilerVersionResult.stdout).take(COMPILER_KEY_LENGTH)
         val buildDirectory = File(buildsDirectory, "$compilerKey-${sha256Hex(source).take(SOURCE_KEY_LENGTH)}")
-        val executable = File(buildDirectory, HELPER_EXECUTABLE_NAME)
+        val executable = File(buildDirectory, HELPER_EXECUTABLE_FILE_NAME)
         if (!executable.canExecute()) {
             compileInto(buildDirectory)
             deleteStaleBuilds(compilerKey, buildDirectory)
@@ -55,13 +55,13 @@ internal class IphoneCaptureHelperBuilds(
     private suspend fun compileInto(buildDirectory: File) {
         val staging = File(buildsDirectory, "${buildDirectory.name}.partial-${UUID.randomUUID()}").apply { mkdirs() }
         try {
-            val sourceFile = File(staging, HELPER_SOURCE_NAME).apply { writeBytes(source) }
-            val compile = runCommand(listOf(xcrunPath, "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o", File(staging, HELPER_EXECUTABLE_NAME).path, sourceFile.path))
-            if (compile.exitCode != 0) throw deviceControlError("the iPhone capture helper did not compile with this Mac's Swift compiler: ${outputOf(compile)}")
+            val sourceFile = File(staging, HELPER_SOURCE_FILE_NAME).apply { writeBytes(source) }
+            val compileResult = runCommand(listOf(xcrunPath, "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o", File(staging, HELPER_EXECUTABLE_FILE_NAME).path, sourceFile.path))
+            if (compileResult.exitCode != 0) throw deviceControlError("the iPhone capture helper did not compile with this Mac's Swift compiler: ${outputOf(compileResult)}")
             // A directory left without its executable, by hand or by a crash, would refuse the move.
-            if (buildDirectory.isDirectory && !File(buildDirectory, HELPER_EXECUTABLE_NAME).canExecute()) buildDirectory.deleteRecursively()
+            if (buildDirectory.isDirectory && !File(buildDirectory, HELPER_EXECUTABLE_FILE_NAME).canExecute()) buildDirectory.deleteRecursively()
             // A host that finished the same build first has already moved its own into place.
-            if (!staging.renameTo(buildDirectory) && !File(buildDirectory, HELPER_EXECUTABLE_NAME).canExecute()) {
+            if (!staging.renameTo(buildDirectory) && !File(buildDirectory, HELPER_EXECUTABLE_FILE_NAME).canExecute()) {
                 throw deviceControlError("could not move the iPhone capture helper into $buildDirectory")
             }
         } finally {
@@ -71,23 +71,23 @@ internal class IphoneCaptureHelperBuilds(
 
     private fun deleteStaleBuilds(compilerKey: String, currentBuildDirectory: File) {
         val now = clock.millis()
-        buildsDirectory.listFiles(File::isDirectory).orEmpty().filter { it != currentBuildDirectory }.forEach { build ->
-            val lastUsedMillis = File(build, LAST_USED_MARKER).takeIf(File::isFile)?.lastModified() ?: build.lastModified()
-            if (!build.name.startsWith("$compilerKey-") || now - lastUsedMillis > unusedBuildLifetime.inWholeMilliseconds) build.deleteRecursively()
+        buildsDirectory.listFiles(File::isDirectory).orEmpty().filter { it != currentBuildDirectory }.forEach { buildDirectory ->
+            val lastUsedMillis = File(buildDirectory, LAST_USED_MARKER).takeIf(File::isFile)?.lastModified() ?: buildDirectory.lastModified()
+            if (!buildDirectory.name.startsWith("$compilerKey-") || now - lastUsedMillis > unusedBuildLifetime.inWholeMilliseconds) buildDirectory.deleteRecursively()
         }
     }
 }
 
 /** The helper's source, as the plugin bundles it beside this class. */
-internal fun readIphoneCaptureHelperSource(): ByteArray = checkNotNull(IphoneCaptureHelperBuilds::class.java.getResourceAsStream(HELPER_SOURCE_NAME)) { "the plugin bundles no $HELPER_SOURCE_NAME" }.use { it.readBytes() }
+internal fun readIphoneCaptureHelperSource(): ByteArray = checkNotNull(IphoneCaptureHelperBuilds::class.java.getResourceAsStream(HELPER_SOURCE_FILE_NAME)) { "the plugin bundles no $HELPER_SOURCE_FILE_NAME" }.use { it.readBytes() }
 
 private fun outputOf(result: CommandResult): String = result.stderr.ifBlank { result.stdoutText }.trim().takeLast(MAX_OUTPUT_CHARS)
 
 private fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
-private const val HELPER_SOURCE_NAME = "IphoneScreenCapture.swift"
+private const val HELPER_SOURCE_FILE_NAME = "IphoneScreenCapture.swift"
 
-private const val HELPER_EXECUTABLE_NAME = "jetwhale-iphone-capture"
+private const val HELPER_EXECUTABLE_FILE_NAME = "jetwhale-iphone-capture"
 
 /** Touched on every lookup, so a build another version of the plugin still runs is not deleted. */
 private const val LAST_USED_MARKER = "last-used"

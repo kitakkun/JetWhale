@@ -25,16 +25,16 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 
 class IphoneScreenCapturesTest {
-    private val launched = CopyOnWriteArrayList<FakeCaptureHelperProcess>()
-    private val launcher = ProcessLauncher { command -> FakeCaptureHelperProcess(command) {}.also(launched::add) }
+    private val helpers = CopyOnWriteArrayList<FakeCaptureHelperProcess>()
+    private val launcher = ProcessLauncher { command -> FakeCaptureHelperProcess(command) {}.also(helpers::add) }
     private val realScope = CoroutineScope(Job())
 
     private val idleTimeout = 30.seconds
     private val timeSource = TestTimeSource()
 
     @AfterTest
-    fun cleanUp() {
-        launched.forEach { it.exit(0) }
+    fun exitHelpersAndCancelRealScope() {
+        helpers.forEach { it.exit(0) }
         realScope.cancel()
     }
 
@@ -46,7 +46,7 @@ class IphoneScreenCapturesTest {
         val second = captures.acquire("udid-1", "Test iPhone")
 
         assertSame(first, second)
-        assertEquals(listOf(HELPER.path, "--udid", "udid-1", "--name", "Test iPhone"), launched.single().command)
+        assertEquals(listOf(HELPER_EXECUTABLE.path, "--udid", "udid-1", "--name", "Test iPhone"), helpers.single().launchCommand)
     }
 
     @Test
@@ -58,10 +58,10 @@ class IphoneScreenCapturesTest {
         captures.release(capture)
         captures.release(capture)
         delay(idleTimeout - 1.seconds)
-        assertFalse(launched.single().stdinClosed)
+        assertFalse(helpers.single().stdinClosed)
 
         delay(2.seconds)
-        assertTrue(launched.single().stdinClosed)
+        assertTrue(helpers.single().stdinClosed)
     }
 
     @Test
@@ -74,7 +74,7 @@ class IphoneScreenCapturesTest {
         assertSame(capture, captures.acquire("udid-1", "Test iPhone"))
         delay(idleTimeout * 2)
 
-        assertFalse(launched.single().stdinClosed)
+        assertFalse(helpers.single().stdinClosed)
     }
 
     @Test
@@ -84,7 +84,7 @@ class IphoneScreenCapturesTest {
 
         captures.stopCaptureEvenIfInUse("udid-1")
 
-        assertTrue(launched.single().stdinClosed)
+        assertTrue(helpers.single().stdinClosed)
     }
 
     @Test
@@ -95,13 +95,13 @@ class IphoneScreenCapturesTest {
 
         captures.stopAll()
 
-        assertEquals(listOf(true, true), launched.map(FakeCaptureHelperProcess::stdinClosed))
+        assertEquals(listOf(true, true), helpers.map(FakeCaptureHelperProcess::stdinClosed))
     }
 
     @Test
     fun `a started capture says so, and the frames' size once the first is sent`() = runBlocking {
         val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
-        val helper = launched.single()
+        val helper = helpers.single()
 
         helper.reportCapturing(IntSize(1170, 2532))
         withTimeout(TEST_TIMEOUT) { capture.awaitStarted() }
@@ -113,7 +113,7 @@ class IphoneScreenCapturesTest {
     @Test
     fun `a reader asks the helper for a key frame and reads the access units from it on`() = runBlocking {
         val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
-        val helper = launched.single()
+        val helper = helpers.single()
 
         val subscription = capture.subscribe()
         helper.send(DELTA_FRAME + KEY_FRAME + DELTA_FRAME)
@@ -126,7 +126,7 @@ class IphoneScreenCapturesTest {
     @Test
     fun `a helper that fails tells whoever waits for it to start what to do`() = runBlocking {
         val capture = captures(realScope, failureReuse = 5.seconds).acquire("udid-1", "Test iPhone")
-        val helper = launched.single()
+        val helper = helpers.single()
 
         helper.report("""{"event":"error","message":"no capture device showed the iPhone within 15 s","reason":"deviceNotFound"}""")
         helper.exit(IphoneCaptureExit.DeviceNotFound.code)
@@ -139,16 +139,16 @@ class IphoneScreenCapturesTest {
     fun `after a failure the iPhone is not tried again until the failure reuse has passed`() = runBlocking {
         val captures = captures(realScope, failureReuse = 5.seconds)
         val capture = captures.acquire("udid-1", "Test iPhone")
-        launched.single().exit(IphoneCaptureExit.PermissionDenied.code)
+        helpers.single().exit(IphoneCaptureExit.PermissionDenied.code)
         val failure = assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
 
-        val reused = assertFailsWith<DeviceControlException> { captures.acquire("udid-1", "Test iPhone") }
-        assertEquals(failure.message, reused.message)
-        assertEquals(1, launched.size)
+        val reusedFailure = assertFailsWith<DeviceControlException> { captures.acquire("udid-1", "Test iPhone") }
+        assertEquals(failure.message, reusedFailure.message)
+        assertEquals(1, helpers.size)
 
         timeSource += 6.seconds
         captures.acquire("udid-1", "Test iPhone")
-        assertEquals(2, launched.size)
+        assertEquals(2, helpers.size)
     }
 
     @Test
@@ -162,13 +162,13 @@ class IphoneScreenCapturesTest {
         assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
         assertEquals(-1, subscription.stream.read())
         captures.acquire("udid-1", "Test iPhone")
-        assertEquals(2, launched.size)
+        assertEquals(2, helpers.size)
     }
 
-    private fun captures(scope: CoroutineScope, failureReuse: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReuse, timeSource, scope, CompletableDeferred(HELPER))
+    private fun captures(scope: CoroutineScope, failureReuse: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReuse, timeSource, scope, CompletableDeferred(HELPER_EXECUTABLE))
 }
 
-private val HELPER = File("/builds/jetwhale-iphone-capture")
+private val HELPER_EXECUTABLE = File("/builds/jetwhale-iphone-capture")
 
 private val TEST_TIMEOUT = 10.seconds
 

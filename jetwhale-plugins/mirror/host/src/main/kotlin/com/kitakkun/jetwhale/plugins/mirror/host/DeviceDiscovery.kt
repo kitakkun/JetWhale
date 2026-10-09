@@ -24,14 +24,14 @@ internal class Discovery(
  *
  * iOS input, and a simulator's live video, go through [xcTestRunners], null without Xcode; a
  * physical iPhone's input also needs `iproxy` at [iproxyPath]. An iPhone's screen comes from
- * [iphoneCaptures], also null without Xcode, which stop the capture of an iPhone once it is gone.
+ * [iphoneScreenCaptures], also null without Xcode, which stop the capture of an iPhone once it is gone.
  *
  * A look waits for every tool it is given, so a tool is reported missing only once it has been
  * looked for.
  */
 internal class DeviceDiscovery(
     private val toolPaths: Deferred<MirrorToolPaths>,
-    private val iphoneCaptures: Deferred<IphoneScreenCaptures?>,
+    private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?>,
     private val xcTestRunners: Deferred<XcTestRunners?>,
     private val iproxyPath: Deferred<String?>,
     private val emulatorScreens: EmulatorScreens,
@@ -42,7 +42,7 @@ internal class DeviceDiscovery(
 
     suspend fun discover(): Discovery = looking.withLock {
         val locatedToolPaths = toolPaths.await()
-        val sharedCaptures = iphoneCaptures.await()
+        val iphoneScreenCaptures = iphoneScreenCaptures.await()
         val runnerInput = xcTestRunners.await()?.let(::XcTestRunnerInput)
         val looks = listOf(
             listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
@@ -52,9 +52,9 @@ internal class DeviceDiscovery(
         // A tool that fails to list (adb's server starting, say) keeps the devices it listed before,
         // so a passing failure neither drops the selected device nor stops an iPhone's capture.
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCaptures, runnerInput)) }
+        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCaptures, runnerInput)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
-        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { sharedCaptures?.stopCaptureEvenIfInUse(it.id) }
+        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { iphoneScreenCaptures?.stopCaptureEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         val isIphoneListed = devices.any { it.kind == DeviceKind.IosDevice }
@@ -87,7 +87,7 @@ internal class DeviceDiscovery(
         }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCaptures: IphoneScreenCaptures?, runnerInput: XcTestRunnerInput?): DeviceController = when (listing.kind) {
+    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, iphoneScreenCaptures: IphoneScreenCaptures?, runnerInput: XcTestRunnerInput?): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
@@ -101,9 +101,9 @@ internal class DeviceDiscovery(
 
         DeviceKind.IosDevice -> IosPhysicalDeviceController(
             udid = listing.id,
-            name = listing.name,
+            deviceName = listing.name,
             iosMajorVersion = majorVersionOf(listing.osVersion),
-            captures = checkNotNull(sharedCaptures),
+            iphoneScreenCaptures = checkNotNull(iphoneScreenCaptures),
             ffmpegPath = locatedToolPaths.ffmpegPath,
             runnerInput = runnerInput,
         )

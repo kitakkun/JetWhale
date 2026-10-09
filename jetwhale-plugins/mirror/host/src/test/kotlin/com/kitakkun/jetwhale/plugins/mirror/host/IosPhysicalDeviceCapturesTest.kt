@@ -136,7 +136,7 @@ class IosPhysicalDeviceCapturesTest {
         } catch (_: DeviceControlException) {
         }
 
-        assertTrue(helpers.single().awaitStdinClosed(CAPTURE_STOP_WAIT), "the capture was still held after the recording")
+        assertTrue(helpers.single().awaitStdinClosed(CAPTURE_STOP_TIMEOUT), "the capture was still held after the recording")
     }
 
     @Test
@@ -149,17 +149,17 @@ class IosPhysicalDeviceCapturesTest {
     /** An iPhone whose capture reports frames of the sample's size at once and answers [onCommand]. */
     private fun iosDevice(ffmpegPath: String?, idleTimeout: Duration, onCommand: FakeCaptureHelperProcess.(String) -> Unit) = IosPhysicalDeviceController(
         udid = "udid-1",
-        name = "Test iPhone",
+        deviceName = "Test iPhone",
         iosMajorVersion = 26,
-        captures = IphoneScreenCaptures(
-            launcher = { command ->
+        iphoneScreenCaptures = IphoneScreenCaptures(
+            processLauncher = { command ->
                 FakeCaptureHelperProcess(command, onCommand).also { helper ->
                     helper.reportCapturing(IntSize(SAMPLE_WIDTH, SAMPLE_HEIGHT))
                     helpers += helper
                 }
             },
             idleTimeout = idleTimeout,
-            failureReuse = 1.minutes,
+            failureReusePeriod = 1.minutes,
             timeSource = TimeSource.Monotonic,
             scope = captureScope,
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),
@@ -196,7 +196,7 @@ private const val SAMPLE_HEIGHT = 640
 
 private const val SAMPLE_FRAMES = 10
 
-private val CAPTURE_STOP_WAIT = 5.seconds
+private val CAPTURE_STOP_TIMEOUT = 5.seconds
 
 /** Hands out [bytes] in [chunks] pieces, pausing between them the way a live stream arrives. */
 private class PacedInputStream(bytes: ByteArray, chunks: Int, private val pauseMillis: Long) : InputStream() {

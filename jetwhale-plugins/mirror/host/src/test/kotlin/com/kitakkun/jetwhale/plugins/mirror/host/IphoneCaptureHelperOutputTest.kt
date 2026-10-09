@@ -46,17 +46,17 @@ class IphoneCaptureHelperOutputTest {
 
     @Test
     fun `without a reported failure the last lines of the helper's log explain it`() {
-        val message = iphoneCaptureFailureMessage(70, reported = null, logTail = listOf("first", "second"))
+        val message = iphoneCaptureFailureMessage(70, reportedFailureMessage = null, logTail = listOf("first", "second"))
 
         assertEquals("The iPhone capture helper ended with exit code 70: first / second", message)
-        assertFalse(iphoneCaptureFailureMessage(70, reported = null, logTail = emptyList()).endsWith(": "))
+        assertFalse(iphoneCaptureFailureMessage(70, reportedFailureMessage = null, logTail = emptyList()).endsWith(": "))
     }
 
     @Test
     fun `the exit codes match the ones the bundled helper source defines`() {
         val source = readIphoneCaptureHelperSource().decodeToString()
-        val exits = Regex("""case (\w+) = (\d+)""").findAll(source.substringAfter("enum HelperExit").substringBefore("var reason")).associate { it.groupValues[1] to it.groupValues[2].toInt() }
+        val helperExitCodes = Regex("""case (\w+) = (\d+)""").findAll(source.substringAfter("enum HelperExit").substringBefore("var reason")).associate { it.groupValues[1] to it.groupValues[2].toInt() }
 
-        assertEquals(IphoneCaptureExit.entries.associate { it.name.replaceFirstChar(Char::lowercase) to it.code }, exits)
+        assertEquals(IphoneCaptureExit.entries.associate { it.name.replaceFirstChar(Char::lowercase) to it.code }, helperExitCodes)
     }
 }

@@ -13,11 +13,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 
 /**
- * A physical iOS device over USB, called [name]. Its screen comes from the iPhone capture helper
- * through [captures], shared with everything else that reads it: the live view, screenshots and
- * recordings, which ffmpeg decodes and wraps. Input goes through the XCTest runner, signed with
- * the user's development team and reached through `iproxy`; driving a device that way is
- * experimental: it follows Apple's and Appium's documentation and has not been tried on one.
+ * A physical iOS device over USB, called [deviceName]. Its screen comes from the iPhone capture
+ * helper through [iphoneScreenCaptures], shared with everything else that reads it: the live view,
+ * screenshots and recordings, which ffmpeg decodes and wraps. Input goes through the XCTest runner,
+ * signed with the user's development team and reached through `iproxy`; driving a device that way
+ * is experimental: it follows Apple's and Appium's documentation and has not been tried on one.
  *
  * The capture comes before the runner. Starting it switches the iPhone's USB connection over,
  * which drops iproxy's connection to the runner, so the runner is started only once the capture
@@ -28,9 +28,9 @@ import kotlin.time.Duration
  */
 internal class IosPhysicalDeviceController(
     private val udid: String,
-    private val name: String,
+    private val deviceName: String,
     iosMajorVersion: Int?,
-    private val captures: IphoneScreenCaptures,
+    private val iphoneScreenCaptures: IphoneScreenCaptures,
     private val ffmpegPath: String?,
     private val runnerInput: XcTestRunnerInput?,
 ) : DeviceController,
@@ -51,8 +51,8 @@ internal class IosPhysicalDeviceController(
     /** A key frame of the current screen, asked of the capture for a reader of its own, as a PNG. */
     override suspend fun captureScreenshot(): ByteArray {
         val ffmpegPath = requireFfmpegPath("a screenshot of an iPhone")
-        return withStartedCapture { capture ->
-            capture.subscribe().use { subscription ->
+        return withStartedScreenCapture { screenCapture ->
+            screenCapture.subscribe().use { subscription ->
                 withContext(Dispatchers.IO) { firstH264FrameAsPng(subscription.stream, ffmpegPath, STILL_FRAME_TIMEOUT_MILLIS) }
             }
         }
@@ -63,7 +63,7 @@ internal class IosPhysicalDeviceController(
      * runner reports when the capture fails and the iPhone takes input.
      */
     override suspend fun screenSize(): IntSize = try {
-        withStartedCapture(::awaitFrameSize)
+        withStartedScreenCapture(::awaitFrameSize)
     } catch (e: DeviceControlException) {
         if (inputRefusal() != null) throw e
         checkNotNull(runnerInput).screenSize(runnerTarget)
@@ -95,7 +95,7 @@ internal class IosPhysicalDeviceController(
     private suspend fun <T> sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> T): T {
         inputRefusal()?.let { throw deviceControlError(it) }
         try {
-            withStartedCapture(::awaitFrameSize)
+            withStartedScreenCapture(::awaitFrameSize)
         } catch (_: DeviceControlException) {
         }
         return command(checkNotNull(runnerInput), runnerTarget)
@@ -106,7 +106,7 @@ internal class IosPhysicalDeviceController(
      * being captured; until then, does nothing.
      */
     fun startRunnerInBackground() {
-        if (inputRefusal() == null && captures.isCapturing(udid)) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+        if (inputRefusal() == null && iphoneScreenCaptures.isCapturing(udid)) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
     }
 
     private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
@@ -119,25 +119,25 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         val ffmpegPath = requireFfmpegPath("recording an iPhone")
-        val capture = captures.acquire(udid, name)
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
         var recorder: H264FileRecorder? = null
         try {
-            capture.awaitStarted()
-            val subscription = capture.subscribe()
+            screenCapture.awaitStarted()
+            val subscription = screenCapture.subscribe()
             try {
-                recorder = withContext(Dispatchers.IO) { H264FileRecorder(subscription.stream, ffmpegPath, outputFile, subscription::end) }
+                recorder = withContext(Dispatchers.IO) { H264FileRecorder(subscription.stream, ffmpegPath, outputFile, subscription::endStreamAfterQueued) }
             } finally {
                 if (recorder == null) subscription.close()
             }
         } finally {
-            if (recorder == null) captures.release(capture)
+            if (recorder == null) iphoneScreenCaptures.release(screenCapture)
         }
-        val started = checkNotNull(recorder)
+        val startedRecorder = checkNotNull(recorder)
         return object : DeviceRecording {
             override suspend fun stop(): File = try {
-                withContext(Dispatchers.IO) { started.stop() }
+                withContext(Dispatchers.IO) { startedRecorder.stop() }
             } finally {
-                captures.release(capture)
+                iphoneScreenCaptures.release(screenCapture)
             }
         }
     }
@@ -148,35 +148,35 @@ internal class IosPhysicalDeviceController(
      */
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         val ffmpegPath = requireFfmpegPath("mirroring an iPhone")
-        val capture = captures.acquire(udid, name)
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
         var subscription: H264Subscription? = null
         try {
-            capture.awaitStarted()
-            capture.firstFrameSize.invokeOnCompletion { failure -> if (failure == null) startRunnerInBackground() }
-            subscription = capture.subscribe()
+            screenCapture.awaitStarted()
+            screenCapture.firstFrameSize.invokeOnCompletion { failure -> if (failure == null) startRunnerInBackground() }
+            subscription = screenCapture.subscribe()
         } finally {
-            if (subscription == null) captures.release(capture)
+            if (subscription == null) iphoneScreenCaptures.release(screenCapture)
         }
-        val reader = checkNotNull(subscription)
+        val openedSubscription = checkNotNull(subscription)
         val released = AtomicBoolean(false)
-        return VideoStream.H264(reader.stream, ffmpegPath) {
-            reader.close()
-            if (released.compareAndSet(false, true)) captures.release(capture)
+        return VideoStream.H264(openedSubscription.stream, ffmpegPath) {
+            openedSubscription.close()
+            if (released.compareAndSet(false, true)) iphoneScreenCaptures.release(screenCapture)
         }
     }
 
-    private suspend fun <T> withStartedCapture(use: suspend (IphoneScreenCapture) -> T): T {
-        val capture = captures.acquire(udid, name)
+    private suspend fun <T> withStartedScreenCapture(use: suspend (IphoneScreenCapture) -> T): T {
+        val screenCapture = iphoneScreenCaptures.acquire(udid, deviceName)
         try {
-            capture.awaitStarted()
-            return use(capture)
+            screenCapture.awaitStarted()
+            return use(screenCapture)
         } finally {
-            captures.release(capture)
+            iphoneScreenCaptures.release(screenCapture)
         }
     }
 
-    private suspend fun awaitFrameSize(capture: IphoneScreenCapture): IntSize = capture.frameSize
-        ?: withTimeoutOrNull(FIRST_FRAME_WAIT_MILLIS) { capture.firstFrameSize.await() }
+    private suspend fun awaitFrameSize(screenCapture: IphoneScreenCapture): IntSize = screenCapture.frameSize
+        ?: withTimeoutOrNull(FIRST_FRAME_WAIT_MILLIS) { screenCapture.firstFrameSize.await() }
         ?: throw deviceControlError("the iPhone sent no picture of its screen within ${FIRST_FRAME_WAIT_MILLIS / 1000} s. Unlock it and keep its screen on.")
 
     private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")

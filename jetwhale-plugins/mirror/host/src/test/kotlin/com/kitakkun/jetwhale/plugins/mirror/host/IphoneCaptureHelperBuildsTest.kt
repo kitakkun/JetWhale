@@ -23,7 +23,7 @@ class IphoneCaptureHelperBuildsTest {
     private var now = Instant.parse("2026-10-09T00:00:00Z")
 
     @AfterTest
-    fun cleanUp() {
+    fun deleteBuildsDirectory() {
         buildsDirectory.deleteRecursively()
     }
 
@@ -36,16 +36,16 @@ class IphoneCaptureHelperBuildsTest {
 
         assertEquals(built, found)
         assertTrue(found.canExecute())
-        assertEquals(1, commands.count(::isCompile))
+        assertEquals(1, commands.count(::isCompileCommand))
     }
 
     @Test
     fun `the helper is compiled as a library with an entry point, optimized, in Swift 5 mode`() = runBlocking {
         val executable = builds(source = "first").findOrBuildHelperExecutable()
 
-        val compile = commands.single(::isCompile)
-        assertEquals(listOf("/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o"), compile.take(7))
-        assertEquals("IphoneScreenCapture.swift", File(compile.last()).name)
+        val compileCommand = commands.single(::isCompileCommand)
+        assertEquals(listOf("/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o"), compileCommand.take(7))
+        assertEquals("IphoneScreenCapture.swift", File(compileCommand.last()).name)
         assertEquals("jetwhale-iphone-capture", executable.name)
     }
 
@@ -88,7 +88,7 @@ class IphoneCaptureHelperBuildsTest {
         executable.delete()
 
         assertTrue(builds(source = "first").findOrBuildHelperExecutable().canExecute())
-        assertEquals(2, commands.count(::isCompile))
+        assertEquals(2, commands.count(::isCompileCommand))
     }
 
     @Test
@@ -117,4 +117,4 @@ class IphoneCaptureHelperBuildsTest {
     }
 }
 
-private fun isCompile(command: List<String>): Boolean = "-o" in command
+private fun isCompileCommand(command: List<String>): Boolean = "-o" in command

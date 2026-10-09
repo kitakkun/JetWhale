@@ -14,7 +14,7 @@ class H264SubscriptionTest {
         subscription.offer(AccessUnit(byteArrayOf(1), isKeyFrame = false))
         subscription.offer(AccessUnit(byteArrayOf(2), isKeyFrame = true))
         subscription.offer(AccessUnit(byteArrayOf(3), isKeyFrame = false))
-        subscription.end()
+        subscription.endStreamAfterQueued()
 
         assertContentEquals(byteArrayOf(2, 3), subscription.stream.readAllBytes())
     }
@@ -24,7 +24,7 @@ class H264SubscriptionTest {
         val subscription = H264Subscription(maxQueuedBytes = 1_000)
         subscription.offer(AccessUnit(byteArrayOf(1, 2), isKeyFrame = true))
 
-        subscription.end()
+        subscription.endStreamAfterQueued()
 
         assertFalse(subscription.offer(AccessUnit(byteArrayOf(3), isKeyFrame = false)))
         assertContentEquals(byteArrayOf(1, 2), subscription.stream.readAllBytes())

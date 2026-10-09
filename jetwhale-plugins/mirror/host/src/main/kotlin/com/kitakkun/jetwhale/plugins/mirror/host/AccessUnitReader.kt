@@ -13,7 +13,7 @@ internal class AccessUnit(val bytes: ByteArray, val isKeyFrame: Boolean)
  */
 internal class AccessUnitReader(private val source: InputStream) {
     private var buffer = ByteArray(READ_CHUNK_BYTES * 2)
-    private var length = 0
+    private var filledLength = 0
 
     /** Where the search for the next delimiter resumes: the bytes before it hold none. */
     private var searchedUpTo = 0
@@ -29,25 +29,25 @@ internal class AccessUnitReader(private val source: InputStream) {
         while (true) {
             val end = findAccessUnitEnd()
             if (end != null) {
-                val unit = buffer.copyOf(end)
-                buffer.copyInto(buffer, destinationOffset = 0, startIndex = end, endIndex = length)
-                length -= end
+                val unitBytes = buffer.copyOf(end)
+                buffer.copyInto(buffer, destinationOffset = 0, startIndex = end, endIndex = filledLength)
+                filledLength -= end
                 searchedUpTo = 0
-                return AccessUnit(unit, isKeyFrame = containsIdrSlice(unit))
+                return AccessUnit(unitBytes, isKeyFrame = containsIdrSlice(unitBytes))
             }
-            if (length >= MAX_ACCESS_UNIT_BYTES) throw IOException("no access unit delimiter in the first $MAX_ACCESS_UNIT_BYTES bytes of H.264")
-            if (buffer.size - length < READ_CHUNK_BYTES) buffer = buffer.copyOf(buffer.size * 2)
-            val read = source.read(buffer, length, buffer.size - length)
+            if (filledLength >= MAX_ACCESS_UNIT_BYTES) throw IOException("no access unit delimiter in the first $MAX_ACCESS_UNIT_BYTES bytes of H.264")
+            if (buffer.size - filledLength < READ_CHUNK_BYTES) buffer = buffer.copyOf(buffer.size * 2)
+            val read = source.read(buffer, filledLength, buffer.size - filledLength)
             if (read < 0) return null
-            length += read
+            filledLength += read
         }
     }
 
     /** The end of the first access unit in the buffer: just past its delimiter, a start code, the NAL header 9 and one byte. */
     private fun findAccessUnitEnd(): Int? {
         var index = searchedUpTo
-        while (index + DELIMITER_AFTER_START_CODE_BYTES <= length) {
-            if (isStartCodeAt(buffer, index) && buffer[index + 3].toInt() and NAL_TYPE_MASK == NAL_TYPE_ACCESS_UNIT_DELIMITER) return index + DELIMITER_AFTER_START_CODE_BYTES
+        while (index + DELIMITER_WITH_START_CODE_BYTES <= filledLength) {
+            if (isStartCodeAt(buffer, index) && buffer[index + 3].toInt() and NAL_TYPE_MASK == NAL_TYPE_ACCESS_UNIT_DELIMITER) return index + DELIMITER_WITH_START_CODE_BYTES
             index++
         }
         searchedUpTo = index
@@ -55,8 +55,8 @@ internal class AccessUnitReader(private val source: InputStream) {
     }
 }
 
-/** Whether [unit] holds a slice of an IDR picture, from which a decoder can start. */
-private fun containsIdrSlice(unit: ByteArray): Boolean = (0..unit.size - 4).any { isStartCodeAt(unit, it) && unit[it + 3].toInt() and NAL_TYPE_MASK == NAL_TYPE_IDR_SLICE }
+/** Whether [unitBytes] holds a slice of an IDR picture, from which a decoder can start. */
+private fun containsIdrSlice(unitBytes: ByteArray): Boolean = (0..unitBytes.size - 4).any { isStartCodeAt(unitBytes, it) && unitBytes[it + 3].toInt() and NAL_TYPE_MASK == NAL_TYPE_IDR_SLICE }
 
 /** Whether a three-byte start code, `00 00 01`, begins at [index]; a four-byte one ends with it. */
 private fun isStartCodeAt(bytes: ByteArray, index: Int): Boolean = bytes[index].toInt() == 0 && bytes[index + 1].toInt() == 0 && bytes[index + 2].toInt() == 1
@@ -68,7 +68,7 @@ private const val NAL_TYPE_IDR_SLICE = 5
 private const val NAL_TYPE_ACCESS_UNIT_DELIMITER = 9
 
 /** A three-byte start code, the delimiter's NAL header, and its one byte of payload. */
-private const val DELIMITER_AFTER_START_CODE_BYTES = 5
+private const val DELIMITER_WITH_START_CODE_BYTES = 5
 
 private const val READ_CHUNK_BYTES = 64 * 1024
 

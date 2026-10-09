@@ -279,22 +279,22 @@ class IosInputTest {
         assertTrue(runners.startedInBackground.isEmpty())
 
         helper.reportCapturing(IntSize(1206, 2622))
-        val started = withTimeout(TEST_TIMEOUT) { runners.firstStartedInBackground.await() }
+        val startedTarget = withTimeout(TEST_TIMEOUT) { runners.firstStartedInBackground.await() }
         stream.close()
 
-        assertEquals("00008110", started.udid)
+        assertEquals("00008110", startedTarget.udid)
     }
 
     private fun iphone(ffmpegPath: String?) = IosPhysicalDeviceController(
         udid = "00008110",
-        name = "Test iPhone",
+        deviceName = "Test iPhone",
         iosMajorVersion = 26,
-        captures = IphoneScreenCaptures(
-            launcher = { command ->
+        iphoneScreenCaptures = IphoneScreenCaptures(
+            processLauncher = { command ->
                 FakeCaptureHelperProcess(command) {}.also { helper ->
-                    helpersFailWith?.let { failure ->
-                        helper.report("""{"event":"error","reason":"${failure.name}","message":"the capture failed in a test"}""")
-                        helper.exit(failure.code)
+                    helpersFailWith?.let { failureExit ->
+                        helper.report("""{"event":"error","reason":"${failureExit.name}","message":"the capture failed in a test"}""")
+                        helper.exit(failureExit.code)
                     }
                     if (helpersReportFrames && helpersFailWith == null) helper.reportCapturing(IntSize(1206, 2622))
                     helpers += helper
@@ -302,7 +302,7 @@ class IosInputTest {
                 }
             },
             idleTimeout = 1.minutes,
-            failureReuse = 1.minutes,
+            failureReusePeriod = 1.minutes,
             timeSource = TimeSource.Monotonic,
             scope = captureScope,
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),

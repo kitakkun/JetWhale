@@ -74,14 +74,14 @@ private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = Coro
 private val IPHONE_CAPTURE_IDLE_TIMEOUT = 30.seconds
 
 /** How long a failed capture of an iPhone answers for it, so callers one after the other wait for the iPhone once. */
-private val IPHONE_CAPTURE_FAILURE_REUSE = 5.seconds
+private val IPHONE_CAPTURE_FAILURE_REUSE_PERIOD = 5.seconds
 
 /** Builds of the iPhone capture helper not run for this long are deleted by the next build. */
 private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
 
 // A host-only plugin gets an instance per debug session, but a device has one screen: the
 // instances share the captures, so two of them watching one iPhone start one capture.
-private val iphoneCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
     val builds = IphoneCaptureHelperBuilds(
         buildsDirectory = File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/iphone-capture"),
@@ -92,9 +92,9 @@ private val iphoneCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.
     ) { command -> runCommand(*command.toTypedArray()) }
     val helperExecutable = toolLocationScope.async(start = CoroutineStart.LAZY) { builds.findOrBuildHelperExecutable() }
     IphoneScreenCaptures(
-        launcher = SystemProcessLauncher,
+        processLauncher = SystemProcessLauncher,
         idleTimeout = IPHONE_CAPTURE_IDLE_TIMEOUT,
-        failureReuse = IPHONE_CAPTURE_FAILURE_REUSE,
+        failureReusePeriod = IPHONE_CAPTURE_FAILURE_REUSE_PERIOD,
         timeSource = TimeSource.Monotonic,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         helperExecutable = helperExecutable,
@@ -139,7 +139,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, iphoneCaptures, xcTestRunners, iproxyPath, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCaptures, xcTestRunners, iproxyPath, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
@@ -156,7 +156,7 @@ private class MirrorHostPlugin :
             } finally {
                 // await() starts a lazy Deferred, so awaiting captures that no look has asked for
                 // would locate the tools only to stop nothing.
-                if (liveInstances.decrementAndGet() == 0 && iphoneCaptures.isCompleted) iphoneCaptures.await()?.stopAll()
+                if (liveInstances.decrementAndGet() == 0 && iphoneScreenCaptures.isCompleted) iphoneScreenCaptures.await()?.stopAll()
             }
         }
     }

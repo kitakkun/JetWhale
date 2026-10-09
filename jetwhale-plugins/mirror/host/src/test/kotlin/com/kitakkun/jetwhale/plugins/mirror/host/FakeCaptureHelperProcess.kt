@@ -14,10 +14,10 @@ import kotlin.time.Duration
  * each line written to its stdin goes to [onCommand]. It ends when its stdin closes, as the helper
  * does, or when the test makes it [exit].
  */
-internal class FakeCaptureHelperProcess(val command: List<String>, private val onCommand: FakeCaptureHelperProcess.(String) -> Unit) : Process() {
+internal class FakeCaptureHelperProcess(val launchCommand: List<String>, private val onCommand: FakeCaptureHelperProcess.(String) -> Unit) : Process() {
     private val stdout = QueueInputStream()
     private val stderr = QueueInputStream()
-    private val exited = CountDownLatch(1)
+    private val exitedLatch = CountDownLatch(1)
     private val stdinClosedLatch = CountDownLatch(1)
 
     @Volatile
@@ -61,12 +61,12 @@ internal class FakeCaptureHelperProcess(val command: List<String>, private val o
     fun send(bytes: ByteArray) = stdout.add(bytes)
 
     fun exit(code: Int) {
-        synchronized(exited) {
-            if (exited.count == 0L) return
+        synchronized(exitedLatch) {
+            if (exitedLatch.count == 0L) return
             exitCode = code
             stdout.end()
             stderr.end()
-            exited.countDown()
+            exitedLatch.countDown()
         }
     }
 
@@ -77,11 +77,11 @@ internal class FakeCaptureHelperProcess(val command: List<String>, private val o
     override fun getErrorStream(): InputStream = stderr
 
     override fun waitFor(): Int {
-        exited.await()
+        exitedLatch.await()
         return exitCode
     }
 
-    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = exited.await(timeout, unit)
+    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = exitedLatch.await(timeout, unit)
 
     override fun exitValue(): Int = exitCode
 

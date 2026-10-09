@@ -27,7 +27,7 @@ class AccessUnitReaderTest {
 
     @Test
     fun `an access unit that arrives a byte at a time is read whole`() {
-        val reader = AccessUnitReader(OneByteAtATime(KEY_FRAME + DELTA_FRAME))
+        val reader = AccessUnitReader(OneBytePerReadInputStream(KEY_FRAME + DELTA_FRAME))
 
         assertContentEquals(KEY_FRAME, reader.readAccessUnit()?.bytes)
         assertContentEquals(DELTA_FRAME, reader.readAccessUnit()?.bytes)
@@ -35,12 +35,12 @@ class AccessUnitReaderTest {
 
     @Test
     fun `three-byte start codes are read like four-byte ones`() {
-        val unit = byteArrayOf(0, 0, 1, 0x65, 0x88.toByte(), 0x84.toByte(), 0, 0, 1, 0x09, 0xF0.toByte())
+        val unitBytes = byteArrayOf(0, 0, 1, 0x65, 0x88.toByte(), 0x84.toByte(), 0, 0, 1, 0x09, 0xF0.toByte())
 
-        val read = AccessUnitReader(ByteArrayInputStream(unit)).readAccessUnit()
+        val accessUnit = AccessUnitReader(ByteArrayInputStream(unitBytes)).readAccessUnit()
 
-        assertContentEquals(unit, read?.bytes)
-        assertEquals(true, read?.isKeyFrame)
+        assertContentEquals(unitBytes, accessUnit?.bytes)
+        assertEquals(true, accessUnit?.isKeyFrame)
     }
 
     @Test
@@ -54,14 +54,14 @@ class AccessUnitReaderTest {
     @Test
     fun `a large access unit grows the buffer`() {
         val slice = nal(0x65, *IntArray(300_000) { 0x5A })
-        val unit = slice + DELIMITER
+        val unitBytes = slice + DELIMITER
 
-        assertContentEquals(unit, AccessUnitReader(ByteArrayInputStream(unit)).readAccessUnit()?.bytes)
+        assertContentEquals(unitBytes, AccessUnitReader(ByteArrayInputStream(unitBytes)).readAccessUnit()?.bytes)
     }
 }
 
 /** A stream that hands out one byte per read, as a slow pipe can. */
-private class OneByteAtATime(bytes: ByteArray) : InputStream() {
+private class OneBytePerReadInputStream(bytes: ByteArray) : InputStream() {
     private val source = ByteArrayInputStream(bytes)
 
     override fun read(): Int = source.read()
