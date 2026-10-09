@@ -36,9 +36,12 @@ internal class FakeSoilCacheClient(
 
     var snapshotRequestCount = 0
 
+    /** Answered before [snapshot], one per request. */
+    val queuedSnapshots = ArrayDeque<SoilCacheSnapshot>()
+
     override suspend fun takeSnapshot(): SoilCacheSnapshot {
         snapshotRequestCount++
-        return snapshot
+        return queuedSnapshots.removeFirstOrNull() ?: snapshot
     }
 
     override suspend fun readValue(handle: String): SoilEntryValue {

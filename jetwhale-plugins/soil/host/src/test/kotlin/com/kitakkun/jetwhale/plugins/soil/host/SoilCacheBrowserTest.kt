@@ -140,6 +140,32 @@ class SoilCacheBrowserTest {
     }
 
     @Test
+    fun `a snapshot to make up for a missing event that arrives after a newer event is taken again`() {
+        runBlocking { browser.load() }
+        client.queuedSnapshots += snapshotOf(profile, settings, revision = 4)
+        client.snapshot = snapshotOf(settings, revision = 7)
+
+        browser.adopt(changesOf(upserts = listOf(profile.copy(isObserved = false)), revision = 6))
+
+        assertEquals(3, client.snapshotRequestCount)
+        assertEquals(listOf("settings"), browser.listedEntries.map { it.entry.id.namespace })
+    }
+
+    @Test
+    fun `a selected mutation that comes back after going away reads its value again`() {
+        val renameMutation = mutationEntry(handle = "mutation-3", namespace = "users/rename")
+        client.snapshot = snapshotOf(renameMutation, revision = 1)
+        runBlocking { browser.load() }
+        browser.select(renameMutation.handle)
+        browser.adopt(changesOf(removedHandles = listOf(renameMutation.handle), revision = 2))
+
+        browser.adopt(changesOf(upserts = listOf(renameMutation), revision = 3))
+
+        assertEquals(listOf(renameMutation.handle, renameMutation.handle), client.valueRequests)
+        assertEquals(SoilValueLoad.Loaded(SoilEntryValue.Json(encoding = SoilValueEncoding.CLASS_SERIALIZERS, json = JsonPrimitive("value of mutation-3"))), browser.selectedValue)
+    }
+
+    @Test
     fun `the selection is cleared when its entry goes away`() {
         runBlocking { browser.load() }
         browser.select(settings.handle)

@@ -142,7 +142,7 @@ internal fun SoilInspectorScreen(
                 if (!coverage.includesInactiveEntries) {
                     JwBanner(text = "Only active entries are shown. Pass the SwrCachePolicy to JetWhaleSoilAgentPlugin to see the inactive ones Soil keeps cached.", tone = JwTone.Info)
                 }
-                ProblemsBanner(problems = listFilter.problemsOf(listedEntries), onShowProblems = { onListSettingsChange(listSettings.copy(conditions = it)) })
+                ProblemsBanner(problems = listFilter.problemsOf(listedEntries), onShowProblems = { onListSettingsChange(listSettings.copy(searchText = "", conditions = it)) })
                 JwSplitPane(
                     orientation = Orientation.Vertical,
                     state = timelineSplitPaneState,

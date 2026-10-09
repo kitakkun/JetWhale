@@ -141,7 +141,7 @@ private fun EventList(
     onFollowingChange: (Boolean) -> Unit,
 ) {
     val eventRows = shownEvents.fold(mutableListOf<MutableList<SoilEvent>>()) { groups, event ->
-        val group = groups.lastOrNull()?.takeIf { it.last().handle == event.handle && it.last().kind == event.kind }
+        val group = groups.lastOrNull()?.takeIf { it.last().handle == event.handle && it.last().kind == event.kind && event.atEpochMillis - it.last().atEpochMillis <= BURST_GAP_MILLIS }
         if (group != null) group += event else groups += mutableListOf(event)
         groups
     }.map(TimelineRow::Events)

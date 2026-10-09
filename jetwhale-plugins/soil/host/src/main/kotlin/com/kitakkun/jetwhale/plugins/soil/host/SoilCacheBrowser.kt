@@ -24,6 +24,12 @@ private const val GONE_MUTATION_LIMIT = 50
 /** How many events the timeline keeps; the oldest goes first. */
 private const val EVENT_LIMIT = 1_000
 
+/**
+ * How many times a snapshot meant to make up for a missing event is taken again when newer events
+ * overtake it; the agent's revision only grows, so one more is normally enough.
+ */
+private const val RECOVERY_SNAPSHOT_RETAKE_LIMIT = 3
+
 /** The value of a mutation Soil dropped: the agent can no longer read it, so none is shown. */
 private val GoneValue = SoilValueLoad.Loaded(SoilEntryValue.EntryGone)
 
@@ -114,6 +120,9 @@ internal class SoilCacheBrowser(
     private var agentClockOffsetMillis = 0L
     private var valueRequestNumber = 0L
 
+    /** How many more snapshots may be taken to make up for a change event that never arrived. */
+    private var recoverySnapshotRetakesLeft = 0
+
     /** The last event the user cleared from the timeline; it and older ones do not come back. */
     private var clearedThroughSequence = 0L
 
@@ -126,19 +135,27 @@ internal class SoilCacheBrowser(
 
     /**
      * Takes [snapshot] as the whole cache, unless change events newer than it were already
-     * applied — a reload's reply can arrive after them.
+     * applied — a reload's reply can arrive after them. A snapshot meant to make up for a missing
+     * event that arrives too late for that is taken again.
      */
     fun adopt(snapshot: SoilCacheSnapshot) {
         synchronized(adoptionLock) {
-            if (snapshot.revision < appliedRevision) return
+            if (snapshot.revision < appliedRevision) {
+                if (recoverySnapshotRetakesLeft > 0) {
+                    recoverySnapshotRetakesLeft--
+                    launchReporting(::load)
+                }
+                return
+            }
+            recoverySnapshotRetakesLeft = 0
             appliedRevision = snapshot.revision
             agentClockOffsetMillis = snapshot.agentEpochMillis - clock.now().toEpochMilliseconds()
             coverage = snapshot.coverage
-            val previousSelection = selectedEntry?.entry
+            val previousSelection = selectedEntry
             val reportedHandles = snapshot.entries.mapTo(mutableSetOf(), SoilEntry::handle)
             val droppedMutations = listedEntries.filter { it.entry.handle !in reportedHandles && it.entry.kind == SoilEntryKind.MUTATION }
             replaceListedEntries(snapshot.entries.map { ListedSoilEntry(entry = it, isGone = false) } + droppedMutations.map { it.copy(isGone = true) })
-            reloadSelectedValueIfReplyReplaced(previousSelection)
+            reloadSelectedValueIfOutdated(previousSelection)
             appendEvents(snapshot.recentEvents)
         }
     }
@@ -156,7 +173,6 @@ internal class SoilCacheBrowser(
             agentClockOffsetMillis = changes.agentEpochMillis - clock.now().toEpochMilliseconds()
             val upsertsByHandle = changes.upserts.associateBy(SoilEntry::handle)
             val removedHandles = changes.removedHandles.toSet()
-            val previousSelection = selectedEntry?.entry
             val updated = listedEntries.mapNotNull { listed ->
                 val handle = listed.entry.handle
                 when {
@@ -167,10 +183,14 @@ internal class SoilCacheBrowser(
                 }
             }
             val listedHandles = updated.mapTo(mutableSetOf()) { it.entry.handle }
+            val previousSelection = selectedEntry
             replaceListedEntries(updated + changes.upserts.filter { it.handle !in listedHandles }.map { ListedSoilEntry(entry = it, isGone = false) })
-            reloadSelectedValueIfReplyReplaced(previousSelection)
+            reloadSelectedValueIfOutdated(previousSelection)
             appendEvents(changes.events)
-            if (isEventMissing) launchReporting(::load)
+            if (isEventMissing) {
+                recoverySnapshotRetakesLeft = RECOVERY_SNAPSHOT_RETAKE_LIMIT
+                launchReporting(::load)
+            }
         }
     }
 
@@ -265,9 +285,12 @@ internal class SoilCacheBrowser(
         if (selectedEventSequence != null && events.none { it.sequence == selectedEventSequence }) selectedEventSequence = null
     }
 
-    private fun reloadSelectedValueIfReplyReplaced(previousSelection: SoilEntry?) {
-        val currentSelection = selectedEntry?.entry ?: return
-        if (previousSelection != null && currentSelection.replyRevision != previousSelection.replyRevision) loadValue(currentSelection.handle)
+    /** Reads the selected entry's value again when its reply was replaced or the entry came back after Soil dropped it. */
+    private fun reloadSelectedValueIfOutdated(previousSelection: ListedSoilEntry?) {
+        val currentSelection = selectedEntry ?: return
+        if (previousSelection == null) return
+        val isReplyReplaced = currentSelection.entry.replyRevision != previousSelection.entry.replyRevision
+        if (isReplyReplaced || (previousSelection.isGone && !currentSelection.isGone)) loadValue(currentSelection.entry.handle)
     }
 
     private fun loadValue(handle: String) {

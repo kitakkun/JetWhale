@@ -37,6 +37,15 @@ class SoilTimelinePaneTest {
         assertEquals(listOf(3L), selectedEventSequences)
     }
 
+    @Test
+    fun `repeats more than a burst apart keep lines of their own with the pause between them`() = runComposeUiTest {
+        val ticks = (1L..2L).map { eventOf(it, clockSubscription, SoilEventKind.SUBSCRIPTION_DATA_RECEIVED, atEpochMillis = it * 5_000) }
+        setContent { Timeline(ticks, isFollowing = false, onSelectEvent = {}) }
+
+        onNode(hasText("5.0s later")).assertExists()
+        onNode(hasText("×2", substring = true)).assertDoesNotExist()
+    }
+
     @Composable
     private fun Timeline(events: List<SoilEvent>, isFollowing: Boolean, onSelectEvent: (Long) -> Unit) {
         JwTheme(darkTheme = false) {
