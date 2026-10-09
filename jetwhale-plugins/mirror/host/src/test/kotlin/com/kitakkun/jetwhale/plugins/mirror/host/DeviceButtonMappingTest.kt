@@ -38,7 +38,7 @@ class DeviceButtonMappingTest {
 
     @Test
     fun `a simulator offers exactly the buttons it can press`() {
-        val offered = IosSimulatorDeviceController(udid = "sim", xcrunPath = "xcrun", idbPath = "idb").capabilities.buttons
+        val offered = IosSimulatorDeviceController(udid = "sim", xcrunPath = "xcrun", idbPath = "idb", companions = null).capabilities.buttons
 
         assertTrue(DeviceButton.Recents in offered)
         assertTrue(offered.all { iosSimulatorPressesOf(it) != null })

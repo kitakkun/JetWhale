@@ -1,8 +1,15 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -18,10 +25,16 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class IdbCompanionsTest {
-    private val started = mutableListOf<FakeProcess>()
+    private val started = mutableListOf<FakeCompanionProcess>()
     private val commands = mutableListOf<List<String>>()
     private var nextPort = 10_000
     private var companionsReport = true
+
+    /** Set to make `idb connect` run until its caller is cancelled, completing [connectReached] once it starts. */
+    private var connectHangs = false
+    private val connectReached = CompletableDeferred<Unit>()
+
+    private var disconnectLaunchFails = false
 
     private val idleTimeout = 3.minutes
 
@@ -100,6 +113,78 @@ class IdbCompanionsTest {
     }
 
     @Test
+    fun `the host's exit kills every companion and has idb forget each one`() = runTest {
+        val companions = companions()
+        companions.acquire("udid-1")
+        companions.acquire("udid-2")
+
+        companions.destroyAllNow()
+
+        assertTrue(started.filter { it.command.first() == "idb_companion" }.all(FakeCompanionProcess::destroyed))
+        val disconnects = started.filter { it.command.getOrNull(1) == "disconnect" }
+        assertEquals(setOf(listOf("idb", "disconnect", "localhost", "10000"), listOf("idb", "disconnect", "localhost", "10001")), disconnects.map(FakeCompanionProcess::command).toSet())
+        assertTrue(disconnects.all(FakeCompanionProcess::destroyed), "a disconnect still running at the deadline is ended")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a caller cancelled while the companion starts leaves no companion running`() = runTest {
+        val companions = companions()
+        companionsReport = false
+        val acquiring = launch { companions.acquire("udid-1") }
+        runCurrent()
+
+        acquiring.cancelAndJoin()
+
+        assertTrue(started.single().destroyed)
+        assertFalse(companions.isRunning("udid-1"))
+    }
+
+    @Test
+    fun `the host's exit also kills a companion still starting, and starts none after it`() = runTest {
+        val companions = companions()
+        companionsReport = false
+        val acquiring = launch { companions.acquire("udid-1") }
+        while (started.isEmpty()) yield()
+
+        companions.destroyAllNow()
+        acquiring.cancelAndJoin()
+
+        val (companionProcess, disconnectProcess) = started
+        assertTrue(companionProcess.destroyed)
+        assertEquals(listOf("idb", "disconnect", "localhost", "10000"), disconnectProcess.command)
+        assertFailsWith<DeviceControlException> { companions.acquire("udid-2") }
+        assertEquals(2, started.size)
+    }
+
+    @Test
+    fun `an idb that cannot be launched to disconnect does not stop the exit from killing every companion`() = runTest {
+        val companions = companions()
+        companions.acquire("udid-1")
+        companions.acquire("udid-2")
+        disconnectLaunchFails = true
+
+        companions.destroyAllNow()
+
+        assertTrue(started.all(FakeCompanionProcess::destroyed))
+    }
+
+    @Test
+    fun `a caller cancelled while idb connects to the companion has idb forget it`() = runTest {
+        val companions = companions()
+        connectHangs = true
+        val acquiring = launch { companions.acquire("udid-1") }
+        connectReached.await()
+
+        acquiring.cancelAndJoin()
+
+        val (companionProcess, disconnectProcess) = started
+        assertTrue(companionProcess.destroyed)
+        assertEquals(listOf("idb", "disconnect", "localhost", "10000"), disconnectProcess.command)
+        assertFalse(companions.isRunning("udid-1"))
+    }
+
+    @Test
     fun `releasing everything stops every device's companion`() = runTest {
         val companions = companions()
         companions.acquire("udid-1")
@@ -107,16 +192,23 @@ class IdbCompanionsTest {
 
         companions.releaseAll()
 
-        assertTrue(started.all(FakeProcess::destroyed))
+        assertTrue(started.all(FakeCompanionProcess::destroyed))
     }
 
     private fun TestScope.companions() = IdbCompanions(
         idbCompanionPath = "idb_companion",
         idbPath = "idb",
         launcher = { command ->
-            FakeProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
+            if (disconnectLaunchFails && command[1] == "disconnect") throw deviceControlError("idb could not be launched")
+            FakeCompanionProcess(command, readyLine = if (companionsReport) """{"grpc_port":${command.last()}}""" else null).also(started::add)
         },
-        commands = { command -> commands += command },
+        commands = { command ->
+            commands += command
+            if (connectHangs && command[1] == "connect") {
+                connectReached.complete(Unit)
+                awaitCancellation()
+            }
+        },
         ports = { nextPort++ },
         idleTimeout = idleTimeout,
         scope = backgroundScope,
@@ -127,7 +219,7 @@ class IdbCompanionsTest {
  * A process whose output is [readyLine], if any, and that then stays open until destroyed, the
  * way idb_companion does.
  */
-private class FakeProcess(val command: List<String>, readyLine: String?) : Process() {
+internal class FakeCompanionProcess(val command: List<String>, readyLine: String?) : Process() {
     private val pipe = PipedOutputStream()
     private val output = PipedInputStream(pipe)
     var destroyed = false

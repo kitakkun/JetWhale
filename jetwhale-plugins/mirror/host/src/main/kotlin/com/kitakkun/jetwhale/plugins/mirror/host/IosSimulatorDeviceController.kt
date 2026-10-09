@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -13,11 +14,16 @@ import kotlin.io.path.readBytes
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl`; the live stream and all
  * input need idb, since simctl can neither stream nor send touches.
+ *
+ * idb reaches a simulator through a companion. Left to itself, idb starts one that it never stops,
+ * so the simulator's companion comes from [companions] instead, which stops it once it is unused and
+ * when the host exits. Without `idb_companion` found ([companions] null), idb is left to start its own.
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
     private val xcrunPath: String,
     private val idbPath: String?,
+    private val companions: IdbCompanions?,
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = idbPath != null,
@@ -27,6 +33,8 @@ internal class IosSimulatorDeviceController(
     )
 
     private var screen: IdbScreen? = null
+
+    private var holdsStreamCompanion = false
 
     @Volatile
     private var fpsCap = MAX_RAW_FPS
@@ -46,24 +54,24 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun tap(x: Int, y: Int) {
         val scale = pixelsPerPoint()
-        runCommandChecked(requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        runIdb("ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
         val scale = pixelsPerPoint()
-        runCommandChecked(
-            requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+        runIdb(
+            "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
             "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
         )
     }
 
     override suspend fun pressButton(button: DeviceButton) {
         val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
-        presses.forEach { idbButton -> runCommandChecked(requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
+        presses.forEach { idbButton -> runIdb("ui", "button", "--udid", udid, idbButton) }
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(requireIdbPath(), "ui", "text", "--udid", udid, text)
+        runIdb("ui", "text", "--udid", udid, text)
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -77,6 +85,10 @@ internal class IosSimulatorDeviceController(
     // paced by --fps and scaled by the simulator instead, so there is nothing to decode.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
+        if (companions != null && !holdsStreamCompanion) {
+            companions.acquire(udid)
+            holdsStreamCompanion = true
+        }
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
                 // idb names its raw format rbga; the bytes it writes are BGRA.
@@ -107,9 +119,25 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun release() = Unit
+    override suspend fun release() {
+        if (!holdsStreamCompanion) return
+        holdsStreamCompanion = false
+        companions?.release(udid)
+    }
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
+
+    /** Runs idb with [arguments], holding the simulator's companion meanwhile. */
+    private suspend fun runIdb(vararg arguments: String): CommandResult {
+        val idb = requireIdbPath()
+        companions?.acquire(udid)
+        try {
+            return runCommandChecked(idb, *arguments)
+        } finally {
+            // A cancelled caller still gives its use back, or the companion would never stop when idle.
+            withContext(NonCancellable) { companions?.release(udid) }
+        }
+    }
 
     override suspend fun screenSize(): IntSize = readSimulatorScreenFromIdb().size
 
@@ -118,7 +146,7 @@ internal class IosSimulatorDeviceController(
 
     private suspend fun readSimulatorScreenFromIdb(): IdbScreen {
         screen?.let { return it }
-        val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
+        val description = runIdb("describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }
