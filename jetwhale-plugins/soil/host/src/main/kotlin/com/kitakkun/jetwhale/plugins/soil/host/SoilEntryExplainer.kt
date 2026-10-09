@@ -144,7 +144,7 @@ internal class SoilEntryExplainer(
         return when {
             isNeverReached(state.staleAt, agentNowEpochSeconds) -> SoilEntryNote("Never goes stale$staleTime: Soil fetches it again only when it is invalidated.", JwTone.Neutral)
 
-            !state.isStaleAt(agentNowEpochSeconds) -> SoilEntryNote("Fresh for another ${describeSeconds(state.staleAt - agentNowEpochSeconds)} ($updated$staleTime). Until then Soil answers from the cache without fetching.", JwTone.Success)
+            !state.isStaleAt(agentNowEpochSeconds) -> SoilEntryNote("Fresh for another ${describeSeconds(state.staleAt - agentNowEpochSeconds)} ($updated$staleTime). Until then Soil answers from the cache and fetches it only when it is invalidated.", JwTone.Success)
 
             else -> {
                 val focus = entry.options["revalidateOnFocus"]?.let { "revalidateOnFocus $it" }

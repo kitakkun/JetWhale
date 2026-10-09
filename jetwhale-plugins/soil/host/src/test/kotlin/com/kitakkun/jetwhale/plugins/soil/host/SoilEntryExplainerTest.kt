@@ -22,7 +22,7 @@ class SoilEntryExplainerTest {
     @Test
     fun `a fresh query says how long it stays fresh and why it is not fetched`() {
         assertEquals(
-            "Fresh for another 49s (updated 11s ago, staleTime 1m). Until then Soil answers from the cache without fetching.",
+            "Fresh for another 49s (updated 11s ago, staleTime 1m). Until then Soil answers from the cache and fetches it only when it is invalidated.",
             explainerOf().notesOn(listed(profile)).single().text,
         )
     }

@@ -181,7 +181,7 @@ sealed interface SoilEntryState {
 /** What the host can ask Soil to do with an entry. */
 @Serializable
 enum class SoilEntryAction {
-    /** Marks a query invalidated, active or not; an active one refetches. */
+    /** Marks a query invalidated, active or not; an observed one refetches right away, any other when a screen next observes it. */
     INVALIDATE,
 
     /** Asks an observed query to fetch if its data needs it, or an observed subscription to restart. */
