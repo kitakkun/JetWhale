@@ -391,9 +391,12 @@ capacity. The host keeps each panel's revision and ignores content older than it
 `get_panel_content` answer that arrives after a newer `content_changed`. `trySend` also fails while connected when the outgoing queue is full, and then no
 reconnect follows. So a failed `log_appended` marks the panel stale, and each 250 ms tick sends a
 stale panel's `content_changed`, with the log's latest entries, until a send succeeds. An append
-advances the panel's revision too, and `log_appended` carries it, so the host applies an append or a
-snapshot only when its revision is newer than the one it holds, and an older `get_panel_content`
-answer that arrives after an append cannot erase it.
+advances the panel's revision too, and `log_appended` carries it. The host applies an append only
+when its revision is exactly one past the revision it holds; on a gap it asks `get_panel_content`
+again. A full snapshot (`panel_content` or `content_changed`) replaces what the host holds when its
+revision is the same as or newer than the held one, so the stale panel's resend heals a log that
+missed an append, while an older `get_panel_content` answer that arrives after an append is still
+ignored.
 
 The catalog follows the same rules. Its revision rises with every panel added or removed, and both
 `catalog` and `panels_changed` carry it, so a host ignores a catalog older than the one it holds,
@@ -486,7 +489,10 @@ Registration therefore refuses a type whose recording throws, or asks for anythi
 keyed `decode`/`decodeIfPresent` calls, and the error names the type. A type that needs its own
 decoding declares its parameters explicitly instead.
 
-Custom Panels:
+Custom Panels. The string passed to `panel` is the panel's id: stable for the session, and calling
+`panel` again with the same id returns the same panel, so updates from different places reach one
+panel. The title shown on the host is the id unless `.titled(_:)` sets another, which changes only
+the title. A panel lasts until `remove()` or the end of the session.
 
 ```swift
 struct FlagRow: Encodable { let flag: String; let enabled: Bool; let source: String }
