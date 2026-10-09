@@ -1,0 +1,31 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.soil:agent>
+final class com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin|null[0]
+    constructor <init>(soil.query/SwrClient, soil.query/SwrCachePolicy?, com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers = ...) // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin.<init>|<init>(soil.query.SwrClient;soil.query.SwrCachePolicy?;com.kitakkun.jetwhale.plugins.soil.agent.SoilValueSerializers){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.soil.agent/JetWhaleSoilAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers { // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers|null[0]
+    final class Builder { // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Builder|null[0]
+        final fun idClass(kotlin.reflect/KClass<out soil.query.core/UniqueId>, kotlinx.serialization/KSerializer<*>) // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Builder.idClass|idClass(kotlin.reflect.KClass<out|soil.query.core.UniqueId>;kotlinx.serialization.KSerializer<*>){}[0]
+        final fun namespace(kotlin/String, kotlinx.serialization/KSerializer<*>) // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Builder.namespace|namespace(kotlin.String;kotlinx.serialization.KSerializer<*>){}[0]
+        final inline fun <#A2: reified soil.query.core/UniqueId> idClass(kotlinx.serialization/KSerializer<*>) // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Builder.idClass|idClass(kotlinx.serialization.KSerializer<*>){0§<soil.query.core.UniqueId>}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Companion|null[0]
+        final val None // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Companion.None|{}None[0]
+            final fun <get-None>(): com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Companion.None.<get-None>|<get-None>(){}[0]
+
+        final fun invoke(kotlin/Function1<com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Builder, kotlin/Unit>): com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers // com.kitakkun.jetwhale.plugins.soil.agent/SoilValueSerializers.Companion.invoke|invoke(kotlin.Function1<com.kitakkun.jetwhale.plugins.soil.agent.SoilValueSerializers.Builder,kotlin.Unit>){}[0]
+    }
+}

@@ -101,6 +101,9 @@ include(":jetwhale-plugins:actions:agent")
 include(":jetwhale-plugins:actions:agent-compose")
 include(":jetwhale-plugins:actions:host")
 include(":jetwhale-plugins:mirror:host")
+include(":jetwhale-plugins:soil:protocol")
+include(":jetwhale-plugins:soil:agent")
+include(":jetwhale-plugins:soil:host")
 
 include(":test-annotations")
 
