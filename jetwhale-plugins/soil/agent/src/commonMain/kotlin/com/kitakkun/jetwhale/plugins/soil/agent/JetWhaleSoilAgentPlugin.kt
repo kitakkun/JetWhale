@@ -44,8 +44,8 @@ import soil.query.SwrClient
  *   entries Soil keeps after their last user went away, and the plugin reads the cache on the
  *   policy's `mainDispatcher`. Without it, only active entries are shown, read on
  *   `Dispatchers.Main`.
- * @param valueSerializers Serializers for values whose classes the plugin cannot find one for, such
- *   as generic ones.
+ * @param valueSerializers Serializers for values whose classes have none of their own, or that the
+ *   app wants shown in a shape of its own.
  */
 class JetWhaleSoilAgentPlugin(
     client: SwrClient,

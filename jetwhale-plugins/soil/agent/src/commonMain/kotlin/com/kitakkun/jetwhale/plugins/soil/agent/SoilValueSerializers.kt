@@ -5,23 +5,24 @@ import soil.query.core.UniqueId
 import kotlin.reflect.KClass
 
 /**
- * Serializers for values the agent cannot find one for itself, registered per namespace or per id
+ * Serializers the app chooses for the values of some entries, registered per namespace or per id
  * class.
  *
  * Without one, the agent looks up the serializer of each value's class, which covers every
- * non-generic `@Serializable` class and the built-in types, walking into collections, maps, pairs
- * and infinite-query chunks. A generic class such as `Page<User>` has no serializer to look up, so
- * its value falls back to `toString()` unless it is registered here:
+ * `@Serializable` class, generic ones included, and the built-in types, walking into collections,
+ * maps, pairs and infinite-query chunks. A value with a class that has no serializer falls back to
+ * `toString()`; register one here to see it as JSON, or to show a value in a shape of your own:
  *
  * ```kotlin
  * SoilValueSerializers {
- *     namespace("users/page", Page.serializer(User.serializer()))
- *     idClass<GetPostPageKey.Id>(Page.serializer(Post.serializer()))
+ *     namespace("users/avatar", AvatarSerializer)
+ *     idClass<GetReceiptKey.Id>(ReceiptSerializer)
  * }
  * ```
  *
  * A serializer describes the value one fetch returns: for an infinite query, the data of one chunk,
- * not the list of chunks. A namespace registration wins over an id class one.
+ * not the list of chunks. A namespace registration wins over an id class one, and both win over the
+ * value's own serializer.
  */
 class SoilValueSerializers private constructor(
     private val serializersByNamespace: Map<String, KSerializer<*>>,

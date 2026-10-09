@@ -54,20 +54,21 @@ startJetWhale {
 | The client, and `null` for the policy | Active entries only, read on `Dispatchers.Main` |
 | A client that wraps Soil's own | Nothing: it says the client is unsupported, since only `SwrCache` and `SwrCachePlus` can be read |
 
-### Values of generic types
+### Values
 
 The agent encodes an entry's value with the serializer of the value's own class, walking into
-lists, sets, arrays, maps, pairs and infinite-query chunks. That covers any non-generic
-`@Serializable` class. A generic class such as `Page<User>` has no serializer to find, so its value
-is shown with `toString()` unless you register one, by namespace or by id class:
+lists, sets, arrays, maps, pairs and infinite-query chunks. That covers any `@Serializable` class,
+generic ones such as `Page<User>` included, and the built-in types. A value holding a class with no
+serializer is shown with `toString()`. To show it as JSON, or to show any value in a shape of your
+own, register a serializer by namespace or by id class:
 
 ```kotlin
 JetWhaleSoilAgentPlugin(
     client = swrClient,
     policy = policy,
     valueSerializers = SoilValueSerializers {
-        namespace("users/page", Page.serializer(User.serializer()))
-        idClass<GetPostPageKey.Id>(Page.serializer(Post.serializer()))
+        namespace("users/avatar", AvatarSerializer)
+        idClass<GetReceiptKey.Id>(ReceiptSerializer)
     },
 )
 ```

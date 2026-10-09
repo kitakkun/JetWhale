@@ -39,7 +39,7 @@ internal class SoilCacheReporter(
     private val wakeUps = Channel<Unit>(Channel.CONFLATED)
 
     suspend fun takeSnapshot(): SoilCacheSnapshot = trackerLock.withLock {
-        tracker.update(cache.readRecords())
+        tracker.replaceEntriesWith(cache.readRecords())
         SoilCacheSnapshot(coverage = cache.coverage, entries = tracker.entries, revision = tracker.revision, agentEpochSeconds = epoch())
     }
 
@@ -62,7 +62,7 @@ internal class SoilCacheReporter(
         while (true) {
             val records = trackerLock.withLock {
                 val records = cache.readRecords()
-                val changes = tracker.update(records)
+                val changes = tracker.replaceEntriesWith(records)
                 if (!changes.isEmpty) {
                     send(SoilEntriesChanged(upserts = changes.upserts, removedHandles = changes.removedHandles, revision = changes.revision, agentEpochSeconds = epoch()))
                 }

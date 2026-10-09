@@ -29,7 +29,7 @@ class SoilCacheTrackerTest {
 
     @Test
     fun `the first reading reports every entry`() {
-        val changes = tracker.update(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)), record(renameKey, MutationState.test<Unit>())))
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)), record(renameKey, MutationState.test<Unit>())))
 
         assertEquals(listOf("users/profile", "users/rename"), changes.upserts.map { it.id.namespace })
         assertEquals(1, changes.revision)
@@ -38,9 +38,9 @@ class SoilCacheTrackerTest {
     @Test
     fun `a reading with the same state objects reports nothing and keeps the revision`() {
         val records = listOf(record(profileKey, QueryState.test<String>()))
-        tracker.update(records)
+        tracker.replaceEntriesWith(records)
 
-        val changes = tracker.update(records)
+        val changes = tracker.replaceEntriesWith(records)
 
         assertTrue(changes.isEmpty)
         assertEquals(1, changes.revision)
@@ -48,18 +48,18 @@ class SoilCacheTrackerTest {
 
     @Test
     fun `a new state object with the same fields reports nothing`() {
-        tracker.update(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
 
-        val changes = tracker.update(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100))))
 
         assertTrue(changes.isEmpty)
     }
 
     @Test
     fun `a changed state is reported again under the same handle`() {
-        val first = tracker.update(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)))).upserts.single()
+        val first = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)))).upserts.single()
 
-        val second = tracker.update(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success)))).upserts.single()
+        val second = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success)))).upserts.single()
 
         assertEquals(first.handle, second.handle)
         assertEquals(SoilStatus.SUCCESS, second.state.status)
@@ -69,18 +69,18 @@ class SoilCacheTrackerTest {
     @Test
     fun `an entry moving from the store to the cache is reported with its new location`() {
         val state = QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success)
-        tracker.update(listOf(record(profileKey, state)))
+        tracker.replaceEntriesWith(listOf(record(profileKey, state)))
 
-        val moved = tracker.update(listOf(record(profileKey, state, location = SoilEntryLocation.INACTIVE, isObserved = false))).upserts.single()
+        val moved = tracker.replaceEntriesWith(listOf(record(profileKey, state, location = SoilEntryLocation.INACTIVE, isObserved = false))).upserts.single()
 
         assertEquals(SoilEntryLocation.INACTIVE, moved.location)
     }
 
     @Test
     fun `an entry that is no longer read is reported removed`() {
-        val handle = tracker.update(listOf(record(profileKey, QueryState.test<String>()), record(renameKey, MutationState.test<Unit>()))).upserts.first().handle
+        val handle = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>()), record(renameKey, MutationState.test<Unit>()))).upserts.first().handle
 
-        val changes = tracker.update(listOf(record(renameKey, MutationState.test<Unit>())))
+        val changes = tracker.replaceEntriesWith(listOf(record(renameKey, MutationState.test<Unit>())))
 
         assertEquals(listOf(handle), changes.removedHandles)
         assertEquals(listOf("users/rename"), tracker.entries.map { it.id.namespace })
@@ -99,7 +99,7 @@ class SoilCacheTrackerTest {
             isInvalidated = true,
         )
 
-        val entry = tracker.update(listOf(record(profileKey, state))).upserts.single()
+        val entry = tracker.replaceEntriesWith(listOf(record(profileKey, state))).upserts.single()
 
         assertEquals(SoilEntryId(className = "QueryId", namespace = "users/profile", tags = listOf("42")), entry.id)
         assertEquals(
@@ -119,7 +119,7 @@ class SoilCacheTrackerTest {
 
     @Test
     fun `a mutation state carries its count and when it was submitted`() {
-        val entry = tracker.update(listOf(record(renameKey, MutationState.test(reply = Reply.some(Unit), replyUpdatedAt = 90, errorUpdatedAt = 95, status = MutationStatus.Success, mutatedCount = 3)))).upserts.single()
+        val entry = tracker.replaceEntriesWith(listOf(record(renameKey, MutationState.test(reply = Reply.some(Unit), replyUpdatedAt = 90, errorUpdatedAt = 95, status = MutationStatus.Success, mutatedCount = 3)))).upserts.single()
 
         val state = entry.state as SoilEntryState.Mutation
         assertEquals(3, state.mutatedCount)

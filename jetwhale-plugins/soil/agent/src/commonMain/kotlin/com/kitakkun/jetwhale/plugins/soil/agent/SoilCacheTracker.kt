@@ -46,7 +46,7 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
     fun entryOf(key: SoilEntryKey): SoilEntry? = trackedEntries[key]?.entry
 
     /** Takes [records] as the cache's current contents and returns how they differ from the last ones. */
-    fun update(records: List<SoilCacheRecord>): SoilCacheChanges {
+    fun replaceEntriesWith(records: List<SoilCacheRecord>): SoilCacheChanges {
         val updated = LinkedHashMap<SoilEntryKey, TrackedEntry>()
         val upserts = mutableListOf<SoilEntry>()
         records.forEach { record ->

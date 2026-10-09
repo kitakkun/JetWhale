@@ -3,7 +3,11 @@ package com.kitakkun.jetwhale.demo.shared
 import com.kitakkun.jetwhale.plugins.soil.agent.SoilValueSerializers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import soil.query.InfiniteQueryId
 import soil.query.InfiniteQueryKey
 import soil.query.MutationId
@@ -35,13 +39,31 @@ internal data class DemoPostPage(val posts: List<DemoPost>, val page: Int)
 @Serializable
 internal data class DemoTick(val count: Int)
 
-/** Generic, so no serializer can be looked up for it: the Soil Inspector needs one registered. */
+/** Generic: the Soil Inspector takes its type argument from the payload it holds. */
 @Serializable
 internal data class DemoEnvelope<T>(val payload: T, val servedBy: String)
 
-/** The serializers the demo hands the Soil Inspector for what it cannot encode by itself. */
+/** Not `@Serializable`, so the Soil Inspector shows it with `toString()` unless a serializer is registered. */
+internal class DemoReceipt(val number: Int, val total: String) {
+    override fun toString(): String = "Receipt #$number, $total"
+}
+
+@Serializable
+private class DemoReceiptSurrogate(val number: Int, val total: String)
+
+private object DemoReceiptSerializer : KSerializer<DemoReceipt> {
+    override val descriptor: SerialDescriptor = DemoReceiptSurrogate.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: DemoReceipt) {
+        encoder.encodeSerializableValue(DemoReceiptSurrogate.serializer(), DemoReceiptSurrogate(number = value.number, total = value.total))
+    }
+
+    override fun deserialize(decoder: Decoder): DemoReceipt = decoder.decodeSerializableValue(DemoReceiptSurrogate.serializer()).let { DemoReceipt(number = it.number, total = it.total) }
+}
+
+/** The serializers the demo hands the Soil Inspector for values it cannot encode by itself. */
 internal val demoSoilValueSerializers: SoilValueSerializers = SoilValueSerializers {
-    namespace(DemoEnvelopeQueryKey.REGISTERED_NAMESPACE, DemoEnvelope.serializer(DemoPost.serializer()))
+    namespace(DemoReceiptQueryKey.REGISTERED_NAMESPACE, DemoReceiptSerializer)
 }
 
 /** The profile as the demo's fake backend holds it; the rename mutation changes it. */
@@ -113,20 +135,30 @@ internal val demoClockSubscriptionKey: SubscriptionKey<DemoTick> = buildSubscrip
     },
 )
 
+/** A generic value, which the inspector encodes as JSON without any registration. */
+internal val demoEnvelopeQueryKey: QueryKey<DemoEnvelope<DemoPost>> = buildQueryKey(
+    id = QueryId("demo/envelope"),
+    fetch = {
+        delay(400.milliseconds)
+        DemoEnvelope(payload = DemoPost(id = 1, title = "Hello, Soil"), servedBy = "demo-backend")
+    },
+)
+
 /**
- * The same generic value under two namespaces: [REGISTERED_NAMESPACE] has a serializer in
- * [demoSoilValueSerializers], the other falls back to `toString()` in the inspector.
+ * The same receipt under two namespaces: [REGISTERED_NAMESPACE] has a serializer in
+ * [demoSoilValueSerializers], so the inspector shows it as JSON; the other is shown with
+ * `toString()`.
  */
-internal class DemoEnvelopeQueryKey(namespace: String) :
-    QueryKey<DemoEnvelope<DemoPost>> by buildQueryKey(
+internal class DemoReceiptQueryKey(namespace: String) :
+    QueryKey<DemoReceipt> by buildQueryKey(
         id = QueryId(namespace),
         fetch = {
             delay(400.milliseconds)
-            DemoEnvelope(payload = DemoPost(id = 1, title = "Hello, Soil"), servedBy = "demo-backend")
+            DemoReceipt(number = 1024, total = "$12.50")
         },
     ) {
     companion object {
-        const val REGISTERED_NAMESPACE = "demo/envelope/registered"
-        const val UNREGISTERED_NAMESPACE = "demo/envelope/unregistered"
+        const val REGISTERED_NAMESPACE = "demo/receipt/registered"
+        const val UNREGISTERED_NAMESPACE = "demo/receipt/unregistered"
     }
 }

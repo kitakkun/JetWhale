@@ -82,10 +82,24 @@ class SoilValueEncoderTest {
     }
 
     @Test
-    fun `a generic class nobody registered falls back to toString`() {
+    fun `a generic class is encoded with its own serializer and the values of its type arguments`() {
         val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("posts/page"), Reply.some(Page(items = listOf(profile), next = null)))
 
-        assertEquals(SoilEntryValue.Text(encoding = SoilValueEncoding.TO_STRING, text = "Page(items=[Profile(id=42, name=Ada)], next=null)", fullLength = 49), value)
+        assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """{"items":[{"id":42,"name":"Ada"}],"next":null}"""), value)
+    }
+
+    @Test
+    fun `a value holding a class without a serializer falls back to toString`() {
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("posts/page"), Reply.some(Page(items = listOf(Receipt(7)), next = 2)))
+
+        assertEquals(SoilEntryValue.Text(encoding = SoilValueEncoding.TO_STRING, text = "Page(items=[Receipt #7], next=2)", fullLength = 32), value)
+    }
+
+    @Test
+    fun `builtin values and enums without a serializer of their own are encoded`() {
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("mixed"), Reply.some(listOf(Unit, Tier.PRO)))
+
+        assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """[{},"PRO"]"""), value)
     }
 
     @Test
@@ -124,6 +138,12 @@ internal data class Profile(val id: Int, val name: String)
 internal data class Page<T>(val items: List<T>, val next: Int?)
 
 internal class ProfileId(id: Int) : QueryId<Profile>("users/profile", id)
+
+internal class Receipt(private val number: Int) {
+    override fun toString(): String = "Receipt #$number"
+}
+
+internal enum class Tier { FREE, PRO }
 
 internal object ProfileNameSerializer : KSerializer<Profile> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ProfileName", PrimitiveKind.STRING)

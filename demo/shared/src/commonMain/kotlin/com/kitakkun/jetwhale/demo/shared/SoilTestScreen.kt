@@ -25,7 +25,7 @@ import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 
 /**
- * A query, an infinite query, a mutation, a subscription and two generic values, all through the
+ * Queries, an infinite query, a mutation and a subscription, all through the
  * Soil client the Soil Inspector watches. Leaving the tab makes them inactive after Soil's
  * keepAliveTime, and the cached ones stay in the inspector until their gcTime runs out.
  */
@@ -92,11 +92,13 @@ private fun ClockSection() {
 
 @Composable
 private fun EnvelopeSection() {
-    val registered = rememberQuery(remember { DemoEnvelopeQueryKey(DemoEnvelopeQueryKey.REGISTERED_NAMESPACE) })
-    val unregistered = rememberQuery(remember { DemoEnvelopeQueryKey(DemoEnvelopeQueryKey.UNREGISTERED_NAMESPACE) })
-    Section(title = "Generic values") {
-        Text("Registered serializer: ${registered.data?.payload?.title ?: registered.status.name}")
-        Text("No serializer (toString): ${unregistered.data?.payload?.title ?: unregistered.status.name}")
+    val envelope = rememberQuery(demoEnvelopeQueryKey)
+    val registered = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.REGISTERED_NAMESPACE) })
+    val unregistered = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.UNREGISTERED_NAMESPACE) })
+    Section(title = "Values for the inspector to encode") {
+        Text("Generic envelope: ${envelope.data?.payload?.title ?: envelope.status.name}")
+        Text("Receipt, serializer registered: ${registered.data ?: registered.status.name}")
+        Text("Receipt, no serializer: ${unregistered.data ?: unregistered.status.name}")
     }
 }
 

@@ -51,7 +51,8 @@ enum class SoilValueEncoding {
 
     /**
      * With the serializers of the value's own classes, walking into lists, sets, arrays, maps,
-     * pairs, triples and infinite-query chunks. A generic class has no serializer to find.
+     * pairs, triples and infinite-query chunks. A generic class's type arguments are taken from the
+     * values it holds.
      */
     CLASS_SERIALIZERS,
 
