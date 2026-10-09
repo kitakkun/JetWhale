@@ -218,7 +218,7 @@ internal class LocalXcTestRunners(
         val localPort = portSource.freePort()
         val process = withContext(Dispatchers.IO) { processLauncher.start(listOf(iproxy, "$localPort:$runnerPort", "--udid", udid)) }
         // Drains iproxy's output, which would otherwise fill its pipes and stall it.
-        KeptOutput(process)
+        KeptOutput(process, KEPT_OUTPUT_LINES)
         return Forward(process, localPort)
     }
 
@@ -239,7 +239,7 @@ internal class LocalXcTestRunners(
                 ),
             )
         }
-        return LaunchedTest(xcodebuild, KeptOutput(xcodebuild))
+        return LaunchedTest(xcodebuild, KeptOutput(xcodebuild, KEPT_OUTPUT_LINES))
     }
 
     /** The runner's status once it answers; why it did not, when its xcodebuild exits or the start times out. */

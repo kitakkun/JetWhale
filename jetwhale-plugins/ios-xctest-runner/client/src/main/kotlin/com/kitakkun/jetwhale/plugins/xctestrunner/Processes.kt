@@ -1,8 +1,6 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -36,7 +34,8 @@ internal fun interface CommandOutputRunner {
 /**
  * Runs commands as processes started by [processLauncher]. One that has not finished within
  * [timeout], or whose caller is cancelled, is ended, so that a build waiting on something that never
- * comes does not hold its lock and its caller forever.
+ * comes does not hold its lock and its caller forever. Its output is read on threads of its own, so
+ * a child process that keeps a pipe open after it ends does not hold them either.
  */
 internal class ProcessCommandOutputRunner(
     private val processLauncher: ProcessLauncher,
@@ -44,17 +43,13 @@ internal class ProcessCommandOutputRunner(
 ) : CommandOutputRunner {
     override suspend fun run(command: List<String>): CommandOutput = withContext(Dispatchers.IO) {
         val process = processLauncher.start(command)
-        coroutineScope {
-            // A process stalls once either of its pipes fills, so both are read at once.
-            val output = async { process.inputStream.bufferedReader().use { it.readText() } }
-            val errorOutput = async { process.errorStream.bufferedReader().use { it.readText() } }
-            try {
-                withTimeoutOrNull(timeout) { CommandOutput(exitCode = process.onExit().await().exitValue(), text = "${output.await()}\n${errorOutput.await()}") }
-                    ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
-            } finally {
-                // A blocking pipe read ignores cancellation and ends only once the process does.
-                process.destroyForcibly()
-            }
+        val output = KeptOutput(process, maxLines = Int.MAX_VALUE)
+        try {
+            val exited = withTimeoutOrNull(timeout) { process.onExit().await() }
+                ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
+            CommandOutput(exitCode = exited.exitValue(), text = output.textOnceDrained())
+        } finally {
+            process.destroyForcibly()
         }
     }
 }
@@ -82,24 +77,27 @@ internal object SystemProcessTable : ProcessTable {
     }
 }
 
-/** How many of a process's last output lines are kept, to explain one that failed. */
-private const val KEPT_OUTPUT_LINES = 200
+/** How many of a running process's last output lines are kept, to explain one that failed. */
+internal const val KEPT_OUTPUT_LINES = 200
 
 /** How long to wait for an exited process's pipes to be read to the end. */
 private const val DRAIN_TIMEOUT_MILLIS = 2_000L
 
 /**
- * The last lines [process] printed. Both pipes are drained for the process's whole life, since a
- * full pipe would stall it.
+ * The last [maxLines] lines [process] printed. Both pipes are drained for the process's whole life,
+ * since a full pipe would stall it.
  */
-internal class KeptOutput(process: Process) {
+internal class KeptOutput(process: Process, private val maxLines: Int) {
     private val lines = ArrayDeque<String>()
 
     private val readerThreads = listOf(process.inputStream, process.errorStream).map { stream ->
         thread(isDaemon = true, name = "xctest-runner-output") { keepLastLinesOf(stream) }
     }
 
-    /** What the process printed, once it has exited and its pipes have been read to the end. */
+    /**
+     * What the process printed, once it has exited and its pipes have been read to the end, or once
+     * [DRAIN_TIMEOUT_MILLIS] has passed: a child process that inherited a pipe keeps it open.
+     */
     fun textOnceDrained(): String {
         readerThreads.forEach { it.join(DRAIN_TIMEOUT_MILLIS) }
         return synchronized(lines) { lines.joinToString("\n") }
@@ -110,7 +108,7 @@ internal class KeptOutput(process: Process) {
             stream.bufferedReader().forEachLine { line ->
                 synchronized(lines) {
                     lines.addLast(line)
-                    if (lines.size > KEPT_OUTPUT_LINES) lines.removeFirst()
+                    if (lines.size > maxLines) lines.removeFirst()
                 }
             }
         } catch (_: IOException) {
