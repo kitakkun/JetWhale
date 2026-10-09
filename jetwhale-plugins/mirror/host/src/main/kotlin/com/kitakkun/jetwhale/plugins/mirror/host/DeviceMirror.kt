@@ -24,11 +24,9 @@ import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
@@ -270,8 +268,6 @@ internal class DeviceMirror(
         // asked: a point maps onto the screen through each image's size, and a resized view has
         // nothing to reopen for.
         surface.deviceSize = screen.takeUnless { stream is VideoStream.EncodedImages }
-        // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
-        if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
         val isAndroid = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {

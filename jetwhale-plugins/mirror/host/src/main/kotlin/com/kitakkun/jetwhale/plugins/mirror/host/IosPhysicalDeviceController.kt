@@ -173,13 +173,9 @@ internal class IosPhysicalDeviceController(
             companions.acquire(udid)
             holdsStreamCompanion = true
         }
-        return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand(companions.idbPath)), ffmpegPath) }
+        val stream = startVideoStream(companions.idbPath)
+        return VideoStream.H264(stream.inputStream, ffmpegPath, stream::destroyForcibly)
     }
-
-    private fun videoStreamCommand(idbPath: String): List<String> = listOf(
-        idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30",
-        "--compression-quality", "$DEVICE_STREAM_COMPRESSION_QUALITY",
-    )
 
     /** An idb stream of the device's screen as H.264 on stdout, its log drained so it never stalls on a full pipe. */
     private suspend fun startVideoStream(idbPath: String): Process = withContext(Dispatchers.IO) {
@@ -187,6 +183,11 @@ internal class IosPhysicalDeviceController(
             thread(isDaemon = true, name = "mirror-idb-stream-log") { stream.errorStream.use(InputStream::readAllBytes) }
         }
     }
+
+    private fun videoStreamCommand(idbPath: String): List<String> = listOf(
+        idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30",
+        "--compression-quality", "$DEVICE_STREAM_COMPRESSION_QUALITY",
+    )
 
     private fun requireCompanions(use: String): IdbCompanions = companions ?: throw deviceControlError("$use needs idb, which streams the device's screen. $IDB_INSTALL_INSTRUCTIONS")
 

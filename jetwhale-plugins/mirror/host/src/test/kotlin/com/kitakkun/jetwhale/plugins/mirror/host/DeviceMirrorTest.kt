@@ -788,7 +788,8 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
-        return VideoStream.H264(HeldOpenProcess(sent), ffmpegPath)
+        val screenrecord = HeldOpenProcess(sent)
+        return VideoStream.H264(screenrecord.inputStream, ffmpegPath, screenrecord::destroy)
     }
 
     override suspend fun screenSize(): IntSize = FOLDED_SCREEN
