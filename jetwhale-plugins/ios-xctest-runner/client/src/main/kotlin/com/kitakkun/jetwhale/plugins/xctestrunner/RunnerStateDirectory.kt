@@ -51,7 +51,7 @@ internal class RunnerStateDirectory(private val directory: File) {
         }
     }
 
-    /** Records [state] at once, readable by this user only: it holds the runner's token. */
+    /** Records [runnerState] at once, readable by this user only: it holds the runner's token. */
     fun writeRunnerState(udid: String, runnerState: RunnerState) {
         directory.mkdirs()
         val staging = File(directory, "$udid.json.partial").toPath()
@@ -59,7 +59,7 @@ internal class RunnerStateDirectory(private val directory: File) {
         try {
             Files.createFile(staging, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
         } catch (_: UnsupportedOperationException) {
-            // Not a POSIX file system, which runners never meet: they exist on macOS only.
+            // Only a file system without POSIX permissions throws this.
         }
         Files.writeString(staging, StateJson.encodeToString(RunnerState.serializer(), runnerState))
         Files.move(staging, stateFileOf(udid).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)

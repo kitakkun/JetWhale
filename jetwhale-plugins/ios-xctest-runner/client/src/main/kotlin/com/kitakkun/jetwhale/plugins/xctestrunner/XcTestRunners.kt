@@ -91,7 +91,10 @@ public interface XcTestRunner {
     /** The screen as the interface shows it now, which a device turned to landscape shows sideways. */
     public suspend fun interfaceScreen(): XcTestRunnerInterfaceScreen
 
-    /** Types [text] into whatever has keyboard focus on the device. */
+    /**
+     * Types [text] into whatever has keyboard focus on the device. A long text is typed in parts, one
+     * after another, so one that fails part way leaves the parts before it typed.
+     */
     public suspend fun typeText(text: String)
 
     public suspend fun pressButton(button: XcTestRunnerButton)

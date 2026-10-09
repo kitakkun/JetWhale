@@ -201,6 +201,21 @@ class LocalXcTestRunnersTest {
     }
 
     @Test
+    fun `a long text is typed in parts that never split a surrogate pair`() = runTest {
+        val text = "a".repeat(999) + "😀" + "b".repeat(1_500)
+
+        runners().runnerFor(simulator).typeText(text)
+
+        val parts = connections.getValue(20_000).sent.map { (path, body) ->
+            assertEquals("/typeText", path)
+            body.getValue("text").jsonPrimitive.content
+        }
+        assertTrue(parts.size > 1)
+        assertTrue(parts.none { it.last().isHighSurrogate() })
+        assertEquals(text, parts.joinToString(""))
+    }
+
+    @Test
     fun `a command the runner stopped answering after taking is not sent again`() = runTest {
         val runner = runners().runnerFor(simulator)
         connections.getValue(20_000).stopsAnsweringMidCommand = true
@@ -402,6 +417,31 @@ class LocalXcTestRunnersTest {
 
         assertEquals("the XCTest runner's screen stream ended before its first frame", failure.message)
         assertEquals(1, xcodebuildProcesses.size)
+    }
+
+    @Test
+    fun `a process that exits while a runner starts ends that runner's xcodebuild`() = runTest {
+        val runners = runners()
+        var destroyedByExit = false
+        connections[20_000] = FakeRunnerConnection(answering = false).apply {
+            onStatus = {
+                runners.destroyStartedRunnerProcesses()
+                destroyedByExit = xcodebuildProcesses.single().destroyed
+            }
+        }
+
+        assertFailsWith<XcTestRunnerStartException> { runners.runnerFor(simulator) }
+
+        assertTrue(destroyedByExit)
+    }
+
+    @Test
+    fun `a start whose files cannot be written fails as a start, with nothing launched`() = runTest {
+        File(stateRoot, "runners").writeText("a file where the runners' directory should be")
+
+        assertFailsWith<XcTestRunnerStartException> { runners().runnerFor(simulator) }
+
+        assertTrue(launched.isEmpty())
     }
 
     /** Records a runner some other plugin started, answering on port 19000 with [protocolVersion]. */

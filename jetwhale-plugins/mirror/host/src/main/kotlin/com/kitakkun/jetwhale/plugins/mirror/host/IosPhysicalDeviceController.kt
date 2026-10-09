@@ -37,6 +37,8 @@ internal class IosPhysicalDeviceController(
     XcTestRunnerDriven {
     private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
+    // Read on every access: setting a development team lifts the refusal, and a device keeps this
+    // controller from one look to the next.
     override val capabilities: DeviceCapabilities
         get() {
             val refusal = inputRefusal()

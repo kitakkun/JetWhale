@@ -463,7 +463,6 @@ internal class DeviceMirror(
 
     override fun updateDevelopmentTeam(team: String?) {
         developmentTeamSetting.updateDevelopmentTeam(team)
-        // The shown iPhone's stream opened before it had a team, so it started no runner then.
         (selectedDevice?.controller as? IosPhysicalDeviceController)?.startRunnerInBackground()
     }
 
