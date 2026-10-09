@@ -31,8 +31,8 @@ missing, the device list says which one and what it would enable.
 | To mirror | You need |
 |-----------|----------|
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
-| iOS simulators (macOS) | Xcode, for `simctl` and for input; [idb](https://fbidb.io) for live video: `brew install facebook/fb/idb`, which installs the command-line client and its companion |
-| iPhones connected by USB (macOS) | idb as above; for input, also Xcode, `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
+| iOS simulators (macOS) | Xcode alone: `simctl` for screenshots and recordings, and an XCTest runner for live video and input — see [Input on iOS](#input-on-ios) |
+| iPhones connected by USB (macOS) | Xcode, which lists them; [idb](https://fbidb.io) for live video, screenshots and recordings: `brew install facebook/fb/idb`, which installs the command-line client and its companion; for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
@@ -40,6 +40,9 @@ command. Without it an Android device is shown through screenshots a few times a
 iPhone cannot be mirrored. iOS simulators, and Android emulators that expose their own gRPC screen
 stream, need no ffmpeg; an emulator without that stream is decoded like a device, and so is a
 foldable emulator folded through `adb shell cmd device_state state`.
+
+idb is needed only for an iPhone's video, screenshots and recordings, and the device list asks for
+it only once an iPhone is connected.
 
 ### How the tools are found
 
@@ -98,7 +101,8 @@ an Android device rotates or a foldable folds, the view follows within a couple 
 back to a device shows its last frame at once, dimmed, until its stream reconnects.
 
 When no live video is available, the mirror falls back to screenshots and says why above the text
-field; it tries the video again after 5 seconds, then 15, then once a minute.
+field; it tries the video again after 5 seconds, then 15, then once a minute. An iOS simulator also
+shows screenshots while its XCTest runner starts, and switches to the runner's video once it is up.
 
 The toolbar's buttons are grouped — navigation, volume, screen power, captures — and wrap as a whole
 in a narrow window. Android has Home, Back, Recent apps, Power, Volume up and Volume down; a simulator
@@ -113,20 +117,23 @@ and drawing take.
 Taps, swipes, text and buttons reach an iOS simulator or iPhone through an **XCTest runner**: a small
 UI-test bundle that Xcode builds on this Mac, installs on the device and keeps running while it sends
 the input. It is the way WebDriverAgent drives iOS, and it reaches the whole screen, the home screen
-and system alerts included. It runs on iOS 17 or later, the oldest that Xcode 27's XCTest runs on.
+and system alerts included. A simulator's live video comes from the same runner, about 30 frames a
+second. It runs on iOS 17 or later, the oldest that Xcode 27's XCTest runs on.
 
 - **The first use builds it**, which takes ten to twenty seconds once per Xcode version; after that
   a runner starts in about three seconds. The mirror starts it as soon as it shows the device, so the
-  first tap seldom waits.
+  first tap seldom waits; on a simulator, screenshots stand in for the video meanwhile.
 - **One runner per device**, shared with any other plugin that drives iOS. It stops by itself after
-  five minutes without input, unless an agent holds it with `keepRunnerAlive`, and when the host
-  quits. Its build and state live under the host's app data, in `xctest-runner/`.
-- **On a simulator**, when the runner cannot be built or started, or the simulator runs an iOS older
-  than 17, input goes through idb instead, as it did before. idb's input no longer works with Xcode
-  27, though, so there the runner is the only way. Recent apps opens the app switcher with the swipe
-  up from the bottom edge that a Face ID iPhone takes; through idb, it presses Home twice.
-- **In landscape**, a simulator's screenshots are landscape too, and the MCP `tap` and `swipe` take
-  their pixels; the runner turns them into the simulator's own portrait points.
+  five minutes without input while nothing streams its screen, unless an agent holds it with
+  `keepRunnerAlive`, and when the host quits. Its build and state live under the host's app data, in
+  `xctest-runner/`.
+- **On a simulator**, the runner is the only way in. When it cannot be built or started, or the
+  simulator runs an iOS older than 17, the simulator takes no input and is shown through screenshots,
+  and the mirror says why. Recent apps opens the app switcher with the swipe up from the bottom edge
+  that a Face ID iPhone takes.
+- **In landscape**, a simulator's live view and screenshots turn with it, and a click, or the MCP
+  `tap` and `swipe`, takes their pixels; the runner turns them into the simulator's own portrait
+  points.
 
 #### Input on a physical iPhone <Badge type="warning" text="experimental" />
 
