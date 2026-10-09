@@ -18,12 +18,12 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class SoilInspectorScreenTest {
     private val profile = ListedSoilEntry(queryEntry(handle = "query-1", namespace = "users/profile"), isGone = false)
-    private val rename = ListedSoilEntry(mutationEntry(handle = "mutation-2", namespace = "users/rename"), isGone = true)
+    private val renameMutation = ListedSoilEntry(mutationEntry(handle = "mutation-2", namespace = "users/rename"), isGone = true)
 
     @Test
     fun `an action that does not apply is disabled and says why`() = runComposeUiTest {
         val ranActions = mutableListOf<SoilEntryAction>()
-        setContent { Screen(coverage = readableCoverage, selected = profile, onRunAction = { ranActions += it }) }
+        setContent { Screen(coverage = readableCoverage, selectedEntry = profile, onRunAction = { ranActions += it }) }
 
         onNode(hasText("Remove") and hasClickAction()).assertIsNotEnabled()
         onNode(hasText("Remove: The entry is active, and active entries are not removed.")).assertExists()
@@ -34,7 +34,7 @@ class SoilInspectorScreenTest {
 
     @Test
     fun `a gone mutation shows its last state without actions`() = runComposeUiTest {
-        setContent { Screen(coverage = readableCoverage, selected = rename, onRunAction = {}) }
+        setContent { Screen(coverage = readableCoverage, selectedEntry = renameMutation, onRunAction = {}) }
 
         onNode(hasText("Soil dropped this mutation; this is the last state the app reported.")).assertExists()
         onNode(hasText("Invalidate") and hasClickAction()).assertDoesNotExist()
@@ -42,7 +42,7 @@ class SoilInspectorScreenTest {
 
     @Test
     fun `a client the agent cannot read is named`() = runComposeUiTest {
-        setContent { Screen(coverage = readableCoverage.copy(clientClassName = "LoggingSwrClient", isClientReadable = false), selected = null, onRunAction = {}) }
+        setContent { Screen(coverage = readableCoverage.copy(clientClassName = "LoggingSwrClient", isClientReadable = false), selectedEntry = null, onRunAction = {}) }
 
         onNode(hasText("Unsupported client")).assertExists()
         onNode(hasText("LoggingSwrClient", substring = true)).assertExists()
@@ -50,21 +50,21 @@ class SoilInspectorScreenTest {
 
     @Test
     fun `without the policy the screen says only active entries are shown`() = runComposeUiTest {
-        setContent { Screen(coverage = readableCoverage.copy(includesInactiveEntries = false), selected = profile, onRunAction = {}) }
+        setContent { Screen(coverage = readableCoverage.copy(includesInactiveEntries = false), selectedEntry = profile, onRunAction = {}) }
 
         onNode(hasText("Only active entries are shown", substring = true)).assertExists()
     }
 
     @Composable
-    private fun Screen(coverage: SoilCacheCoverage, selected: ListedSoilEntry?, onRunAction: (SoilEntryAction) -> Unit) {
+    private fun Screen(coverage: SoilCacheCoverage, selectedEntry: ListedSoilEntry?, onRunAction: (SoilEntryAction) -> Unit) {
         JwTheme(darkTheme = false) {
             SoilInspectorScreen(
                 coverage = coverage,
-                listedEntries = listOf(profile, rename),
-                selectedEntry = selected,
+                listedEntries = listOf(profile, renameMutation),
+                selectedEntry = selectedEntry,
                 selectedValue = SoilValueLoad.Loaded(SoilEntryValue.NoReply),
                 status = null,
-                query = "",
+                searchQuery = "",
                 agentNowEpochSeconds = HOST_NOW,
                 actions = object : SoilInspectorActions {
                     override fun refresh() = Unit
@@ -75,7 +75,7 @@ class SoilInspectorScreenTest {
 
                     override fun runActionOnSelected(action: SoilEntryAction) = onRunAction(action)
                 },
-                onQueryChange = {},
+                onSearchQueryChange = {},
             )
         }
     }

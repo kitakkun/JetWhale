@@ -113,8 +113,8 @@ internal val demoFeedQueryKey: InfiniteQueryKey<DemoPostPage, Int> = buildInfini
 )
 
 /** A query that always fails, to show an error in the inspector. */
-internal val demoFlakyQueryKey: QueryKey<String> = buildQueryKey(
-    id = QueryId("demo/flaky"),
+internal val demoFailingQueryKey: QueryKey<String> = buildQueryKey(
+    id = QueryId("demo/failing"),
     fetch = {
         delay(300.milliseconds)
         error("The demo server is down")

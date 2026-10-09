@@ -182,8 +182,8 @@ internal class SoilCacheBrowser(
 
     private fun replaceListedEntries(entries: List<ListedSoilEntry>) {
         val goneMutations = entries.filter(ListedSoilEntry::isGone)
-        val evicted = goneMutations.take((goneMutations.size - GONE_MUTATION_LIMIT).coerceAtLeast(0)).mapTo(mutableSetOf()) { it.entry.handle }
-        listedEntries = entries.filter { it.entry.handle !in evicted }
+        val evictedHandles = goneMutations.take((goneMutations.size - GONE_MUTATION_LIMIT).coerceAtLeast(0)).mapTo(mutableSetOf()) { it.entry.handle }
+        listedEntries = entries.filter { it.entry.handle !in evictedHandles }
         if (selectedHandle != null && selectedEntry == null) {
             selectedHandle = null
             selectedValue = null

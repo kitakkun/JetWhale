@@ -47,7 +47,7 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
 
     /** Takes [records] as the cache's current contents and returns how they differ from the last ones. */
     fun replaceEntriesWith(records: List<SoilCacheRecord>): SoilCacheChanges {
-        val updated = LinkedHashMap<SoilEntryKey, TrackedEntry>()
+        val updatedTrackedEntries = LinkedHashMap<SoilEntryKey, TrackedEntry>()
         val upserts = mutableListOf<SoilEntry>()
         records.forEach { record ->
             val previous = trackedEntries[record.key]
@@ -56,14 +56,14 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
                 previous.entry.location == record.location &&
                 previous.entry.isObserved == record.isObserved &&
                 previous.entry.options == record.options
-            val entry = if (isSameReading) previous.entry else record.toEntry(handles.handleOf(record.key))
+            val entry = if (isSameReading) previous.entry else record.toSoilEntry(handles.handleOf(record.key))
             if (entry != previous?.entry) upserts += entry
-            updated[record.key] = TrackedEntry(model = record.model, entry = entry)
+            updatedTrackedEntries[record.key] = TrackedEntry(model = record.model, entry = entry)
         }
-        val removedKeys = trackedEntries.keys - updated.keys
+        val removedKeys = trackedEntries.keys - updatedTrackedEntries.keys
         val removedHandles = removedKeys.mapNotNull { key -> trackedEntries[key]?.entry?.handle }
         removedKeys.forEach(handles::retire)
-        trackedEntries = updated
+        trackedEntries = updatedTrackedEntries
         if (upserts.isNotEmpty() || removedHandles.isNotEmpty()) revision++
         return SoilCacheChanges(upserts = upserts, removedHandles = removedHandles, revision = revision)
     }
@@ -71,7 +71,7 @@ internal class SoilCacheTracker(private val handles: SoilEntryHandles) {
     private class TrackedEntry(val model: DataModel<*>, val entry: SoilEntry)
 }
 
-private fun SoilCacheRecord.toEntry(handle: String): SoilEntry = SoilEntry(
+private fun SoilCacheRecord.toSoilEntry(handle: String): SoilEntry = SoilEntry(
     handle = handle,
     kind = key.kind,
     location = location,

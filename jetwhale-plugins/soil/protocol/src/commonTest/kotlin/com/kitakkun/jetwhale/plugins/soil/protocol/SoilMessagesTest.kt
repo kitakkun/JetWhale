@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class SoilMessagesTest {
     private val json = Json
 
-    private val query = SoilEntry(
+    private val queryEntry = SoilEntry(
         handle = "query-1",
         kind = SoilEntryKind.QUERY,
         location = SoilEntryLocation.ACTIVE_AND_CACHED,
@@ -35,13 +35,13 @@ class SoilMessagesTest {
         val snapshot = SoilCacheSnapshot(
             coverage = SoilCacheCoverage(clientClassName = "SwrCachePlus", isClientReadable = true, includesInactiveEntries = true, includesSubscriptions = true),
             entries = listOf(
-                query,
-                query.copy(
+                queryEntry,
+                queryEntry.copy(
                     handle = "mutation-2",
                     kind = SoilEntryKind.MUTATION,
                     state = SoilEntryState.Mutation(status = SoilStatus.IDLE, hasReply = false, replyUpdatedAt = 0, error = null, errorUpdatedAt = 0, mutatedCount = 0, submittedAt = 0),
                 ),
-                query.copy(
+                queryEntry.copy(
                     handle = "subscription-3",
                     kind = SoilEntryKind.SUBSCRIPTION,
                     state = SoilEntryState.Subscription(status = SoilStatus.PENDING, hasReply = false, replyUpdatedAt = 0, error = null, errorUpdatedAt = 0, restartedAt = 90),
@@ -68,7 +68,7 @@ class SoilMessagesTest {
 
     @Test
     fun `state variants are told apart by their serial names on the wire`() {
-        val encoded = json.encodeToJsonElement(SoilEntry.serializer(), query).jsonObject
+        val encoded = json.encodeToJsonElement(SoilEntry.serializer(), queryEntry).jsonObject
 
         assertEquals("soil/state/query", encoded.getValue("state").jsonObject.getValue("type").jsonPrimitive.content)
         assertEquals("soil/fetch/paused", encoded.getValue("state").jsonObject.getValue("fetchStatus").jsonObject.getValue("type").jsonPrimitive.content)

@@ -63,25 +63,25 @@ class SoilCacheBrowserTest {
 
     @Test
     fun `a mutation that goes away stays listed as gone while a query is dropped`() {
-        val rename = mutationEntry(handle = "mutation-3", namespace = "users/rename")
-        client.snapshot = snapshotOf(profile, rename, revision = 1)
+        val renameMutation = mutationEntry(handle = "mutation-3", namespace = "users/rename")
+        client.snapshot = snapshotOf(profile, renameMutation, revision = 1)
         runBlocking { browser.load() }
 
-        browser.adopt(changesOf(removedHandles = listOf(profile.handle, rename.handle), revision = 2))
+        browser.adopt(changesOf(removedHandles = listOf(profile.handle, renameMutation.handle), revision = 2))
 
-        assertEquals(listOf(ListedSoilEntry(entry = rename, isGone = true)), browser.listedEntries)
+        assertEquals(listOf(ListedSoilEntry(entry = renameMutation, isGone = true)), browser.listedEntries)
     }
 
     @Test
     fun `a gone mutation that comes back is listed as live again`() {
-        val rename = mutationEntry(handle = "mutation-3", namespace = "users/rename")
-        client.snapshot = snapshotOf(rename, revision = 1)
+        val renameMutation = mutationEntry(handle = "mutation-3", namespace = "users/rename")
+        client.snapshot = snapshotOf(renameMutation, revision = 1)
         runBlocking { browser.load() }
-        browser.adopt(changesOf(removedHandles = listOf(rename.handle), revision = 2))
+        browser.adopt(changesOf(removedHandles = listOf(renameMutation.handle), revision = 2))
 
-        browser.adopt(changesOf(upserts = listOf(rename), revision = 3))
+        browser.adopt(changesOf(upserts = listOf(renameMutation), revision = 3))
 
-        assertEquals(listOf(ListedSoilEntry(entry = rename, isGone = false)), browser.listedEntries)
+        assertEquals(listOf(ListedSoilEntry(entry = renameMutation, isGone = false)), browser.listedEntries)
     }
 
     @Test

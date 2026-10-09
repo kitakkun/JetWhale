@@ -104,7 +104,7 @@ internal class InspectedSoilCache(
                 SoilEntryKind.QUERY, SoilEntryKind.INFINITE_QUERY -> {
                     val queryCache = policy?.queryCache
                     when {
-                        queryCache == null -> NO_POLICY_REFUSAL
+                        queryCache == null -> MISSING_CACHE_POLICY_REFUSAL
 
                         key.id in view.queryStoreView -> BECAME_ACTIVE_REFUSAL
 
@@ -116,7 +116,7 @@ internal class InspectedSoilCache(
                 }
 
                 SoilEntryKind.SUBSCRIPTION -> when {
-                    subscriptionCache == null -> NO_POLICY_REFUSAL
+                    subscriptionCache == null -> MISSING_CACHE_POLICY_REFUSAL
 
                     subscriptionView?.subscriptionStoreView?.containsKey(key.id) == true -> BECAME_ACTIVE_REFUSAL
 
@@ -132,22 +132,22 @@ internal class InspectedSoilCache(
     }
 
     private fun MutableList<SoilCacheRecord>.addQueries(view: SwrCacheView) {
-        val active = view.queryStoreView
+        val activeQueries = view.queryStoreView
         val queryCache = policy?.queryCache
-        active.forEach { (id, query) ->
+        activeQueries.forEach { (id, query) ->
             add(
                 SoilCacheRecord(
                     key = SoilEntryKey(kind = queryKindOf(id), id = id),
                     location = if (queryCache?.get(id) != null) SoilEntryLocation.ACTIVE_AND_CACHED else SoilEntryLocation.ACTIVE,
                     model = query.state.value,
                     isObserved = query.hasAttachedInstances(),
-                    options = (query as? SwrCacheInternal.ManagedQuery<*>)?.options?.describe().orEmpty(),
+                    options = (query as? SwrCacheInternal.ManagedQuery<*>)?.options?.toOptionMap().orEmpty(),
                     stateFlow = query.state,
                 ),
             )
         }
         queryCache?.keys?.toList()?.forEach { id ->
-            if (id in active) return@forEach
+            if (id in activeQueries) return@forEach
             val state = queryCache[id] ?: return@forEach
             add(SoilCacheRecord(key = SoilEntryKey(kind = queryKindOf(id), id = id), location = SoilEntryLocation.INACTIVE, model = state, isObserved = false, options = emptyMap(), stateFlow = null))
         }
@@ -161,7 +161,7 @@ internal class InspectedSoilCache(
                     location = SoilEntryLocation.ACTIVE,
                     model = mutation.state.value,
                     isObserved = mutation.hasAttachedInstances(),
-                    options = (mutation as? SwrCacheInternal.ManagedMutation<*>)?.options?.describe().orEmpty(),
+                    options = (mutation as? SwrCacheInternal.ManagedMutation<*>)?.options?.toOptionMap().orEmpty(),
                     stateFlow = mutation.state,
                 ),
             )
@@ -169,34 +169,34 @@ internal class InspectedSoilCache(
     }
 
     private fun MutableList<SoilCacheRecord>.addSubscriptions(view: SwrCachePlusView) {
-        val active = view.subscriptionStoreView
-        active.forEach { (id, subscription) ->
+        val activeSubscriptions = view.subscriptionStoreView
+        activeSubscriptions.forEach { (id, subscription) ->
             add(
                 SoilCacheRecord(
                     key = SoilEntryKey(kind = SoilEntryKind.SUBSCRIPTION, id = id),
                     location = if (subscriptionCache?.get(id) != null) SoilEntryLocation.ACTIVE_AND_CACHED else SoilEntryLocation.ACTIVE,
                     model = subscription.state.value,
                     isObserved = subscription.hasAttachedInstances(),
-                    options = (subscription as? SwrCachePlusInternal.ManagedSubscription<*>)?.options?.describe().orEmpty(),
+                    options = (subscription as? SwrCachePlusInternal.ManagedSubscription<*>)?.options?.toOptionMap().orEmpty(),
                     stateFlow = subscription.state,
                 ),
             )
         }
         subscriptionCache?.keys?.toList()?.forEach { id ->
-            if (id in active) return@forEach
+            if (id in activeSubscriptions) return@forEach
             val state = subscriptionCache[id] ?: return@forEach
             add(SoilCacheRecord(key = SoilEntryKey(kind = SoilEntryKind.SUBSCRIPTION, id = id), location = SoilEntryLocation.INACTIVE, model = state, isObserved = false, options = emptyMap(), stateFlow = null))
         }
     }
 }
 
-private const val NO_POLICY_REFUSAL = "Inactive entries are only reachable when the app hands its SwrCachePolicy to the plugin."
+private const val MISSING_CACHE_POLICY_REFUSAL = "Inactive entries are only reachable when the app hands its SwrCachePolicy to the plugin."
 
 private const val BECAME_ACTIVE_REFUSAL = "The entry has become active, and active entries are not removed."
 
 private fun queryKindOf(id: UniqueId): SoilEntryKind = if (id is InfiniteQueryId<*, *>) SoilEntryKind.INFINITE_QUERY else SoilEntryKind.QUERY
 
-private fun QueryOptions.describe(): Map<String, String> = mapOf(
+private fun QueryOptions.toOptionMap(): Map<String, String> = mapOf(
     "staleTime" to staleTime.toString(),
     "gcTime" to gcTime.toString(),
     "keepAliveTime" to keepAliveTime.toString(),
@@ -206,7 +206,7 @@ private fun QueryOptions.describe(): Map<String, String> = mapOf(
     "retryCount" to retryCount.toString(),
 )
 
-private fun MutationOptions.describe(): Map<String, String> = mapOf(
+private fun MutationOptions.toOptionMap(): Map<String, String> = mapOf(
     "isOneShot" to isOneShot.toString(),
     "isStrictMode" to isStrictMode.toString(),
     "shouldExecuteEffectSynchronously" to shouldExecuteEffectSynchronously.toString(),
@@ -214,7 +214,7 @@ private fun MutationOptions.describe(): Map<String, String> = mapOf(
     "retryCount" to retryCount.toString(),
 )
 
-private fun SubscriptionOptions.describe(): Map<String, String> = mapOf(
+private fun SubscriptionOptions.toOptionMap(): Map<String, String> = mapOf(
     "gcTime" to gcTime.toString(),
     "keepAliveTime" to keepAliveTime.toString(),
     "restartOnReconnect" to restartOnReconnect.toString(),

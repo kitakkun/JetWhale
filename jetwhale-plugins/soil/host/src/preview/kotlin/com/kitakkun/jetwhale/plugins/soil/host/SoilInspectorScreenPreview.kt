@@ -129,10 +129,10 @@ private fun SoilInspectorScreenPreview() {
             selectedEntry = FixtureUserQuery,
             selectedValue = FixtureUserValue,
             status = null,
-            query = "",
+            searchQuery = "",
             agentNowEpochSeconds = FIXTURE_NOW,
             actions = NoSoilInspectorActions,
-            onQueryChange = {},
+            onSearchQueryChange = {},
         )
     }
 }
@@ -182,10 +182,10 @@ private fun SoilInspectorScreenUnsupportedClientPreview() {
             selectedEntry = null,
             selectedValue = null,
             status = null,
-            query = "",
+            searchQuery = "",
             agentNowEpochSeconds = FIXTURE_NOW,
             actions = NoSoilInspectorActions,
-            onQueryChange = {},
+            onSearchQueryChange = {},
         )
     }
 }

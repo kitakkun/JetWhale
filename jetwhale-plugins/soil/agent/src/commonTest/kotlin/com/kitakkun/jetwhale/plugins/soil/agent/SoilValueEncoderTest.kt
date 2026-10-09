@@ -26,7 +26,7 @@ class SoilValueEncoderTest {
 
     @Test
     fun `a value with a serializer of its own is encoded with it`() {
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("users/profile"), Reply.some(profile))
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("users/profile"), Reply.some(profile))
 
         assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """{"id":42,"name":"Ada"}"""), value)
     }
@@ -35,7 +35,7 @@ class SoilValueEncoderTest {
     fun `a serializer registered for the namespace wins over the serializer of the value`() {
         val encoder = SoilValueEncoder(SoilValueSerializers { namespace("users/profile", ProfileNameSerializer) })
 
-        val value = encoder.encode(queryKey("users/profile"), Reply.some(profile))
+        val value = encoder.encode(queryEntryKey("users/profile"), Reply.some(profile))
 
         assertEquals(json(SoilValueEncoding.REGISTERED_SERIALIZER, "\"Ada\""), value)
     }
@@ -53,7 +53,7 @@ class SoilValueEncoderTest {
     fun `a serializer registered for another type falls through to the serializer of the value`() {
         val encoder = SoilValueEncoder(SoilValueSerializers { namespace("users/profile", Int.serializer()) })
 
-        val value = encoder.encode(queryKey("users/profile"), Reply.some(profile))
+        val value = encoder.encode(queryEntryKey("users/profile"), Reply.some(profile))
 
         assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """{"id":42,"name":"Ada"}"""), value)
     }
@@ -71,7 +71,7 @@ class SoilValueEncoderTest {
     @Test
     fun `lists maps pairs and chunks are walked down to the serializers of their leaves`() {
         val value = SoilValueEncoder(SoilValueSerializers.None).encode(
-            queryKey("mixed"),
+            queryEntryKey("mixed"),
             Reply.some(mapOf("first" to Pair(profile, listOf(1, 2)), "chunk" to QueryChunk(data = setOf("a"), param = null))),
         )
 
@@ -83,37 +83,37 @@ class SoilValueEncoderTest {
 
     @Test
     fun `a generic class is encoded with its own serializer and the values of its type arguments`() {
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("posts/page"), Reply.some(Page(items = listOf(profile), next = null)))
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("posts/page"), Reply.some(Page(items = listOf(profile), next = null)))
 
         assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """{"items":[{"id":42,"name":"Ada"}],"next":null}"""), value)
     }
 
     @Test
     fun `a value holding a class without a serializer falls back to toString`() {
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("posts/page"), Reply.some(Page(items = listOf(Receipt(7)), next = 2)))
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("posts/page"), Reply.some(Page(items = listOf(Receipt(7)), next = 2)))
 
         assertEquals(SoilEntryValue.Text(encoding = SoilValueEncoding.TO_STRING, text = "Page(items=[Receipt #7], next=2)", fullLength = 32), value)
     }
 
     @Test
     fun `builtin values and enums without a serializer of their own are encoded`() {
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("mixed"), Reply.some(listOf(Unit, Tier.PRO)))
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("mixed"), Reply.some(listOf(Unit, Tier.PRO)))
 
         assertEquals(json(SoilValueEncoding.CLASS_SERIALIZERS, """[{},"PRO"]"""), value)
     }
 
     @Test
     fun `a map with keys that are not plain values falls back to toString`() {
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("by-profile"), Reply.some(mapOf(profile to 1)))
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("by-profile"), Reply.some(mapOf(profile to 1)))
 
         assertEquals(SoilValueEncoding.TO_STRING, (value as SoilEntryValue.Text).encoding)
     }
 
     @Test
     fun `a value too long to send whole is cut and says how long it was`() {
-        val long = "x".repeat(MAX_SOIL_VALUE_TEXT_LENGTH + 10)
+        val longText = "x".repeat(MAX_SOIL_VALUE_TEXT_LENGTH + 10)
 
-        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("long"), Reply.some(long)) as SoilEntryValue.Text
+        val value = SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("long"), Reply.some(longText)) as SoilEntryValue.Text
 
         assertEquals(SoilValueEncoding.CLASS_SERIALIZERS, value.encoding)
         assertEquals(MAX_SOIL_VALUE_TEXT_LENGTH, value.text.length)
@@ -123,10 +123,10 @@ class SoilValueEncoderTest {
 
     @Test
     fun `an entry without a reply says so`() {
-        assertEquals(SoilEntryValue.NoReply, SoilValueEncoder(SoilValueSerializers.None).encode(queryKey("users/profile"), Reply.none<Profile>()))
+        assertEquals(SoilEntryValue.NoReply, SoilValueEncoder(SoilValueSerializers.None).encode(queryEntryKey("users/profile"), Reply.none<Profile>()))
     }
 
-    private fun queryKey(namespace: String) = SoilEntryKey(SoilEntryKind.QUERY, QueryId<Any>(namespace))
+    private fun queryEntryKey(namespace: String) = SoilEntryKey(SoilEntryKind.QUERY, QueryId<Any>(namespace))
 
     private fun json(encoding: SoilValueEncoding, text: String) = SoilEntryValue.Json(encoding = encoding, json = Json.parseToJsonElement(text))
 }

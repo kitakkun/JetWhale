@@ -30,10 +30,10 @@ class SoilInspectorDocsScreenshots {
                     selectedEntry = FixtureUserQuery,
                     selectedValue = FixtureUserValue,
                     status = null,
-                    query = "",
+                    searchQuery = "",
                     agentNowEpochSeconds = FIXTURE_NOW,
                     actions = NoSoilInspectorActions,
-                    onQueryChange = {},
+                    onSearchQueryChange = {},
                 )
             }
         }

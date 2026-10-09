@@ -49,7 +49,7 @@ private const val CLOCK_TICK_MILLIS = 1_000L
 /** Binds the live [browser] and a ticking clock to [SoilInspectorScreen]. */
 @Composable
 internal fun SoilInspectorScreenRoot(browser: SoilCacheBrowser, modifier: Modifier = Modifier) {
-    var query by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
     val agentNowEpochSeconds by produceState(browser.agentNowEpochSeconds()) {
         while (true) {
             delay(CLOCK_TICK_MILLIS)
@@ -62,10 +62,10 @@ internal fun SoilInspectorScreenRoot(browser: SoilCacheBrowser, modifier: Modifi
         selectedEntry = browser.selectedEntry,
         selectedValue = browser.selectedValue,
         status = browser.status,
-        query = query,
+        searchQuery = searchQuery,
         agentNowEpochSeconds = agentNowEpochSeconds,
         actions = browser,
-        onQueryChange = { query = it },
+        onSearchQueryChange = { searchQuery = it },
         modifier = modifier,
     )
 }
@@ -77,10 +77,10 @@ internal fun SoilInspectorScreen(
     selectedEntry: ListedSoilEntry?,
     selectedValue: SoilValueLoad?,
     status: SoilBrowserStatus?,
-    query: String,
+    searchQuery: String,
     agentNowEpochSeconds: Long,
     actions: SoilInspectorActions,
-    onQueryChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize()) {
@@ -107,9 +107,9 @@ internal fun SoilInspectorScreen(
                         SoilEntryListPane(
                             listedEntries = listedEntries,
                             selectedHandle = selectedEntry?.entry?.handle,
-                            query = query,
+                            searchQuery = searchQuery,
                             agentNowEpochSeconds = agentNowEpochSeconds,
-                            onQueryChange = onQueryChange,
+                            onSearchQueryChange = onSearchQueryChange,
                             onSelect = actions::select,
                         )
                     },
@@ -139,24 +139,24 @@ internal fun SoilInspectorScreen(
 private fun SoilEntryListPane(
     listedEntries: List<ListedSoilEntry>,
     selectedHandle: String?,
-    query: String,
+    searchQuery: String,
     agentNowEpochSeconds: Long,
-    onQueryChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onSelect: (String) -> Unit,
 ) {
-    val matching = listedEntries.filter { it.matches(query) }
+    val matching = listedEntries.filter { it.matches(searchQuery) }
     Column(Modifier.fillMaxSize()) {
         JwSearchField(
-            value = query,
+            value = searchQuery,
             clearLabel = "Clear search",
-            onValueChange = onQueryChange,
+            onValueChange = onSearchQueryChange,
             placeholder = "Search namespaces and tags",
             modifier = Modifier.fillMaxWidth().padding(JwSpacing.medium),
         )
         if (matching.isEmpty()) {
             JwEmptyState(
                 title = if (listedEntries.isEmpty()) "The cache is empty" else "No matches",
-                description = if (listedEntries.isEmpty()) "Entries appear as the app uses its queries, mutations and subscriptions." else "No namespace or tag contains \"$query\".",
+                description = if (listedEntries.isEmpty()) "Entries appear as the app uses its queries, mutations and subscriptions." else "No namespace or tag contains \"$searchQuery\".",
             )
             return@Column
         }
@@ -185,6 +185,6 @@ private fun SoilEntryListPane(
     }
 }
 
-private fun ListedSoilEntry.matches(query: String): Boolean = query.isBlank() ||
-    entry.id.namespace.contains(query, ignoreCase = true) ||
-    entry.id.tags.any { it.contains(query, ignoreCase = true) }
+private fun ListedSoilEntry.matches(searchQuery: String): Boolean = searchQuery.isBlank() ||
+    entry.id.namespace.contains(searchQuery, ignoreCase = true) ||
+    entry.id.tags.any { it.contains(searchQuery, ignoreCase = true) }

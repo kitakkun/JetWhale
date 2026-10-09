@@ -51,12 +51,12 @@ internal fun SoilTestScreen() {
 private fun ProfileSection() {
     val profile = rememberQuery(remember { DemoProfileQueryKey() })
     val rename = rememberMutation(remember { DemoRenameProfileMutationKey() })
-    val flaky = rememberQuery(demoFlakyQueryKey)
+    val failingQuery = rememberQuery(demoFailingQueryKey)
     val scope = rememberCoroutineScope()
     Section(title = "Query and mutation") {
         Text("Profile: ${profile.data ?: profile.status.name}")
         Text("Rename: ${rename.status.name}, ${rename.mutatedCount} run(s)")
-        Text("Flaky query: ${flaky.error?.message ?: flaky.status.name}")
+        Text("Failing query: ${failingQuery.error?.message ?: failingQuery.status.name}")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { scope.launch { rename.mutate(if (profile.data?.name == "Ada Lovelace") "Grace Hopper" else "Ada Lovelace") } }) {
                 Text("Rename")
@@ -93,12 +93,12 @@ private fun ClockSection() {
 @Composable
 private fun EnvelopeSection() {
     val envelope = rememberQuery(demoEnvelopeQueryKey)
-    val registered = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.REGISTERED_NAMESPACE) })
-    val unregistered = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.UNREGISTERED_NAMESPACE) })
+    val registeredReceipt = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.REGISTERED_NAMESPACE) })
+    val unregisteredReceipt = rememberQuery(remember { DemoReceiptQueryKey(DemoReceiptQueryKey.UNREGISTERED_NAMESPACE) })
     Section(title = "Values for the inspector to encode") {
         Text("Generic envelope: ${envelope.data?.payload?.title ?: envelope.status.name}")
-        Text("Receipt, serializer registered: ${registered.data ?: registered.status.name}")
-        Text("Receipt, no serializer: ${unregistered.data ?: unregistered.status.name}")
+        Text("Receipt, serializer registered: ${registeredReceipt.data ?: registeredReceipt.status.name}")
+        Text("Receipt, no serializer: ${unregisteredReceipt.data ?: unregisteredReceipt.status.name}")
     }
 }
 

@@ -25,11 +25,11 @@ class SoilCacheTrackerTest {
     private val tracker = SoilCacheTracker(handles)
 
     private val profileKey = SoilEntryKey(SoilEntryKind.QUERY, QueryId<String>("users/profile", 42))
-    private val renameKey = SoilEntryKey(SoilEntryKind.MUTATION, MutationId<Unit, String>("users/rename"))
+    private val renameMutationKey = SoilEntryKey(SoilEntryKind.MUTATION, MutationId<Unit, String>("users/rename"))
 
     @Test
     fun `the first reading reports every entry`() {
-        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)), record(renameKey, MutationState.test<Unit>())))
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>(status = QueryStatus.Pending)), record(renameMutationKey, MutationState.test<Unit>())))
 
         assertEquals(listOf("users/profile", "users/rename"), changes.upserts.map { it.id.namespace })
         assertEquals(1, changes.revision)
@@ -78,9 +78,9 @@ class SoilCacheTrackerTest {
 
     @Test
     fun `an entry that is no longer read is reported removed`() {
-        val handle = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>()), record(renameKey, MutationState.test<Unit>()))).upserts.first().handle
+        val handle = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test<String>()), record(renameMutationKey, MutationState.test<Unit>()))).upserts.first().handle
 
-        val changes = tracker.replaceEntriesWith(listOf(record(renameKey, MutationState.test<Unit>())))
+        val changes = tracker.replaceEntriesWith(listOf(record(renameMutationKey, MutationState.test<Unit>())))
 
         assertEquals(listOf(handle), changes.removedHandles)
         assertEquals(listOf("users/rename"), tracker.entries.map { it.id.namespace })
@@ -119,7 +119,7 @@ class SoilCacheTrackerTest {
 
     @Test
     fun `a mutation state carries its count and when it was submitted`() {
-        val entry = tracker.replaceEntriesWith(listOf(record(renameKey, MutationState.test(reply = Reply.some(Unit), replyUpdatedAt = 90, errorUpdatedAt = 95, status = MutationStatus.Success, mutatedCount = 3)))).upserts.single()
+        val entry = tracker.replaceEntriesWith(listOf(record(renameMutationKey, MutationState.test(reply = Reply.some(Unit), replyUpdatedAt = 90, errorUpdatedAt = 95, status = MutationStatus.Success, mutatedCount = 3)))).upserts.single()
 
         val state = entry.state as SoilEntryState.Mutation
         assertEquals(3, state.mutatedCount)

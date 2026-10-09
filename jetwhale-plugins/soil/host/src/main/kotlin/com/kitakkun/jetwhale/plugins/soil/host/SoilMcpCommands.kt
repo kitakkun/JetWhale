@@ -39,20 +39,20 @@ internal class ListSoilEntriesCommand(
     private val status by enumOrNull("Only entries with this status.", SoilStatus.entries)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val agentNow = browser.agentNowEpochSeconds()
+        val agentNowEpochSeconds = browser.agentNowEpochSeconds()
         val requestedKind = arguments[kind]
         val requestedNamespace = arguments[namespace]
         val requestedStatus = arguments[status]
-        val listed = browser.listedEntries.filter { listed ->
+        val matchingEntries = browser.listedEntries.filter { listed ->
             (requestedKind == null || listed.entry.kind == requestedKind) &&
                 (requestedNamespace == null || listed.entry.id.namespace.contains(requestedNamespace, ignoreCase = true)) &&
                 (requestedStatus == null || listed.entry.state.status == requestedStatus)
         }
         return buildJsonObject {
             browser.coverage?.let { put("coverage", McpJson.encodeToJsonElement(SoilCacheCoverage.serializer(), it)) }
-            put("agentEpochSeconds", agentNow)
-            putJsonArray("entries") { listed.forEach { add(it.toMcpJson(agentNow)) } }
-            coverageNoteOf(browser.coverage, isEmpty = browser.listedEntries.isEmpty())?.let { put("note", it) }
+            put("agentEpochSeconds", agentNowEpochSeconds)
+            putJsonArray("entries") { matchingEntries.forEach { add(it.toMcpJson(agentNowEpochSeconds)) } }
+            coverageNoteOf(browser.coverage, isCacheEmpty = browser.listedEntries.isEmpty())?.let { put("note", it) }
         }.toString()
     }
 }
@@ -135,10 +135,10 @@ private fun SoilCacheBrowser.listedEntryOf(handle: String): ListedSoilEntry = li
     ?: throw JetWhaleMcpArgumentException("no entry has the handle '$handle'; list them with $TOOL_PREFIX.listEntries")
 
 /** What a caller should know when the list is empty or partial for a reason other than the app. */
-private fun coverageNoteOf(coverage: SoilCacheCoverage?, isEmpty: Boolean): String? = when {
+private fun coverageNoteOf(coverage: SoilCacheCoverage?, isCacheEmpty: Boolean): String? = when {
     coverage == null -> "The app's agent has not answered yet."
     !coverage.isClientReadable -> "The app handed over a ${coverage.clientClassName}, which Soil Inspector cannot read; it reads SwrCache and SwrCachePlus."
     !coverage.includesInactiveEntries -> "Only active entries are listed: the app did not hand its SwrCachePolicy to the plugin."
-    isEmpty -> "The app's Soil cache is empty."
+    isCacheEmpty -> "The app's Soil cache is empty."
     else -> null
 }

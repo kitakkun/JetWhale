@@ -13,4 +13,4 @@ import kotlin.reflect.KClass
 internal expect fun typeArgumentCountOf(kClass: KClass<*>): Int
 
 /** More type parameters than a value class is expected to declare. */
-internal const val UNKNOWN_TYPE_ARGUMENT_COUNT = 8
+internal const val MAX_ASSUMED_TYPE_ARGUMENT_COUNT = 8

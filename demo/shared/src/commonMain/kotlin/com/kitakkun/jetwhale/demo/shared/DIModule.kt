@@ -43,13 +43,13 @@ object DIModule {
 
     /** Kept beside [swrClient] so the Soil Inspector can also list what Soil caches after a screen leaves. */
     @OptIn(ExperimentalSoilQueryApi::class)
-    val soilPolicy: SwrCachePlusPolicy by lazy { SwrCachePlusPolicy(coroutineScope = SwrCacheScope()) }
+    val swrCachePolicy: SwrCachePlusPolicy by lazy { SwrCachePlusPolicy(coroutineScope = SwrCacheScope()) }
 
     @OptIn(ExperimentalSoilQueryApi::class)
-    val swrClient: SwrCachePlus by lazy { SwrCachePlus(soilPolicy) }
+    val swrClient: SwrCachePlus by lazy { SwrCachePlus(swrCachePolicy) }
 
     @OptIn(ExperimentalSoilQueryApi::class)
-    val soilAgentPlugin: JetWhaleSoilAgentPlugin by lazy { JetWhaleSoilAgentPlugin(swrClient, soilPolicy, demoSoilValueSerializers) }
+    val soilAgentPlugin: JetWhaleSoilAgentPlugin by lazy { JetWhaleSoilAgentPlugin(swrClient, swrCachePolicy, demoSoilValueSerializers) }
 
     /** A demo Ktor client wired to the Network Inspector so its traffic shows up in the debugger. */
     val httpClient: HttpClient by lazy {

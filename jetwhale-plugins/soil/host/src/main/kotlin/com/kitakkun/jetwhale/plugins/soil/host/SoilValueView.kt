@@ -66,8 +66,8 @@ internal fun SoilValueView(value: SoilValueLoad?) {
             }
 
             is SoilEntryValue.Text -> Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-                val cut = if (loaded.isTruncated) " Cut at ${loaded.text.length} of ${loaded.fullLength} characters." else ""
-                JwText(text = loaded.encoding.description + cut, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
+                val truncationNote = if (loaded.isTruncated) " Cut at ${loaded.text.length} of ${loaded.fullLength} characters." else ""
+                JwText(text = loaded.encoding.description + truncationNote, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
                 JwCodeBlock(text = loaded.text + if (loaded.isTruncated) "\n…" else "", wrap = true, copyLabel = "Copy value")
             }
         }

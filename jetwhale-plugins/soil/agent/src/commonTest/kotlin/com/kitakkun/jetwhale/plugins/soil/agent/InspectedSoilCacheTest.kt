@@ -34,7 +34,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `entries kept in the cache after their last user left are read as inactive`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
 
         val records = InspectedSoilCache(SwrCache(policy), policy).readRecords()
 
@@ -47,7 +47,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `an active query is read as observed with its options`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
         val client = SwrCache(policy)
         val activeId = QueryId<String>("settings")
         client.getQuery(buildQueryKey(activeId) { "dark" })
@@ -62,7 +62,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `an inactive entry is removed from the cache`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
         val cache = InspectedSoilCache(SwrCache(policy), policy)
 
         val refusal = cache.removeInactive(SoilEntryKey(SoilEntryKind.QUERY, cachedProfileId))
@@ -73,7 +73,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `an entry that became active is not removed`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
         val client = SwrCache(policy)
         client.getQuery(buildQueryKey(cachedProfileId) { "Ada" })
         val cache = InspectedSoilCache(client, policy)
@@ -86,7 +86,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `a cached reply is read back`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
 
         val reply = InspectedSoilCache(SwrCache(policy), policy).readReply(SoilEntryKey(SoilEntryKind.INFINITE_QUERY, cachedFeedId))
 
@@ -95,7 +95,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `a client that wraps the cache is reported unreadable and shows nothing`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
         val wrapper = object : SwrClient by SwrCache(policy) {}
 
         val cache = InspectedSoilCache(wrapper, policy)
@@ -106,7 +106,7 @@ class InspectedSoilCacheTest {
 
     @Test
     fun `a query that appears after the snapshot is reported with a greater revision`() = runTest {
-        val policy = testPolicy()
+        val policy = policyWithCachedProfileAndFeed()
         val client = SwrCache(policy)
         val reporter = SoilCacheReporter(InspectedSoilCache(client, policy), SoilEntryHandles(), Clock.System)
         val snapshot = reporter.takeSnapshot()
@@ -122,7 +122,7 @@ class InspectedSoilCacheTest {
         assertTrue(event.revision > snapshot.revision)
     }
 
-    private fun TestScope.testPolicy(): SwrCachePolicy = SwrCachePolicy(
+    private fun TestScope.policyWithCachedProfileAndFeed(): SwrCachePolicy = SwrCachePolicy(
         coroutineScope = backgroundScope,
         mainDispatcher = UnconfinedTestDispatcher(testScheduler),
         queryCache = QueryCacheBuilder {

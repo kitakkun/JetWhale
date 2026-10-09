@@ -30,26 +30,26 @@ class SoilMcpCommandsTest {
     private val profile = queryEntry(handle = "query-1", namespace = "users/profile", staleAt = HOST_NOW - 10)
     private val cachedProfile = queryEntry(handle = "query-2", namespace = "users/profile", location = SoilEntryLocation.INACTIVE, isObserved = false)
     private val failedSettings = queryEntry(handle = "query-3", namespace = "settings", status = SoilStatus.FAILURE)
-    private val rename = mutationEntry(handle = "mutation-4", namespace = "users/rename")
-    private val client = FakeSoilCacheClient(snapshotOf(profile, cachedProfile, failedSettings, rename))
+    private val renameMutation = mutationEntry(handle = "mutation-4", namespace = "users/rename")
+    private val client = FakeSoilCacheClient(snapshotOf(profile, cachedProfile, failedSettings, renameMutation))
     private val browser = SoilCacheBrowser(client, CoroutineScope(Dispatchers.Unconfined), FixedClock).apply { runBlocking { load() } }
 
     @Test
     fun `listEntries narrows by namespace and status and judges staleness by the app clock`() {
-        val listed = ListSoilEntriesCommand(browser).run(
+        val entries = ListSoilEntriesCommand(browser).run(
             buildJsonObject {
                 put("namespace", "PROFILE")
                 put("status", "success")
             },
         ).getValue("entries").jsonArray.map(JsonElement::jsonObject)
 
-        assertEquals(listOf("query-1", "query-2"), listed.map { it.getValue("handle").jsonPrimitive.content })
-        assertEquals(true, listed.first().getValue("isStale").jsonPrimitive.boolean)
+        assertEquals(listOf("query-1", "query-2"), entries.map { it.getValue("handle").jsonPrimitive.content })
+        assertEquals(true, entries.first().getValue("isStale").jsonPrimitive.boolean)
     }
 
     @Test
     fun `listEntries keeps a mutation the app dropped and marks it gone`() {
-        browser.adopt(SoilEntriesChanged(upserts = emptyList(), removedHandles = listOf(rename.handle), revision = 2, agentEpochMillis = HOST_NOW * 1000))
+        browser.adopt(SoilEntriesChanged(upserts = emptyList(), removedHandles = listOf(renameMutation.handle), revision = 2, agentEpochMillis = HOST_NOW * 1000))
 
         val listed = ListSoilEntriesCommand(browser).run(buildJsonObject { put("kind", "mutation") }).getValue("entries").jsonArray.single().jsonObject
 

@@ -57,16 +57,16 @@ internal class SoilValueEncoder(private val registeredSerializers: SoilValueSeri
     }
 
     private fun encodeValue(key: SoilEntryKey, value: Any?): SoilEntryValue {
-        val registered = registeredSerializers.serializerFor(key.id)?.let { serializer ->
+        val registeredSerializerJson = registeredSerializers.serializerFor(key.id)?.let { serializer ->
             if (key.kind == SoilEntryKind.INFINITE_QUERY) encodeChunksWith(serializer, value) else encodeWith(serializer, value)
         }
-        if (registered != null) return jsonValue(SoilValueEncoding.REGISTERED_SERIALIZER, registered)
-        val walked = encodeWithClassSerializers(value)
-        if (walked != null) return jsonValue(SoilValueEncoding.CLASS_SERIALIZERS, walked)
+        if (registeredSerializerJson != null) return jsonOrTextValue(SoilValueEncoding.REGISTERED_SERIALIZER, registeredSerializerJson)
+        val classSerializersJson = encodeWithClassSerializers(value)
+        if (classSerializersJson != null) return jsonOrTextValue(SoilValueEncoding.CLASS_SERIALIZERS, classSerializersJson)
         return textValue(SoilValueEncoding.TO_STRING, value.toString())
     }
 
-    private fun jsonValue(encoding: SoilValueEncoding, element: JsonElement): SoilEntryValue {
+    private fun jsonOrTextValue(encoding: SoilValueEncoding, element: JsonElement): SoilEntryValue {
         val text = element.toString()
         return if (text.length > MAX_SOIL_VALUE_TEXT_LENGTH) textValue(encoding, text) else SoilEntryValue.Json(encoding = encoding, json = element)
     }
