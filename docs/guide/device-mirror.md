@@ -32,7 +32,7 @@ missing, the device list says which one and what it would enable.
 |-----------|----------|
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
 | iOS simulators (macOS) | Xcode alone: `simctl` for screenshots and recordings, and an XCTest runner for live video and input — see [Input on iOS](#input-on-ios) |
-| iPhones connected by USB (macOS) | Xcode, which lists them; [idb](https://fbidb.io) for live video, screenshots and recordings: `brew install facebook/fb/idb`, which installs the command-line client and its companion; for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
+| iPhones and iPads connected by USB (macOS) | Xcode, which lists them; [idb](https://fbidb.io) for live video, screenshots and recordings: `brew install facebook/fb/idb`, which installs the command-line client and its companion; for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
