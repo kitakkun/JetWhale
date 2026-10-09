@@ -99,8 +99,6 @@ internal class HttpRunnerConnection(
 
     override suspend fun openScreenStream(maxFps: Int): RunnerScreenStream = withContext(Dispatchers.IO) {
         val call = screenStreamHttpClient.newCall(Request.Builder().url("http://127.0.0.1:$port/stream?fps=$maxFps").header(RUNNER_TOKEN_HEADER, token).build())
-        // Opening a stream changes nothing on the runner, so any failure to open one counts as
-        // unreachable and the caller attaches again, unlike a command that may have run.
         val response = try {
             call.execute()
         } catch (e: IOException) {
