@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
@@ -42,6 +43,9 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
     suspend fun pressButton(target: XcTestRunnerTarget, button: XcTestRunnerButton) = withRunner(target) { it.pressButton(button) }
 
     suspend fun openAppSwitcher(target: XcTestRunnerTarget) = withRunner(target, XcTestRunner::openAppSwitcher)
+
+    /** The size of [target]'s screen in device-native pixels, as its runner reports it. */
+    suspend fun screenSize(target: XcTestRunnerTarget): IntSize = withRunner(target) { IntSize(it.screen.widthPixels, it.screen.heightPixels) }
 
     /**
      * [target]'s screen as JPEG frames, at most [maxFps] a second, starting its runner first when none

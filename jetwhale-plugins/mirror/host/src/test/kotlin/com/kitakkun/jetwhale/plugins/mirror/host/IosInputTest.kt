@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
@@ -193,6 +194,48 @@ class IosInputTest {
     }
 
     @Test
+    fun `an iPhone that takes input reads its screen size from its runner without idb`() = runTest {
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+
+        assertEquals(IntSize(1206, 2622), iphone.screenSize())
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
+    fun `an iPhone that takes no input and has no idb says where its screen size would come from`() = runTest {
+        runners.refusal = "driving an iPhone needs your Apple development team"
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+
+        val failure = assertFailsWith<DeviceControlException> { iphone.screenSize() }
+
+        assertEquals(
+            "the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: idb is not installed, and driving an iPhone needs your Apple development team",
+            failure.message,
+        )
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
+    fun `an iPhone whose idb reports its screen size asks no runner for it`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbDescribing(width = 1170, height = 2532).screenSize()
+
+        assertEquals(IntSize(1170, 2532), size)
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
+    fun `an iPhone whose idb reports no screen size takes it from its runner`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbDescribing(width = 0, height = 0).screenSize()
+
+        assertEquals(IntSize(1206, 2622), size)
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
     fun `an iPhone whose runner cannot start says why`() = runTest {
         runners.startFailure = "Developer Mode is off on the iPhone"
 
@@ -202,6 +245,24 @@ class IosInputTest {
     }
 
     private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+
+    /** An iPhone whose idb describes a screen of [width] by [height] pixels, as `idb describe` does a device's. */
+    private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int): IosPhysicalDeviceController {
+        val fakeIdb = File(folder, "idb").apply {
+            writeText("#!/bin/sh\necho '{\"screen_dimensions\":{\"width\":$width,\"height\":$height,\"density\":3}}'\n")
+            setExecutable(true)
+        }
+        val companions = IdbCompanions(
+            idbCompanionPath = "idb_companion",
+            idbPath = fakeIdb.path,
+            launcher = { ReadyCompanionProcess() },
+            commands = { },
+            ports = { 10_000 },
+            idleTimeout = 3.minutes,
+            scope = backgroundScope,
+        )
+        return IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = companions, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+    }
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
         udid = "00008110",

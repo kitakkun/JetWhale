@@ -238,7 +238,7 @@ private const val COMPANION_STOP_WAIT_SECONDS = 5L
 private const val IDB_CALLS = "idb-calls.txt"
 
 /** An idb companion that reports its port at once and ends when destroyed. */
-private class ReadyCompanionProcess : Process() {
+internal class ReadyCompanionProcess : Process() {
     private val pipe = PipedOutputStream()
     private val output = PipedInputStream(pipe)
     private var destroyed = false

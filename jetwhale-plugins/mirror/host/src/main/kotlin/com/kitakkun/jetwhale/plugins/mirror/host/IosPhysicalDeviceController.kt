@@ -66,14 +66,27 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun screenSize(): IntSize {
         screen?.let { return it }
-        val companions = requireCompanions("the size of a physical iOS device's screen")
+        val size = companions?.let { readIdbScreenSize(it) } ?: readRunnerScreenSize()
+        return size.also { screen = it }
+    }
+
+    /** The size `idb describe` reports for the device, or null when it reports none. */
+    private suspend fun readIdbScreenSize(companions: IdbCompanions): IntSize? {
         companions.acquire(udid)
         val description = try {
             runCommandChecked(companions.idbPath, "describe", "--udid", udid, "--json").stdoutText
         } finally {
             companions.release(udid)
         }
-        return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
+        return parseIdbScreen(description)
+    }
+
+    private suspend fun readRunnerScreenSize(): IntSize {
+        inputRefusal()?.let { refusal ->
+            val idbNoSizeReason = if (companions == null) "idb is not installed" else "'idb describe' reported no size"
+            throw deviceControlError("the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: $idbNoSizeReason, and $refusal")
+        }
+        return checkNotNull(runnerInput).screenSize(runnerTarget)
     }
 
     override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y, XcTestRunnerPointSpace.Device) }
