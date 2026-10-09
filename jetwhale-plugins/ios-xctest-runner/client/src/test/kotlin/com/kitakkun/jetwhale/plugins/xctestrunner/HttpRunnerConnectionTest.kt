@@ -61,6 +61,11 @@ class HttpRunnerConnectionTest {
     }
 
     @Test
+    fun `a status request whose connection closes without an answer is unreachable, so it is asked again`() = withConnection(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START)) { connection, _ ->
+        assertFailsWith<RunnerUnreachableException> { connection.status() }
+    }
+
+    @Test
     fun `a port nobody listens on is unreachable rather than a refusal`() = runBlocking {
         val closedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
 

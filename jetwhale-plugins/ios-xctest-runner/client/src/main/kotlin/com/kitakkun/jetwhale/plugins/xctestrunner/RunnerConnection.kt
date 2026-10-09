@@ -33,9 +33,9 @@ internal data class RunnerStatus(
 )
 
 /**
- * A runner that took no connection, so the command was never sent and can be sent again. A runner
- * that stops answering after taking the command throws [XcTestRunnerException] instead: it may have
- * carried the command out.
+ * A runner that took no connection, so the command was never sent, or a status request that got no
+ * answer; either can be sent again. A runner that stops answering after taking a command throws
+ * [XcTestRunnerException] instead: it may have carried the command out.
  */
 internal class RunnerUnreachableException(message: String, cause: Throwable?) : Exception(message, cause)
 
@@ -66,16 +66,22 @@ internal class HttpRunnerConnection(
     private val httpClient: OkHttpClient,
 ) : RunnerConnection {
     override suspend fun status(): RunnerStatus = try {
-        RunnerJson.decodeFromJsonElement(post("/status", JsonObject(emptyMap())))
+        RunnerJson.decodeFromJsonElement(post("/status", JsonObject(emptyMap()), isSafeToRepeat = true))
     } catch (e: SerializationException) {
         throw XcTestRunnerException("the XCTest runner's status could not be read: ${e.message}", e)
     }
 
     override suspend fun send(path: String, body: JsonObject) {
-        post(path, body)
+        post(path, body, isSafeToRepeat = false)
     }
 
-    private suspend fun post(path: String, body: JsonObject): JsonObject = withContext(Dispatchers.IO) {
+    /**
+     * Posts [body] to [path] and returns the runner's answer. A request that gets no answer is
+     * unreachable when the connection was refused, or when it [isSafeToRepeat], as `/status` is: a
+     * device's forward takes the connection even while the runner behind it is not listening yet,
+     * and then closes it.
+     */
+    private suspend fun post(path: String, body: JsonObject, isSafeToRepeat: Boolean): JsonObject = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("http://127.0.0.1:$port$path")
             .header(RUNNER_TOKEN_HEADER, token)
@@ -86,6 +92,7 @@ internal class HttpRunnerConnection(
         } catch (e: ConnectException) {
             throw RunnerUnreachableException("the XCTest runner did not answer: ${e.message}", e)
         } catch (e: IOException) {
+            if (isSafeToRepeat) throw RunnerUnreachableException("the XCTest runner did not answer: ${e.message}", e)
             throw XcTestRunnerException("the XCTest runner stopped answering during ${path.removePrefix("/")}: ${e.message}", e)
         }
         val answer = try {
