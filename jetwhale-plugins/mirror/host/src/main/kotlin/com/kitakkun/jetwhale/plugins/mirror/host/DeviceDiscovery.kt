@@ -113,9 +113,9 @@ internal class DeviceDiscovery(
 
     private fun missingTools(locatedToolPaths: MirrorToolPaths, runnerInput: XcTestRunnerInput?, iproxyPath: String?, isIphoneListed: Boolean): List<String> = buildList {
         if (locatedToolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
-        if (isIphoneListed && locatedToolPaths.idbPath == null) add("idb was not found, so iPhones are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
-        if (isIphoneListed && locatedToolPaths.idbPath != null && locatedToolPaths.idbCompanionPath == null) add("idb_companion was not found, so iPhones are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
-        if (isIphoneListed && runnerInput != null && iproxyPath == null) add("iproxy was not found, so iPhones are shown without input: $IPROXY_INSTALL")
+        if (isIphoneListed && locatedToolPaths.idbPath == null) add("idb was not found, so iPhones and iPads are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
+        if (isIphoneListed && locatedToolPaths.idbPath != null && locatedToolPaths.idbCompanionPath == null) add("idb_companion was not found, so iPhones and iPads are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
+        if (isIphoneListed && runnerInput != null && iproxyPath == null) add("iproxy was not found, so iPhones and iPads are shown without input: $IPROXY_INSTALL")
         if (locatedToolPaths.ffmpegPath == null && (locatedToolPaths.adbPath != null || isIphoneListed)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 
