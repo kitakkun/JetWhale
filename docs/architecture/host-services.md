@@ -317,8 +317,12 @@ For the third row:
    - `JetWhaleToolLocator.findExecutable(toolName)` and `childProcessPathVariable()`.
    - #435's order, with the user's path first. A user path that is not an executable file gives null,
      and the Tools page says why, rather than a quiet fallback to the search that would hide a typo.
-   - The Tools page lists the host's adb, every tool a loaded plugin declares in its manifest
-     (`"tools": ["ffmpeg", "xcrun", "iproxy"]`), and every tool with a saved path.
+   - The Tools page lists the tools the host's own services run (adb; on macOS, from step 3, xcrun
+     and iproxy), every tool a loaded plugin declares in its manifest (`"tools": ["ffmpeg"]`), and
+     every tool with a saved path. A tool the runner service needs has a row whether or not a plugin
+     declares it.
+   - `tools` joins the manifest the way `runsInHostSession` does in step 1: in the class's
+     hand-written `equals`, `hashCode` and `toString`, with a test, and in the JSON schema.
    - In the same step, two small services: `JetWhalePluginDirectory`, the plugin's own directory
      under the app data, which replaces the hard-coded `plugin-data/com.kitakkun.jetwhale.mirror`;
      and #376's `JetWhaleAdb`, which runs the adb the locator finds.
@@ -642,8 +646,8 @@ typealias UpdateUserToolPathMutationKey = MutationKey<Unit, UserToolPathUpdate>
 
 Step 4 moves `IphoneScreenCaptures`, `IphoneCaptureHelperBuilds` and the Swift source into the
 host's iOS service, which then starts an iPhone's capture before its runner, whichever plugin asks
-first. Mirror reads the iPhone's H.264 through the service. The Camera usage description #443 adds to the launcher
-already names the app that runs the host, so the permission does not move.
+first. Mirror reads the iPhone's H.264 through the service. The Camera usage description #443 adds
+to the launcher already names the app that runs the host, so the permission does not move.
 
 ### #376 and #245
 
@@ -657,8 +661,8 @@ path it already has for a missing adb.
 **Host, step 1 (session scope):**
 
 1. SDK: `runsInHostSession` on `JetWhaleHostPluginManifest`, in its hand-written `equals`,
-   `hashCode` and `toString` (`sdk/JetWhaleHostPluginManifest.kt:45-67`), with a test of them, and in the
-   JSON schema;
+   `hashCode` and `toString` (`sdk/JetWhaleHostPluginManifest.kt:45-67`), with a test of them, and
+   in the JSON schema (`tools` follows in step 2);
    `isInHostSession` and `bindSessionKind` on `JetWhaleHostPlugin`; the stale `requiresAgent` KDoc
    and schema text corrected. `JetWhaleMessagingHostPlugin`'s KDoc promises every instance a live
    counterpart, a `messenger` from `onCreate`, and `configure` and `onPrepare`
@@ -707,7 +711,9 @@ path it already has for a missing adb.
 6. MCP: every semantics tool gains an optional `deviceId`, a UDID. In the host session it is required
    when more than one device is listed; in app sessions it is refused. The view attribute and
    highlight tools refuse in the host session, which has no agent to answer them.
-7. Without the runner service (another OS, no Xcode), the host-session instance says what it needs.
+7. On Linux and Windows the runner service is null, and the host-session instance says it needs
+   macOS. On a Mac without Xcode the service is there and refuses with its reason (`refusalFor`, or
+   the start failure from `runnerFor`), which the instance shows.
 8. Simulators only until step 4; an iPhone is listed with the reason.
 9. Tests: the XCTest mapping and gestures against a fake runner, and the host-session screen without
    the agent-only panels.
@@ -763,8 +769,8 @@ and the warning that lists what the SDK does not give), `docs/guide/compose-sema
   *Recommendation:* the runner artifact. The SDK stays free of one platform's types, and the client's
   callers keep their imports.
 - **Which tools the Tools page lists**: declared in manifests, or the ones plugins looked up during
-  this run. *Recommendation:* declared, plus adb and any saved path. The page is then complete before
-  a plugin runs, and the manifest records what a plugin needs.
+  this run. *Recommendation:* declared, plus the tools the host's own services run and any saved
+  path. The page is then complete before a plugin runs, and the manifest records what a plugin needs.
 - **A user path that is not executable**: null with the reason, or a fallback to the search.
   *Recommendation:* null with the reason.
 - **Tool paths over MCP**: settable, or read-only. *Recommendation:* read-only.
