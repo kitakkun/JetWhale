@@ -641,8 +641,8 @@ typealias UpdateUserToolPathMutationKey = MutationKey<Unit, UserToolPathUpdate>
 ### The iPhone capture helper (#443)
 
 Step 4 moves `IphoneScreenCaptures`, `IphoneCaptureHelperBuilds` and the Swift source into the
-host's iOS service, which then starts an iPhone's capture before its runner whoever asks first. Mirror
-reads the iPhone's H.264 through the service. The Camera usage description #443 adds to the launcher
+host's iOS service, which then starts an iPhone's capture before its runner, whichever plugin asks
+first. Mirror reads the iPhone's H.264 through the service. The Camera usage description #443 adds to the launcher
 already names the app that runs the host, so the permission does not move.
 
 ### #376 and #245
@@ -656,7 +656,9 @@ path it already has for a missing adb.
 
 **Host, step 1 (session scope):**
 
-1. SDK: `runsInHostSession` on `JetWhaleHostPluginManifest` and in the JSON schema;
+1. SDK: `runsInHostSession` on `JetWhaleHostPluginManifest`, in its hand-written `equals`,
+   `hashCode` and `toString` (`sdk/JetWhaleHostPluginManifest.kt:45-67`), with a test of them, and in the
+   JSON schema;
    `isInHostSession` and `bindSessionKind` on `JetWhaleHostPlugin`; the stale `requiresAgent` KDoc
    and schema text corrected. `JetWhaleMessagingHostPlugin`'s KDoc promises every instance a live
    counterpart, a `messenger` from `onCreate`, and `configure` and `onPrepare`
