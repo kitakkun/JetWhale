@@ -175,7 +175,7 @@ Once a second plugin uses the runner, this costs:
 | Plugins built against the current SDK | Break: every factory changes. A default `createPlugin(context) = createPlugin()` would bridge old factories, since Kotlin compiles interface bodies to JVM default methods from language version 2.2 ([`JvmCompilerArguments.kt:182-189` at v2.4.10](https://github.com/JetBrains/kotlin/blob/v2.4.10/compiler/arguments/src/org/jetbrains/kotlin/arguments/description/JvmCompilerArguments.kt#L182-L189)), but a factory written for the new overload would still have to implement the old abstract one | Unaffected: nothing they implement changes | Unaffected |
 | Available | In the factory, before the instance exists | From `onCreate`, like `storage` | Anywhere, including code that belongs to no instance |
 | Who asks | The plugin id of the factory | The plugin and its session: one object is bound per instance | Unknown |
-| On a host older than the SDK | The host calls `createPlugin()`, which a factory written for the new overload lacks: the instance is not created | The accessor is inlined into the plugin and can turn the missing binding into null ([Versioning](#versioning-and-compatibility)) | The class is missing: the call fails |
+| On a host older than the SDK | With #376's signature, the host calls `createPlugin()`, which the factory no longer has: the instance is not created | The accessor is inlined into the plugin and can turn the missing binding into null ([Versioning](#versioning-and-compatibility)) | The class is missing: the call fails |
 
 Recommendation: bound to the instance.
 
@@ -187,8 +187,9 @@ Recommendation: bound to the instance.
 - **A lookup by type**, `find(type: Class<T>): T?`: one method, there from the first version. A
   service type added later is a class that an older host lacks, and naming it fails with
   `NoClassDefFoundError`.
-- **The same lookup through an inline function**, compiled into the plugin, that turns both
-  `LinkageError`s into null. Chosen.
+- **The same lookup through an inline function**, compiled into the plugin, that turns exactly those
+  two errors into null: `NoSuchMethodError` where the entry point is missing, and
+  `NoClassDefFoundError` where the service type is. Chosen.
 
 ### Who implements a service
 
@@ -380,27 +381,32 @@ The settings behind a service are host settings. No plugin draws them.
 ### Versioning and compatibility
 
 The SDK's ABI is checked by `checkKotlinAbi` (`explicitApi()` and `abiValidation()`,
-`jetwhale-host-sdk/build.gradle.kts:13-18`). This design only adds to it:
+`jetwhale-host-sdk/build.gradle.kts:13-18`). The design adds to it, and replaces one constructor:
 
-- `JetWhaleHostPlugin` gains two bound fields, their binders and two inline accessors, and
-  `JetWhaleHostPluginManifest`
-  gains `runsInHostSession` and `tools`. The manifest's constructor changes; only the host builds
-  manifests. The factory interface does not change.
+- `JetWhaleHostPlugin` gains two bound properties, their binders and two inline accessors. The
+  factory interface does not change.
+- `JetWhaleHostPluginManifest` gains `runsInHostSession` and `tools`. Its primary constructor takes
+  them as parameters, so the dump's current constructor is replaced rather than kept. Only the host
+  and its tests construct a manifest; a plugin's manifest is a JSON file that the host decodes. The
+  old constructor is therefore not kept as an overload.
 - **Older plugins on a newer host** never call the new members, and run unchanged. A plugin class
   that happens to declare a member with the JVM name of a new final member fails to load: its
   instance is not created and the host logs why (`DefaultPluginInstanceService.kt:120-138`). The new
   names are chosen to make that unlikely.
 - **Newer plugins on an older host.** The older host ignores `runsInHostSession` and `tools`, so the
   plugin gets no host-session instance and no tools are listed. `isInHostSession` and
-  `findHostService` are inline, so their bodies are compiled into the plugin, and each catches
-  `LinkageError`. On a host from before this design the binding does not exist, and touching it
-  throws a `LinkageError`, which gives `false` and null; a host-only plugin, which runs only in the
-  host session anyway, must not rely on the flag there. On a host that predates one service, the
-  service's type is missing (`NoClassDefFoundError`), which gives null. Any other SDK API added
-  later still fails on an older host, as new API does today.
-- **A released service interface never gains a member.** An older host's implementation would lack
-  it, and the call would fail with `AbstractMethodError`. A new member goes into a new interface that
-  the same object also implements, found by its own type, so the lookup stays the only version check.
+  `findHostService` are inline, so their bodies are compiled into the plugin. On a host from before
+  this design the bound property's getter does not exist, and its `NoSuchMethodError` gives `false`
+  and null; a host-only plugin, which runs only in the host session anyway, must not rely on the flag
+  there. On a host that predates one service, naming the service's type throws
+  `NoClassDefFoundError`, which gives null. Only those two errors, at those two points, are caught:
+  anything the host's own `find` throws reaches the plugin, so a broken host is not mistaken for a
+  missing service. Any other SDK API added later still fails on an older host, as new API does
+  today.
+- **A released service interface never gains a member.** On an older host the interface itself, which
+  the host provides, lacks the member, and the call fails with `NoSuchMethodError` in plugin code that
+  the lookup no longer guards. A new member goes into a new interface that the same object also
+  implements, found by its own type, so the lookup stays the only version check.
   While a service is `@ExperimentalJetWhaleApi`, it may change incompatibly, and its PR says so.
 - **Artifacts the host provides besides the SDK** (`jetwhale-ios-xctest-runner` from step 3) follow
   the same rules, and plugins depend on them `compileOnly`. Since a plugin's class loader asks the
@@ -433,10 +439,13 @@ public abstract class JetWhaleHostPlugin {
      * session, and one that needs an agent never does.
      */
     protected inline val isInHostSession: Boolean
-        get() = try {
-            checkNotNull(boundIsInHostSession) { "isInHostSession is only available in or after onCreate()." }
-        } catch (_: LinkageError) {
-            false
+        get() {
+            val bound = try {
+                boundIsInHostSession
+            } catch (_: NoSuchMethodError) {
+                return false
+            }
+            return checkNotNull(bound) { "isInHostSession is only available in or after onCreate()." }
         }
 
     /**
@@ -445,10 +454,18 @@ public abstract class JetWhaleHostPlugin {
      * instance.
      */
     @ExperimentalJetWhaleApi
-    protected inline fun <reified T : Any> findHostService(): T? = try {
-        checkNotNull(boundHostServices) { "findHostService is only available in or after onCreate()." }.find(T::class.java)
-    } catch (_: LinkageError) {
-        null
+    protected inline fun <reified T : Any> findHostService(): T? {
+        val services = try {
+            boundHostServices
+        } catch (_: NoSuchMethodError) {
+            return null
+        }
+        val type = try {
+            T::class.java
+        } catch (_: NoClassDefFoundError) {
+            return null
+        }
+        return checkNotNull(services) { "findHostService is only available in or after onCreate()." }.find(type)
     }
 
     @InternalJetWhaleHostApi
@@ -629,7 +646,10 @@ path it already has for a missing adb.
 
 1. SDK: `runsInHostSession` on `JetWhaleHostPluginManifest` and in the JSON schema;
    `isInHostSession` and `bindSessionKind` on `JetWhaleHostPlugin`; the stale `requiresAgent` KDoc
-   and schema text corrected.
+   and schema text corrected. `JetWhaleMessagingHostPlugin`'s KDoc promises every instance a live
+   counterpart, a `messenger` from `onCreate`, and `configure` and `onPrepare`
+   (`sdk/JetWhaleMessagingHostPlugin.kt:6-18`, `:22-29`); it is reworded to hold for app sessions,
+   and to say what a host-session instance gets instead.
 2. `DefaultPluginSessionReconciliationService`: `targetSessionIds` adds `host`, and `Activated`
    leaves it out.
 3. `DefaultPluginInstanceService.createInstance`: binds the session kind; creates no peer and runs
@@ -660,11 +680,18 @@ path it already has for a missing adb.
    [Compose Semantics (phase 2)](./ios-xctest-runner.md#compose-semantics-phase-2) specifies.
 4. A device picker in the host-session instance, fed by `XcTestRunnerTargetListing`, with the choice
    kept in storage under a key of its own.
-5. MCP: every semantics tool gains an optional `deviceId`, a UDID. In the host session it is required
+5. The host-session screen leaves out the view attribute panel and the node highlight. Both are
+   built on `messenger` (`ViewAttributeStore` and `NodeHighlightController`,
+   `ComposeSemanticsInspectorPluginFactory.kt:52-69`) and wired into the screen
+   (`:75-115`), so the plugin creates them in app sessions only, and the screen takes them as
+   optional.
+6. MCP: every semantics tool gains an optional `deviceId`, a UDID. In the host session it is required
    when more than one device is listed; in app sessions it is refused. The view attribute and
    highlight tools refuse in the host session, which has no agent to answer them.
-6. Without the runner service (another OS, no Xcode), the host-session instance says what it needs.
-7. Simulators only until step 4; an iPhone is listed with the reason.
+7. Without the runner service (another OS, no Xcode), the host-session instance says what it needs.
+8. Simulators only until step 4; an iPhone is listed with the reason.
+9. Tests: the XCTest mapping and gestures against a fake runner, and the host-session screen without
+   the agent-only panels.
 
 If step 3 is late, phase 2 can start on simulators right after step 1 with the client bundled, as
 Mirror does in #438, and switch to the host's runners later: the interface is the same.
