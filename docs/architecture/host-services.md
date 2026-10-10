@@ -327,8 +327,9 @@ For the third row:
      One exit hook per process, registered by the host.
    - Plugins get `XcTestRunners`, a listing of the simulators and iPhones a runner can drive (#442's
      `simctl` and `devicectl` parsing moves here), and the signing team to read and change.
-   - The sharing through the OS stays (state file, lock, idle stop): two host processes on one Mac,
-     the installed app and a development host, still meet there.
+   - The sharing through the OS stays (state file, lock, idle stop), so two host processes that use
+     the same app data directory still meet there. A development host on its sandbox directory does
+     not meet the installed app; see Risks.
    - #439's lease becomes a host tool.
    - Phase 2 lands after this step, on simulators.
 4. **The iPhone capture joins the iOS service.** The capture has to start before the runner on an
@@ -540,7 +541,17 @@ public interface XcTestRunnerTargetListing {
     public fun targetsFlow(): Flow<List<ListedXcTestRunnerTarget>>
 }
 
-public class ListedXcTestRunnerTarget(public val target: XcTestRunnerTarget, public val name: String)
+/**
+ * One listed target and the name its device shows. Equal by value, written out as the SDK's published
+ * value types are, so that `copy` and `componentN` do not join the ABI; [XcTestRunnerTarget] gets the same.
+ */
+public class ListedXcTestRunnerTarget(public val target: XcTestRunnerTarget, public val name: String) {
+    override fun equals(other: Any?): Boolean = other is ListedXcTestRunnerTarget && target == other.target && name == other.name
+
+    override fun hashCode(): Int = 31 * target.hashCode() + name.hashCode()
+
+    override fun toString(): String = "ListedXcTestRunnerTarget(target=$target, name=$name)"
+}
 
 /** The Apple development team that signs the runners for iPhones; one per host. */
 public interface XcTestRunnerSigning {
