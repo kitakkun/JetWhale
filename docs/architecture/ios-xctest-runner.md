@@ -162,9 +162,9 @@ and a random token and passes both, with the idle timeout, through `TEST_RUNNER_
 environment variables, which `xcodebuild` hands to the runner process.
 
 - On a simulator, the runner's loopback is the Mac's: nothing to forward.
-- On a device, usbmux forwards a local port to the device's loopback over USB (`iproxy
-  <local>:<device> --udid <udid>`). No Wi-Fi, no Local Network prompt for the runner, and no TLS,
-  since the traffic never leaves the cable.
+- On a device, usbmux forwards a local port to the device's loopback over USB
+  (`iproxy <local>:<device> --udid <udid>`). No Wi-Fi, no Local Network prompt for the runner, and
+  no TLS, since the traffic never leaves the cable.
 - The plugins that use it are host-side, and Device Mirror needs no app. A connection the client
   opens keeps the runner out of the session model.
 
