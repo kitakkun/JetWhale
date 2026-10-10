@@ -283,7 +283,8 @@ For the third row:
   and one among the selected app's plugins when that app advertises it. Each opens its own instance.
   The drawer picks a plugin's session from `needsApp` today
   (`jetwhale-host/app/src/main/kotlin/com/kitakkun/jetwhale/host/drawer/ToolingScaffoldUiState.kt:76-79`),
-  so its items carry the session instead.
+  and keys and selects its rows by plugin id alone, so a row is identified by its plugin and its
+  session instead.
 - **Host tools.** `jetwhale.navigate` takes `host` or an app's id for such a plugin; without one it
   opens the selected app's instance when there is one, and the host session's otherwise.
   `listSessions` and `listPlugins` list it under `host`, and `listInstalledPlugins` reports
@@ -665,14 +666,19 @@ path it already has for a missing adb.
    leaves it out.
 3. `DefaultPluginInstanceService.createInstance`: binds the session kind; creates no peer and runs
    no preparation in the host session.
-4. `PluginMetaData` and `DefaultLoadedPluginMetaDataSubscriptionKey` carry the key; the drawer lists
-   the plugin in both places, and its items carry the session (`ToolingScaffoldPresenter.kt:137-161`,
-   `ToolingScaffoldUiState.kt:76-79`).
+4. `PluginMetaData` and `DefaultLoadedPluginMetaDataSubscriptionKey` carry the key, and the drawer
+   lists the plugin in both places (`ToolingScaffoldPresenter.kt:137-161`). A drawer row is
+   identified by its plugin id and session id together: the row keys
+   (`ExpandedToolingDrawerView.kt:450`, `:505`, `ShrunkToolingDrawerView.kt:120`), the selected
+   state (`ExpandedToolingDrawerView.kt:456`, `:516`, `ShrunkToolingDrawerView.kt:123`), and the
+   click and pop-out callbacks, which pass the row's session rather than asking
+   `sessionIdFor(pluginId)` (`ToolingScaffoldUiState.kt:76-79`).
 5. MCP: `jetwhale.navigate` (`HostNavigationCommand.kt:112`, `:127-130`), `jetwhale.setPluginEnabled`
    (`HostPluginCommands.kt:105`), `listSessions` and `listPlugins` (`SessionTools.kt:87-88`),
    `listInstalledPlugins` (`HostPluginCommands.kt:56`).
-6. Tests: reconciliation with a host-session instance, no peer in the host session, both drawer
-   entries, and MCP routing to `host`.
+6. Tests: reconciliation with a host-session instance, no peer in the host session, the two drawer
+   rows of one plugin opening, selecting and popping out their own instances, and MCP routing to
+   `host`.
 
 **Host, step 3 (the iOS runners):** `XcTestRunners`, `XcTestRunnerTargetListing` and
 `XcTestRunnerSigning` as services.
