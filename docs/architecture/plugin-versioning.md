@@ -241,7 +241,8 @@ the other one sends. The verdicts follow from the payload format:
 | Make a required field optional under `@EncodeDefault(NEVER)` | breaking | The newer peer leaves it out at its default |
 | Make an optional field required | breaking | |
 | Change a field's type, or its nullability either way | breaking | |
-| Rename a field's serial name, even keeping the old one in `@JsonNames` | breaking | One required field removed and one added; `@JsonNames` only lets the newer peer read the old name |
+| Rename a required field's serial name, even keeping the old one in `@JsonNames` | breaking | One required field removed and one added; `@JsonNames` only lets the newer peer read the old name |
+| Rename an optional field's serial name | additive | One optional field removed and one added; the value is lost between versions, which is a matter of meaning (below) |
 | Add or remove an enum entry | breaking | An unknown entry does not decode: `coerceInputValues` is off |
 | Add or remove a sealed subtype, or change the discriminator | breaking | |
 | Add an event | additive | The older peer skips it |
@@ -491,11 +492,11 @@ verdict without enforcing it (see [Today](#what-follows-from-it)); with #320 it 
 | Host | Jar | Agent | Decided by | Outcome |
 |---|---|---|---|---|
 | H0 | J0 | A0 | `agentVersionRange` | As today |
-| H0 | J0 | A1 | `agentVersionRange` against the release version | `1.0.0-alpha15` counts as `1.0.0`: network, nav3, storage, actions and example agents stay compatible until the release version passes 1.0.0, and semantics agents are incompatible (`1.0.0` < `1.1.0`). Update the host |
+| H0 | J0 | A1 | `agentVersionRange` against the release version | `1.0.0-alpha15` counts as `1.0.0`: network, nav3, storage, actions and example agents are accepted until the release version passes 1.0.0, and semantics agents are refused (`1.0.0` < `1.1.0`). Accepted is not compatible; see below. Update the host |
 | H0 | J1 | A0 | the kept `agentVersionRange` | As today |
 | H0 | J1 | A1 | as H0, J0, A1 | As H0, J0, A1 |
 | H1 | J0 | A0 | `agentVersionRange` | As today, except that `1.2.3-beta1` keeps its patch number |
-| H1 | J0 | A1 | revision 1 only, then `agentVersionRange` against the release version | As H0, J0, A1 for revision-1 agents; an agent at revision 2 or later is refused. Update the plugin |
+| H1 | J0 | A1 | revision 1 only, then `agentVersionRange` against the release version | As H0, J0, A1 for revision-1 agents, with the same caveat; an agent at revision 2 or later is refused. Update the plugin |
 | H1 | J1 | A0 | the jar still accepts revision 1, and its kept `agentVersionRange` includes the agent | As today for official plugins while `min` is 1; a third-party jar with no `agentVersionRange` refuses these agents |
 | H1 | J1 | A1 | the revision against the range | The design |
 
@@ -509,6 +510,17 @@ in one release, whose notes say to update the host and then the official plugins
 An H0 host installs official jars of its own version (`OfficialPluginRelease.kt:21-33`), so it
 rarely meets J1. A third-party jar that adopts revisions without an `agentVersionRange` refuses
 older agents on purpose.
+
+Accepted does not mean compatible wherever one side predates revisions. Revision 1 is the wire at
+adoption, not the wire of every earlier release, and a version range cannot tell the earlier
+releases apart. A known case: a network jar from 1.0.0-alpha11 or earlier accepts a revision-1
+agent, both under its `1.0.0` range in a released host and under the revision-1 fallback in a new
+one, but #249's `RedactionTarget` rename lies between them, so an MCP-only body-field rule fails to
+decode and MCP sees no transactions, as described in [Today](#what-follows-from-it). The decode
+failures are counted on the plugin's page (see
+[What the host cannot do](#third-party-plugins)), and updating the plugin from the catalog ends
+them. The fallback accepts these pairs rather than refusing every jar from before revisions, which
+would cut off every plugin that is not updated together with the host.
 
 ## What was checked
 
@@ -537,7 +549,7 @@ dumps. Kotlin 2.4.10 and kotlinx.serialization 1.11.0, as the repository uses.
     an event added;
   - breaking: a required field added, a required field removed, a type changed, a field made
     nullable, an optional field made required, a required field made optional under
-    `@EncodeDefault(NEVER)`, an enum entry added, a message renamed, a field renamed, the same with
+    `@EncodeDefault(NEVER)`, an enum entry added, a message renamed, a required field renamed, the same with
     `@JsonNames` for the old name, a request added, a reply type changed, an event turned into a
     request, a sealed subtype added;
   - no wire change: fields reordered and an `@McpDescription` edited, both with the same dump and
