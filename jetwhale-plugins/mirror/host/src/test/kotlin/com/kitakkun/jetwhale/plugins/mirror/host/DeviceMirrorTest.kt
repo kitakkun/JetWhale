@@ -21,6 +21,7 @@ import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Surface
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -322,7 +323,7 @@ class DeviceMirrorTest {
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
 
-        withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopened.await() }
+        withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopenedStreamRead.await() }
         val deviceSize = mirror.surface.deviceSize
         session.cancel()
 
@@ -722,14 +723,19 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
     /** Completes with the mirror's state once it opens a second stream. */
     val reopened = CompletableDeferred<MirrorState>()
 
+    /** Completes once the mirror reads the second stream, which it does after taking that stream's screen size. */
+    val reopenedStreamRead = CompletableDeferred<Unit>()
+
     override val capabilities = DeviceCapabilities(inputRefusal = null, buttons = emptyList(), recording = false, screenPower = false)
 
     override suspend fun screenSize(): IntSize = if (opened.get() == 0) UNFOLDED_SCREEN else FOLDED_SCREEN
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        if (opened.incrementAndGet() == 2) reopened.complete(stateNow())
+        val isReopened = opened.incrementAndGet() == 2
+        if (isReopened) reopened.complete(stateNow())
         val writer = PipedOutputStream()
-        return VideoStream.EmulatorRgba(frames = PipedInputStream(writer), cancel = writer::close)
+        val frames = PipedInputStream(writer)
+        return VideoStream.EmulatorRgba(frames = if (isReopened) FirstReadSignallingInputStream(frames, reopenedStreamRead) else frames, cancel = writer::close)
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -749,6 +755,19 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
+}
+
+/** [stream], completing [firstRead] once something reads from it. */
+private class FirstReadSignallingInputStream(stream: InputStream, private val firstRead: CompletableDeferred<Unit>) : FilterInputStream(stream) {
+    override fun read(): Int {
+        firstRead.complete(Unit)
+        return super.read()
+    }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int {
+        firstRead.complete(Unit)
+        return super.read(b, off, len)
+    }
 }
 
 /**
