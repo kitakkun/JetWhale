@@ -1,17 +1,18 @@
 # iOS input through an XCTest runner
 
-Status: **proposed**; phase 1 is in #438. Checked on an iOS simulator only; nothing here has run on a
+Status: phase 1 is in #438, #439 and #442; phases 2 and 3 are **proposed**. An iPhone's video, which
+does not go through the runner, is in #443. Checked on iOS simulators only; nothing here has run on a
 physical device.
 
 ## Goal
 
 Drive iOS UI the way WebDriverAgent does: through a small XCUITest runner that the host starts on
 the simulator or device and sends commands to. XCTest can inject touches, swipes, text and hardware
-buttons anywhere on the screen, and read the element tree of **any** app, SpringBoard and its system
-alerts included. That would give:
+buttons anywhere on the screen, read the element tree of **any** app, SpringBoard and its system
+alerts included, and take screenshots of the whole screen. That gives:
 
-- **Device Mirror** real input on physical iPhones, which are view-only today because idb cannot
-  send touches to a device, and an input path on simulators that does not depend on idb;
+- **Device Mirror** input on simulators and physical iPhones, and a simulator's live video, through
+  XCTest, Apple's automation API, which ships with each Xcode: a simulator needs nothing but Xcode;
 - **Compose Semantics** a node source for apps without the JetWhale agent, and for system UI the
   in-process agent cannot see (permission prompts, SpringBoard, other apps);
 - **MCP** the same reach for agents.
@@ -78,18 +79,13 @@ What did not work, or needed care:
   what WebDriverAgent uses for its actions too.
 - **Text needs the focused app.** `typeText` works only on the app that holds keyboard focus, and
   XCTest has no public way to ask which app that is. The private text-input event types into
-  whatever has focus, like `idb ui text`.
+  whatever has focus.
 - **Recent apps.** Two `press(.home)` calls land 940 ms apart, too slow for the app switcher, and a
   quick synthesized swipe up from the bottom edge scrolls the app instead. A Face ID iPhone's own
   gesture opens it: from the bottom edge up to 60 % of the screen in 0.3 s, held until 1 s, then
   lifted. It opened the switcher 5 times in 5 on iOS 26.2, each in about 1.3 s.
 - **Volume** buttons are unavailable in the Simulator by declaration
   (`XCUIDeviceButtonVolumeUp XCUI_SIMULATOR_UNAVAILABLE`); they exist on devices.
-- **idb no longer sends input with Xcode 27.** On the same simulator, `idb ui tap` failed: "SimulatorKit
-  is required for HID interactions: … `/Applications/Xcode.app/Contents/Developer/Library/PrivateFrameworks/SimulatorKit.framework`
-  … does not exist". Xcode 27 ships SimulatorKit in `Contents/SharedFrameworks`, and idb_companion
-  1.1.8, the current Homebrew release, dates from 2022. The mirror's simulator input therefore does
-  nothing with Xcode 27 today.
 - **The runner's own screen is wrong.** The runner process's `UIScreen` reported a 320×480-point
   screen on the iPhone 17; an `XCUIScreen` screenshot has the real 1206×2622 pixels at 3×.
 - **Kotlin/Native in the runner.** A static framework built with `kotlinc-native` 2.4.10 for
@@ -113,14 +109,14 @@ What did not work, or needed care:
 
 ### Where it lives
 
-The runner belongs to no single plugin. Device Mirror is its first user, for input; Compose
-Semantics is the next, for system UI and for apps without the agent. Both must use it without
-depending on each other, so it is a module of its own:
+The runner belongs to no single plugin. Device Mirror is its first user, for input and for a
+simulator's video; Compose Semantics is the next, for system UI and for apps without the agent. Both
+must use it without depending on each other, so it is a module of its own:
 
 ```
 jetwhale-plugins/ios-xctest-runner/
-├─ runner/   the Xcode project: an empty host app and the UI-test bundle, Swift plus about 60
-│            lines of Objective-C for the private event API and for catching exceptions
+├─ runner/   the Xcode project: an empty host app and the UI-test bundle, Swift plus about 200
+│            lines of Objective-C for the private event and screenshot APIs and for catching exceptions
 └─ client/   a Kotlin library a plugin bundles: it builds, starts and talks to runners
 ```
 
@@ -129,20 +125,21 @@ user's own Xcode (`build-for-testing`), keyed by Xcode's build version and the p
 per team and device for a device. Building on the user's machine keeps the private-API use in step
 with the XCTest it runs against, so the build version is read again whenever a runner starts, and
 an Xcode update gets a build of its own. The first build starts in the background when a device is
-shown, so the first tap does not wait for it. A build is used only once a marker written after
-`xcodebuild` succeeded says it is complete, and builds for another Xcode, or of another project
-unused for a week, are deleted after a build, unless another plugin holds them locked.
+shown, an iPhone's once its screen capture has sent a frame, so the first tap does not wait for it.
+A build is used only once a marker written after `xcodebuild` succeeded says it is complete, and
+builds for another Xcode, or of another project unused for a week, are deleted after a build, unless
+another plugin holds them locked.
 
 ### Shared through the OS
 
-Plugin jars load in separate class loaders and share no objects, so runners are shared the way an
-idb companion is, through files under the host's app data (`<app data>/xctest-runner/`):
+Plugin jars load in separate class loaders and share no objects, so runners are shared through the
+OS, by files under the host's app data (`<app data>/xctest-runner/`):
 
 - **One runner per device**: an `xcodebuild test-without-building` running the runner's one test,
   `testServe`, which serves commands on the main run loop.
 - **`runners/<udid>.json`** records the runner: its protocol version, `xcodebuild`'s pid, its port,
-  the token every request must carry, and the team a device's runner is signed for. Only its owner
-  can read it.
+  the token every request must carry, the team a device's runner is signed for, and when a lease on
+  it ends. Only its owner can read it.
 - **`runners/<udid>.lock`**: whoever starts or replaces a device's runner holds this file lock, so
   two plugins never start two runners for one device. A JVM refuses a second lock on a file it
   already locks, from any class loader, so the client treats that refusal as "held" and waits.
@@ -151,9 +148,12 @@ idb companion is, through files under the host's app data (`<app data>/xctest-ru
   is: commands are only ever added. An older one, or one signed for another team, is told to shut
   down and replaced. A record whose runner does not answer is dropped; nothing is killed on the
   strength of a pid alone.
-- **Idle stop.** The runner ends its test after five minutes without a command, so it never
-  outlives the hosts that use it for long. The host that started a runner also ends it when it
-  exits, and its `iproxy` forward with it.
+- **Idle stop.** The runner ends its test after five minutes with neither a command nor a streamed
+  frame, so it never outlives the hosts that use it for long, and a mirror that shows its screen
+  keeps it. A caller that pauses for longer, such as an agent over MCP, takes a lease (`/lease`):
+  the runner stays until the lease ends, at most two hours after it was taken, so a lease nobody
+  renews cannot keep a runner going. The lease's end goes into the record, where every client sees
+  it. The host that started a runner also ends it when it exits, and its `iproxy` forward with it.
 
 ### Transport: the runner listens, the client connects
 
@@ -176,32 +176,95 @@ to push events (an alert appearing) rather than answer requests.
 
 ### Commands
 
-HTTP/1.1 `POST` with a JSON body, one request per command, the connection kept alive.
+HTTP/1.1 `POST` with a JSON body, one request per command, the connection kept alive. Every request
+carries the token in an `X-JetWhale-Runner-Token` header. The screen stream is the one `GET`; see
+[Screen streaming](#screen-streaming).
 
 Points come in one of two spaces, which a command names with `space`:
 
 - **`device`**, the default: device-native portrait points, whatever the interface orientation.
-  This is what the private event record takes, and the space of the mirror's screen size.
-- **`screen`**: points in the interface orientation, the space of screenshots and of the frames
-  `/tree` returns. The runner converts them with `XCUICoordinate.screenPoint` before synthesizing,
-  at about 74 ms a point. A caller that read a frame from `/tree` taps its center in `screen` and
-  needs no conversion of its own.
+  This is what the private event record takes, and the space Device Mirror sends an iPhone's input
+  in.
+- **`screen`**: points in the interface orientation, the space of screenshots, of the streamed
+  frames and of the frames `/tree` returns. The runner converts them with `XCUICoordinate.screenPoint`
+  before synthesizing, at about 74 ms a point. A simulator's mirror sends all its input in this
+  space, the space of its video, and a caller that read a frame from `/tree` taps its center in
+  `screen` and needs no conversion of its own.
+
+`/interfaceScreen` says which way the interface is turned, read from where the interface's origin
+lands in device points, so a caller can check a `screen` point against the screen's size that way
+round.
 
 | Command | Body | Phase |
 |---|---|---|
 | `/status` | → protocol version, screen in pixels and its scale, whether private synthesis is there | 1 |
-| `/tap`, `/longPress` | `x`, `y`, `durationMillis` | 1 |
-| `/swipe` | `fromX`, `fromY`, `toX`, `toY`, `durationMillis` | 1 |
+| `/interfaceScreen` | → orientation, and the screen's size in pixels as the interface turns it | 1 |
+| `/tap`, `/longPress` | `x`, `y`, `space`; `durationMillis` for a long press | 1 |
+| `/swipe` | `fromX`, `fromY`, `toX`, `toY`, `durationMillis`, `space` | 1 |
 | `/typeText` | `text` | 1 |
 | `/pressButton` | `home`, `lock`, `volumeUp`, `volumeDown` | 1 |
 | `/openAppSwitcher` | — | 1 |
 | `/activateApp` | `bundleId` | 1 |
+| `/lease` | `seconds`, `0` to end a lease → the seconds granted, at most two hours | 1 |
 | `/shutdown` | — | 1 |
+| `GET /stream?fps=N` | → the screen as JPEG frames, at most `N` a second, from 1 to 60 | 1 |
 | `/tree` | `bundleId` (foreground app or SpringBoard) → element tree with frames | 2 |
 | `/alert` | — → SpringBoard's alert, its label and buttons | 2 |
 
 Taps, swipes and text use the private event record. If a future Xcode drops it, `/status` says so,
-taps and swipes fall back to `XCUICoordinate` anchored at SpringBoard, and text entry refuses.
+taps and swipes fall back to `XCUICoordinate` anchored at SpringBoard, and text entry and Recent apps
+refuse.
+
+### Screen streaming
+
+`GET /stream` answers with `multipart/x-mixed-replace`, one JPEG per part, the way WebDriverAgent's
+MJPEG server streams. A simulator's live view in Device Mirror is this stream, from the runner that
+already sends its input, so a simulator needs nothing installed beyond Xcode.
+
+- **testmanagerd takes the frames.** The runner asks for each one with testmanagerd's private
+  `_XCT_requestScreenshot:withReply:`, through `XCTRunnerDaemonSession`, at JPEG quality 0.5 and the
+  screen's full resolution. testmanagerd encodes the JPEG, and the request may be sent from any
+  thread, so the stream leaves the main thread to commands.
+- **Only the newest frame waits.** One screenshot is asked for at a time, and a frame that is ready
+  while the previous one is still being written is dropped. The client keeps only the newest frame
+  for a reader that falls behind, so nothing queues.
+- **Due times on a fixed grid.** A frame is due one interval after the previous one was due, not
+  after it was sent, so a timer that fires late does not push every later frame back. A capture
+  slower than the interval starts the grid again from now instead of bursting to catch up.
+- **Screen space through EXIF.** In landscape, testmanagerd keeps the portrait pixels and sets the
+  JPEG's EXIF orientation. A decoder that applies it, Skia among them, shows the screen as
+  screenshots do, so frames, screenshots and a simulator's taps share the `screen` space.
+- **The public screenshot is the fallback.** When this XCTest lacks the private classes, or the
+  daemon does not take the request, or testmanagerd fails three screenshots in a row, the stream
+  takes `XCUIScreen.main.screenshot()` and encodes it in the runner. That holds the main thread for
+  about 100 ms a frame, so it runs at most five times a second, which leaves half the main thread to
+  commands.
+- **A stream counts as use.** A sent frame holds off the idle stop. A stream that ends after sending
+  frames attaches to the runner again, starting one if needed; one that ends again before its first
+  frame fails, so a broken runner is not restarted in a loop. A stream silent for 10 s counts as
+  ended.
+
+Measured on the iPhone 17 simulator above (1206×2622 pixels), over about 10 s each: frames received a
+second, and each frame's age on arrival against a clock on the simulator's screen, median / 90th
+percentile. CPU is testmanagerd's share of one core.
+
+| Source | Frames a second | Frame age | Frame size | testmanagerd CPU |
+|---|---|---|---|---|
+| Private request, 30 asked for | 25 | 23–24 / 30–31 ms | 188 KB | 24 % |
+| Private request, no limit | 55 | 22 / 28 ms | 188 KB | 42 % |
+| `XCUIScreen` screenshot, JPEG in the runner | 9 | 116 / 123 ms | 185 KB | 76 %, and 22 % in the runner |
+| `simctl io screenshot` | 1.5 | 255 / 509 ms | 263 KB PNG | |
+
+- The private request takes a fifth of the public screenshot's time, and costs testmanagerd a third
+  of the CPU at almost three times the frame rate. It answered on iOS 17.5, 18.6 and 26.2 simulator
+  runtimes.
+- With each frame due an interval after the previous one fired, 30 frames asked for came out as 25.
+  The fixed grid gives 29–30, with frames about 28 ms old as Device Mirror receives them and 4–9 ms
+  to decode with Skia, about 13 ms in landscape.
+- Quality changes a frame's size, not its time: at 0.3, 0.5 and 0.8 a frame took 22 ms and weighed
+  137, 188 and 272 KB. At 0.5, text stays sharp.
+- Frames at half the resolution were slower, not faster: 30 ms and 49 frames a second with no limit.
+  The runner sends the full resolution.
 
 ### The client's API
 
@@ -209,42 +272,59 @@ Small, and free of any plugin's types:
 
 ```kotlin
 interface XcTestRunners {
-    fun refusalFor(target: XcTestRunnerTarget): String?          // no team, no iproxy: known without trying
+    fun refusalFor(target: XcTestRunnerTarget): String?          // iOS before 17, no team, no iproxy: known without trying
     suspend fun runnerFor(target: XcTestRunnerTarget): XcTestRunner
     fun startRunnerInBackground(target: XcTestRunnerTarget)
+    fun keptAliveUntil(target: XcTestRunnerTarget): Instant?      // a lease's end, from the record
     companion object { fun onThisMac(stateDirectory, xcrunPath, iproxyPath, settings): XcTestRunners }
 }
 interface XcTestRunner {
-    val screen: XcTestRunnerScreen                                 // pixels and scale
-    suspend fun tap(x: Double, y: Double)
+    val screen: XcTestRunnerScreen                                 // portrait pixels and scale
+    suspend fun tap(x: Double, y: Double, space: XcTestRunnerPointSpace)
     suspend fun longPress(…); suspend fun swipe(…); suspend fun typeText(text: String)
     suspend fun pressButton(button: XcTestRunnerButton); suspend fun openAppSwitcher()
     suspend fun activateApp(bundleId: String)
+    suspend fun interfaceScreen(): XcTestRunnerInterfaceScreen     // orientation, pixels that way round
+    fun streamScreenAsJpeg(maxFps: Int): Flow<ByteArray>           // the newest frame for a slow collector
+    suspend fun keepAlive(duration: Duration): Instant             // a lease; Duration.ZERO ends it
 }
 ```
 
-A target is a simulator or a device by UDID; the signing team comes from `XcTestRunnerSettings`,
-given when the runners are made, not with each call. A runner that took no connection is replaced
-and the command sent once more; one that stopped answering after taking a command is not, since it
-may have carried it out. If the host later takes over starting, stopping and
-settings as a service it hands to plugins, it implements `XcTestRunners`, and its callers do not
-change.
+A target is a simulator or a device by UDID, with its iOS major version when known; the signing team
+comes from `XcTestRunnerSettings`, given when the runners are made, not with each call. A runner that
+took no connection is replaced and the command sent once more; one that stopped answering after
+taking a command is not, since it may have carried it out. A screen stream that fails to open in
+any way is opened again, since opening one runs no command. If the host later takes over starting,
+stopping and settings as a service it hands to plugins, it implements `XcTestRunners`, and its
+callers do not change.
 
 ## How it plugs into JetWhale
 
 ### Device Mirror (phase 1)
 
-- **Simulators:** the runner replaces idb for input. idb's input no longer works with Xcode 27, its
-  last release is from 2022, and XCTest is Apple's supported automation API, released with each
-  Xcode. idb stays for the live stream and for input when the runner cannot be built or started.
-  Buttons: Home, Recent apps (the gesture above) and Power (lock); the Simulator has no volume
-  buttons to press. They are left out only when neither the runner nor idb can send input.
-- **Devices:** with a development team set under the mirror, input stops being view-only: taps,
-  swipes, text, Home, Power and volume. Every failure is a notice: no team or no `iproxy` in the
-  device's banner, and signing, Developer Mode, UI Automation or a locked device, read from
-  `xcodebuild`'s output, when input is tried.
-- **MCP:** the existing `tap`, `swipe`, `pressButton` and `inputText` tools go through the runner;
-  `listDevices` reports `input`, and `inputUnavailableReason` when there is none.
+- **Simulators** need only Xcode. The runner sends their input and streams their live video at up to
+  30 frames a second; `simctl` lists them, reports the screen's size, and takes screenshots and
+  recordings, which need no runner. Its screenshots stand in for the video while the runner starts.
+  Buttons: Home, Recent apps (the gesture above) and Power (lock); the Simulator has no volume buttons
+  to press. Clicks, and the MCP `tap` and `swipe`, go in `screen` points, so a simulator turned to
+  landscape is shown and tapped in landscape. When no runner can run, on an iOS older than 17 or
+  without `xcodebuild`, the simulator is shown through screenshots with the reason, and takes no
+  input and shows no buttons.
+- **Devices:** with a development team set under the mirror, an iPhone takes taps, swipes, text,
+  Home, Power and volume through its runner, in `device` points. Its video does not come from the
+  runner: a capture helper that Mirror builds with Xcode's Swift compiler reads the screen through
+  CoreMediaIO, as QuickTime Player does, so an iPhone with no team still shows its screen. Starting
+  or stopping that capture re-enumerates the iPhone on USB, which drops `iproxy`'s connection to the
+  runner, so the runner starts only once the capture has sent a frame, and input starts the capture
+  before it reaches the runner. Every failure is a notice: no team or no `iproxy` in the device's
+  banner, and signing, Developer Mode, UI Automation or a locked device, read from `xcodebuild`'s
+  output, when input is tried.
+- **Listing** needs no runner: booted simulators come from `simctl list devices booted`, and iPhones
+  and iPads on USB from the JSON of `devicectl list devices`.
+- **MCP:** the existing `tap`, `swipe`, `pressButton` and `inputText` tools go through the runner,
+  and `tap` and `swipe` take the pixels of `captureScreenshot`. `listDevices` reports `input`,
+  `inputUnavailableReason` when there is none, and `runnerKeptAliveUntil` while a lease runs.
+  `keepRunnerAlive` takes a lease of 0 to 120 minutes, for an agent that pauses between inputs.
 
 ### Compose Semantics (phase 2)
 
@@ -261,8 +341,9 @@ app runs it; the XCTest source covers apps without it, other apps, and system al
 
 ### MCP
 
-Phase 1 needs no new tools. Phase 2 serves the semantics tools from XCTest roots, and adds
-`activateApp` and alert handling where the semantics tools do not cover them.
+Phase 1 adds `keepRunnerAlive` and otherwise serves the existing tools. Phase 2 serves the semantics
+tools from XCTest roots, and adds `activateApp` and alert handling where the semantics tools do not
+cover them.
 
 ## Physical devices
 
@@ -301,31 +382,44 @@ runs WebDriverAgent the same way:
 - **The runner lives only while its test runs.** Anything that ends the test ends the server: a
   recorded issue (handled above), a crash, the idle stop, Xcode or `testmanagerd` going away. The
   client starts a new one on the next command rather than trusting it to stay up.
+- **A simulator's video depends on its runner.** While a runner starts, about 3 s, or 10–20 s for
+  the first build per Xcode, `simctl` screenshots stand in, a few a second. A simulator whose runner
+  cannot be built or started shows only screenshots, with the reason, and the mirror tries the
+  stream again after 5 s, 15 s and then once a minute. A runner that ends mid-stream is replaced; the
+  stream came back within 3 s after the runner's `xcodebuild` was killed.
+- **testmanagerd's CPU.** Streaming a simulator costs testmanagerd about a quarter of a CPU core at
+  25 frames a second and 42 % at 55, besides decoding on the Mac. Only the simulator on screen
+  streams: grid thumbnails stay on `simctl io screenshot`, one every 1.5 s, since a runner per
+  simulator in the grid would cost a build, a test process and testmanagerd's encoder each.
 - **Timeouts.** The generated `.xctestrun` carries `DefaultTestExecutionTimeAllowance = 600`, but
   `xcodebuild` enforces execution allowances only with `-test-timeouts-enabled YES`
   (`man xcodebuild`); the runner here ran past that. Individual XCTest queries still time out after
   30 s, which is what the suspended-app guard avoids.
-- **Private API drift.** `XCSynthesizedEventRecord`, `XCPointerEventPath`, `-[XCUIDevice
-  eventSynthesizer]` and `pressLockButton` are present in Xcode 27's `XCUIAutomation.framework` and
-  are what WebDriverAgent relies on. They can change in any Xcode; the fallback above keeps taps and
-  swipes working through public API.
+- **Private API drift.** `XCSynthesizedEventRecord`, `XCPointerEventPath`,
+  `-[XCUIDevice eventSynthesizer]` and `pressLockButton` are present in Xcode 27's
+  `XCUIAutomation.framework`, and testmanagerd answers `_XCT_requestScreenshot:withReply:` through
+  `XCTRunnerDaemonSession`; WebDriverAgent relies on all of them. They can change in any Xcode; the
+  fallbacks above keep taps, swipes and the stream working through public API, the stream at five
+  frames a second.
 - **Xcode version drift.** The `.xctestrun` name embeds the SDK version and the build depends on the
   installed Xcode, so the cache is keyed by Xcode's build version and rebuilt after an update.
 - **Other UI tests on the same device.** Two runners ran side by side here, but a developer's own UI
   tests on the device the mirror drives would still compete with it for the screen. The idle stop
   ends the runner when nothing uses it.
-- **Landscape.** A landscape screenshot's coordinates are in `screen` points and cost a conversion
-  per point; Semantics and the MCP tools that take screenshot pixels send them that way.
+- **Landscape.** A `screen` point costs a conversion, about 74 ms. A simulator's mirror sends every
+  tap and swipe that way, turned or not, since its frames are in that space, and Semantics will send
+  its gestures that way too; an iPhone's input, in `device` points, needs none.
 - **Loopback is shared.** Any local process can reach a loopback port; the per-run token keeps them
-  from driving the device.
+  from driving or watching the device.
 - **Devices are unverified**: signing, Developer Mode, UI Automation, a locked device and `iproxy`
-  are taken from documentation, not from a run.
+  are taken from documentation, not from a run, and so is the order between an iPhone's screen
+  capture and its runner.
 
 ## Phased plan
 
-1. **The runner module, and Device Mirror input through it.** `jetwhale-plugins/ios-xctest-runner/`
-   with its client; Device Mirror as the first user; simulators verified end to end, devices
-   experimental.
+1. **The runner module, and Device Mirror input and simulator video through it.**
+   `jetwhale-plugins/ios-xctest-runner/` with its client; Device Mirror as the first user; simulators
+   verified end to end, devices experimental.
 2. **XCTest node source** for Compose Semantics, with SpringBoard and system alerts, through the
    existing semantics MCP tools.
 3. **App control and alerts over MCP**: activate, launch and terminate apps, read and answer system
@@ -339,8 +433,12 @@ runs WebDriverAgent the same way:
 - **Private event synthesis.** Taps are 30 % faster and swipes five times faster than through public
   API, and text entry needs it. The alternative is public API only, with slower swipes and text that
   must name the target app.
+- **Private screenshots.** A frame through testmanagerd's request takes a fifth of the time of the
+  public screenshot and leaves the main thread free. The alternative is the public screenshot only,
+  at about 9 frames a second at most and 5 to leave the runner room for commands.
 - **A host-provided runner service**: whether starting, stopping and the signing team move from the
   plugins into the host, which would hand plugins an `XcTestRunners`.
 - **The runner's bundle ID on devices**: derived from the team ID, as now, or set by the user.
-- **The idle timeout**: five minutes now; long enough not to restart between bursts of input, short
-  enough not to hold a UI-test session on an unwatched device.
+- **The idle timeout**: five minutes now, with a lease of up to two hours for callers that pause for
+  longer; long enough not to restart between bursts of input, short enough not to hold a UI-test
+  session on an unwatched device.
