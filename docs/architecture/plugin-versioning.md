@@ -80,9 +80,9 @@ bug waiting for the next release" (`jetwhale-agent-gradle-plugin/build.gradle.kt
 - **Plugin payloads have one format.** `DefaultJetWhaleMessagingFormat` (`JetWhalePluginPeer.kt:20-26`)
   turns on `ignoreUnknownKeys` and `encodeDefaults`, and leaves `explicitNulls` on and
   `coerceInputValues` off, kotlinx.serialization's defaults, with no serializers module. The host's
-  peer takes it by default (`DefaultPluginInstanceService.kt:187-192`), the agent's messenger names
-  it (`JetWhaleAgentPluginService.kt:52`), and it has not changed since symmetric messaging shipped
-  in 1.0.0-alpha09.
+  peer takes it by default (`DefaultPluginInstanceService.kt:187-192`), as does the agent's peer,
+  and the agent's messenger names it (`JetWhaleAgentPluginService.kt:121`, `:52`). It has not
+  changed since symmetric messaging shipped in 1.0.0-alpha09.
 - **A message is routed by its serial name** (`JetWhaleMessageHandlers.kt:55`, `:68`). A peer skips
   an event it has no handler for, with a log line, and answers a request it has no handler for with
   a failure (`InboundFrameDispatcher.kt:127-134`, `:159-164`).
@@ -163,6 +163,11 @@ the one the module ships. It takes every concrete class that implements `JetWhal
 names and types, nullability, which elements are optional, enum entries, sealed subtypes and the
 class discriminator. A value class is recorded as the value it encodes to.
 
+Two property annotations change the wire beyond the descriptor's shape. `@JsonNames` is in the
+descriptor's element annotations. `@EncodeDefault` is not, since the serialization plugin compiles
+it into the serializer, but Kotlin keeps it, with runtime retention, on the class's synthetic
+`get<Property>$annotations` method, where reflection reads it. The dump records both.
+
 Why compiled classes rather than a compiler-plugin side output: the descriptors are what
 kotlinx.serialization encodes with, custom serializers' included, so the dump cannot disagree with
 the wire. A compiler plugin would have to derive serial names, optionality and sealed subtypes from
@@ -205,9 +210,11 @@ class com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
   url: string
 ```
 
-`= …` marks an optional element, one with a default. The defaults themselves are not in a
-descriptor and need not be: the payload format encodes defaults, so a sender always sends every
-field, and a receiver's default only fills in a field its peer did not know.
+`= …` marks an optional element, one with a default. `, omitted at default` follows it for an
+element under `@EncodeDefault(NEVER)`, and `| also read as` lists an element's `@JsonNames`. The
+defaults themselves are not in a descriptor and need not be: the payload format encodes defaults,
+so a sender sends every field that is not omitted at its default, and a receiver's default only
+fills in a field its peer did not know.
 
 **When the revision must change.** `dumpWireSchema` compares the new schema with the committed one.
 Messages are matched by serial name, which is what the wire carries. From each message the two
@@ -228,16 +235,23 @@ the other one sends. The verdicts follow from the payload format:
 | Remove an optional field | additive | The older peer falls back to its default |
 | Remove a required field | breaking | The older peer still requires it |
 | Make a required field optional | additive | `encodeDefaults` keeps it on the wire |
+| Make a required field optional under `@EncodeDefault(NEVER)` | breaking | The newer peer leaves it out at its default |
 | Make an optional field required | breaking | |
 | Change a field's type, or its nullability either way | breaking | |
-| Rename a field's serial name | breaking | One required field removed and one added |
+| Rename a field's serial name, even keeping the old one in `@JsonNames` | breaking | One required field removed and one added; `@JsonNames` only lets the newer peer read the old name |
 | Add or remove an enum entry | breaking | An unknown entry does not decode: `coerceInputValues` is off |
 | Add or remove a sealed subtype, or change the discriminator | breaking | |
 | Add an event | additive | The older peer skips it |
-| Add a request | additive | The older peer answers with a failure, which `request` throws |
+| Add a request | breaking | The older peer answers with a failure, which `request` throws |
 | Remove a message, or change its serial name | breaking | Messages are matched by serial name |
 | Turn an event into a request or back, or change a reply type | breaking | |
 | Rename a Kotlin class that is not polymorphic, reorder fields, edit an `@McpDescription` | no wire change | |
+
+A new request is breaking because nothing makes its sender ready for a peer without it. A request
+made while preparing fails the preparation: the network host asks for `GetMockConfig` there and
+lets a failure propagate (`NetworkHostPluginFactory.kt:82`). With a new revision, a host that keeps
+`min` at the older one knows which agents lack the request and leaves it out for them
+([open decision 1](#open-decisions)).
 
 What the check cannot know, and says in its output:
 
@@ -247,8 +261,6 @@ What the check cannot know, and says in its output:
 - **Meaning.** A field whose meaning changes, a default that now means something else, or a custom
   serializer that writes its string differently: all of them still decode. Their author raises the
   revision by hand.
-- **Requests within one revision.** An older peer at the same revision may lack a newer request.
-  The caller catches `JetWhaleRequestException` and degrades ([open decision 1](#open-decisions)).
 
 ### The host plugin declares a range
 
@@ -269,8 +281,9 @@ The manifest gets `protocolRevisionRange`, both ends inclusive:
 - `min` is the oldest revision the plugin still serves, written by its author in the source
   manifest. Without it, `min` is `max`. A break that only the agent sends needs no host code to keep
   serving older agents: semantics' `AppleNode` was a new subtype that only agents send, so a host
-  that knows it decodes an older agent's tree. A break the host sends needs the instance to know
-  its agent's revision, which phase 6 adds as `agentProtocolRevision`.
+  that knows it decodes an older agent's tree. A break the host sends, a new request among them,
+  needs the instance to know its agent's revision: `agentProtocolRevision` on
+  `JetWhaleMessagingHostPlugin`, `null` for an agent that sends none.
 - `agentVersionRange` keeps its meaning, for agents that send no revision.
 
 The agent sends one revision and does not negotiate down. An app pins its agent, and the host is the
@@ -288,11 +301,19 @@ accepts(manifest, agentPlugin):
     return manifest.agentVersionRange?.contains(agentPlugin.pluginVersion) ?: true
 ```
 
-The range compares with #320's `PluginVersionOrder`: release parts as numbers, a release after its
-pre-releases, pre-release numbers as numbers, so `1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0`. Bounds
-use the full order, so `1.3.0-beta1` is below a range that starts at `1.3.0`. `HostVersion` in
-`:jetwhale-host:release-metadata` is not reused: it accepts only JetWhale's own tag format, and a
-third-party version can be anything.
+Versions compare with #320's `PluginVersionOrder`, in two strengths:
+
+- **Which loaded version is newest** uses the full order: release parts as numbers, a release after
+  its pre-releases, pre-release numbers as numbers, so `1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0`.
+- **A range bound** compares release parts only, as #320's `compareReleases` does: `1.2.3-beta1`
+  keeps its patch number, and `1.3.0-beta1` is inside a range that starts at `1.3.0`. The bounds a
+  jar without a revision range carries were written for hand-typed agent versions: the official
+  ones name a bare `1.0.0`. An agent built after this reports `1.0.0-alpha15`, which the full order
+  puts below `1.0.0`, so every such agent would be refused by every official jar of an earlier
+  release ([open decision 6](#open-decisions)).
+
+`HostVersion` in `:jetwhale-host:release-metadata` is not reused: it accepts only JetWhale's own
+tag format, and a third-party version can be anything.
 
 ### The build writes the release version
 
@@ -342,8 +363,8 @@ Upgrading only `com.kitakkun.jetwhale.host` already writes `version`. Without st
 matched by its version range, as before.
 
 **Plugins built before this keep working.** A jar whose manifest has no revision range is matched by
-its `agentVersionRange`, and so is an agent that sends no revision. Only the comparison changes, to
-the pre-release-aware order.
+its `agentVersionRange`, and so is an agent that sends no revision. Only the comparison changes: the
+release parts compare as numbers, so a patch number after a pre-release suffix now counts.
 
 **What the host cannot do.** It cannot make a plugin raise its revision when the plugin was built
 without JetWhale's Gradle plugins or ships a dump edited by hand. It detects and reports:
@@ -383,7 +404,7 @@ both.
 2. **Binding.** `AgentVersionCompatibility(agentVersion)` becomes the rule above and takes the
    agent's `JetWhalePluginInfo`. "The newest version whose `agentVersionRange` accepts the agent"
    becomes "the newest version that accepts the agent", by revision when both sides have one.
-   `compareReleases` goes, since bounds use the full order.
+   Bounds keep comparing with `compareReleases`.
 3. **Storage.** Data is per release version, so each update adds a directory, seeded by copy. A
    version's directory goes when its jar is removed, unless it is the newest.
 4. **Replacing.** With release versions, every update is a new version, so what an install does
@@ -413,7 +434,7 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
 - `jetwhale-protocol-core`: `JetWhalePluginContract`.
 - `jetwhale-agent-sdk`, **Breaking**: `JetWhaleAgentPlugin.contract` replaces `pluginId` and
   `pluginVersion`.
-- `jetwhale-host-sdk`: `JetWhaleHostPluginManifest.protocolRevisionRange`; in phase 6,
+- `jetwhale-host-sdk`: `JetWhaleHostPluginManifest.protocolRevisionRange`, and
   `agentProtocolRevision` on `JetWhaleMessagingHostPlugin`.
 - Gradle: `com.kitakkun.jetwhale.protocol`, whose `jetwhaleProtocol` extension has `pluginId`,
   `protocolRevision` and `contractQualifiedName`, with `dumpWireSchema` and `checkWireSchema`.
@@ -440,25 +461,28 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
 
 H0 is a host released before this, H1 one after. J0 is a host plugin jar whose manifest has no
 revision range, J1 one built with the new Gradle plugins. A0 is an agent that sends no revision and
-a hand-written version, A1 one that sends a contract. An H0 host compares release numbers only:
-dotted numbers on `main`, release parts with #320. Before #320 it reports the verdict without
-enforcing it (see [Today](#what-follows-from-it)); with #320 it enforces it.
+a hand-written version, A1 one that sends a contract. Every host compares range bounds by release
+numbers: dotted numbers on `main`, release parts with #320 and after. Before #320 a host reports the
+verdict without enforcing it (see [Today](#what-follows-from-it)); with #320 it enforces it.
 
 | Host | Jar | Agent | Decided by | Outcome |
 |---|---|---|---|---|
-| H0 | J0 | A0 | release numbers against `agentVersionRange` | As today |
-| H0 | J0 | A1 | release numbers against the release version | `1.0.0-alpha15` counts as `1.0.0`: network, nav3, storage, actions and example agents stay compatible until the release version passes 1.0.0, and semantics agents are incompatible. Update the host |
+| H0 | J0 | A0 | `agentVersionRange` | As today |
+| H0 | J0 | A1 | `agentVersionRange` against the release version | `1.0.0-alpha15` counts as `1.0.0`: network, nav3, storage, actions and example agents stay compatible until the release version passes 1.0.0, and semantics agents are incompatible (`1.0.0` < `1.1.0`). Update the host |
 | H0 | J1 | A0 | the kept `agentVersionRange` | As today |
 | H0 | J1 | A1 | as H0, J0, A1 | As H0, J0, A1 |
-| H1 | J0 | A0 | the pre-release-aware range | As today, except that versions compare correctly: a pre-release sorts below its release, and `1.2.3-beta1` keeps its patch number |
-| H1 | J0 | A1 | the pre-release-aware range against the release version | A jar built before this sees release versions in its author's range |
-| H1 | J1 | A0 | the kept `agentVersionRange`; none accepts any | As today |
+| H1 | J0 | A0 | `agentVersionRange` | As today, except that `1.2.3-beta1` keeps its patch number |
+| H1 | J0 | A1 | `agentVersionRange` against the release version | As H0, J0, A1. Update the plugin |
+| H1 | J1 | A0 | the agent sends no revision: the kept `agentVersionRange`, or any agent when the manifest keeps none | As today |
 | H1 | J1 | A1 | the revision against the range | The design |
 
-H0 rows cannot change. Only H0, J0, A1 is worse than today, and only for semantics agents. Phases 1
-and 4 ship in one release, whose notes say to update the host first; the host updates itself in one
-click since 1.0.0-alpha13. An H0 host installs official jars of its own version
-(`OfficialPluginRelease.kt:21-33`), so it rarely meets J1.
+H0 rows cannot change. Two rows are worse than today, both only for semantics agents, and both
+because an official jar from before this compares a release version with a range written for
+`1.1.0`: H0, J0, A1, fixed by updating the host, and H1, J0, A1, fixed by updating the plugin. The
+second is the usual state right after a host update, since plugins are not updated with the host
+([Host updates, Non-goals](./host-updates.md#non-goals)). Phases 1 and 4 ship in one release, whose
+notes say to update the host and then the official plugins from the catalog. An H0 host installs
+official jars of its own version (`OfficialPluginRelease.kt:21-33`), so it rarely meets J1.
 
 ## What was checked
 
@@ -477,20 +501,24 @@ dumps. Kotlin 2.4.10 and kotlinx.serialization 1.11.0, as the repository uses.
     `bodyEncoding` on captured requests, captured responses and mock responses. Network stayed at
     1.0.0, so nothing told the two releases apart.
   - semantics alpha11 to alpha12: **breaking**. A root's `node` became the sealed `UiNode` (#243),
-    and `NodeAction` gained `BringIntoView` and `ScrollToIndex`. Additive: three new requests and two
-    optional fields. #271's manual move to 1.1.0 landed in the same release and covered these too.
+    `NodeAction` gained `BringIntoView` and `ScrollToIndex`, and three requests were added.
+    Additive: two optional fields. #271's manual move to 1.1.0 landed in the same release and
+    covered these too.
   - Every other step: no change.
-- **One change at a time.** Nineteen single edits of today's network or semantics protocol, each
+- **One change at a time.** Twenty-one single edits of today's network or semantics protocol, each
   classified as the table says:
   - additive: an optional field added, an optional field removed, a required field made optional,
-    an event added, a request added;
+    an event added;
   - breaking: a required field added, a required field removed, a type changed, a field made
-    nullable, an optional field made required, an enum entry added, a message renamed, a field
-    renamed, a reply type changed, an event turned into a request, a sealed subtype added;
+    nullable, an optional field made required, a required field made optional under
+    `@EncodeDefault(NEVER)`, an enum entry added, a message renamed, a field renamed, the same with
+    `@JsonNames` for the old name, a request added, a reply type changed, an event turned into a
+    request, a sealed subtype added;
   - no wire change: fields reordered and an `@McpDescription` edited, both with the same dump and
     hash; `CapturedHttpRequest` renamed in Kotlin, with a new dump text and hash.
 
-  With the revision raised to 2, the sealed-subtype change passed.
+  With the revision raised to 2, the sealed-subtype change passed. `@EncodeDefault` was read from the
+  synthetic annotations method, as described above; it is not in the descriptor.
 
 Not tried: the Gradle wiring (worker isolation, the configuration cache), manifest generation, and
 anything at runtime.
@@ -525,13 +553,20 @@ anything at runtime.
 - **The build runs the module's classes.** Reading serializers initializes protocol classes inside a
   Gradle worker. Data classes do nothing there; process isolation contains anything else.
 - **Storage grows** under #320, one directory per release, until its item 3 lands.
-- **Released hosts report new semantics agents as incompatible** (the matrix). The release notes say
-  to update the host first.
+- **Official jars from before this refuse new semantics agents**, in a released host or a new one
+  (the matrix). The release notes say to update the host and then the official plugins.
+- **More revisions.** A new request raises the revision. A host plugin that keeps `min` at the older
+  revision has to leave the request out for older agents, through `agentProtocolRevision`; one that
+  raises `min` stops serving them.
 
 ## Open decisions
 
-1. **Is a new request additive or breaking?** Recommendation: additive. Breaking would cut off every
-   older agent to add one request, and a caller already has to handle a failed request.
+1. **Is a new request breaking or additive?** Recommendation: breaking, as the table has it. Additive
+   would leave every sender to guard every new request against an older peer, and nothing enforces
+   that: a request made while preparing already lets a failure through. Breaking costs a revision,
+   and a host that keeps `min` keeps serving older agents. The alternative is additive, with the
+   agent sending the request types it handles so that the host can skip the others; that is a
+   second compatibility channel beside the revision.
 2. **Does the contract replace `pluginId` and `pluginVersion`, or join them?** Recommendation:
    replace. Side by side, both could be set and disagree, and agents would keep typing versions. The
    price is that third-party agent libraries are rebuilt against the new SDK, stated as Breaking.
@@ -545,13 +580,18 @@ anything at runtime.
    candidate, the agent module through `com.kitakkun.jetwhale.agent`, would give that plugin a
    second job: it is applied to apps to bake in the build machine's address
    (`JetWhaleAgentSubplugin.kt:13-19`), and the revision has to come from the protocol module anyway.
+6. **How do range bounds compare?** Recommendation: by release parts, as #320 does, while "newest"
+   uses the full pre-release-aware order. Comparing bounds pre-release-aware as well would refuse
+   every new agent at every official jar from before this, whose ranges name a bare `1.0.0` or
+   `1.1.0`, in new hosts too. Its gain is small: bounds are hand-written only for agents and jars
+   from before revisions, whose versions carry no pre-release suffix.
 
 ## Phased PRs
 
 1. **Host and wire.** The `JetWhalePluginInfo` fields, the manifest range and its schema, the rule in
-   negotiation and in #320's binding, the pre-release-aware fallback, the verdict on the plugin page
-   and in MCP, the agent's log line, and the protocol reference. Tested with manifests and infos
-   built by hand; nothing produces revisions yet.
+   negotiation and in #320's binding, the fallback's comparison, `agentProtocolRevision`, the
+   verdict on the plugin page and in MCP, the agent's log line, and the protocol reference. Tested
+   with manifests and infos built by hand; nothing produces revisions yet.
 2. **`com.kitakkun.jetwhale.protocol`.** `JetWhalePluginContract`, the generated contract, the jar
    resource, `dumpWireSchema` and `checkWireSchema`, applied to network; then the other official
    protocol modules at revision 1, and the base-branch comparison in CI.
@@ -559,7 +599,6 @@ anything at runtime.
 4. **Agent SDK, Breaking.** `contract`, sent by the runtime; the official agents and the QA agent;
    `runJetWhaleQaAgent` passing the revision; the plugin guide's opt-in steps.
 5. **The install warning** for a manifest version that differs from the coordinates.
-6. **When a plugin first needs it:** `agentProtocolRevision` on the host plugin instance.
 
 #320 lands before 1. Phases 1 and 2 are independent of each other; 3 and 4 need 2; 1 and 4 ship in
 the same release. #436's Swift generator builds on 2. Each phase updates the guides it changes.
