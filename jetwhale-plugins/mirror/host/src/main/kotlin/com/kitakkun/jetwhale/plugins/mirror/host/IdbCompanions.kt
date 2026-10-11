@@ -4,6 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,12 +22,16 @@ import kotlin.time.Duration
 /** How long a companion gets to report its port; a device that needs pairing never does. */
 private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
 
+/** How long a cleanup that cannot wait, such as the host's exit, waits for idb to forget companions. */
+private const val DISCONNECT_DEADLINE_MILLIS = 3_000L
+
 /**
- * The idb companions of physical iOS devices. idb reaches a simulator by itself, but a device needs
- * a companion process of its own, which idb is then told about. Each device's companion is started
- * by the first user. When the last one releases it, it is kept for [idleTimeout] before it stops:
- * starting one and connecting idb takes seconds, and switching away from a device and back is the
- * common case. A device that disappears has its companion stopped at once.
+ * The idb companions of iOS devices and simulators: a companion process per device, which idb is
+ * then told about. A device needs one started for it; for a simulator, idb would start one itself,
+ * but would never stop it. Each companion is started by the first user. When the last one releases
+ * it, it is kept for [idleTimeout] before it stops: starting one and connecting idb takes seconds,
+ * and switching away from a device and back is the common case. A device or simulator that
+ * disappears has its companion stopped at once.
  */
 internal class IdbCompanions(
     private val idbCompanionPath: String,
@@ -41,8 +46,18 @@ internal class IdbCompanions(
         var idleStop: Job? = null
     }
 
+    private class StartingCompanion(val process: Process, val port: Int)
+
     private val mutex = Mutex()
     private val running = ConcurrentHashMap<String, RunningCompanion>()
+
+    /** Guards [startingCompanions] and [hostIsExiting], so the host's exit sees every companion launched before it. */
+    private val exitLock = Any()
+
+    /** Companions launched but not yet in [running], which the host's exit ends as well. */
+    private val startingCompanions = mutableSetOf<StartingCompanion>()
+
+    private var hostIsExiting = false
 
     /** Starts the companion of [udid] if it is not running yet; pair every call with [release]. */
     suspend fun acquire(udid: String): Unit = mutex.withLock {
@@ -53,15 +68,28 @@ internal class IdbCompanions(
             return@withLock
         }
         val port = ports.freePort()
-        val process = launcher.start(listOf(idbCompanionPath, "--udid", udid, "--grpc-port", "$port"))
+        val startingCompanion = synchronized(exitLock) {
+            if (hostIsExiting) throw deviceControlError("the host is quitting, so no idb companion is started")
+            StartingCompanion(launcher.start(listOf(idbCompanionPath, "--udid", udid, "--grpc-port", "$port")), port).also(startingCompanions::add)
+        }
+        val process = startingCompanion.process
+        // Until it is recorded below, nothing but the host's exit stops this companion, so any failure
+        // ends it here, a cancelled caller's included. idb may have recorded it already.
+        var recorded = false
+        var connectStarted = false
         try {
             awaitReady(process)
+            connectStarted = true
             commands.runChecked(listOf(idbPath, "connect", "localhost", "$port"))
-        } catch (e: DeviceControlException) {
-            process.destroyForcibly()
-            throw e
+            running[udid] = RunningCompanion(process, port, users = 1)
+            recorded = true
+        } finally {
+            synchronized(exitLock) { startingCompanions -= startingCompanion }
+            if (!recorded) {
+                process.destroyForcibly()
+                if (connectStarted) withContext(NonCancellable + Dispatchers.IO) { disconnectIdbWithDeadline(listOf(port)) }
+            }
         }
-        running[udid] = RunningCompanion(process, port, users = 1)
     }
 
     suspend fun release(udid: String): Unit = mutex.withLock {
@@ -96,17 +124,50 @@ internal class IdbCompanions(
 
     fun isRunning(udid: String): Boolean = running.containsKey(udid)
 
-    /** Kills every companion at once, without waiting for anything; for when the host exits. */
+    /**
+     * Kills every companion at once, those still starting included, and tells idb they are gone;
+     * for when the host exits. No companion starts after it.
+     */
     fun destroyAllNow() {
-        running.values.forEach { it.process.destroyForcibly() }
+        val companionsStillStarting = synchronized(exitLock) {
+            hostIsExiting = true
+            startingCompanions.toList()
+        }
+        val runningCompanions = running.values.toList()
+        runningCompanions.forEach { it.process.destroyForcibly() }
+        companionsStillStarting.forEach { it.process.destroyForcibly() }
+        // idb records a companion it was told about in state that every idb client shares, and an
+        // `idb --udid` call for that device or simulator fails on the dead one until it is disconnected.
+        disconnectIdbWithDeadline(runningCompanions.map(RunningCompanion::port) + companionsStillStarting.map(StartingCompanion::port))
+    }
+
+    /**
+     * Tells idb to forget the companions at [companionPorts], ending any disconnect still running
+     * after [DISCONNECT_DEADLINE_MILLIS].
+     */
+    private fun disconnectIdbWithDeadline(companionPorts: List<Int>) {
+        val disconnectProcesses = companionPorts.mapNotNull { port ->
+            try {
+                launcher.start(listOf(idbPath, "disconnect", "localhost", "$port"))
+            } catch (_: DeviceControlException) {
+                null
+            }
+        }
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(DISCONNECT_DEADLINE_MILLIS)
+        disconnectProcesses.forEach { disconnectProcess ->
+            if (!disconnectProcess.waitFor(maxOf(deadlineNanos - System.nanoTime(), 0), TimeUnit.NANOSECONDS)) disconnectProcess.destroyForcibly()
+        }
     }
 
     private suspend fun stop(companion: RunningCompanion) {
         companion.process.destroy()
         if (!companion.process.waitFor(3, TimeUnit.SECONDS)) companion.process.destroyForcibly()
-        // Best effort: a failed disconnect leaves a stale entry in idb's target list and nothing more.
+        disconnectIdb(companion.port)
+    }
+
+    private suspend fun disconnectIdb(port: Int) {
         try {
-            commands.runChecked(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
+            commands.runChecked(listOf(idbPath, "disconnect", "localhost", "$port"))
         } catch (_: DeviceControlException) {
             // A failed disconnect leaves only a stale entry in idb's target list.
         }
