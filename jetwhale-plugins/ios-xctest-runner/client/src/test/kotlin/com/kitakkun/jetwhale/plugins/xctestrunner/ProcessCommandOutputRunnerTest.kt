@@ -10,6 +10,7 @@ import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -48,6 +49,17 @@ class ProcessCommandOutputRunnerTest {
         }
 
         assertTrue(process.destroyed)
+    }
+
+    @Test
+    fun `a command that ignores the request to exit is killed`() = runTest {
+        val process = ProcessIgnoringExitRequest()
+
+        assertFailsWith<XcTestRunnerStartException> {
+            ProcessCommandOutputRunner(processLauncher = { process }, timeout = 100.milliseconds).run(listOf("xcrun", "xcodebuild", "build-for-testing"))
+        }
+
+        assertTrue(process.killed)
     }
 
     @Test
@@ -104,4 +116,37 @@ private class ProcessWithInheritedOutput : Process() {
     }
 
     override fun destroyForcibly(): Process = apply { destroy() }
+}
+
+/** A process that ignores the request to exit, as one that traps SIGTERM does, and ends only when killed. */
+private class ProcessIgnoringExitRequest : Process() {
+    private val exitFuture = CompletableFuture<Process>()
+
+    var killed = false
+        private set
+
+    override fun pid(): Long = 1
+
+    override fun onExit(): CompletableFuture<Process> = exitFuture
+
+    override fun isAlive(): Boolean = !killed
+
+    override fun getInputStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun waitFor(): Int = error("waits on onExit instead")
+
+    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = !isAlive
+
+    override fun exitValue(): Int = if (killed) 137 else throw IllegalThreadStateException("still running")
+
+    override fun destroy() = Unit
+
+    override fun destroyForcibly(): Process = apply {
+        killed = true
+        exitFuture.complete(this)
+    }
 }
