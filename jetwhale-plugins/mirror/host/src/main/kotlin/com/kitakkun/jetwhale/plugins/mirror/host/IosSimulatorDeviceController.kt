@@ -15,6 +15,8 @@ import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl` and the live stream through
@@ -57,7 +59,7 @@ internal class IosSimulatorDeviceController(
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
         try {
-            runCommandChecked(xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
+            runCommandChecked(SIMCTL_SCREENSHOT_TIMEOUT, xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
             return file.readBytes()
         } finally {
             file.deleteIfExists()
@@ -97,7 +99,7 @@ internal class IosSimulatorDeviceController(
         throughRunner = { it.tap(runnerTarget, x, y, space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
-            runCommandChecked(idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+            runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
         },
     )
 
@@ -106,7 +108,7 @@ internal class IosSimulatorDeviceController(
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
             runCommandChecked(
-                idbPath, "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+                IDB_COMMAND_TIMEOUT + durationMillis.milliseconds, idbPath, "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
                 "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
             )
         },
@@ -122,13 +124,13 @@ internal class IosSimulatorDeviceController(
                     else -> input.openAppSwitcher(runnerTarget)
                 }
             },
-            throughIdb = { idbPath -> presses.forEach { idbButton -> runCommandChecked(idbPath, "ui", "button", "--udid", udid, idbButton) } },
+            throughIdb = { idbPath -> presses.forEach { idbButton -> runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "button", "--udid", udid, idbButton) } },
         )
     }
 
     override suspend fun inputText(text: String) = sendInput(
         throughRunner = { it.typeText(runnerTarget, text) },
-        throughIdb = { idbPath -> runCommandChecked(idbPath, "ui", "text", "--udid", udid, text) },
+        throughIdb = { idbPath -> runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "text", "--udid", udid, text) },
     )
 
     /** Sends input through the runner, or through idb when the runner cannot start. */
@@ -193,7 +195,7 @@ internal class IosSimulatorDeviceController(
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
                 // recordVideo finishes the file only on SIGINT; Process.destroy() sends SIGTERM,
                 // which leaves it unplayable.
-                runCommand("kill", "-INT", "${process.pid()}")
+                runCommand(5.seconds, "kill", "-INT", "${process.pid()}")
                 if (!process.waitFor(15, TimeUnit.SECONDS)) process.destroyForcibly()
                 if (!outputFile.exists() || outputFile.length() == 0L) throw deviceControlError("recording failed: ${outputFile.absolutePath} was not written")
                 outputFile
@@ -219,10 +221,22 @@ internal class IosSimulatorDeviceController(
 
     private suspend fun readSimulatorScreenFromIdb(): IdbScreen {
         screen?.let { return it }
-        val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
+        val description = runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }
+
+/**
+ * How long simctl may take to write a screenshot. It takes well under a second, but can wait forever
+ * on a simulator that is shut down or deleted while it runs.
+ */
+private val SIMCTL_SCREENSHOT_TIMEOUT = 10.seconds
+
+/**
+ * How long an idb command may take. idb's Python client takes seconds to start and may start a
+ * companion for the simulator first, so a slow command still finishes well within this.
+ */
+internal val IDB_COMMAND_TIMEOUT = 30.seconds
 
 // The formula installs the command-line client and the companion together, at matching versions.
 internal const val IDB_INSTALL = "brew install facebook/fb/idb"
