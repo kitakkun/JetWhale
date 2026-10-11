@@ -11,6 +11,7 @@ import java.io.InputStream
 import java.time.Instant
 import kotlin.concurrent.thread
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A physical iOS device over USB. idb streams its screen through the device's [companions], null when
@@ -82,7 +83,7 @@ internal class IosPhysicalDeviceController(
     private suspend fun readIdbScreenSize(companions: IdbCompanions): IntSize? {
         companions.acquire(udid)
         val description = try {
-            runCommandChecked(companions.idbPath, "describe", "--udid", udid, "--json").stdoutText
+            runCommandChecked(IDB_COMMAND_TIMEOUT, companions.idbPath, "describe", "--udid", udid, "--json").stdoutText
         } finally {
             companions.release(udid)
         }
@@ -200,6 +201,12 @@ internal class IosPhysicalDeviceController(
         checkNotNull(companions).release(udid)
     }
 }
+
+/**
+ * How long an idb command may take. idb's Python client takes seconds to start, so a slow command
+ * still finishes well within this.
+ */
+internal val IDB_COMMAND_TIMEOUT = 30.seconds
 
 // The formula installs the idb client and idb_companion together, at matching versions.
 internal const val IDB_INSTALL_COMMAND = "brew install facebook/fb/idb"
