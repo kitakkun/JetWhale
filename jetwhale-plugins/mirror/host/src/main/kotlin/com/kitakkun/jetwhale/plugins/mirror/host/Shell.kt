@@ -1,11 +1,19 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.completeWith
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+import kotlin.time.Duration
 
 /** A device-control operation failed or is not supported; [message] is shown to the user as is. */
 internal class DeviceControlException(message: String, cause: Throwable?) : Exception(message, cause)
@@ -81,18 +89,43 @@ internal class CommandResult(
     val stdoutText: String get() = stdout.decodeToString()
 }
 
-/** Runs [command] to completion; stdout stays bytes because screenshots arrive on it as PNG. */
-internal suspend fun runCommand(vararg command: String): CommandResult = withContext(Dispatchers.IO) {
+/**
+ * Runs [command] to completion; stdout stays bytes because screenshots arrive on it as PNG.
+ *
+ * A command still running after [timeout] is ended and throws [DeviceControlException]; one whose
+ * caller is cancelled is ended too. Ending a command asks its process to exit, and kills it if it has
+ * not exited [COMMAND_EXIT_WAIT_MILLIS] later.
+ */
+internal suspend fun runCommand(timeout: Duration, vararg command: String): CommandResult = withContext(Dispatchers.IO) {
     val process = SystemProcessLauncher.start(command.toList())
-    // Both pipes are drained at once so neither can fill up and stall the process.
-    val stderr = async { process.errorStream.bufferedReader().use { it.readText() } }
-    val stdout = process.inputStream.readBytes()
-    CommandResult(exitCode = process.waitFor(), stdout = stdout, stderr = stderr.await())
+    // Both pipes are read at once, since a process stalls once a pipe it writes to is full. A
+    // process the command started can hold a pipe open after the command is ended, so the reads run
+    // on threads that nothing waits for once the command is given up on.
+    val stdout = readOnDaemonThread(process.inputStream) { it.readBytes() }
+    val stderr = readOnDaemonThread(process.errorStream) { it.bufferedReader().readText() }
+    try {
+        withTimeoutOrNull(timeout) {
+            CommandResult(exitCode = runInterruptible { process.waitFor() }, stdout = stdout.await(), stderr = stderr.await())
+        } ?: throw deviceControlError("'${command.joinToString(" ")}' did not finish within $timeout")
+    } finally {
+        if (process.isAlive) {
+            process.destroy()
+            if (!process.waitFor(COMMAND_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)) process.destroyForcibly()
+        }
+    }
 }
 
-/** Runs [command], throwing [DeviceControlException] with its output when it exits non-zero. */
-internal suspend fun runCommandChecked(vararg command: String): CommandResult {
-    val result = runCommand(*command)
+private fun <T> readOnDaemonThread(stream: InputStream, read: (InputStream) -> T): Deferred<T> {
+    val result = CompletableDeferred<T>()
+    thread(isDaemon = true, name = "mirror-command-output") { result.completeWith(runCatching { stream.use(read) }) }
+    return result
+}
+
+private const val COMMAND_EXIT_WAIT_MILLIS = 2_000L
+
+/** Runs [command] as [runCommand] does, throwing [DeviceControlException] with its output when it exits non-zero. */
+internal suspend fun runCommandChecked(timeout: Duration, vararg command: String): CommandResult {
+    val result = runCommand(timeout, *command)
     if (result.exitCode != 0) {
         val detail = result.stderr.ifBlank { result.stdoutText }.trim().take(500)
         throw deviceControlError("'${command.joinToString(" ")}' failed (exit ${result.exitCode}): $detail")

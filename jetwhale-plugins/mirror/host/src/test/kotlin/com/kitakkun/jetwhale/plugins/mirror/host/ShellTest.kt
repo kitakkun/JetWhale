@@ -1,8 +1,18 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import java.io.File
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class ShellTest {
     @Test
@@ -52,6 +62,63 @@ class ShellTest {
         val process = SystemProcessLauncher.start(listOf("/bin/sh", "-c", "printf %s \"\$PATH\""))
 
         assertEquals(System.getenv("PATH"), process.inputStream.bufferedReader().readText())
+    }
+
+    @Test
+    fun `a command that finishes gives its exit code and both of its outputs`() = runBlocking {
+        assumeShellScriptsLaunch()
+
+        val result = runCommand(10.seconds, "/bin/sh", "-c", "printf out; printf err >&2; exit 3")
+
+        assertEquals(3, result.exitCode)
+        assertEquals("out", result.stdoutText)
+        assertEquals("err", result.stderr)
+    }
+
+    @Test
+    fun `a command still running when its time is up is ended and fails`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val childrenBefore = ProcessHandle.current().children().toList().toSet()
+
+        val failure = assertFailsWith<DeviceControlException> { runCommand(500.milliseconds, "/bin/sh", "-c", "exec sleep 30") }
+
+        assertContains(failure.message.orEmpty(), "did not finish within 500ms")
+        assertChildProcessesEnded(childrenBefore)
+    }
+
+    @Test
+    fun `a command whose caller is cancelled is ended`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val childrenBefore = ProcessHandle.current().children().toList().toSet()
+
+        assertFailsWith<TimeoutCancellationException> { withTimeout(1.seconds) { runCommand(1.minutes, "/bin/sh", "-c", "exec sleep 30") } }
+
+        assertChildProcessesEnded(childrenBefore)
+    }
+
+    @Test
+    fun `a command that ignores the request to exit is killed`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val childrenBefore = ProcessHandle.current().children().toList().toSet()
+
+        // A signal the shell ignores stays ignored across exec, so sleep itself ignores SIGTERM.
+        assertFailsWith<DeviceControlException> { runCommand(500.milliseconds, "/bin/sh", "-c", "trap '' TERM; exec sleep 30") }
+
+        assertChildProcessesEnded(childrenBefore)
+    }
+
+    /** Fails, killing them, when processes started since [childrenBefore] are still running five seconds on. */
+    private fun assertChildProcessesEnded(childrenBefore: Set<ProcessHandle>) {
+        val stillRunningChildren = ProcessHandle.current().children().toList().filter { child ->
+            child !in childrenBefore && try {
+                child.onExit().get(5, TimeUnit.SECONDS)
+                false
+            } catch (_: TimeoutException) {
+                true
+            }
+        }
+        stillRunningChildren.forEach(ProcessHandle::destroyForcibly)
+        assertEquals(emptyList(), stillRunningChildren.map(ProcessHandle::pid), "these processes were still running")
     }
 }
 
