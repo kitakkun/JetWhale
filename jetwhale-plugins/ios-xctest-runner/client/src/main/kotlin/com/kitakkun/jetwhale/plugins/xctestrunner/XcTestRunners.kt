@@ -30,8 +30,8 @@ public interface XcTestRunnerSettings {
 /**
  * The XCTest runners on this machine: one per simulator or device, shared by every plugin that
  * drives iOS. A plugin asks for the runner of a target and gets the one already running, whoever
- * started it, or a new one. A runner ends itself after a while without commands, unless a lease holds
- * it.
+ * started it, or a new one. A runner ends itself after a while without commands or streamed frames,
+ * unless a lease holds it.
  */
 public interface XcTestRunners {
     /**
