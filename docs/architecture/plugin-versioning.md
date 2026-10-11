@@ -146,8 +146,10 @@ It does three things:
    the host Gradle plugin reads it from the classpath without loading a class.
 
 The release version is the protocol module's `version`. A plugin's three modules publish together
-under one version, as the official ones do (`build.gradle.kts:40-44`); a plugin that versions them
-apart reports its protocol module's.
+under one version, as the official ones do (`build.gradle.kts:40-44`), and the host Gradle plugin
+holds the host module to it
+(see [The build writes the release version](#the-build-writes-the-release-version)). An agent
+module released on its own still reports its protocol module's version.
 
 ### The wire schema dump
 
@@ -221,7 +223,8 @@ Messages are matched by serial name, which is what the wire carries. From each m
 schemas are walked side by side, so renaming a Kotlin class that is not polymorphic changes the
 dump's text but not the verdict. If a change is breaking and `protocolRevision` still equals the
 dump's `revision`, the task fails, lists each breaking change with its path, and names the revision
-to set. A raised revision lets any change through; a lowered one fails.
+to set. A raised revision lets any change through; a lowered one fails. The first dump is at
+revision 1, which the rule below relies on.
 
 ### What counts as breaking
 
@@ -284,7 +287,8 @@ The manifest gets `protocolRevisionRange`, both ends inclusive:
   that knows it decodes an older agent's tree. A break the host sends, a new request among them,
   needs the instance to know its agent's revision: `agentProtocolRevision` on
   `JetWhaleMessagingHostPlugin`, `null` for an agent that sends none.
-- `agentVersionRange` keeps its meaning, for agents that send no revision.
+- `agentVersionRange` now matters only when one side has no revision: which older agents this jar
+  serves, and which newer agents an older jar serves (next section).
 
 The agent sends one revision and does not negotiate down. An app pins its agent, and the host is the
 side a developer can update in one click, so the range belongs to the host.
@@ -295,11 +299,26 @@ One rule decides, in negotiation and in #320's binding:
 
 ```
 accepts(manifest, agentPlugin):
-    if agentPlugin.protocolRevision != null and manifest.protocolRevisionRange != null:
-        return agentPlugin.protocolRevision in manifest.protocolRevisionRange
-    // one side predates revisions
-    return manifest.agentVersionRange?.contains(agentPlugin.pluginVersion) ?: true
+    revision = agentPlugin.protocolRevision
+    revisions = manifest.protocolRevisionRange
+    versions = manifest.agentVersionRange
+    if revision != null and revisions != null:     // both have revisions
+        return revision in revisions
+    if revision != null:                            // a jar from before revisions
+        return revision == 1 and (versions?.contains(agentPlugin.pluginVersion) ?: true)
+    if revisions != null:                           // an agent from before revisions
+        return 1 in revisions and versions?.contains(agentPlugin.pluginVersion) == true
+    return versions?.contains(agentPlugin.pluginVersion) ?: true    // neither, as today
 ```
+
+A side from before revisions speaks revision 1 at best. Revision 1 is the wire a plugin had when it
+adopted revisions, and every later revision is a break since then, which nothing built earlier can
+speak. So a jar from before revisions serves only revision-1 agents, and an agent from before
+revisions is served only while the host plugin still accepts revision 1. Such an agent is also
+served only when the manifest keeps an `agentVersionRange` that includes it: a manifest that has a
+revision range opts in to older agents explicitly, and an empty `agentVersionRange` object accepts
+every version. Only when neither side has revisions does a missing range still accept any agent,
+as it does today.
 
 Versions compare with #320's `PluginVersionOrder`, in two strengths:
 
@@ -321,9 +340,12 @@ tag format, and a third-party version can be anything.
   `version` from `project.version`, and `protocolRevisionRange.max` from the contract with the same
   `pluginId` on the module's runtime classpath. Everything else stays as written. The build fails
   when the source manifest has a `version` or a `max` that disagrees, when `project.version` is
-  unspecified, and when a contract on the classpath matches no entry's `pluginId`, which is a typo
-  on one side. An entry with `requiresAgent: true` and no contract gets no range and a warning: it
-  is matched by `agentVersionRange`, as today.
+  unspecified, when the contract's release version is not `project.version`, and when a contract
+  on the classpath matches no entry's `pluginId`, which is a typo on one side. The release-version
+  check keeps the agent and the host reporting one version for one release; the manifest keeps the
+  host module's own, because it is the jar's identity in #320 and what an install compares with
+  the coordinates. An entry with `requiresAgent: true` and no contract gets no range and a warning:
+  it is matched by `agentVersionRange`, as today.
 - **Agent.** `JetWhaleAgentPlugin` takes the contract in place of `pluginId` and `pluginVersion`:
 
   ```kotlin
@@ -356,15 +378,16 @@ tag format, and a third-party version can be anything.
 1. Apply `com.kitakkun.jetwhale.protocol` to the protocol module, set `pluginId`,
    `protocolRevision` to 1 and `contractQualifiedName`, run `dumpWireSchema`, and commit `wire/`.
 2. In the agent plugin, replace `pluginId` and `pluginVersion` with `override val contract`.
-3. Delete `version` from the source manifest. Keep `agentVersionRange` for as long as agents without
-   a revision should be served.
+3. Delete `version` from the source manifest. Keep or add `agentVersionRange` for as long as agents
+   without a revision should be served; `{}` serves all of them. Without it they are refused.
 
 Upgrading only `com.kitakkun.jetwhale.host` already writes `version`. Without step 1 the plugin is
 matched by its version range, as before.
 
-**Plugins built before this keep working.** A jar whose manifest has no revision range is matched by
-its `agentVersionRange`, and so is an agent that sends no revision. Only the comparison changes: the
-release parts compare as numbers, so a patch number after a pre-release suffix now counts.
+**Plugins built before this keep working.** A jar and an agent that both predate revisions are
+matched as today; only the comparison changes, to release parts as numbers, so a patch number after
+a pre-release suffix now counts. When only one side predates revisions, the rule above applies:
+revision 1, and the version range.
 
 **What the host cannot do.** It cannot make a plugin raise its revision when the plugin was built
 without JetWhale's Gradle plugins or ships a dump edited by hand. It detects and reports:
@@ -452,8 +475,8 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
   `1.0.0` for network, nav3, storage, actions and example, `1.1.0` to `1.1.0` for semantics. Those
   agents are served as today. They cannot be told apart any further: an alpha09 and an alpha13
   network agent both say `1.0.0`, though #249's rename lies between them.
-- When an official plugin later raises `min` above 1, its `agentVersionRange` goes in the same
-  change, since an agent without a revision speaks revision 1 at best.
+- When an official plugin later raises `min` above 1, agents without a revision stop being served
+  by the rule itself, and its `agentVersionRange` can go.
 - A raised revision is a **Breaking** changelog entry that says to update the host and the agent
   together, as `agents/release.md` already requires for such a wire change.
 
@@ -472,17 +495,20 @@ verdict without enforcing it (see [Today](#what-follows-from-it)); with #320 it 
 | H0 | J1 | A0 | the kept `agentVersionRange` | As today |
 | H0 | J1 | A1 | as H0, J0, A1 | As H0, J0, A1 |
 | H1 | J0 | A0 | `agentVersionRange` | As today, except that `1.2.3-beta1` keeps its patch number |
-| H1 | J0 | A1 | `agentVersionRange` against the release version | As H0, J0, A1. Update the plugin |
-| H1 | J1 | A0 | the agent sends no revision: the kept `agentVersionRange`, or any agent when the manifest keeps none | As today |
+| H1 | J0 | A1 | revision 1 only, then `agentVersionRange` against the release version | As H0, J0, A1 for revision-1 agents; an agent at revision 2 or later is refused. Update the plugin |
+| H1 | J1 | A0 | the jar still accepts revision 1, and its kept `agentVersionRange` includes the agent | As today for official plugins while `min` is 1; a third-party jar with no `agentVersionRange` refuses these agents |
 | H1 | J1 | A1 | the revision against the range | The design |
 
-H0 rows cannot change. Two rows are worse than today, both only for semantics agents, and both
-because an official jar from before this compares a release version with a range written for
-`1.1.0`: H0, J0, A1, fixed by updating the host, and H1, J0, A1, fixed by updating the plugin. The
-second is the usual state right after a host update, since plugins are not updated with the host
-([Host updates, Non-goals](./host-updates.md#non-goals)). Phases 1 and 4 ship in one release, whose
-notes say to update the host and then the official plugins from the catalog. An H0 host installs
-official jars of its own version (`OfficialPluginRelease.kt:21-33`), so it rarely meets J1.
+H0 rows cannot change. An H0 host cannot see revisions, so it also pairs an agent at a revision its
+jar cannot speak, as it pairs mismatched agents today. Two rows are worse than today, both only for
+semantics agents, and both because an official jar from before this compares a release version with
+a range written for `1.1.0`: H0, J0, A1, fixed by updating the host, and H1, J0, A1, fixed by
+updating the plugin. The second is the usual state right after a host update, since plugins are not
+updated with the host ([Host updates, Non-goals](./host-updates.md#non-goals)). Phases 1 and 4 ship
+in one release, whose notes say to update the host and then the official plugins from the catalog.
+An H0 host installs official jars of its own version (`OfficialPluginRelease.kt:21-33`), so it
+rarely meets J1. A third-party jar that adopts revisions without an `agentVersionRange` refuses
+older agents on purpose.
 
 ## What was checked
 
@@ -526,7 +552,9 @@ anything at runtime.
 ## Testing
 
 - **The rule.** A table test with one case per H1 row of the matrix: `null` revisions on either
-  side, a missing range, bounds at pre-releases and snapshots.
+  side, a jar from before revisions meeting revisions 1 and 2, a revision range with `min` 1 and 2
+  meeting an agent without one, a missing and an empty `agentVersionRange`, and bounds at
+  pre-releases and snapshots.
 - **Order.** `PluginVersionOrder` with a snapshot before its release, added to #320's cases.
 - **Wire.** Serialization tests that decode the JSON a 1.0.0-alpha13 agent sends into the new
   `JetWhalePluginInfo`, and the new JSON into a class shaped like the old one; the same for the
