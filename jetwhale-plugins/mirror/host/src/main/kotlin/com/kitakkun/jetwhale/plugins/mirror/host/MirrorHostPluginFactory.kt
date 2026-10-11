@@ -92,9 +92,9 @@ private val IPHONE_CAPTURE_FAILURE_REUSE_PERIOD = 5.seconds
 private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
 
 /**
- * How long a command that builds the iPhone capture helper may take. A build takes seconds, or longer
- * while the compiler first fills its module cache for the frameworks the helper uses; the XCTest
- * runner's builds get the same limit.
+ * How long a command that builds the iPhone capture helper may take. A build takes a few seconds, but
+ * a failed one is remembered until the host restarts, so a slow Mac gets as long as the XCTest
+ * runner's builds do.
  */
 private val HELPER_BUILD_COMMAND_TIMEOUT = 5.minutes
 
