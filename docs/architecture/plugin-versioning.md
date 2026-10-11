@@ -247,7 +247,8 @@ the other one sends. The verdicts follow from the payload format:
 | Add or remove a sealed subtype, or change the discriminator | breaking | |
 | Add an event | additive | The older peer skips it |
 | Add a request | breaking | The older peer answers with a failure, which `request` throws |
-| Remove a message, or change its serial name | breaking | Messages are matched by serial name |
+| Remove an event, or change its serial name | additive | Matched by serial name, so the newer peer skips the older one's event and the older peer stops receiving it; whether the feature still works is a matter of meaning |
+| Remove a request, or change its serial name | breaking | The older peer still sends it and gets a failure |
 | Turn an event into a request or back, or change a reply type | breaking | |
 | Rename a Kotlin class that is not polymorphic, reorder fields, edit an `@McpDescription` | no wire change | |
 
@@ -290,6 +291,10 @@ The manifest gets `protocolRevisionRange`, both ends inclusive:
   `JetWhaleMessagingHostPlugin`, `null` for an agent that sends none.
 - `agentVersionRange` now matters only when one side has no revision: which older agents this jar
   serves, and which newer agents an older jar serves (next section).
+- A range is well-formed when `1 <= min <= max`. The host Gradle plugin fails the build on any other
+  range, as `com.kitakkun.jetwhale.protocol` does on a `protocolRevision` below 1. The host refuses
+  to load a jar whose range is not well-formed, as it refuses a manifest it cannot parse, so the
+  jar is listed among the failed ones in Settings.
 
 The agent sends one revision and does not negotiate down. An app pins its agent, and the host is the
 side a developer can update in one click, so the range belongs to the host.
@@ -415,9 +420,10 @@ from generated Swift constants and is negotiated like a Kotlin one.
 
 The revision and the hash stay two values because they answer two questions. The revision says
 whether two sides can talk, and changes only on a break. The hash says whether two sides were built
-from the same schema, and changes on any change: an additive one, and even a Kotlin rename that the
-wire never sees. Negotiation needs the first, #436's strict decoding the second, and one dump gives
-both.
+from the same schema, and changes on any change the dump can see: an additive one, and even a
+Kotlin rename that the wire never sees. It does not change with what the dump leaves out, such as a
+default value or a custom serializer's format, so equal hashes do not prove equal behavior.
+Negotiation needs the first, #436's strict decoding the second, and one dump gives both.
 
 ### What #320 changes
 
@@ -546,10 +552,10 @@ dumps. Kotlin 2.4.10 and kotlinx.serialization 1.11.0, as the repository uses.
 - **One change at a time.** Twenty-one single edits of today's network or semantics protocol, each
   classified as the table says:
   - additive: an optional field added, an optional field removed, a required field made optional,
-    an event added;
+    an event added, an event renamed;
   - breaking: a required field added, a required field removed, a type changed, a field made
     nullable, an optional field made required, a required field made optional under
-    `@EncodeDefault(NEVER)`, an enum entry added, a message renamed, a required field renamed, the same with
+    `@EncodeDefault(NEVER)`, an enum entry added, a required field renamed, the same with
     `@JsonNames` for the old name, a request added, a reply type changed, an event turned into a
     request, a sealed subtype added;
   - no wire change: fields reordered and an `@McpDescription` edited, both with the same dump and
@@ -565,8 +571,8 @@ anything at runtime.
 
 - **The rule.** A table test with one case per H1 row of the matrix: `null` revisions on either
   side, a jar from before revisions meeting revisions 1 and 2, a revision range with `min` 1 and 2
-  meeting an agent without one, a missing and an empty `agentVersionRange`, and bounds at
-  pre-releases and snapshots.
+  meeting an agent without one, a missing and an empty `agentVersionRange`, bounds at pre-releases
+  and snapshots, and a jar refused for a range with `min` 0 or `min` above `max`.
 - **Order.** `PluginVersionOrder` with a snapshot before its release, added to #320's cases.
 - **Wire.** Serialization tests that decode the JSON a 1.0.0-alpha13 agent sends into the new
   `JetWhalePluginInfo`, and the new JSON into a class shaped like the old one; the same for the
