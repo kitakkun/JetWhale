@@ -61,8 +61,9 @@ internal class Attachment(
  * replaced. Starting or replacing a device's runner holds that device's lock, so two plugins never
  * start two runners for one device.
  *
- * A runner ends its own test after [idleTimeout] without commands, so it never outlives the hosts
- * that use it for long; the ones this process started are also ended when it exits.
+ * A runner ends its own test after [idleTimeout] without commands, unless a lease holds it; a lease
+ * runs out too, so a runner never outlives the hosts that use it for long. The ones this process
+ * started are also ended when it exits.
  */
 internal class LocalXcTestRunners(
     private val runnerStateDirectory: RunnerStateDirectory,

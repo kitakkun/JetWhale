@@ -7,6 +7,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.io.InputStream
 import java.net.ServerSocket
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.time.Duration
 
@@ -34,8 +35,9 @@ internal fun interface CommandOutputRunner {
 /**
  * Runs commands as processes started by [processLauncher]. One that has not finished within
  * [timeout], or whose caller is cancelled, is ended, so that a build waiting on something that never
- * comes does not hold its lock and its caller forever. Its output is read on threads of its own, so
- * a child process that keeps a pipe open after it ends does not hold them either.
+ * comes does not hold its lock and its caller forever. Ending a command asks its process to exit, and
+ * kills it if it has not exited [COMMAND_EXIT_WAIT_MILLIS] later. Its output is read on threads of
+ * its own, so a child process that keeps a pipe open after it ends does not hold them either.
  */
 internal class ProcessCommandOutputRunner(
     private val processLauncher: ProcessLauncher,
@@ -49,10 +51,15 @@ internal class ProcessCommandOutputRunner(
                 ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
             CommandOutput(exitCode = exited.exitValue(), text = output.textOnceDrained())
         } finally {
-            process.destroyForcibly()
+            if (process.isAlive) {
+                process.destroy()
+                if (!process.waitFor(COMMAND_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)) process.destroyForcibly()
+            }
         }
     }
 }
+
+private const val COMMAND_EXIT_WAIT_MILLIS = 2_000L
 
 /** Hands out a TCP port nothing listens on yet. */
 internal fun interface PortSource {

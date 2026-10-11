@@ -11,6 +11,14 @@ import java.io.IOException
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * How long a tool may take to list its devices. Listing can first start adb's server, or the services
+ * behind simctl and devicectl. A look waits for every listing, so one that never finished would stop
+ * the device list from updating.
+ */
+private val DEVICE_LISTING_TIMEOUT = 30.seconds
 
 /** What one look for devices found, and what kept it from finding more. */
 internal class Discovery(
@@ -24,8 +32,8 @@ internal class Discovery(
  * device that is streaming keeps what its stream holds.
  *
  * iOS input, and a simulator's live video, go through [xcTestRunners], null without Xcode; a
- * physical iPhone's input also needs `iproxy` at [iproxyPath]. An iPhone's screen comes from
- * [iphoneScreenCaptures], also null without Xcode, which stop the capture of an iPhone once it is gone.
+ * physical iPhone's input also needs `iproxy`. An iPhone's screen comes from [iphoneScreenCaptures],
+ * also null without Xcode, which stop the capture of an iPhone once it is gone.
  *
  * A look waits for every tool it is given, so a tool is reported missing only once it has been
  * looked for.
@@ -34,7 +42,6 @@ internal class DeviceDiscovery(
     private val toolPaths: Deferred<MirrorToolPaths>,
     private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?>,
     private val xcTestRunners: Deferred<XcTestRunners?>,
-    private val iproxyPath: Deferred<String?>,
     private val emulatorScreens: EmulatorScreens,
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
@@ -57,17 +64,17 @@ internal class DeviceDiscovery(
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         val isIphoneListed = devices.any { it.kind == DeviceKind.IosDevice }
-        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, runnerInput, iproxyPath.await(), isIphoneListed))
+        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, runnerInput, isIphoneListed))
     }
 
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val adbPath = locatedToolPaths.adbPath ?: return emptyList()
-        return tryList { parseAdbDevices(runCommandChecked(adbPath, "devices", "-l").stdoutText) }
+        return tryList { parseAdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "devices", "-l").stdoutText) }
     }
 
     private suspend fun listSimulators(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val xcrunPath = locatedToolPaths.xcrunPath ?: return emptyList()
-        return tryList { parseBootedSimulators(runCommandChecked(xcrunPath, "simctl", "list", "devices", "booted", "-j").stdoutText) }
+        return tryList { parseBootedSimulators(runCommandChecked(DEVICE_LISTING_TIMEOUT, xcrunPath, "simctl", "list", "devices", "booted", "-j").stdoutText) }
     }
 
     private suspend fun listIosDevices(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
@@ -77,7 +84,7 @@ internal class DeviceDiscovery(
                 // devicectl writes JSON only to a file; what it prints is for people and may change.
                 val jsonFile = createTempFile(prefix = "jetwhale-devicectl-", suffix = ".json")
                 try {
-                    runCommandChecked(xcrunPath, "devicectl", "list", "devices", "--json-output", jsonFile.toString())
+                    runCommandChecked(DEVICE_LISTING_TIMEOUT, xcrunPath, "devicectl", "list", "devices", "--json-output", jsonFile.toString())
                     parseDevicectlDevices(jsonFile.readText())
                 } finally {
                     jsonFile.deleteIfExists()
@@ -108,9 +115,9 @@ internal class DeviceDiscovery(
         )
     }
 
-    private fun missingTools(locatedToolPaths: MirrorToolPaths, runnerInput: XcTestRunnerInput?, iproxyPath: String?, isIphoneListed: Boolean): List<String> = buildList {
+    private fun missingTools(locatedToolPaths: MirrorToolPaths, runnerInput: XcTestRunnerInput?, isIphoneListed: Boolean): List<String> = buildList {
         if (locatedToolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
-        if (isIphoneListed && runnerInput != null && iproxyPath == null) add("iproxy was not found, so iPhones and iPads are shown without input: $IPROXY_INSTALL")
+        if (isIphoneListed && runnerInput != null && locatedToolPaths.iproxyPath == null) add("iproxy was not found, so iPhones and iPads are shown without input: $IPROXY_INSTALL")
         if (locatedToolPaths.ffmpegPath == null && (locatedToolPaths.adbPath != null || isIphoneListed)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 

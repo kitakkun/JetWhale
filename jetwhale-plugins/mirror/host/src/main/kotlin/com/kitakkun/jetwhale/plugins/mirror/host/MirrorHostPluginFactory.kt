@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -20,6 +21,7 @@ import java.time.Clock
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -32,28 +34,15 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
 private val toolLocationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /**
- * The directories the tools this plugin drives are looked for in, read once per process when first
- * awaited. They include the login shell's PATH, which can take seconds to read, so callers suspend
- * on it rather than block the thread that first needs a tool, which may be the UI thread.
+ * The tools this plugin drives, located once per process when first awaited. A tool found nowhere
+ * else is looked for on the login shell's PATH, which can take seconds to read, so callers suspend on
+ * it rather than block the thread that first needs a tool, which may be the UI thread.
  */
-private val toolSearchDirectories: Deferred<List<String>> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    val loginShellPathVariable = if (runsOnWindows) {
-        null
-    } else {
-        val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
-        LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds).resolveLoginShellPathVariable()
-    }
-    val searchDirectories = toolDirectories(loginShellPathVariable = loginShellPathVariable, pathVariable = System.getenv("PATH"))
-    if (loginShellPathVariable != null) SystemProcessLauncher.launchedProcessPathVariable = searchDirectories.joinToString(File.pathSeparator)
-    searchDirectories
-}
-
-/** The tools this plugin drives, located once per process when first awaited. */
 private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    val searchDirectories = toolSearchDirectories.await()
     val home = System.getProperty("user.home")
-    MirrorToolLocator(
-        searchDirectories = searchDirectories,
+    val toolSearchResult = MirrorToolLocator(
+        hostPathVariable = System.getenv("PATH"),
+        wellKnownDirectories = if (runsOnWindows) emptyList() else WellKnownToolDirectories(File(home)).list(),
         androidSdkDirectories = listOfNotNull(
             System.getenv("ANDROID_HOME"),
             System.getenv("ANDROID_SDK_ROOT"),
@@ -61,7 +50,30 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
             "$home/Android/Sdk",
             System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
         ),
-    ).locateToolPaths()
+        loginShellPathVariableResolver = if (runsOnWindows) {
+            null
+        } else {
+            val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
+            LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds)
+        },
+    ).locateTools()
+    // On Windows the search adds nothing to the PATH, and the variable is spelled `Path` there, so
+    // setting `PATH` would add a second one beside it.
+    if (!runsOnWindows) SystemProcessLauncher.launchedProcessPathVariable = toolSearchResult.searchedDirectories.joinToString(File.pathSeparator)
+    toolSearchResult.toolPaths
+}
+
+/**
+ * The directories this plugin's tools are commonly installed in on macOS and Linux, for the user
+ * whose home is [homeDirectory], searched whether or not a PATH lists them:
+ * - Homebrew's, where it links ffmpeg, libimobiledevice's iproxy and the adb of its
+ *   android-platform-tools cask: `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
+ * - `~/.local/bin`, the user's own, where the guide has a tool linked that only the login shell's
+ *   PATH reaches.
+ */
+@VisibleForTesting
+internal class WellKnownToolDirectories(private val homeDirectory: File) {
+    fun list(): List<String> = listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path)
 }
 
 private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
@@ -79,6 +91,13 @@ private val IPHONE_CAPTURE_FAILURE_REUSE_PERIOD = 5.seconds
 /** Builds of the iPhone capture helper not run for this long are deleted by the next build. */
 private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
 
+/**
+ * How long a command that builds the iPhone capture helper may take. A build takes seconds, or longer
+ * while the compiler first fills its module cache for the frameworks the helper uses; the XCTest
+ * runner's builds get the same limit.
+ */
+private val HELPER_BUILD_COMMAND_TIMEOUT = 5.minutes
+
 // A host-only plugin gets an instance per debug session, but an iPhone has one screen: the
 // instances share the captures, so two of them watching one iPhone start one helper.
 private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
@@ -89,7 +108,7 @@ private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocation
         xcrunPath = xcrunPath,
         unusedBuildLifetime = UNUSED_HELPER_BUILD_LIFETIME,
         clock = Clock.systemUTC(),
-    ) { command -> runCommand(*command.toTypedArray()) }
+    ) { command -> runCommand(HELPER_BUILD_COMMAND_TIMEOUT, *command.toTypedArray()) }
     val helperExecutable = toolLocationScope.async(start = CoroutineStart.LAZY) { builds.findOrBuildHelperExecutable() }
     IphoneScreenCaptures(
         processLauncher = SystemProcessLauncher,
@@ -104,13 +123,10 @@ private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocation
 /** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
 private val runnerSigningTeam = RunnerSigningTeam()
 
-private val iproxyPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    toolSearchDirectories.await().map { File(it, "iproxy") }.firstOrNull { it.isFile && it.canExecute() }?.path
-}
-
 private val xcTestRunners: Deferred<XcTestRunners?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
-    XcTestRunners.onThisMac(stateDirectory = File(appDataDirectory(), "xctest-runner"), xcrunPath = xcrunPath, iproxyPath = iproxyPath.await(), settings = runnerSigningTeam)
+    val located = toolPaths.await()
+    val xcrunPath = located.xcrunPath ?: return@async null
+    XcTestRunners.onThisMac(stateDirectory = File(appDataDirectory(), "xctest-runner"), xcrunPath = xcrunPath, iproxyPath = located.iproxyPath, settings = runnerSigningTeam)
 }
 
 private val liveInstances = AtomicInteger()
@@ -139,7 +155,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, iphoneScreenCaptures, xcTestRunners, iproxyPath, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCaptures, xcTestRunners, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,

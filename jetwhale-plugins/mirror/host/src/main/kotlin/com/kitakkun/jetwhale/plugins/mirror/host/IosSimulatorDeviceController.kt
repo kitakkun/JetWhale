@@ -20,6 +20,7 @@ import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A booted iOS simulator, which needs only Xcode. Live video and input go through its XCTest runner
@@ -51,14 +52,14 @@ internal class IosSimulatorDeviceController(
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
         try {
-            runCommandChecked(xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
+            runCommandChecked(SIMCTL_SCREENSHOT_TIMEOUT, xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
             return file.readBytes()
         } finally {
             file.deleteIfExists()
         }
     }
 
-    override suspend fun screenSize(): IntSize = parseSimulatorScreen(runCommandChecked(xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
+    override suspend fun screenSize(): IntSize = parseSimulatorScreen(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
         ?: throw deviceControlError("'simctl io enumerate' reported no screen for the simulator")
 
     override suspend fun tap(x: Int, y: Int) = requireRunnerInput().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Screen)
@@ -118,7 +119,7 @@ internal class IosSimulatorDeviceController(
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
                 // recordVideo finishes the file only on SIGINT; Process.destroy() sends SIGTERM,
                 // which leaves it unplayable.
-                runCommand("kill", "-INT", "${process.pid()}")
+                runCommand(5.seconds, "kill", "-INT", "${process.pid()}")
                 if (!process.waitFor(15, TimeUnit.SECONDS)) process.destroyForcibly()
                 if (!outputFile.exists() || outputFile.length() == 0L) throw deviceControlError("recording failed: ${outputFile.absolutePath} was not written")
                 outputFile
@@ -131,6 +132,18 @@ internal class IosSimulatorDeviceController(
         return checkNotNull(runnerInput)
     }
 }
+
+/**
+ * How long simctl may take to write a screenshot. It takes well under a second, but can wait forever
+ * on a simulator that is shut down or deleted while it runs.
+ */
+private val SIMCTL_SCREENSHOT_TIMEOUT = 10.seconds
+
+/**
+ * How long simctl may take to list a simulator's screens. It answers well under a second, so one
+ * still running after this long is not answering.
+ */
+private val SIMCTL_IO_ENUMERATE_TIMEOUT = 10.seconds
 
 /**
  * The rate a simulator's runner is asked to stream at. testmanagerd takes a frame in about 22 ms, so
