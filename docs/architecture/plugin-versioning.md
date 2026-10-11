@@ -330,6 +330,12 @@ Versions compare with #320's `PluginVersionOrder`, in two strengths:
 
 - **Which loaded version is newest** uses the full order: release parts as numbers, a release after
   its pre-releases, pre-release numbers as numbers, so `1.0.0-alpha9` < `1.0.0-alpha10` < `1.0.0`.
+  Before it, the manifest's `manifestFormat`: a jar whose manifest the new host Gradle plugin wrote
+  (format 2) is newer than every jar of the same plugin with a hand-written version (format 1, or
+  no `manifestFormat`). The hand-written versions are not release versions. Every official jar so
+  far says `1.0.0` (semantics `1.1.0`), which the full order puts above `1.0.0-alpha15`, the first
+  release version, so without the format the older jar would win. Within a format, the order
+  decides.
 - **A range bound** compares release parts only, as #320's `compareReleases` does: `1.2.3-beta1`
   keeps its patch number, and `1.3.0-beta1` is inside a range that starts at `1.3.0`. The bounds a
   jar without a revision range carries were written for hand-typed agent versions: the official
@@ -343,8 +349,9 @@ tag format, and a third-party version can be anything.
 ### The build writes the release version
 
 - **Host.** The host Gradle plugin generates the manifest that goes into the jar. It writes
-  `version` from `project.version`, and `protocolRevisionRange.max` from the contract with the same
-  `pluginId` on the module's runtime classpath. Everything else stays as written. The build fails
+  `version` from `project.version`, `manifestFormat: 2` to mark that version as a release version,
+  and `protocolRevisionRange.max` from the contract with the same `pluginId` on the module's runtime
+  classpath. Everything else stays as written. The build fails
   when the source manifest has a `version` or a `max` that disagrees, when `project.version` is
   unspecified, when the contract's release version is not `project.version`, and when a contract
   on the classpath matches no entry's `pluginId`, which is a typo on one side. The release-version
@@ -428,9 +435,11 @@ Negotiation needs the first, #436's strict decoding the second, and one dump giv
 ### What #320 changes
 
 1. **Order.** Identity stays `(pluginId, version)` and the order stays `PluginVersionOrder`; the
-   version becomes the release version. `PluginVersionOrder` puts `X-SNAPSHOT` before `X`: it now
-   ranks `1.0.0-alpha14-SNAPSHOT` after `1.0.0-alpha14`, because the suffix reads as one more
-   pre-release segment.
+   version becomes the release version. A higher `manifestFormat` comes first, so a jar built by
+   the new Gradle plugin outranks every hand-versioned jar of its plugin, in binding and in what an
+   install replaces. `PluginVersionOrder` puts `X-SNAPSHOT` before `X`: it now ranks
+   `1.0.0-alpha14-SNAPSHOT` after `1.0.0-alpha14`, because the suffix reads as one more pre-release
+   segment.
 2. **Binding.** `AgentVersionCompatibility(agentVersion)` becomes the rule above and takes the
    agent's `JetWhalePluginInfo`. "The newest version whose `agentVersionRange` accepts the agent"
    becomes "the newest version that accepts the agent", by revision when both sides have one.
@@ -452,10 +461,11 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
 - `JetWhalePluginInfo` gains `protocolRevision: Int? = null` and `wireSchemaHash: String? = null`.
   Released hosts and agents ignore them, and a newer side reads `null` from an older one. The host
   fills them in `availablePlugins` with the bound version's values.
-- The manifest gains `protocolRevisionRange` with integer `min` and `max`. Released hosts ignore it.
-  A jar's manifest still has `version`, which released hosts require; the source may leave it out.
-  `schemas/plugin-manifest.schema.json`, which allows no other properties (`:8`, `:17`), adds the
-  range and makes `version` optional, since it describes the source.
+- The manifest gains `protocolRevisionRange` with integer `min` and `max`, and an integer
+  `manifestFormat`, 2 when the Gradle plugin wrote `version`. Released hosts ignore both. A jar's
+  manifest still has `version`, which released hosts require; the source may leave it out.
+  `schemas/plugin-manifest.schema.json`, which allows no other properties (`:8`, `:17`), adds both
+  and makes `version` optional, since it describes the source.
 - The protocol jar carries `META-INF/jetwhale/protocols/<pluginId>.json` with `pluginId`,
   `releaseVersion`, `protocolRevision` and `wireSchemaHash`. The build reads it; the host does not.
 
@@ -482,6 +492,9 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
   `1.0.0` for network, nav3, storage, actions and example, `1.1.0` to `1.1.0` for semantics. Those
   agents are served as today. They cannot be told apart any further: an alpha09 and an alpha13
   network agent both say `1.0.0`, though #249's rename lies between them.
+- The first release under this installs next to the hand-versioned jars already in
+  `~/.jetwhale/plugins`. Its `manifestFormat` makes it the newest, so sessions bind it and an
+  install replaces the old jar rather than the reverse.
 - When an official plugin later raises `min` above 1, agents without a revision stop being served
   by the rule itself, and its `agentVersionRange` can go.
 - A raised revision is a **Breaking** changelog entry that says to update the host and the agent
@@ -573,7 +586,8 @@ anything at runtime.
   side, a jar from before revisions meeting revisions 1 and 2, a revision range with `min` 1 and 2
   meeting an agent without one, a missing and an empty `agentVersionRange`, bounds at pre-releases
   and snapshots, and a jar refused for a range with `min` 0 or `min` above `max`.
-- **Order.** `PluginVersionOrder` with a snapshot before its release, added to #320's cases.
+- **Order.** `PluginVersionOrder` with a snapshot before its release, and a format-2 `1.0.0-alpha15`
+  above a format-1 `1.0.0`, added to #320's cases.
 - **Wire.** Serialization tests that decode the JSON a 1.0.0-alpha13 agent sends into the new
   `JetWhalePluginInfo`, and the new JSON into a class shaped like the old one; the same for the
   manifest.
@@ -634,10 +648,11 @@ anything at runtime.
 
 ## Phased PRs
 
-1. **Host and wire.** The `JetWhalePluginInfo` fields, the manifest range and its schema, the rule in
-   negotiation and in #320's binding, the fallback's comparison, `agentProtocolRevision`, the
-   verdict on the plugin page and in MCP, the agent's log line, and the protocol reference. Tested
-   with manifests and infos built by hand; nothing produces revisions yet.
+1. **Host and wire.** The `JetWhalePluginInfo` fields, the manifest's range and format and their
+   schema, the order by format, the rule in negotiation and in #320's binding, the fallback's
+   comparison, `agentProtocolRevision`, the verdict on the plugin page and in MCP, the agent's log
+   line, and the protocol reference. Tested with manifests and infos built by hand; nothing
+   produces revisions yet.
 2. **`com.kitakkun.jetwhale.protocol`.** `JetWhalePluginContract`, the generated contract, the jar
    resource, `dumpWireSchema` and `checkWireSchema`, applied to network; then the other official
    protocol modules at revision 1, and the base-branch comparison in CI.
