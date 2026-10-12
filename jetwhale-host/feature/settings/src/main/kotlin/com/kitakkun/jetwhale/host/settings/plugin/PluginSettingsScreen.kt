@@ -86,6 +86,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX") // Split into smaller composables in a follow-up, tracked in #450.
 fun PluginSettingsScreen(
     page: SettingsScreenPage,
     uiState: PluginSettingsScreenUiState,
@@ -232,6 +233,22 @@ private fun LazyListScope.installActivityItems(
 }
 
 @Composable
+private fun AddingFromFileRow(modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        JwProgressIndicator()
+        JwText(
+            text = stringResource(Res.string.adding_plugin_from_file),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
 private fun FailedJarsDialog(
     failedJars: List<FailedPluginJar>,
     onDismiss: () -> Unit,
@@ -319,22 +336,6 @@ private fun AddPluginActionsRow(
     }
 }
 
-@Composable
-private fun AddingFromFileRow(modifier: Modifier = Modifier) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-        JwProgressIndicator()
-        JwText(
-            text = stringResource(Res.string.adding_plugin_from_file),
-            style = JwTheme.textStyles.bodySmall,
-            color = JwTheme.colors.textSecondary,
-        )
-    }
-}
-
 /**
  * One queued, running or finished install. It keeps running when this screen closes, and reopening
  * the screen shows it where it is.
@@ -391,9 +392,9 @@ private fun InstallJobRow(
 
 @Composable
 private fun installStatusText(status: PluginInstallStatus): String = when (status) {
-    PluginInstallStatus.Queued -> stringResource(Res.string.install_status_queued)
+    is PluginInstallStatus.Queued -> stringResource(Res.string.install_status_queued)
     is PluginInstallStatus.Running -> status.progress?.let { installProgressText(it) } ?: stringResource(Res.string.install_status_installing)
-    PluginInstallStatus.Succeeded -> stringResource(Res.string.install_status_installed)
+    is PluginInstallStatus.Succeeded -> stringResource(Res.string.install_status_installed)
     is PluginInstallStatus.Failed -> stringResource(Res.string.install_status_failed, status.reason)
 }
 

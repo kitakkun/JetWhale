@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +45,7 @@ class DeviceMirrorTest {
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
         discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
+        captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
         scope = scope,
     )
@@ -107,7 +108,7 @@ class DeviceMirrorTest {
         val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
             discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
+            captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
             notices = notices,
             scope = clicks,
         )

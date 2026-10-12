@@ -47,6 +47,7 @@ import org.jetbrains.compose.resources.getString
  * dismissed elsewhere leaves the notice.
  */
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // Split into smaller composables in a follow-up, tracked in #450.
 internal fun PluginInstallNotices(
     installJobs: ImmutableList<PluginInstallJob>,
     snackbarHostState: JwSnackbarHostState,

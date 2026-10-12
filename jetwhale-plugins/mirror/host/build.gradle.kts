@@ -45,6 +45,7 @@ dependencies {
     "previewImplementation"(libs.jetbrainsComposePreview)
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)
+    testImplementation(projects.tools.docsScreenshots)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.okhttpMockwebserver)
     testImplementation(libs.kotlinxSerializationJson)

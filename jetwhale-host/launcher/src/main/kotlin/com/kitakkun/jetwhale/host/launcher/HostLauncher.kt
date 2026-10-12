@@ -163,7 +163,7 @@ class HostLauncher(
                 return null
             }
 
-            HostReleaseMetadataResult.Untrusted -> return discard(hostVersionDirectory, "its metadata signature does not verify")
+            is HostReleaseMetadataResult.Untrusted -> return discard(hostVersionDirectory, "its metadata signature does not verify")
 
             is HostReleaseMetadataResult.Malformed -> return discard(hostVersionDirectory, "its metadata is malformed (${read.reason})")
         }

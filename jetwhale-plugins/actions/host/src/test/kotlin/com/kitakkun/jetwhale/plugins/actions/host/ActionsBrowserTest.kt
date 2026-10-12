@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class ActionsBrowserTest {
@@ -55,6 +56,20 @@ class ActionsBrowserTest {
         firstRequestGate.complete(Unit)
 
         assertEquals(listOf("fresh@example.com"), racingBrowser.options[signIn.id]?.get("email"))
+    }
+
+    @Test
+    fun `a reload that fails other than by not reaching the app shows the failure in the status`() {
+        val catalogFailingClient = object : ActionsClient by client {
+            override suspend fun listActions(): ActionCatalog = error("catalog unreadable")
+        }
+
+        val brokenBrowser = ActionsBrowser(catalogFailingClient, CoroutineScope(Dispatchers.Unconfined))
+
+        brokenBrowser.refresh()
+
+        assertEquals(true, brokenBrowser.status?.isError)
+        assertContains(brokenBrowser.status?.message.orEmpty(), "catalog unreadable")
     }
 
     @Test

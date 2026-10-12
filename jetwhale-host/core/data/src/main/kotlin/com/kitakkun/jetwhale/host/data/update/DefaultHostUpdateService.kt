@@ -128,86 +128,6 @@ class DefaultHostUpdateService(
         }
     }
 
-    override fun download() {
-        val downloadableRelease = downloadableRelease ?: return
-        if (downloadJob?.isActive == true) return
-        // An undispatched launch runs this block up to its first suspension, publishing
-        // Downloading, before launch returns; the job is stored here so that a cancel made on that
-        // status already finds it.
-        scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            downloadJob = coroutineContext.job
-            downloadAndInstall(downloadableRelease)
-        }
-    }
-
-    override fun cancelDownload() {
-        downloadJob?.cancel()
-    }
-
-    override fun startLauncherAfterExit(retryVersion: HostVersion?): Boolean {
-        val command = launcherCommand(retryVersion)
-        if (command == null) {
-            logger.warn("Cannot restart: the launcher that started this host did not give its own path")
-            stateFlow.update { it.copy(restartFailed = true) }
-            return false
-        }
-        logger.info("Starting the launcher to run after this host: {}", command)
-        val started = try {
-            val process = ProcessBuilder(command)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                .redirectError(ProcessBuilder.Redirect.DISCARD)
-                .start()
-            // open hands the app to LaunchServices and exits, with a nonzero status when it finds
-            // no app to start; a launcher started directly waits for this process to end, so only
-            // open is waited for.
-            command.first() != OPEN_COMMAND || (process.waitFor(OPEN_TIMEOUT_SECONDS, TimeUnit.SECONDS) && process.exitValue() == 0)
-        } catch (e: IOException) {
-            logger.warn("Cannot restart: {} did not start", command.first(), e)
-            false
-        }
-        if (!started) {
-            logger.warn("Cannot restart: {} did not open the app", command)
-            stateFlow.update { it.copy(restartFailed = true) }
-        }
-        return started
-    }
-
-    /**
-     * The command that starts the app again once this process has ended: its launcher with `--after`
-     * this process, `--retry` when given, and the host's own arguments. On macOS it opens the app
-     * bundle through LaunchServices, so the new process is the app rather than a child of this one.
-     * Null when no launcher started this host, or it could not tell its own path.
-     */
-    @VisibleForTesting
-    internal fun launcherCommand(retryVersion: HostVersion?): List<String>? {
-        val launch = hostLaunch as? HostLaunch.ByLauncher ?: return null
-        val launcherExecutable = launch.launcherExecutable ?: return null
-        val launcherArguments = buildList {
-            add(LauncherContract.AFTER_ARGUMENT)
-            add(ProcessHandle.current().pid().toString())
-            if (retryVersion != null) {
-                add(LauncherContract.RETRY_ARGUMENT)
-                add(retryVersion.name)
-            }
-            addAll(launch.arguments)
-        }
-        val appBundle = launcherExecutable.substringBefore(MAC_APP_EXECUTABLE_DIRECTORY, missingDelimiterValue = "")
-        if (!appBundle.endsWith(".app")) return listOf(launcherExecutable) + launcherArguments
-        return buildList {
-            add(OPEN_COMMAND)
-            // Without -n, open only brings the running instance forward, and that instance is this
-            // process.
-            add("-n")
-            launch.javaToolOptions?.let {
-                add("--env")
-                add("JAVA_TOOL_OPTIONS=$it")
-            }
-            add(appBundle)
-            add("--args")
-            addAll(launcherArguments)
-        }
-    }
-
     private suspend fun findNewerRelease(launch: HostLaunch.ByLauncher): HostUpdateStatus {
         val runningVersion = runningVersion ?: return HostUpdateStatus.NotManaged
         val platformKey = hostRuntime.platformKey ?: return HostUpdateStatus.NotManaged
@@ -234,16 +154,6 @@ class DefaultHostUpdateService(
         }
         val (release, releaseVersion) = newerRelease
         return checkNewerRelease(release, releaseVersion, launch, platformKey)
-    }
-
-    /**
-     * The installed version newer than this host that is not set aside, which the next start runs.
-     * A failed lookup still offers it, since nothing about it depends on the network.
-     */
-    private fun versionAwaitingRestart(): HostVersion? {
-        val runningVersion = runningVersion ?: return null
-        val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
-        return hostVersionsRepository.hostVersionDirectories().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
     }
 
     private suspend fun checkNewerRelease(
@@ -290,6 +200,21 @@ class DefaultHostUpdateService(
         val platform = metadata.platforms.getValue(platformKey)
         downloadableRelease = DownloadableRelease(metadata, metadataBytes, signatureBytes, platform, platformKey)
         return HostUpdateStatus.Available(metadata.version, platform.size)
+    }
+
+    private fun HttpResponse.isRateLimited(): Boolean = (status == HttpStatusCode.Forbidden || status == HttpStatusCode.TooManyRequests) &&
+        (headers["x-ratelimit-remaining"] == "0" || headers.contains(HttpHeaders.RetryAfter))
+
+    override fun download() {
+        val downloadableRelease = downloadableRelease ?: return
+        if (downloadJob?.isActive == true) return
+        // An undispatched launch runs this block up to its first suspension, publishing
+        // Downloading, before launch returns; the job is stored here so that a cancel made on that
+        // status already finds it.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            downloadJob = coroutineContext.job
+            downloadAndInstall(downloadableRelease)
+        }
     }
 
     /**
@@ -381,6 +306,84 @@ class DefaultHostUpdateService(
         }
     }
 
+    override fun cancelDownload() {
+        downloadJob?.cancel()
+    }
+
+    override fun startLauncherAfterExit(retryVersion: HostVersion?): Boolean {
+        val command = launcherCommand(retryVersion)
+        if (command == null) {
+            logger.warn("Cannot restart: the launcher that started this host did not give its own path")
+            stateFlow.update { it.copy(restartFailed = true) }
+            return false
+        }
+        logger.info("Starting the launcher to run after this host: {}", command)
+        val started = try {
+            val process = ProcessBuilder(command)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
+            // open hands the app to LaunchServices and exits, with a nonzero status when it finds
+            // no app to start; a launcher started directly waits for this process to end, so only
+            // open is waited for.
+            command.first() != OPEN_COMMAND || (process.waitFor(OPEN_TIMEOUT_SECONDS, TimeUnit.SECONDS) && process.exitValue() == 0)
+        } catch (e: IOException) {
+            logger.warn("Cannot restart: {} did not start", command.first(), e)
+            false
+        }
+        if (!started) {
+            logger.warn("Cannot restart: {} did not open the app", command)
+            stateFlow.update { it.copy(restartFailed = true) }
+        }
+        return started
+    }
+
+    /**
+     * The command that starts the app again once this process has ended: its launcher with `--after`
+     * this process, `--retry` when given, and the host's own arguments. On macOS it opens the app
+     * bundle through LaunchServices, so the new process is the app rather than a child of this one.
+     * Null when no launcher started this host, or it could not tell its own path.
+     */
+    @VisibleForTesting
+    internal fun launcherCommand(retryVersion: HostVersion?): List<String>? {
+        val launch = hostLaunch as? HostLaunch.ByLauncher ?: return null
+        val launcherExecutable = launch.launcherExecutable ?: return null
+        val launcherArguments = buildList {
+            add(LauncherContract.AFTER_ARGUMENT)
+            add(ProcessHandle.current().pid().toString())
+            if (retryVersion != null) {
+                add(LauncherContract.RETRY_ARGUMENT)
+                add(retryVersion.name)
+            }
+            addAll(launch.arguments)
+        }
+        val appBundle = launcherExecutable.substringBefore(MAC_APP_EXECUTABLE_DIRECTORY, missingDelimiterValue = "")
+        if (!appBundle.endsWith(".app")) return listOf(launcherExecutable) + launcherArguments
+        return buildList {
+            add(OPEN_COMMAND)
+            // Without -n, open only brings the running instance forward, and that instance is this
+            // process.
+            add("-n")
+            launch.javaToolOptions?.let {
+                add("--env")
+                add("JAVA_TOOL_OPTIONS=$it")
+            }
+            add(appBundle)
+            add("--args")
+            addAll(launcherArguments)
+        }
+    }
+
+    /**
+     * The installed version newer than this host that is not set aside, which the next start runs.
+     * A failed lookup still offers it, since nothing about it depends on the network.
+     */
+    private fun versionAwaitingRestart(): HostVersion? {
+        val runningVersion = runningVersion ?: return null
+        val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
+        return hostVersionsRepository.hostVersionDirectories().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
+    }
+
     private fun setStatus(status: HostUpdateStatus) {
         stateFlow.update { it.copy(status = status) }
     }
@@ -393,9 +396,6 @@ class DefaultHostUpdateService(
     }
 
     private class LocalFileException(override val cause: IOException) : Exception(cause)
-
-    private fun HttpResponse.isRateLimited(): Boolean = (status == HttpStatusCode.Forbidden || status == HttpStatusCode.TooManyRequests) &&
-        (headers["x-ratelimit-remaining"] == "0" || headers.contains(HttpHeaders.RetryAfter))
 
     private class DownloadableRelease(
         val metadata: HostReleaseMetadata,

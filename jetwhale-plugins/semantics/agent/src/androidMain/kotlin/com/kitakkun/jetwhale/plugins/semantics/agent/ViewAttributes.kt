@@ -1,3 +1,6 @@
+// Split into smaller files in a follow-up, tracked in #450.
+@file:Suppress("KOTRAIL_FILE_TOO_FLAT", "KOTRAIL_TOO_MANY_TOP_LEVEL_DECLARATIONS")
+
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import android.content.res.Resources
@@ -58,7 +61,6 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
 
     // The write calls the app's own View setter, which may reject the value by throwing anything;
     // the reply carries why.
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         write(this, value)
         if (descriptor.relayouts) requestLayout() else invalidate()
@@ -416,12 +418,14 @@ private fun View.resourceEntryNameOrNull(): String? {
     }
 }
 
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // One of the as* readers below, kept together.
 private fun ViewAttributeValue.asBoolean(attributeId: String): Boolean = (this as? ViewAttributeValue.BooleanValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "bool", this))
 
 private fun ViewAttributeValue.asInt(attributeId: String): Int = (this as? ViewAttributeValue.IntValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "int", this))
 
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // One of the as* readers below, kept together.
 private fun ViewAttributeValue.asFloat(attributeId: String): Float = (this as? ViewAttributeValue.FloatValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "float", this))
 

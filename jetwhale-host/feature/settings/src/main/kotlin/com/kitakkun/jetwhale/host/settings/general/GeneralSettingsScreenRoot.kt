@@ -81,8 +81,8 @@ fun GeneralSettingsScreenRoot(
             onClickTryHostVersionAgain = { screenChannel.send(GeneralSettingsScreenAction.TryHostVersionAgain(it)) },
             onClickViewHostLog = { hostUpdateState.setAside?.logFile?.let { openOnDesktop { open(it.toFile()) } } },
             onClickOpenReleasePage = { version ->
-                val page = if (version == null) RELEASES_PAGE else "$RELEASES_PAGE/tag/${version.name}"
-                openOnDesktop { browse(URI(page)) }
+                val releasePageUrl = if (version == null) RELEASES_PAGE else "$RELEASES_PAGE/tag/${version.name}"
+                openOnDesktop { browse(URI(releasePageUrl)) }
             },
         )
     }

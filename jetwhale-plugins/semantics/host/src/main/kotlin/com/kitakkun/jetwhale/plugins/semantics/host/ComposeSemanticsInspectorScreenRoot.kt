@@ -88,6 +88,7 @@ import kotlin.math.roundToInt
  * asked to point at.
  */
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX") // Split into smaller composables in a follow-up, tracked in #450.
 internal fun ComposeSemanticsInspectorScreenRoot(
     snapshot: NodeTreeSnapshot?,
     capturing: Boolean,

@@ -104,23 +104,22 @@ class KtorWebSocketServer(
 
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
-    private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
-    override val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
+    override val statusFlow: StateFlow<DebugWebSocketServerStatus>
+        field = MutableStateFlow<DebugWebSocketServerStatus>(DebugWebSocketServerStatus.Stopped)
 
-    private val mutableDebuggeeEventFlow: MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = MutableSharedFlow()
-    val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = mutableDebuggeeEventFlow
+    val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>>
+        field = MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>>()
 
-    private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
-    val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
+    val sessionClosedFlow: SharedFlow<String>
+        field = MutableSharedFlow<String>()
 
-    private val mutableSessionOpenedFlow: MutableSharedFlow<SessionOpened> = MutableSharedFlow()
-    val sessionOpenedFlow: SharedFlow<SessionOpened> = mutableSessionOpenedFlow
+    val sessionOpenedFlow: SharedFlow<SessionOpened>
+        field = MutableSharedFlow<SessionOpened>()
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
+        statusFlow.update { DebugWebSocketServerStatus.Starting }
         // Every start failure (a taken port, a bad certificate, the engine itself) is shown as the
         // server's Error status.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             currentHost = host
             currentPort = port
@@ -141,18 +140,18 @@ class KtorWebSocketServer(
                 startCertificateObserver()
             }
 
-            mutableStatusFlow.update {
+            statusFlow.update {
                 DebugWebSocketServerStatus.Started(host, port, wssPort.takeIf { tlsStarted })
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
+            statusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
         }
     }
 
     suspend fun stop() {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopping }
+        statusFlow.update { DebugWebSocketServerStatus.Stopping }
         certificateObserverJob?.cancel()
         certificateObserverJob = null
         tlsServerMutex.withLock {
@@ -164,7 +163,7 @@ class KtorWebSocketServer(
         currentHost = null
         currentPort = null
         currentWssPort = null
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
+        statusFlow.update { DebugWebSocketServerStatus.Stopped }
     }
 
     /** Builds the plain-ws server: the ws connector on [host] plus the `GET /jetwhale/ca` route. */
@@ -312,11 +311,11 @@ class KtorWebSocketServer(
                         .filterIsInstance<Frame.Text>()
                         .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggeeEvent>(it.readText()) }
                         .collect {
-                            mutableDebuggeeEventFlow.emit(sessionId to it)
+                            debuggeeEventFlow.emit(sessionId to it)
                         }
                 }
 
-                mutableSessionOpenedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
+                sessionOpenedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
 
                 val reason = closeReason.await()
 
@@ -325,7 +324,7 @@ class KtorWebSocketServer(
 
                 log.info("session $sessionId closed: ${reason?.message}")
 
-                mutableSessionClosedFlow.emit(sessionId)
+                sessionClosedFlow.emit(sessionId)
             }
         }
     }
