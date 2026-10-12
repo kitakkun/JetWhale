@@ -22,3 +22,19 @@ private fun TrafficTabPreview() {
 }
 
 private const val PREVIEW_SPLIT_POSITION = 0.42f
+
+@Preview
+@Composable
+private fun StatusBadgePreview() {
+    JwTheme(darkTheme = false) {
+        StatusBadge(tx = previewTransactions().first())
+    }
+}
+
+@Preview
+@Composable
+private fun MockChipPreview() {
+    JwTheme(darkTheme = false) {
+        MockChip()
+    }
+}
