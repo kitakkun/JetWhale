@@ -19,6 +19,55 @@ internal val DeviceButton.icon: ImageVector
         DeviceButton.VolumeDown -> VolumeDownIcon
     }
 
+private val HomeIcon: ImageVector = outlineIcon("Home") {
+    moveTo(4f, 11f)
+    lineTo(12f, 4f)
+    lineTo(20f, 11f)
+    moveTo(6f, 10f)
+    lineTo(6f, 20f)
+    lineTo(18f, 20f)
+    lineTo(18f, 10f)
+}
+
+private val BackIcon: ImageVector = outlineIcon("Back") {
+    moveTo(16f, 5f)
+    lineTo(8f, 12f)
+    lineTo(16f, 19f)
+    close()
+}
+
+private val RecentsIcon: ImageVector = outlineIcon("Recents") {
+    moveTo(7f, 7f)
+    lineTo(17f, 7f)
+    lineTo(17f, 20f)
+    lineTo(7f, 20f)
+    close()
+    moveTo(9f, 4f)
+    lineTo(19f, 4f)
+    lineTo(19f, 16f)
+}
+
+private val PowerIcon: ImageVector = outlineIcon("Power") {
+    moveTo(12f, 3f)
+    lineTo(12f, 11f)
+    moveTo(7f, 6f)
+    arcTo(horizontalEllipseRadius = 8f, verticalEllipseRadius = 8f, theta = 0f, isMoreThanHalf = true, isPositiveArc = false, x1 = 17f, y1 = 6f)
+}
+
+private val VolumeUpIcon: ImageVector = outlineIcon("VolumeUp") {
+    speaker()
+    moveTo(15f, 12f)
+    lineTo(21f, 12f)
+    moveTo(18f, 9f)
+    lineTo(18f, 15f)
+}
+
+private val VolumeDownIcon: ImageVector = outlineIcon("VolumeDown") {
+    speaker()
+    moveTo(15f, 12f)
+    lineTo(21f, 12f)
+}
+
 internal val ScreenOffIcon: ImageVector = outlineIcon("ScreenOff") {
     moveTo(7f, 3f)
     lineTo(17f, 3f)
@@ -108,55 +157,6 @@ internal val OpenFullIcon: ImageVector = outlineIcon("OpenFull") {
     moveTo(9f, 20f)
     lineTo(4f, 20f)
     lineTo(4f, 15f)
-}
-
-private val HomeIcon: ImageVector = outlineIcon("Home") {
-    moveTo(4f, 11f)
-    lineTo(12f, 4f)
-    lineTo(20f, 11f)
-    moveTo(6f, 10f)
-    lineTo(6f, 20f)
-    lineTo(18f, 20f)
-    lineTo(18f, 10f)
-}
-
-private val BackIcon: ImageVector = outlineIcon("Back") {
-    moveTo(16f, 5f)
-    lineTo(8f, 12f)
-    lineTo(16f, 19f)
-    close()
-}
-
-private val RecentsIcon: ImageVector = outlineIcon("Recents") {
-    moveTo(7f, 7f)
-    lineTo(17f, 7f)
-    lineTo(17f, 20f)
-    lineTo(7f, 20f)
-    close()
-    moveTo(9f, 4f)
-    lineTo(19f, 4f)
-    lineTo(19f, 16f)
-}
-
-private val PowerIcon: ImageVector = outlineIcon("Power") {
-    moveTo(12f, 3f)
-    lineTo(12f, 11f)
-    moveTo(7f, 6f)
-    arcTo(horizontalEllipseRadius = 8f, verticalEllipseRadius = 8f, theta = 0f, isMoreThanHalf = true, isPositiveArc = false, x1 = 17f, y1 = 6f)
-}
-
-private val VolumeUpIcon: ImageVector = outlineIcon("VolumeUp") {
-    speaker()
-    moveTo(15f, 12f)
-    lineTo(21f, 12f)
-    moveTo(18f, 9f)
-    lineTo(18f, 15f)
-}
-
-private val VolumeDownIcon: ImageVector = outlineIcon("VolumeDown") {
-    speaker()
-    moveTo(15f, 12f)
-    lineTo(21f, 12f)
 }
 
 private fun PathBuilder.speaker() {

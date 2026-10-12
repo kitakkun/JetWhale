@@ -1,3 +1,6 @@
+// Split into smaller files in a follow-up, tracked in #450.
+@file:Suppress("KOTRAIL_FILE_TOO_FLAT", "KOTRAIL_TOO_MANY_TOP_LEVEL_DECLARATIONS")
+
 package com.kitakkun.jetwhale.tools.qaagent
 
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
@@ -221,6 +224,18 @@ private fun Route.statusRoutes(apps: Map<String, QaApp>, plugins: Map<String, St
     }
 }
 
+/**
+ * A disconnected app keeps the plugin's activation flag — the host never deactivated it, the session
+ * simply went away — so both flags are reported against the session actually being held.
+ */
+private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
+    val plugin = wirePluginsById.getValue(pluginId)
+    return AppPluginStatus(
+        activated = isConnected && plugin.isActivated,
+        ready = isConnected && plugin.isReady,
+    )
+}
+
 /** Arbitrary plugin messages carried to their host counterparts over the messenger's raw layer. */
 private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
     post("/send") {
@@ -236,7 +251,6 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
         }
         // Any failure of the send is the QA client's answer, returned as a response rather than a
         // server error.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
             val hint = if (sent) {
@@ -273,7 +287,6 @@ private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
         }
         // Any failure of the request is the QA client's answer, returned as a response rather than
         // a server error.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var reply: String
             val elapsed = measureTimeMillis {
@@ -306,7 +319,6 @@ private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
         }
         // Any failure of the HTTP call is the QA client's answer, returned as a response rather
         // than a server error.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             lateinit var status: HttpStatusCode
             lateinit var preview: String
@@ -353,7 +365,6 @@ private fun Route.sessionRoutes(apps: Map<String, QaApp>) {
  * every route needs the same answer.
  */
 // Ktor reports a malformed body as one of several exception types, depending on the plugin that rejects it.
-@Suppress("KOTRAIL_CATCH_TOO_BROAD")
 private suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest(): T? = try {
     receive<T>()
 } catch (e: CancellationException) {
@@ -361,18 +372,6 @@ private suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest
 } catch (e: Exception) {
     respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
     null
-}
-
-/**
- * A disconnected app keeps the plugin's activation flag — the host never deactivated it, the session
- * simply went away — so both flags are reported against the session actually being held.
- */
-private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
-    val plugin = wirePluginsById.getValue(pluginId)
-    return AppPluginStatus(
-        activated = isConnected && plugin.isActivated,
-        ready = isConnected && plugin.isReady,
-    )
 }
 
 /**

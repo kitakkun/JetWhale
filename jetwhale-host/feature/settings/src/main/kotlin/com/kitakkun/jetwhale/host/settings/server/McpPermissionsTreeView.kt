@@ -152,6 +152,7 @@ private sealed interface PermissionTarget {
     data class PluginTool(val toolName: String) : PermissionTarget
 }
 
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // A derivation of PermissionNode, kept with the type it reads.
 private val PermissionNode.leaves: List<PermissionNode.Leaf>
     get() = when (this) {
         is PermissionNode.Leaf -> listOf(this)
@@ -218,6 +219,13 @@ private fun buildPermissionTree(uiState: McpPermissionsUiState): List<Permission
         },
     ),
 )
+
+private fun McpHostToolGroup.labelResource() = when (this) {
+    McpHostToolGroup.OBSERVE -> Res.string.mcp_permission_group_observe
+    McpHostToolGroup.NAVIGATE -> Res.string.mcp_permission_group_navigate
+    McpHostToolGroup.MANAGE_PLUGINS -> Res.string.mcp_permission_group_manage_plugins
+    McpHostToolGroup.SETTINGS_AND_SERVERS -> Res.string.mcp_permission_group_settings_and_servers
+}
 
 private val INDENT_STEP = 24.dp
 
@@ -348,13 +356,6 @@ private fun toggleStateOf(leafStates: List<Boolean>): ToggleableState = when {
     leafStates.isEmpty() || leafStates.none { it } -> ToggleableState.Off
     leafStates.all { it } -> ToggleableState.On
     else -> ToggleableState.Indeterminate
-}
-
-private fun McpHostToolGroup.labelResource() = when (this) {
-    McpHostToolGroup.OBSERVE -> Res.string.mcp_permission_group_observe
-    McpHostToolGroup.NAVIGATE -> Res.string.mcp_permission_group_navigate
-    McpHostToolGroup.MANAGE_PLUGINS -> Res.string.mcp_permission_group_manage_plugins
-    McpHostToolGroup.SETTINGS_AND_SERVERS -> Res.string.mcp_permission_group_settings_and_servers
 }
 
 @Preview
