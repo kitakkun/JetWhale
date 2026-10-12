@@ -211,7 +211,8 @@ private fun DeviceHighlightEffect(
 ) {
     val currentHighlightTarget by rememberUpdatedState(highlightTarget)
     val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
-    // Read in the effect, not in composition, so a pointer crossing rows doesn't recompose the screen.
+    // Read in the effect, not in composition, so a pointer crossing rows doesn't recompose the
+    // screen.
     LaunchedEffect(Unit) {
         snapshotFlow { currentHighlightTarget() }
             .collect { currentOnHighlightTargetChange(it) }

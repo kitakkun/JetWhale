@@ -10,7 +10,6 @@ import platform.UIKit.UIControl
 import platform.UIKit.UIControlEventTouchUpInside
 import platform.UIKit.UIFocusItemScrollableContainerProtocol
 import platform.UIKit.UIScrollView
-import platform.UIKit.UITextField
 import platform.UIKit.accessibilityTraits
 import platform.darwin.NSObject
 import platform.objc.objc_getProtocol
