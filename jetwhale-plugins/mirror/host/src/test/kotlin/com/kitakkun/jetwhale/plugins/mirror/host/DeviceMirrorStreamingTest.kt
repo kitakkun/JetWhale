@@ -433,7 +433,7 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
         val writer = PipedOutputStream()
         val frames = PipedInputStream(writer)
         if (!isReopened) return VideoStream.EmulatorRgba(frames = frames, cancel = writer::close)
-        return VideoStream.EmulatorRgba(frames = FirstReadSignallingInputStream(frames, reopenedStreamRead), cancel = writer::close)
+        return VideoStream.EmulatorRgba(frames = FirstReadSignalingInputStream(frames, reopenedStreamRead), cancel = writer::close)
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -458,7 +458,7 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
 }
 
 /** [stream], completing [firstRead] once something reads from it. */
-private class FirstReadSignallingInputStream(stream: InputStream, private val firstRead: CompletableDeferred<Unit>) : FilterInputStream(stream) {
+private class FirstReadSignalingInputStream(stream: InputStream, private val firstRead: CompletableDeferred<Unit>) : FilterInputStream(stream) {
     override fun read(): Int {
         firstRead.complete(Unit)
         return super.read()
