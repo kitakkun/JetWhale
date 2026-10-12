@@ -78,6 +78,9 @@ class HostInstance private constructor(
     private fun serve() {
         thread(isDaemon = true, name = "host-instance-bring-to-front") {
             while (!server.isClosed) {
+                // A blocking loopback ServerSocket with no timeout, no channel and no security
+                // manager fails accept only with an IOException.
+                @Suppress("KOTRAIL_BOUNDARY_UNGUARDED")
                 val connection = try {
                     server.accept()
                 } catch (e: IOException) {
