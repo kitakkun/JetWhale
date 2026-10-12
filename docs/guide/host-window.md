@@ -39,6 +39,11 @@ connected, and run once rather than once per app. Switching apps never moves one
 and a debug-server restart does not close it. Over MCP they live in a session of their own, `host`,
 which `jetwhale.listSessions` always lists first.
 
+A plugin that works with an app can run up here as well, when its manifest sets
+`"runsInHostSession": true`. It then has two entries: one at the top, which works with no app
+connected, and one among the selected app's plugins when that app includes the plugin. Each entry
+opens its own instance, and only the one you opened is highlighted.
+
 ## Choosing an app
 
 One host commonly holds several apps from the same device, so sessions are picked with two
