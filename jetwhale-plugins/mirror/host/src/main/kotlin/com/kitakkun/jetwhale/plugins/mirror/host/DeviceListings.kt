@@ -61,9 +61,9 @@ internal fun parseBootedSimulators(json: String): List<DeviceListing> {
  * devices from idb instead. Simulators can be listed there too, but simctl already reports those.
  */
 internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
-    val targets = output.lineSequence().filter(String::isNotBlank).mapNotNull { line ->
+    val targets = output.lineSequence().filter(String::isNotBlank).mapNotNull { targetJson ->
         try {
-            Json.parseToJsonElement(line) as? JsonObject
+            Json.parseToJsonElement(targetJson) as? JsonObject
         } catch (_: IllegalArgumentException) {
             null
         }

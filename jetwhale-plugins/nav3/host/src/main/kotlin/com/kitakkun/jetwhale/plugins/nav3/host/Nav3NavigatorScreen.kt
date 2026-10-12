@@ -233,6 +233,7 @@ private fun BackStackEntryCard(
 }
 
 @Composable
+@Suppress("KOTRAIL_STRING_NAME_HIDES_KIND") // draft is the editor's text as typed: JSON only once parseNavKey accepts it.
 private fun PushPane(
     keyTypes: List<NavKeyTypeDescriptor>,
     draft: String,
@@ -394,8 +395,8 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit, modifier
     )
 }
 
-private fun parseNavKey(text: String): JsonObject? = try {
-    Json.parseToJsonElement(text) as? JsonObject
+private fun parseNavKey(keyJson: String): JsonObject? = try {
+    Json.parseToJsonElement(keyJson) as? JsonObject
 } catch (_: SerializationException) {
     null
 }
