@@ -285,7 +285,37 @@ internal class H264Subscription(private val maxQueuedBytes: Int) : Closeable {
     private var reachedKeyFrame = false
 
     /** The H.264 in Annex B form; closing it closes the subscription. */
-    val stream: InputStream = object : InputStream() {
+    val stream: InputStream = QueuedAccessUnitStream()
+
+    /** Queues [accessUnit] for the reader; false once this subscription has ended, and should be dropped. */
+    fun offer(accessUnit: AccessUnit): Boolean {
+        if (ended.get()) return false
+        if (!reachedKeyFrame) {
+            if (!accessUnit.isKeyFrame) return true
+            reachedKeyFrame = true
+        }
+        if (queuedBytes.get() + accessUnit.bytes.size > maxQueuedBytes) {
+            endStreamAfterQueued()
+            return false
+        }
+        queuedBytes.addAndGet(accessUnit.bytes.size)
+        queue.put(accessUnit.bytes)
+        return true
+    }
+
+    /** Ends the stream after what is queued. */
+    fun endStreamAfterQueued() {
+        if (ended.compareAndSet(false, true)) queue.put(END_OF_STREAM)
+    }
+
+    /** Ends the stream at once, dropping what is queued. */
+    override fun close() {
+        if (!ended.compareAndSet(false, true)) return
+        queue.clear()
+        queue.put(END_OF_STREAM)
+    }
+
+    private inner class QueuedAccessUnitStream : InputStream() {
         private var current = ByteArray(0)
         private var position = 0
 
@@ -315,34 +345,6 @@ internal class H264Subscription(private val maxQueuedBytes: Int) : Closeable {
         override fun available(): Int = current.size - position
 
         override fun close() = this@H264Subscription.close()
-    }
-
-    /** Queues [accessUnit] for the reader; false once this subscription has ended, and should be dropped. */
-    fun offer(accessUnit: AccessUnit): Boolean {
-        if (ended.get()) return false
-        if (!reachedKeyFrame) {
-            if (!accessUnit.isKeyFrame) return true
-            reachedKeyFrame = true
-        }
-        if (queuedBytes.get() + accessUnit.bytes.size > maxQueuedBytes) {
-            endStreamAfterQueued()
-            return false
-        }
-        queuedBytes.addAndGet(accessUnit.bytes.size)
-        queue.put(accessUnit.bytes)
-        return true
-    }
-
-    /** Ends the stream after what is queued. */
-    fun endStreamAfterQueued() {
-        if (ended.compareAndSet(false, true)) queue.put(END_OF_STREAM)
-    }
-
-    /** Ends the stream at once, dropping what is queued. */
-    override fun close() {
-        if (!ended.compareAndSet(false, true)) return
-        queue.clear()
-        queue.put(END_OF_STREAM)
     }
 }
 
