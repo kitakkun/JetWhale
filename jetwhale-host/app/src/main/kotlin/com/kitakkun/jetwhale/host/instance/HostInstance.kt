@@ -28,17 +28,13 @@ class HostInstance private constructor(
     private val server: ServerSocket,
     private val token: String,
 ) {
-    private val mutableBringToFrontRequests = MutableSharedFlow<Unit>(
-        replay = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
-
     /**
      * A request to bring the window to the front, from a launcher or from a second host. The latest one
      * is kept for a collector that starts after it arrived, as the window's does after
      * [publishInstanceJson].
      */
-    val bringToFrontRequests: Flow<Unit> = mutableBringToFrontRequests
+    val bringToFrontRequests: Flow<Unit>
+        field = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     /**
      * Publishes `instance.json`, which marks this host as up: once its main window shows, or, with
@@ -82,6 +78,9 @@ class HostInstance private constructor(
     private fun serve() {
         thread(isDaemon = true, name = "host-instance-bring-to-front") {
             while (!server.isClosed) {
+                // A blocking loopback ServerSocket with no timeout, no channel and no security
+                // manager fails accept only with an IOException.
+                @Suppress("KOTRAIL_BOUNDARY_UNGUARDED")
                 val connection = try {
                     server.accept()
                 } catch (e: IOException) {
@@ -96,7 +95,7 @@ class HostInstance private constructor(
     private fun answer(connection: Socket) {
         try {
             val accepted = readRequest(connection) == BringToFrontClient.requestLine(token)
-            if (accepted) mutableBringToFrontRequests.tryEmit(Unit)
+            if (accepted) bringToFrontRequests.tryEmit(Unit)
             connection.getOutputStream().write("${if (accepted) BringToFrontClient.ACCEPTED_RESPONSE else "denied"}\n".toByteArray())
         } catch (e: IOException) {
             logger.warn("A request to bring the window to the front could not be read", e)

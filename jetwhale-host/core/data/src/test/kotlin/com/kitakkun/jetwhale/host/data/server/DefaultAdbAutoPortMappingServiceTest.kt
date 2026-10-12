@@ -37,7 +37,7 @@ class DefaultAdbAutoPortMappingServiceTest {
     }
 
     private val service = DefaultAdbAutoPortMappingService(
-        AdbLocator(environment = mapOf("PATH" to folder.path), userHome = null, isWindows = false, loginShellPathVariableResolver = null, fixedDirectories = emptyList()),
+        AdbLocator(environment = mapOf("PATH" to folder.path), userHome = null, isWindows = false, wellKnownDirectories = emptyList(), loginShellPathVariableResolver = null),
     )
 
     @AfterTest

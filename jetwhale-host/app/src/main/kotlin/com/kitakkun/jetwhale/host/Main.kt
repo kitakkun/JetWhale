@@ -51,6 +51,7 @@ import java.nio.file.Path
 import java.util.Properties
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.milliseconds
 import ch.qos.logback.classic.Logger as LogbackLogger
 
 private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
@@ -167,6 +168,7 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
 
 @OptIn(FlowPreview::class)
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // Split into smaller composables in a follow-up, tracked in #450.
 private fun ApplicationScope.JetWhaleMainWindow(
     appGraph: JetWhaleAppGraph,
     windowState: WindowState,
@@ -207,7 +209,7 @@ private fun ApplicationScope.JetWhaleMainWindow(
                     y = position.takeIf(WindowPosition::isSpecified)?.y?.value,
                 )
             }
-            .debounce(500)
+            .debounce(500.milliseconds)
             .collect { state ->
                 if (state != null) {
                     appGraph.windowStateRepository.saveWindowState(state)
