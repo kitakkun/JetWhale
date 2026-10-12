@@ -74,7 +74,7 @@ internal class SoilCacheTracker(
                 previous.recordOptions == record.options
             val replyRevision = when {
                 previous == null -> 0L
-                previous.model.reply !== record.model.reply -> previous.entry.replyRevision + 1
+                previous.model.reply != record.model.reply -> previous.entry.replyRevision + 1
                 else -> previous.entry.replyRevision
             }
             val entry = if (isSameReading) {

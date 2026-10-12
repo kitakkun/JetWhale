@@ -124,8 +124,9 @@ once its screen leaves stays listed with its last state, marked **Gone**.
 ::: info The timeline is read, not recorded
 Soil does not report what happens to its cache, so the agent compares one reading of it with the
 next and records the difference. Soil's state flows keep only the latest state, so a fetch that
-starts and ends between two readings shows up as **Data updated** without a duration, and a state
-shorter than a reading can be missed altogether. A new entry is noticed within half a second, so
+starts and ends between two readings shows up as **Data updated** without a duration, or not at
+all when its data is equal to what was there, and a state shorter than a reading can be missed
+altogether. A new entry is noticed within half a second, so
 a fetch it was already running when it was noticed gets no duration, and the detail pane says how
 long it has run *at least*.
 :::

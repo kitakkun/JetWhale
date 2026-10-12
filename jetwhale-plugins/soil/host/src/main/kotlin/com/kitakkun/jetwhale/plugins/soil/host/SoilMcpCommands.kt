@@ -33,7 +33,7 @@ private const val DEFAULT_EVENT_LIMIT = 100
 private const val ENTRY_EVENT_LIMIT = 20
 
 private const val CONFLATION_NOTE =
-    "Events are derived from successive readings of the cache, which Soil's state flows conflate: a fetch that starts and ends between two readings shows up as DATA_UPDATED without a duration, and a state that lasts shorter than a reading can be missed altogether. A new entry is noticed within half a second, so a fetch it was already running gets no FETCH_STARTED and no duration."
+    "Events are derived from successive readings of the cache, which Soil's state flows conflate: a fetch that starts and ends between two readings shows up as DATA_UPDATED without a duration, or not at all when its data is equal to what was there, and a state that lasts shorter than a reading can be missed altogether. A new entry is noticed within half a second, so a fetch it was already running gets no FETCH_STARTED and no duration."
 
 private val McpJson: Json = Json { encodeDefaults = true }
 

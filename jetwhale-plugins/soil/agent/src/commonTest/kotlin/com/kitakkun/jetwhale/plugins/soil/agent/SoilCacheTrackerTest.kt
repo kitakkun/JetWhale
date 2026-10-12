@@ -84,6 +84,32 @@ class SoilCacheTrackerTest {
     }
 
     @Test
+    fun `a refetch that brings back equal data says the data did not change and keeps the reply revision`() {
+        val first = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100, status = QueryStatus.Success)))).upserts.single()
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100, status = QueryStatus.Success, fetchStatus = QueryFetchStatus.Fetching(isValidating = true)))))
+
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 105, status = QueryStatus.Success))))
+
+        val fetchEnd = changes.events.single()
+        assertEquals(SoilEventKind.FETCH_SUCCEEDED, fetchEnd.kind)
+        assertEquals("the data did not change", fetchEnd.detail)
+        assertEquals(first.replyRevision, changes.upserts.single().replyRevision)
+    }
+
+    @Test
+    fun `a refetch that brings back different data bumps the reply revision`() {
+        val first = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100, status = QueryStatus.Success)))).upserts.single()
+        tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Ada"), replyUpdatedAt = 100, status = QueryStatus.Success, fetchStatus = QueryFetchStatus.Fetching(isValidating = true)))))
+
+        val changes = tracker.replaceEntriesWith(listOf(record(profileKey, QueryState.test(reply = Reply.some("Grace"), replyUpdatedAt = 105, status = QueryStatus.Success))))
+
+        val fetchEnd = changes.events.single()
+        assertEquals(SoilEventKind.FETCH_SUCCEEDED, fetchEnd.kind)
+        assertNull(fetchEnd.detail)
+        assertEquals(first.replyRevision + 1, changes.upserts.single().replyRevision)
+    }
+
+    @Test
     fun `an entry moving from the store to the cache is reported with its new location`() {
         val state = QueryState.test(reply = Reply.some("Ada"), status = QueryStatus.Success)
         tracker.replaceEntriesWith(listOf(record(profileKey, state)))

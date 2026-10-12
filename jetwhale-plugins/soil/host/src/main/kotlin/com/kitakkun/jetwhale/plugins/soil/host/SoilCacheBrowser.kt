@@ -212,7 +212,13 @@ internal class SoilCacheBrowser(
     override fun runActionOnSelected(action: SoilEntryAction) {
         val entry = selectedEntry?.entry ?: return
         scope.launch {
-            val result = runAction(entry.handle, action)
+            val result = try {
+                runAction(entry.handle, action)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                SoilEntryActionResult(error = "unexpected error: $e")
+            }
             status = when (val error = result.error) {
                 null -> SoilBrowserStatus(message = "${action.label} ${entry.id.namespace}: done.", isError = false)
                 else -> SoilBrowserStatus(message = "${action.label} ${entry.id.namespace}: $error", isError = true)
@@ -284,18 +290,24 @@ internal class SoilCacheBrowser(
         if (selectedEventSequence != null && events.none { it.sequence == selectedEventSequence }) selectedEventSequence = null
     }
 
-    /** Reads the selected entry's value again when its reply was replaced or the entry came back after Soil dropped it. */
+    /** Reads the selected entry's value again when its reply changed or the entry came back after Soil dropped it. */
     private fun reloadSelectedValueIfOutdated(previousSelection: ListedSoilEntry?) {
         val currentSelection = selectedEntry ?: return
         if (previousSelection == null) return
-        val isReplyReplaced = currentSelection.entry.replyRevision != previousSelection.entry.replyRevision
-        if (isReplyReplaced || (previousSelection.isGone && !currentSelection.isGone)) loadValue(currentSelection.entry.handle)
+        val isReplyChanged = currentSelection.entry.replyRevision != previousSelection.entry.replyRevision
+        if (isReplyChanged || (previousSelection.isGone && !currentSelection.isGone)) loadValue(currentSelection.entry.handle)
     }
 
     private fun loadValue(handle: String) {
         val requestNumber = synchronized(adoptionLock) { ++valueRequestNumber }
         scope.launch {
-            val load = readValue(handle)
+            val load = try {
+                readValue(handle)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                SoilValueLoad.Failed("Unexpected error: $e")
+            }
             synchronized(adoptionLock) {
                 if (requestNumber == valueRequestNumber && handle == selectedHandle) selectedValue = load
             }

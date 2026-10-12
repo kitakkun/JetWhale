@@ -68,12 +68,12 @@ internal class SoilEventLog {
         if (wasInactive && !isInactive) add(EntryChange(SoilEventKind.BECAME_ACTIVE))
         if (!previous.isObserved && current.isObserved) add(EntryChange(SoilEventKind.OBSERVED))
         if (previous.isObserved && !current.isObserved) add(EntryChange(SoilEventKind.UNOBSERVED))
-        val isReplyReplaced = previous.replyRevision != current.replyRevision
+        val isReplyChanged = previous.replyRevision != current.replyRevision
         val durationMillis = previous.inFlightSinceEpochMillis?.takeIf { previous.handle in handlesWithRecordedStart }?.let { nowEpochMillis - it }
         when (val state = current.state) {
-            is SoilEntryState.Query -> addAll(queryChanges(previous.state as? SoilEntryState.Query, state, isReplyReplaced, durationMillis, nowEpochMillis))
-            is SoilEntryState.Mutation -> addAll(mutationChanges(previous.state as? SoilEntryState.Mutation, state, isReplyReplaced, durationMillis))
-            is SoilEntryState.Subscription -> addAll(subscriptionChanges(previous.state as? SoilEntryState.Subscription, state, isReplyReplaced))
+            is SoilEntryState.Query -> addAll(queryChanges(previous.state as? SoilEntryState.Query, state, isReplyChanged, durationMillis, nowEpochMillis))
+            is SoilEntryState.Mutation -> addAll(mutationChanges(previous.state as? SoilEntryState.Mutation, state, isReplyChanged, durationMillis))
+            is SoilEntryState.Subscription -> addAll(subscriptionChanges(previous.state as? SoilEntryState.Subscription, state, isReplyChanged))
         }
     }
 
@@ -92,9 +92,9 @@ internal class SoilEventLog {
         }
     }
 
-    private fun queryChanges(previous: SoilEntryState.Query?, current: SoilEntryState.Query, isReplyReplaced: Boolean, durationMillis: Long?, nowEpochMillis: Long): List<EntryChange> = buildList {
+    private fun queryChanges(previous: SoilEntryState.Query?, current: SoilEntryState.Query, isReplyChanged: Boolean, durationMillis: Long?, nowEpochMillis: Long): List<EntryChange> = buildList {
         if (previous != null && !previous.isInvalidated && current.isInvalidated) add(EntryChange(SoilEventKind.INVALIDATED))
-        fetchEndOf(previous, current, isReplyReplaced, durationMillis)?.let(::add)
+        fetchEndOf(previous, current, isReplyChanged, durationMillis)?.let(::add)
         val fetchStatus = current.fetchStatus
         if (previous?.fetchStatus !is SoilFetchStatus.Fetching && fetchStatus is SoilFetchStatus.Fetching) {
             add(EntryChange(SoilEventKind.FETCH_STARTED, detail = if (fetchStatus.isValidating) "revalidating its data" else null))
@@ -109,29 +109,29 @@ internal class SoilEventLog {
      * came and went between the two readings left behind. Soil times errors to the second, so a
      * fetch seen ending in a failure is one even when errorUpdatedAt did not move.
      */
-    private fun fetchEndOf(previous: SoilEntryState.Query?, current: SoilEntryState.Query, isReplyReplaced: Boolean, durationMillis: Long?): EntryChange? {
+    private fun fetchEndOf(previous: SoilEntryState.Query?, current: SoilEntryState.Query, isReplyChanged: Boolean, durationMillis: Long?): EntryChange? {
         if (current.fetchStatus is SoilFetchStatus.Fetching) return null
         val wasFetching = previous?.fetchStatus is SoilFetchStatus.Fetching
         val isNewFetchFailure = current.error != null &&
             ((previous != null && current.errorUpdatedAt != previous.errorUpdatedAt) || (wasFetching && current.status == SoilStatus.FAILURE))
         return when {
             isNewFetchFailure -> EntryChange(SoilEventKind.FETCH_FAILED, durationMillis, current.error?.describe())
-            !wasFetching -> if (isReplyReplaced) EntryChange(SoilEventKind.DATA_UPDATED) else null
-            isReplyReplaced -> EntryChange(SoilEventKind.FETCH_SUCCEEDED, durationMillis)
+            !wasFetching -> if (isReplyChanged) EntryChange(SoilEventKind.DATA_UPDATED) else null
+            isReplyChanged -> EntryChange(SoilEventKind.FETCH_SUCCEEDED, durationMillis)
             else -> EntryChange(SoilEventKind.FETCH_SUCCEEDED, durationMillis, "the data did not change")
         }
     }
 
-    private fun mutationChanges(previous: SoilEntryState.Mutation?, current: SoilEntryState.Mutation, isReplyReplaced: Boolean, durationMillis: Long?): List<EntryChange> = buildList {
-        mutationEndOf(previous, current, isReplyReplaced, durationMillis)?.let(::add)
+    private fun mutationChanges(previous: SoilEntryState.Mutation?, current: SoilEntryState.Mutation, isReplyChanged: Boolean, durationMillis: Long?): List<EntryChange> = buildList {
+        mutationEndOf(previous, current, isReplyChanged, durationMillis)?.let(::add)
         if (previous?.status != SoilStatus.PENDING && current.status == SoilStatus.PENDING) add(EntryChange(SoilEventKind.MUTATION_STARTED))
     }
 
     /** How the run [previous] was in ended, or how one that came and went between the two readings did. */
-    private fun mutationEndOf(previous: SoilEntryState.Mutation?, current: SoilEntryState.Mutation, isReplyReplaced: Boolean, durationMillis: Long?): EntryChange? {
+    private fun mutationEndOf(previous: SoilEntryState.Mutation?, current: SoilEntryState.Mutation, isReplyChanged: Boolean, durationMillis: Long?): EntryChange? {
         if (previous == null || current.status == SoilStatus.PENDING) return null
         val isNewError = current.errorUpdatedAt != previous.errorUpdatedAt && current.error != null
-        val isNewRun = current.mutatedCount != previous.mutatedCount || isReplyReplaced
+        val isNewRun = current.mutatedCount != previous.mutatedCount || isReplyChanged
         if (previous.status != SoilStatus.PENDING && !isNewError && !isNewRun) return null
         return when (current.status) {
             SoilStatus.FAILURE -> EntryChange(SoilEventKind.MUTATION_FAILED, durationMillis, current.error?.describe())
@@ -140,10 +140,10 @@ internal class SoilEventLog {
         }
     }
 
-    private fun subscriptionChanges(previous: SoilEntryState.Subscription?, current: SoilEntryState.Subscription, isReplyReplaced: Boolean): List<EntryChange> = buildList {
+    private fun subscriptionChanges(previous: SoilEntryState.Subscription?, current: SoilEntryState.Subscription, isReplyChanged: Boolean): List<EntryChange> = buildList {
         if (previous == null) return@buildList
         if (current.restartedAt != previous.restartedAt) add(EntryChange(SoilEventKind.SUBSCRIPTION_RESTARTED))
-        if (isReplyReplaced) add(EntryChange(SoilEventKind.SUBSCRIPTION_DATA_RECEIVED))
+        if (isReplyChanged) add(EntryChange(SoilEventKind.SUBSCRIPTION_DATA_RECEIVED))
         val isNewFailure = current.error != null &&
             (current.errorUpdatedAt != previous.errorUpdatedAt || (previous.status != SoilStatus.FAILURE && current.status == SoilStatus.FAILURE))
         if (isNewFailure) add(EntryChange(SoilEventKind.SUBSCRIPTION_FAILED, detail = current.error?.describe()))

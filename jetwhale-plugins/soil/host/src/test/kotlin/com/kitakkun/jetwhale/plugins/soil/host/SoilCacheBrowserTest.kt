@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 class SoilCacheBrowserTest {
@@ -188,6 +189,35 @@ class SoilCacheBrowserTest {
 
         assertEquals(listOf(profile.handle to SoilEntryAction.REMOVE_INACTIVE), client.actionRequests)
         assertEquals(SoilBrowserStatus(message = "Remove users/profile: The entry is active, and active entries are not removed.", isError = true), browser.status)
+    }
+
+    @Test
+    fun `an action that fails other than by not reaching the app shows the failure in the status`() {
+        val actionFailingClient = object : SoilCacheClient by client {
+            override suspend fun runAction(handle: String, action: SoilEntryAction): SoilEntryActionResult = error("reply unreadable")
+        }
+        val brokenBrowser = SoilCacheBrowser(actionFailingClient, CoroutineScope(Dispatchers.Unconfined), FixedClock)
+        runBlocking { brokenBrowser.load() }
+        brokenBrowser.select(profile.handle)
+
+        brokenBrowser.runActionOnSelected(SoilEntryAction.INVALIDATE)
+
+        assertEquals(true, brokenBrowser.status?.isError)
+        assertContains(brokenBrowser.status?.message.orEmpty(), "reply unreadable")
+    }
+
+    @Test
+    fun `a value that fails to load other than by not reaching the app shows the failure instead of loading`() {
+        val valueFailingClient = object : SoilCacheClient by client {
+            override suspend fun readValue(handle: String): SoilEntryValue = error("value unreadable")
+        }
+        val brokenBrowser = SoilCacheBrowser(valueFailingClient, CoroutineScope(Dispatchers.Unconfined), FixedClock)
+        runBlocking { brokenBrowser.load() }
+
+        brokenBrowser.select(profile.handle)
+
+        val failed = assertIs<SoilValueLoad.Failed>(brokenBrowser.selectedValue)
+        assertContains(failed.message, "value unreadable")
     }
 
     @Test

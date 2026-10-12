@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
  *
  * The agent reads the cache whenever an active entry's state changes, but Soil's state flows keep
  * only the latest state, so a transition shorter than a reading can be missed: a fetch that
- * finishes before it is seen shows up as [SoilEventKind.DATA_UPDATED] without a duration.
+ * finishes before it is seen shows up as [SoilEventKind.DATA_UPDATED] without a duration, or not at
+ * all when the data it brought is equal to what was there.
  *
  * @property sequence Increases by one per event the agent records, across connections.
  * @property atEpochMillis The app's clock when the agent saw the change.
@@ -59,6 +60,7 @@ enum class SoilEventKind {
     MUTATION_SUCCEEDED,
     MUTATION_FAILED,
 
+    /** The subscription received a value that is not equal to its last one. */
     SUBSCRIPTION_DATA_RECEIVED,
     SUBSCRIPTION_FAILED,
     SUBSCRIPTION_RESTARTED,
