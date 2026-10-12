@@ -238,6 +238,8 @@ internal class IphoneScreenCapture(private val process: Process, private val tim
         val logTail = ArrayDeque<String>()
         var reportedFailureMessage: String? = null
         try {
+            // A line of the helper's stderr is JSON only when it is an event; any other line is its log.
+            @Suppress("KOTRAIL_STRING_NAME_HIDES_KIND")
             process.errorStream.bufferedReader().forEachLine { line ->
                 when (val event = parseIphoneCaptureEvent(line)) {
                     is IphoneCaptureEvent.Started -> started.complete(Unit)
@@ -361,6 +363,7 @@ internal sealed interface IphoneCaptureEvent {
 }
 
 /** The event on [line], or null for a line of the helper's log or an event this does not know. */
+@Suppress("KOTRAIL_STRING_NAME_HIDES_KIND") // A line of the helper's stderr is JSON only when it is an event; any other line is its log.
 @VisibleForTesting
 internal fun parseIphoneCaptureEvent(line: String): IphoneCaptureEvent? {
     if (!line.startsWith("{")) return null
