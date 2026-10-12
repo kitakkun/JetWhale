@@ -51,6 +51,7 @@ import java.nio.file.Path
 import java.util.Properties
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.milliseconds
 import ch.qos.logback.classic.Logger as LogbackLogger
 
 private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
@@ -207,7 +208,7 @@ private fun ApplicationScope.JetWhaleMainWindow(
                     y = position.takeIf(WindowPosition::isSpecified)?.y?.value,
                 )
             }
-            .debounce(500)
+            .debounce(500.milliseconds)
             .collect { state ->
                 if (state != null) {
                     appGraph.windowStateRepository.saveWindowState(state)

@@ -112,7 +112,7 @@ internal class AndroidDeviceController(
                 runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
                 process.waitFor(10, TimeUnit.SECONDS)
                 // The device writes the file out after the process exits.
-                delay(500)
+                delay(500.milliseconds)
                 try {
                     runCommandChecked(RECORDING_PULL_TIMEOUT, adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
                 } finally {

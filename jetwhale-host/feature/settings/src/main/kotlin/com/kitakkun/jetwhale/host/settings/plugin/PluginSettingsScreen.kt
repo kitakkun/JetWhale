@@ -391,9 +391,9 @@ private fun InstallJobRow(
 
 @Composable
 private fun installStatusText(status: PluginInstallStatus): String = when (status) {
-    PluginInstallStatus.Queued -> stringResource(Res.string.install_status_queued)
+    is PluginInstallStatus.Queued -> stringResource(Res.string.install_status_queued)
     is PluginInstallStatus.Running -> status.progress?.let { installProgressText(it) } ?: stringResource(Res.string.install_status_installing)
-    PluginInstallStatus.Succeeded -> stringResource(Res.string.install_status_installed)
+    is PluginInstallStatus.Succeeded -> stringResource(Res.string.install_status_installed)
     is PluginInstallStatus.Failed -> stringResource(Res.string.install_status_failed, status.reason)
 }
 
