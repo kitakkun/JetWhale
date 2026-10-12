@@ -1,3 +1,6 @@
+// Split into smaller files in a follow-up, tracked in #450.
+@file:Suppress("KOTRAIL_FILE_TOO_FLAT", "KOTRAIL_FILE_TOO_LONG", "KOTRAIL_TOO_MANY_TOP_LEVEL_DECLARATIONS")
+
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.ContextMenuArea

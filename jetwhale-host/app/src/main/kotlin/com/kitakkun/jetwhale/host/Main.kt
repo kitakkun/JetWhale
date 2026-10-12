@@ -168,6 +168,7 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
 
 @OptIn(FlowPreview::class)
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // Split into smaller composables in a follow-up, tracked in #450.
 private fun ApplicationScope.JetWhaleMainWindow(
     appGraph: JetWhaleAppGraph,
     windowState: WindowState,
