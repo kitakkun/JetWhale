@@ -9,6 +9,7 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 /**
  * Fails when `wire/<project>.wire` is not the wire schema of the compiled classes at the declared
@@ -16,6 +17,7 @@ import org.gradle.api.tasks.TaskAction
  * committed dump could not have followed it under [ProtocolRevisionRule], which catches a dump edited
  * by hand.
  */
+@DisableCachingByDefault(because = "A verification with no output: comparing two small files costs less than a cache lookup.")
 internal abstract class CheckWireSchemaTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)

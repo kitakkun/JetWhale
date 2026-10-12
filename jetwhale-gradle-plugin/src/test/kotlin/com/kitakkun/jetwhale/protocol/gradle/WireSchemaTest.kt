@@ -8,7 +8,7 @@ import kotlin.test.assertNotEquals
 class WireSchemaTest {
     @Test
     fun `a dump renders back to the same text`() {
-        val text = resourceText("wire/network-1.0.0-alpha12.wire")
+        val text = resourceText("history/network-1.0.0-alpha12.wire")
 
         assertEquals(text, WireSchema.parse(text).render())
     }
@@ -36,7 +36,7 @@ class WireSchemaTest {
 
     @Test
     fun `the hash leaves out the revision`() {
-        val revision1 = WireSchema.parse(resourceText("wire/network-1.0.0-alpha12.wire"))
+        val revision1 = WireSchema.parse(resourceText("history/network-1.0.0-alpha12.wire"))
         val revision2 = revision1.copy(revision = 2)
 
         assertEquals(revision1.hash(), revision2.hash())
@@ -45,15 +45,15 @@ class WireSchemaTest {
 
     @Test
     fun `the hash changes with the schema`() {
-        val alpha11 = WireSchema.parse(resourceText("wire/network-1.0.0-alpha11.wire"))
-        val alpha12 = WireSchema.parse(resourceText("wire/network-1.0.0-alpha12.wire"))
+        val alpha11 = WireSchema.parse(resourceText("history/network-1.0.0-alpha11.wire"))
+        val alpha12 = WireSchema.parse(resourceText("history/network-1.0.0-alpha12.wire"))
 
         assertNotEquals(alpha11.hash(), alpha12.hash())
     }
 
     @Test
     fun `a dump with CRLF line endings parses to the same schema`() {
-        val text = resourceText("wire/network-1.0.0-alpha12.wire")
+        val text = resourceText("history/network-1.0.0-alpha12.wire")
 
         assertEquals(WireSchema.parse(text), WireSchema.parse(text.replace("\n", "\r\n")))
     }

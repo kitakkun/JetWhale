@@ -259,8 +259,8 @@ class WireSchemaClassifierTest {
 
     @Test
     fun `network from 1_0_0-alpha11 to 1_0_0-alpha12 breaks at the RedactionTarget rename`() {
-        val alpha11 = WireSchema.parse(resourceText("wire/network-1.0.0-alpha11.wire"))
-        val alpha12 = WireSchema.parse(resourceText("wire/network-1.0.0-alpha12.wire"))
+        val alpha11 = WireSchema.parse(resourceText("history/network-1.0.0-alpha11.wire"))
+        val alpha12 = WireSchema.parse(resourceText("history/network-1.0.0-alpha12.wire"))
 
         val changes = WireSchemaClassifier(alpha11, alpha12).classifyChanges()
 
