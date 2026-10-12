@@ -390,3 +390,6 @@ final object com.kitakkun.jetwhale.plugins.actions.protocol/ListActions : com.ki
 
 final const val com.kitakkun.jetwhale.plugins.actions.protocol/ACTIONS_PLUGIN_ID // com.kitakkun.jetwhale.plugins.actions.protocol/ACTIONS_PLUGIN_ID|{}ACTIONS_PLUGIN_ID[0]
     final fun <get-ACTIONS_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/ACTIONS_PLUGIN_ID.<get-ACTIONS_PLUGIN_ID>|<get-ACTIONS_PLUGIN_ID>(){}[0]
+
+final val com.kitakkun.jetwhale.plugins.actions.protocol/ActionsPluginContract // com.kitakkun.jetwhale.plugins.actions.protocol/ActionsPluginContract|{}ActionsPluginContract[0]
+    final fun <get-ActionsPluginContract>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract // com.kitakkun.jetwhale.plugins.actions.protocol/ActionsPluginContract.<get-ActionsPluginContract>|<get-ActionsPluginContract>(){}[0]
