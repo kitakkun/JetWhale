@@ -62,19 +62,17 @@ fun ShrunkToolingDrawerView(
     plugins: ImmutableList<DrawerPluginItemUiState>,
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
-    selectedPluginId: String,
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
     onOpenMcpSettings: () -> Unit,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
-    onClickPlugin: (String) -> Unit,
+    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onClickInfo: () -> Unit,
     onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selectedSessionId = selectedSession?.id
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -117,15 +115,15 @@ fun ShrunkToolingDrawerView(
         ) {
             items(
                 items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
-                key = DrawerPluginItemUiState::id,
+                key = DrawerPluginItemUiState::rowKey,
             ) {
-                val usable = selectedSessionId != null || !it.needsApp
-                val selected = selectedPluginId == it.id && usable
+                val usable = it.sessionId != null
+                val selected = it.isSelected && usable
                 Box {
                     JwIconButton(
                         enabled = usable,
                         selected = selected,
-                        onClick = { onClickPlugin(it.id) },
+                        onClick = { onClickPlugin(it) },
                         tooltip = it.name,
                     ) {
                         JwIcon(
@@ -257,18 +255,18 @@ private fun ShrunkToolingDrawerViewPreview() {
                 DrawerPluginItemUiState(
                     name = "Inspector",
                     id = "com.example.inspector",
+                    sessionId = null,
                     activeIconResource = null,
                     inactiveIconResource = null,
                     pluginAvailability = PluginAvailability.Enabled,
+                    isSelected = true,
                     underAiControl = false,
                     exposesMcpTools = true,
                     isHeadless = false,
-                    needsApp = true,
                 ),
             ),
             sessions = persistentListOf(),
             selectedSession = null,
-            selectedPluginId = "com.example.inspector",
             aiActivity = AiActivityUiState.Idle,
             onFollowAiOperationChange = {},
             onOpenMcpSettings = {},

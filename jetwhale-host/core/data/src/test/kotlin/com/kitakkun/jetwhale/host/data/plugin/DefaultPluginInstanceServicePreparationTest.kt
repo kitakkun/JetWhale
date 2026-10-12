@@ -38,11 +38,12 @@ class DefaultPluginInstanceServicePreparationTest {
     }
 
     @Test
-    fun `an instance of a plugin that needs no agent prepares as soon as it is created`() = runBlocking {
+    fun `a messaging instance of a plugin that needs no agent never prepares, since no agent joins the host session`() = runBlocking {
         val service = serviceFor(requiresAgent = false)
         service.initializePluginInstancesForSessionsIfNeeded(PLUGIN_ID, setOf(HostSession.ID))
+        service.startPluginInstancePreparation(PLUGIN_ID, HostSession.ID)
 
-        assertIs<PluginFrame.Request>(withTimeout(5.seconds) { sentFrames.receive() })
+        assertNull(receiveSentFrameOrNull())
         service.unloadPluginInstancesForPlugin(PLUGIN_ID)
     }
 

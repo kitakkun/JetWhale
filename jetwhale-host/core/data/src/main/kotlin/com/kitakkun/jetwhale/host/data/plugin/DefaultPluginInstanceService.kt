@@ -49,10 +49,11 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  *
  * @property factory The factory that produced [plugin]; identifies the classloader generation this
  *   instance belongs to.
- * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
+ * @property peer Null for a pure (non-messaging) plugin, and for any instance in [HostSession], which
+ *   has no agent to exchange messages with.
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
- *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
- *   unstarted, for [PluginInstanceService.startPluginInstancePreparation].
+ *   cannot outrace disposal. Null when there is no [peer]. It waits, unstarted, for
+ *   [PluginInstanceService.startPluginInstancePreparation].
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  */
 private class LoadedInstance(
@@ -141,7 +142,7 @@ class DefaultPluginInstanceService(
         if (!loaded.manifest.requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
             logger.warning(
                 "Plugin '$pluginId' declares requiresAgent=false but its factory returns a JetWhaleMessagingHostPlugin; " +
-                    "its messenger will never reach an agent.",
+                    "it runs in the host session only, where its messenger throws.",
             )
         }
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
@@ -149,15 +150,18 @@ class DefaultPluginInstanceService(
 
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
+        val isInHostSession = HostSession.isHost(sessionId)
+        plugin.bindSessionKind(isInHostSession)
+
         val descriptor = "plugin '$pluginId' in session '$sessionId'"
-        val peer = if (plugin is JetWhaleMessagingHostPlugin) {
+        val peer = if (plugin is JetWhaleMessagingHostPlugin && !isInHostSession) {
             createPeer(pluginId = pluginId, sessionId = sessionId, plugin = plugin, descriptor = descriptor)
         } else {
             null
         }
         dispatchCreateGuarded(plugin, descriptor)
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            instanceScope.launch(start = if (loaded.manifest.requiresAgent) CoroutineStart.LAZY else CoroutineStart.DEFAULT) {
+            instanceScope.launch(start = CoroutineStart.LAZY) {
                 launchPeerPreparation(
                     peer = peer,
                     descriptor = descriptor,

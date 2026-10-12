@@ -10,6 +10,8 @@ import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -26,9 +28,11 @@ class SessionToolsTest {
     private val pluginInstanceService = mock<PluginInstanceService>()
 
     private val hostOnlyPlugins = mapOf(
-        "com.example.device" to loadedPlugin("com.example.device", requiresAgent = false),
-        "com.example.plugin" to loadedPlugin("com.example.plugin", requiresAgent = true),
+        "com.example.device" to loadedPlugin("com.example.device", requiresAgent = false, runsInHostSession = false),
+        "com.example.plugin" to loadedPlugin("com.example.plugin", requiresAgent = true, runsInHostSession = false),
     )
+
+    private val bothSessionsPlugin = "com.example.inspector" to loadedPlugin("com.example.inspector", requiresAgent = true, runsInHostSession = true)
 
     @Test
     fun `listSessions lists the host session with no app connected`() = runBlocking {
@@ -118,17 +122,47 @@ class SessionToolsTest {
         val result = listPlugins(HostSession.ID, repo, pluginFactoryRepository, pluginInstanceService)
         assertEquals("""[{"pluginId":"com.example.device","pluginName":"com.example.device","version":"1.0.0","mcpCapable":false}]""", result)
     }
+
+    @Test
+    fun `listSessions lists a plugin that also runs in apps under the host session`() = runBlocking {
+        val repo = mock<DebugSessionRepository> {
+            every { debugSessionsFlow } returns flowOf(persistentListOf())
+        }
+        every { pluginFactoryRepository.loadedPlugins } returns hostOnlyPlugins + bothSessionsPlugin
+
+        val expected = """[{"sessionId":"host","sessionName":"Host","isActive":true,"installedPlugins":["com.example.device","com.example.inspector"]}]"""
+        assertEquals(expected, listSessions(repo, pluginFactoryRepository))
+    }
+
+    @Test
+    fun `listPlugins for the host session lists a plugin that also runs in apps, by its host instance`() = runBlocking {
+        val repo = mock<DebugSessionRepository> {
+            every { debugSessionsFlow } returns flowOf(persistentListOf())
+        }
+        every { pluginFactoryRepository.loadedPlugins } returns mapOf(bothSessionsPlugin)
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.inspector", HostSession.ID) } returns McpCapableHostPlugin()
+
+        val result = listPlugins(HostSession.ID, repo, pluginFactoryRepository, pluginInstanceService)
+        assertEquals("""[{"pluginId":"com.example.inspector","pluginName":"com.example.inspector","version":"1.0.0","mcpCapable":true}]""", result)
+    }
+
+    private class McpCapableHostPlugin :
+        JetWhaleHostPlugin(),
+        JetWhaleMcpCapablePlugin {
+        override val mcpCommands: List<JetWhaleMcpCommand> = emptyList()
+    }
 }
 
 private const val EMPTY_HOST_SESSION = """{"sessionId":"host","sessionName":"Host","isActive":true,"installedPlugins":[]}"""
 
-private fun loadedPlugin(pluginId: String, requiresAgent: Boolean) = LoadedHostPlugin(
+private fun loadedPlugin(pluginId: String, requiresAgent: Boolean, runsInHostSession: Boolean) = LoadedHostPlugin(
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = pluginId,
         version = "1.0.0",
         factoryClass = "$pluginId.Factory",
         requiresAgent = requiresAgent,
+        runsInHostSession = runsInHostSession,
     ),
     factory = object : JetWhaleHostPluginFactory {
         override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()

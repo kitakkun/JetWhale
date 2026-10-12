@@ -36,7 +36,8 @@ import soil.query.compose.rememberMutation
 sealed interface ToolingScaffoldScreenAction {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
 
-    data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldScreenAction
+    /** The drawer's row of [pluginId] in [sessionId] was opened; null while no app is selected. */
+    data class UpdateSelectedPlugin(val pluginId: String, val sessionId: String?) : ToolingScaffoldScreenAction
 
     data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldScreenAction
 
@@ -120,6 +121,7 @@ fun toolingScaffoldPresenter(
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
+    var selectedPluginSessionId by retain { mutableStateOf<String?>(null) }
     val selectedSession by remember(debugSessions, selectedSessionId) {
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
@@ -135,29 +137,17 @@ fun toolingScaffoldPresenter(
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation, selectedPluginId, selectedPluginSessionId) {
         derivedStateOf {
-            loadedPlugins.map { metaData ->
-                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-                val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-                val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
-
-                DrawerPluginItemUiState(
-                    id = metaData.id,
-                    name = metaData.name,
-                    activeIconResource = metaData.activeIconResource,
-                    inactiveIconResource = metaData.inactiveIconResource,
-                    pluginAvailability = when {
-                        metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-                        isEnabledInSettings -> PluginAvailability.Enabled
-                        else -> PluginAvailability.Disabled
-                    },
-                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
-                    needsApp = metaData.requiresAgent,
-                )
-            }.toImmutableList()
+            DrawerPluginRowFactory(
+                selectedSession = selectedSession,
+                enabledPluginIds = enabledPluginIds,
+                mcpCapablePlugins = mcpCapablePlugins,
+                headlessPlugins = headlessPlugins,
+                activeInvocation = activeInvocation,
+                selectedPluginId = selectedPluginId,
+                selectedPluginSessionId = selectedPluginSessionId,
+            ).createRows(loadedPlugins)
         }
     }
 
@@ -173,10 +163,12 @@ fun toolingScaffoldPresenter(
         when (action) {
             is ToolingScaffoldScreenAction.SelectSession -> {
                 selectedSessionId = action.session.id
+                if (!HostSession.isHost(selectedPluginSessionId)) selectedPluginSessionId = action.session.id
             }
 
             is ToolingScaffoldScreenAction.UpdateSelectedPlugin -> {
                 selectedPluginId = action.pluginId
+                selectedPluginSessionId = action.sessionId
             }
 
             is ToolingScaffoldScreenAction.SetPluginEnabled -> {
@@ -222,6 +214,53 @@ fun toolingScaffoldPresenter(
             mcpServer = mcpServerStatus.toAvailability(),
         ),
         sidebarWidth = sidebarWidth,
+    )
+}
+
+/**
+ * Builds the drawer's rows against what the drawer shows now: the selected app, the row the user last
+ * opened, and the state of each session's instance.
+ */
+@VisibleForTesting
+internal class DrawerPluginRowFactory(
+    private val selectedSession: DebugSession?,
+    private val enabledPluginIds: Set<String>,
+    private val mcpCapablePlugins: McpCapablePlugins,
+    private val headlessPlugins: HeadlessPlugins,
+    private val activeInvocation: McpToolInvocation?,
+    private val selectedPluginId: String,
+    private val selectedPluginSessionId: String?,
+) {
+    /**
+     * One row in the host section for each plugin that runs in the host session, and one among the
+     * selected app's plugins for each plugin that runs in apps. A plugin that runs in both gets its
+     * app row only when the selected app includes it: otherwise its host row already stands for it,
+     * and a greyed "not in this app" row beside it would only repeat the name.
+     */
+    fun createRows(loadedPlugins: List<PluginMetaData>): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.flatMap(::createRows).toImmutableList()
+
+    private fun createRows(metaData: PluginMetaData): List<DrawerPluginItemUiState> {
+        val isInstalledOnSelectedApp = selectedSession?.installedPlugins?.any { it.pluginId == metaData.id } == true
+        val enabledOrDisabled = if (metaData.id in enabledPluginIds) PluginAvailability.Enabled else PluginAvailability.Disabled
+        return buildList {
+            if (metaData.targetsHostSession) add(createRow(metaData, HostSession.ID, enabledOrDisabled))
+            if (metaData.requiresAgent && (isInstalledOnSelectedApp || !metaData.targetsHostSession)) {
+                add(createRow(metaData, selectedSession?.id, if (isInstalledOnSelectedApp) enabledOrDisabled else PluginAvailability.Unavailable))
+            }
+        }
+    }
+
+    private fun createRow(metaData: PluginMetaData, sessionId: String?, availability: PluginAvailability) = DrawerPluginItemUiState(
+        name = metaData.name,
+        id = metaData.id,
+        sessionId = sessionId,
+        activeIconResource = metaData.activeIconResource,
+        inactiveIconResource = metaData.inactiveIconResource,
+        pluginAvailability = availability,
+        isSelected = metaData.id == selectedPluginId && sessionId == selectedPluginSessionId,
+        underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+        exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+        isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
     )
 }
 

@@ -139,8 +139,7 @@ fun ToolingScaffoldRoot(
 
 /**
  * The scaffold wired up: every UI event either goes to [screenChannel] as an action or out to the
- * host's navigation callbacks, with [ToolingScaffoldUiState.sessionIdFor] supplying the session id
- * that the scaffold's own callbacks leave out.
+ * host's navigation callbacks, with the session id of the drawer row it came from.
  */
 @Composable
 context(screenContext: ToolingScaffoldScreenContext)
@@ -166,27 +165,27 @@ private fun ToolingScaffoldWithActions(
         onClickPluginSettings = onClickPluginSettings,
         onClickInfo = onClickInfo,
         onClickPlugin = {
-            val sessionId = uiState.sessionIdFor(it) ?: return@ToolingScaffold
-            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it))
-            onClickPlugin(it, sessionId)
+            val sessionId = it.sessionId ?: return@ToolingScaffold
+            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id, sessionId))
+            onClickPlugin(it.id, sessionId)
         },
         onClickInactivePlugin = {
-            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
-            onClickInactivePlugin(it.id, it.name, uiState.sessionIdFor(it.id), it.pluginAvailability == PluginAvailability.Unavailable)
+            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id, it.sessionId))
+            onClickInactivePlugin(it.id, it.name, it.sessionId, it.pluginAvailability == PluginAvailability.Unavailable)
         },
-        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it), McpToolsTab.Tools) },
+        onOpenMcpTools = { onOpenMcpTools(it.id, it.sessionId, McpToolsTab.Tools) },
         onOpenAllMcpTools = { onOpenMcpTools(null, null, McpToolsTab.Tools) },
         onClickPopout = {
-            val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
+            val sessionId = it.sessionId ?: return@ToolingScaffold
             onClickPopout(it.id, it.name, sessionId)
         },
-        isPoppedOut = { pluginId ->
-            val sessionId = uiState.sessionIdFor(pluginId) ?: return@ToolingScaffold false
-            isPoppedOut(pluginId, sessionId)
+        isPoppedOut = {
+            val sessionId = it.sessionId ?: return@ToolingScaffold false
+            isPoppedOut(it.id, sessionId)
         },
         onClickBringBack = {
-            val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
-            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
+            val sessionId = it.sessionId ?: return@ToolingScaffold
+            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id, sessionId))
             onClickBringBack(it.id, sessionId)
         },
         onSelectSession = { screenChannel.send(ToolingScaffoldScreenAction.SelectSession(it)) },
@@ -277,8 +276,8 @@ private fun HostNavigationRequestEffect(
                             currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
                         }
                     }
-                    if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+                    if (HostSession.isHost(request.sessionId ?: currentUiState.defaultPluginRow(request.pluginId)?.sessionId)) {
+                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, HostSession.ID))
                         currentOnClickPlugin(request.pluginId, HostSession.ID)
                         announceFollow()
                         return@collect
@@ -288,7 +287,7 @@ private fun HostNavigationRequestEffect(
                     if (targetSession.id != currentUiState.selectedSessionId) {
                         screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
                     }
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, targetSession.id))
                     currentOnClickPlugin(request.pluginId, targetSession.id)
                     announceFollow()
                 }
@@ -298,8 +297,9 @@ private fun HostNavigationRequestEffect(
 }
 
 /**
- * Where Open on an install's notice goes: where a click on the plugin in the drawer goes, judged by
- * the drawer as it is now. A plugin the drawer does not know by id is found in the settings'
+ * Where Open on an install's notice goes: where a click on the plugin's
+ * [default row][ToolingScaffoldUiState.defaultPluginRow] in the drawer goes, judged by the drawer as
+ * it is now. A plugin the drawer does not know by id is found in the settings'
  * installed list.
  */
 context(screenContext: ToolingScaffoldScreenContext)
@@ -311,13 +311,13 @@ private fun openInstalledPlugin(
     onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
     onNavigateSettings: (SettingsScreenPage) -> Unit,
 ) {
-    val plugin = job.request.pluginId?.let { id -> uiState.plugins.find { it.id == id } }
+    val plugin = job.request.pluginId?.let(uiState::defaultPluginRow)
     if (plugin == null) {
         onNavigateSettings(SettingsScreenPage.InstalledPlugins)
         return
     }
-    val sessionId = uiState.sessionIdFor(plugin.id)
-    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(plugin.id))
+    val sessionId = plugin.sessionId
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(plugin.id, sessionId))
     if (plugin.pluginAvailability == PluginAvailability.Enabled && sessionId != null) {
         onClickPlugin(plugin.id, sessionId)
     } else {

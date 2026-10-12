@@ -14,7 +14,7 @@ import kotlinx.serialization.builtins.serializer
 /**
  * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
  * messaging — use it for plugins that don't talk to an agent (e.g. a host-only tool, declared with
- * `"requiresAgent": false` in the manifest).
+ * `"requiresAgent": false` in the manifest, which runs in the host session).
  *
  * Add capabilities by combining types:
  * - [JetWhaleMessagingHostPlugin] (extend it instead) — to exchange messages with an agent counterpart.
@@ -43,6 +43,31 @@ public abstract class JetWhaleHostPlugin {
     protected val storage: JetWhalePluginStorage
         get() = checkNotNull(boundStorage) {
             "storage is only available after the plugin instance has been bound (in or after onCreate())."
+        }
+
+    @PublishedApi
+    internal var boundIsInHostSession: Boolean? = null
+        private set
+
+    /**
+     * Whether this instance runs in the host session, which has no app and no agent: true for the
+     * instance of a plugin with `"requiresAgent": false`, and for the host-session instance of one
+     * with `"runsInHostSession": true`; false in an app session. Available from [onCreate].
+     *
+     * False on a host older than this SDK, which cannot say. There a plugin with
+     * `"requiresAgent": false` still runs in the host session only, and one that needs an agent never
+     * runs there.
+     */
+    protected inline val isInHostSession: Boolean
+        get() {
+            val bound = try {
+                boundIsInHostSession
+            } catch (_: NoSuchMethodError) {
+                return false
+            }
+            return checkNotNull(bound) {
+                "isInHostSession is only available after the plugin instance has been bound (in or after onCreate())."
+            }
         }
 
     /**
@@ -83,6 +108,12 @@ public abstract class JetWhaleHostPlugin {
     @InternalJetWhaleHostApi
     public fun bindStorage(storage: JetWhalePluginStorage) {
         boundStorage = MigratingPluginStorage(storage)
+    }
+
+    /** Binds whether this instance runs in the host session. Called once, before [onCreate]. */
+    @InternalJetWhaleHostApi
+    public fun bindSessionKind(isInHostSession: Boolean) {
+        boundIsInHostSession = isInHostSession
     }
 
     /**

@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.targetsHostSession
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
@@ -29,7 +30,7 @@ import kotlinx.serialization.json.JsonPrimitive
 private const val HOST_SESSION_NAME = "Host"
 
 /**
- * Returns a JSON string listing [HostSession], which holds the plugins that need no app and is
+ * Returns a JSON string listing [HostSession], which holds the plugins that run without an app and is
  * always there, followed by every known app session.
  */
 @VisibleForTesting
@@ -41,7 +42,7 @@ internal suspend fun listSessions(
         sessionId = HostSession.ID,
         sessionName = HOST_SESSION_NAME,
         isActive = true,
-        installedPlugins = pluginFactoryRepository.hostOnlyPluginIds(),
+        installedPlugins = pluginFactoryRepository.hostSessionPluginIds(),
     )
     val appSessions = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().map(DebugSession::toSessionInfo)
     return Json.encodeToString(listOf(hostSession) + appSessions)
@@ -49,7 +50,7 @@ internal suspend fun listSessions(
 
 /**
  * Returns a JSON string listing plugins installed in the given session: for [HostSession], the
- * loaded plugins that need no app; for an app, the plugins its agent advertised.
+ * loaded plugins that run there; for an app, the plugins its agent advertised.
  * Each entry includes whether the plugin implements [JetWhaleMcpCapablePlugin].
  */
 @VisibleForTesting
@@ -60,7 +61,7 @@ internal suspend fun listPlugins(
     pluginInstanceService: PluginInstanceService,
 ): String {
     val pluginIds = if (HostSession.isHost(sessionId)) {
-        pluginFactoryRepository.hostOnlyPluginIds()
+        pluginFactoryRepository.hostSessionPluginIds()
     } else {
         debugSessionRepository.debugSessionsFlow
             .firstOrNull()
@@ -84,8 +85,8 @@ internal suspend fun listPlugins(
     return Json.encodeToString(result)
 }
 
-private fun PluginFactoryRepository.hostOnlyPluginIds(): List<String> = loadedPlugins.values
-    .filterNot { it.manifest.requiresAgent }
+private fun PluginFactoryRepository.hostSessionPluginIds(): List<String> = loadedPlugins.values
+    .filter { it.manifest.targetsHostSession }
     .map { it.manifest.pluginId }
 
 private fun DebugSession.toSessionInfo() = SessionInfo(
