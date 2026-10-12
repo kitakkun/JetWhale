@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -201,8 +202,12 @@ internal class ActionsBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = ActionsStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = ActionsStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

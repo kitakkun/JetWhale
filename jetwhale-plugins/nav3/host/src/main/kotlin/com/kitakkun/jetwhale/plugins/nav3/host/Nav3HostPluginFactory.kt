@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -100,8 +101,12 @@ private class Nav3HostPlugin :
                         navKeyTypes = state.keyTypes
                         if (stacks.none { it.stackId == selectedStackId }) selectedStackId = stacks.firstOrNull()?.stackId
                         Nav3Status(message = "Reloaded from the app.", isError = false)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: JetWhaleMessagingException) {
                         Nav3Status(message = "Failed to reach the debuggee: ${e.message}", isError = true)
+                    } catch (e: Exception) {
+                        Nav3Status(message = "Unexpected error: $e", isError = true)
                     }
                 }
             },

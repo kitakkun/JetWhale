@@ -679,6 +679,8 @@ internal class DeviceMirror(
                 throw e
             } catch (e: DeviceControlException) {
                 notices.show(MirrorNotice.failure(e.message.orEmpty(), retry = null))
+            } catch (e: Exception) {
+                notices.show(MirrorNotice.failure("Unexpected error: $e", retry = null))
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
+import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -110,6 +111,21 @@ class StorageBrowserTest {
         browser.saveFile(location("Files", "missing.bin"), target)
 
         assertFalse(target.exists())
+        assertEquals(true, browser.status?.isError)
+    }
+
+    @Test
+    fun `a file whose content the browser cannot decode shows the failure in the status`() {
+        val undecodableFileClient = object : StorageClient by client {
+            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
+        }
+        val browser = StorageBrowser(undecodableFileClient, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+
+        assertNull(browser.loadedFile)
         assertEquals(true, browser.status?.isError)
     }
 

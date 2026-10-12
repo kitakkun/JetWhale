@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -110,8 +111,12 @@ internal class MirrorCaptures(
                 try {
                     if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
                     notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: IOException) {
                     notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                } catch (e: Exception) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: $e", retry = null))
                 }
             }
         }
