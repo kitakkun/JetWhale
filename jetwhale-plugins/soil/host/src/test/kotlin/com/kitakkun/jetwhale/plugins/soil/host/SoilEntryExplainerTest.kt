@@ -49,7 +49,7 @@ class SoilEntryExplainerTest {
     }
 
     @Test
-    fun `a paused query says until when by the clockSubscription and that it does not resume by itself`() {
+    fun `a paused query says until when by the clock and that it does not resume by itself`() {
         val paused = profile.copy(state = queryState(profile).copy(fetchStatus = SoilFetchStatus.Paused(unpauseAt = 1_030)))
 
         assertEquals(

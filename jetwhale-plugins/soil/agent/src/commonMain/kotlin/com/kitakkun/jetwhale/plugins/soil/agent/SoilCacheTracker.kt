@@ -92,8 +92,8 @@ internal class SoilCacheTracker(
         val upserts = changedEntries.map { (_, entry) -> entry }
         if (upserts.isNotEmpty() || removedEntries.isNotEmpty()) revision++
         // Mutations first: Soil applies a mutation's effects, such as invalidations, when its run
-        // ends, so in a reading that catches both, the run's end comes before what it set off. The
-        // host finds what followed a run by sequence.
+        // ends, so in a reading that catches both, the run's end is recorded before what it set
+        // off. The host finds what followed a run by sequence.
         val events = changedEntries.sortedBy { (_, entry) -> entry.kind != SoilEntryKind.MUTATION }.flatMap { (previous, entry) -> eventLog.recordChange(previous, entry, nowEpochMillis) } +
             removedEntries.flatMap { eventLog.recordChange(it, null, nowEpochMillis) }
         return SoilCacheChanges(upserts = upserts, removedHandles = removedEntries.map(SoilEntry::handle), revision = revision, events = events)

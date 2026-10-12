@@ -10,8 +10,8 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
-// (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Distinct group so these plugin modules don't share coordinates with the other plugins' modules,
+// which also have the leaf names protocol, agent and host, and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.soil"
 
 // Not the `multiplatform` convention's targets: Soil's query-core is not published for macOS, Linux

@@ -151,9 +151,9 @@ private fun EventList(
     }
     val listState = rememberLazyListState()
     val focusRequester = remember(calculation = ::FocusRequester)
-    // A request rather than scrollToItem: scrollToItem measures on the spot, and in a plugin scene
-    // that measure can land while a composition is still pending, which breaks the scene.
     LaunchedEffect(rows.size, isFollowing) {
+        // Not scrollToItem: it measures on the spot, and in a plugin scene that measure can land
+        // while a composition is still pending, which breaks the scene.
         if (isFollowing) listState.requestScrollToItem(rows.lastIndex)
     }
     fun selectRow(row: TimelineRow.Events) {

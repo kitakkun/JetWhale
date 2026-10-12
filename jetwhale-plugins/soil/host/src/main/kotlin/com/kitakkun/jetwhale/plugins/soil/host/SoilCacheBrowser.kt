@@ -262,7 +262,6 @@ internal class SoilCacheBrowser(
             selectedHandle = null
             selectedValue = null
         }
-        // The agent can no longer read the value of a mutation Soil dropped, so none is shown.
         val goneValue = SoilValueLoad.Loaded(SoilEntryValue.EntryGone)
         if (selectedEntry?.isGone == true && selectedValue != goneValue) {
             valueRequestNumber++
