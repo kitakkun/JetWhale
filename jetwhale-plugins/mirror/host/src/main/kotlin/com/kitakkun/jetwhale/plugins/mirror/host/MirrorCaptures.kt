@@ -66,7 +66,7 @@ internal interface CapturesActions {
 @Stable
 internal class MirrorCaptures(
     defaultRoot: File,
-    private val storage: JetWhalePluginStorage?,
+    private val storage: JetWhalePluginStorage,
     private val scope: CoroutineScope,
     private val zone: ZoneId,
     private val notices: MirrorNotices,
@@ -124,8 +124,8 @@ internal class MirrorCaptures(
 
     /** Reads the folder the user picked last time, if any. */
     suspend fun restoreFolder() {
-        val saved = storage?.get<String>(ROOT_KEY) ?: return
-        library = CaptureLibrary(File(saved), zone)
+        val savedRootPath = storage.get<String>(ROOT_KEY) ?: return
+        library = CaptureLibrary(File(savedRootPath), zone)
     }
 
     /** Lists the captures of [device], or of every device when [allDevices]. */
@@ -220,7 +220,7 @@ internal class MirrorCaptures(
             if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) return@invokeLater
             val folder = chooser.selectedFile ?: return@invokeLater
             library = CaptureLibrary(folder, zone)
-            scope.launch { storage?.put(ROOT_KEY, folder.absolutePath) }
+            scope.launch { storage.put(ROOT_KEY, folder.absolutePath) }
             refresh()
         }
     }
