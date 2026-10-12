@@ -91,7 +91,7 @@ internal class SoilValueEncoder(private val registeredSerializers: SoilValueSeri
 
     /** Null when [value] is not what [serializer] describes, or holds something nothing can encode. */
     private fun encodeWith(serializer: KSerializer<*>, value: Any?): JsonElement? = try {
-        @Suppress("UNCHECKED_CAST")
+        @Suppress("UNCHECKED_CAST") // A value the serializer does not describe throws, and the catches below turn that into null.
         json.encodeToJsonElement(serializer as KSerializer<Any?>, value)
     } catch (_: IllegalArgumentException) {
         null

@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryKind
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryValue
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEvent
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -29,9 +30,6 @@ private const val EVENT_LIMIT = 1_000
  * overtake it; the agent's revision only grows, so one more is normally enough.
  */
 private const val RECOVERY_SNAPSHOT_RETAKE_LIMIT = 3
-
-/** The value of a mutation Soil dropped: the agent can no longer read it, so none is shown. */
-private val GoneValue = SoilValueLoad.Loaded(SoilEntryValue.EntryGone)
 
 internal data class SoilBrowserStatus(val message: String, val isError: Boolean)
 
@@ -264,9 +262,11 @@ internal class SoilCacheBrowser(
             selectedHandle = null
             selectedValue = null
         }
-        if (selectedEntry?.isGone == true && selectedValue != GoneValue) {
+        // The agent can no longer read the value of a mutation Soil dropped, so none is shown.
+        val goneValue = SoilValueLoad.Loaded(SoilEntryValue.EntryGone)
+        if (selectedEntry?.isGone == true && selectedValue != goneValue) {
             valueRequestNumber++
-            selectedValue = GoneValue
+            selectedValue = goneValue
         }
     }
 
@@ -307,8 +307,12 @@ internal class SoilCacheBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = SoilBrowserStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = SoilBrowserStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

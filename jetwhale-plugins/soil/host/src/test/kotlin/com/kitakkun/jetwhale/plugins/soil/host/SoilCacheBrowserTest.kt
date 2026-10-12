@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.soil.host
 
+import com.kitakkun.jetwhale.plugins.soil.protocol.SoilCacheSnapshot
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntriesChanged
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntry
 import com.kitakkun.jetwhale.plugins.soil.protocol.SoilEntryAction
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -186,6 +188,19 @@ class SoilCacheBrowserTest {
 
         assertEquals(listOf(profile.handle to SoilEntryAction.REMOVE_INACTIVE), client.actionRequests)
         assertEquals(SoilBrowserStatus(message = "Remove users/profile: The entry is active, and active entries are not removed.", isError = true), browser.status)
+    }
+
+    @Test
+    fun `a reload that fails other than by not reaching the app shows the failure in the status`() {
+        val snapshotFailingClient = object : SoilCacheClient by client {
+            override suspend fun takeSnapshot(): SoilCacheSnapshot = error("snapshot unreadable")
+        }
+        val brokenBrowser = SoilCacheBrowser(snapshotFailingClient, CoroutineScope(Dispatchers.Unconfined), FixedClock)
+
+        brokenBrowser.refresh()
+
+        assertEquals(true, brokenBrowser.status?.isError)
+        assertContains(brokenBrowser.status?.message.orEmpty(), "snapshot unreadable")
     }
 
     @Test

@@ -80,6 +80,15 @@ internal class ListSoilEntriesCommand(
             coverageNoteOf(browser.coverage, isCacheEmpty = browser.listedEntries.isEmpty())?.let { put("note", it) }
         }.toString()
     }
+
+    /** What a caller should know when the list is empty or partial for a reason other than the app. */
+    private fun coverageNoteOf(coverage: SoilCacheCoverage?, isCacheEmpty: Boolean): String? = when {
+        coverage == null -> "The app's agent has not answered yet."
+        !coverage.isClientReadable -> "The app handed over a ${coverage.clientClassName}, which Soil Inspector cannot read; it reads SwrCache and SwrCachePlus."
+        !coverage.includesInactiveEntries -> "Only active entries are listed: the app did not hand its SwrCachePolicy to the plugin."
+        isCacheEmpty -> "The app's Soil cache is empty."
+        else -> null
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -212,12 +221,3 @@ private fun ListedSoilEntry.toMcpJson(listFilter: SoilEntryListFilter): JsonObje
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun SoilCacheBrowser.listedEntryOf(handle: String): ListedSoilEntry = listedEntries.firstOrNull { it.entry.handle == handle }
     ?: throw JetWhaleMcpArgumentException("no entry has the handle '$handle'; list them with $TOOL_PREFIX.listEntries")
-
-/** What a caller should know when the list is empty or partial for a reason other than the app. */
-private fun coverageNoteOf(coverage: SoilCacheCoverage?, isCacheEmpty: Boolean): String? = when {
-    coverage == null -> "The app's agent has not answered yet."
-    !coverage.isClientReadable -> "The app handed over a ${coverage.clientClassName}, which Soil Inspector cannot read; it reads SwrCache and SwrCachePlus."
-    !coverage.includesInactiveEntries -> "Only active entries are listed: the app did not hand its SwrCachePolicy to the plugin."
-    isCacheEmpty -> "The app's Soil cache is empty."
-    else -> null
-}
