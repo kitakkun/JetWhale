@@ -18,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -88,7 +90,6 @@ import kotlin.math.roundToInt
  * asked to point at.
  */
 @Composable
-@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX") // Split into smaller composables in a follow-up, tracked in #450.
 internal fun ComposeSemanticsInspectorScreenRoot(
     snapshot: NodeTreeSnapshot?,
     capturing: Boolean,
@@ -104,23 +105,20 @@ internal fun ComposeSemanticsInspectorScreenRoot(
     onCommitViewAttribute: (ViewAttribute, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var merged by rememberPersistent("merged-tree", default = true)
-    var interactiveOnly by rememberPersistent("interactive-only", default = false)
-    var includeInvisible by rememberPersistent("include-invisible", default = false)
-    var autoRefresh by rememberPersistent("auto-refresh", default = false)
-    var highlightOnDevice by rememberPersistent("highlight-on-device", default = false)
+    val persistentFlags = rememberPersistentInspectorFlags()
+    val flags = persistentFlags.flags
     var selectedKey by remember { mutableStateOf<NodeKey?>(null) }
     var hoveredKey by remember { mutableStateOf<NodeKey?>(null) }
     val scope = rememberCoroutineScope()
 
-    val options = NodeTreeCaptureOptions(merged = merged, includeInvisible = includeInvisible, maxDepth = null)
+    val options = NodeTreeCaptureOptions(merged = flags.merged, includeInvisible = flags.includeInvisible, maxDepth = null)
 
     LaunchedEffect(options) {
         onCapture(options)
     }
     val currentOnCapture by rememberUpdatedState(onCapture)
-    LaunchedEffect(autoRefresh, options) {
-        if (!autoRefresh) return@LaunchedEffect
+    LaunchedEffect(flags.autoRefresh, options) {
+        if (!flags.autoRefresh) return@LaunchedEffect
         while (true) {
             delay(AUTO_REFRESH_INTERVAL_MILLIS)
             currentOnCapture(options)
@@ -130,15 +128,10 @@ internal fun ComposeSemanticsInspectorScreenRoot(
         onSelectedNodeChange(selectedKey)
     }
 
-    val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
-    // Read in the effect, not in composition, so a pointer crossing rows doesn't recompose the screen.
-    LaunchedEffect(Unit) {
-        snapshotFlow { if (highlightOnDevice) hoveredKey ?: selectedKey else null }
-            .collect { currentOnHighlightTargetChange(it) }
-    }
-    DisposableEffect(Unit) {
-        onDispose { currentOnHighlightTargetChange(null) }
-    }
+    DeviceHighlightEffect(
+        highlightTarget = { if (persistentFlags.flags.highlightOnDevice) hoveredKey ?: selectedKey else null },
+        onHighlightTargetChange = onHighlightTargetChange,
+    )
 
     ComposeSemanticsInspectorScreen(
         snapshot = snapshot,
@@ -148,22 +141,10 @@ internal fun ComposeSemanticsInspectorScreenRoot(
         actionStatus = actionStatus,
         highlightStatus = highlightStatus,
         viewAttributes = viewAttributes,
-        flags = SemanticsInspectorFlags(
-            merged = merged,
-            interactiveOnly = interactiveOnly,
-            includeInvisible = includeInvisible,
-            autoRefresh = autoRefresh,
-            highlightOnDevice = highlightOnDevice,
-        ),
+        flags = flags,
         selectedKey = selectedKey,
         onRefresh = { scope.launch { onCapture(options) } },
-        onFlagsChange = { flags ->
-            merged = flags.merged
-            interactiveOnly = flags.interactiveOnly
-            includeInvisible = flags.includeInvisible
-            autoRefresh = flags.autoRefresh
-            highlightOnDevice = flags.highlightOnDevice
-        },
+        onFlagsChange = { persistentFlags.flags = it },
         onSelectKey = { selectedKey = it },
         onHoverChange = { key, hovered ->
             // A row that reports leaving must not clear a hover another row has already taken
@@ -177,3 +158,65 @@ internal fun ComposeSemanticsInspectorScreenRoot(
 }
 
 private const val AUTO_REFRESH_INTERVAL_MILLIS = 1_000L
+
+/** The inspector's toggles, each stored for the next host run under the key it has always had. */
+@Stable
+private class PersistentInspectorFlags(
+    private val merged: MutableState<Boolean>,
+    private val interactiveOnly: MutableState<Boolean>,
+    private val includeInvisible: MutableState<Boolean>,
+    private val autoRefresh: MutableState<Boolean>,
+    private val highlightOnDevice: MutableState<Boolean>,
+) {
+    var flags: SemanticsInspectorFlags
+        get() = SemanticsInspectorFlags(
+            merged = merged.value,
+            interactiveOnly = interactiveOnly.value,
+            includeInvisible = includeInvisible.value,
+            autoRefresh = autoRefresh.value,
+            highlightOnDevice = highlightOnDevice.value,
+        )
+        set(value) {
+            merged.value = value.merged
+            interactiveOnly.value = value.interactiveOnly
+            includeInvisible.value = value.includeInvisible
+            autoRefresh.value = value.autoRefresh
+            highlightOnDevice.value = value.highlightOnDevice
+        }
+}
+
+@Composable
+private fun rememberPersistentInspectorFlags(): PersistentInspectorFlags {
+    val merged = rememberPersistent("merged-tree", default = true)
+    val interactiveOnly = rememberPersistent("interactive-only", default = false)
+    val includeInvisible = rememberPersistent("include-invisible", default = false)
+    val autoRefresh = rememberPersistent("auto-refresh", default = false)
+    val highlightOnDevice = rememberPersistent("highlight-on-device", default = false)
+    return remember(merged, interactiveOnly, includeInvisible, autoRefresh, highlightOnDevice) {
+        PersistentInspectorFlags(
+            merged = merged,
+            interactiveOnly = interactiveOnly,
+            includeInvisible = includeInvisible,
+            autoRefresh = autoRefresh,
+            highlightOnDevice = highlightOnDevice,
+        )
+    }
+}
+
+/** Points the device at [highlightTarget] while the inspector is shown, and at nothing once it leaves. */
+@Composable
+private fun DeviceHighlightEffect(
+    highlightTarget: () -> NodeKey?,
+    onHighlightTargetChange: (NodeKey?) -> Unit,
+) {
+    val currentHighlightTarget by rememberUpdatedState(highlightTarget)
+    val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
+    // Read in the effect, not in composition, so a pointer crossing rows doesn't recompose the screen.
+    LaunchedEffect(Unit) {
+        snapshotFlow { currentHighlightTarget() }
+            .collect { currentOnHighlightTargetChange(it) }
+    }
+    DisposableEffect(Unit) {
+        onDispose { currentOnHighlightTargetChange(null) }
+    }
+}
