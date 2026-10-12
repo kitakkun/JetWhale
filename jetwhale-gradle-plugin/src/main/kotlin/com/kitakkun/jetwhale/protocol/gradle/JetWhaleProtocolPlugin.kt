@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
-import java.io.File
 
 /**
  * The `com.kitakkun.jetwhale.protocol` plugin, for a JetWhale plugin's protocol module.
@@ -22,13 +21,15 @@ import java.io.File
  *
  * Passing `-PjetwhaleWireSchemaBaselineDir=<dir>`, a directory laid out like the root project that
  * holds an earlier revision of each `wire/<project>.wire`, makes `checkWireSchema` also refuse a
- * committed dump that could not have followed the earlier one.
+ * committed dump that could not have followed the earlier one. A relative `<dir>` is resolved
+ * against the root project.
  */
 class JetWhaleProtocolPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("jetwhaleProtocol", JetWhaleProtocolExtension::class.java)
         val committedWireSchemaFile = project.layout.projectDirectory.file("wire/${project.name}.wire")
-        val wireSchemaPathFromRoot = project.projectDir.relativeTo(project.rootDir).resolve("wire/${project.name}.wire").path
+        val rootDirectory = project.rootDir
+        val wireSchemaPathFromRoot = project.projectDir.relativeTo(rootDirectory).resolve("wire/${project.name}.wire").path
         val projectVersion = project.provider { project.version.toString() }
 
         val generateContract = project.tasks.register("generateJetWhalePluginContract", GenerateJetWhalePluginContractTask::class.java) {
@@ -62,7 +63,7 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
             committedWireSchema.from(committedWireSchemaFile)
             baselineWireSchema.from(
                 project.providers.gradleProperty("jetwhaleWireSchemaBaselineDir")
-                    .map { listOf(File(it).resolve(wireSchemaPathFromRoot)) }
+                    .map { listOf(rootDirectory.resolve(it).resolve(wireSchemaPathFromRoot)) }
                     .orElse(emptyList()),
             )
             mustRunAfter(dumpWireSchema)
@@ -76,13 +77,13 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
             val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
             kotlin.sourceSets.getByName("commonMain").kotlin.srcDir(generateContract.flatMap { it.kotlinSourceDirectory })
             kotlin.targets.matching { it.platformType == KotlinPlatformType.jvm }.all {
-                wireJvmTarget(this, generateContract, extractWireSchema)
+                connectJvmTargetToContractAndWireSchemaTasks(this, generateContract, extractWireSchema)
             }
         }
         project.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
             val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
             kotlin.sourceSets.getByName("main").kotlin.srcDir(generateContract.flatMap { it.kotlinSourceDirectory })
-            wireJvmTarget(kotlin.target, generateContract, extractWireSchema)
+            connectJvmTargetToContractAndWireSchemaTasks(kotlin.target, generateContract, extractWireSchema)
         }
 
         project.afterEvaluate {
@@ -102,7 +103,7 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
         }
     }
 
-    private fun wireJvmTarget(
+    private fun connectJvmTargetToContractAndWireSchemaTasks(
         target: KotlinTarget,
         generateContract: TaskProvider<GenerateJetWhalePluginContractTask>,
         extractWireSchema: TaskProvider<ExtractWireSchemaTask>,
