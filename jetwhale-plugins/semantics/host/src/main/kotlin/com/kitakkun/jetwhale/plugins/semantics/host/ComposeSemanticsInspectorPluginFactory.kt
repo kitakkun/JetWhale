@@ -85,8 +85,12 @@ private class ComposeSemanticsInspectorHostPlugin :
             onCapture = { options ->
                 try {
                     capture(options)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: JetWhaleMessagingException) {
                     errorMessage = "Capture failed: ${e.message}"
+                } catch (e: Exception) {
+                    errorMessage = "Capture failed unexpectedly: $e"
                 }
             },
             onPerformAction = { request ->

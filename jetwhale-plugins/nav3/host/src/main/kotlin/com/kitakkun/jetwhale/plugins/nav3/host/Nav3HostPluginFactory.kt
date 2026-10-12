@@ -115,10 +115,15 @@ private class Nav3HostPlugin :
 
     private fun applyFromUi(stackId: String, operation: NavBackStackOperation) {
         pluginScope.launch {
-            val result = mutate(stackId, listOf(operation))
-            status = when (val error = result.error) {
-                null -> Nav3Status(message = "${operation.describe()} applied.", isError = false)
-                else -> Nav3Status(message = error, isError = true)
+            status = try {
+                when (val error = mutate(stackId, listOf(operation)).error) {
+                    null -> Nav3Status(message = "${operation.describe()} applied.", isError = false)
+                    else -> Nav3Status(message = error, isError = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Nav3Status(message = "Unexpected error: $e", isError = true)
             }
         }
     }
