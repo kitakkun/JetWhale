@@ -87,7 +87,7 @@ internal class HttpRunnerConnection(
             .header(RUNNER_TOKEN_HEADER, token)
             .post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
             .build()
-        val text = try {
+        val responseBody = try {
             httpClient.newCall(request).execute().use { it.body.string() }
         } catch (e: ConnectException) {
             throw RunnerUnreachableException("the XCTest runner did not answer: ${e.message}", e)
@@ -96,9 +96,9 @@ internal class HttpRunnerConnection(
             throw XcTestRunnerException("the XCTest runner stopped answering during ${path.removePrefix("/")}: ${e.message}", e)
         }
         val answer = try {
-            RunnerJson.parseToJsonElement(text).jsonObject
+            RunnerJson.parseToJsonElement(responseBody).jsonObject
         } catch (e: IllegalArgumentException) {
-            throw XcTestRunnerException("the XCTest runner answered something other than JSON: ${text.take(200)}", e)
+            throw XcTestRunnerException("the XCTest runner answered something other than JSON: ${responseBody.take(200)}", e)
         }
         if ((answer["ok"] as? JsonPrimitive)?.booleanOrNull != true) {
             val error = (answer["error"] as? JsonPrimitive)?.content ?: "no reason given"
