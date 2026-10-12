@@ -1,3 +1,6 @@
+// Split into smaller files in a follow-up, tracked in #450.
+@file:Suppress("KOTRAIL_FILE_TOO_FLAT", "KOTRAIL_FILE_TOO_LONG", "KOTRAIL_TOO_MANY_TOP_LEVEL_DECLARATIONS")
+
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.ContextMenuArea
@@ -442,6 +445,45 @@ private fun McpToolsPane(
     }
 }
 
+@Composable
+private fun McpParameterRow(param: McpToolParameterSummary) {
+    Column(
+        modifier = Modifier.padding(top = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            JwText(
+                text = param.name,
+                style = JwTheme.textStyles.code,
+            )
+            if (param.type.isNotEmpty()) {
+                JwText(
+                    text = param.type,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
+                )
+            }
+            if (param.required) {
+                JwText(
+                    text = stringResource(Res.string.mcp_tools_required),
+                    style = JwTheme.textStyles.labelSmall,
+                    color = JwTheme.colors.error,
+                )
+            }
+        }
+        if (param.description.isNotEmpty()) {
+            JwText(
+                text = param.description,
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
+            )
+        }
+    }
+}
+
 /** What agents already did in the selected scope, newest call first. */
 @Composable
 private fun McpCallHistoryPane(
@@ -828,45 +870,6 @@ private val CallHistoryTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPa
 private fun formatCallTime(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis)
     .atZone(ZoneId.systemDefault())
     .format(CallHistoryTimeFormatter)
-
-@Composable
-private fun McpParameterRow(param: McpToolParameterSummary) {
-    Column(
-        modifier = Modifier.padding(top = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            JwText(
-                text = param.name,
-                style = JwTheme.textStyles.code,
-            )
-            if (param.type.isNotEmpty()) {
-                JwText(
-                    text = param.type,
-                    style = JwTheme.textStyles.code,
-                    color = JwTheme.colors.textSecondary,
-                )
-            }
-            if (param.required) {
-                JwText(
-                    text = stringResource(Res.string.mcp_tools_required),
-                    style = JwTheme.textStyles.labelSmall,
-                    color = JwTheme.colors.error,
-                )
-            }
-        }
-        if (param.description.isNotEmpty()) {
-            JwText(
-                text = param.description,
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-            )
-        }
-    }
-}
 
 @Preview
 @Composable

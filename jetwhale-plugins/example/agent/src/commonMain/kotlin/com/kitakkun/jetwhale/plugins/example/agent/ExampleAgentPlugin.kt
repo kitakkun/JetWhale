@@ -19,12 +19,12 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = "com.kitakkun.jetwhale.example"
     override val pluginVersion: String get() = "1.0.0"
 
-    private val mutableEventLogsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
-    val eventLogsFlow: StateFlow<List<String>> = mutableEventLogsFlow
+    val eventLogsFlow: StateFlow<List<String>>
+        field = MutableStateFlow<List<String>>(emptyList())
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: Ping ->
-            mutableEventLogsFlow.update { it + "Request: Ping" + "Reply: Pong" }
+            eventLogsFlow.update { it + "Request: Ping" + "Reply: Pong" }
             reply(Pong)
         }
     }
@@ -33,7 +33,7 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin() {
      *  live, so it is dropped if the host is not connected. */
     fun sendButtonClicked(count: Int) {
         val event = ButtonClicked(count)
-        mutableEventLogsFlow.update { it + "Event: $event" }
+        eventLogsFlow.update { it + "Event: $event" }
         messenger.trySend(event)
     }
 }

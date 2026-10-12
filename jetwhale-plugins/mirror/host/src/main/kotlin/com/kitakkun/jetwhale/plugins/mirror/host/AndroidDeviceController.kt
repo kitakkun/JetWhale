@@ -23,6 +23,7 @@ import kotlin.time.Duration.Companion.seconds
  * that is on. Without one, screencap writes a warning ahead of its PNG, and screenrecord frames the
  * picture at another panel's size.
  */
+@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER") // Without ffmpeg the device is still driven; only the stream is refused, with how to install it.
 internal class AndroidDeviceController(
     private val adbPath: String,
     private val serial: String,
@@ -117,7 +118,7 @@ internal class AndroidDeviceController(
                 runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
                 process.waitFor(10, TimeUnit.SECONDS)
                 // The device writes the file out after the process exits.
-                delay(500)
+                delay(500.milliseconds)
                 try {
                     runCommandChecked(RECORDING_PULL_TIMEOUT, adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
                 } finally {

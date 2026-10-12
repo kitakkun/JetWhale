@@ -328,6 +328,7 @@ private fun pluginIcon(path: String) = PluginIconResource(checkNotNull(HostWindo
 private val JSON_HEADERS = mapOf("Content-Type" to listOf("application/json; charset=utf-8"))
 
 /** Oldest first, as the agent reports them; the list shows the newest on top. */
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // Fixture data, kept with the screenshots' other fixtures.
 private val TRANSACTIONS = listOf(
     transaction(txId = "tx-1", method = "GET", url = "https://example.com/api/session", status = 200 to "OK", body = """{"signedIn":true}""", durationMs = 64),
     transaction(

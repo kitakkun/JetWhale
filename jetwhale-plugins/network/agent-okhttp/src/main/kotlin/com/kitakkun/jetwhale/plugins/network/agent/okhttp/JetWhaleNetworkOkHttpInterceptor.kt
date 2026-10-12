@@ -101,6 +101,38 @@ private class JetWhaleNetworkOkHttpInterceptor(
         return buildMockResponse(request, mock)
     }
 
+    private fun buildMockResponse(request: Request, mock: MockResponseSpec): Response {
+        val headers = mock.headers.toHeaders()
+        return Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(mock.statusCode)
+            .message(httpStatusDescription(mock.statusCode))
+            .headers(headers)
+            .body(mock.bodyBytes().toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
+            .build()
+    }
+
+    private fun httpStatusDescription(code: Int): String = when (code) {
+        200 -> "OK"
+        201 -> "Created"
+        204 -> "No Content"
+        301 -> "Moved Permanently"
+        302 -> "Found"
+        304 -> "Not Modified"
+        400 -> "Bad Request"
+        401 -> "Unauthorized"
+        403 -> "Forbidden"
+        404 -> "Not Found"
+        409 -> "Conflict"
+        429 -> "Too Many Requests"
+        500 -> "Internal Server Error"
+        502 -> "Bad Gateway"
+        503 -> "Service Unavailable"
+        504 -> "Gateway Timeout"
+        else -> ""
+    }
+
     private fun sendRequest(chain: Interceptor.Chain, request: Request, txId: String, started: TimeSource.Monotonic.ValueTimeMark): Response = try {
         chain.proceed(request)
     } catch (e: Throwable) {
@@ -236,18 +268,6 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
     }
 }
 
-private fun buildMockResponse(request: Request, mock: MockResponseSpec): Response {
-    val headers = mock.headers.toHeaders()
-    return Response.Builder()
-        .request(request)
-        .protocol(Protocol.HTTP_1_1)
-        .code(mock.statusCode)
-        .message(httpStatusDescription(mock.statusCode))
-        .headers(headers)
-        .body(mock.bodyBytes().toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
-        .build()
-}
-
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
 private fun Response.isWebSocketUpgrade(): Boolean = code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
 
@@ -268,24 +288,4 @@ private fun Request.headersWithBodyDefaults(): Map<String, List<String>> = build
         val length = runCatching { body.contentLength() }.getOrDefault(-1L)
         if (length >= 0) put("Content-Length", listOf(length.toString()))
     }
-}
-
-private fun httpStatusDescription(code: Int): String = when (code) {
-    200 -> "OK"
-    201 -> "Created"
-    204 -> "No Content"
-    301 -> "Moved Permanently"
-    302 -> "Found"
-    304 -> "Not Modified"
-    400 -> "Bad Request"
-    401 -> "Unauthorized"
-    403 -> "Forbidden"
-    404 -> "Not Found"
-    409 -> "Conflict"
-    429 -> "Too Many Requests"
-    500 -> "Internal Server Error"
-    502 -> "Bad Gateway"
-    503 -> "Service Unavailable"
-    504 -> "Gateway Timeout"
-    else -> ""
 }

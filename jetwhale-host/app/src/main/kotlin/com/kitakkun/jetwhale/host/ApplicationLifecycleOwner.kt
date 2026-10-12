@@ -38,11 +38,11 @@ class ApplicationLifecycleOwner(
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
-    private val mutableApplicationStateFlow: MutableStateFlow<ApplicationState> = MutableStateFlow(ApplicationState.NONE)
-    val applicationStateFlow: StateFlow<ApplicationState> = mutableApplicationStateFlow
+    val applicationStateFlow: StateFlow<ApplicationState>
+        field = MutableStateFlow(ApplicationState.NONE)
 
     fun initialize() {
-        mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
+        applicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
             val wssPort = if (settingsRepository.readWssEnabled()) {
                 settingsRepository.readWssPort()
@@ -64,19 +64,19 @@ class ApplicationLifecycleOwner(
 
             pluginHotReloadService.start()
 
-            mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }
+            applicationStateFlow.update { ApplicationState.INITIALIZED }
         }
     }
 
     fun shutdown() {
-        mutableApplicationStateFlow.update { ApplicationState.STOPPING }
+        applicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
             pluginInstallJobService.cancelAll()
             pluginHotReloadService.stop()
             pluginDirectoryWatchService.stop()
             mcpServerService.stop()
             debugWebSocketServer.stop()
-            mutableApplicationStateFlow.update { ApplicationState.STOPPED }
+            applicationStateFlow.update { ApplicationState.STOPPED }
         }
     }
 }

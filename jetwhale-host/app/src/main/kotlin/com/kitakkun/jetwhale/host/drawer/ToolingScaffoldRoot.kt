@@ -234,6 +234,7 @@ private fun SelectionPublishingEffect(
  * navigation callbacks in scope, and the request channel delivers each request once.
  */
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_HOTSPOT_STANDALONE") // Split into smaller composables in a follow-up, tracked in #450.
 context(screenContext: ToolingScaffoldScreenContext)
 private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
