@@ -47,9 +47,9 @@ internal class ProcessCommandOutputRunner(
         val process = processLauncher.start(command)
         val output = KeptOutput(process, maxLines = Int.MAX_VALUE)
         try {
-            val exited = withTimeoutOrNull(timeout) { process.onExit().await() }
+            val exitedProcess = withTimeoutOrNull(timeout) { process.onExit().await() }
                 ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
-            CommandOutput(exitCode = exited.exitValue(), text = output.textOnceDrained())
+            CommandOutput(exitCode = exitedProcess.exitValue(), text = output.textOnceDrained())
         } finally {
             if (process.isAlive) {
                 process.destroy()

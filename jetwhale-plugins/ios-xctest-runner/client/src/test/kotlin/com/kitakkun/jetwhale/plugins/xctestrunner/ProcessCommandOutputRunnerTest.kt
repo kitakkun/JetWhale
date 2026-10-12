@@ -23,10 +23,10 @@ class ProcessCommandOutputRunnerTest {
     fun `a command that exits hands back what it printed and how it exited`() = runTest {
         val process = FakeToolProcess(listOf("xcodebuild"), pid = 1, output = "Build version 27A266a\n", exitsAtOnce = true)
 
-        val output = ProcessCommandOutputRunner(processLauncher = { process }, timeout = 1.minutes).run(listOf("xcrun", "xcodebuild", "-version"))
+        val commandOutput = ProcessCommandOutputRunner(processLauncher = { process }, timeout = 1.minutes).run(listOf("xcrun", "xcodebuild", "-version"))
 
-        assertEquals(0, output.exitCode)
-        assertTrue("Build version 27A266a" in output.text)
+        assertEquals(0, commandOutput.exitCode)
+        assertTrue("Build version 27A266a" in commandOutput.text)
     }
 
     @Test
@@ -42,7 +42,7 @@ class ProcessCommandOutputRunnerTest {
 
     @Test
     fun `a command whose output a child keeps open still fails at its timeout`() = runTest {
-        val process = ProcessWithInheritedOutput()
+        val process = ProcessWithOutputKeptOpen()
 
         assertFailsWith<XcTestRunnerStartException> {
             ProcessCommandOutputRunner(processLauncher = { process }, timeout = 100.milliseconds).run(listOf("xcrun", "xcodebuild", "build-for-testing"))
@@ -66,7 +66,7 @@ class ProcessCommandOutputRunnerTest {
     fun `a command whose caller is cancelled is ended`() = runTest {
         val process = FakeToolProcess(listOf("xcodebuild"), pid = 1, output = "Building\n", exitsAtOnce = false)
         val launched = CompletableDeferred<Unit>()
-        val runner = ProcessCommandOutputRunner(
+        val commandOutputRunner = ProcessCommandOutputRunner(
             processLauncher = {
                 launched.complete(Unit)
                 process
@@ -74,7 +74,7 @@ class ProcessCommandOutputRunnerTest {
             timeout = 1.minutes,
         )
 
-        val running = launch { runner.run(listOf("xcrun", "xcodebuild", "build-for-testing")) }
+        val running = launch { commandOutputRunner.run(listOf("xcrun", "xcodebuild", "build-for-testing")) }
         launched.await()
         running.cancelAndJoin()
 
@@ -86,10 +86,10 @@ class ProcessCommandOutputRunnerTest {
  * A process whose output pipe stays open after it is ended, as when a child process it started
  * inherited the pipe and is still running.
  */
-private class ProcessWithInheritedOutput : Process() {
+private class ProcessWithOutputKeptOpen : Process() {
     private val exitFuture = CompletableFuture<Process>()
 
-    private val output = PipedInputStream(PipedOutputStream())
+    private val stdout = PipedInputStream(PipedOutputStream())
 
     var destroyed = false
         private set
@@ -100,7 +100,7 @@ private class ProcessWithInheritedOutput : Process() {
 
     override fun isAlive(): Boolean = !destroyed
 
-    override fun getInputStream(): InputStream = output
+    override fun getInputStream(): InputStream = stdout
 
     override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
 
