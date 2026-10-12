@@ -26,7 +26,7 @@ internal fun String.formUrlDecode(): String {
     return decoded.toString()
 }
 
-// Only two hex digits are an escape: toIntOrNull would also accept a sign, decoding "%-1" as a byte.
+// toIntOrNull(radix = 16) accepts a leading sign, which would decode "%-1" as a byte.
 private fun String.hexByteOrNull(): Int? = if (all(Char::isHexDigit)) toInt(radix = 16) else null
 
 internal fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'

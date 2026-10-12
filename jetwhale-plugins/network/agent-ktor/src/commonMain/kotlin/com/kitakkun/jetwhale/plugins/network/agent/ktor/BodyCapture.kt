@@ -59,22 +59,21 @@ private fun ContentType.mediaType(): String = "$contentType/$contentSubtype".low
 internal suspend fun captureResponseBodySafely(call: HttpClientCall, limits: BodyCaptureLimits): Pair<HttpClientCall, BodyCapture> {
     val response = call.response
 
-    // By the time this runs, a 101 response's connection has switched to the raw frame stream, so
-    // save() or bodyAsText() would read live WebSocket frames as a body and corrupt the stream for
-    // the caller.
+    // After a 101 response the connection carries the live WebSocket frames, so reading the body
+    // here would take them from the caller's session.
     if (response.isWebSocketUpgrade()) {
         return call to BodyCapture("<websocket upgrade>", false)
     }
 
-    // save() buffers the entire body before returning, so on a never-ending stream (SSE) the
-    // caller would wait forever for a response that has already started arriving.
     val contentType = response.headers[HttpHeaders.ContentType]
+    // save() reads the body to its end, which an SSE stream never reaches.
     if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
         return call to BodyCapture("<streaming response body>", false)
     }
 
-    // Ktor's SaveBody has already read a non-streaming body into response.call, and save() hands a
-    // saved call back as it is; only a streamed response, or a call synthesized for a mock, is read here.
+    // Ktor's SaveBody plugin has already buffered a non-streaming body, and response.call is then
+    // that saved call, which save() returns without reading the body again; call.save() would copy
+    // it a second time.
     val saved = response.call.save()
     val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
     if (isPreviewableImageMediaType(mediaType)) {
