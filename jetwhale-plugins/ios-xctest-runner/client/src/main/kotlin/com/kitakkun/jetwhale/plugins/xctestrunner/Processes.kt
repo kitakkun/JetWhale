@@ -98,7 +98,11 @@ internal class KeptOutput(process: Process, private val maxLines: Int) {
     private val lines = ArrayDeque<String>()
 
     private val readerThreads = listOf(process.inputStream, process.errorStream).map { stream ->
-        thread(isDaemon = true, name = "xctest-runner-output") { keepLastLinesOf(stream) }
+        thread(start = false, isDaemon = true, name = "xctest-runner-output") { keepLastLinesOf(stream) }
+    }
+
+    init {
+        readerThreads.forEach(Thread::start)
     }
 
     /**
