@@ -26,8 +26,6 @@ internal fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
             return@post
         }
-        // Any failure of the send is the QA client's answer, returned as a response rather than a
-        // server error.
         try {
             val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
             val hint = if (sent) {
@@ -45,8 +43,8 @@ internal fun Route.messagingRoutes(apps: Map<String, QaApp>) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // FAIL policy while offline lands here; that is an answer about the connection,
-            // not a malformed call.
+            // A failed send, such as the FAIL policy while offline, is a finding about the plugin
+            // under test rather than a malformed control call, so it comes back as data with 200.
             call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
         }
     }
@@ -62,8 +60,6 @@ internal fun Route.messagingRoutes(apps: Map<String, QaApp>) {
             call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
             return@post
         }
-        // Any failure of the request is the QA client's answer, returned as a response rather than
-        // a server error.
         try {
             lateinit var reply: String
             val elapsed = measureTimeMillis {
@@ -95,7 +91,7 @@ private fun String.asJsonOrString(): JsonElement = runCatching { Json.parseToJso
 
 /**
  * @property app which app's session to send from. Optional while only one app is running.
- * @property policy Offline behaviour: DROP (default), QUEUE or FAIL.
+ * @property policy Offline behavior: DROP (default), QUEUE or FAIL.
  */
 @Serializable
 private data class SendRequest(

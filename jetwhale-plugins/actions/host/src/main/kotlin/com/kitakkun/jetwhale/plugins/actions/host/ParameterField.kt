@@ -232,7 +232,8 @@ private fun SuggestionMenu(
     Popup(
         popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowStart),
         onDismissRequest = onDismissRequest,
-        // Not focusable, so typing stays in the field, whose key handler drives the menu.
+        // Not focusable, unlike JwDropdownMenu's popup, so typing stays in the field, whose key
+        // handler drives the menu.
         properties = PopupProperties(focusable = false),
     ) {
         Column(

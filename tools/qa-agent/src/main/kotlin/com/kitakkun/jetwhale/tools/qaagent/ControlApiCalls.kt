@@ -12,12 +12,13 @@ import kotlinx.serialization.Serializable
  * handler stops. A control API driven by hand-written curl gets malformed bodies often enough that
  * every route needs the same answer.
  */
-// Ktor reports a malformed body as one of several exception types, depending on the plugin that rejects it.
 internal suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest(): T? = try {
     receive<T>()
 } catch (e: CancellationException) {
     throw e
 } catch (e: Exception) {
+    // Ktor reports a malformed body as one of several exception types, depending on the plugin
+    // that rejects it.
     respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
     null
 }

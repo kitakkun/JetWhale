@@ -18,7 +18,6 @@ internal fun Route.sessionRoutes(apps: Map<String, QaApp>) {
     post("/shutdown") {
         call.respond(mapOf("status" to "stopping"))
         thread {
-            // Lets the response above reach the caller before the process exits.
             Thread.sleep(200)
             exitProcess(0)
         }

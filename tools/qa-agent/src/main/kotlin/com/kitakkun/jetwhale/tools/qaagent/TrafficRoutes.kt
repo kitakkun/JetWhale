@@ -28,8 +28,6 @@ internal fun Route.trafficRoutes(apps: Map<String, QaApp>) {
             )
             return@post
         }
-        // Any failure of the HTTP call is the QA client's answer, returned as a response rather
-        // than a server error.
         try {
             lateinit var status: HttpStatusCode
             lateinit var preview: String
@@ -47,6 +45,8 @@ internal fun Route.trafficRoutes(apps: Map<String, QaApp>) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // A failed HTTP call is a finding about the request the caller fired, not a malformed
+            // control call, so it comes back as data with 200.
             call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
         }
     }
