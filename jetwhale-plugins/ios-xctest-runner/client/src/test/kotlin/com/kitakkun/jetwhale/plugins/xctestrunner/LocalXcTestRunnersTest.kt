@@ -390,7 +390,8 @@ class LocalXcTestRunnersTest {
     @Test
     fun `a screen stream whose runner restarts goes on from the new runner`() = runBlocking {
         val runner = runners(realTimeScope, iproxyPath = null).runnerFor(simulator)
-        val firstStream = FakeScreenStream().also { connections.getValue(20_000).screenStreams += it }
+        val firstStream = FakeScreenStream()
+        connections.getValue(20_000).screenStreams += firstStream
         val secondStream = FakeScreenStream()
         connections[20_001] = FakeRunnerConnection(answering = true).apply { screenStreams += secondStream }
         val received = Channel<String>(Channel.UNLIMITED)
