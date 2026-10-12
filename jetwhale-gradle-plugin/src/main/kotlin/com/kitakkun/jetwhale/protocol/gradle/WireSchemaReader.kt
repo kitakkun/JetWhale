@@ -72,7 +72,8 @@ internal class WireSchemaReader {
             .filter { it.getAnnotation(EncodeDefault::class.java)?.mode == EncodeDefault.Mode.NEVER }
             .map { annotationsMethod ->
                 val getterName = annotationsMethod.name.removeSuffix(ANNOTATIONS_METHOD_SUFFIX)
-                // A getter of a value-class-typed property carries a mangling suffix after a '-'.
+                // The getter of a property whose type is a value class has a mangled name: the
+                // getter name, a '-' and a hash.
                 val propertyName = propertyNames.firstOrNull { kotlinGetterName(it) == getterName || getterName.startsWith(kotlinGetterName(it) + "-") }
                     ?: throw WireSchemaRefusal(
                         "${declaringClass.name}: cannot tell which property ${annotationsMethod.name} belongs to, so its @EncodeDefault(NEVER) cannot be recorded.",
@@ -160,7 +161,8 @@ internal class WireSchemaReader {
                 PolymorphicKind.SEALED -> {
                     recordShape(nonNull, path) {
                         val discriminator = nonNull.annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: DEFAULT_CLASS_DISCRIMINATOR
-                        val subtypes = nonNull.getElementDescriptor(1).elementDescriptors.map { subtype -> typeRefOf(subtype, "$path<${subtype.serialName}>").head }
+                        val subtypesDescriptor = nonNull.getElementDescriptor(SEALED_SUBTYPES_ELEMENT_INDEX)
+                        val subtypes = subtypesDescriptor.elementDescriptors.map { subtype -> typeRefOf(subtype, "$path<${subtype.serialName}>").head }
                         SealedShape(nonNull.serialName, discriminator, subtypes.toSet())
                     }
                     WireTypeRef(nonNull.serialName, emptyList(), isNullable)
@@ -207,6 +209,9 @@ internal class WireSchemaReader {
 
     private companion object {
         const val ANNOTATIONS_METHOD_SUFFIX = "\$annotations"
+
+        /** A sealed descriptor's elements are the discriminator and then one whose elements are the subtypes. */
+        const val SEALED_SUBTYPES_ELEMENT_INDEX = 1
 
         /** The payload format leaves `classDiscriminator` at kotlinx.serialization's default. */
         const val DEFAULT_CLASS_DISCRIMINATOR = "type"

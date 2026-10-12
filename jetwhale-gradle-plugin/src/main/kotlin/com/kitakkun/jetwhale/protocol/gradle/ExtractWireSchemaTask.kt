@@ -74,22 +74,19 @@ internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSche
             .map { it.toURI().toURL() }
             .toTypedArray()
         val renderedWireSchema = URLClassLoader(classLoaderUrls, ClassLoader.getPlatformClassLoader()).use { classLoader ->
-            val reader = classLoader.loadClass(WIRE_SCHEMA_READER_CLASS_NAME).getConstructor().newInstance()
+            val reader = classLoader.loadClass(WireSchemaReader::class.java.name).getConstructor().newInstance()
             try {
                 reader.javaClass
                     .getMethod("renderWireSchema", List::class.java, Int::class.javaPrimitiveType)
                     .invoke(reader, messageClassDirectories, parameters.protocolRevision.get()) as String
             } catch (e: InvocationTargetException) {
                 val failure = e.targetException
+                // The failure is an instance of the reader class loader's own WireSchemaRefusal,
+                // not this one, so `is WireSchemaRefusal` would never match.
                 if (failure.javaClass.name == WireSchemaRefusal::class.java.name) throw GradleException(failure.message.orEmpty())
                 throw GradleException("Reading the wire schema failed:\n${failure.stackTraceToString()}")
             }
         }
         parameters.extractedWireSchema.get().asFile.writeText(renderedWireSchema)
-    }
-
-    private companion object {
-        // Named by a string: loading the class here would resolve kotlinx.serialization in the worker.
-        const val WIRE_SCHEMA_READER_CLASS_NAME = "com.kitakkun.jetwhale.protocol.gradle.WireSchemaReader"
     }
 }
