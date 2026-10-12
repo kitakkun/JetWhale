@@ -110,6 +110,28 @@ private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder
 }
 
 /**
+ * Captures the request headers visible at the send phase, enriched with the body's
+ * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
+ * (e.g. User-Agent, Accept-Encoding, Host) are not visible here and are omitted.
+ */
+private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
+    putAll(headers.build().toCapturedMap())
+    val content = body as? OutgoingContent ?: return@buildMap
+    content.contentType?.let { putIfAbsentIgnoringCase("Content-Type", listOf(it.toString())) }
+    content.contentLength?.let { putIfAbsentIgnoringCase("Content-Length", listOf(it.toString())) }
+    content.headers.entries().forEach { (key, value) -> putIfAbsentIgnoringCase(key, value) }
+}
+
+/**
+ * Adds a body-derived header only when the request doesn't already carry it. The comparison ignores
+ * case because header names are case-insensitive but this map keeps whatever spelling the request
+ * used, so a case-sensitive check would let `content-length` and `Content-Length` both through.
+ */
+private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
+    if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
+}
+
+/**
  * Serves [mock] when there is one; otherwise continues the send, recording a thrown failure
  * before rethrowing it.
  */
@@ -237,25 +259,3 @@ private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
 private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
-
-/**
- * Captures the request headers visible at the send phase, enriched with the body's
- * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
- * (e.g. User-Agent, Accept-Encoding, Host) are not visible here and are omitted.
- */
-private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
-    putAll(headers.build().toCapturedMap())
-    val content = body as? OutgoingContent ?: return@buildMap
-    content.contentType?.let { putIfAbsentIgnoringCase("Content-Type", listOf(it.toString())) }
-    content.contentLength?.let { putIfAbsentIgnoringCase("Content-Length", listOf(it.toString())) }
-    content.headers.entries().forEach { (key, value) -> putIfAbsentIgnoringCase(key, value) }
-}
-
-/**
- * Adds a body-derived header only when the request doesn't already carry it. The comparison ignores
- * case because header names are case-insensitive but this map keeps whatever spelling the request
- * used, so a case-sensitive check would let `content-length` and `Content-Length` both through.
- */
-private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
-    if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
-}

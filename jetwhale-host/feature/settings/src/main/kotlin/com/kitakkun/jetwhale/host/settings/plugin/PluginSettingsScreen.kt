@@ -232,6 +232,22 @@ private fun LazyListScope.installActivityItems(
 }
 
 @Composable
+private fun AddingFromFileRow(modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        JwProgressIndicator()
+        JwText(
+            text = stringResource(Res.string.adding_plugin_from_file),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
 private fun FailedJarsDialog(
     failedJars: List<FailedPluginJar>,
     onDismiss: () -> Unit,
@@ -315,22 +331,6 @@ private fun AddPluginActionsRow(
             text = stringResource(Res.string.install_from_maven),
             onClick = onClickInstallFromMaven,
             style = JwButtonStyle.Text,
-        )
-    }
-}
-
-@Composable
-private fun AddingFromFileRow(modifier: Modifier = Modifier) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-        JwProgressIndicator()
-        JwText(
-            text = stringResource(Res.string.adding_plugin_from_file),
-            style = JwTheme.textStyles.bodySmall,
-            color = JwTheme.colors.textSecondary,
         )
     }
 }

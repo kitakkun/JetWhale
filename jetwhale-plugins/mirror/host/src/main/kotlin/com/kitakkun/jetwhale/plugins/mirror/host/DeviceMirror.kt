@@ -66,6 +66,7 @@ private const val SCREENSHOT_POLL_MILLIS = 250L
  * failures in a row. A failure that passes (adb restarting, a fold in progress) costs a few seconds;
  * one that lasts (no ffmpeg) costs one attempt a minute.
  */
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // A table of timings, kept with the mirror's other timing constants.
 private val SCREENSHOT_FALLBACK_MILLIS = listOf(5_000L, 15_000L, 60_000L)
 
 /** How long a stream waits for its view to be laid out; a first layout takes a frame or two. */

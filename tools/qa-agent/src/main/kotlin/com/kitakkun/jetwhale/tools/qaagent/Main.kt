@@ -221,6 +221,18 @@ private fun Route.statusRoutes(apps: Map<String, QaApp>, plugins: Map<String, St
     }
 }
 
+/**
+ * A disconnected app keeps the plugin's activation flag — the host never deactivated it, the session
+ * simply went away — so both flags are reported against the session actually being held.
+ */
+private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
+    val plugin = wirePluginsById.getValue(pluginId)
+    return AppPluginStatus(
+        activated = isConnected && plugin.isActivated,
+        ready = isConnected && plugin.isReady,
+    )
+}
+
 /** Arbitrary plugin messages carried to their host counterparts over the messenger's raw layer. */
 private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
     post("/send") {
@@ -361,18 +373,6 @@ private suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest
 } catch (e: Exception) {
     respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
     null
-}
-
-/**
- * A disconnected app keeps the plugin's activation flag — the host never deactivated it, the session
- * simply went away — so both flags are reported against the session actually being held.
- */
-private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
-    val plugin = wirePluginsById.getValue(pluginId)
-    return AppPluginStatus(
-        activated = isConnected && plugin.isActivated,
-        ready = isConnected && plugin.isReady,
-    )
 }
 
 /**

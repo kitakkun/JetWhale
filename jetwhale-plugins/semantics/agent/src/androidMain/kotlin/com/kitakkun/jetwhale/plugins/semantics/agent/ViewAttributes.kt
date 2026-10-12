@@ -416,12 +416,14 @@ private fun View.resourceEntryNameOrNull(): String? {
     }
 }
 
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // One of the as* readers below, kept together.
 private fun ViewAttributeValue.asBoolean(attributeId: String): Boolean = (this as? ViewAttributeValue.BooleanValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "bool", this))
 
 private fun ViewAttributeValue.asInt(attributeId: String): Int = (this as? ViewAttributeValue.IntValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "int", this))
 
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // One of the as* readers below, kept together.
 private fun ViewAttributeValue.asFloat(attributeId: String): Float = (this as? ViewAttributeValue.FloatValue)?.value
     ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "float", this))
 
