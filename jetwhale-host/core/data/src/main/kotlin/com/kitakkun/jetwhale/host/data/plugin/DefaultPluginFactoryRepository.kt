@@ -88,7 +88,6 @@ class DefaultPluginFactoryRepository(
 
         // A missing dependency jar or an unreadable manifest fails only this plugin's load, which
         // lists its jar as failed.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val dependencyJarUrls = try {
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
         } catch (e: Exception) {
@@ -108,7 +107,6 @@ class DefaultPluginFactoryRepository(
         var committed = false
         // Loading runs the plugin's own code, so any failure, LinkageError included, marks this jar
         // failed.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
             val newPluginIds = loaded.map { it.manifest.pluginId }

@@ -58,7 +58,6 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
 
     // The write calls the app's own View setter, which may reject the value by throwing anything;
     // the reply carries why.
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     return try {
         write(this, value)
         if (descriptor.relayouts) requestLayout() else invalidate()
