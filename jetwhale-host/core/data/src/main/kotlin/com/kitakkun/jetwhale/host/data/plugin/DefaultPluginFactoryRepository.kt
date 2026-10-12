@@ -16,7 +16,6 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,13 +36,12 @@ import kotlin.io.path.Path
 class DefaultPluginFactoryRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginFactoryRepository {
-    private val mutablePluginsFlow: MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>> =
-        MutableStateFlow(persistentMapOf())
-    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
-    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutablePluginsFlow.value
+    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
+        field = MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>>(persistentMapOf())
+    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginsFlow.value
 
-    private val mutableFailedJarsFlow: MutableStateFlow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
-    override val failedJarsFlow: Flow<List<FailedPluginJar>> = mutableFailedJarsFlow.asStateFlow()
+    override val failedJarsFlow: Flow<List<FailedPluginJar>>
+        field = MutableStateFlow<List<FailedPluginJar>>(emptyList())
 
     /**
      * The classloader that owns each loaded jar, keyed by absolute jar path. A single jar may declare
@@ -66,7 +64,7 @@ class DefaultPluginFactoryRepository(
 
     /**
      * Serializes load/unload/reload: each performs compound read-modify-write across several maps
-     * ([classLoaders], [jarPathToPluginIds], [runtimeJars], [mutablePluginsFlow]), which per-map
+     * ([classLoaders], [jarPathToPluginIds], [runtimeJars], [loadedPluginsFlow]), which per-map
      * atomicity alone does not make safe. `loadPlugin` is invoked from the initial load, the install
      * flow, and the hot-reload watcher, so these can overlap.
      */
@@ -125,14 +123,14 @@ class DefaultPluginFactoryRepository(
             val removedPluginIds = jarPathToPluginIds[pluginJarPath].orEmpty() - newPluginIds.toSet()
             jarPathToPluginIds[pluginJarPath] = newPluginIds
 
-            mutablePluginsFlow.update { current ->
+            loadedPluginsFlow.update { current ->
                 current.toMutableMap().apply {
                     removedPluginIds.forEach { remove(it) }
                     loaded.forEach { put(it.manifest.pluginId, it) }
                 }.toPersistentMap()
             }
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
-            mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
+            failedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -148,7 +146,7 @@ class DefaultPluginFactoryRepository(
 
     /** Records [pluginJarPath] as failed with [reason], replacing any previous failure for the jar. */
     private fun recordFailedJar(pluginJarPath: String, reason: String) {
-        mutableFailedJarsFlow.update { failed ->
+        failedJarsFlow.update { failed ->
             failed.filterNot { it.jarPath == pluginJarPath } + FailedPluginJar(pluginJarPath, reason)
         }
     }
@@ -253,12 +251,12 @@ class DefaultPluginFactoryRepository(
 
     override suspend fun unloadPluginJar(pluginJarPath: String): Unit = loadMutex.withLock {
         val pluginIds = jarPathToPluginIds.remove(pluginJarPath).orEmpty()
-        mutablePluginsFlow.update { current ->
+        loadedPluginsFlow.update { current ->
             current.toMutableMap().apply { pluginIds.forEach(::remove) }.toPersistentMap()
         }
         classLoaders.remove(pluginJarPath)?.close()
         runtimeJars.remove(pluginJarPath)
-        mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
+        failedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         pluginIds.forEach { println("Unloaded plugin: $it") }
     }
 
@@ -266,7 +264,7 @@ class DefaultPluginFactoryRepository(
 
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
         loadPluginUnderLock(pluginJarPath, expectedSha256)
-        if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
+        if (failedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
             emptyList()
         } else {
             jarPathToPluginIds[pluginJarPath].orEmpty()
