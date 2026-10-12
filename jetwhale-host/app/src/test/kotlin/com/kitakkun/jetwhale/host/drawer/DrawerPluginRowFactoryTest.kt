@@ -30,7 +30,7 @@ class DrawerPluginRowFactoryTest {
 
     @Test
     fun `a plugin that runs in the host session and in the selected app gets a row for each session`() {
-        val rows = factory(selectedSession = app, selectedPluginSessionId = null).createRows(listOf(bothSessionsPlugin))
+        val rows = factory(selectedSession = app, isSelectedRowInHostSession = false).createRows(listOf(bothSessionsPlugin))
 
         assertEquals(listOf(HostSession.ID, app.id), rows.map(DrawerPluginItemUiState::sessionId))
         assertEquals(2, rows.map(DrawerPluginItemUiState::rowKey).toSet().size)
@@ -38,37 +38,46 @@ class DrawerPluginRowFactoryTest {
 
     @Test
     fun `a plugin that also runs in apps keeps only its host row while the selected app lacks it`() {
-        val rows = factory(selectedSession = appWithoutPlugin, selectedPluginSessionId = null).createRows(listOf(bothSessionsPlugin))
+        val rows = factory(selectedSession = appWithoutPlugin, isSelectedRowInHostSession = false).createRows(listOf(bothSessionsPlugin))
 
         assertEquals(listOf<String?>(HostSession.ID), rows.map(DrawerPluginItemUiState::sessionId))
     }
 
     @Test
     fun `a plugin that also runs in apps keeps its host row with no app selected`() {
-        val rows = factory(selectedSession = null, selectedPluginSessionId = null).createRows(listOf(bothSessionsPlugin))
+        val rows = factory(selectedSession = null, isSelectedRowInHostSession = false).createRows(listOf(bothSessionsPlugin))
 
         assertEquals(listOf<String?>(HostSession.ID), rows.map(DrawerPluginItemUiState::sessionId))
     }
 
     @Test
     fun `an app plugin the selected app lacks stays listed as not in the app`() {
-        val rows = factory(selectedSession = appWithoutPlugin, selectedPluginSessionId = null).createRows(listOf(plugin(requiresAgent = true, targetsHostSession = false)))
+        val rows = factory(selectedSession = appWithoutPlugin, isSelectedRowInHostSession = false).createRows(listOf(plugin(requiresAgent = true, targetsHostSession = false)))
 
         assertEquals(listOf(app.id to PluginAvailability.Unavailable), rows.map { it.sessionId to it.pluginAvailability })
     }
 
     @Test
     fun `a host-only plugin has a single row in the host section`() {
-        val rows = factory(selectedSession = app, selectedPluginSessionId = null).createRows(listOf(plugin(requiresAgent = false, targetsHostSession = true)))
+        val rows = factory(selectedSession = app, isSelectedRowInHostSession = false).createRows(listOf(plugin(requiresAgent = false, targetsHostSession = true)))
 
         assertEquals(listOf<String?>(HostSession.ID), rows.map(DrawerPluginItemUiState::sessionId))
     }
 
     @Test
     fun `only the row of the session that was opened is selected`() {
-        val rows = factory(selectedSession = app, selectedPluginSessionId = HostSession.ID).createRows(listOf(bothSessionsPlugin))
+        val rows = factory(selectedSession = app, isSelectedRowInHostSession = true).createRows(listOf(bothSessionsPlugin))
 
         assertEquals(listOf(HostSession.ID to true, app.id to false), rows.map { it.sessionId to it.isSelected })
+    }
+
+    @Test
+    fun `an opened app row stays selected when another app that includes the plugin is selected`() {
+        val otherApp = app.copy(id = "app-2")
+
+        val rows = factory(selectedSession = otherApp, isSelectedRowInHostSession = false).createRows(listOf(bothSessionsPlugin))
+
+        assertEquals(listOf(HostSession.ID to false, otherApp.id to true), rows.map { it.sessionId to it.isSelected })
     }
 
     @Test
@@ -87,7 +96,7 @@ class DrawerPluginRowFactoryTest {
                 arguments = persistentListOf(),
             ),
             selectedPluginId = "",
-            selectedPluginSessionId = null,
+            isSelectedRowInHostSession = false,
         ).createRows(listOf(bothSessionsPlugin))
 
         assertEquals(
@@ -96,14 +105,14 @@ class DrawerPluginRowFactoryTest {
         )
     }
 
-    private fun factory(selectedSession: DebugSession?, selectedPluginSessionId: String?) = DrawerPluginRowFactory(
+    private fun factory(selectedSession: DebugSession?, isSelectedRowInHostSession: Boolean) = DrawerPluginRowFactory(
         selectedSession = selectedSession,
         enabledPluginIds = setOf(PLUGIN_ID),
         mcpCapablePlugins = McpCapablePlugins.Empty,
         headlessPlugins = HeadlessPlugins.Empty,
         activeInvocation = null,
         selectedPluginId = PLUGIN_ID,
-        selectedPluginSessionId = selectedPluginSessionId,
+        isSelectedRowInHostSession = isSelectedRowInHostSession,
     )
 
     private fun plugin(requiresAgent: Boolean, targetsHostSession: Boolean) = PluginMetaData(

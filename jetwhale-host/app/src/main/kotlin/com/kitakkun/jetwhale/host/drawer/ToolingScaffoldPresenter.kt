@@ -121,7 +121,7 @@ fun toolingScaffoldPresenter(
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
-    var selectedPluginSessionId by retain { mutableStateOf<String?>(null) }
+    var isSelectedRowInHostSession by retain { mutableStateOf(false) }
     val selectedSession by remember(debugSessions, selectedSessionId) {
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
@@ -137,7 +137,7 @@ fun toolingScaffoldPresenter(
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation, selectedPluginId, selectedPluginSessionId) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation, selectedPluginId, isSelectedRowInHostSession) {
         derivedStateOf {
             DrawerPluginRowFactory(
                 selectedSession = selectedSession,
@@ -146,7 +146,7 @@ fun toolingScaffoldPresenter(
                 headlessPlugins = headlessPlugins,
                 activeInvocation = activeInvocation,
                 selectedPluginId = selectedPluginId,
-                selectedPluginSessionId = selectedPluginSessionId,
+                isSelectedRowInHostSession = isSelectedRowInHostSession,
             ).createRows(loadedPlugins)
         }
     }
@@ -163,12 +163,11 @@ fun toolingScaffoldPresenter(
         when (action) {
             is ToolingScaffoldScreenAction.SelectSession -> {
                 selectedSessionId = action.session.id
-                if (!HostSession.isHost(selectedPluginSessionId)) selectedPluginSessionId = action.session.id
             }
 
             is ToolingScaffoldScreenAction.UpdateSelectedPlugin -> {
                 selectedPluginId = action.pluginId
-                selectedPluginSessionId = action.sessionId
+                isSelectedRowInHostSession = HostSession.isHost(action.sessionId)
             }
 
             is ToolingScaffoldScreenAction.SetPluginEnabled -> {
@@ -229,7 +228,7 @@ internal class DrawerPluginRowFactory(
     private val headlessPlugins: HeadlessPlugins,
     private val activeInvocation: McpToolInvocation?,
     private val selectedPluginId: String,
-    private val selectedPluginSessionId: String?,
+    private val isSelectedRowInHostSession: Boolean,
 ) {
     /**
      * One row in the host section for each plugin that runs in the host session, and one among the
@@ -257,7 +256,7 @@ internal class DrawerPluginRowFactory(
         activeIconResource = metaData.activeIconResource,
         inactiveIconResource = metaData.inactiveIconResource,
         pluginAvailability = availability,
-        isSelected = metaData.id == selectedPluginId && sessionId == selectedPluginSessionId,
+        isSelected = metaData.id == selectedPluginId && HostSession.isHost(sessionId) == isSelectedRowInHostSession,
         underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
         exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
         isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),

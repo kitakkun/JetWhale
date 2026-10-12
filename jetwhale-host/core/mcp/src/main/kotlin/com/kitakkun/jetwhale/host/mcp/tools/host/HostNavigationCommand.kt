@@ -110,9 +110,24 @@ class HostNavigationCommand(
             val targetPluginId = this[pluginId]
                 ?: throw JetWhaleMcpArgumentException("missing required argument: pluginId is required when destination is PLUGIN")
             validatePlugin(targetPluginId, this[sessionId])
-            val targetSessionId = if (reconciliationService.requiresAgent(targetPluginId)) this[sessionId] else HostSession.ID
-            HostNavigationRequest.Plugin(targetPluginId, targetSessionId, followsAgent = false)
+            HostNavigationRequest.Plugin(targetPluginId, resolveTargetSessionId(targetPluginId, this[sessionId]), followsAgent = false)
         }
+    }
+
+    /**
+     * The session [targetPluginId] opens in. Null leaves it to the drawer's selected app. A plugin
+     * that runs in the host session as well is resolved here rather than in the window, so that the
+     * confirmation waits for the session it lands in, not for whichever one is already on screen.
+     */
+    private suspend fun resolveTargetSessionId(targetPluginId: String, requestedSessionId: String?): String? {
+        if (!reconciliationService.requiresAgent(targetPluginId)) return HostSession.ID
+        if (requestedSessionId != null) return requestedSessionId
+        if (!pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.targetsHostSession) return null
+        val selectedSessionId = hostNavigationService.currentView.value?.selectedSessionId
+        val selectedAppIncludesPlugin = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any { session ->
+            session.id == selectedSessionId && session.isActive && session.installedPlugins.any { it.pluginId == targetPluginId }
+        }
+        return if (selectedAppIncludesPlugin) selectedSessionId else HostSession.ID
     }
 
     /** Turns the ways a plugin screen can silently fail to open into distinct errors. */

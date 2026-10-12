@@ -1,7 +1,8 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -9,13 +10,14 @@ import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class ShrunkToolingDrawerViewTest {
-    private val session = DebugSession(
+    private val appSession = DebugSession(
         id = "app-1",
         name = "Sample",
         isActive = true,
@@ -27,32 +29,42 @@ class ShrunkToolingDrawerViewTest {
     )
 
     @Test
-    fun `the rail shows both rows of a plugin that runs in the host session and in the app, each opening its own session`() = runComposeUiTest {
-        val opened = mutableListOf<String?>()
+    fun `the rail shows both rows of a plugin that runs in the host session and in the app, each named and opening its own session`() = runComposeUiTest {
+        val openedSessionIds = mutableListOf<String?>()
+        showRail(persistentListOf(row(sessionId = HostSession.ID), row(sessionId = appSession.id)), onClickPlugin = { openedSessionIds += it.sessionId })
+
+        onNodeWithContentDescription("Inspector · without an app").performClick()
+        onNodeWithContentDescription("Inspector · Sample").performClick()
+
+        assertEquals(listOf<String?>(HostSession.ID, appSession.id), openedSessionIds)
+    }
+
+    @Test
+    fun `a plugin listed once in the rail keeps its plain name`() = runComposeUiTest {
+        showRail(persistentListOf(row(sessionId = appSession.id)), onClickPlugin = {})
+
+        onNodeWithContentDescription("Inspector").assertExists()
+    }
+
+    private fun ComposeUiTest.showRail(plugins: ImmutableList<DrawerPluginItemUiState>, onClickPlugin: (DrawerPluginItemUiState) -> Unit) {
         setContent {
             JwTheme(darkTheme = false) {
                 ShrunkToolingDrawerView(
-                    plugins = persistentListOf(row(sessionId = HostSession.ID), row(sessionId = session.id)),
-                    sessions = persistentListOf(session),
-                    selectedSession = session,
+                    plugins = plugins,
+                    sessions = persistentListOf(appSession),
+                    selectedSession = appSession,
                     aiActivity = AiActivityUiState.Idle,
                     onFollowAiOperationChange = {},
                     onOpenMcpSettings = {},
                     onClickExpandMenu = {},
                     onClickSettings = {},
-                    onClickPlugin = { opened += it.sessionId },
+                    onClickPlugin = onClickPlugin,
                     onClickInfo = {},
                     onOpenAllMcpTools = {},
                     onSelectSession = {},
                 )
             }
         }
-
-        val buttons = onAllNodesWithContentDescription("Inspector")
-        buttons[0].performClick()
-        buttons[1].performClick()
-
-        assertEquals(listOf<String?>(HostSession.ID, session.id), opened)
     }
 
     private fun row(sessionId: String) = DrawerPluginItemUiState(

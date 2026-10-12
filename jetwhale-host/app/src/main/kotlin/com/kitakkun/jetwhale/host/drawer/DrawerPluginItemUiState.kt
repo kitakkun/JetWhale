@@ -11,7 +11,8 @@ import com.kitakkun.jetwhale.host.model.PluginIconResource
  * @property sessionId The session whose instance this row opens: [HostSession.ID] for a row in the
  *   host section, which is usable with no app connected; otherwise the selected app, or null while no
  *   app is selected.
- * @property isSelected True for the row the user last opened, matched by plugin and session.
+ * @property isSelected True for the row the user last opened, matched by plugin and by section. A row
+ *   among the app's plugins stays selected when another app is selected, as its open screen follows.
  * @property underAiControl True while an AI agent is driving this row's instance.
  * @property exposesMcpTools True when this row's instance publishes MCP tools of its own.
  * @property isHeadless True when this row's instance renders no UI, so opening it shows nothing.

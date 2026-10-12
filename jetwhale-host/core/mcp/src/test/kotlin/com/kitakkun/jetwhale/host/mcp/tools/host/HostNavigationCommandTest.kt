@@ -30,6 +30,7 @@ import dev.mokkery.verifySuspend
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -385,9 +386,29 @@ class HostNavigationCommandTest {
     }
 
     @Test
-    fun `navigate leaves the session of a plugin that also runs in apps to the window when none is named`() = runBlocking {
+    fun `navigate opens a plugin that also runs in apps in the selected app when no session is named and that app includes it`() = runBlocking {
         currentView.value = viewState(
             HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = HostSession.ID),
+        )
+        launch {
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = "session-1"))
+        }
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.both")))
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals("session-1", result.sessionId)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", "session-1", followsAgent = false)) }
+    }
+
+    @Test
+    fun `navigate opens a plugin that also runs in apps in the host session when no session is named and the selected app lacks it`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = HostSession.ID),
+            selectedSessionId = "session-closed",
+            selectedPluginId = "com.example.both",
         )
 
         val result = command
@@ -395,7 +416,8 @@ class HostNavigationCommandTest {
             .decode()
 
         assertTrue(result.applied)
-        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", null, followsAgent = false)) }
+        assertEquals(HostSession.ID, result.sessionId)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", HostSession.ID, followsAgent = false)) }
     }
 }
 
