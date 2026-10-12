@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
 
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_HOTSPOT_STANDALONE") // Split into smaller composables in a follow-up, tracked in #450.
 context(presenterContext: SettingsPresenterContext)
 fun generalSettingsScreenPresenter(
     screenChannel: ScreenChannel<GeneralSettingsScreenAction, Nothing>,

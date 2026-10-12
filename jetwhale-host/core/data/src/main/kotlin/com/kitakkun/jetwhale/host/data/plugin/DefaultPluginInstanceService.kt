@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -82,8 +81,8 @@ class DefaultPluginInstanceService(
 
     // Unbounded: the server stopping disposes every app session's instances in one burst, and a
     // dropped Disposed would leave that instance's MCP tools listed.
-    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = Channel.UNLIMITED)
-    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
+    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+        field = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = Channel.UNLIMITED)
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
@@ -109,7 +108,7 @@ class DefaultPluginInstanceService(
 
         publishHeadlessPlugins()
         newlyInitializedSessions.forEach { sessionId ->
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
+            pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
     }
@@ -266,7 +265,7 @@ class DefaultPluginInstanceService(
             }
         }
         publishHeadlessPlugins()
-        mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+        pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**

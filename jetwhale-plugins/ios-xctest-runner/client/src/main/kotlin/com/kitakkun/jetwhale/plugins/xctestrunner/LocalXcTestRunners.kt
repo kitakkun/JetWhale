@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -107,11 +108,14 @@ internal class LocalXcTestRunners(
         val destination = destinationOf(target)
         if (destination in failedDestinations) return
         scope.launch {
+            // Nothing waits on a background start; the next runnerFor tries again and throws what
+            // fails to its caller.
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 attach(destination)
-            } catch (_: XcTestRunnerException) {
-                // Nothing waits on a background start; the next runnerFor tries again and reports why
-                // it fails.
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
             }
         }
     }

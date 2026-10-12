@@ -31,6 +31,7 @@ class DocsScreenshotRecorder(private val imagesDirectory: DocsImagesDirectory) {
      * blinking caret, would otherwise be in the picture.
      */
     @OptIn(ExperimentalTestApi::class, InternalComposeUiApi::class)
+    @Suppress("KOTRAIL_NATIVE_ALLOCATION_IN_LOOP", "KOTRAIL_NATIVE_ALLOCATION_THROUGH_CALL_IN_LOOP") // Two iterations, one per theme, in a test JVM that ends soon after.
     fun record(screenshot: DocsScreenshot, showState: suspend SkikoComposeUiTest.(darkTheme: Boolean) -> SemanticsNodeInteraction) {
         for (darkTheme in listOf(false, true)) {
             val density = Density(screenshot.density)

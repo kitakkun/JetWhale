@@ -2,9 +2,10 @@ package com.kitakkun.jetwhale.plugins.xctestrunner
 
 import kotlinx.coroutines.delay
 import java.io.File
-import java.io.RandomAccessFile
+import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
+import java.nio.file.StandardOpenOption
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 
@@ -19,7 +20,7 @@ private const val LOCK_POLL_MILLIS = 100L
  */
 internal suspend fun <T> withFileLock(lockFile: File, timeout: Duration, block: suspend () -> T): T {
     lockFile.parentFile.mkdirs()
-    RandomAccessFile(lockFile, "rw").channel.use { channel ->
+    FileChannel.open(lockFile.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
         val waitingSince = TimeSource.Monotonic.markNow()
         var lock: FileLock? = null
         while (lock == null) {

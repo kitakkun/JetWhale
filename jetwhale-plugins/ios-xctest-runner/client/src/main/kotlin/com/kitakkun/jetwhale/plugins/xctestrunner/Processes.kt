@@ -47,9 +47,9 @@ internal class ProcessCommandOutputRunner(
         val process = processLauncher.start(command)
         val output = KeptOutput(process, maxLines = Int.MAX_VALUE)
         try {
-            val exited = withTimeoutOrNull(timeout) { process.onExit().await() }
+            val exitedProcess = withTimeoutOrNull(timeout) { process.onExit().await() }
                 ?: throw XcTestRunnerStartException("'${command.take(3).joinToString(" ")}' did not finish within $timeout, so it was ended", null)
-            CommandOutput(exitCode = exited.exitValue(), text = output.textOnceDrained())
+            CommandOutput(exitCode = exitedProcess.exitValue(), text = output.textOnceDrained())
         } finally {
             if (process.isAlive) {
                 process.destroy()
@@ -98,7 +98,11 @@ internal class KeptOutput(process: Process, private val maxLines: Int) {
     private val lines = ArrayDeque<String>()
 
     private val readerThreads = listOf(process.inputStream, process.errorStream).map { stream ->
-        thread(isDaemon = true, name = "xctest-runner-output") { keepLastLinesOf(stream) }
+        thread(start = false, isDaemon = true, name = "xctest-runner-output") { keepLastLinesOf(stream) }
+    }
+
+    init {
+        readerThreads.forEach(Thread::start)
     }
 
     /**

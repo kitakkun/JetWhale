@@ -53,7 +53,6 @@ class DefaultAdbAutoPortMappingService(
             while (isActive) {
                 // The tracking loop has to outlive any failure of one adb session: it logs it and
                 // re-attaches.
-                @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                 try {
                     deviceEventFlow().collect { event ->
                         when (event) {

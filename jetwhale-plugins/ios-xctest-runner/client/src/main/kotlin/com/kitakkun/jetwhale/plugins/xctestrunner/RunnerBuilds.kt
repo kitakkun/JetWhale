@@ -4,9 +4,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
 import java.nio.channels.OverlappingFileLockException
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.time.Clock
 import java.util.zip.ZipInputStream
@@ -149,7 +149,7 @@ private fun findCompleteXctestrun(derivedData: File): File? = findXctestrun(deri
 
 /** Deletes [projectDirectory] when no one holds any of its builds' locks, holding them all meanwhile. */
 private fun deleteUnlessLocked(projectDirectory: File) {
-    val channels = projectDirectory.listFiles { file -> file.extension == "lock" }.orEmpty().map { RandomAccessFile(it, "rw").channel }
+    val channels = projectDirectory.listFiles { file -> file.extension == "lock" }.orEmpty().map { FileChannel.open(it.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE) }
     try {
         val locks = channels.map { channel ->
             try {
