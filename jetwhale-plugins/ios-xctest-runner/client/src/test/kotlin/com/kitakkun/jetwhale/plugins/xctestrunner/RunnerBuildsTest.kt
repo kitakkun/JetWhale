@@ -2,8 +2,9 @@ package com.kitakkun.jetwhale.plugins.xctestrunner
 
 import kotlinx.coroutines.runBlocking
 import java.io.File
-import java.io.RandomAccessFile
+import java.nio.channels.FileChannel
 import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -87,7 +88,7 @@ class RunnerBuildsTest {
     @Test
     fun `a stale build another plugin holds locked is left for later`() = runBlocking {
         val otherXcodeProject = createProjectDirectory("26E100-0000000000000000", lastUsed = NOW)
-        RandomAccessFile(File(otherXcodeProject, "simulator.lock"), "rw").channel.use { channel ->
+        FileChannel.open(File(otherXcodeProject, "simulator.lock").toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
             channel.lock().use {
                 builds().xctestrunFor(RunnerDestination.Simulator("SIM-1"))
             }

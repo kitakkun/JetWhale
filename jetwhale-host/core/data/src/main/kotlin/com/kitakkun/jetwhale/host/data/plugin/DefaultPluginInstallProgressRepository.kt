@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultPluginInstallProgressRepository : PluginInstallProgressRepository {
-    private val mutableProgressFlow = MutableStateFlow<PluginInstallProgress?>(null)
-    override val progressFlow: Flow<PluginInstallProgress?> = mutableProgressFlow
+    override val progressFlow: Flow<PluginInstallProgress?>
+        field = MutableStateFlow<PluginInstallProgress?>(null)
 
     override fun update(progress: PluginInstallProgress?) {
-        mutableProgressFlow.value = progress
+        progressFlow.value = progress
     }
 }

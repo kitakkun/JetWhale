@@ -41,8 +41,8 @@ class DefaultDebugWebSocketServer(
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     override val statusFlow: StateFlow<DebugWebSocketServerStatus> get() = ktorWebSocketServer.statusFlow
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
-    private val mutableServerStoppedFlow: MutableSharedFlow<Unit> = MutableSharedFlow()
-    override val serverStoppedFlow: Flow<Unit> = mutableServerStoppedFlow
+    override val serverStoppedFlow: Flow<Unit>
+        field = MutableSharedFlow<Unit>()
 
     private var serverMonitoringJob: Job? = null
 
@@ -63,7 +63,7 @@ class DefaultDebugWebSocketServer(
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAppSessionPluginInstances()
-        mutableServerStoppedFlow.emit(Unit)
+        serverStoppedFlow.emit(Unit)
     }
 
     private fun subscribeServerEvents() {

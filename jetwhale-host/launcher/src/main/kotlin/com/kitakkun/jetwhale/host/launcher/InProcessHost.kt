@@ -22,6 +22,7 @@ import java.nio.file.Files
  * @param writesOutputToLog Whether the host's standard output and error go to its version's log
  * file; a `--headless` host keeps the launcher's.
  */
+@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER") // A null launcherExecutable reaches the host as an unset property: it cannot restart through the launcher.
 class InProcessHost(
     private val hostDirectory: HostDirectory,
     private val platformKey: String,
