@@ -35,7 +35,7 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
     /** `wire/<project>.wire`, which does not exist before the first `dumpWireSchema`. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val committedWireSchema: ConfigurableFileCollection
+    abstract val committedWireSchemaFile: ConfigurableFileCollection
 
     @get:OutputDirectory
     abstract val kotlinSourceDirectory: DirectoryProperty
@@ -55,13 +55,13 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
         if (protocolRevision < 1) {
             throw GradleException("jetwhaleProtocol.protocolRevision starts at 1, but it is $protocolRevision.")
         }
-        if (!contractQualifiedName.matches(QUALIFIED_NAME)) {
+        if (!contractQualifiedName.matches(QUALIFIED_NAME_REGEX)) {
             throw GradleException("jetwhaleProtocol.contractQualifiedName must be a qualified Kotlin name such as com.example.MyPluginContract, not '$contractQualifiedName'.")
         }
         if (releaseVersion == UNSPECIFIED_VERSION) {
             throw GradleException("Set the module's version: it is the plugin's release version, which the contract carries.")
         }
-        val wireSchemaHash = committedWireSchema.files.singleOrNull { it.isFile }?.let { WireSchema.parse(it.readText()).hash() }
+        val wireSchemaHash = committedWireSchemaFile.files.singleOrNull { it.isFile }?.let { WireSchema.parse(it.readText()).hash() }
 
         val packageName = contractQualifiedName.substringBeforeLast('.', missingDelimiterValue = "")
         val propertyName = contractQualifiedName.substringAfterLast('.')
@@ -81,8 +81,8 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
                     appendLine()
                     appendLine("/** The wire contract of $pluginId: its release version, protocol revision and wire schema hash. */")
                     appendLine("public val $propertyName: JetWhalePluginContract = JetWhalePluginContract(")
-                    appendLine("    pluginId = \"${kotlinStringContent(pluginId)}\",")
-                    appendLine("    releaseVersion = \"${kotlinStringContent(releaseVersion)}\",")
+                    appendLine("    pluginId = \"${escapeForKotlinStringLiteral(pluginId)}\",")
+                    appendLine("    releaseVersion = \"${escapeForKotlinStringLiteral(releaseVersion)}\",")
                     appendLine("    protocolRevision = $protocolRevision,")
                     appendLine("    wireSchemaHash = ${wireSchemaHash?.let { "\"$it\"" } ?: "null"},")
                     appendLine(")")
@@ -97,8 +97,8 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
             writeText(
                 buildString {
                     appendLine("{")
-                    appendLine("  \"pluginId\": \"${jsonStringContent(pluginId)}\",")
-                    appendLine("  \"releaseVersion\": \"${jsonStringContent(releaseVersion)}\",")
+                    appendLine("  \"pluginId\": \"${escapeForJsonString(pluginId)}\",")
+                    appendLine("  \"releaseVersion\": \"${escapeForJsonString(releaseVersion)}\",")
                     appendLine("  \"protocolRevision\": $protocolRevision,")
                     appendLine("  \"wireSchemaHash\": ${wireSchemaHash?.let { "\"$it\"" } ?: "null"}")
                     appendLine("}")
@@ -107,12 +107,12 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
         }
     }
 
-    private fun kotlinStringContent(value: String): String = value
+    private fun escapeForKotlinStringLiteral(value: String): String = value
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("$", "\\$")
 
-    private fun jsonStringContent(value: String): String = buildString {
+    private fun escapeForJsonString(value: String): String = buildString {
         value.forEach { char ->
             when {
                 char == '"' -> append("\\\"")
@@ -125,6 +125,6 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
 
     private companion object {
         const val UNSPECIFIED_VERSION = "unspecified"
-        val QUALIFIED_NAME = Regex("([A-Za-z_][A-Za-z0-9_]*\\.)*[A-Za-z_][A-Za-z0-9_]*")
+        val QUALIFIED_NAME_REGEX = Regex("([A-Za-z_][A-Za-z0-9_]*\\.)*[A-Za-z_][A-Za-z0-9_]*")
     }
 }

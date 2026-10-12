@@ -29,7 +29,7 @@ internal class WireSchemaClassifier(
 
     private inner class SideBySideWalk {
         private val changes = mutableListOf<WireSchemaChange>()
-        private val comparedShapePairs = mutableSetOf<Pair<String, String>>()
+        private val comparedSerialNamePairs = mutableSetOf<Pair<String, String>>()
 
         fun classifyMessageChanges(): List<WireSchemaChange> {
             (previous.messages.keys + next.messages.keys).sorted().forEach { serialName ->
@@ -37,21 +37,21 @@ internal class WireSchemaClassifier(
                 val nextMessage = next.messages[serialName]
                 when {
                     nextMessage == null && previousMessage!!.kind == WireMessageKind.EVENT ->
-                        additive(serialName, "event removed; an older peer's sends are skipped")
+                        addAdditiveChange(serialName, "event removed; an older peer's sends are skipped")
 
-                    nextMessage == null -> breaking(serialName, "request removed; an older peer may still send it and gets a failure")
+                    nextMessage == null -> addBreakingChange(serialName, "request removed; an older peer may still send it and gets a failure")
 
-                    previousMessage == null && nextMessage.kind == WireMessageKind.EVENT -> additive(serialName, "event added; an older peer skips it")
+                    previousMessage == null && nextMessage.kind == WireMessageKind.EVENT -> addAdditiveChange(serialName, "event added; an older peer skips it")
 
-                    previousMessage == null -> breaking(serialName, "request added; an older peer answers it with a failure, which request throws")
+                    previousMessage == null -> addBreakingChange(serialName, "request added; an older peer answers it with a failure, which request throws")
 
                     previousMessage.kind != nextMessage.kind ->
-                        breaking(serialName, "changed from ${previousMessage.kind.name.lowercase()} to ${nextMessage.kind.name.lowercase()}")
+                        addBreakingChange(serialName, "changed from ${previousMessage.kind.name.lowercase()} to ${nextMessage.kind.name.lowercase()}")
 
                     else -> {
                         compareShapes(serialName, serialName, serialName)
-                        if (previousMessage.reply != null && nextMessage.reply != null) {
-                            compareTypes(previousMessage.reply, nextMessage.reply, "$serialName (reply)")
+                        if (previousMessage.replyType != null && nextMessage.replyType != null) {
+                            compareTypes(previousMessage.replyType, nextMessage.replyType, "$serialName (reply)")
                         }
                     }
                 }
@@ -59,61 +59,61 @@ internal class WireSchemaClassifier(
             return changes
         }
 
-        private fun compareShapes(previousName: String, nextName: String, path: String) {
-            if (!comparedShapePairs.add(previousName to nextName)) return
-            val previousShape = previous.shapes.getValue(previousName)
-            val nextShape = next.shapes.getValue(nextName)
+        private fun compareShapes(previousSerialName: String, nextSerialName: String, path: String) {
+            if (!comparedSerialNamePairs.add(previousSerialName to nextSerialName)) return
+            val previousShape = previous.shapes.getValue(previousSerialName)
+            val nextShape = next.shapes.getValue(nextSerialName)
             when {
                 previousShape is ClassShape && nextShape is ClassShape -> compareFields(previousShape, nextShape, path)
 
                 previousShape is ObjectShape && nextShape is ObjectShape -> Unit
 
                 previousShape is EnumShape && nextShape is EnumShape -> {
-                    (nextShape.entries - previousShape.entries).sorted().forEach { breaking(path, "enum entry $it added; an older peer cannot decode it") }
-                    (previousShape.entries - nextShape.entries).sorted().forEach { breaking(path, "enum entry $it removed; an older peer may still send it") }
+                    (nextShape.entries - previousShape.entries).sorted().forEach { addBreakingChange(path, "enum entry $it added; an older peer cannot decode it") }
+                    (previousShape.entries - nextShape.entries).sorted().forEach { addBreakingChange(path, "enum entry $it removed; an older peer may still send it") }
                 }
 
                 previousShape is SealedShape && nextShape is SealedShape -> {
                     if (previousShape.discriminator != nextShape.discriminator) {
-                        breaking(path, "class discriminator changed from ${previousShape.discriminator} to ${nextShape.discriminator}")
+                        addBreakingChange(path, "class discriminator changed from ${previousShape.discriminator} to ${nextShape.discriminator}")
                     }
-                    (nextShape.subtypes - previousShape.subtypes).sorted().forEach { breaking(path, "sealed subtype $it added; an older peer cannot decode it") }
-                    (previousShape.subtypes - nextShape.subtypes).sorted().forEach { breaking(path, "sealed subtype $it removed; an older peer may still send it") }
-                    (previousShape.subtypes intersect nextShape.subtypes).sorted().forEach { compareShapes(it, it, "$path<$it>") }
+                    (nextShape.subtypeSerialNames - previousShape.subtypeSerialNames).sorted().forEach { addBreakingChange(path, "sealed subtype $it added; an older peer cannot decode it") }
+                    (previousShape.subtypeSerialNames - nextShape.subtypeSerialNames).sorted().forEach { addBreakingChange(path, "sealed subtype $it removed; an older peer may still send it") }
+                    (previousShape.subtypeSerialNames intersect nextShape.subtypeSerialNames).sorted().forEach { compareShapes(it, it, "$path<$it>") }
                 }
 
-                else -> breaking(path, "changed from ${previousShape.kindName} to ${nextShape.kindName}")
+                else -> addBreakingChange(path, "changed from ${previousShape.kindName} to ${nextShape.kindName}")
             }
         }
 
         private fun compareFields(previousShape: ClassShape, nextShape: ClassShape, path: String) {
-            (previousShape.fields.keys + nextShape.fields.keys).sorted().forEach { name ->
-                val previousField = previousShape.fields[name]
-                val nextField = nextShape.fields[name]
-                val fieldPath = "$path.$name"
+            (previousShape.fields.keys + nextShape.fields.keys).sorted().forEach { fieldName ->
+                val previousField = previousShape.fields[fieldName]
+                val nextField = nextShape.fields[fieldName]
+                val fieldPath = "$path.$fieldName"
                 when {
-                    nextField == null && previousField!!.isOptional -> additive(fieldPath, "optional field removed; an older peer falls back to its default")
+                    nextField == null && previousField!!.isOptional -> addAdditiveChange(fieldPath, "optional field removed; an older peer falls back to its default")
 
-                    nextField == null -> breaking(fieldPath, "required field removed; an older peer still requires it")
+                    nextField == null -> addBreakingChange(fieldPath, "required field removed; an older peer still requires it")
 
-                    previousField == null && nextField.isOptional -> additive(fieldPath, "optional field added; an older peer ignores it")
+                    previousField == null && nextField.isOptional -> addAdditiveChange(fieldPath, "optional field added; an older peer ignores it")
 
-                    previousField == null -> breaking(fieldPath, "required field added; an older peer does not send it")
+                    previousField == null -> addBreakingChange(fieldPath, "required field added; an older peer does not send it")
 
                     else -> {
                         when {
-                            previousField.isOptional && !nextField.isOptional -> breaking(fieldPath, "became required; an older peer may leave it out")
+                            previousField.isOptional && !nextField.isOptional -> addBreakingChange(fieldPath, "became required; an older peer may leave it out")
 
                             !previousField.isOptional && nextField.isOptional && nextField.isOmittedAtDefault ->
-                                breaking(fieldPath, "became optional but is omitted at its default; an older peer requires it")
+                                addBreakingChange(fieldPath, "became optional but is omitted at its default; an older peer requires it")
 
-                            !previousField.isOptional && nextField.isOptional -> additive(fieldPath, "became optional; it is still sent at its default")
+                            !previousField.isOptional && nextField.isOptional -> addAdditiveChange(fieldPath, "became optional; it is still sent at its default")
 
                             previousField.isOmittedAtDefault != nextField.isOmittedAtDefault ->
-                                additive(fieldPath, if (nextField.isOmittedAtDefault) "now omitted at its default" else "now sent at its default")
+                                addAdditiveChange(fieldPath, if (nextField.isOmittedAtDefault) "now omitted at its default" else "now sent at its default")
                         }
                         if (previousField.alsoReadAs != nextField.alsoReadAs) {
-                            additive(fieldPath, "also read as ${nextField.alsoReadAs.sorted().ifEmpty { listOf("nothing else") }.joinToString(", ")}")
+                            addAdditiveChange(fieldPath, "also read as ${nextField.alsoReadAs.sorted().ifEmpty { listOf("nothing else") }.joinToString(", ")}")
                         }
                         compareTypes(previousField.type, nextField.type, fieldPath)
                     }
@@ -123,12 +123,12 @@ internal class WireSchemaClassifier(
 
         private fun compareTypes(previousType: WireTypeRef, nextType: WireTypeRef, path: String) {
             when {
-                previousType.isNullable != nextType.isNullable -> breaking(path, "nullability changed from $previousType to $nextType")
+                previousType.isNullable != nextType.isNullable -> addBreakingChange(path, "nullability changed from $previousType to $nextType")
 
                 previousType.isShape && nextType.isShape -> compareShapes(previousType.head, nextType.head, path)
 
                 previousType.head != nextType.head || previousType.arguments.size != nextType.arguments.size ->
-                    breaking(path, "type changed from $previousType to $nextType")
+                    addBreakingChange(path, "type changed from $previousType to $nextType")
 
                 else -> previousType.arguments.zip(nextType.arguments).forEachIndexed { index, (previousArgument, nextArgument) ->
                     val argumentPath = when {
@@ -141,11 +141,11 @@ internal class WireSchemaClassifier(
             }
         }
 
-        private fun breaking(path: String, description: String) {
+        private fun addBreakingChange(path: String, description: String) {
             changes += WireSchemaChange(isBreaking = true, path, description)
         }
 
-        private fun additive(path: String, description: String) {
+        private fun addAdditiveChange(path: String, description: String) {
             changes += WireSchemaChange(isBreaking = false, path, description)
         }
 

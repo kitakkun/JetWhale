@@ -27,7 +27,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 class JetWhaleProtocolPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("jetwhaleProtocol", JetWhaleProtocolExtension::class.java)
-        val committedWireSchemaFile = project.layout.projectDirectory.file("wire/${project.name}.wire")
+        val committedWireSchemaLocation = project.layout.projectDirectory.file("wire/${project.name}.wire")
         val rootDirectory = project.rootDir
         val wireSchemaPathFromRoot = project.projectDir.relativeTo(rootDirectory).resolve("wire/${project.name}.wire").path
         val projectVersion = project.provider { project.version.toString() }
@@ -38,7 +38,7 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
             releaseVersion.set(projectVersion)
             protocolRevision.set(extension.protocolRevision)
             contractQualifiedName.set(extension.contractQualifiedName)
-            committedWireSchema.from(committedWireSchemaFile)
+            committedWireSchemaFile.from(committedWireSchemaLocation)
             kotlinSourceDirectory.set(project.layout.buildDirectory.dir("generated/jetwhale/contract/kotlin"))
             resourceDirectory.set(project.layout.buildDirectory.dir("generated/jetwhale/contract/resources"))
         }
@@ -46,22 +46,22 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
         val extractWireSchema = project.tasks.register("extractWireSchema", ExtractWireSchemaTask::class.java) {
             description = "Reads the wire schema of the compiled JVM classes into the build directory."
             protocolRevision.set(extension.protocolRevision)
-            extractedWireSchema.set(project.layout.buildDirectory.file("jetwhale/wire/${project.name}.wire"))
+            extractedWireSchemaFile.set(project.layout.buildDirectory.file("jetwhale/wire/${project.name}.wire"))
         }
 
         val dumpWireSchema = project.tasks.register("dumpWireSchema", DumpWireSchemaTask::class.java) {
             group = "jetwhale"
             description = "Writes the wire schema of the compiled classes to wire/${project.name}.wire, refusing a breaking change without a new protocolRevision."
-            extractedWireSchema.set(extractWireSchema.flatMap { it.extractedWireSchema })
-            committedWireSchema.set(committedWireSchemaFile)
+            extractedWireSchemaFile.set(extractWireSchema.flatMap { it.extractedWireSchemaFile })
+            committedWireSchemaFile.set(committedWireSchemaLocation)
         }
 
         val checkWireSchema = project.tasks.register("checkWireSchema", CheckWireSchemaTask::class.java) {
             group = "verification"
             description = "Fails when wire/${project.name}.wire is not the wire schema of the compiled classes at the declared protocolRevision."
-            extractedWireSchema.set(extractWireSchema.flatMap { it.extractedWireSchema })
-            committedWireSchema.from(committedWireSchemaFile)
-            baselineWireSchema.from(
+            extractedWireSchemaFile.set(extractWireSchema.flatMap { it.extractedWireSchemaFile })
+            committedWireSchemaFile.from(committedWireSchemaLocation)
+            baselineWireSchemaFile.from(
                 project.providers.gradleProperty("jetwhaleWireSchemaBaselineDir")
                     .map { listOf(rootDirectory.resolve(it).resolve(wireSchemaPathFromRoot)) }
                     .orElse(emptyList()),
@@ -111,7 +111,7 @@ class JetWhaleProtocolPlugin : Plugin<Project> {
         val mainCompilation = target.compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME)
         mainCompilation.defaultSourceSet.resources.srcDir(generateContract.flatMap { it.resourceDirectory })
         extractWireSchema.configure {
-            messageClassDirectories.from(mainCompilation.output.classesDirs)
+            moduleClassDirectories.from(mainCompilation.output.classesDirs)
             mainCompilation.runtimeDependencyFiles?.let { runtimeClasspath.from(it) }
         }
     }

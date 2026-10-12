@@ -20,18 +20,18 @@ dependencies {
 
 // The functional tests' fixtures apply these by id. TestKit puts them in the plugin under test's
 // class loader, which is where the protocol plugin looks up the Kotlin Gradle plugin's types.
-val functionalTestKotlinPlugins: Configuration by configurations.creating {
+val functionalTestKotlinGradlePlugins: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
 
 dependencies {
-    functionalTestKotlinPlugins(libs.kotlinGradlePlugin)
-    functionalTestKotlinPlugins(libs.kotlinxSerializationGradlePlugin)
+    functionalTestKotlinGradlePlugins(libs.kotlinGradlePlugin)
+    functionalTestKotlinGradlePlugins(libs.kotlinxSerializationGradlePlugin)
 }
 
 tasks.pluginUnderTestMetadata {
-    pluginClasspath.from(functionalTestKotlinPlugins)
+    pluginClasspath.from(functionalTestKotlinGradlePlugins)
 }
 
 tasks.test {

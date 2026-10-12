@@ -21,22 +21,22 @@ import org.gradle.work.DisableCachingByDefault
 internal abstract class CheckWireSchemaTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val extractedWireSchema: RegularFileProperty
+    abstract val extractedWireSchemaFile: RegularFileProperty
 
     /** `wire/<project>.wire`, which may not exist yet. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val committedWireSchema: ConfigurableFileCollection
+    abstract val committedWireSchemaFile: ConfigurableFileCollection
 
     /** The baseline's dump of this module, which may not exist when the module is new. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val baselineWireSchema: ConfigurableFileCollection
+    abstract val baselineWireSchemaFile: ConfigurableFileCollection
 
     @TaskAction
     fun checkWireSchema() {
-        val extracted = WireSchema.parse(extractedWireSchema.get().asFile.readText())
-        val committedFile = committedWireSchema.files.singleOrNull { it.isFile }
+        val extracted = WireSchema.parse(extractedWireSchemaFile.get().asFile.readText())
+        val committedFile = committedWireSchemaFile.files.singleOrNull { it.isFile }
             ?: throw GradleException("This module has no wire schema dump. Run dumpWireSchema and commit the wire directory.")
         val committed = WireSchema.parse(committedFile.readText())
 
@@ -59,7 +59,7 @@ internal abstract class CheckWireSchemaTask : DefaultTask() {
             )
         }
 
-        val baselineFile = baselineWireSchema.files.singleOrNull { it.isFile } ?: return
+        val baselineFile = baselineWireSchemaFile.files.singleOrNull { it.isFile } ?: return
         ProtocolRevisionRule.refusalOf(WireSchema.parse(baselineFile.readText()), committed)?.let { refusal ->
             throw GradleException("${committedFile.name} cannot follow the baseline's dump at ${baselineFile.path}. $refusal")
         }

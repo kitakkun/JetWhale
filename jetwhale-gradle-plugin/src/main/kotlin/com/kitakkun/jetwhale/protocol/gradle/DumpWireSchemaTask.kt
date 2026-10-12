@@ -18,15 +18,15 @@ import org.gradle.work.DisableCachingByDefault
 internal abstract class DumpWireSchemaTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val extractedWireSchema: RegularFileProperty
+    abstract val extractedWireSchemaFile: RegularFileProperty
 
     @get:OutputFile
-    abstract val committedWireSchema: RegularFileProperty
+    abstract val committedWireSchemaFile: RegularFileProperty
 
     @TaskAction
     fun dumpWireSchema() {
-        val committedWireSchemaFile = committedWireSchema.get().asFile
-        val extracted = WireSchema.parse(extractedWireSchema.get().asFile.readText())
+        val committedWireSchemaFile = committedWireSchemaFile.get().asFile
+        val extracted = WireSchema.parse(extractedWireSchemaFile.get().asFile.readText())
         val committed = committedWireSchemaFile.takeIf { it.isFile }?.let { WireSchema.parse(it.readText()) }
         ProtocolRevisionRule.refusalOf(committed, extracted)?.let { refusal ->
             throw GradleException("Not writing ${committedWireSchemaFile.name}. $refusal")

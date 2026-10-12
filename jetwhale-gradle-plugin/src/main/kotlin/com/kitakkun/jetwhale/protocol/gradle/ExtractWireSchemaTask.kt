@@ -27,7 +27,7 @@ import javax.inject.Inject
 @CacheableTask
 internal abstract class ExtractWireSchemaTask : DefaultTask() {
     @get:Classpath
-    abstract val messageClassDirectories: ConfigurableFileCollection
+    abstract val moduleClassDirectories: ConfigurableFileCollection
 
     @get:Classpath
     abstract val runtimeClasspath: ConfigurableFileCollection
@@ -36,7 +36,7 @@ internal abstract class ExtractWireSchemaTask : DefaultTask() {
     abstract val protocolRevision: Property<Int>
 
     @get:OutputFile
-    abstract val extractedWireSchema: RegularFileProperty
+    abstract val extractedWireSchemaFile: RegularFileProperty
 
     @get:Inject
     abstract val workerExecutor: WorkerExecutor
@@ -45,19 +45,19 @@ internal abstract class ExtractWireSchemaTask : DefaultTask() {
     fun extractWireSchema() {
         val task = this
         workerExecutor.processIsolation().submit(ExtractWireSchemaWorkAction::class.java) {
-            messageClassDirectories.from(task.messageClassDirectories)
+            moduleClassDirectories.from(task.moduleClassDirectories)
             runtimeClasspath.from(task.runtimeClasspath)
             protocolRevision.set(task.protocolRevision)
-            extractedWireSchema.set(task.extractedWireSchema)
+            extractedWireSchemaFile.set(task.extractedWireSchemaFile)
         }
     }
 }
 
 internal interface ExtractWireSchemaParameters : WorkParameters {
-    val messageClassDirectories: ConfigurableFileCollection
+    val moduleClassDirectories: ConfigurableFileCollection
     val runtimeClasspath: ConfigurableFileCollection
     val protocolRevision: Property<Int>
-    val extractedWireSchema: RegularFileProperty
+    val extractedWireSchemaFile: RegularFileProperty
 }
 
 /**
@@ -68,9 +68,9 @@ internal interface ExtractWireSchemaParameters : WorkParameters {
  */
 internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSchemaParameters> {
     override fun execute() {
-        val messageClassDirectories = parameters.messageClassDirectories.files.toList()
+        val moduleClassDirectories = parameters.moduleClassDirectories.files.toList()
         val readerLocation = File(ExtractWireSchemaWorkAction::class.java.protectionDomain.codeSource.location.toURI())
-        val classLoaderUrls = (listOf(readerLocation) + messageClassDirectories + parameters.runtimeClasspath.files)
+        val classLoaderUrls = (listOf(readerLocation) + moduleClassDirectories + parameters.runtimeClasspath.files)
             .map { it.toURI().toURL() }
             .toTypedArray()
         val renderedWireSchema = URLClassLoader(classLoaderUrls, ClassLoader.getPlatformClassLoader()).use { classLoader ->
@@ -78,7 +78,7 @@ internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSche
             try {
                 reader.javaClass
                     .getMethod("renderWireSchema", List::class.java, Int::class.javaPrimitiveType)
-                    .invoke(reader, messageClassDirectories, parameters.protocolRevision.get()) as String
+                    .invoke(reader, moduleClassDirectories, parameters.protocolRevision.get()) as String
             } catch (e: InvocationTargetException) {
                 val failure = e.targetException
                 // The failure is an instance of the reader class loader's own WireSchemaRefusal,
@@ -87,6 +87,6 @@ internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSche
                 throw GradleException("Reading the wire schema failed:\n${failure.stackTraceToString()}")
             }
         }
-        parameters.extractedWireSchema.get().asFile.writeText(renderedWireSchema)
+        parameters.extractedWireSchemaFile.get().asFile.writeText(renderedWireSchema)
     }
 }

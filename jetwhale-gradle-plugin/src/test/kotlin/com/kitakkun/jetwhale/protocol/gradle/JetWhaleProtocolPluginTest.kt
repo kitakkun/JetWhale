@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 
 class JetWhaleProtocolPluginTest {
     private val projectDirectory: File = Files.createTempDirectory("jetwhale-protocol-plugin").toFile()
-    private val committedDump: File get() = projectDirectory.resolve("protocol/wire/protocol.wire")
+    private val committedWireSchemaFile: File get() = projectDirectory.resolve("protocol/wire/protocol.wire")
     private val messagesFile: File get() = projectDirectory.resolve("protocol/src/commonMain/kotlin/com/example/fixture/protocol/Messages.kt")
 
     @AfterTest
@@ -28,7 +28,7 @@ class JetWhaleProtocolPluginTest {
 
         runBuild("dumpWireSchema")
 
-        assertEquals(EXPECTED_DUMP, committedDump.readText())
+        assertEquals(EXPECTED_DUMP, committedWireSchemaFile.readText())
         assertEquals(EXPECTED_DUMP, projectDirectory.resolve("protocol-jvm/wire/protocol-jvm.wire").readText())
 
         val checked = runBuild("check", ":protocol:jvmJar")
@@ -50,11 +50,11 @@ class JetWhaleProtocolPluginTest {
             """.trimIndent(),
             contractJson,
         )
-        val contractSource = projectDirectory
+        val generatedContractSource = projectDirectory
             .resolve("protocol/build/generated/jetwhale/contract/kotlin/com/example/fixture/protocol/FixturePluginContract.kt")
             .readText()
-        assertContains(contractSource, "public val FixturePluginContract: JetWhalePluginContract = JetWhalePluginContract(")
-        assertContains(contractSource, "wireSchemaHash = \"$hash\",")
+        assertContains(generatedContractSource, "public val FixturePluginContract: JetWhalePluginContract = JetWhalePluginContract(")
+        assertContains(generatedContractSource, "wireSchemaHash = \"$hash\",")
 
         runBuild("checkWireSchema")
         val repeated = runBuild("checkWireSchema")
@@ -65,7 +65,7 @@ class JetWhaleProtocolPluginTest {
     @Test
     fun `a breaking change fails the check and the dump until the revision is raised`() {
         writeFixture(withJvmOnlyModule = false)
-        committedDump.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP)
+        committedWireSchemaFile.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP)
         messagesFile.writeText(MESSAGES_SOURCE.replace("enum class Color { RED, @SerialName(\"green\") GREEN }", "enum class Color { RED, @SerialName(\"green\") GREEN, BLUE }"))
 
         val checkFailure = runFailingBuild("checkWireSchema")
@@ -76,19 +76,19 @@ class JetWhaleProtocolPluginTest {
         val dumpFailure = runFailingBuild("dumpWireSchema")
 
         assertContains(dumpFailure.output, "Not writing protocol.wire. 1 breaking change(s) since the dump at protocol revision 1:")
-        assertEquals(EXPECTED_DUMP, committedDump.readText())
+        assertEquals(EXPECTED_DUMP, committedWireSchemaFile.readText())
 
         projectDirectory.resolve("protocol/build.gradle.kts").apply { writeText(readText().replace("protocolRevision.set(1)", "protocolRevision.set(2)")) }
         runBuild("dumpWireSchema", "checkWireSchema")
 
-        assertTrue(committedDump.readText().startsWith("revision 2\n"))
-        assertContains(committedDump.readText(), "  BLUE\n")
+        assertTrue(committedWireSchemaFile.readText().startsWith("revision 2\n"))
+        assertContains(committedWireSchemaFile.readText(), "  BLUE\n")
     }
 
     @Test
     fun `reordered fields keep the dump and an additive change is dumped at the same revision`() {
         writeFixture(withJvmOnlyModule = false)
-        committedDump.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP)
+        committedWireSchemaFile.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP)
         messagesFile.writeText(MESSAGES_SOURCE.replace("    val id: ItemId,\n    val item: Item,\n", "    val item: Item,\n    val id: ItemId,\n"))
 
         runBuild("checkWireSchema")
@@ -102,15 +102,15 @@ class JetWhaleProtocolPluginTest {
         val dumped = runBuild("dumpWireSchema")
 
         assertContains(dumped.output, "additive  fixture/ping (reply).label: optional field added")
-        assertTrue(committedDump.readText().startsWith("revision 1\n"))
-        assertContains(committedDump.readText(), "  label: string? = …\n")
+        assertTrue(committedWireSchemaFile.readText().startsWith("revision 1\n"))
+        assertContains(committedWireSchemaFile.readText(), "  label: string? = …\n")
     }
 
     @Test
     fun `the baseline comparison refuses a dump edited by hand`() {
         writeFixture(withJvmOnlyModule = false)
         messagesFile.writeText(MESSAGES_SOURCE.replace("enum class Color { RED, @SerialName(\"green\") GREEN }", "enum class Color { RED, @SerialName(\"green\") GREEN, BLUE }"))
-        committedDump.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP.replace("  RED\n", "  BLUE\n  RED\n"))
+        committedWireSchemaFile.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP.replace("  RED\n", "  BLUE\n  RED\n"))
         val baselineDirectory = projectDirectory.resolve("baseline")
         baselineDirectory.resolve("protocol/wire/protocol.wire").apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP)
 

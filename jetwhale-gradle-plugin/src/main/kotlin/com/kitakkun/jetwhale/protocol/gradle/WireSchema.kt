@@ -18,7 +18,7 @@ internal data class WireSchema(
         messages.toSortedMap().values.forEach { message ->
             when (message.kind) {
                 WireMessageKind.EVENT -> appendLine("event ${message.serialName}")
-                WireMessageKind.REQUEST -> appendLine("request ${message.serialName} -> ${message.reply}")
+                WireMessageKind.REQUEST -> appendLine("request ${message.serialName} -> ${message.replyType}")
             }
         }
         shapes.toSortedMap().values.forEach { shape ->
@@ -38,7 +38,7 @@ internal data class WireSchema(
 
                 is SealedShape -> {
                     appendLine("sealed ${shape.serialName} by ${shape.discriminator}")
-                    shape.subtypes.sorted().forEach { appendLine("  $it") }
+                    shape.subtypeSerialNames.sorted().forEach { appendLine("  $it") }
                 }
             }
         }
@@ -57,24 +57,24 @@ internal data class WireSchema(
             var revision: Int? = null
             val messages = mutableMapOf<String, WireMessage>()
             val shapes = mutableMapOf<String, WireShape>()
-            var current: WireShape? = null
+            var currentShape: WireShape? = null
 
             fun closeCurrentShape() {
-                current?.let { shapes[it.serialName] = it }
-                current = null
+                currentShape?.let { shapes[it.serialName] = it }
+                currentShape = null
             }
 
             text.lineSequence().filter { it.isNotBlank() }.forEach { line ->
                 if (line.startsWith("  ")) {
                     val member = line.trim()
-                    current = when (val shape = current) {
+                    currentShape = when (val shape = currentShape) {
                         is ClassShape -> shape.copy(
                             fields = shape.fields + (member.substringBefore(": ") to WireField.parse(member.substringAfter(": "))),
                         )
 
                         is EnumShape -> shape.copy(entries = shape.entries + member)
 
-                        is SealedShape -> shape.copy(subtypes = shape.subtypes + member)
+                        is SealedShape -> shape.copy(subtypeSerialNames = shape.subtypeSerialNames + member)
 
                         is ObjectShape, null -> throw IllegalArgumentException("A member line outside a class, enum or sealed type: $line")
                     }
@@ -86,20 +86,20 @@ internal data class WireSchema(
                 when (keyword) {
                     "revision" -> revision = rest.toIntOrNull() ?: throw IllegalArgumentException("Not a revision: $line")
 
-                    "event" -> messages[rest] = WireMessage(rest, WireMessageKind.EVENT, reply = null)
+                    "event" -> messages[rest] = WireMessage(rest, WireMessageKind.EVENT, replyType = null)
 
                     "request" -> {
                         val serialName = rest.substringBefore(" -> ")
                         messages[serialName] = WireMessage(serialName, WireMessageKind.REQUEST, WireTypeRef.parse(rest.substringAfter(" -> ")))
                     }
 
-                    "class" -> current = ClassShape(rest, emptyMap())
+                    "class" -> currentShape = ClassShape(rest, emptyMap())
 
                     "object" -> shapes[rest] = ObjectShape(rest)
 
-                    "enum" -> current = EnumShape(rest, emptySet())
+                    "enum" -> currentShape = EnumShape(rest, emptySet())
 
-                    "sealed" -> current = SealedShape(rest.substringBefore(" by "), rest.substringAfter(" by "), emptySet())
+                    "sealed" -> currentShape = SealedShape(rest.substringBefore(" by "), rest.substringAfter(" by "), emptySet())
 
                     else -> throw IllegalArgumentException("Not a line of a wire schema dump: $line")
                 }
@@ -120,7 +120,7 @@ internal enum class WireMessageKind { EVENT, REQUEST }
 internal data class WireMessage(
     val serialName: String,
     val kind: WireMessageKind,
-    val reply: WireTypeRef?,
+    val replyType: WireTypeRef?,
 )
 
 /**
@@ -185,7 +185,7 @@ internal data class ObjectShape(override val serialName: String) : WireShape
 
 internal data class EnumShape(override val serialName: String, val entries: Set<String>) : WireShape
 
-internal data class SealedShape(override val serialName: String, val discriminator: String, val subtypes: Set<String>) : WireShape
+internal data class SealedShape(override val serialName: String, val discriminator: String, val subtypeSerialNames: Set<String>) : WireShape
 
 /**
  * An element of a class. [isOptional] means it has a default; [isOmittedAtDefault] means
