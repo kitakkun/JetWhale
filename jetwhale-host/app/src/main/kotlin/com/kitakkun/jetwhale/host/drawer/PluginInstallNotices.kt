@@ -89,7 +89,7 @@ internal fun PluginInstallNotices(
                 // block through collectLatest, and the jobs already on the notice must be in the
                 // next one too.
                 settledJobIds += finished.map(PluginInstallJob::id)
-                currentNoticeCallbacks.invokeForClosedNotice(action = notice.action, result = result, finished = finished)
+                currentNoticeCallbacks.forwardNoticeResult(action = notice.action, result = result, finished = finished)
             }
     }
 }
@@ -101,7 +101,7 @@ private class InstallNoticeCallbacks(
     private val onShowInstalledPlugins: () -> Unit,
     private val onReviewInstalls: () -> Unit,
 ) {
-    fun invokeForClosedNotice(action: NoticeAction, result: JwSnackbarResult, finished: List<PluginInstallJob>) {
+    fun forwardNoticeResult(action: NoticeAction, result: JwSnackbarResult, finished: List<PluginInstallJob>) {
         when (action) {
             is NoticeAction.Open -> {
                 if (result == JwSnackbarResult.ActionPerformed) onOpen(action.job)
