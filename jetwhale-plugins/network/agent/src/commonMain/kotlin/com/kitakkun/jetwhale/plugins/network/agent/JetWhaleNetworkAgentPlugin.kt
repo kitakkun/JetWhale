@@ -20,7 +20,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
 import com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatching
-import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingCondition
+import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingRule
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,7 +109,7 @@ class JetWhaleNetworkAgentPlugin(
      * Decides how the network condition matching [method] [url] treats this request, or returns
      * null when no condition applies and the request goes through untouched. Call once per request.
      */
-    fun planNetworkCondition(method: String, url: String): NetworkConditionPlan? = conditionRules.value.findMatchingCondition(method = method, url = url)?.plan(conditionRandom)
+    fun planNetworkCondition(method: String, url: String): NetworkConditionPlan? = conditionRules.value.findMatchingRule(method = method, url = url)?.plan(conditionRandom)
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.network"

@@ -27,17 +27,17 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class NetworkConditionCommandsTest {
-    private var applied: List<NetworkConditionRule> = emptyList()
-    private val sync: suspend (List<NetworkConditionRule>) -> JetWhaleMessagingException? = { rules ->
-        applied = rules
+    private var appliedRules: List<NetworkConditionRule> = emptyList()
+    private val recordAppliedRules: suspend (List<NetworkConditionRule>) -> JetWhaleMessagingException? = { rules ->
+        appliedRules = rules
         null
     }
 
     @Test
     fun `a preset becomes one rule for every request`() {
-        execute(SetNetworkConditionsCommand(sync), "preset" to JsonPrimitive("Offline"))
+        execute(SetNetworkConditionsCommand(recordAppliedRules), "preset" to JsonPrimitive("Offline"))
 
-        val rule = applied.single()
+        val rule = appliedRules.single()
         assertEquals(null, rule.matcher)
         assertTrue(rule.condition.offline)
     }
@@ -46,33 +46,33 @@ class NetworkConditionCommandsTest {
     fun `rules replace the whole set and win over a preset`() {
         val rules = listOf(NetworkConditionRule(id = "r", name = "Slow", enabled = true, matcher = null, condition = NetworkCondition(latencyMs = 900)))
 
-        execute(SetNetworkConditionsCommand(sync), "rules" to Json.encodeToJsonElement(rules), "preset" to JsonPrimitive("Offline"))
+        execute(SetNetworkConditionsCommand(recordAppliedRules), "rules" to Json.encodeToJsonElement(rules), "preset" to JsonPrimitive("Offline"))
 
-        assertEquals(rules, applied)
+        assertEquals(rules, appliedRules)
     }
 
     @Test
     fun `out of range numbers are rejected before anything is sent`() {
         val rules = listOf(NetworkConditionRule(id = "r", name = "Broken", enabled = true, matcher = null, condition = NetworkCondition(jitterMs = Long.MAX_VALUE)))
 
-        val failure = assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(sync), "rules" to Json.encodeToJsonElement(rules)) }
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(recordAppliedRules), "rules" to Json.encodeToJsonElement(rules)) }
 
         assertTrue("jitterMs" in failure.message.orEmpty())
-        assertEquals(emptyList(), applied)
+        assertEquals(emptyList(), appliedRules)
     }
 
     @Test
     fun `setNetworkConditions needs a preset or rules`() {
-        assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(sync)) }
+        assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(recordAppliedRules)) }
     }
 
     @Test
     fun `clearNetworkConditions sends an empty set`() {
-        applied = listOf(NetworkConditionPreset.Edge.toRule())
+        appliedRules = listOf(NetworkConditionPreset.Edge.toRule())
 
-        execute(ClearNetworkConditionsCommand(sync))
+        execute(ClearNetworkConditionsCommand(recordAppliedRules))
 
-        assertEquals(emptyList(), applied)
+        assertEquals(emptyList(), appliedRules)
     }
 
     @Test
@@ -100,10 +100,10 @@ class NetworkConditionCommandsTest {
             failure = HttpRequestFailure(txId = "t", message = "Connection reset", durationMs = 250, condition = condition),
         )
 
-        val summary = tx.toSummaryJson().getValue("networkCondition").jsonObject
+        val networkConditionJson = tx.toSummaryJson().getValue("networkCondition").jsonObject
 
-        assertEquals("CONNECTION_RESET", summary.getValue("injectedFailure").jsonPrimitive.content)
-        assertEquals(250, summary.getValue("addedLatencyMs").jsonPrimitive.content.toInt())
+        assertEquals("CONNECTION_RESET", networkConditionJson.getValue("injectedFailure").jsonPrimitive.content)
+        assertEquals(250, networkConditionJson.getValue("addedLatencyMs").jsonPrimitive.content.toInt())
     }
 
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }

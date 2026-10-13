@@ -24,15 +24,15 @@ public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAg
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkConditionPlan {
-	public final fun applied ()Lcom/kitakkun/jetwhale/plugins/network/protocol/AppliedNetworkCondition;
+	public final fun getAddedLatency-UwyO8pc ()J
 	public final fun getDownloadBytesPerSecond ()Ljava/lang/Long;
-	public final fun getFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/InjectedFailure;
 	public final fun getFailureAfter-UwyO8pc ()J
-	public final fun getLatency-UwyO8pc ()J
+	public final fun getInjectedFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/InjectedFailure;
 	public final fun getOffline ()Z
 	public final fun getRuleId ()Ljava/lang/String;
 	public final fun getRuleName ()Ljava/lang/String;
 	public final fun getUploadBytesPerSecond ()Ljava/lang/Long;
+	public final fun toAppliedNetworkCondition ()Lcom/kitakkun/jetwhale/plugins/network/protocol/AppliedNetworkCondition;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules {

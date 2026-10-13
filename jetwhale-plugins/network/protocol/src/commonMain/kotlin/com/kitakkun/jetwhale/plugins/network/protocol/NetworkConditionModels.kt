@@ -52,8 +52,8 @@ const val MAX_SIMULATED_DELAY_MS: Long = 10 * 60 * 1_000
  * [NetworkCondition.failureRate] must lie within 0..1.
  */
 fun NetworkCondition.problems(): List<String> = buildList {
-    fun checkDelay(name: String, value: Long) {
-        if (value !in 0..MAX_SIMULATED_DELAY_MS) add("$name must be between 0 and $MAX_SIMULATED_DELAY_MS, was $value")
+    fun checkDelay(fieldName: String, value: Long) {
+        if (value !in 0..MAX_SIMULATED_DELAY_MS) add("$fieldName must be between 0 and $MAX_SIMULATED_DELAY_MS, was $value")
     }
     checkDelay("latencyMs", latencyMs)
     checkDelay("jitterMs", jitterMs)
@@ -84,7 +84,7 @@ data class NetworkConditionRule(
  * The first enabled rule that selects [method] [url]. Like mock rules, the order of the list
  * decides which rule wins, so an endpoint-specific rule goes before a catch-all one.
  */
-fun List<NetworkConditionRule>.findMatchingCondition(method: String, url: String): NetworkConditionRule? = firstOrNull { rule -> rule.enabled && (rule.matcher == null || rule.matcher.matches(method, url)) }
+fun List<NetworkConditionRule>.findMatchingRule(method: String, url: String): NetworkConditionRule? = firstOrNull { rule -> rule.enabled && (rule.matcher == null || rule.matcher.matches(method, url)) }
 
 /**
  * What a network condition did to one transaction, reported with its response or failure.

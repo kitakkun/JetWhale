@@ -64,40 +64,40 @@ class NetworkConditionKtorTest {
 
     @Test
     fun `a download cap paces the body as the app reads it`() = runBlocking {
-        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_RATE), matcher = null)))
+        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_BYTES_PER_SECOND), matcher = null)))
 
         val (bytes, readMs) = client.prepareGet("https://example.com/large").execute { response ->
-            val reading = TimeSource.Monotonic.markNow()
-            response.readRawBytes() to reading.elapsedNow().inWholeMilliseconds
+            val readStarted = TimeSource.Monotonic.markNow()
+            response.readRawBytes() to readStarted.elapsedNow().inWholeMilliseconds
         }
 
         assertEquals(PACED_BODY_BYTES, bytes.size)
         assertTrue(readMs >= PACED_MIN_MS, "the app read the body in ${readMs}ms")
-        assertEquals(PACED_RATE, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
+        assertEquals(PACED_BYTES_PER_SECOND, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
     }
 
     @Test
     fun `an upload cap paces the request body`() = runBlocking {
-        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_RATE), matcher = null)))
+        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_BYTES_PER_SECOND), matcher = null)))
 
         val started = TimeSource.Monotonic.markNow()
         client.post("https://example.com/upload") { setBody(ByteArray(PACED_BODY_BYTES)) }
-        val elapsed = started.elapsedNow().inWholeMilliseconds
+        val elapsedMs = started.elapsedNow().inWholeMilliseconds
 
         assertEquals(PACED_BODY_BYTES, uploadedBytes)
-        assertTrue(elapsed >= PACED_MIN_MS, "upload took ${elapsed}ms")
+        assertTrue(elapsedMs >= PACED_MIN_MS, "upload took ${elapsedMs}ms")
     }
 
     @Test
     fun `an upload cap paces a wrapped request body through its wrapper`() = runBlocking {
-        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_RATE), matcher = null)))
+        agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_BYTES_PER_SECOND), matcher = null)))
 
         val started = TimeSource.Monotonic.markNow()
         client.post("https://example.com/upload") { setBody(WrappedContent(ByteArrayContent(ByteArray(PACED_BODY_BYTES)))) }
-        val elapsed = started.elapsedNow().inWholeMilliseconds
+        val elapsedMs = started.elapsedNow().inWholeMilliseconds
 
         assertEquals(PACED_BODY_BYTES, uploadedBytes)
-        assertTrue(elapsed >= PACED_MIN_MS, "upload took ${elapsed}ms")
+        assertTrue(elapsedMs >= PACED_MIN_MS, "upload took ${elapsedMs}ms")
     }
 
     @Test
@@ -128,9 +128,9 @@ class NetworkConditionKtorTest {
     private fun conditionRule(condition: NetworkCondition, matcher: MockMatcher?) = NetworkConditionRule(id = "rule", name = "Test network", enabled = true, matcher = matcher, condition = condition)
 
     private companion object {
-        /** Paced at [PACED_RATE], this body takes 600 ms; the assertions allow for timer slack. */
+        /** Paced at [PACED_BYTES_PER_SECOND], this body takes 600 ms; the assertions allow for timer slack. */
         const val PACED_BODY_BYTES = 60_000
-        const val PACED_RATE = 100_000L
+        const val PACED_BYTES_PER_SECOND = 100_000L
         const val PACED_MIN_MS = 500L
     }
 }

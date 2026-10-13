@@ -66,7 +66,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-        TransactionHeader(tx = tx, onCreateMock = onCreateMock)
+        TransactionTitleRow(tx = tx, onCreateMock = onCreateMock)
         JwText(
             text = tx.request.url,
             style = JwTheme.textStyles.code,
@@ -119,7 +119,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
 }
 
 @Composable
-private fun TransactionHeader(tx: HttpTransaction, onCreateMock: () -> Unit) {
+private fun TransactionTitleRow(tx: HttpTransaction, onCreateMock: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),

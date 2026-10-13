@@ -55,8 +55,8 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
 ): HttpClientCall {
     val txId = newTransactionId()
     val started = TimeSource.Monotonic.markNow()
-    val exchange = recordRequestAndPlanExchange(request, txId, limits)
-    val call = performExchange(client, request, exchange, txId, started, proceed)
+    val plannedExchange = recordRequestAndPlanExchange(request, txId, limits)
+    val call = sendOrServeMockThroughSimulatedNetwork(client, request, plannedExchange, txId, started, proceed)
 
     val (callToReturn, body) = captureResponseBodySafely(call, limits)
     recordResponse(
@@ -69,22 +69,22 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
             bodyTruncated = body.truncated,
             bodyEncoding = body.encoding,
             durationMs = started.elapsedNow().inWholeMilliseconds,
-            fromMock = exchange.mock != null,
-            condition = exchange.condition?.applied(),
+            fromMock = plannedExchange.mock != null,
+            condition = plannedExchange.conditionPlan?.toAppliedNetworkCondition(),
         ),
     )
     // Paced after capture: save() reads the whole body into memory, so a body paced before it would
     // reach the app already buffered.
-    return exchange.condition?.downloadBytesPerSecond?.let(callToReturn::withResponseBodyPacedTo) ?: callToReturn
+    return plannedExchange.conditionPlan?.downloadBytesPerSecond?.let(callToReturn::withResponseBodyPacedTo) ?: callToReturn
 }
 
 /**
  * How one request is to be answered.
  *
- * @property condition The network condition the request travels through; null when none applies.
+ * @property conditionPlan The network condition the request travels through; null when none applies.
  * @property mock The response that stands in for the server; null when the request is really sent.
  */
-private class PlannedExchange(val url: String, val condition: NetworkConditionPlan?, val mock: MockResponseSpec?)
+private class PlannedExchange(val url: String, val conditionPlan: NetworkConditionPlan?, val mock: MockResponseSpec?)
 
 /**
  * Records the outgoing request and decides how it is answered. The condition shapes the network and
@@ -95,32 +95,32 @@ private fun JetWhaleNetworkAgentPlugin.recordRequestAndPlanExchange(request: Htt
     val method = request.method.value
     val url = request.url.buildString()
     recordRequest(request, txId = txId, method = method, url = url, limits = limits)
-    return PlannedExchange(url = url, condition = planNetworkCondition(method, url), mock = findMock(method, url))
+    return PlannedExchange(url = url, conditionPlan = planNetworkCondition(method, url), mock = findMock(method, url))
 }
 
 /**
- * Carries out [exchange]: the simulated network, then the mock or the real send. A failure, real or
+ * Carries out [plannedExchange]: the simulated network, then the mock or the real send. A failure, real or
  * injected, is recorded before it is rethrown.
  */
-private suspend fun JetWhaleNetworkAgentPlugin.performExchange(
+private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMockThroughSimulatedNetwork(
     client: HttpClient,
     request: HttpRequestBuilder,
-    exchange: PlannedExchange,
+    plannedExchange: PlannedExchange,
     txId: String,
     started: TimeMark,
     proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
 ): HttpClientCall {
-    val condition = exchange.condition
+    val conditionPlan = plannedExchange.conditionPlan
     return try {
-        condition?.let { simulateNetworkBeforeExchange(it, request, exchange.url, mocked = exchange.mock != null) }
-        if (exchange.mock != null) serveMock(client, request, exchange.mock) else proceed(request)
+        conditionPlan?.let { simulateNetworkBeforeExchange(it, request, plannedExchange.url, mocked = plannedExchange.mock != null) }
+        if (plannedExchange.mock != null) serveMock(client, request, plannedExchange.mock) else proceed(request)
     } catch (e: Throwable) {
         recordFailure(
             HttpRequestFailure(
                 txId = txId,
                 message = e.message ?: e.toString(),
                 durationMs = started.elapsedNow().inWholeMilliseconds,
-                condition = condition?.applied(),
+                condition = conditionPlan?.toAppliedNetworkCondition(),
             ),
         )
         throw e

@@ -160,7 +160,7 @@ private fun ConditionRuleDialog(
                 JwFormField(label = "Name") {
                     JwTextField(value = draft.name, onValueChange = { draft = draft.copy(name = it) }, modifier = Modifier.fillMaxWidth())
                 }
-                ConditionScopeFields(matcher = draft.matcher, onMatcherChange = { draft = draft.copy(matcher = it) })
+                ConditionMatcherFields(matcher = draft.matcher, onMatcherChange = { draft = draft.copy(matcher = it) })
                 ConditionFields(condition = draft.condition, onConditionChange = { draft = draft.copy(condition = it) })
                 draft.condition.problems().forEach { JwText(text = it, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.error) }
             }
@@ -170,9 +170,9 @@ private fun ConditionRuleDialog(
 
 /** Which requests the rule applies to: all of them, or those a URL pattern selects. */
 @Composable
-private fun ConditionScopeFields(matcher: MockMatcher?, onMatcherChange: (MockMatcher?) -> Unit) {
+private fun ConditionMatcherFields(matcher: MockMatcher?, onMatcherChange: (MockMatcher?) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-        JwSwitch(matcher == null, contentDescription = "All requests", onCheckedChange = { all -> onMatcherChange(if (all) null else MockMatcher(urlPattern = "")) })
+        JwSwitch(matcher == null, contentDescription = "All requests", onCheckedChange = { appliesToAllRequests -> onMatcherChange(if (appliesToAllRequests) null else MockMatcher(urlPattern = "")) })
         JwText(text = "All requests", style = JwTheme.textStyles.body)
     }
     if (matcher == null) return

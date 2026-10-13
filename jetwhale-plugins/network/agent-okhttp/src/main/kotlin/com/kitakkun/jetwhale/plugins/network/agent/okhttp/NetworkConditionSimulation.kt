@@ -30,23 +30,23 @@ import kotlin.time.TimeSource
  * app's error handling sees what it would on a real network.
  */
 internal fun simulateNetworkBeforeExchange(plan: NetworkConditionPlan, request: Request): Request {
-    val host = request.url.host
-    val cause = "simulated by JetWhale rule '${plan.ruleName}'"
-    if (plan.offline) throw UnknownHostException("Unable to resolve host \"$host\": the network is offline ($cause)")
-    Thread.sleep(plan.latency.inWholeMilliseconds)
-    plan.failure?.let { failure ->
+    val urlHost = request.url.host
+    val simulationNote = "simulated by JetWhale rule '${plan.ruleName}'"
+    if (plan.offline) throw UnknownHostException("Unable to resolve host \"$urlHost\": the network is offline ($simulationNote)")
+    Thread.sleep(plan.addedLatency.inWholeMilliseconds)
+    plan.injectedFailure?.let { failure ->
         Thread.sleep(plan.failureAfter.inWholeMilliseconds)
-        throw failure.toException(host, cause)
+        throw failure.toException(urlHost, simulationNote)
     }
-    val uploadRate = plan.uploadBytesPerSecond ?: return request
+    val uploadBytesPerSecond = plan.uploadBytesPerSecond ?: return request
     val body = request.body ?: return request
-    return request.newBuilder().method(request.method, PacedRequestBody(body, uploadRate)).build()
+    return request.newBuilder().method(request.method, PacedRequestBody(body, uploadBytesPerSecond)).build()
 }
 
-private fun InjectedFailure.toException(host: String, cause: String): IOException = when (this) {
-    InjectedFailure.TIMEOUT -> SocketTimeoutException("timeout reading from $host ($cause)")
-    InjectedFailure.CONNECTION_RESET -> SocketException("Connection reset ($cause)")
-    InjectedFailure.UNREACHABLE -> ConnectException("Failed to connect to $host: Network is unreachable ($cause)")
+private fun InjectedFailure.toException(urlHost: String, simulationNote: String): IOException = when (this) {
+    InjectedFailure.TIMEOUT -> SocketTimeoutException("timeout reading from $urlHost ($simulationNote)")
+    InjectedFailure.CONNECTION_RESET -> SocketException("Connection reset ($simulationNote)")
+    InjectedFailure.UNREACHABLE -> ConnectException("Failed to connect to $urlHost: Network is unreachable ($simulationNote)")
 }
 
 /**
@@ -69,9 +69,9 @@ private class PacedRequestBody(private val delegate: RequestBody, private val by
     override fun isDuplex(): Boolean = delegate.isDuplex()
 
     override fun writeTo(sink: BufferedSink) {
-        val paced = PacedSink(sink, BandwidthPacer(bytesPerSecond, TimeSource.Monotonic)).buffer()
-        delegate.writeTo(paced)
-        paced.emit()
+        val pacedSink = PacedSink(sink, BandwidthPacer(bytesPerSecond, TimeSource.Monotonic)).buffer()
+        delegate.writeTo(pacedSink)
+        pacedSink.emit()
     }
 }
 
@@ -105,11 +105,11 @@ private class PacedSink(delegate: Sink, private val pacer: BandwidthPacer) : For
     override fun write(source: Buffer, byteCount: Long) {
         var remaining = byteCount
         while (remaining > 0) {
-            val chunk = minOf(remaining, pacer.chunkSize.toLong())
-            Thread.sleep(pacer.delayBefore(chunk.toInt()).inWholeMilliseconds)
-            super.write(source, chunk)
+            val chunkByteCount = minOf(remaining, pacer.chunkSize.toLong())
+            Thread.sleep(pacer.delayBefore(chunkByteCount.toInt()).inWholeMilliseconds)
+            super.write(source, chunkByteCount)
             super.flush()
-            remaining -= chunk
+            remaining -= chunkByteCount
         }
     }
 }

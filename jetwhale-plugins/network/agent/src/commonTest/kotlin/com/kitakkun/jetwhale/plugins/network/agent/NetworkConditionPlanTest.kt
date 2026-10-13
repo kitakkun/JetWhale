@@ -5,7 +5,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MAX_SIMULATED_DELAY_MS
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
-import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingCondition
+import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingRule
 import com.kitakkun.jetwhale.plugins.network.protocol.problems
 import kotlin.random.Random
 import kotlin.test.Test
@@ -20,24 +20,24 @@ class NetworkConditionPlanTest {
     @Test
     fun `the first enabled rule that matches applies and a disabled one is skipped`() {
         val rules = listOf(
-            rule("disabled", matcher = MockMatcher(urlPattern = "/api/"), enabled = false, condition = LATENCY),
-            rule("api", matcher = MockMatcher(urlPattern = "/api/"), enabled = true, condition = LATENCY),
-            rule("everything", matcher = null, enabled = true, condition = LATENCY),
+            rule("disabled", matcher = MockMatcher(urlPattern = "/api/"), enabled = false, condition = LATENCY_CONDITION),
+            rule("api", matcher = MockMatcher(urlPattern = "/api/"), enabled = true, condition = LATENCY_CONDITION),
+            rule("everything", matcher = null, enabled = true, condition = LATENCY_CONDITION),
         )
 
-        assertEquals("api", rules.findMatchingCondition("GET", "https://example.com/api/items")?.id)
-        assertEquals("everything", rules.findMatchingCondition("GET", "https://example.com/images/a.png")?.id)
+        assertEquals("api", rules.findMatchingRule("GET", "https://example.com/api/items")?.id)
+        assertEquals("everything", rules.findMatchingRule("GET", "https://example.com/images/a.png")?.id)
     }
 
     @Test
     fun `no rule means no condition`() {
-        assertNull(emptyList<NetworkConditionRule>().findMatchingCondition("GET", "https://example.com/"))
+        assertNull(emptyList<NetworkConditionRule>().findMatchingRule("GET", "https://example.com/"))
     }
 
     @Test
     fun `jitter adds up to its bound on top of the latency`() {
         val condition = NetworkCondition(latencyMs = 100, jitterMs = 50)
-        val latencies = (0 until 200).map { seed -> rule("r", matcher = null, enabled = true, condition = condition).plan(Random(seed)).latency }
+        val latencies = (0 until 200).map { seed -> rule("r", matcher = null, enabled = true, condition = condition).plan(Random(seed)).addedLatency }
 
         assertTrue(latencies.all { it in 100.milliseconds..150.milliseconds })
         assertTrue(latencies.distinct().size > 1)
@@ -45,11 +45,11 @@ class NetworkConditionPlanTest {
 
     @Test
     fun `a failure rate of one always fails and zero never does`() {
-        val always = rule("always", matcher = null, enabled = true, condition = NetworkCondition(failureRate = 1.0, failure = InjectedFailure.TIMEOUT))
-        val never = rule("never", matcher = null, enabled = true, condition = NetworkCondition(failureRate = 0.0))
+        val alwaysFailingRule = rule("always", matcher = null, enabled = true, condition = NetworkCondition(failureRate = 1.0, failure = InjectedFailure.TIMEOUT))
+        val neverFailingRule = rule("never", matcher = null, enabled = true, condition = NetworkCondition(failureRate = 0.0))
 
-        assertTrue((0 until 50).all { always.plan(Random(it)).failure == InjectedFailure.TIMEOUT })
-        assertTrue((0 until 50).all { never.plan(Random(it)).failure == null })
+        assertTrue((0 until 50).all { alwaysFailingRule.plan(Random(it)).injectedFailure == InjectedFailure.TIMEOUT })
+        assertTrue((0 until 50).all { neverFailingRule.plan(Random(it)).injectedFailure == null })
     }
 
     @Test
@@ -57,15 +57,15 @@ class NetworkConditionPlanTest {
         val plan = rule("offline", matcher = null, enabled = true, condition = NetworkCondition(latencyMs = 5_000, failureRate = 1.0, offline = true)).plan(Random(0))
 
         assertTrue(plan.offline)
-        assertEquals(Duration.ZERO, plan.latency)
-        assertNull(plan.failure)
+        assertEquals(Duration.ZERO, plan.addedLatency)
+        assertNull(plan.injectedFailure)
     }
 
     @Test
     fun `a jitter too large to add to is clamped rather than thrown on`() {
         val plan = rule("huge", matcher = null, enabled = true, condition = NetworkCondition(latencyMs = Long.MAX_VALUE, jitterMs = Long.MAX_VALUE)).plan(Random(0))
 
-        assertTrue(plan.latency <= (2 * MAX_SIMULATED_DELAY_MS).milliseconds)
+        assertTrue(plan.addedLatency <= (2 * MAX_SIMULATED_DELAY_MS).milliseconds)
     }
 
     @Test
@@ -98,4 +98,4 @@ class NetworkConditionPlanTest {
     private fun rule(id: String, matcher: MockMatcher?, enabled: Boolean, condition: NetworkCondition) = NetworkConditionRule(id = id, name = id, enabled = enabled, matcher = matcher, condition = condition)
 }
 
-private val LATENCY = NetworkCondition(latencyMs = 1)
+private val LATENCY_CONDITION = NetworkCondition(latencyMs = 1)

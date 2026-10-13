@@ -70,12 +70,12 @@ private class JetWhaleNetworkOkHttpInterceptor(
         val started = TimeSource.Monotonic.markNow()
 
         recordRequest(request, txId)
-        val condition = agent.planNetworkCondition(request.method, request.url.toString())
+        val conditionPlan = agent.planNetworkCondition(request.method, request.url.toString())
         val mock = agent.findMock(request.method, request.url.toString())
 
-        val response = exchange(chain, request, condition, mock, txId, started)
-        recordResponse(response, fromMock = mock != null, condition = condition, txId = txId, started = started)
-        return condition?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
+        val response = sendOrServeMockThroughSimulatedNetwork(chain, request, conditionPlan, mock, txId, started)
+        recordResponse(response, fromMock = mock != null, conditionPlan = conditionPlan, txId = txId, started = started)
+        return conditionPlan?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
     }
 
     private fun recordRequest(request: Request, txId: String) {
@@ -94,23 +94,23 @@ private class JetWhaleNetworkOkHttpInterceptor(
         )
     }
 
-    private fun exchange(
+    private fun sendOrServeMockThroughSimulatedNetwork(
         chain: Interceptor.Chain,
         request: Request,
-        condition: NetworkConditionPlan?,
+        conditionPlan: NetworkConditionPlan?,
         mock: MockResponseSpec?,
         txId: String,
         started: TimeSource.Monotonic.ValueTimeMark,
     ): Response = try {
-        val shaped = condition?.let { simulateNetworkBeforeExchange(it, request) } ?: request
-        if (mock != null) serveMock(request, mock) else chain.proceed(shaped)
+        val shapedRequest = conditionPlan?.let { simulateNetworkBeforeExchange(it, request) } ?: request
+        if (mock != null) serveMock(request, mock) else chain.proceed(shapedRequest)
     } catch (e: Throwable) {
         agent.recordFailure(
             HttpRequestFailure(
                 txId = txId,
                 message = e.message ?: e.toString(),
                 durationMs = started.elapsedNow().inWholeMilliseconds,
-                condition = condition?.applied(),
+                condition = conditionPlan?.toAppliedNetworkCondition(),
             ),
         )
         throw e
@@ -153,7 +153,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
         else -> ""
     }
 
-    private fun recordResponse(response: Response, fromMock: Boolean, condition: NetworkConditionPlan?, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
+    private fun recordResponse(response: Response, fromMock: Boolean, conditionPlan: NetworkConditionPlan?, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
         val body = captureResponseBodySafely(response, maxBodyChars, maxImageBytes)
         agent.recordResponse(
             CapturedHttpResponse(
@@ -166,7 +166,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 bodyEncoding = body.encoding,
                 durationMs = started.elapsedNow().inWholeMilliseconds,
                 fromMock = fromMock,
-                condition = condition?.applied(),
+                condition = conditionPlan?.toAppliedNetworkCondition(),
             ),
         )
     }

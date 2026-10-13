@@ -28,22 +28,22 @@ import kotlin.time.TimeSource
  */
 internal suspend fun simulateNetworkBeforeExchange(plan: NetworkConditionPlan, request: HttpRequestBuilder, url: String, mocked: Boolean) {
     if (plan.offline) throw IOException("Unable to resolve host for $url: the network is offline (simulated by JetWhale rule '${plan.ruleName}')")
-    delay(plan.latency)
-    plan.failure?.let { failure ->
+    delay(plan.addedLatency)
+    plan.injectedFailure?.let { failure ->
         delay(plan.failureAfter)
         throw failure.toException(url, plan.ruleName)
     }
-    val uploadRate = plan.uploadBytesPerSecond ?: return
+    val uploadBytesPerSecond = plan.uploadBytesPerSecond ?: return
     val body = request.body
-    if (!mocked && body is OutgoingContent) body.pacedTo(uploadRate)?.let(request::setBody)
+    if (!mocked && body is OutgoingContent) body.pacedTo(uploadBytesPerSecond)?.let(request::setBody)
 }
 
 private fun InjectedFailure.toException(url: String, ruleName: String): IOException {
-    val cause = "simulated by JetWhale rule '$ruleName'"
+    val simulationNote = "simulated by JetWhale rule '$ruleName'"
     return when (this) {
-        InjectedFailure.TIMEOUT -> SocketTimeoutException("Socket timeout reading $url ($cause)")
-        InjectedFailure.CONNECTION_RESET -> IOException("Connection reset while requesting $url ($cause)")
-        InjectedFailure.UNREACHABLE -> IOException("Failed to connect to $url: network is unreachable ($cause)")
+        InjectedFailure.TIMEOUT -> SocketTimeoutException("Socket timeout reading $url ($simulationNote)")
+        InjectedFailure.CONNECTION_RESET -> IOException("Connection reset while requesting $url ($simulationNote)")
+        InjectedFailure.UNREACHABLE -> IOException("Failed to connect to $url: network is unreachable ($simulationNote)")
     }
 }
 

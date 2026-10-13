@@ -37,14 +37,14 @@ final class com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlug
 }
 
 final class com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan { // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan|null[0]
+    final val addedLatency // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.addedLatency|{}addedLatency[0]
+        final fun <get-addedLatency>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.addedLatency.<get-addedLatency>|<get-addedLatency>(){}[0]
     final val downloadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.downloadBytesPerSecond|{}downloadBytesPerSecond[0]
         final fun <get-downloadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.downloadBytesPerSecond.<get-downloadBytesPerSecond>|<get-downloadBytesPerSecond>(){}[0]
-    final val failure // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failure|{}failure[0]
-        final fun <get-failure>(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failure.<get-failure>|<get-failure>(){}[0]
     final val failureAfter // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failureAfter|{}failureAfter[0]
         final fun <get-failureAfter>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failureAfter.<get-failureAfter>|<get-failureAfter>(){}[0]
-    final val latency // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.latency|{}latency[0]
-        final fun <get-latency>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.latency.<get-latency>|<get-latency>(){}[0]
+    final val injectedFailure // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.injectedFailure|{}injectedFailure[0]
+        final fun <get-injectedFailure>(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.injectedFailure.<get-injectedFailure>|<get-injectedFailure>(){}[0]
     final val offline // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.offline|{}offline[0]
         final fun <get-offline>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.offline.<get-offline>|<get-offline>(){}[0]
     final val ruleId // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.ruleId|{}ruleId[0]
@@ -54,7 +54,7 @@ final class com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan { /
     final val uploadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.uploadBytesPerSecond|{}uploadBytesPerSecond[0]
         final fun <get-uploadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.uploadBytesPerSecond.<get-uploadBytesPerSecond>|<get-uploadBytesPerSecond>(){}[0]
 
-    final fun applied(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.applied|applied(){}[0]
+    final fun toAppliedNetworkCondition(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.toAppliedNetworkCondition|toAppliedNetworkCondition(){}[0]
 }
 
 final class com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules { // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules|null[0]

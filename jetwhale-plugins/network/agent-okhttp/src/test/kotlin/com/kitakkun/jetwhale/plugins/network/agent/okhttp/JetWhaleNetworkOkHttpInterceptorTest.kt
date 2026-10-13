@@ -335,7 +335,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     @Test
     fun `a download cap paces the body the caller reads`() {
         server.enqueue(MockResponse().setBody(Buffer().write(ByteArray(PACED_BODY_BYTES))))
-        applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_RATE))))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_BYTES_PER_SECOND))))
         val request = Request.Builder().url(server.url("/large")).build()
 
         val started = System.nanoTime()
@@ -344,13 +344,13 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
         assertEquals(PACED_BODY_BYTES, bytes.size)
         assertTrue(elapsedMs >= PACED_MIN_MS, "read took ${elapsedMs}ms")
-        assertEquals(PACED_RATE, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
+        assertEquals(PACED_BYTES_PER_SECOND, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
     }
 
     @Test
     fun `an upload cap paces the request body`() {
         server.enqueue(MockResponse().setResponseCode(200))
-        applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_RATE))))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_BYTES_PER_SECOND))))
         val body = ByteArray(PACED_BODY_BYTES).toRequestBody("application/octet-stream".toMediaType())
         val request = Request.Builder().url(server.url("/upload")).post(body).build()
 
@@ -449,9 +449,9 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     companion object {
         private const val SMALL_BODY_CAP = 100
 
-        /** Paced at [PACED_RATE], this body takes 600 ms; the assertions allow for timer slack. */
+        /** Paced at [PACED_BYTES_PER_SECOND], this body takes 600 ms; the assertions allow for timer slack. */
         private const val PACED_BODY_BYTES = 60_000
-        private const val PACED_RATE = 100_000L
+        private const val PACED_BYTES_PER_SECOND = 100_000L
         private const val PACED_MIN_MS = 500L
 
         private const val LATENCY_MS = 300L

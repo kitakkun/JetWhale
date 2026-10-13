@@ -14,28 +14,28 @@ import kotlin.time.TimeSource
  * What a network condition does to one request, decided up front so a transport adapter only has
  * to carry it out: jitter and the failure dice are rolled once, when the plan is made.
  *
- * An adapter fails the request at once when [offline]; otherwise it waits [latency], then, when
- * [failure] is set, waits [failureAfter] and fails with it; otherwise it paces the request body at
+ * An adapter fails the request at once when [offline]; otherwise it waits [addedLatency], then, when
+ * [injectedFailure] is set, waits [failureAfter] and fails with it; otherwise it paces the request body at
  * [uploadBytesPerSecond] and the response body at [downloadBytesPerSecond] (unlimited when null).
  */
 class NetworkConditionPlan internal constructor(
     val ruleId: String,
     val ruleName: String,
-    val latency: Duration,
-    val failure: InjectedFailure?,
+    val addedLatency: Duration,
+    val injectedFailure: InjectedFailure?,
     val failureAfter: Duration,
     val offline: Boolean,
     val downloadBytesPerSecond: Long?,
     val uploadBytesPerSecond: Long?,
 ) {
     /** How the plan is reported on the transaction it shaped. */
-    fun applied(): AppliedNetworkCondition = AppliedNetworkCondition(
+    fun toAppliedNetworkCondition(): AppliedNetworkCondition = AppliedNetworkCondition(
         ruleId = ruleId,
         ruleName = ruleName,
-        addedLatencyMs = latency.inWholeMilliseconds,
+        addedLatencyMs = addedLatency.inWholeMilliseconds,
         downloadBytesPerSecond = downloadBytesPerSecond,
         uploadBytesPerSecond = uploadBytesPerSecond,
-        injectedFailure = failure,
+        injectedFailure = injectedFailure,
         offline = offline,
     )
 }
@@ -46,8 +46,8 @@ internal fun NetworkConditionRule.plan(random: Random): NetworkConditionPlan {
         return NetworkConditionPlan(
             ruleId = id,
             ruleName = name,
-            latency = Duration.ZERO,
-            failure = null,
+            addedLatency = Duration.ZERO,
+            injectedFailure = null,
             failureAfter = Duration.ZERO,
             offline = true,
             downloadBytesPerSecond = null,
@@ -60,8 +60,8 @@ internal fun NetworkConditionRule.plan(random: Random): NetworkConditionPlan {
     return NetworkConditionPlan(
         ruleId = id,
         ruleName = name,
-        latency = (condition.latencyMs.coerceIn(0, MAX_SIMULATED_DELAY_MS) + jitterMs).milliseconds,
-        failure = if (fails) condition.failure else null,
+        addedLatency = (condition.latencyMs.coerceIn(0, MAX_SIMULATED_DELAY_MS) + jitterMs).milliseconds,
+        injectedFailure = if (fails) condition.failure else null,
         failureAfter = condition.failureAfterMs.coerceIn(0, MAX_SIMULATED_DELAY_MS).milliseconds,
         offline = false,
         downloadBytesPerSecond = condition.downloadBytesPerSecond?.takeIf { it > 0 },
