@@ -58,9 +58,9 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
      * Each tag's answer is kept while WorkManager holds work with that tag, since looking up a tag
      * that names no class throws.
      */
-    private fun isWorkerClass(tag: String): Boolean = workerClassTags.getOrPut(tag) {
+    private fun isWorkerClass(candidateClassName: String): Boolean = workerClassTags.getOrPut(candidateClassName) {
         try {
-            ListenableWorker::class.java.isAssignableFrom(Class.forName(tag, false, ListenableWorker::class.java.classLoader))
+            ListenableWorker::class.java.isAssignableFrom(Class.forName(candidateClassName, false, ListenableWorker::class.java.classLoader))
         } catch (_: ClassNotFoundException) {
             false
         } catch (_: LinkageError) {
@@ -92,7 +92,7 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
         val workerClassName = info.tags.singleOrNull(::isWorkerClass)
             ?: throw IllegalStateException("the worker class of $id cannot be told from its tags, so it cannot be copied")
 
-        @Suppress("UNCHECKED_CAST")
+        @Suppress("UNCHECKED_CAST") // isWorkerClass has checked that the class is a ListenableWorker.
         val workerClass = Class.forName(workerClassName, false, ListenableWorker::class.java.classLoader) as Class<out ListenableWorker>
         val copy = OneTimeWorkRequest.Builder(workerClass)
             .apply { info.tags.filterNot { it == workerClassName }.forEach(::addTag) }

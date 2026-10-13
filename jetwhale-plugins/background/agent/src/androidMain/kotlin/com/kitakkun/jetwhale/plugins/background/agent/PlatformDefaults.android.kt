@@ -22,6 +22,18 @@ actual fun BackgroundWorkSource.Companion.platformDefaults(): List<BackgroundWor
     return listOf(JobSchedulerSource(context), AlarmClockSource(context), RunningServicesSource(context))
 }
 
+/**
+ * The app's [Application], reached without the app passing a Context in: the hidden
+ * `ActivityThread.currentApplication()` is what the agent runtime uses for the same purpose.
+ */
+private fun currentApplicationOrNull(): Context? = try {
+    Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
+} catch (_: ReflectiveOperationException) {
+    null
+} catch (_: SecurityException) {
+    null
+}
+
 /** WorkManager schedules its own work through this service, so its jobs are WorkManager's to manage. */
 private const val WORK_MANAGER_JOB_SERVICE = "androidx.work.impl.background.systemjob.SystemJobService"
 
@@ -230,16 +242,4 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
     }
 
     override suspend fun runNow(id: String): String = throw UnsupportedOperationException("a running service is already running")
-}
-
-/**
- * The app's [Application], reached without the app passing a Context in: the hidden
- * `ActivityThread.currentApplication()` is what the agent runtime uses for the same purpose.
- */
-private fun currentApplicationOrNull(): Context? = try {
-    Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
-} catch (_: ReflectiveOperationException) {
-    null
-} catch (_: SecurityException) {
-    null
 }
