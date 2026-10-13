@@ -40,11 +40,14 @@ data class McpCallArgument(
  * calls that drive a plugin UI (click, type, scroll, drag, ...) can be attributed to what they are
  * operating on. Tools without those arguments leave them null.
  *
+ * @property permission What the tool needs permission for. A [McpToolPermission.HostGroup] call acts
+ * on the host as a whole, even when it names a plugin.
  * @property arguments Every argument the call was made with, including `pluginId` and `sessionId`.
  */
 data class McpToolInvocation(
     val id: Long,
     val toolName: String,
+    val permission: McpToolPermission,
     val pluginId: String?,
     val sessionId: String?,
     val arguments: ImmutableList<McpCallArgument>,

@@ -89,18 +89,29 @@ class CopyTransactionTest {
 
     @Test
     fun `omits an uncaptured body and says so in a leading note`() {
-        val command = buildCurlCommand(request(method = "POST", body = "<streaming request body>"))
-        assertFalse("--data-raw" in command)
-        assertTrue("-X POST" in command)
-        assertTrue(command.startsWith("# NOTE: request body was not captured (<streaming request body>); the command omits it\n"))
+        UNCAPTURED_BODY_MARKERS.forEach { marker ->
+            val command = buildCurlCommand(request(method = "POST", body = marker))
+            assertFalse("--data-raw" in command, marker)
+            assertTrue("-X POST" in command, marker)
+            assertTrue(command.startsWith("# NOTE: request body was not captured ($marker); the command omits it\n"), marker)
+        }
     }
 
     @Test
-    fun `treats a content-type placeholder as an uncaptured body`() {
+    fun `leaves the method implicit for a GET whose body was not captured`() {
         val command = buildCurlCommand(request(method = "GET", body = "<application/json>"))
         assertFalse("--data-raw" in command)
         assertFalse("-X" in command)
         assertTrue(command.startsWith("# NOTE: request body was not captured"))
+    }
+
+    @Test
+    fun `sends a body that is a single XML or HTML element`() {
+        SINGLE_ELEMENT_BODIES.forEach { body ->
+            val command = buildCurlCommand(request(method = "POST", body = body))
+            assertTrue("--data-raw '$body'" in command, body)
+            assertFalse("# NOTE" in command, body)
+        }
     }
 
     @Test

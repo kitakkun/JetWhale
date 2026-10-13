@@ -29,6 +29,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -41,7 +42,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -66,7 +66,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  *   instance belongs to.
  * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
- *   cannot outrace disposal. Null for a pure plugin.
+ *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
+ *   unstarted, for [PluginInstanceService.startPluginInstancePreparation].
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  * @property sceneSlot Null for a plugin that renders no UI. Replaced when an in-place reload
  *   recreates the scene.
@@ -140,8 +141,8 @@ class DefaultPluginInstanceService(
 
     // Unbounded: the server stopping disposes every app session's instances in one burst, and a
     // dropped Disposed would leave that instance's MCP tools listed.
-    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = Channel.UNLIMITED)
-    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
+    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+        field = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = Channel.UNLIMITED)
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
@@ -205,7 +206,7 @@ class DefaultPluginInstanceService(
 
         publishInstances()
         newlyInitializedSessions.forEach { sessionId ->
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
+            pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
     }
@@ -256,14 +257,16 @@ class DefaultPluginInstanceService(
         }
         dispatchCreateGuarded(plugin, descriptor)
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            instanceScope.launchPeerPreparation(
-                peer = peer,
-                descriptor = descriptor,
-                prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
-                dispatchPrepare = plugin::dispatchPrepare,
-                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
-                onReady = {},
-            )
+            instanceScope.launch(start = if (loaded.manifest.requiresAgent) CoroutineStart.LAZY else CoroutineStart.DEFAULT) {
+                launchPeerPreparation(
+                    peer = peer,
+                    descriptor = descriptor,
+                    prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
+                    dispatchPrepare = plugin::dispatchPrepare,
+                    warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+                    onReady = {},
+                )
+            }
         } else {
             null
         }
@@ -315,6 +318,10 @@ class DefaultPluginInstanceService(
         } catch (e: Throwable) {
             logger.warning("onCreate for $descriptor failed: ${e.message}")
         }
+    }
+
+    override fun startPluginInstancePreparation(pluginId: String, sessionId: String) {
+        loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.prepareJob?.start()
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
@@ -370,7 +377,7 @@ class DefaultPluginInstanceService(
                 }
             }
         }
-        mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+        pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     private fun closeOnMainThread(sceneSlot: PluginSceneSlot) {

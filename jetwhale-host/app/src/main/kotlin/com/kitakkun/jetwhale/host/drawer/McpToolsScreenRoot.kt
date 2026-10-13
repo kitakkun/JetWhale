@@ -47,6 +47,7 @@ context(screenContext: McpToolsScreenContext)
 fun McpToolsScreenRoot(
     initialPluginId: String?,
     initialSessionId: String?,
+    initialTab: McpToolsTab,
 ) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
@@ -73,6 +74,7 @@ fun McpToolsScreenRoot(
                 runningPluginId = runningInvocation?.pluginId,
                 runningToolName = runningInvocation?.toolName,
             ),
+            initialTab = initialTab,
             onSelectPluginFilters = { selectedPluginIds = it.toPersistentSet() },
             onSelectSessionFilters = { selectedSessionIds = it.toPersistentSet() },
         )

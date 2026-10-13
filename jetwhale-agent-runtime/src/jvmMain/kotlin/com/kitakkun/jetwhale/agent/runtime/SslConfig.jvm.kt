@@ -25,7 +25,7 @@ private object TrustAllX509TrustManager : X509TrustManager {
     override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
 }
 
-internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
+internal actual fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
     check(this is CIOEngineConfig) { "Expected CIOEngineConfig but got ${this::class.simpleName}" }

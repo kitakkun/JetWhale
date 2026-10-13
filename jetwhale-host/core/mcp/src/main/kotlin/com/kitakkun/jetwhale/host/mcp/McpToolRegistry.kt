@@ -106,7 +106,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
 
     private fun errorPayload(message: String): String = buildJsonObject { put("error", message) }.toString()
 
-    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.sorted().joinToString().ifEmpty { "no session" }
+    // toSortedSet() copies the live view in one pass; sorted() on a single session reads the size,
+    // then the key, and throws if the session leaves in between.
+    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.toSortedSet().joinToString().ifEmpty { "no session" }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() = synchronized(publishLock) {

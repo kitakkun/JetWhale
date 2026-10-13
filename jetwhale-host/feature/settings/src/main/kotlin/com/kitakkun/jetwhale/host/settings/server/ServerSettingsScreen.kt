@@ -375,6 +375,12 @@ private fun DebugServerSection(
 }
 
 @Composable
+private fun debugServerSettingsErrorText(error: DebugServerSettingsError): String = when (error) {
+    DebugServerSettingsError.InvalidPort -> stringResource(Res.string.debug_server_port_invalid_error)
+    DebugServerSettingsError.PortConflict -> stringResource(Res.string.debug_server_port_conflict_error)
+}
+
+@Composable
 private fun McpServerSection(
     serverState: ServerState,
     editingMcpPortText: String,
@@ -560,12 +566,6 @@ private fun McpSnippetView(
 @OptIn(ExperimentalComposeUiApi::class)
 private suspend fun Clipboard.setPlainText(text: String) {
     setClipEntry(ClipEntry(StringSelection(text)))
-}
-
-@Composable
-private fun debugServerSettingsErrorText(error: DebugServerSettingsError): String = when (error) {
-    DebugServerSettingsError.InvalidPort -> stringResource(Res.string.debug_server_port_invalid_error)
-    DebugServerSettingsError.PortConflict -> stringResource(Res.string.debug_server_port_conflict_error)
 }
 
 @Composable

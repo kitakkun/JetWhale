@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import soil.plant.compose.reacty.ErrorBoundary
 import soil.query.compose.rememberSubscription
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(InternalComposeUiApi::class)
 @Composable
@@ -120,7 +121,7 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
     LaunchedEffect(reloadCount) {
         if (reloadCount == 0) return@LaunchedEffect
         visible = true
-        delay(1_500)
+        delay(1_500.milliseconds)
         visible = false
     }
     AnimatedVisibility(

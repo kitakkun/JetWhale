@@ -48,8 +48,10 @@ class HeadlessHostRunner(
      *
      * [ApplicationLifecycleOwner.initialize] must already have been called: this waits for the
      * listeners it starts.
+     *
+     * @param onReady Runs once every listener is bound.
      */
-    suspend fun run(): Int = coroutineScope {
+    suspend fun run(onReady: () -> Unit): Int = coroutineScope {
         installShutdownHook()
 
         val startup = withTimeoutOrNull(STARTUP_TIMEOUT_MILLIS) { awaitListeners() }
@@ -62,6 +64,7 @@ class HeadlessHostRunner(
         }
 
         println("$READINESS_PREFIX ready")
+        onReady()
 
         applicationLifecycleOwner.applicationStateFlow.first { it == ApplicationLifecycleOwner.ApplicationState.STOPPED }
         0
