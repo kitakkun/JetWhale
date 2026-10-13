@@ -107,7 +107,7 @@ private fun HostViewState.toJson() = UiStateJson(
     settingsSection = destination.settingsPage?.section?.name,
     settingsPage = destination.settingsPage?.name,
     mcpToolsTab = destination.mcpToolsTab?.name,
-    content = ContentJson(destination.content.kind.name, destination.content.pluginId, destination.content.sessionId),
+    content = HostContentJson(destination.content.kind.name, destination.content.pluginId, destination.content.sessionId),
     poppedOutPlugins = destination.poppedOutPlugins.map { PoppedOutPluginJson(it.pluginId, it.sessionId) },
     selectedSessionId = selectedSessionId,
     selectedPluginId = selectedPluginId,
@@ -173,14 +173,14 @@ data class UiStateJson(
     val settingsSection: String? = null,
     val settingsPage: String? = null,
     val mcpToolsTab: String? = null,
-    val content: ContentJson,
+    val content: HostContentJson,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
     val selectedSessionId: String? = null,
     val selectedPluginId: String? = null,
 )
 
 @Serializable
-data class ContentJson(
+data class HostContentJson(
     val destination: String,
     val pluginId: String? = null,
     val sessionId: String? = null,
