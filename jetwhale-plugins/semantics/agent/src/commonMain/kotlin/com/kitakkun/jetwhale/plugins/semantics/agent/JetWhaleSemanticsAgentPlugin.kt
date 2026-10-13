@@ -132,7 +132,6 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         }
         // Highlighting reaches into the app's UI toolkit; any failure there is this request's
         // answer, not the plugin's end.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
         } catch (e: CancellationException) {

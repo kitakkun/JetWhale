@@ -62,6 +62,8 @@ include(":jetwhale-host-sdk")
 include(":jetwhale-host-ui")
 
 include(":jetwhale-host:app")
+include(":jetwhale-host:release-metadata")
+include(":jetwhale-host:launcher")
 include(":jetwhale-host:idea-plugin")
 include(":jetwhale-host:idea-host")
 include(":jetwhale-host:core:data")
@@ -106,6 +108,7 @@ include(":jetwhale-plugins:mainthread:host")
 include(":test-annotations")
 
 include(":tools:qa-agent")
+include(":tools:docs-screenshots")
 
 include(":demo:shared")
 include(":demo:android")

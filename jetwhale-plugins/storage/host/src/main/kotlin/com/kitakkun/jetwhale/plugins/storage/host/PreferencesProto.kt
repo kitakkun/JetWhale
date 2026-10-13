@@ -86,22 +86,22 @@ private class ProtoReader(
     }
 
     fun varint(): Long {
-        expect(WIRE_VARINT)
+        requireWireType(WIRE_VARINT)
         return readRawVarint()
     }
 
     fun fixed32(): Int {
-        expect(WIRE_FIXED32)
+        requireWireType(WIRE_FIXED32)
         return (0 until 4).fold(0) { acc, i -> acc or ((nextByte().toInt() and 0xFF) shl (8 * i)) }
     }
 
     fun fixed64(): Long {
-        expect(WIRE_FIXED64)
+        requireWireType(WIRE_FIXED64)
         return (0 until 8).fold(0L) { acc, i -> acc or ((nextByte().toLong() and 0xFF) shl (8 * i)) }
     }
 
     fun lengthDelimited(): ProtoReader {
-        expect(WIRE_LENGTH_DELIMITED)
+        requireWireType(WIRE_LENGTH_DELIMITED)
         val length = readRawVarint()
         require(length in 0..(end - position).toLong()) { "a length-delimited field runs past the end of its message" }
         return ProtoReader(bytes, position, position + length.toInt()).also { position += length.toInt() }
@@ -126,7 +126,7 @@ private class ProtoReader(
         position += count.toInt()
     }
 
-    private fun expect(wireType: Int) {
+    private fun requireWireType(wireType: Int) {
         require(pendingWireType == wireType) { "expected wire type $wireType, found $pendingWireType" }
     }
 
