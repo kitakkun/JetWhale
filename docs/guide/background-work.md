@@ -5,13 +5,15 @@ you cancel it or run it now, from the host or from an AI agent over MCP. It answ
 are otherwise a `dumpsys` away: is the sync scheduled, what is it waiting for, when does it run
 next, why did it stop, and did the last run fail?
 
+**Works with:** Android and iOS. The JVM, macOS and the web have no system scheduler an app can
+read.
+
 ## Setup
 
 ### Install the host plugin
 
-Background Work is in the host's **official catalog**: open **Settings → Plugins → Add Plugins →
-Official Plugins** and install it. See [Host Settings → Plugins](/guide/host-settings#plugins) for the
-other install routes.
+Install **Background Work** from **Settings → Plugins → Add Plugins → Official Plugins**. To install
+it by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
 
@@ -44,7 +46,7 @@ JetWhaleBackgroundWorkAgentPlugin(
 `sources` is called when the host enables the plugin, so a scheduler that needs the app to be up can
 be reached lazily. Implement `BackgroundWorkSource` to show a scheduler of your own.
 
-## What each platform shows
+### What each source shows
 
 | Source | Lists | Cancel | Run now |
 |---|---|---|---|
@@ -58,7 +60,31 @@ be reached lazily. Implement `BackgroundWorkSource` to show a scheduler of your 
 JobScheduler and BGTaskScheduler have no change notifications, so they are read every two seconds.
 WorkManager is observed through its own flow.
 
-## What cannot be done from inside the app
+## Using it
+
+- **The list**, filterable by *All / Pending / Finished* and by text across name, id, tag and source.
+  Scheduler problems appear as warning chips above it (a source that failed says why).
+- **The detail pane** for the selected work: its class and id, schedule and constraints, the reason
+  it last stopped, progress and output data, and **the history of states the host saw it in** —
+  periodic work cycling between *Enqueued* and *Running*, or a one-off going to *Failed*.
+- **Actions**: *Run now*, *Cancel…*, and cancelling everything with one of its tags. Cancelling always
+  asks first.
+
+## MCP tools
+
+With the [MCP server](/guide/mcp-server) running, an AI agent can do the same through these tools.
+Each takes the `sessionId` of the app's session.
+
+| Tool | What it does |
+|------|--------------|
+| `com.kitakkun.jetwhale.background.listBackgroundWork` | Every source and its work, optionally filtered by `state` or `query` |
+| `com.kitakkun.jetwhale.background.cancelWork` | Cancel by `id`, `tag` or `uniqueName` (exactly one) in a `source` |
+| `com.kitakkun.jetwhale.background.runWorkNow` | Run work now where the source can; the result says what was actually done |
+
+An agent checking that a flow schedules its sync can call `listBackgroundWork` with
+`query: "sync"`, run it with `runWorkNow`, and confirm the new run's output in the next listing.
+
+## Limits
 
 - **Running WorkManager work early.** WorkManager has no API to start enqueued work before its
   constraints and delay are met. *Run now* enqueues a one-time copy of the same worker class with the
@@ -78,24 +104,3 @@ WorkManager is observed through its own flow.
   The plugin shows this rather than calling the private selector itself.
 - **Ordinary alarms.** Android lets an app read back only the next alarm clock; alarms set with
   `AlarmManager.set*` show up only in `adb shell dumpsys alarm`.
-
-## What you get in the host
-
-- **The list**, filterable by *All / Pending / Finished* and by text across name, id, tag and source.
-  Scheduler problems appear as warning chips above it (a source that failed says why).
-- **The detail pane** for the selected work: its class and id, schedule and constraints, the reason
-  it last stopped, progress and output data, and **the history of states the host saw it in** —
-  periodic work cycling between *Enqueued* and *Running*, or a one-off going to *Failed*.
-- **Actions**: *Run now*, *Cancel…*, and cancelling everything with one of its tags. Cancelling always
-  asks first.
-
-## MCP tools
-
-| Tool | What it does |
-|------|--------------|
-| `com.kitakkun.jetwhale.background.listBackgroundWork` | Every source and its work, optionally filtered by `state` or `query` |
-| `com.kitakkun.jetwhale.background.cancelWork` | Cancel by `id`, `tag` or `uniqueName` (exactly one) in a `source` |
-| `com.kitakkun.jetwhale.background.runWorkNow` | Run work now where the source can; the result says what was actually done |
-
-An agent checking that a flow schedules its sync can call `listBackgroundWork` with
-`query: "sync"`, run it with `runWorkNow`, and confirm the new run's output in the next listing.

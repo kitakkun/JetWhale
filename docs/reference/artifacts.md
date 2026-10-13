@@ -36,8 +36,9 @@ Targets differ per artifact:
 | Artifacts | Targets |
 |---|---|
 | `jetwhale-agent-runtime`, `jetwhale-agent-sdk`, `jetwhale-protocol-core`, `jetwhale-annotations`, every plugin's `-protocol`, `jetwhale-network-inspector-agent` and `-agent-ktor`, `jetwhale-nav3-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64`, `linuxX64`, `linuxArm64`, `mingwX64` |
-| `jetwhale-storage-inspector-agent` and `-agent-datastore`, `jetwhale-debug-actions-agent` and `-agent-compose` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64` |
+| `jetwhale-storage-inspector-agent` and `-agent-datastore`, `jetwhale-debug-actions-agent` and `-agent-compose`, `jetwhale-background-work-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64` |
 | `jetwhale-compose-semantics-inspector-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64` |
+| `jetwhale-background-work-agent-workmanager` | `android` |
 | `jetwhale-network-inspector-agent-okhttp`, the host plugin jars, `jetwhale-host-sdk`, `jetwhale-host-ui`, the Gradle plugins and the compiler plugin, `jetwhale-qa-agent` | JVM only |
 
 No artifact has an `iosX64` or `macosX64` target, or a watchOS or tvOS one. A desktop app on an Intel
