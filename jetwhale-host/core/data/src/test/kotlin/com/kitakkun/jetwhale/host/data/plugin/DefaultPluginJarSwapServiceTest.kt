@@ -44,9 +44,9 @@ class DefaultPluginJarSwapServiceTest {
     private val pluginId = "com.example.plugin"
     private val jar = File.createTempFile("plugin", ".jar")
     private val sceneFactory = RecordingPluginComposeSceneFactory()
-    private val repository = SwappingPluginFactoryRepository(loadedPlugin())
-    private val instanceService = DefaultPluginInstanceService(
-        pluginFactoryRepository = repository,
+    private val pluginFactoryRepository = SwappingPluginFactoryRepository(loadedPlugin())
+    private val pluginInstanceService = DefaultPluginInstanceService(
+        pluginFactoryRepository = pluginFactoryRepository,
         frameSender = mock<HostPluginFrameSender>(),
         pluginDataStoreRepository = mock<PluginDataStoreRepository> {
             every { storageFor(any()) } returns mock<JetWhalePluginStorage>()
@@ -54,8 +54,8 @@ class DefaultPluginJarSwapServiceTest {
         pluginComposeSceneFactory = sceneFactory,
     )
     private val swapService = DefaultPluginJarSwapService(
-        pluginFactoryRepository = repository,
-        pluginInstanceService = instanceService,
+        pluginFactoryRepository = pluginFactoryRepository,
+        pluginInstanceService = pluginInstanceService,
         debugSessionRepository = mock<DebugSessionRepository> {
             every { debugSessionsFlow } returns MutableStateFlow(persistentListOf())
         },
@@ -74,18 +74,18 @@ class DefaultPluginJarSwapServiceTest {
 
     @Test
     fun `an open screen follows the new instance of a swapped jar and the old scene is closed`() = runBlocking<Unit> {
-        instanceService.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
-        val states = Channel<PluginScreenState>(Channel.UNLIMITED)
-        val screen = launch { instanceService.pluginScreenStateFlow(pluginId, HostSession.ID).collect(states::send) }
-        val oldScene = assertIs<PluginScreenState.Ready>(withTimeout(TIMEOUT_MILLIS) { states.receive() }).scene
+        pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
+        val pluginScreenStates = Channel<PluginScreenState>(Channel.UNLIMITED)
+        val screenStateCollectionJob = launch { pluginInstanceService.pluginScreenStateFlow(pluginId, HostSession.ID).collect(pluginScreenStates::send) }
+        val oldScene = assertIs<PluginScreenState.Ready>(withTimeout(TIMEOUT_MILLIS) { pluginScreenStates.receive() }).scene
 
         swapService.reload(jar.path, expectedSha256 = null)
 
         withTimeout(TIMEOUT_MILLIS) {
-            states.receiveAsFlow().filterIsInstance<PluginScreenState.Ready>().first { it.scene !== oldScene }
+            pluginScreenStates.receiveAsFlow().filterIsInstance<PluginScreenState.Ready>().first { it.scene !== oldScene }
         }
-        withTimeout(TIMEOUT_MILLIS) { sceneFactory.closed.first { oldScene in it } }
-        screen.cancel()
+        withTimeout(TIMEOUT_MILLIS) { sceneFactory.closedScenesFlow.first { oldScene in it } }
+        screenStateCollectionJob.cancel()
     }
 
     private fun loadedPlugin() = LoadedHostPlugin(
@@ -109,8 +109,8 @@ class DefaultPluginJarSwapServiceTest {
     }
 
     /** Serves one plugin from [jar][reloadPlugin], replacing its factory as a new classloader would. */
-    private inner class SwappingPluginFactoryRepository(private var loaded: LoadedHostPlugin) : PluginFactoryRepository {
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mapOf(loaded.manifest.pluginId to loaded)
+    private inner class SwappingPluginFactoryRepository(private var loadedHostPlugin: LoadedHostPlugin) : PluginFactoryRepository {
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mapOf(loadedHostPlugin.manifest.pluginId to loadedHostPlugin)
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
@@ -118,7 +118,7 @@ class DefaultPluginJarSwapServiceTest {
         override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = listOf(pluginId)
         override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> {
-            loaded = loadedPlugin()
+            loadedHostPlugin = loadedPlugin()
             return listOf(pluginId)
         }
 

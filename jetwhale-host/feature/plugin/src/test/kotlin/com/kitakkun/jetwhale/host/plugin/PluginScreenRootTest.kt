@@ -55,13 +55,13 @@ class PluginScreenRootTest {
 
     @Test
     fun `a new scene replaces the crash screen of the scene before it`() = runComposeUiTest {
-        val states = MutableStateFlow<PluginScreenState>(PluginScreenState.Ready(throwingOnClickScene()))
-        showPluginScreenRoot(states)
+        val pluginScreenStateFlow = MutableStateFlow<PluginScreenState>(PluginScreenState.Ready(throwingOnClickScene()))
+        showPluginScreenRoot(pluginScreenStateFlow)
         onRoot().performMouseInput { click(center) }
         advanceFrames()
         onNodeWithText("Plugin UI Crashed").assertExists()
 
-        states.value = PluginScreenState.Ready(pluginScene { Box(Modifier.fillMaxSize()) })
+        pluginScreenStateFlow.value = PluginScreenState.Ready(pluginScene { Box(Modifier.fillMaxSize()) })
         advanceFrames()
 
         onNodeWithText("Plugin UI Crashed").assertDoesNotExist()
@@ -69,7 +69,7 @@ class PluginScreenRootTest {
 }
 
 @OptIn(ExperimentalTestApi::class)
-private fun ComposeUiTest.showPluginScreenRoot(states: MutableStateFlow<out PluginScreenState>) {
+private fun ComposeUiTest.showPluginScreenRoot(pluginScreenStateFlow: MutableStateFlow<out PluginScreenState>) {
     // PluginScreen asks for a frame on every frame, so the test clock never goes idle on its own;
     // frames are stepped by hand.
     mainClock.autoAdvance = false
@@ -77,9 +77,9 @@ private fun ComposeUiTest.showPluginScreenRoot(states: MutableStateFlow<out Plug
         pluginId = "com.example.plugin",
         sessionId = "session",
         pluginScreenStateSubscriptionKeyFactory = { _, _ ->
-            buildSubscriptionKey(id = SubscriptionId("plugin-screen-state"), subscribe = { states })
+            buildSubscriptionKey(id = SubscriptionId("plugin-screen-state"), subscribe = { pluginScreenStateFlow })
         },
-        pluginJarSwapService = NoJarSwaps,
+        pluginJarSwapService = NoopPluginJarSwapService,
     )
     setContent {
         SwrClientProvider(SwrCachePlus(SwrCachePlusPolicy(CoroutineScope(Dispatchers.Unconfined + SupervisorJob())))) {
@@ -108,21 +108,21 @@ private fun pluginScene(content: @Composable () -> Unit): PluginComposeScene {
     composeScene.setContent(content)
     return PluginComposeScene(
         composeScene = composeScene,
-        windowInfoUpdater = NoWindow,
+        windowInfoUpdater = NoopWindowInfoUpdater,
         semanticsOwners = emptySet(),
         isMcpCapture = mutableStateOf(false),
         pointerIcon = mutableStateOf(PointerIcon.Default),
     )
 }
 
-private object NoWindow : WindowInfoUpdater {
+private object NoopWindowInfoUpdater : WindowInfoUpdater {
     override val currentIntSize: IntSize = IntSize.Zero
     override val currentDpSize: DpSize = DpSize.Zero
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) = Unit
 }
 
-private object NoJarSwaps : PluginJarSwapService {
+private object NoopPluginJarSwapService : PluginJarSwapService {
     override val pluginReloadedFlow: SharedFlow<String> = MutableSharedFlow()
     override suspend fun hotSwap(jarPath: String) = Unit
     override suspend fun reload(jarPath: String, expectedSha256: String?) = Unit

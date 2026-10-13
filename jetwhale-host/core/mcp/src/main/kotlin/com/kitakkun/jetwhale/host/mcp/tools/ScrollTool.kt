@@ -10,7 +10,7 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
-import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginUiResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
@@ -67,7 +67,7 @@ class ScrollMcpTool(
             } ?: 0f
 
             val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
-                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
+                ?: return@addTool noRunningPluginUiResult(pluginId, sessionId)
             withContext(Dispatchers.Main) { dispatchScroll(scene = scene, x = x, y = y, deltaX = deltaX, deltaY = deltaY) }
             successResult()
         }

@@ -39,11 +39,11 @@ class DefaultFollowAiOperationServiceTest {
     }
 
     /** The (pluginId, sessionId) pairs that have a live instance; a call to any other plugin fails. */
-    private val runningInstances = setOf("plugin-1" to "session-1", "plugin-1" to "session-2", "plugin-2" to "session-1", "host-plugin" to HostSession.ID)
+    private val runningPluginAndSessionIds = setOf("plugin-1" to "session-1", "plugin-1" to "session-2", "plugin-2" to "session-1", "host-plugin" to HostSession.ID)
     private val runningPlugin = object : JetWhaleHostPlugin() {}
     private val pluginInstanceService = mock<PluginInstanceService> {
-        every { getPluginInstanceForSession(any(), any()) } calls { args ->
-            runningPlugin.takeIf { (args.args[0] as String to args.args[1] as String) in runningInstances }
+        every { getPluginInstanceForSession(any(), any()) } calls { callArgs ->
+            runningPlugin.takeIf { (callArgs.args[0] as String to callArgs.args[1] as String) in runningPluginAndSessionIds }
         }
     }
 

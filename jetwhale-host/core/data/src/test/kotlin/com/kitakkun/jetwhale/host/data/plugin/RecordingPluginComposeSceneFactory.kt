@@ -18,27 +18,27 @@ import java.util.concurrent.CopyOnWriteArrayList
 /** Real, empty scenes that record which of them were created and which were closed. */
 @OptIn(InternalComposeUiApi::class)
 internal class RecordingPluginComposeSceneFactory : PluginComposeSceneFactory {
-    val created: MutableList<PluginComposeScene> = CopyOnWriteArrayList()
+    val createdScenes: MutableList<PluginComposeScene> = CopyOnWriteArrayList()
 
     /** Scenes whose composition was disposed, which is what closing a scene does. */
-    val closed = MutableStateFlow<Set<PluginComposeScene>>(emptySet())
+    val closedScenesFlow = MutableStateFlow<Set<PluginComposeScene>>(emptySet())
 
     /** Thrown by the next scene creation, as content that throws while it is first composed would be. */
     @Volatile
-    var failNext: Throwable? = null
+    var nextCreationFailure: Throwable? = null
 
     override fun updateHostDensity(density: Density) = Unit
 
     override fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene {
-        failNext?.let { failure ->
-            failNext = null
+        nextCreationFailure?.let { failure ->
+            nextCreationFailure = null
             throw failure
         }
         lateinit var scene: PluginComposeScene
         val composeScene = CanvasLayersComposeScene()
         composeScene.setContent {
             DisposableEffect(Unit) {
-                onDispose { closed.update { it + scene } }
+                onDispose { closedScenesFlow.update { it + scene } }
             }
         }
         scene = PluginComposeScene(
@@ -48,7 +48,7 @@ internal class RecordingPluginComposeSceneFactory : PluginComposeSceneFactory {
             isMcpCapture = mutableStateOf(false),
             pointerIcon = mutableStateOf(PointerIcon.Default),
         )
-        created += scene
+        createdScenes += scene
         return scene
     }
 }

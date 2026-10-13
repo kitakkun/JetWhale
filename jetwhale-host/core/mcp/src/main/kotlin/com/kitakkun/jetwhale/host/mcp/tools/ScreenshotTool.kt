@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
 import com.kitakkun.jetwhale.host.mcp.jsonInt
-import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginUiResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
@@ -83,7 +83,7 @@ class ScreenshotMcpTool(
             invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
-                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
+                ?: return@addTool noRunningPluginUiResult(pluginId, sessionId)
             val frame = withContext(Dispatchers.Main) {
                 renderScreenshot(scene, resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity))
             }

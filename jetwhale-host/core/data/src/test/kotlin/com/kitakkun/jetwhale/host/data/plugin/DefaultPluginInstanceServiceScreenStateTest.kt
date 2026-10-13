@@ -64,13 +64,13 @@ class DefaultPluginInstanceServiceScreenStateTest {
     @Test
     fun `a screen opened before its instance exists shows starting and then the scene`() = runBlocking<Unit> {
         val service = serviceWith(factoryOf { UiPlugin() })
-        val screenState = service.pluginScreenStateFlow(pluginId, sessionId)
-        assertEquals(PluginScreenState.Starting, screenState.first())
+        val screenStateFlow = service.pluginScreenStateFlow(pluginId, sessionId)
+        assertEquals(PluginScreenState.Starting, screenStateFlow.first())
 
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
-        val ready = assertIs<PluginScreenState.Ready>(awaitReady(screenState))
-        assertSame(sceneFactory.created.single(), ready.scene)
+        val ready = assertIs<PluginScreenState.Ready>(awaitReady(screenStateFlow))
+        assertSame(sceneFactory.createdScenes.single(), ready.scene)
     }
 
     @Test
@@ -89,7 +89,7 @@ class DefaultPluginInstanceServiceScreenStateTest {
         val service = serviceWith(repository)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
-        repository.loaded = loadedPlugin(factoryOf { UiPlugin() })
+        repository.loadedPlugin = loadedPlugin(factoryOf { UiPlugin() })
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
         awaitReady(service.pluginScreenStateFlow(pluginId, sessionId))
@@ -109,14 +109,14 @@ class DefaultPluginInstanceServiceScreenStateTest {
     fun `a replaced instance gets a new scene and its old scene is closed`() = runBlocking<Unit> {
         val repository = FakePluginFactoryRepository(loadedPlugin(factoryOf { UiPlugin() }))
         val service = serviceWith(repository)
-        val screenState = service.pluginScreenStateFlow(pluginId, sessionId)
+        val screenStateFlow = service.pluginScreenStateFlow(pluginId, sessionId)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        val replacedScene = awaitReady(screenState).scene
+        val replacedScene = awaitReady(screenStateFlow).scene
 
-        repository.loaded = loadedPlugin(factoryOf { UiPlugin() })
+        repository.loadedPlugin = loadedPlugin(factoryOf { UiPlugin() })
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
-        val replacementScene = awaitReady(screenState).scene
+        val replacementScene = awaitReady(screenStateFlow).scene
         assertNotSame(replacedScene, replacementScene)
         assertSame(replacementScene, service.getOrCreatePluginScene(pluginId, sessionId))
         awaitClosed(replacedScene)
@@ -145,7 +145,7 @@ class DefaultPluginInstanceServiceScreenStateTest {
             service.unloadPluginInstanceForSession(sessionId)
 
             assertNull(requested.await())
-            assertTrue(sceneFactory.created.isEmpty())
+            assertTrue(sceneFactory.createdScenes.isEmpty())
         } finally {
             Dispatchers.resetMain()
         }
@@ -154,15 +154,15 @@ class DefaultPluginInstanceServiceScreenStateTest {
     @Test
     fun `an in-place reload gives the instance a new scene and closes the old one`() = runBlocking<Unit> {
         val service = serviceWith(factoryOf { UiPlugin() })
-        val screenState = service.pluginScreenStateFlow(pluginId, sessionId)
+        val screenStateFlow = service.pluginScreenStateFlow(pluginId, sessionId)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        val instance = service.getPluginInstanceForSession(pluginId, sessionId)
-        val oldScene = awaitReady(screenState).scene
+        val pluginInstance = service.getPluginInstanceForSession(pluginId, sessionId)
+        val oldScene = awaitReady(screenStateFlow).scene
 
         service.recreatePluginScenes(pluginId)
 
-        assertNotSame(oldScene, awaitReady(screenState).scene)
-        assertSame(instance, service.getPluginInstanceForSession(pluginId, sessionId))
+        assertNotSame(oldScene, awaitReady(screenStateFlow).scene)
+        assertSame(pluginInstance, service.getPluginInstanceForSession(pluginId, sessionId))
         awaitClosed(oldScene)
     }
 
@@ -174,14 +174,14 @@ class DefaultPluginInstanceServiceScreenStateTest {
 
         assertEquals(PluginScreenState.Headless, service.pluginScreenStateFlow(pluginId, sessionId).first())
         assertNull(service.getOrCreatePluginScene(pluginId, sessionId))
-        assertTrue(sceneFactory.created.isEmpty())
+        assertTrue(sceneFactory.createdScenes.isEmpty())
     }
 
     @Test
     fun `content that throws while its scene is first composed fails the screen until it is retried`() = runBlocking<Unit> {
         val service = serviceWith(factoryOf { UiPlugin() })
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        sceneFactory.failNext = IllegalStateException("content broke")
+        sceneFactory.nextCreationFailure = IllegalStateException("content broke")
 
         val failed = assertIs<PluginScreenState.ContentFailed>(service.pluginScreenStateFlow(pluginId, sessionId).first())
 
@@ -193,26 +193,26 @@ class DefaultPluginInstanceServiceScreenStateTest {
     fun `a screen whose content failed shows the scene an MCP tool composes later`() = runBlocking<Unit> {
         val service = serviceWith(factoryOf { UiPlugin() })
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        sceneFactory.failNext = IllegalStateException("content broke")
-        val states = Channel<PluginScreenState>(Channel.UNLIMITED)
-        val collecting = launch { service.pluginScreenStateFlow(pluginId, sessionId).collect(states::send) }
-        assertIs<PluginScreenState.ContentFailed>(withTimeout(TIMEOUT_MILLIS) { states.receive() })
+        sceneFactory.nextCreationFailure = IllegalStateException("content broke")
+        val screenStates = Channel<PluginScreenState>(Channel.UNLIMITED)
+        val collecting = launch { service.pluginScreenStateFlow(pluginId, sessionId).collect(screenStates::send) }
+        assertIs<PluginScreenState.ContentFailed>(withTimeout(TIMEOUT_MILLIS) { screenStates.receive() })
 
         val scene = service.getOrCreatePluginScene(pluginId, sessionId)
 
-        assertSame(scene, assertIs<PluginScreenState.Ready>(withTimeout(TIMEOUT_MILLIS) { states.receive() }).scene)
+        assertSame(scene, assertIs<PluginScreenState.Ready>(withTimeout(TIMEOUT_MILLIS) { screenStates.receive() }).scene)
         collecting.cancel()
     }
 
     @Test
     fun `the screen stops showing an instance before its onDispose runs`() = runBlocking<Unit> {
-        var stateDuringDispose: PluginScreenState? = null
+        var screenStateDuringDispose: PluginScreenState? = null
         lateinit var service: DefaultPluginInstanceService
         service = serviceWith(
             factoryOf {
                 object : JetWhaleHostPlugin() {
                     override fun onDispose() {
-                        stateDuringDispose = runBlocking { service.pluginScreenStateFlow(pluginId, sessionId).first() }
+                        screenStateDuringDispose = runBlocking { service.pluginScreenStateFlow(pluginId, sessionId).first() }
                     }
                 }
             },
@@ -221,7 +221,7 @@ class DefaultPluginInstanceServiceScreenStateTest {
 
         service.unloadPluginInstanceForSession(sessionId)
 
-        assertEquals(PluginScreenState.Starting, stateDuringDispose)
+        assertEquals(PluginScreenState.Starting, screenStateDuringDispose)
     }
 
     @Test
@@ -231,7 +231,7 @@ class DefaultPluginInstanceServiceScreenStateTest {
         val secondChangeDone = CountDownLatch(1)
         // An unconfined collector runs inside the publishing thread's assignment, holding that
         // thread after it has published the headless set and before it publishes the screen states.
-        val holdFirstPublication = launch(Dispatchers.Unconfined) {
+        val firstPublicationHolder = launch(Dispatchers.Unconfined) {
             service.headlessPluginsFlow.first { it.pluginIdsBySession.isNotEmpty() }
             firstPublicationHalfway.countDown()
             // Bounded, since the first thread holds the publication lock here and the second change
@@ -239,25 +239,25 @@ class DefaultPluginInstanceServiceScreenStateTest {
             secondChangeDone.await(500, TimeUnit.MILLISECONDS)
         }
 
-        val first = thread { service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId)) }
+        val firstThread = thread { service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId)) }
         firstPublicationHalfway.await()
-        val second = thread {
+        val secondThread = thread {
             service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
             secondChangeDone.countDown()
         }
-        first.join()
-        second.join()
-        holdFirstPublication.join()
+        firstThread.join()
+        secondThread.join()
+        firstPublicationHolder.join()
 
         assertEquals(PluginScreenState.Headless, service.pluginScreenStateFlow(pluginId, HostSession.ID).first())
     }
 
-    private suspend fun awaitReady(screenState: Flow<PluginScreenState>): PluginScreenState.Ready = withTimeout(TIMEOUT_MILLIS) {
-        screenState.first { it is PluginScreenState.Ready } as PluginScreenState.Ready
+    private suspend fun awaitReady(screenStateFlow: Flow<PluginScreenState>): PluginScreenState.Ready = withTimeout(TIMEOUT_MILLIS) {
+        screenStateFlow.first { it is PluginScreenState.Ready } as PluginScreenState.Ready
     }
 
     private suspend fun awaitClosed(scene: PluginComposeScene) = withTimeout(TIMEOUT_MILLIS) {
-        sceneFactory.closed.first { scene in it }
+        sceneFactory.closedScenesFlow.first { scene in it }
     }
 
     private fun serviceWith(factory: JetWhaleHostPluginFactory) = serviceWith(FakePluginFactoryRepository(loadedPlugin(factory)))
@@ -269,8 +269,8 @@ class DefaultPluginInstanceServiceScreenStateTest {
         pluginComposeSceneFactory = sceneFactory,
     )
 
-    private fun factoryOf(createPlugin: () -> JetWhaleHostPlugin) = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = createPlugin()
+    private fun factoryOf(newPlugin: () -> JetWhaleHostPlugin) = object : JetWhaleHostPluginFactory {
+        override fun createPlugin(): JetWhaleHostPlugin = newPlugin()
     }
 
     private fun loadedPlugin(factory: JetWhaleHostPluginFactory) = LoadedHostPlugin(
@@ -291,8 +291,8 @@ class DefaultPluginInstanceServiceScreenStateTest {
         override fun Content() = Unit
     }
 
-    private class FakePluginFactoryRepository(var loaded: LoadedHostPlugin) : PluginFactoryRepository {
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mapOf(loaded.manifest.pluginId to loaded)
+    private class FakePluginFactoryRepository(var loadedPlugin: LoadedHostPlugin) : PluginFactoryRepository {
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mapOf(loadedPlugin.manifest.pluginId to loadedPlugin)
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 

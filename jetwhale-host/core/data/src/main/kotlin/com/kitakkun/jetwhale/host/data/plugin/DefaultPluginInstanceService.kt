@@ -95,7 +95,7 @@ private class PluginSceneSlot(private val createScene: () -> PluginComposeScene)
      * belongs to an instance that is already gone, and the publication that removed it brings the
      * state that follows.
      */
-    val screenState: Flow<PluginScreenState> = flow<PluginScreenState> {
+    val screenStateFlow: Flow<PluginScreenState> = flow<PluginScreenState> {
         withContext(Dispatchers.Main) { getOrCreate() }?.let { emit(PluginScreenState.Ready(it)) }
     }.catch { cause ->
         emit(PluginScreenState.ContentFailed(cause))
@@ -168,7 +168,7 @@ class DefaultPluginInstanceService(
             when (published) {
                 null -> flowOf(PluginScreenState.Starting)
                 is PublishedInstance.Failed -> flowOf(PluginScreenState.FailedToStart(published.cause))
-                is PublishedInstance.Running -> published.sceneSlot?.screenState ?: flowOf(PluginScreenState.Headless)
+                is PublishedInstance.Running -> published.sceneSlot?.screenStateFlow ?: flowOf(PluginScreenState.Headless)
             }
         }
 
@@ -180,7 +180,7 @@ class DefaultPluginInstanceService(
     override fun recreatePluginScenes(pluginId: String) {
         val replacedSlots = loadedPlugins.filterKeys { it.pluginId == pluginId }.mapNotNull { (key, instance) ->
             val replacedSlot = instance.sceneSlot ?: return@mapNotNull null
-            val newSlot = sceneSlotFor(instance.plugin) ?: return@mapNotNull null
+            val newSlot = createSceneSlot(instance.plugin) ?: return@mapNotNull null
             instance.sceneSlot = newSlot
             // If the instance was disposed meanwhile, its disposal closed only the slot it saw, not
             // this new one.
@@ -270,10 +270,10 @@ class DefaultPluginInstanceService(
         } else {
             null
         }
-        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope, sceneSlotFor(plugin))
+        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope, createSceneSlot(plugin))
     }
 
-    private fun sceneSlotFor(plugin: JetWhaleHostPlugin): PluginSceneSlot? {
+    private fun createSceneSlot(plugin: JetWhaleHostPlugin): PluginSceneSlot? {
         val ui = plugin as? JetWhaleHostPluginUi ?: return null
         return PluginSceneSlot { pluginComposeSceneFactory.createScene(plugin) { ui.Content() } }
     }

@@ -37,12 +37,12 @@ class DefaultPluginComposeSceneFactoryTest {
     @Test
     fun `a scene whose content throws while it is first composed is closed`() = runBlocking<Unit> {
         val factory = DefaultPluginComposeSceneFactory(passThroughBridge)
-        val runningBefore = Recomposer.runningRecomposers.value
+        val runningRecomposersBefore = Recomposer.runningRecomposers.value
 
-        withContext(Dispatchers.Main) { assertFailsWith<IllegalStateException> { factory.createScene(boundPlugin()) { error("content broke") } } }
+        withContext(Dispatchers.Main) { assertFailsWith<IllegalStateException> { factory.createScene(storageBoundPlugin()) { error("content broke") } } }
 
         // A scene that stays open keeps its Recomposer running.
-        withTimeout(5_000) { Recomposer.runningRecomposers.first { (it - runningBefore).isEmpty() } }
+        withTimeout(5_000) { Recomposer.runningRecomposers.first { (it - runningRecomposersBefore).isEmpty() } }
     }
 
     @Test
@@ -79,7 +79,7 @@ class DefaultPluginComposeSceneFactoryTest {
         render(Canvas(ImageBitmap(1, 1)))
     }
 
-    private fun boundPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}.apply {
+    private fun storageBoundPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}.apply {
         bindStorage(mock<JetWhalePluginStorage>())
     }
 }

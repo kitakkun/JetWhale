@@ -48,10 +48,10 @@ fun PluginScreenRoot() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        val screenState = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
+        val screenStateSubscription = rememberSubscription(screenContext.pluginScreenStateSubscriptionKey)
         val coroutineScope = rememberCoroutineScope()
         SoilDataBoundary(
-            state = screenState,
+            state = screenStateSubscription,
             fallback = SoilFallbackDefaults.custom(
                 suspenseFallback = { PluginStartingScreen() },
                 errorFallback = SoilFallbackDefaults.default().errorFallback,
@@ -94,7 +94,7 @@ fun PluginScreenRoot() {
                     hint = null,
                     pluginId = screenContext.pluginId,
                     cause = state.cause,
-                    onClickReset = { coroutineScope.launch { screenState.reset() } },
+                    onClickReset = { coroutineScope.launch { screenStateSubscription.reset() } },
                 )
             }
         }

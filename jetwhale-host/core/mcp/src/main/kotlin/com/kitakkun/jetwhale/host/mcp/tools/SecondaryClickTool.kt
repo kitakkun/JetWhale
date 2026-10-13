@@ -15,7 +15,7 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
-import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginUiResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
@@ -78,7 +78,7 @@ class SecondaryClickMcpTool(
                 ?: return@addTool errorResult("Missing required argument: y")
 
             val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
-                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
+                ?: return@addTool noRunningPluginUiResult(pluginId, sessionId)
             val outcome = withContext(Dispatchers.Main) {
                 ensureSceneRendered(scene)
                 dispatchSecondaryClick(scene, x, y)

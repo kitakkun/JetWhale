@@ -12,7 +12,7 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
-import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginUiResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
@@ -60,7 +60,7 @@ class GetAccessibilityTreeMcpTool(
                 ?: return@addTool errorResult("Missing required argument: sessionId")
 
             val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
-                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
+                ?: return@addTool noRunningPluginUiResult(pluginId, sessionId)
             val json = withContext(Dispatchers.Main) { captureAccessibilityTree(scene) }
             CallToolResult(content = listOf(TextContent(json)))
         }

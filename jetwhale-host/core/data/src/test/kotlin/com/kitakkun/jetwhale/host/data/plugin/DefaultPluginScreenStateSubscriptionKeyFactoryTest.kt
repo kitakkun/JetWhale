@@ -1,11 +1,9 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginScreenState
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -20,8 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
@@ -45,8 +41,20 @@ class DefaultPluginScreenStateSubscriptionKeyFactoryTest {
     private val sessionId = "session-1"
 
     private val storage = mock<JetWhalePluginStorage>()
+    private val loadedPlugin = LoadedHostPlugin(
+        manifest = JetWhaleHostPluginManifest(
+            pluginId = pluginId,
+            pluginName = "Test",
+            version = "1.0.0",
+            factoryClass = "com.example.TestFactory",
+            requiresAgent = false,
+        ),
+        factory = object : JetWhaleHostPluginFactory {
+            override fun createPlugin(): JetWhaleHostPlugin = UiPlugin()
+        },
+    )
     private val service = DefaultPluginInstanceService(
-        pluginFactoryRepository = SinglePluginFactoryRepository(),
+        pluginFactoryRepository = SinglePluginFactoryRepository(loadedPlugin),
         frameSender = mock(),
         pluginDataStoreRepository = mock<PluginDataStoreRepository> {
             every { storageFor(any()) } returns storage
@@ -69,7 +77,7 @@ class DefaultPluginScreenStateSubscriptionKeyFactoryTest {
     fun `a screen reopened soon after its instance was replaced shows the replacement's scene`() = runTest {
         val client = SwrCachePlus(SwrCachePlusPolicy(backgroundScope))
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
-        val replacedScene = client.showScene { true }
+        val replacedScene = client.awaitSceneFromNewSubscription { true }
 
         service.unloadPluginInstancesForPlugin(pluginId)
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
@@ -77,48 +85,23 @@ class DefaultPluginScreenStateSubscriptionKeyFactoryTest {
         // closes.
         delay(1.seconds)
 
-        client.showScene { it !== replacedScene }
+        client.awaitSceneFromNewSubscription { it !== replacedScene }
     }
 
     /** Opens the screen, as the plugin screen does, until it shows a scene [accept] takes, then closes it. */
-    private suspend fun SwrCachePlus.showScene(accept: (PluginComposeScene) -> Boolean): PluginComposeScene = coroutineScope {
-        val screen = getSubscription(key)
-        val receiving = launch { screen.resume() }
+    private suspend fun SwrCachePlus.awaitSceneFromNewSubscription(accept: (PluginComposeScene) -> Boolean): PluginComposeScene = coroutineScope {
+        val subscription = getSubscription(key)
+        val receiving = launch { subscription.resume() }
         try {
             withTimeout(1.seconds) {
-                screen.state
+                subscription.state
                     .mapNotNull { (it.reply.getOrNull() as? PluginScreenState.Ready)?.scene }
                     .first(accept)
             }
         } finally {
             receiving.cancel()
-            screen.close()
+            subscription.close()
         }
-    }
-
-    private inner class SinglePluginFactoryRepository : PluginFactoryRepository {
-        private val loaded = LoadedHostPlugin(
-            manifest = JetWhaleHostPluginManifest(
-                pluginId = pluginId,
-                pluginName = "Test",
-                version = "1.0.0",
-                factoryClass = "com.example.TestFactory",
-                requiresAgent = false,
-            ),
-            factory = object : JetWhaleHostPluginFactory {
-                override fun createPlugin(): JetWhaleHostPlugin = UiPlugin()
-            },
-        )
-
-        override val loadedPlugins: Map<String, LoadedHostPlugin> = mapOf(pluginId to loaded)
-        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
-        override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
-
-        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
-        override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
-        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
-        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
-        override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
 
     private class UiPlugin :

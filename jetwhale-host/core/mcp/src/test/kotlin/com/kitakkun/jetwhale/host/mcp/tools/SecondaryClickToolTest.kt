@@ -285,11 +285,11 @@ class SecondaryClickToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        val instanceService = mock<PluginInstanceService> {
+        val pluginInstanceService = mock<PluginInstanceService> {
             everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
         }
         val permissionsRepository = FakeMcpPermissionsRepository(permissions)
-        SecondaryClickMcpTool(instanceService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
+        SecondaryClickMcpTool(pluginInstanceService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.secondaryClick",

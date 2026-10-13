@@ -129,7 +129,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(instanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(pluginInstanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(
@@ -162,7 +162,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(instanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(pluginInstanceServiceServing(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(
@@ -191,7 +191,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(instanceServiceServing(scene = null)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(pluginInstanceServiceServing(scene = null)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
         val request = CallToolRequest(
             CallToolRequestParams(
@@ -213,7 +213,7 @@ class ScrollToolTest {
         assertTrue("No running UI of 'plugin-off' in session 'session'" in text, "Unexpected error text: $text")
     }
 
-    private fun instanceServiceServing(scene: PluginComposeScene?) = mock<PluginInstanceService> {
+    private fun pluginInstanceServiceServing(scene: PluginComposeScene?) = mock<PluginInstanceService> {
         everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
     }
 
