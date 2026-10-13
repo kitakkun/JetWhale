@@ -146,12 +146,13 @@ internal class WireSchemaReader {
                                 "or an enum of that name, but its serializer describes a ${if (descriptor.isInline) "value class" else descriptor.kind}.",
                         )
                     }
-                    val messageTypeRef = typeRefRecordingShapesOf(descriptor, path = descriptor.serialName)
+                    val messageSerialName = descriptor.serialName
+                    recordShape(descriptor, path = messageSerialName)
                     if (requestMarker.isAssignableFrom(messageClass)) {
-                        val replyPath = "${messageTypeRef.head} (reply)"
-                        WireMessage(messageTypeRef.head, WireMessageKind.REQUEST, typeRefRecordingShapesOf(serializerDescriptorOf(replyTypeOf(messageClass)), replyPath))
+                        val replyPath = "$messageSerialName (reply)"
+                        WireMessage(messageSerialName, WireMessageKind.REQUEST, typeRefRecordingShapesOf(serializerDescriptorOf(replyTypeOf(messageClass)), replyPath))
                     } else {
-                        WireMessage(messageTypeRef.head, WireMessageKind.EVENT, replyType = null)
+                        WireMessage(messageSerialName, WireMessageKind.EVENT, replyType = null)
                     }
                 }
             messages.groupBy { it.serialName }.filterValues { it.size > 1 }.keys.firstOrNull()?.let { serialName ->
@@ -248,8 +249,8 @@ internal class WireSchemaReader {
 
         /**
          * A type ref names a shape by its serial name, so a shape that a field, a reply or a type
-         * argument refers to cannot have a built-in's name. A sealed subtype may: its sealed type
-         * lists it by name, never as a type.
+         * argument refers to cannot have a built-in's name. A message or a sealed subtype may: the
+         * dump lists each by name, never as a type.
          */
         private fun shapeTypeRefRecordingShapesOf(descriptor: SerialDescriptor, path: String, isNullable: Boolean): WireTypeRef {
             if (descriptor.serialName in WireTypeRef.BUILT_IN_HEADS) {

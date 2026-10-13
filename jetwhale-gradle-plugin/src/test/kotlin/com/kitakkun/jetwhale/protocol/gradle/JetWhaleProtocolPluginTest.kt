@@ -213,6 +213,25 @@ class JetWhaleProtocolPluginTest {
     }
 
     @Test
+    fun `a message named like a built-in type is kept`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            @SerialName("list")
+            @Serializable
+            data object ListPongs : JetWhaleRequest<Pong>
+
+            """.trimIndent(),
+        )
+
+        runBuild("dumpWireSchema")
+
+        assertContains(committedWireSchemaFile.readText(), "request list -> fixture/pong\n")
+        assertContains(committedWireSchemaFile.readText(), "\nobject list\n")
+    }
+
+    @Test
     fun `a message whose serializer describes no class is refused`() {
         writeFixture(withJvmOnlyModule = false)
         messagesFile.appendText(
