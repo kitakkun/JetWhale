@@ -12,7 +12,7 @@ internal class UnsupportedPermissionSource(
 
     override suspend fun read(): List<PermissionState> = emptyList()
 
-    override suspend fun request(id: String): PermissionActionResult = PermissionActionResult(message = "", error = reason)
+    override suspend fun requestPermission(id: String): PermissionActionResult = PermissionActionResult(message = "", error = reason)
 
     override suspend fun openAppSettings(): PermissionActionResult = PermissionActionResult(message = "", error = reason)
 }

@@ -26,7 +26,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
 
 /** The id of the app-wide notification switch, which is not a manifest permission. */
-private const val NOTIFICATIONS_ID = "android.notifications"
+private const val NOTIFICATION_SWITCH_ID = "android.notifications"
 
 /** Tags the permission dialogs this plugin starts, so an app's own result handling can ignore them. */
 private const val REQUEST_CODE = 0x4A57
@@ -52,10 +52,10 @@ private class AndroidPermissionSource(private val application: Application) : Pe
     override val platform: String get() = "Android"
     override val unsupportedReason: String? get() = null
 
-    private val foreground = ForegroundActivityTracker(application)
+    private val foregroundActivityTracker = ForegroundActivityTracker(application)
 
     /** Every permission the manifest declares, with its protection; neither changes while the process lives. */
-    private val declared: Map<String, ProtectionClass?> by lazy {
+    private val protectionByDeclaredPermission: Map<String, ProtectionClass?> by lazy {
         @Suppress("DEPRECATION") // The int-flag overload is the one that exists on every supported API level.
         val requested = application.packageManager.getPackageInfo(application.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions
         requested.orEmpty().associateWith(::protectionOf)
@@ -64,36 +64,36 @@ private class AndroidPermissionSource(private val application: Application) : Pe
     private val denials: MutableMap<String, RuntimeDenial> = HashMap()
 
     override suspend fun read(): List<PermissionState> {
-        val activity = foreground.current
-        val states = declared.map { (permission, protection) -> stateOf(permission, protection, activity) }
+        val activity = foregroundActivityTracker.current
+        val states = protectionByDeclaredPermission.map { (permission, protection) -> stateOf(permission, protection, activity) }
         return states + listOfNotNull(notificationSwitchState())
     }
 
-    override suspend fun request(id: String): PermissionActionResult {
-        if (id == NOTIFICATIONS_ID) return openNotificationSettings()
-        if (id !in declared) {
+    override suspend fun requestPermission(id: String): PermissionActionResult {
+        if (id == NOTIFICATION_SWITCH_ID) return openNotificationSettings()
+        if (id !in protectionByDeclaredPermission) {
             return failure("the app does not declare $id in its manifest; Android grants only declared permissions")
         }
-        SPECIAL_ACCESSES[id]?.let { special -> return openSpecialAccess(id, special) }
-        val category = declared[id]?.category
+        SPECIAL_ACCESSES[id]?.let { special -> return openSpecialAccessSettings(id, special) }
+        val category = protectionByDeclaredPermission[id]?.category
         if (category == PermissionCategory.SpecialAccess) {
             return failure("${labelOf(id)} has no settings screen this plugin can open; change it under Special app access in the system settings")
         }
         if (category != PermissionCategory.Runtime) return failure("$id is decided at install; it cannot be requested while the app runs")
         if (application.checkSelfPermission(id) == PackageManager.PERMISSION_GRANTED) return failure("${labelOf(id)} is already granted")
-        val activity = foreground.current ?: return failure("no activity of the app is in the foreground to show the permission dialog")
-        val runtimeRequest = when (val request = runtimeRequestFor(id, outlookOf(id, activity), declared.keys)) {
+        val activity = foregroundActivityTracker.current ?: return failure("no activity of the app is in the foreground to show the permission dialog")
+        val runtimeRequest = when (val request = runtimeRequestFor(id, readOutlookAndRecordDenial(id, activity), protectionByDeclaredPermission.keys)) {
             is RuntimeRequest.Refused -> return failure("${labelOf(id)} cannot be requested: ${request.reason}")
             is RuntimeRequest.Ask -> request
         }
-        onMainThread { activity.requestPermissions(runtimeRequest.permissions.toTypedArray(), REQUEST_CODE) }
+        runOnMainThread { activity.requestPermissions(runtimeRequest.permissions.toTypedArray(), REQUEST_CODE) }
         val message = "Asked for ${labelOf(id)}; the user's choice arrives as a change."
         return PermissionActionResult(message = listOfNotNull(message, runtimeRequest.caveat).joinToString(" "), error = null)
     }
 
     override suspend fun openAppSettings(): PermissionActionResult = startSettings(
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUriOf(application)),
-        opened = "Opened the app's settings page.",
+        openedMessage = "Opened the app's settings page.",
     )
 
     private fun stateOf(permission: String, protection: ProtectionClass?, activity: Activity?): PermissionState {
@@ -102,20 +102,20 @@ private class AndroidPermissionSource(private val application: Application) : Pe
                 id = permission,
                 label = labelOf(permission),
                 category = PermissionCategory.SpecialAccess,
-                protection = protection?.label,
+                protection = protection?.levelLabel,
                 status = if (special.isGranted(application)) PermissionStatus.Granted else PermissionStatus.Denied,
                 requestable = special.settingsIntent(application) != null,
                 note = "Granted by the user on a settings screen of its own.",
             )
         }
-        val runtime = protection?.category == PermissionCategory.Runtime
-        val status = statusOf(permission, runtime)
-        val outlook = if (runtime && status != PermissionStatus.Granted) outlookOf(permission, activity) else null
+        val isRuntimePermission = protection?.category == PermissionCategory.Runtime
+        val status = statusOf(permission, isRuntimePermission)
+        val outlook = if (isRuntimePermission && status != PermissionStatus.Granted) readOutlookAndRecordDenial(permission, activity) else null
         return PermissionState(
             id = permission,
             label = labelOf(permission),
             category = protection?.category ?: PermissionCategory.InstallTime,
-            protection = protection?.label ?: "unknown to this Android version",
+            protection = protection?.levelLabel ?: "unknown to this Android version",
             status = status,
             requestable = outlook?.requestable == true,
             note = when {
@@ -132,8 +132,8 @@ private class AndroidPermissionSource(private val application: Application) : Pe
      * which checkSelfPermission does not read. A runtime permission's op is kept in step with its
      * grant by the platform, so it is read like any other permission.
      */
-    private fun statusOf(permission: String, runtime: Boolean): PermissionStatus {
-        val op = if (runtime) null else AppOpsManager.permissionToOp(permission)
+    private fun statusOf(permission: String, isRuntimePermission: Boolean): PermissionStatus {
+        val op = if (isRuntimePermission) null else AppOpsManager.permissionToOp(permission)
         return op?.let { statusOfAppOpMode(appOpMode(application, it)) }
             ?: if (application.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) PermissionStatus.Granted else PermissionStatus.Denied
     }
@@ -143,9 +143,9 @@ private class AndroidPermissionSource(private val application: Application) : Pe
      * [activity], or recalled from the last answer when none is in the foreground. The poll and the
      * host's requests read concurrently, so each update of the denials is atomic.
      */
-    private fun outlookOf(permission: String, activity: Activity?): RequestOutlook {
+    private fun readOutlookAndRecordDenial(permission: String, activity: Activity?): RequestOutlook {
         val targetSdk = application.applicationInfo.targetSdkVersion
-        backgroundLocationOf(permission, Build.VERSION.SDK_INT, targetSdk) { application.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+        backgroundLocationOutlookOf(permission, Build.VERSION.SDK_INT, targetSdk) { application.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
             ?.let { return it }
         return synchronized(denials) {
             val denial = (denials[permission] ?: RuntimeDenial.Unknown).after(activity?.shouldShowRequestPermissionRationale(permission))
@@ -158,7 +158,7 @@ private class AndroidPermissionSource(private val application: Application) : Pe
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
         val enabled = application.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
         return PermissionState(
-            id = NOTIFICATIONS_ID,
+            id = NOTIFICATION_SWITCH_ID,
             label = "Notifications (app switch)",
             category = PermissionCategory.SpecialAccess,
             protection = null,
@@ -178,19 +178,19 @@ private class AndroidPermissionSource(private val application: Application) : Pe
     private suspend fun openNotificationSettings(): PermissionActionResult {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return failure("the notification settings screen needs Android 8.0 or later")
         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, application.packageName)
-        return startSettings(intent, opened = "Opened the app's notification settings.")
+        return startSettings(intent, openedMessage = "Opened the app's notification settings.")
     }
 
-    private suspend fun openSpecialAccess(id: String, special: SpecialAccess): PermissionActionResult {
+    private suspend fun openSpecialAccessSettings(id: String, special: SpecialAccess): PermissionActionResult {
         val intent = special.settingsIntent(application) ?: return failure("this Android version has no settings screen for ${labelOf(id)}")
-        return startSettings(intent, opened = "Opened the settings screen for ${labelOf(id)}.")
+        return startSettings(intent, openedMessage = "Opened the settings screen for ${labelOf(id)}.")
     }
 
-    private suspend fun startSettings(intent: Intent, opened: String): PermissionActionResult {
-        val activity = foreground.current ?: return failure("no activity of the app is in the foreground; Android does not let an app in the background open a settings screen")
+    private suspend fun startSettings(intent: Intent, openedMessage: String): PermissionActionResult {
+        val activity = foregroundActivityTracker.current ?: return failure("no activity of the app is in the foreground; Android does not let an app in the background open a settings screen")
         return try {
-            onMainThread { activity.startActivity(intent) }
-            PermissionActionResult(message = opened, error = null)
+            runOnMainThread { activity.startActivity(intent) }
+            PermissionActionResult(message = openedMessage, error = null)
         } catch (e: ActivityNotFoundException) {
             failure("no settings screen handles this on the device: ${e.message}")
         }
@@ -297,6 +297,6 @@ private class ForegroundActivityTracker(application: Application) {
 }
 
 /** Runs [block] on the main thread and hands its outcome, a failure included, back to the caller. */
-private suspend fun onMainThread(block: () -> Unit) = suspendCancellableCoroutine { continuation ->
+private suspend fun runOnMainThread(block: () -> Unit) = suspendCancellableCoroutine { continuation ->
     Handler(Looper.getMainLooper()).post { continuation.resumeWith(runCatching(block)) }
 }

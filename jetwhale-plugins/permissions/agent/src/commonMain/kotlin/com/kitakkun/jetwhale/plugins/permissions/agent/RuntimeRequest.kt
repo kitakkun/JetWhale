@@ -18,7 +18,7 @@ internal sealed interface RequestOutlook {
 }
 
 /** Background location while it is denied, in the cases where Android asks for it unlike other runtime permissions. */
-internal enum class BackgroundLocation(override val requestable: Boolean, override val note: String) : RequestOutlook {
+internal enum class BackgroundLocationOutlook(override val requestable: Boolean, override val note: String) : RequestOutlook {
     WithoutForegroundLocation(
         requestable = false,
         note = "Android asks for background location only once fine or coarse location is granted; request one of those first.",
@@ -37,10 +37,10 @@ internal enum class BackgroundLocation(override val requestable: Boolean, overri
  * shouldShowRequestPermissionRationale answers true whenever it is neither granted nor fixed, so
  * that answer tells nothing about a denial.
  */
-internal fun backgroundLocationOf(id: String, sdkInt: Int, targetSdk: Int, isGranted: (String) -> Boolean): BackgroundLocation? = when {
+internal fun backgroundLocationOutlookOf(id: String, sdkInt: Int, targetSdk: Int, isGranted: (String) -> Boolean): BackgroundLocationOutlook? = when {
     id != ACCESS_BACKGROUND_LOCATION -> null
-    !isGranted(ACCESS_FINE_LOCATION) && !isGranted(ACCESS_COARSE_LOCATION) -> BackgroundLocation.WithoutForegroundLocation
-    sdkInt >= ANDROID_11 && targetSdk >= ANDROID_11 -> BackgroundLocation.OnSettingsPage
+    !isGranted(ACCESS_FINE_LOCATION) && !isGranted(ACCESS_COARSE_LOCATION) -> BackgroundLocationOutlook.WithoutForegroundLocation
+    sdkInt >= ANDROID_11 && targetSdk >= ANDROID_11 -> BackgroundLocationOutlook.OnSettingsPage
     else -> null
 }
 
@@ -55,23 +55,23 @@ internal sealed interface RuntimeRequest {
 
 /**
  * The request for the denied runtime permission [id], given what a request would do for it and
- * the permissions the app [declared]. Some Android versions from 12 on show an app that targets 12
+ * the app's [declaredPermissions]. Some Android versions from 12 on show an app that targets 12
  * or later no dialog for fine location asked for without coarse location, so coarse location goes
  * with it whenever the app declares it.
  */
-internal fun runtimeRequestFor(id: String, outlook: RequestOutlook, declared: Set<String>): RuntimeRequest = when {
+internal fun runtimeRequestFor(id: String, outlook: RequestOutlook, declaredPermissions: Set<String>): RuntimeRequest = when {
     outlook == RuntimeDenial.Permanently -> RuntimeRequest.Refused("it is denied permanently, so Android no longer shows the dialog; change it in the app's settings")
 
-    outlook == BackgroundLocation.WithoutForegroundLocation -> RuntimeRequest.Refused("Android shows nothing for it until fine or coarse location is granted; request one of those first")
+    outlook == BackgroundLocationOutlook.WithoutForegroundLocation -> RuntimeRequest.Refused("Android shows nothing for it until fine or coarse location is granted; request one of those first")
 
-    outlook == BackgroundLocation.OnSettingsPage -> RuntimeRequest.Ask(
+    outlook == BackgroundLocationOutlook.OnSettingsPage -> RuntimeRequest.Ask(
         listOf(id),
         caveat = "Android opens the app's location settings page for it instead of a dialog, and may stop opening that page after the user leaves it without choosing.",
     )
 
     id != ACCESS_FINE_LOCATION -> RuntimeRequest.Ask(listOf(id), caveat = null)
 
-    ACCESS_COARSE_LOCATION in declared -> RuntimeRequest.Ask(listOf(id, ACCESS_COARSE_LOCATION), caveat = null)
+    ACCESS_COARSE_LOCATION in declaredPermissions -> RuntimeRequest.Ask(listOf(id, ACCESS_COARSE_LOCATION), caveat = null)
 
     else -> RuntimeRequest.Ask(
         listOf(id),

@@ -30,7 +30,7 @@ class PermissionsMcpCommandsTest {
     fun `requestPermission passes the id through and reports what was started`() {
         val result = RequestPermissionCommand(client).run(buildJsonObject { put("id", "android.permission.CAMERA") })
 
-        assertEquals(listOf("android.permission.CAMERA"), client.requests)
+        assertEquals(listOf("android.permission.CAMERA"), client.requestedPermissionIds)
         assertEquals("asked", result.getValue("message").jsonPrimitive.content)
     }
 }

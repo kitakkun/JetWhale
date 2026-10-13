@@ -45,7 +45,7 @@ internal fun PermissionsScreenRoot(board: PermissionsBoard, modifier: Modifier =
     PermissionsScreen(
         report = board.report,
         timeline = board.timeline,
-        status = board.status,
+        bannerMessage = board.bannerMessage,
         actions = board,
         modifier = modifier,
     )
@@ -55,7 +55,7 @@ internal fun PermissionsScreenRoot(board: PermissionsBoard, modifier: Modifier =
 internal fun PermissionsScreen(
     report: PermissionReport?,
     timeline: List<PermissionChange>,
-    status: PermissionsStatus?,
+    bannerMessage: BannerMessage?,
     actions: PermissionsActions,
     modifier: Modifier = Modifier,
 ) {
@@ -67,7 +67,7 @@ internal fun PermissionsScreen(
                 JwButton(text = "Reload from app", onClick = actions::refresh, style = JwButtonStyle.Text)
             },
         )
-        status?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
+        bannerMessage?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
         when {
             report == null -> JwEmptyState(title = "Waiting for the app", description = "The permissions appear once the app connects.")
 
@@ -123,7 +123,7 @@ private fun PermissionRow(permission: PermissionState, actions: PermissionsActio
             if (permission.requestable) {
                 JwButton(
                     text = if (permission.category == PermissionCategory.SpecialAccess) "Open settings" else "Request",
-                    onClick = { actions.request(permission.id) },
+                    onClick = { actions.requestPermission(permission.id) },
                 )
             }
         }

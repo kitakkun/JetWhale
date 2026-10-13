@@ -12,7 +12,7 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
 private object NoActions : PermissionsActions {
     override fun refresh() = Unit
 
-    override fun request(id: String) = Unit
+    override fun requestPermission(permissionId: String) = Unit
 
     override fun openAppSettings() = Unit
 }
@@ -38,7 +38,7 @@ private fun PermissionsScreenPreview() {
                 PermissionChange("android.permission.CAMERA", "CAMERA", PermissionStatus.Denied, PermissionStatus.Denied, "Denied once; a request shows the dialog again.", 1_760_000_060_000),
                 PermissionChange("android.permission.POST_NOTIFICATIONS", "POST_NOTIFICATIONS", PermissionStatus.Denied, PermissionStatus.Granted, null, 1_760_000_000_000),
             ),
-            status = PermissionsStatus(message = "Asked for CAMERA; the user's choice arrives as a change.", isError = false),
+            bannerMessage = BannerMessage(message = "Asked for CAMERA; the user's choice arrives as a change.", isError = false),
             actions = NoActions,
         )
     }
@@ -51,7 +51,7 @@ private fun PermissionsScreenUnsupportedPreview() {
         PermissionsScreen(
             report = PermissionReport(platform = "JVM", unsupportedReason = "A desktop JVM app has no permission model of its own.", permissions = emptyList()),
             timeline = emptyList(),
-            status = null,
+            bannerMessage = null,
             actions = NoActions,
         )
     }

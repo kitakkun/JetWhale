@@ -127,7 +127,7 @@ private class IosPermissionSource : PermissionSource {
         )
     }
 
-    override suspend fun request(id: String): PermissionActionResult {
+    override suspend fun requestPermission(id: String): PermissionActionResult {
         val permission = permissions.firstOrNull { it.id == id } ?: return failure("no permission is reported as $id")
         permission.usageKey?.takeUnless(::hasInfoPlistKey)?.let { key ->
             return failure("Info.plist has no $key; iOS terminates an app that asks without one")

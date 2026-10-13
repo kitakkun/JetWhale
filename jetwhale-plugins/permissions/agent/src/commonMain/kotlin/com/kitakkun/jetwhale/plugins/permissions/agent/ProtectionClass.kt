@@ -6,7 +6,7 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionCategory
  * How an Android permission is classified, from `PermissionInfo.protectionLevel`. Kept free of
  * Android types so the mapping can be tested everywhere.
  */
-internal data class ProtectionClass(val category: PermissionCategory, val label: String)
+internal data class ProtectionClass(val category: PermissionCategory, val levelLabel: String)
 
 // The values of PermissionInfo's public constants, which Android does not change.
 private const val PROTECTION_MASK_BASE = 0xf
@@ -30,11 +30,11 @@ internal fun classifyProtection(protectionLevel: Int): ProtectionClass {
         PROTECTION_INTERNAL -> "internal"
         else -> "level ${protectionLevel and PROTECTION_MASK_BASE}"
     }
-    val appOp = protectionLevel and PROTECTION_FLAG_APPOP != 0
+    val hasAppOpFlag = protectionLevel and PROTECTION_FLAG_APPOP != 0
     val category = when {
         protectionLevel and PROTECTION_MASK_BASE == PROTECTION_DANGEROUS -> PermissionCategory.Runtime
-        appOp -> PermissionCategory.SpecialAccess
+        hasAppOpFlag -> PermissionCategory.SpecialAccess
         else -> PermissionCategory.InstallTime
     }
-    return ProtectionClass(category = category, label = if (appOp) "$base|appop" else base)
+    return ProtectionClass(category = category, levelLabel = if (hasAppOpFlag) "$base|appop" else base)
 }

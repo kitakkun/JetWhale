@@ -15,13 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger
 /** How many changes the timeline keeps; older ones scroll off. */
 private const val TIMELINE_LIMIT = 200
 
-internal data class PermissionsStatus(val message: String, val isError: Boolean)
+internal data class BannerMessage(val message: String, val isError: Boolean)
 
 /** What the user does on the permissions screen. */
 internal interface PermissionsActions {
     fun refresh()
 
-    fun request(id: String)
+    fun requestPermission(permissionId: String)
 
     fun openAppSettings()
 }
@@ -29,7 +29,7 @@ internal interface PermissionsActions {
 /**
  * The app's permissions as the UI shows them: the last report, the changes seen since, newest
  * first, and the outcome of the last action. Every call goes through [client] on [scope], and a
- * failure lands in [status] rather than being thrown.
+ * failure lands in [bannerMessage] rather than being thrown.
  */
 @Stable
 internal class PermissionsBoard(
@@ -42,17 +42,17 @@ internal class PermissionsBoard(
     var timeline: List<PermissionChange> by mutableStateOf(emptyList())
         private set
 
-    var status: PermissionsStatus? by mutableStateOf(null)
+    var bannerMessage: BannerMessage? by mutableStateOf(null)
         private set
 
     private val loadGeneration = AtomicInteger()
 
-    /** Loads the first report; a failure lands in [status] instead of leaving the screen waiting. */
-    suspend fun prepare() = reportingFailures(::load)
+    /** Loads the first report; a failure lands in [bannerMessage] instead of leaving the screen waiting. */
+    suspend fun loadCatchingFailures() = reportingFailures(::load)
 
     suspend fun load() {
         val generation = loadGeneration.incrementAndGet()
-        val loaded = client.report()
+        val loaded = client.getPermissions()
         if (generation == loadGeneration.get()) report = loaded
     }
 
@@ -60,24 +60,24 @@ internal class PermissionsBoard(
      * Records [changes] the agent pushed and reloads the report, whose notes and requestability
      * depend on the new states.
      */
-    fun onChanged(changes: List<PermissionChange>) {
+    fun addChangesAndReloadReport(changes: List<PermissionChange>) {
         timeline = (changes.reversed() + timeline).take(TIMELINE_LIMIT)
         launchReporting(::load)
     }
 
     override fun refresh() = launchReporting {
         load()
-        status = PermissionsStatus(message = "Reloaded from the app.", isError = false)
+        bannerMessage = BannerMessage(message = "Reloaded from the app.", isError = false)
     }
 
-    override fun request(id: String) = launchReporting { show(client.request(id)) }
+    override fun requestPermission(permissionId: String) = launchReporting { showActionResult(client.requestPermission(permissionId)) }
 
-    override fun openAppSettings() = launchReporting { show(client.openAppSettings()) }
+    override fun openAppSettings() = launchReporting { showActionResult(client.openAppSettings()) }
 
-    private fun show(result: PermissionActionResult) {
-        status = when (val error = result.error) {
-            null -> PermissionsStatus(message = result.message, isError = false)
-            else -> PermissionsStatus(message = error, isError = true)
+    private fun showActionResult(result: PermissionActionResult) {
+        bannerMessage = when (val error = result.error) {
+            null -> BannerMessage(message = result.message, isError = false)
+            else -> BannerMessage(message = error, isError = true)
         }
     }
 
@@ -89,7 +89,7 @@ internal class PermissionsBoard(
         try {
             block()
         } catch (e: JetWhaleMessagingException) {
-            status = PermissionsStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            bannerMessage = BannerMessage(message = "Failed to reach the app: ${e.message}", isError = true)
         }
     }
 }

@@ -21,24 +21,24 @@ class PermissionsBoardTest {
 
     @Test
     fun `a refused request lands in the status as an error`() {
-        client.nextError = "no activity of the app is in the foreground"
+        client.requestError = "no activity of the app is in the foreground"
 
-        board.request("android.permission.CAMERA")
+        board.requestPermission("android.permission.CAMERA")
 
-        assertEquals(PermissionsStatus("no activity of the app is in the foreground", isError = true), board.status)
+        assertEquals(BannerMessage("no activity of the app is in the foreground", isError = true), board.bannerMessage)
     }
 
     @Test
     fun `a first load that cannot reach the app lands in the status as an error`() {
-        val unreachable = object : PermissionsClient by client {
-            override suspend fun report(): PermissionReport = throw JetWhaleMessagingException("timed out")
+        val unreachableClient = object : PermissionsClient by client {
+            override suspend fun getPermissions(): PermissionReport = throw JetWhaleMessagingException("timed out")
         }
-        val failingBoard = PermissionsBoard(unreachable, CoroutineScope(Dispatchers.Unconfined))
+        val failingBoard = PermissionsBoard(unreachableClient, CoroutineScope(Dispatchers.Unconfined))
 
-        runBlocking { failingBoard.prepare() }
+        runBlocking { failingBoard.loadCatchingFailures() }
 
         assertNull(failingBoard.report)
-        assertEquals(PermissionsStatus("Failed to reach the app: timed out", isError = true), failingBoard.status)
+        assertEquals(BannerMessage("Failed to reach the app: timed out", isError = true), failingBoard.bannerMessage)
     }
 
     @Test
@@ -46,8 +46,8 @@ class PermissionsBoardTest {
         runBlocking { board.load() }
         client.cameraStatus = PermissionStatus.Granted
 
-        board.onChanged(listOf(change("first"), change("second")))
-        board.onChanged(listOf(change("third")))
+        board.addChangesAndReloadReport(listOf(change("first"), change("second")))
+        board.addChangesAndReloadReport(listOf(change("third")))
 
         assertEquals(listOf("third", "second", "first"), board.timeline.map(PermissionChange::id))
         assertEquals(PermissionStatus.Granted, board.report?.permissions?.single()?.status)
@@ -57,7 +57,7 @@ class PermissionsBoardTest {
     fun `a denial that leaves the status at Denied is recorded with its note`() {
         val denial = PermissionChange("camera", "camera", PermissionStatus.Denied, PermissionStatus.Denied, "Denied once; a request shows the dialog again.", observedAtEpochMillis = 0)
 
-        board.onChanged(listOf(denial))
+        board.addChangesAndReloadReport(listOf(denial))
 
         assertEquals(listOf(denial), board.timeline)
     }
@@ -66,20 +66,20 @@ class PermissionsBoardTest {
     fun `a slow reload finishing after a newer one does not overwrite it`() {
         val firstRead = CompletableDeferred<Unit>()
         var reads = 0
-        val slowFirst = object : PermissionsClient by client {
-            override suspend fun report(): PermissionReport {
+        val slowFirstReadClient = object : PermissionsClient by client {
+            override suspend fun getPermissions(): PermissionReport {
                 val read = ++reads
                 if (read == 1) {
                     firstRead.await()
-                    return client.report().copy(platform = "stale")
+                    return client.getPermissions().copy(platform = "stale")
                 }
-                return client.report().copy(platform = "fresh")
+                return client.getPermissions().copy(platform = "fresh")
             }
         }
-        val slowBoard = PermissionsBoard(slowFirst, CoroutineScope(Dispatchers.Unconfined))
+        val slowBoard = PermissionsBoard(slowFirstReadClient, CoroutineScope(Dispatchers.Unconfined))
 
-        slowBoard.onChanged(listOf(change("first")))
-        slowBoard.onChanged(listOf(change("second")))
+        slowBoard.addChangesAndReloadReport(listOf(change("first")))
+        slowBoard.addChangesAndReloadReport(listOf(change("second")))
         firstRead.complete(Unit)
 
         assertEquals("fresh", slowBoard.report?.platform)

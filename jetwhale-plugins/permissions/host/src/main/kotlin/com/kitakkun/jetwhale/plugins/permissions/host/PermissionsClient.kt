@@ -8,9 +8,9 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport
  * implementation. Each call throws `JetWhaleMessagingException` when the app cannot be reached.
  */
 internal interface PermissionsClient {
-    suspend fun report(): PermissionReport
+    suspend fun getPermissions(): PermissionReport
 
-    suspend fun request(id: String): PermissionActionResult
+    suspend fun requestPermission(permissionId: String): PermissionActionResult
 
     suspend fun openAppSettings(): PermissionActionResult
 }

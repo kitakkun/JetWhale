@@ -12,7 +12,7 @@ internal interface PermissionSource {
 
     suspend fun read(): List<PermissionState>
 
-    suspend fun request(id: String): PermissionActionResult
+    suspend fun requestPermission(id: String): PermissionActionResult
 
     suspend fun openAppSettings(): PermissionActionResult
 }

@@ -33,16 +33,16 @@ private class PermissionsHostPlugin :
     private val board by lazy { PermissionsBoard(client = this, scope = pluginScope) }
 
     override fun JetWhaleMessageHandlers.configure() {
-        onEvent { event: PermissionsChanged -> board.onChanged(event.changes) }
+        onEvent { event: PermissionsChanged -> board.addChangesAndReloadReport(event.changes) }
     }
 
     override suspend fun onPrepare() {
-        board.prepare()
+        board.loadCatchingFailures()
     }
 
-    override suspend fun report(): PermissionReport = messenger.request(GetPermissions)
+    override suspend fun getPermissions(): PermissionReport = messenger.request(GetPermissions)
 
-    override suspend fun request(id: String): PermissionActionResult = messenger.request(RequestPermission(id))
+    override suspend fun requestPermission(permissionId: String): PermissionActionResult = messenger.request(RequestPermission(permissionId))
 
     override suspend fun openAppSettings(): PermissionActionResult = messenger.request(OpenAppSettings)
 

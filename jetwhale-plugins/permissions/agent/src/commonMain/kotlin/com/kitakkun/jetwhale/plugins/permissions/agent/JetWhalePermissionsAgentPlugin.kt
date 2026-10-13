@@ -48,17 +48,17 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
     private val watchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Volatile
-    private var watch: Job? = null
+    private var watchJob: Job? = null
 
     override fun JetWhaleMessageHandlers.configure() {
-        onRequest { _: GetPermissions -> reply(report()) }
-        onRequest { request: RequestPermission -> reply(source.request(request.id)) }
+        onRequest { _: GetPermissions -> reply(readPermissionReport()) }
+        onRequest { request: RequestPermission -> reply(source.requestPermission(request.id)) }
         onRequest { _: OpenAppSettings -> reply(source.openAppSettings()) }
     }
 
     override suspend fun onPrepare() {
-        watch?.cancel()
-        watch = watchScope.launch {
+        watchJob?.cancel()
+        watchJob = watchScope.launch {
             var previous = source.read()
             while (isActive) {
                 delay(PollInterval)
@@ -71,14 +71,14 @@ class JetWhalePermissionsAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     override suspend fun onDisconnected() {
-        watch?.cancel()
+        watchJob?.cancel()
     }
 
     override fun onDeactivate() {
-        watch?.cancel()
+        watchJob?.cancel()
     }
 
-    private suspend fun report(): PermissionReport = PermissionReport(
+    private suspend fun readPermissionReport(): PermissionReport = PermissionReport(
         platform = source.platform,
         unsupportedReason = source.unsupportedReason,
         permissions = source.read(),

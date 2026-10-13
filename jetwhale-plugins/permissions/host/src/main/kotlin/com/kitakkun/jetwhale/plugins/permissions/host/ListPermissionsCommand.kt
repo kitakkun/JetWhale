@@ -13,5 +13,5 @@ internal class ListPermissionsCommand(
     override val description =
         "Lists the app's permissions with their current status (Granted, Denied, NotDetermined, Limited, Restricted), category (Runtime, InstallTime, SpecialAccess), Android protection level, whether requestPermission can act on each (on Android it also needs the app in the foreground), and a note on what the status cannot tell. On Android every permission the app declares is listed; on iOS the common privacy permissions. Revoking a permission is not possible from inside the app."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(PermissionReport.serializer(), client.report())
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(PermissionReport.serializer(), client.getPermissions())
 }

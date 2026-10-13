@@ -8,10 +8,10 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
 
 internal class FakePermissionsClient : PermissionsClient {
     var cameraStatus = PermissionStatus.Denied
-    var nextError: String? = null
-    val requests = mutableListOf<String>()
+    var requestError: String? = null
+    val requestedPermissionIds = mutableListOf<String>()
 
-    override suspend fun report() = PermissionReport(
+    override suspend fun getPermissions() = PermissionReport(
         platform = "Android",
         unsupportedReason = null,
         permissions = listOf(
@@ -19,9 +19,9 @@ internal class FakePermissionsClient : PermissionsClient {
         ),
     )
 
-    override suspend fun request(id: String): PermissionActionResult {
-        requests += id
-        return PermissionActionResult(message = "asked", error = nextError)
+    override suspend fun requestPermission(permissionId: String): PermissionActionResult {
+        requestedPermissionIds += permissionId
+        return PermissionActionResult(message = "asked", error = requestError)
     }
 
     override suspend fun openAppSettings() = PermissionActionResult(message = "opened", error = null)

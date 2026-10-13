@@ -6,7 +6,7 @@ package com.kitakkun.jetwhale.plugins.permissions.agent
  * permission that a request can still ask about, and false both before the first request and after
  * a permanent denial. A permanent denial therefore shows only as that answer turning false, and a
  * permission never seen with it true cannot be told from one never asked. Background location
- * breaks this rule in the cases [backgroundLocationOf] covers. Kept free of Android types so the
+ * breaks this rule in the cases [backgroundLocationOutlookOf] covers. Kept free of Android types so the
  * transitions can be tested everywhere.
  */
 internal enum class RuntimeDenial(override val note: String) : RequestOutlook {
@@ -18,10 +18,10 @@ internal enum class RuntimeDenial(override val note: String) : RequestOutlook {
     override val requestable: Boolean get() = this != Permanently
 
     /**
-     * The denial after a read whose rationale answer was [rationale], or null when no activity was
+     * The denial after a read whose rationale answer was [shouldShowRationale], or null when no activity was
      * in the foreground to ask.
      */
-    fun after(rationale: Boolean?): RuntimeDenial = when (rationale) {
+    fun after(shouldShowRationale: Boolean?): RuntimeDenial = when (shouldShowRationale) {
         null -> this
         true -> Once
         false -> if (this == Unknown) Unknown else Permanently
