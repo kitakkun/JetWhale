@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream
  * silently lacks a file is worse for a bug report than no ZIP. [onFileZipped] receives the running
  * count of files written.
  */
-internal suspend fun StorageClient.zipDirectory(directory: FileLocation, zip: ZipOutputStream, onFileZipped: (Int) -> Unit): String? = DirectoryZipper(client = this, zip = zip, onFileZipped = onFileZipped).write(directory, entryName = "${zipSafeSegment(directory.name)}/")
+internal suspend fun StorageClient.zipDirectory(directory: FileLocation, zip: ZipOutputStream, onFileZipped: (Int) -> Unit): String? = DirectoryZipper(client = this, zip = zip, onFileZipped = onFileZipped).writeDirectory(directory, zipEntryName = "${zipSafeSegment(directory.name)}/")
 
 /** One ZIP being written: the client it reads through, the stream it writes to, and its file count. */
 private class DirectoryZipper(
@@ -23,28 +23,28 @@ private class DirectoryZipper(
 ) {
     private var filesZipped = 0
 
-    /** Writes the directory at [location] as [entryName] (ending in "/"), then everything in it. */
-    suspend fun write(location: FileLocation, entryName: String): String? {
+    /** Writes the directory at [location] as [zipEntryName] (ending in "/"), then everything in it. */
+    suspend fun writeDirectory(location: FileLocation, zipEntryName: String): String? {
         val listing = client.listDirectory(location)
-        listing.error?.let { return "$entryName: $it" }
-        zip.putNextEntry(ZipEntry(entryName))
+        listing.error?.let { return "$zipEntryName: $it" }
+        zip.putNextEntry(ZipEntry(zipEntryName))
         zip.closeEntry()
         // ZipOutputStream throws on a repeated entry name.
-        val usedNames = mutableSetOf<String>()
+        val usedSegments = mutableSetOf<String>()
         for (entry in listing.entries.filterNot(FileEntry::isSymbolicLink)) {
             val child = location.child(entry.name)
-            val name = zipSafeSegment(entry.name).let { safeName ->
-                generateSequence(1, Int::inc).map { n -> if (n == 1) safeName else "$safeName ($n)" }.first(usedNames::add)
+            val segment = zipSafeSegment(entry.name).let { safeSegment ->
+                generateSequence(1, Int::inc).map { n -> if (n == 1) safeSegment else "$safeSegment ($n)" }.first(usedSegments::add)
             }
-            val error = if (entry.isDirectory) write(child, "$entryName$name/") else writeFile(child, "$entryName$name", entry)
+            val error = if (entry.isDirectory) writeDirectory(child, "$zipEntryName$segment/") else writeFile(child, "$zipEntryName$segment", entry)
             if (error != null) return error
         }
         return null
     }
 
-    private suspend fun writeFile(location: FileLocation, entryName: String, entry: FileEntry): String? {
-        zip.putNextEntry(ZipEntry(entryName).apply { entry.lastModifiedEpochMillis?.let { time = it } })
-        client.readWholeFile(location, zip::write)?.let { return "$entryName: $it" }
+    private suspend fun writeFile(location: FileLocation, zipEntryName: String, entry: FileEntry): String? {
+        zip.putNextEntry(ZipEntry(zipEntryName).apply { entry.lastModifiedEpochMillis?.let { time = it } })
+        client.readWholeFile(location, zip::write)?.let { return "$zipEntryName: $it" }
         zip.closeEntry()
         onFileZipped(++filesZipped)
         return null

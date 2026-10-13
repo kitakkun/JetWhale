@@ -76,7 +76,7 @@ internal interface StorageInspectorActions {
 
     fun confirmZipDownload()
 
-    fun cancelZipDownload()
+    fun cancelPendingZipDownload()
 
     /** Computes the SHA-256 of the whole file at [location]. */
     fun computeSha256(location: FileLocation)
@@ -327,17 +327,17 @@ internal class StorageBrowser(
         if (isLarge) {
             pendingZipDownload = PendingZipDownload(location, target, measurement)
         } else {
-            zipTo(location, target)
+            zipDirectoryTo(location, target)
         }
     }
 
     override fun confirmZipDownload() {
         val download = pendingZipDownload ?: return
         pendingZipDownload = null
-        launchReporting { zipTo(download.location, download.target) }
+        launchReporting { zipDirectoryTo(download.location, download.target) }
     }
 
-    override fun cancelZipDownload() {
+    override fun cancelPendingZipDownload() {
         pendingZipDownload = null
     }
 
@@ -348,7 +348,7 @@ internal class StorageBrowser(
      * removes only its own partial file, two downloads to the same target cannot touch each other's,
      * and a file the user chose to overwrite stays as it was until then.
      */
-    private suspend fun zipTo(location: FileLocation, target: File) {
+    private suspend fun zipDirectoryTo(location: FileLocation, target: File) {
         var partial: File? = null
         var movedIntoPlace = false
         try {

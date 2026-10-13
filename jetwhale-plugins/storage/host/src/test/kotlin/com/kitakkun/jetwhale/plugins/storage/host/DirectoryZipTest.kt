@@ -64,14 +64,14 @@ class DirectoryZipTest {
 
     @Test
     fun `siblings whose names sanitize alike are both kept under distinct names`() {
-        val clashing = FakeStorageClient(
+        val appWithClashingNames = FakeStorageClient(
             directories = mutableMapOf(location("Logs") to listOf(fileEntry("a:b", sizeBytes = 1), fileEntry("a_b", sizeBytes = 1))),
             files = mutableMapOf(location("Logs", "a:b") to "1".encodeToByteArray(), location("Logs", "a_b") to "2".encodeToByteArray()),
             stores = mutableMapOf(),
         )
         val output = ByteArrayOutputStream()
 
-        val error = runBlocking { ZipOutputStream(output).use { clashing.zipDirectory(location("Logs"), it) {} } }
+        val error = runBlocking { ZipOutputStream(output).use { appWithClashingNames.zipDirectory(location("Logs"), it) {} } }
 
         assertNull(error)
         val entries = unzip(output.toByteArray())

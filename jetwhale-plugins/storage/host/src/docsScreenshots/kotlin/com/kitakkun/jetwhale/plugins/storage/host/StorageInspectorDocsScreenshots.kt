@@ -99,7 +99,7 @@ private object NoStorageInspectorActions : StorageInspectorActions {
 
     override fun confirmZipDownload() = Unit
 
-    override fun cancelZipDownload() = Unit
+    override fun cancelPendingZipDownload() = Unit
 
     override fun computeSha256(location: FileLocation) = Unit
 

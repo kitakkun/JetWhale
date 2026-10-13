@@ -125,7 +125,7 @@ internal fun StorageInspectorScreen(
             confirmLabel = "Download",
             confirmTone = JwTone.Accent,
             onConfirm = actions::confirmZipDownload,
-            onDismiss = actions::cancelZipDownload,
+            onDismiss = actions::cancelPendingZipDownload,
         )
     }
 }
