@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MainThreadReport
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -59,8 +60,12 @@ internal class MainThreadMonitor(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = MonitorStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = MonitorStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }
