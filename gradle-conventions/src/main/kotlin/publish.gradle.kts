@@ -1,6 +1,4 @@
-import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryExtension
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import util.JetWhalePublishExtension
 
 plugins {
@@ -9,27 +7,15 @@ plugins {
 
 extensions.create("jetwhalePublish", JetWhalePublishExtension::class)
 
-// Apache-2.0 asks every redistribution to carry the license, and the notices credit the icon artwork
-// the jars bundle. The included builds (the Gradle plugins) sit below the repository root, so the
-// files are looked up from the nearest directory that has them.
-val legalFiles = generateSequence(rootDir, File::getParentFile)
-    .first { File(it, "LICENSE").isFile }
-    .let { repositoryRoot -> listOf(File(repositoryRoot, "LICENSE"), File(repositoryRoot, "THIRD_PARTY_NOTICES.md")) }
+val gitRepositoryRootDir: File = generateSequence(rootDir, File::getParentFile).first { File(it, "LICENSE").isFile }
+
+// Apache-2.0 asks every redistribution to carry the license, and the notices credit the icon
+// artwork the jars bundle.
+val legalFiles = listOf(File(gitRepositoryRootDir, "LICENSE"), File(gitRepositoryRootDir, "THIRD_PARTY_NOTICES.md"))
     .filter(File::isFile)
 
 tasks.withType<Jar>().configureEach {
     from(legalFiles) { into("META-INF") }
-}
-
-// Classes compiled here can carry the lint plugin's inferred-fact annotations, whose classes are
-// never published; an app shrinking the Android artifact with R8 would otherwise stop on them.
-pluginManager.withPlugin("com.android.kotlin.multiplatform.library") {
-    extensions.getByType<KotlinMultiplatformExtension>().extensions.configure<KotlinMultiplatformAndroidLibraryExtension> {
-        optimization {
-            consumerKeepRules.publish = true
-            consumerKeepRules.file(rootProject.file("gradle/consumer-rules/kotrail.pro"))
-        }
-    }
 }
 
 afterEvaluate {
@@ -90,6 +76,19 @@ afterEvaluate {
                 url = "https://github.com/kitakkun/jetwhale"
                 connection = "scm:git:git://github.com/kitakkun/jetwhale.git"
                 developerConnection = "scm:git:ssh://git@github.com/kitakkun/jetwhale.git"
+            }
+        }
+    }
+
+    // publishToMavenCentral uploads one Central Portal deployment per Gradle build, and each
+    // deployment counts against the namespace's monthly release limit. A release stages the
+    // artifacts of every build, the included Gradle plugin builds too, in this one directory, and
+    // the Publish workflow uploads it as a single deployment.
+    publishing {
+        repositories {
+            maven {
+                name = "mavenCentralBundle"
+                url = uri(gitRepositoryRootDir.resolve("build/maven-central-bundle"))
             }
         }
     }

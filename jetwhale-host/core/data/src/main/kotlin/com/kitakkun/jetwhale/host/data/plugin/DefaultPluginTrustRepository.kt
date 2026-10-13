@@ -47,34 +47,34 @@ class DefaultPluginTrustRepository(
     override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = trustedEntriesFlow.value[jarPath]
 
     override suspend fun load(): Unit = writeMutex.withLock {
-        trustedEntriesFlow.value = readFromDisk()
+        trustedEntriesFlow.value = readTrustedPluginsJson()
     }
 
     override suspend fun trust(jarPath: String, sha256: String): Unit = writeMutex.withLock {
         val updated = trustedEntriesFlow.value + (jarPath to TrustedPluginEntry(jarPath, sha256, System.currentTimeMillis()))
-        persist(updated)
+        writeTrustedPluginsJson(updated)
         trustedEntriesFlow.value = updated
     }
 
     override suspend fun revoke(jarPath: String): Unit = writeMutex.withLock {
         if (jarPath !in trustedEntriesFlow.value) return@withLock
         val updated = trustedEntriesFlow.value - jarPath
-        persist(updated)
+        writeTrustedPluginsJson(updated)
         trustedEntriesFlow.value = updated
     }
 
     override suspend fun resign(): Unit = writeMutex.withLock {
-        persist(trustedEntriesFlow.value)
+        writeTrustedPluginsJson(trustedEntriesFlow.value)
     }
 
-    private fun readFromDisk(): Map<String, TrustedPluginEntry> {
+    private fun readTrustedPluginsJson(): Map<String, TrustedPluginEntry> {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
         // An unreadable or corrupt registry fails closed, whatever the cause: every plugin is
         // treated as untrusted.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
-            val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
+            val registry = json.decodeFromString<TrustedPluginsJson>(file.readText())
             when (trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)) {
                 TrustRegistrySigner.Verification.VALID,
                 TrustRegistrySigner.Verification.DISABLED,
@@ -104,7 +104,7 @@ class DefaultPluginTrustRepository(
         }
     }
 
-    private fun persist(entries: Map<String, TrustedPluginEntry>) {
+    private fun writeTrustedPluginsJson(entries: Map<String, TrustedPluginEntry>) {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         file.parentFile?.mkdirs()
         val storedEntries = entries.mapValues { (_, entry) ->
@@ -113,7 +113,7 @@ class DefaultPluginTrustRepository(
                 trustedAtEpochMillis = entry.trustedAtEpochMillis,
             )
         }
-        val registry = TrustRegistryFile(
+        val registry = TrustedPluginsJson(
             entries = storedEntries,
             signature = trustRegistrySigner.sign(json.encodeToString(storedEntries)),
         )
@@ -132,7 +132,7 @@ class DefaultPluginTrustRepository(
      * written before registry signing existed.
      */
     @Serializable
-    private data class TrustRegistryFile(
+    private data class TrustedPluginsJson(
         val entries: Map<String, StoredTrustedPluginEntry>,
         val signature: String? = null,
     )

@@ -176,7 +176,19 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
         val tmp = File.createTempFile("jetwhale-host-", ".jar", jar.parentFile)
         try {
             val connection = open("GET")
-            connection.getInputStream().use { input -> tmp.outputStream().use(input::copyTo) }
+            val body = try {
+                connection.getInputStream()
+            } catch (e: java.io.FileNotFoundException) {
+                throw GradleException(
+                    "No JetWhale host jar at $url: release $version does not exist, or has no build for " +
+                        "${osArchProvider.get()}. Releases are built for macos-arm64, linux-x64 and windows-x64; on " +
+                        "any other machine, build the host from source (./gradlew " +
+                        ":jetwhale-host:app:packageUberJarForCurrentOS in the JetWhale repository) and pass " +
+                        "-PjetwhaleHostJar=<path to that jar>.",
+                    e,
+                )
+            }
+            body.use { input -> tmp.outputStream().use(input::copyTo) }
             java.nio.file.Files.move(
                 tmp.toPath(),
                 jar.toPath(),

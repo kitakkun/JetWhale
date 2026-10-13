@@ -3,7 +3,7 @@
 # plugin (Kotrail) leaking into them:
 # - a POM or Gradle module file that depends on it fails the check;
 # - an Android artifact whose classes reference its annotations fails unless the artifact ships the
-#   consumer rule that lets R8 ignore them (gradle/consumer-rules/kotrail.pro);
+#   consumer rule that lets R8 ignore them, which Kotrail's Gradle plugin adds;
 # - JVM jars and klibs that reference them are listed as warnings.
 #
 # Usage: check-published-artifacts.sh <version> [maven-repository]

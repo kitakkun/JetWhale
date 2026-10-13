@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -125,27 +127,20 @@ private fun SuggestionTextField(
     isError: Boolean,
     onValueChange: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var narrowing by remember { mutableStateOf(false) }
-    var highlightedIndex by remember { mutableIntStateOf(-1) }
+    val menuState = remember { SuggestionMenuState() }
     var fieldWidth by remember { mutableIntStateOf(0) }
     val fieldFocus = remember { FocusRequester() }
-    val shown = if (narrowing) suggestions.filter { it.contains(value, ignoreCase = true) } else suggestions
-    val open = { narrowingNow: Boolean ->
-        expanded = true
-        narrowing = narrowingNow
-        highlightedIndex = -1
-    }
+    val shown = menuState.shownSuggestions(suggestions = suggestions, value = value)
     val choose = { suggestion: String ->
         onValueChange(suggestion)
-        expanded = false
+        menuState.close()
     }
     Box {
         JwTextField(
             value = value,
             onValueChange = {
                 onValueChange(it)
-                if (suggestions.isNotEmpty()) open(true)
+                if (suggestions.isNotEmpty()) menuState.open(narrowing = true)
             },
             isError = isError,
             trailingIcon = if (suggestions.isEmpty()) {
@@ -154,7 +149,7 @@ private fun SuggestionTextField(
                 {
                     val openFromButton = {
                         fieldFocus.requestFocus()
-                        open(false)
+                        menuState.open(narrowing = false)
                     }
                     JwIconButton(tooltip = "Suggested values for $name", onClick = openFromButton, size = JwIconButtonDefaults.inlineSize) {
                         JwIcon(imageVector = JwIcons.ChevronDown, contentDescription = null)
@@ -166,44 +161,98 @@ private fun SuggestionTextField(
                 .focusRequester(fieldFocus)
                 .onSizeChanged { fieldWidth = it.width }
                 .onPreviewKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyDown || suggestions.isEmpty()) return@onPreviewKeyEvent false
-                    when {
-                        event.key == Key.DirectionDown && !expanded -> open(false)
-                        event.key == Key.DirectionDown -> highlightedIndex = (highlightedIndex + 1).coerceAtMost(shown.lastIndex)
-                        event.key == Key.DirectionUp && expanded -> highlightedIndex = (highlightedIndex - 1).coerceAtLeast(0)
-                        event.key == Key.Enter && expanded && highlightedIndex in shown.indices -> choose(shown[highlightedIndex])
-                        event.key == Key.Escape && expanded -> expanded = false
-                        else -> return@onPreviewKeyEvent false
-                    }
-                    true
+                    event.type == KeyEventType.KeyDown &&
+                        suggestions.isNotEmpty() &&
+                        menuState.onKeyDown(key = event.key, shown = shown, onChoose = choose)
                 },
         )
-        if (expanded && shown.isNotEmpty()) {
-            Popup(
-                popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowStart),
-                onDismissRequest = { expanded = false },
-                // Not focusable, so typing stays in the field, whose key handler drives the menu.
-                properties = PopupProperties(focusable = false),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .width(with(LocalDensity.current) { fieldWidth.toDp() })
-                        .heightIn(max = JwDropdownMenuDefaults.maxHeight)
-                        .shadow(SuggestionMenuElevation, JwShapes.medium)
-                        .background(JwTheme.colors.popupBackground, JwShapes.medium)
-                        .border(JwMetrics.borderWidth, JwTheme.colors.popupBorder, JwShapes.medium)
-                        .padding(JwSpacing.extraSmall)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    shown.forEachIndexed { index, suggestion ->
-                        JwMenuItem(
-                            text = suggestion,
-                            selected = suggestion == value,
-                            onClick = { choose(suggestion) },
-                            modifier = if (index == highlightedIndex) Modifier.background(JwTheme.colors.hover, JwShapes.extraSmall) else Modifier,
-                        )
-                    }
-                }
+        if (menuState.expanded && shown.isNotEmpty()) {
+            SuggestionMenu(
+                shown = shown,
+                value = value,
+                highlightedIndex = menuState.highlightedIndex,
+                width = with(LocalDensity.current) { fieldWidth.toDp() },
+                onChoose = choose,
+                onDismissRequest = menuState::close,
+            )
+        }
+    }
+}
+
+/**
+ * Whether the suggestion menu is open, whether it narrows to the typed text, and which row the
+ * arrow keys point at.
+ */
+@Stable
+private class SuggestionMenuState {
+    var expanded by mutableStateOf(false)
+        private set
+    private var narrowing by mutableStateOf(false)
+    var highlightedIndex by mutableIntStateOf(-1)
+        private set
+
+    fun shownSuggestions(suggestions: List<String>, value: String): List<String> = if (narrowing) suggestions.filter { it.contains(value, ignoreCase = true) } else suggestions
+
+    fun open(narrowing: Boolean) {
+        expanded = true
+        this.narrowing = narrowing
+        highlightedIndex = -1
+    }
+
+    fun close() {
+        expanded = false
+    }
+
+    /**
+     * Moves through [shown] for an arrow key, takes the highlighted suggestion for Enter and closes
+     * the menu for Escape; false for a key the menu does not use.
+     */
+    fun onKeyDown(key: Key, shown: List<String>, onChoose: (String) -> Unit): Boolean {
+        when {
+            key == Key.DirectionDown && !expanded -> open(narrowing = false)
+            key == Key.DirectionDown -> highlightedIndex = (highlightedIndex + 1).coerceAtMost(shown.lastIndex)
+            key == Key.DirectionUp && expanded -> highlightedIndex = (highlightedIndex - 1).coerceAtLeast(0)
+            key == Key.Enter && expanded && highlightedIndex in shown.indices -> onChoose(shown[highlightedIndex])
+            key == Key.Escape && expanded -> close()
+            else -> return false
+        }
+        return true
+    }
+}
+
+@Composable
+private fun SuggestionMenu(
+    shown: List<String>,
+    value: String,
+    highlightedIndex: Int,
+    width: Dp,
+    onChoose: (String) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Popup(
+        popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowStart),
+        onDismissRequest = onDismissRequest,
+        // Not focusable, unlike JwDropdownMenu's popup, so typing stays in the field, whose key
+        // handler drives the menu.
+        properties = PopupProperties(focusable = false),
+    ) {
+        Column(
+            modifier = Modifier
+                .width(width)
+                .heightIn(max = JwDropdownMenuDefaults.maxHeight)
+                .shadow(SuggestionMenuElevation, JwShapes.medium)
+                .background(JwTheme.colors.popupBackground, JwShapes.medium)
+                .border(JwMetrics.borderWidth, JwTheme.colors.popupBorder, JwShapes.medium)
+                .padding(JwSpacing.extraSmall)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            shown.forEachIndexed { index, suggestion ->
+                JwMenuItem(
+                    text = suggestion,
+                    selected = suggestion == value,
+                    onClick = { onChoose(suggestion) },
+                    modifier = if (index == highlightedIndex) Modifier.background(JwTheme.colors.hover, JwShapes.extraSmall) else Modifier,
+                )
             }
         }
     }

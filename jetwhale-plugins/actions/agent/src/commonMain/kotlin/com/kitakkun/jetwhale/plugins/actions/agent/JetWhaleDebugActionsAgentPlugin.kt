@@ -67,16 +67,16 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
     private var activeScope: CoroutineScope? = null
 
     /** Registers the actions [content] declares, until the returned registration is removed. */
-    fun register(content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration = add(scoped = false, content)
+    fun register(content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration = registerActions(scoped = false, content)
 
     /**
      * Registers actions that belong to part of the UI and exist only while it is shown; the host
      * marks them so. The Compose artifact's `DebugActions` calls this for the duration of its
      * composition — prefer it to pairing this with `unregister` by hand.
      */
-    fun registerScoped(content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration = add(scoped = true, content)
+    fun registerScoped(content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration = registerActions(scoped = true, content)
 
-    private fun add(scoped: Boolean, content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration {
+    private fun registerActions(scoped: Boolean, content: DebugActionsBuilder.() -> Unit): DebugActionsRegistration {
         val definitions = DebugActionsBuilder(group = null).apply(content).definitions
         val handle = Any()
         registered.update { current ->

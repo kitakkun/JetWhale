@@ -26,6 +26,20 @@ internal fun encodeImageFormat(wanted: IntSize?): ByteArray = Buffer().apply {
     }
 }.readByteArray()
 
+private fun Buffer.writeVarintField(field: Int, value: Long) {
+    writeVarint((field shl 3).toLong() or WIRE_VARINT.toLong())
+    writeVarint(value)
+}
+
+private fun Buffer.writeVarint(value: Long) {
+    var remaining = value
+    while (remaining and 0x7fL.inv() != 0L) {
+        writeByte(((remaining and 0x7f) or 0x80).toInt())
+        remaining = remaining ushr 7
+    }
+    writeByte(remaining.toInt())
+}
+
 /** [message] with gRPC's five-byte prefix: not compressed, then its length. */
 internal fun grpcMessage(message: ByteArray): ByteArray = Buffer().writeByte(0).writeInt(message.size).write(message).readByteArray()
 
@@ -149,20 +163,6 @@ private fun InputStream.readByteOrThrow(): Int {
     val byte = read()
     if (byte == -1) throw EOFException("the emulator's frame ended early")
     return byte
-}
-
-private fun Buffer.writeVarintField(field: Int, value: Long) {
-    writeVarint((field shl 3).toLong() or WIRE_VARINT.toLong())
-    writeVarint(value)
-}
-
-private fun Buffer.writeVarint(value: Long) {
-    var remaining = value
-    while (remaining and 0x7fL.inv() != 0L) {
-        writeByte(((remaining and 0x7f) or 0x80).toInt())
-        remaining = remaining ushr 7
-    }
-    writeByte(remaining.toInt())
 }
 
 /** The longest side of a frame the mirror reads; an emulator asked for its shown size sends far less. */

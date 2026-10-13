@@ -11,8 +11,8 @@ import soil.query.buildMutationKey
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultAppColorSchemeMutationKey(
-    private val appearanceDataStore: AppAppearanceRepository,
+    private val appAppearanceRepository: AppAppearanceRepository,
 ) : AppColorSchemeMutationKey by buildMutationKey(
     id = MutationId("DefaultAppColorSchemeMutationKey"),
-    mutate = { appearanceDataStore.setPreferredColorSchemeId(it) },
+    mutate = { appAppearanceRepository.setPreferredColorSchemeId(it) },
 )
