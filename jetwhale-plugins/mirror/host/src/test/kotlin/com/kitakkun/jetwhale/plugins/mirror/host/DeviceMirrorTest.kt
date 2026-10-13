@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
+import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -43,8 +44,8 @@ class DeviceMirrorTest {
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null, clipboard = CaptureClipboard(osascriptPath = null)),
+        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
         scope = scope,
     )
@@ -106,8 +107,8 @@ class DeviceMirrorTest {
     fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
         val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
-            discovery = DeviceDiscovery(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null), companions = null, emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-            captures = MirrorCaptures(root, storage = null, scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = null, clipboard = CaptureClipboard(osascriptPath = null)),
+            discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+            captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
             notices = notices,
             scope = clicks,
         )
@@ -166,6 +167,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a device whose recording file cannot be reserved fails alone and the others still record`() = runBlocking {
+        assumePosixPermissions()
         // A first recording makes this device's day folder, so once the root is read-only only the
         // other device's file cannot be reserved.
         mirror.startRecording(device)
@@ -323,6 +325,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a screenshot of a screen turned since the stream opened opens a new stream instead of showing among its frames`() = runBlocking {
+        assumeShellScriptsLaunch()
         val turned = Surface.makeRasterN32Premul(20, 10).use { surface -> surface.makeImageSnapshot().use { checkNotNull(it.encodeToData(EncodedImageFormat.PNG)).bytes } }
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = turned)
         mirror.surface.viewSize = IntSize(540, 1200)
@@ -337,6 +340,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a screenrecord stream that sends nothing falls back to screenshots and says so`() = runBlocking {
+        assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
@@ -350,6 +354,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `screenshots shown in place of a stream map taps through their own size`() = runBlocking {
+        assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
@@ -375,6 +380,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a screenrecord stream that sends bytes but no finished frame keeps streaming`() = runBlocking {
+        assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
@@ -389,6 +395,7 @@ class DeviceMirrorTest {
 
     @Test
     fun `a screenshot that is not an image fails as a notice and leaves the mirror running`() = runBlocking {
+        assumeShellScriptsLaunch()
         val warning = "[Warning] Multiple displays were found, but no display id was specified!".encodeToByteArray()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = warning)
         mirror.surface.viewSize = IntSize(540, 1200)

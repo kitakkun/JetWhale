@@ -6,11 +6,42 @@ to `main` that touches `docs/` or `docs-site/`.
 
 The split is deliberate:
 
-- **`docs/`** — plain Markdown content only. Edit pages here.
-- **`docs-site/`** — all site tooling (VitePress config, npm packages, static assets, version list).
-  The VitePress `srcDir` points at `../docs`.
+- **`docs/`** — the Markdown pages and the screenshots they show. Edit pages here.
+- **`docs-site/`** — all site tooling (VitePress config and theme, npm packages, static assets,
+  version list). The VitePress `srcDir` points at `../docs`.
 
 Adding a new page also requires adding it to the sidebar in `docs-site/.vitepress/config.mts`.
+
+## Screenshots
+
+Screenshots live in `docs/images/<page>/`, one WebP file per theme: `<shot>-light.webp` and
+`<shot>-dark.webp`. They are rendered from the real UI rather than captured by hand: the tests in a
+module's `src/docsScreenshots` render its screens with fixture state, in both themes, and
+
+```shell
+./gradlew recordDocsScreenshots
+```
+
+writes every image whose picture changed; a file whose pixels did not move is left as it is. Text is
+drawn with the fonts of the machine that renders it, so render on macOS, as the committed images
+were, or every image changes.
+
+A page references both variants by relative path, so a missing file fails the build, and the theme
+shows the one that matches the reader's appearance. `width` is the width the page shows the image
+at, half of its pixel width:
+
+```md
+![The Network Inspector's traffic list](../images/network-inspector/traffic-light.webp){.light-only width=688}
+![The Network Inspector's traffic list](../images/network-inspector/traffic-dark.webp){.dark-only width=688}
+```
+
+The task writes lossy WebP at quality 88, and fails a shot whose file would be over 250 KB.
+
+## Moving a section
+
+GitHub Pages has no redirects. When a section moves to another page, add its old and new
+`/<page>#<anchor>` to `docs-site/.vitepress/theme/movedAnchors.ts`, so links to the old location
+still land on it.
 
 ## Local development
 

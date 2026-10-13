@@ -9,7 +9,7 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
     )
 }
 
-internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
+internal actual fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
     JetWhaleLogger.w(

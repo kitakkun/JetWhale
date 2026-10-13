@@ -1,0 +1,69 @@
+package com.kitakkun.jetwhale.host.data.settings
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
+import com.kitakkun.jetwhale.host.model.McpPermissions
+import com.kitakkun.jetwhale.host.model.McpToolPermission
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import okio.Path.Companion.toPath
+import java.nio.file.Files
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+class DefaultMcpPermissionsRepositoryTest {
+    @Test
+    fun `the launch override lifts every denial without touching what was stored`() = runBlocking<Unit> {
+        val directory = Files.createTempDirectory("jetwhale-mcp-permissions-test")
+        val dataStore = PreferenceDataStoreFactory.createWithPath(scope = CoroutineScope(Dispatchers.IO)) {
+            "$directory/debugger_settings.preferences_pb".toPath()
+        }
+        DefaultMcpPermissionsRepository(dataStore, McpPermissionOverride.None).run {
+            setHostGroupAllowed(McpHostToolGroup.OBSERVE, allowed = false)
+            setHostGroupAllowed(McpHostToolGroup.NAVIGATE, allowed = false)
+            setPluginInspectAllowed("com.example.secret", allowed = false)
+            setPluginInteractAllowed("com.example.secret", allowed = false)
+            setPluginToolAllowed("com.example.secret.wipe", allowed = false)
+        }
+        val stored = McpPermissions(
+            allowedHostGroups = emptySet(),
+            pluginsDeniedInspect = setOf("com.example.secret"),
+            pluginsDeniedInteract = setOf("com.example.secret"),
+            deniedPluginTools = setOf("com.example.secret.wipe"),
+        )
+
+        val overriddenDataStore = FirstReadSignalingDataStore(dataStore)
+        val overriddenRepository = DefaultMcpPermissionsRepository(overriddenDataStore, McpPermissionOverride(allowAll = true))
+        withTimeout(5_000) { overriddenDataStore.firstReadDelivered.await() }
+        val overridden = overriddenRepository.permissionsFlow.value
+
+        assertTrue(overridden.allows(McpToolPermission.HostGroup(McpHostToolGroup.SETTINGS_AND_SERVERS), pluginId = null))
+        assertTrue(overridden.allows(McpToolPermission.PluginInspect, pluginId = "com.example.secret"))
+        assertTrue(overridden.allows(McpToolPermission.PluginTool("com.example.secret.wipe"), pluginId = null))
+        withTimeout(5_000) {
+            DefaultMcpPermissionsRepository(dataStore, McpPermissionOverride.None).permissionsFlow.first { it == stored }
+        }
+    }
+}
+
+/**
+ * Signals once the first value read from [dataStore] has reached its collector: `emit` returns only
+ * after the collector has handled the value.
+ */
+private class FirstReadSignalingDataStore(dataStore: DataStore<Preferences>) : DataStore<Preferences> by dataStore {
+    val firstReadDelivered = CompletableDeferred<Unit>()
+
+    override val data: Flow<Preferences> = dataStore.data.transform { preferences ->
+        emit(preferences)
+        firstReadDelivered.complete(Unit)
+    }
+}

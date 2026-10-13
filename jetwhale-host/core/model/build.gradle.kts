@@ -8,6 +8,7 @@ plugins {
 
 dependencies {
     implementation(projects.jetwhaleHostSdk)
+    implementation(projects.jetwhaleHost.releaseMetadata)
     implementation(libs.kotlinxSerializationJson)
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCollectionsImmutable)
