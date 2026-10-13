@@ -96,6 +96,9 @@ app and register it in `startJetWhale { }`:
   the app's debug menu as typed actions the host and AI agents can run
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Main Thread Monitor](https://kitakkun.github.io/JetWhale/guide/main-thread-monitor)** — what
+  blocks the main thread: long tasks and where they spent their time, StrictMode's disk-access
+  violations, and janky frames
 - **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* — the
   live screens of Android devices and emulators, iOS simulators and iPhones, one at a time or in a
   grid, with screenshots and recordings per device; Android devices and simulators also take input.
