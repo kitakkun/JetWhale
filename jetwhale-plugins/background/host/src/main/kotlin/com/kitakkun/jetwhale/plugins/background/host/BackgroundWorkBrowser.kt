@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkSnapshot
 import com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget
 import com.kitakkun.jetwhale.plugins.background.protocol.WorkOperationResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -102,8 +103,12 @@ internal class BackgroundWorkBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = WorkStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = WorkStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }
