@@ -75,4 +75,7 @@ jobs:
             :jetwhale-plugins:actions:agent:checkKotlinAbi \
             :jetwhale-plugins:actions:agent-compose:checkKotlinAbi \
             :jetwhale-plugins:actions:host:checkKotlinAbi \
-            :jetwhale-plugins:mirror:host:checkKotlinAbi
+            :jetwhale-plugins:mirror:host:checkKotlinAbi \
+            :jetwhale-plugins:background:protocol:checkKotlinAbi \
+            :jetwhale-plugins:background:agent:checkKotlinAbi \
+            :jetwhale-plugins:background:host:checkKotlinAbi
