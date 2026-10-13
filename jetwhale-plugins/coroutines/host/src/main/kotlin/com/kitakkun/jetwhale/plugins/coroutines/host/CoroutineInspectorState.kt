@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -146,8 +147,12 @@ internal class CoroutineInspectorState(
     private fun launchReporting(block: suspend () -> Unit): Job = scope.launch {
         try {
             block()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: JetWhaleMessagingException) {
             status = InspectorStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+        } catch (e: Exception) {
+            status = InspectorStatus(message = "Unexpected error: $e", isError = true)
         }
     }
 }
