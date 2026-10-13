@@ -8,6 +8,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -102,4 +103,8 @@ private class TestPlatformContext :
         currentIntSize = intSize
         currentDpSize = dpSize
     }
+
+    override fun saveWindowInfo(): WindowInfo = windowInfo
+
+    override fun restoreWindowInfo(saved: WindowInfo) = Unit
 }

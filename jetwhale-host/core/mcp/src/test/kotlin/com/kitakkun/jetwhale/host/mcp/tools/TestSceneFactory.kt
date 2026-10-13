@@ -56,10 +56,8 @@ private class TestPlatformContext(
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
 
-    override val windowInfo: WindowInfo = object : WindowInfo by base.windowInfo {
-        override val containerSize: IntSize get() = currentIntSize
-        override val containerDpSize: DpSize get() = currentDpSize
-    }
+    override var windowInfo: WindowInfo by mutableStateOf(windowInfoSized(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT), DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp)))
+        private set
 
     val pointerIcon = mutableStateOf(PointerIcon.Default)
     override fun setPointerIcon(pointerIcon: PointerIcon) {
@@ -77,13 +75,21 @@ private class TestPlatformContext(
         override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) = Unit
     }
 
-    override var currentIntSize: IntSize by mutableStateOf(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT))
-        private set
-    override var currentDpSize: DpSize by mutableStateOf(DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp))
-        private set
+    override val currentIntSize: IntSize get() = windowInfo.containerSize
+    override val currentDpSize: DpSize get() = windowInfo.containerDpSize
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
-        currentIntSize = intSize
-        currentDpSize = dpSize
+        windowInfo = windowInfoSized(intSize, dpSize)
+    }
+
+    override fun saveWindowInfo(): WindowInfo = windowInfo
+
+    override fun restoreWindowInfo(saved: WindowInfo) {
+        windowInfo = saved
+    }
+
+    private fun windowInfoSized(intSize: IntSize, dpSize: DpSize): WindowInfo = object : WindowInfo by base.windowInfo {
+        override val containerSize: IntSize = intSize
+        override val containerDpSize: DpSize = dpSize
     }
 }

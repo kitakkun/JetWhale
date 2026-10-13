@@ -37,12 +37,25 @@ class DefaultPluginComposeSceneFactory(
 ) : PluginComposeSceneFactory {
     private var hostDensity: Density = Density(1f)
 
+    private var hostPluginAreaSize by mutableStateOf(IntSize.Zero)
+    private var hostPluginAreaDpSize by mutableStateOf(DpSize.Zero)
+
+    private val hostPluginAreaWindowInfo: WindowInfo = object : WindowInfo by PlatformContext.Empty().windowInfo {
+        override val containerSize: IntSize get() = hostPluginAreaSize
+        override val containerDpSize: DpSize get() = hostPluginAreaDpSize
+    }
+
     override fun updateHostDensity(density: Density) {
         hostDensity = density
     }
 
+    override fun updateHostPluginArea(intSize: IntSize, dpSize: DpSize) {
+        hostPluginAreaSize = intSize
+        hostPluginAreaDpSize = dpSize
+    }
+
     override fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene {
-        val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+        val windowUpdatableContext = DynamicWindowInfoPlatformContext(windowInfoUntilShown = hostPluginAreaWindowInfo)
         val composeScene = CanvasLayersComposeScene(
             density = hostDensity,
             platformContext = windowUpdatableContext,
@@ -76,11 +89,12 @@ class DefaultPluginComposeSceneFactory(
 
 @OptIn(InternalComposeUiApi::class)
 private class DynamicWindowInfoPlatformContext(
+    private val windowInfoUntilShown: WindowInfo,
     private val baseContext: PlatformContext = PlatformContext.Empty(),
 ) : PlatformContext by baseContext,
     WindowInfoUpdater {
     private var windowInfoOverride: WindowInfo? by mutableStateOf(null)
-    override val windowInfo: WindowInfo get() = windowInfoOverride ?: baseContext.windowInfo
+    override val windowInfo: WindowInfo get() = windowInfoOverride ?: windowInfoUntilShown
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
     override val semanticsOwnerListener = object : PlatformContext.SemanticsOwnerListener {
@@ -115,5 +129,11 @@ private class DynamicWindowInfoPlatformContext(
             override val containerSize: IntSize = intSize
             override val containerDpSize: DpSize = dpSize
         }
+    }
+
+    override fun saveWindowInfo(): WindowInfo = windowInfo
+
+    override fun restoreWindowInfo(saved: WindowInfo) {
+        windowInfoOverride = saved.takeUnless { it === windowInfoUntilShown }
     }
 }

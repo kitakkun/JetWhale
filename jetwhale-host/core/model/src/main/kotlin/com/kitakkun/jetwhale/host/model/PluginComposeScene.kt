@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.DpSize
@@ -46,4 +47,10 @@ interface WindowInfoUpdater {
     val currentIntSize: IntSize
     val currentDpSize: DpSize
     fun updateWindowSize(intSize: IntSize, dpSize: DpSize)
+
+    /** The window info the scene sees now, for [restoreWindowInfo]. */
+    fun saveWindowInfo(): WindowInfo
+
+    /** Puts back what [saveWindowInfo] returned; window info that follows a changing size keeps following it. */
+    fun restoreWindowInfo(saved: WindowInfo)
 }
