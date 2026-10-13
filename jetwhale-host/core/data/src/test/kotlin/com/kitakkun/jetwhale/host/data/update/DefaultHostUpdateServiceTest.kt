@@ -698,7 +698,7 @@ class DefaultHostUpdateServiceTest {
         return TestRelease(
             tag = tag,
             json = """{"tag_name":"$tag","draft":$draft,"prerelease":true,"assets":$assets}""",
-            metadata = if (withMetadata && HostVersion.parse(tag) != null) edit(metadata(tag)) else null,
+            metadata = if (withMetadata && HostVersion.parse(tag) != null) edit(releaseMetadata(tag)) else null,
         )
     }
 
@@ -706,39 +706,6 @@ class DefaultHostUpdateServiceTest {
         val directory = hostDirectoryPath.resolve(versionName)
         Files.createDirectories(directory)
         Files.write(directory.resolve(hostJarName(hostVersion(versionName), PLATFORM)), jarBytes(versionName))
-        Files.writeString(directory.resolve("release.json"), metadata(versionName).encode())
-    }
-
-    private fun metadata(versionName: String) = HostReleaseMetadata(
-        format = 1,
-        version = hostVersion(versionName),
-        mainClass = "com.kitakkun.jetwhale.host.MainKt",
-        launcherContract = 1,
-        runtime = HostRuntimeRequirements(javaFeatureVersion = 21, modules = listOf("java.base")),
-        jvmArgs = emptyList(),
-        platforms = mapOf(
-            PLATFORM to HostPlatformRelease(
-                url = jarUrl(versionName),
-                size = jarBytes(versionName).size.toLong(),
-                sha256 = MessageDigest.getInstance("SHA-256").digest(jarBytes(versionName)).joinToString("") { "%02x".format(it) },
-                jvmArgs = emptyList(),
-            ),
-        ),
-    )
-
-    private class TestRelease(val tag: String, val json: String, val metadata: HostReleaseMetadata?)
-
-    private companion object {
-        const val PLATFORM = "macos-arm64"
-        const val RELEASES_URL = "https://api.github.com/repos/kitakkun/JetWhale/releases?per_page=30"
-        const val ASSET_HOST_URL = "https://objects.example.com/release-asset"
-
-        fun metadataUrl(tag: String) = "https://github.com/kitakkun/JetWhale/releases/download/$tag/jetwhale-host-$tag.json"
-
-        fun jarUrl(tag: String) = "https://github.com/kitakkun/JetWhale/releases/download/$tag/${hostJarName(hostVersion(tag), PLATFORM)}"
-
-        fun jarBytes(versionName: String) = "host jar of $versionName".toByteArray()
-
-        fun hostVersion(name: String): HostVersion = checkNotNull(HostVersion.parse(name)) { name }
+        Files.writeString(directory.resolve("release.json"), releaseMetadata(versionName).encode())
     }
 }

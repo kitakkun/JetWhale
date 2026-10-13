@@ -14,74 +14,7 @@ class ActionParametersTest {
     fun `each property becomes a field typed by how it is entered`() {
         val parameters = Everything.serializer().descriptor.toActionParameters(parametersWithOptions = setOf("email"))
 
-        assertEquals(
-            listOf(
-                ActionParameter(
-                    "email",
-                    ParameterType.STRING,
-                    optional = false,
-                    nullable = false,
-                    description = "The account to use",
-                    enumValues = emptyList(),
-                    hasOptions = true,
-                ),
-                ActionParameter(
-                    "count",
-                    ParameterType.INTEGER,
-                    optional = true,
-                    nullable = false,
-                    description = null,
-                    enumValues = emptyList(),
-                    hasOptions = false,
-                ),
-                ActionParameter(
-                    "ratio",
-                    ParameterType.NUMBER,
-                    optional = false,
-                    nullable = true,
-                    description = null,
-                    enumValues = emptyList(),
-                    hasOptions = false,
-                ),
-                ActionParameter(
-                    "enabled",
-                    ParameterType.BOOLEAN,
-                    optional = false,
-                    nullable = false,
-                    description = null,
-                    enumValues = emptyList(),
-                    hasOptions = false,
-                ),
-                ActionParameter(
-                    "tier",
-                    ParameterType.ENUM,
-                    optional = false,
-                    nullable = false,
-                    description = null,
-                    enumValues = listOf("FREE", "PRO"),
-                    hasOptions = false,
-                ),
-                ActionParameter(
-                    "tags",
-                    ParameterType.JSON,
-                    optional = false,
-                    nullable = false,
-                    description = null,
-                    enumValues = emptyList(),
-                    hasOptions = false,
-                ),
-                ActionParameter(
-                    "userId",
-                    ParameterType.INTEGER,
-                    optional = false,
-                    nullable = false,
-                    description = null,
-                    enumValues = emptyList(),
-                    hasOptions = false,
-                ),
-            ),
-            parameters,
-        )
+        assertEquals(EVERYTHING_PARAMETERS, parameters)
     }
 
     @Test
@@ -107,4 +40,70 @@ private data class Everything(
     val tier: Tier,
     val tags: List<String>,
     val userId: UserId,
+)
+
+private val EVERYTHING_PARAMETERS = listOf(
+    ActionParameter(
+        "email",
+        ParameterType.STRING,
+        optional = false,
+        nullable = false,
+        description = "The account to use",
+        enumValues = emptyList(),
+        hasOptions = true,
+    ),
+    ActionParameter(
+        "count",
+        ParameterType.INTEGER,
+        optional = true,
+        nullable = false,
+        description = null,
+        enumValues = emptyList(),
+        hasOptions = false,
+    ),
+    ActionParameter(
+        "ratio",
+        ParameterType.NUMBER,
+        optional = false,
+        nullable = true,
+        description = null,
+        enumValues = emptyList(),
+        hasOptions = false,
+    ),
+    ActionParameter(
+        "enabled",
+        ParameterType.BOOLEAN,
+        optional = false,
+        nullable = false,
+        description = null,
+        enumValues = emptyList(),
+        hasOptions = false,
+    ),
+    ActionParameter(
+        "tier",
+        ParameterType.ENUM,
+        optional = false,
+        nullable = false,
+        description = null,
+        enumValues = listOf("FREE", "PRO"),
+        hasOptions = false,
+    ),
+    ActionParameter(
+        "tags",
+        ParameterType.JSON,
+        optional = false,
+        nullable = false,
+        description = null,
+        enumValues = emptyList(),
+        hasOptions = false,
+    ),
+    ActionParameter(
+        "userId",
+        ParameterType.INTEGER,
+        optional = false,
+        nullable = false,
+        description = null,
+        enumValues = emptyList(),
+        hasOptions = false,
+    ),
 )

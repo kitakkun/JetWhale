@@ -93,6 +93,15 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
         return DebugActionsRegistration { registered.update { current -> current.filterNot { it.owner === handle } } }
     }
 
+    /**
+     * The action's path — group and title — made unique among [takenIds] by a numeric suffix, since a
+     * screen shown twice registers the same actions twice.
+     */
+    private fun uniqueId(definition: DebugActionDefinition<*>, takenIds: Set<String>): String {
+        val base = listOfNotNull(definition.group, definition.title).joinToString(" / ")
+        return generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base #$it" }.first { it !in takenIds }
+    }
+
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: ListActions -> reply(catalog()) }
         onRequest { request: GetActionOptions -> reply(options(request)) }
@@ -208,13 +217,4 @@ private class RegisteredAction(
         scoped = scoped,
         parameters = definition.argumentSerializer.descriptor.toActionParameters(definition.optionProviders.keys),
     )
-}
-
-/**
- * The action's path — group and title — made unique among [takenIds] by a numeric suffix, since a
- * screen shown twice registers the same actions twice.
- */
-private fun uniqueId(definition: DebugActionDefinition<*>, takenIds: Set<String>): String {
-    val base = listOfNotNull(definition.group, definition.title).joinToString(" / ")
-    return generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base #$it" }.first { it !in takenIds }
 }

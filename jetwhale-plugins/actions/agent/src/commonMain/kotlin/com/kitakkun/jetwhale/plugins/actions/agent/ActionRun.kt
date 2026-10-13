@@ -31,35 +31,7 @@ internal suspend fun <A> DebugActionDefinition<A>.runWith(arguments: JsonObject,
         val value = withTimeout(timeout) {
             if (runsOnMainThread) withContext(Dispatchers.Main) { body(decoded) } else body(decoded)
         }
-        val elapsed = started.elapsedNow().inWholeMilliseconds
-        when (value) {
-            null, Unit -> ActionResult(
-                ActionOutcome.SUCCESS,
-                text = null,
-                json = null,
-                error = null,
-                stackTrace = null,
-                durationMillis = elapsed,
-            )
-
-            is JsonElement -> ActionResult(
-                ActionOutcome.SUCCESS,
-                text = null,
-                json = value,
-                error = null,
-                stackTrace = null,
-                durationMillis = elapsed,
-            )
-
-            else -> ActionResult(
-                ActionOutcome.SUCCESS,
-                text = value.toString(),
-                json = null,
-                error = null,
-                stackTrace = null,
-                durationMillis = elapsed,
-            )
-        }
+        succeededResult(value, durationMillis = started.elapsedNow().inWholeMilliseconds)
     } catch (_: TimeoutCancellationException) {
         ActionResult(
             ActionOutcome.TIMEOUT,
@@ -87,3 +59,32 @@ private fun failedResult(error: String, stackTrace: String?, durationMillis: Lon
     stackTrace = stackTrace,
     durationMillis = durationMillis,
 )
+
+private fun succeededResult(value: Any?, durationMillis: Long): ActionResult = when (value) {
+    null, Unit -> ActionResult(
+        ActionOutcome.SUCCESS,
+        text = null,
+        json = null,
+        error = null,
+        stackTrace = null,
+        durationMillis = durationMillis,
+    )
+
+    is JsonElement -> ActionResult(
+        ActionOutcome.SUCCESS,
+        text = null,
+        json = value,
+        error = null,
+        stackTrace = null,
+        durationMillis = durationMillis,
+    )
+
+    else -> ActionResult(
+        ActionOutcome.SUCCESS,
+        text = value.toString(),
+        json = null,
+        error = null,
+        stackTrace = null,
+        durationMillis = durationMillis,
+    )
+}

@@ -383,13 +383,7 @@ private fun HostUpdateStatusView(
     when (status) {
         is HostUpdateStatus.NotManaged, is HostUpdateStatus.NotChecked -> Unit
 
-        is HostUpdateStatus.Checking -> Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            JwProgressIndicator()
-            JwText(stringResource(Res.string.checking_for_updates))
-        }
+        is HostUpdateStatus.Checking -> UpdateProgress(text = stringResource(Res.string.checking_for_updates), onClickCancel = null)
 
         is HostUpdateStatus.UpToDate -> Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -412,38 +406,20 @@ private fun HostUpdateStatusView(
             )
         }
 
-        is HostUpdateStatus.Downloading -> Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            JwProgressIndicator()
-            JwText(
-                stringResource(
-                    Res.string.downloading_update,
-                    status.version.name,
-                    megabytes(status.downloadedBytes),
-                    megabytes(status.totalBytes),
-                ),
-            )
-            JwButton(
-                text = stringResource(Res.string.cancel_download),
-                onClick = onClickCancelUpdateDownload,
-                style = JwButtonStyle.Secondary,
-            )
-        }
+        is HostUpdateStatus.Downloading -> UpdateProgress(
+            text = stringResource(
+                Res.string.downloading_update,
+                status.version.name,
+                megabytes(status.downloadedBytes),
+                megabytes(status.totalBytes),
+            ),
+            onClickCancel = onClickCancelUpdateDownload,
+        )
 
-        is HostUpdateStatus.Verifying -> Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            JwProgressIndicator()
-            JwText(stringResource(Res.string.verifying_update, status.version.name))
-            JwButton(
-                text = stringResource(Res.string.cancel_download),
-                onClick = onClickCancelUpdateDownload,
-                style = JwButtonStyle.Secondary,
-            )
-        }
+        is HostUpdateStatus.Verifying -> UpdateProgress(
+            text = stringResource(Res.string.verifying_update, status.version.name),
+            onClickCancel = onClickCancelUpdateDownload,
+        )
 
         is HostUpdateStatus.ReadyToRestart -> UpdateNotice(
             title = stringResource(Res.string.update_ready, status.version.name),
@@ -486,6 +462,20 @@ private fun HostUpdateStatusView(
             text = stringResource(Res.string.update_failed, failureMessage(status.failure)),
             color = JwTheme.colors.error,
         )
+    }
+}
+
+@Composable
+private fun UpdateProgress(text: String, onClickCancel: (() -> Unit)?) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        JwProgressIndicator()
+        JwText(text)
+        if (onClickCancel != null) {
+            JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancel, style = JwButtonStyle.Secondary)
+        }
     }
 }
 
