@@ -15,6 +15,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
@@ -31,6 +32,7 @@ import com.kitakkun.jetwhale.host.instance.HostInstanceClaim
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
+import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
@@ -166,9 +168,7 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
     )
 }
 
-@OptIn(FlowPreview::class)
 @Composable
-@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // Split into smaller composables in a follow-up, tracked in #450.
 private fun ApplicationScope.JetWhaleMainWindow(
     appGraph: JetWhaleAppGraph,
     windowState: WindowState,
@@ -184,9 +184,39 @@ private fun ApplicationScope.JetWhaleMainWindow(
         .verifyingTrustRegistryFlow
         .collectAsState()
 
+    ExitApplicationWhenStoppedEffect(applicationLifecycleOwner = appGraph.applicationLifecycleOwner)
+    SaveFloatingWindowStateEffect(windowState = windowState, windowStateRepository = appGraph.windowStateRepository)
+
+    Window(
+        title = "JetWhale",
+        icon = painterResource(Res.drawable.app_icon),
+        state = windowState,
+        onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
+        onPreviewKeyEvent = { keyEvent ->
+            if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.Q) {
+                appGraph.applicationLifecycleOwner.shutdown()
+                true
+            } else {
+                false
+            }
+        },
+    ) {
+        PublishInstanceAndBringToFrontEffect(hostInstance = hostInstance, windowState = windowState)
+
+        JwTheme(darkTheme = isSystemInDarkTheme()) {
+            ApplicationLifecycleDialog(applicationState = applicationState, verifyingTrustRegistry = verifyingTrustRegistry)
+        }
+
+        context(appGraph) {
+            JetWhaleApp()
+        }
+    }
+}
+
+@Composable
+private fun ApplicationScope.ExitApplicationWhenStoppedEffect(applicationLifecycleOwner: ApplicationLifecycleOwner) {
     LaunchedEffect(Unit) {
-        appGraph
-            .applicationLifecycleOwner
+        applicationLifecycleOwner
             .applicationStateFlow
             .collect {
                 if (it == ApplicationLifecycleOwner.ApplicationState.STOPPED) {
@@ -194,7 +224,11 @@ private fun ApplicationScope.JetWhaleMainWindow(
                 }
             }
     }
+}
 
+@OptIn(FlowPreview::class)
+@Composable
+private fun SaveFloatingWindowStateEffect(windowState: WindowState, windowStateRepository: WindowStateRepository) {
     LaunchedEffect(windowState) {
         snapshotFlow { Triple(windowState.size, windowState.position, windowState.placement) }
             // Only a floating window's geometry is saved: a maximized or full-screen one would
@@ -212,54 +246,42 @@ private fun ApplicationScope.JetWhaleMainWindow(
             .debounce(500.milliseconds)
             .collect { state ->
                 if (state != null) {
-                    appGraph.windowStateRepository.saveWindowState(state)
+                    windowStateRepository.saveWindowState(state)
                 }
             }
     }
+}
 
-    Window(
-        title = "JetWhale",
-        icon = painterResource(Res.drawable.app_icon),
-        state = windowState,
-        onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
-        onPreviewKeyEvent = { keyEvent ->
-            if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.Q) {
-                appGraph.applicationLifecycleOwner.shutdown()
-                true
-            } else {
-                false
-            }
-        },
-    ) {
-        LaunchedEffect(hostInstance) {
-            hostInstance?.publishInstanceJson()
-            hostInstance?.bringToFrontRequests?.collect {
-                windowState.isMinimized = false
-                window.toFront()
-                window.requestFocus()
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
-                    Desktop.getDesktop().requestForeground(true)
-                }
+@Composable
+private fun FrameWindowScope.PublishInstanceAndBringToFrontEffect(hostInstance: HostInstance?, windowState: WindowState) {
+    LaunchedEffect(hostInstance) {
+        hostInstance?.publishInstanceJson()
+        hostInstance?.bringToFrontRequests?.collect {
+            windowState.isMinimized = false
+            window.toFront()
+            window.requestFocus()
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
+                Desktop.getDesktop().requestForeground(true)
             }
         }
+    }
+}
 
-        JwTheme(darkTheme = isSystemInDarkTheme()) {
-            when (applicationState) {
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
-                    InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
+@Composable
+private fun ApplicationLifecycleDialog(
+    applicationState: ApplicationLifecycleOwner.ApplicationState,
+    verifyingTrustRegistry: Boolean,
+) {
+    when (applicationState) {
+        ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
+            InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
 
-                ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
+        ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
 
-                ApplicationLifecycleOwner.ApplicationState.NONE,
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
-                ApplicationLifecycleOwner.ApplicationState.STOPPED,
-                -> Unit
-            }
-        }
-
-        context(appGraph) {
-            JetWhaleApp()
-        }
+        ApplicationLifecycleOwner.ApplicationState.NONE,
+        ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
+        ApplicationLifecycleOwner.ApplicationState.STOPPED,
+        -> Unit
     }
 }
 

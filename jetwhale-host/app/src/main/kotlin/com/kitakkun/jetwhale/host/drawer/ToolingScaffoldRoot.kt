@@ -233,7 +233,6 @@ private fun SelectionPublishingEffect(
  * navigation callbacks in scope, and the request channel delivers each request once.
  */
 @Composable
-@Suppress("KOTRAIL_COMPOSABLE_HOTSPOT_STANDALONE") // Split into smaller composables in a follow-up, tracked in #450.
 context(screenContext: ToolingScaffoldScreenContext)
 private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
@@ -270,30 +269,46 @@ private fun HostNavigationRequestEffect(
 
                 is HostNavigationRequest.McpTools -> currentOnOpenMcpTools(null, null, request.tab.toMcpToolsTab())
 
-                is HostNavigationRequest.Plugin -> {
-                    val announceFollow = {
-                        if (request.followsAgent) {
-                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
-                        }
-                    }
-                    if (HostSession.isHost(request.sessionId ?: currentUiState.defaultPluginRow(request.pluginId)?.sessionId)) {
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, HostSession.ID))
-                        currentOnClickPlugin(request.pluginId, HostSession.ID)
-                        announceFollow()
-                        return@collect
-                    }
-                    val targetSession = navigationTargetSession(request.sessionId, currentUiState.selectedSession, currentSessions)
-                        ?: return@collect
-                    if (targetSession.id != currentUiState.selectedSessionId) {
-                        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
-                    }
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, targetSession.id))
-                    currentOnClickPlugin(request.pluginId, targetSession.id)
-                    announceFollow()
-                }
+                is HostNavigationRequest.Plugin -> openRequestedPlugin(
+                    request = request,
+                    uiState = currentUiState,
+                    sessions = currentSessions,
+                    screenChannel = screenChannel,
+                    onClickPlugin = currentOnClickPlugin,
+                    onFollowAgent = currentOnFollowAgent,
+                )
             }
         }
     }
+}
+
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openRequestedPlugin(
+    request: HostNavigationRequest.Plugin,
+    uiState: ToolingScaffoldUiState,
+    sessions: List<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onFollowAgent: (pluginName: String) -> Unit,
+) {
+    val announceFollow = {
+        if (request.followsAgent) {
+            onFollowAgent(uiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+        }
+    }
+    if (HostSession.isHost(request.sessionId ?: uiState.defaultPluginRow(request.pluginId)?.sessionId)) {
+        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, HostSession.ID))
+        onClickPlugin(request.pluginId, HostSession.ID)
+        announceFollow()
+        return
+    }
+    val targetSession = navigationTargetSession(request.sessionId, uiState.selectedSession, sessions) ?: return
+    if (targetSession.id != uiState.selectedSessionId) {
+        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
+    }
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId, targetSession.id))
+    onClickPlugin(request.pluginId, targetSession.id)
+    announceFollow()
 }
 
 /**
