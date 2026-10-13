@@ -62,6 +62,16 @@ class RunnerBuildsTest {
     }
 
     @Test
+    fun `an Xcode whose license has not been accepted builds nothing and says how to accept it`() = runBlocking {
+        xcodebuildCommands.versionFailure = "You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license."
+
+        val failure = assertFailsWith<XcTestRunnerStartException> { builds().xctestrunFor(RunnerDestination.Simulator("SIM-1")) }
+
+        assertEquals("Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again", failure.message)
+        assertTrue(xcodebuildCommands.buildCommands.isEmpty())
+    }
+
+    @Test
     fun `an xctestrun that no completed build left is built again`() = runBlocking {
         val builds = builds()
         val first = builds.xctestrunFor(RunnerDestination.Simulator("SIM-1"))

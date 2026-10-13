@@ -29,7 +29,25 @@ internal object XcodebuildFailures {
 
             else -> null
         }
-        return if (deviceReason != null) "$deviceReason ($quoted)" else "the XCTest runner did not start: $quoted"
+        val reason = xcodeSetupReasonOf(output) ?: deviceReason
+        return if (reason != null) "$reason ($quoted)" else "the XCTest runner did not start: $quoted"
+    }
+
+    /**
+     * What to do when [output], from any `xcrun` or `xcodebuild` command, says Xcode cannot run at all
+     * yet: its license has not been accepted, or no Xcode is installed or selected. Null for any other
+     * output.
+     */
+    fun xcodeSetupReasonOf(output: String): String? {
+        val lowercaseOutput = output.lowercase()
+        return when {
+            "xcodebuild -license" in lowercaseOutput || "xcode license" in lowercaseOutput -> "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again"
+
+            "requires xcode" in lowercaseOutput || "invalid active developer path" in lowercaseOutput || "unable to find utility" in lowercaseOutput ->
+                "the XCTest runner needs Xcode, and xcodebuild cannot run: install Xcode from the App Store, or choose it with 'sudo xcode-select -s /Applications/Xcode.app', then try again"
+
+            else -> null
+        }
     }
 
     private fun errorLinesOf(output: String): List<String> = output.lines().map(String::trim).filter { it.contains("error:", ignoreCase = true) }.distinct().takeLast(3)

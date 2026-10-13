@@ -137,7 +137,7 @@ internal class RunnerBuilds(
 
     private suspend fun readXcodeBuildVersion(): String {
         val result = commandOutputRunner.run(listOf(xcrunPath, "xcodebuild", "-version"))
-        if (result.exitCode != 0) throw XcTestRunnerStartException("the XCTest runner needs Xcode, and 'xcodebuild -version' failed: ${result.text.trim().take(300)}", null)
+        if (result.exitCode != 0) throw XcTestRunnerStartException(XcodebuildFailures.xcodeSetupReasonOf(result.text) ?: "the XCTest runner needs Xcode, and 'xcodebuild -version' failed: ${result.text.trim().take(300)}", null)
         val version = Regex("""Build version (\S+)""").find(result.text)?.groupValues?.get(1)
             ?: throw XcTestRunnerStartException("'xcodebuild -version' printed no build version: ${result.text.trim().take(200)}", null)
         return version
