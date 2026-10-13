@@ -94,6 +94,18 @@ private fun run(options: CommandLine): Int {
     return if (runs.all(RunOutcome::passed)) 0 else EXIT_FAILED
 }
 
+private fun parseAssignment(text: String): Pair<String, JsonElement> {
+    val name = text.substringBefore('=', missingDelimiterValue = "")
+    if (name.isEmpty()) throw WorkflowFormatException("--input expects NAME=VALUE, got '$text'")
+    val jsonOrText = text.substringAfter('=')
+    val value = try {
+        Json.parseToJsonElement(jsonOrText)
+    } catch (_: SerializationException) {
+        JsonPrimitive(jsonOrText)
+    }
+    return name to value
+}
+
 private fun validateCommand(options: CommandLine): Int {
     var problems = 0
     options.positional.map(::File).forEach { file ->
@@ -128,8 +140,11 @@ private fun record(options: CommandLine): Int {
         ?: throw WorkflowFormatException("record needs --mcp-config with the servers to record")
     val selected = options.all("server").ifEmpty { configs.keys.toList() }
     val caller = McpServers(configs.filterKeys(selected::contains))
-    val proxy = RecordingProxy(caller, selected, options.single("out")?.let(::File), options.single("name") ?: "Recorded flow")
-    Runtime.getRuntime().addShutdownHook(Thread(proxy::writeDefault))
+    val proxy = RecordingProxy(caller, selected)
+    options.single("out")?.let(::File)?.let { output ->
+        val workflowName = options.single("name") ?: "Recorded flow"
+        Runtime.getRuntime().addShutdownHook(Thread { proxy.writeRecording(output, workflowName) })
+    }
     val port = options.single("port")?.toInt()
     if (port != null) {
         System.err.println("mcp-workflow: recording proxy on http://127.0.0.1:$port/sse")
@@ -191,18 +206,6 @@ private fun listToolsCommand(options: CommandLine): Int {
 private fun serverConfigs(options: CommandLine, workflow: Workflow): Map<String, ServerConfig> {
     val fromConfig = options.single("mcp-config")?.let { readMcpConfig(File(it)) }.orEmpty()
     return fromConfig + workflow.servers
-}
-
-private fun parseAssignment(text: String): Pair<String, JsonElement> {
-    val name = text.substringBefore('=', missingDelimiterValue = "")
-    if (name.isEmpty()) throw WorkflowFormatException("--input expects NAME=VALUE, got '$text'")
-    val raw = text.substringAfter('=')
-    val value = try {
-        Json.parseToJsonElement(raw)
-    } catch (_: SerializationException) {
-        JsonPrimitive(raw)
-    }
-    return name to value
 }
 
 /** `--name value` options (repeatable), `--flag` switches, and positional arguments. */

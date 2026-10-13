@@ -65,7 +65,7 @@ class EndToEndTest {
 
     @Test
     fun `a recording through the proxy replays against a fresh server`() = runBlocking {
-        val proxy = RecordingProxy(McpServers(mapOf("accounts" to demo())), listOf("accounts"), defaultOutput = null, defaultName = "Recorded")
+        val proxy = RecordingProxy(McpServers(mapOf("accounts" to demo())), listOf("accounts"))
         val agent = McpServers(mapOf("proxy" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false, proxy::createServer)))))
         val created = agent.callTool(
             "proxy",

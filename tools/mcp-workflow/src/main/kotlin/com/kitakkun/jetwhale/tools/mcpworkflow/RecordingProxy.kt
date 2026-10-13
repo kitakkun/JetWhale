@@ -27,13 +27,10 @@ import java.util.Collections
  *
  * @param servers The upstream servers, in the order their tools are listed. With more than one, each
  *   tool is listed as `<server>__<tool>` so the names stay unique.
- * @param defaultOutput Where the recording is written when the client disconnects; null writes nothing.
  */
 class RecordingProxy(
     private val caller: ToolCaller,
     private val servers: List<String>,
-    private val defaultOutput: File?,
-    private val defaultName: String,
 ) {
     private val calls: MutableList<RecordedCall> = Collections.synchronizedList(mutableListOf())
     private val prefixed = servers.size > 1
@@ -64,11 +61,10 @@ class RecordingProxy(
         return server
     }
 
-    /** Writes the recording to [defaultOutput], if there is one and anything was recorded. */
-    fun writeDefault() {
-        val output = defaultOutput ?: return
+    /** Writes the recording to [output] as a workflow named [workflowName], if anything was recorded. */
+    fun writeRecording(output: File, workflowName: String) {
         if (calls.isEmpty()) return
-        output.writeText(workflowToYaml(export(defaultName, description = null, dropReads = false, parameters = emptyMap())))
+        output.writeText(workflowToYaml(export(workflowName, description = null, dropReads = false, parameters = emptyMap())))
         System.err.println("mcp-workflow: wrote ${calls.size} recorded calls to ${output.path}")
     }
 

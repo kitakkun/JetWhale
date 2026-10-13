@@ -39,19 +39,6 @@ data class ExportOptions(
     val multipleServers: Boolean,
 )
 
-/** Field names that identify an item in a list well enough to find it again in a later run. */
-private val IdentifyingFields = listOf(
-    "testTag", "text", "name", "title", "label", "contentDescription", "appName", "sessionName", "deviceName", "key", "email",
-)
-
-/** Boolean fields that mark an item as the live one among entries that otherwise look alike. */
-private val LivenessFlags = listOf("isActive", "active", "connected", "isConnected", "online", "isCurrent", "current")
-
-/** Strings shorter than this are too likely to repeat by coincidence to be treated as data flow. */
-private const val MIN_TRACKED_STRING_LENGTH = 6
-
-private val IdLikeKey = Regex("""(?i)(^id$|id$|Id$|uuid|token|handle)""")
-
 /**
  * Turns recorded calls into a workflow that can run again.
  *
@@ -153,6 +140,11 @@ private fun rewrite(element: JsonElement, argumentKey: String?, replacement: (ke
     is JsonNull -> JsonNull
 }
 
+/** Strings shorter than this are too likely to repeat by coincidence to be treated as data flow. */
+private const val MIN_TRACKED_STRING_LENGTH = 6
+
+private val IdLikeKey = Regex("""(?i)(^id$|id$|Id$|uuid|token|handle)""")
+
 /**
  * Whether [this] value, sent under [key], looks like something a server generated rather than a
  * constant the caller chose. Only such values are traced back to earlier results: a word like
@@ -178,6 +170,14 @@ internal fun findPath(document: JsonElement, value: JsonPrimitive): String? {
 }
 
 private fun memberSegment(key: String): String = if (key.all { it.isLetterOrDigit() || it == '_' }) ".$key" else "['${key.replace("'", "")}']"
+
+/** Field names that identify an item in a list well enough to find it again in a later run. */
+private val IdentifyingFields = listOf(
+    "testTag", "text", "name", "title", "label", "contentDescription", "appName", "sessionName", "deviceName", "key", "email",
+)
+
+/** Boolean fields that mark an item as the live one among entries that otherwise look alike. */
+private val LivenessFlags = listOf("isActive", "active", "connected", "isConnected", "online", "isCurrent", "current")
 
 /**
  * `[?(@.text == 'Settings')].first()` when the item has a field unique among its siblings, else

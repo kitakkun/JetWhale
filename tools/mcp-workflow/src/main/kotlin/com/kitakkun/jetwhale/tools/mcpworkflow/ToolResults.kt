@@ -29,10 +29,10 @@ fun resultDocument(result: CallToolResult): JsonElement {
 
 fun resultImages(result: CallToolResult): List<ImageContent> = result.content.filterIsInstance<ImageContent>()
 
-private fun parseOrText(text: String): JsonElement = try {
-    Json.parseToJsonElement(text)
+private fun parseOrText(jsonOrText: String): JsonElement = try {
+    Json.parseToJsonElement(jsonOrText)
 } catch (_: SerializationException) {
-    JsonPrimitive(text)
+    JsonPrimitive(jsonOrText)
 }
 
 /** Why [expectation] does not hold for [document], or null when it does. */

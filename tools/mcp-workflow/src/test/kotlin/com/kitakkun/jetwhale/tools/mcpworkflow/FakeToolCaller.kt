@@ -8,18 +8,18 @@ import kotlinx.serialization.json.JsonObject
 
 /** Answers tool calls with [handler] and remembers every call. */
 class FakeToolCaller(private val handler: suspend (server: String, tool: String, arguments: JsonObject) -> CallToolResult) : ToolCaller {
-    private val recorded = mutableListOf<Triple<String, String, JsonObject>>()
-    val calls: List<Triple<String, String, JsonObject>> get() = recorded
+    val calls: List<Triple<String, String, JsonObject>>
+        field = mutableListOf<Triple<String, String, JsonObject>>()
 
     override suspend fun listTools(server: String): List<Tool> = listOf(Tool(name = "anything", inputSchema = ToolSchema()))
 
     override suspend fun callTool(server: String, tool: String, arguments: JsonObject): CallToolResult {
-        recorded += Triple(server, tool, arguments)
+        calls += Triple(server, tool, arguments)
         return handler(server, tool, arguments)
     }
 
     override suspend fun reconnect(server: String) {
-        recorded += Triple(server, RECONNECT, JsonObject(emptyMap()))
+        calls += Triple(server, RECONNECT, JsonObject(emptyMap()))
     }
 
     override suspend fun close() = Unit
