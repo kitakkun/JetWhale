@@ -57,11 +57,15 @@ internal fun PluginInstallNotices(
     onReviewInstalls: () -> Unit,
 ) {
     val currentInstallJobs by rememberUpdatedState(installJobs)
-    val currentOnOpen by rememberUpdatedState(onOpen)
-    val currentOnRetry by rememberUpdatedState(onRetry)
-    val currentOnDismiss by rememberUpdatedState(onDismiss)
-    val currentOnShowInstalledPlugins by rememberUpdatedState(onShowInstalledPlugins)
-    val currentOnReviewInstalls by rememberUpdatedState(onReviewInstalls)
+    val currentNoticeCallbacks by rememberUpdatedState(
+        InstallNoticeCallbacks(
+            onOpen = onOpen,
+            onRetry = onRetry,
+            onDismiss = onDismiss,
+            onShowInstalledPlugins = onShowInstalledPlugins,
+            onReviewInstalls = onReviewInstalls,
+        ),
+    )
 
     val settledJobIds = remember { mutableStateSetOf<String>() }
     LaunchedEffect(installJobs) {
@@ -85,32 +89,44 @@ internal fun PluginInstallNotices(
                 // block through collectLatest, and the jobs already on the notice must be in the
                 // next one too.
                 settledJobIds += finished.map(PluginInstallJob::id)
-                when (notice.action) {
-                    is NoticeAction.Open -> {
-                        if (result == JwSnackbarResult.ActionPerformed) currentOnOpen(notice.action.job)
-                        currentOnDismiss(listOf(notice.action.job.id))
-                    }
-
-                    is NoticeAction.Retry -> when (result) {
-                        JwSnackbarResult.ActionPerformed -> currentOnRetry(notice.action.job.request)
-                        JwSnackbarResult.Dismissed -> currentOnDismiss(listOf(notice.action.job.id))
-                    }
-
-                    is NoticeAction.ShowInstalledPlugins -> {
-                        if (result == JwSnackbarResult.ActionPerformed) currentOnShowInstalledPlugins()
-                        currentOnDismiss(finished.map(PluginInstallJob::id))
-                    }
-
-                    is NoticeAction.ReviewInstalls -> when (result) {
-                        JwSnackbarResult.ActionPerformed -> {
-                            currentOnDismiss(finished.filter { it.status == PluginInstallStatus.Succeeded }.map(PluginInstallJob::id))
-                            currentOnReviewInstalls()
-                        }
-
-                        JwSnackbarResult.Dismissed -> currentOnDismiss(finished.map(PluginInstallJob::id))
-                    }
-                }
+                currentNoticeCallbacks.forwardNoticeResult(action = notice.action, result = result, finished = finished)
             }
+    }
+}
+
+private class InstallNoticeCallbacks(
+    private val onOpen: (PluginInstallJob) -> Unit,
+    private val onRetry: (PluginInstallRequest) -> Unit,
+    private val onDismiss: (jobIds: List<String>) -> Unit,
+    private val onShowInstalledPlugins: () -> Unit,
+    private val onReviewInstalls: () -> Unit,
+) {
+    fun forwardNoticeResult(action: NoticeAction, result: JwSnackbarResult, finished: List<PluginInstallJob>) {
+        when (action) {
+            is NoticeAction.Open -> {
+                if (result == JwSnackbarResult.ActionPerformed) onOpen(action.job)
+                onDismiss(listOf(action.job.id))
+            }
+
+            is NoticeAction.Retry -> when (result) {
+                JwSnackbarResult.ActionPerformed -> onRetry(action.job.request)
+                JwSnackbarResult.Dismissed -> onDismiss(listOf(action.job.id))
+            }
+
+            is NoticeAction.ShowInstalledPlugins -> {
+                if (result == JwSnackbarResult.ActionPerformed) onShowInstalledPlugins()
+                onDismiss(finished.map(PluginInstallJob::id))
+            }
+
+            is NoticeAction.ReviewInstalls -> when (result) {
+                JwSnackbarResult.ActionPerformed -> {
+                    onDismiss(finished.filter { it.status == PluginInstallStatus.Succeeded }.map(PluginInstallJob::id))
+                    onReviewInstalls()
+                }
+
+                JwSnackbarResult.Dismissed -> onDismiss(finished.map(PluginInstallJob::id))
+            }
+        }
     }
 }
 

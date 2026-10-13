@@ -103,7 +103,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      */
     fun pluginIdFor(toolName: String, sessionId: String): String? = registrations[toolName]?.sessionToPlugin?.get(sessionId)
 
-    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.sorted().joinToString().ifEmpty { "no session" }
+    // toSortedSet() copies the live view in one pass; sorted() on a single session reads the size,
+    // then the key, and throws if the session leaves in between.
+    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.toSortedSet().joinToString().ifEmpty { "no session" }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() = synchronized(publishLock) {

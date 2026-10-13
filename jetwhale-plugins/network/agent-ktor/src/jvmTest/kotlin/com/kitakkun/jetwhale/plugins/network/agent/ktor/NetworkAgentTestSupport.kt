@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
@@ -14,9 +15,11 @@ import kotlinx.serialization.StringFormat
 import java.util.Collections
 import kotlin.time.Duration
 
+internal fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any>> = agentWithEvents(NetworkRedactionRules.None)
+
 @OptIn(InternalJetWhaleApi::class)
-internal fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any>> {
-    val agent = JetWhaleNetworkAgentPlugin()
+internal fun agentWithEvents(redaction: NetworkRedactionRules): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any>> {
+    val agent = JetWhaleNetworkAgentPlugin(redaction)
     val recorder = RecordingMessenger(Collections.synchronizedList(mutableListOf()))
     agent.bindMessenger(recorder)
     return agent to recorder.events

@@ -50,7 +50,6 @@ abstract class HostMcpCommand :
         ) { request ->
             // A command failing in any way answers with the tool's error result rather than an MCP
             // protocol error.
-            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 run(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap()))).toCallToolResult()
             } catch (e: CancellationException) {

@@ -5,11 +5,12 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class GetTransactionCommand(
     private val transactions: () -> List<HttpTransaction>,
-    private val redactForMcp: (HttpTransaction) -> HttpTransaction,
+    private val mcpRedactionRules: () -> List<RedactionRule>?,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.getTransaction"
     override val description = "Returns the full detail of one captured HTTP transaction (request/response headers and bodies, or the failure)."
@@ -17,9 +18,10 @@ internal class GetTransactionCommand(
     private val txId by string("The transaction id from listTransactions.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val redactionRules = mcpRedactionRules() ?: return JetWhaleMcpResult.error(MCP_REDACTION_RULES_UNREAD_ERROR)
         val txId = arguments[this.txId]
         val transaction = transactions().firstOrNull { it.txId == txId }
             ?: throw JetWhaleMcpArgumentException("no transaction with txId: $txId")
-        return JetWhaleMcpResult.json(redactForMcp(transaction).toDetailJson())
+        return JetWhaleMcpResult.json(redactionRules.redact(transaction).toDetailJson())
     }
 }

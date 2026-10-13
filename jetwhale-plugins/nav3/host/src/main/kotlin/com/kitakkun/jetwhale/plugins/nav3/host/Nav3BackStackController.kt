@@ -10,7 +10,6 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -83,36 +82,6 @@ internal fun MutationResult.toMcpResult(): JetWhaleMcpResult {
         },
     )
     return JetWhaleMcpResult.error(if (stack == null) refusal else "$refusal The back stack is now: $stack")
-}
-
-internal fun List<NavKeyTypeDescriptor>.toMcpJson(): JsonObject = buildJsonObject {
-    putJsonArray("keyTypes") {
-        forEach { type ->
-            addJsonObject {
-                put("serialName", type.serialName)
-                put("template", type.template)
-                put(
-                    "fields",
-                    buildJsonArray {
-                        type.fields.forEach { field ->
-                            addJsonObject {
-                                put("name", field.name)
-                                put("type", field.type)
-                                put("optional", field.optional)
-                                put("nullable", field.nullable)
-                            }
-                        }
-                    },
-                )
-            }
-        }
-    }
-    if (isEmpty()) {
-        put(
-            "note",
-            "The app exposed no constructible key types. Keys can still be pushed by copying the `key` object of an existing entry from getBackStack.",
-        )
-    }
 }
 
 /** Short, human-facing label used for the status line after a UI-triggered operation. */

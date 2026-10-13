@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -49,13 +50,15 @@ private class ExampleHostPlugin :
             onClickSendPing = {
                 pluginScope.launch {
                     eventLogs.add("Request: Ping")
-                    // Catch the messaging failure specifically — runCatching would also swallow the
-                    // CancellationException that cancels this coroutine.
                     val reply = try {
                         messenger.request(Ping)
                         "Reply: Pong"
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: JetWhaleMessagingException) {
                         "Error: ${e.message}"
+                    } catch (e: Exception) {
+                        "Unexpected error: $e"
                     }
                     eventLogs.add(reply)
                 }
