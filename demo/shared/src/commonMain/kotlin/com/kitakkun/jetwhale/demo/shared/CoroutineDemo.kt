@@ -13,7 +13,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -88,10 +87,9 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
     )
     private var pollers = 0
 
-    private val mutableRunning = MutableStateFlow(emptyMap<CoroutineScenario, Set<Job>>())
-
     /** The coroutines each scenario started that have not finished yet. */
-    val running: StateFlow<Map<CoroutineScenario, Set<Job>>> = mutableRunning.asStateFlow()
+    val running: StateFlow<Map<CoroutineScenario, Set<Job>>>
+        field = MutableStateFlow(emptyMap<CoroutineScenario, Set<Job>>())
 
     fun registerScope() {
         inspector.register(scope, name = SCOPE_NAME)
@@ -135,17 +133,17 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
     }
 
     fun stop(scenario: CoroutineScenario) {
-        mutableRunning.value[scenario].orEmpty().forEach(Job::cancel)
+        running.value[scenario].orEmpty().forEach(Job::cancel)
     }
 
     fun stopAll() {
-        mutableRunning.value.values.flatten().forEach(Job::cancel)
+        running.value.values.flatten().forEach(Job::cancel)
     }
 
     private fun launch(scenario: CoroutineScenario, name: String, context: CoroutineContext, block: suspend CoroutineScope.() -> Unit) {
         val job = scope.launch(CoroutineName(name) + context, block = block)
-        mutableRunning.update { it + (scenario to it[scenario].orEmpty() + job) }
-        job.invokeOnCompletion { mutableRunning.update { it + (scenario to it[scenario].orEmpty() - job) } }
+        running.update { it + (scenario to it[scenario].orEmpty() + job) }
+        job.invokeOnCompletion { running.update { it + (scenario to it[scenario].orEmpty() - job) } }
     }
 
     companion object {
