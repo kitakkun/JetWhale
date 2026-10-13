@@ -1,7 +1,11 @@
 # Plugin versions and compatibility
 
-Status: **proposed**. Nothing here is implemented. The wire schema dump and its classification were
-tried on the official protocol modules; see [What was checked](#what-was-checked).
+Status: **proposed**. Phase 2, the protocol Gradle plugin, is built in
+[#458](https://github.com/kitakkun/JetWhale/pull/458), and this document describes it as built. The
+plugin's source files cited below are #458's, under
+`jetwhale-gradle-plugin/src/main/kotlin/com/kitakkun/jetwhale/protocol/gradle/`. Nothing else is
+implemented. The wire schema dump and its classification were tried on the official protocol
+modules; see [What was checked](#what-was-checked).
 
 A JetWhale plugin is three modules: a protocol module of `@Serializable` messages, an agent module
 that apps link, and a host module that the host loads as a jar. This document decides what a
@@ -109,7 +113,8 @@ release version and the core protocol's `JetWhaleProtocolVersion`.
 ### The protocol module declares the revision
 
 A new Gradle plugin, `com.kitakkun.jetwhale.protocol`, goes on a plugin's protocol module. It is
-published from the `jetwhale-gradle-plugin` build, next to `com.kitakkun.jetwhale.host`.
+published from the `jetwhale-gradle-plugin` build, next to `com.kitakkun.jetwhale.host`, inside the
+same artifact, `jetwhale-host-gradle-plugin` (`jetwhale-gradle-plugin/build.gradle.kts:42-58`).
 
 ```kotlin
 // the plugin's protocol module — build.gradle.kts
@@ -141,6 +146,13 @@ It does three things:
 
    `JetWhalePluginContract` is a new class in `jetwhale-protocol-core`. The agent and the host module
    both compile against the protocol module, so they see the same values.
+
+   The hash is the SHA-256 of the committed dump without its revision line (`WireSchema.kt:51-53`),
+   so raising the revision alone keeps it. It is generated from the committed file, and
+   `dumpWireSchema` writes that file only after the classes it reads, the contract among them, are
+   compiled. Right after `dumpWireSchema`, the hash is therefore one build behind: the build that ran
+   it compiled the previous hash, and the next build compiles the new one
+   (`GenerateJetWhalePluginContractTask.kt:64`).
 2. **Dumps and checks the wire schema** (next section).
 3. **Puts the contract into the JVM jar** as `META-INF/jetwhale/protocols/<pluginId>.json`, where
    the host Gradle plugin reads it from the classpath without loading a class.
@@ -155,33 +167,75 @@ module released on its own still reports its protocol module's version.
 
 `dumpWireSchema` writes `wire/<project>.wire` in the protocol module, committed like the ABI dumps
 in `api/`. `checkWireSchema` runs in `check` and fails when the committed dump is not what the
-compiled classes produce, or records another revision than the build script.
+compiled classes produce, or records another revision than the build script. Both compare with what
+`extractWireSchema` reads from the classes into the build directory
+(`JetWhaleProtocolPlugin.kt:46-74`).
 
-**How the schema is read.** The task loads the module's compiled JVM classes in a Gradle worker,
-with the module's own runtime classpath, so the kotlinx.serialization that reads the descriptors is
-the one the module ships. It takes every concrete class that implements `JetWhaleEvent` or
-`JetWhaleRequest`, gets its serializer's descriptor, and reads a request's reply type `R` from its
-`JetWhaleRequest<R>` supertype by reflection. From these roots it walks the descriptors: element
-names and types, nullability, which elements are optional, enum entries, sealed subtypes and the
-class discriminator. A value class is recorded as the value it encodes to.
+Given `-PjetwhaleWireSchemaBaselineDir=<dir>`, a directory that holds an earlier dump of each module
+laid out as in the repository, `checkWireSchema` also fails when the committed dump could not have
+followed the earlier one, under the rule `dumpWireSchema` applies (below). That catches a dump edited
+by hand (`CheckWireSchemaTask.kt:62-65`). A relative `<dir>` is resolved against the root
+project, and a module with no earlier dump is checked against nothing.
+
+**How the schema is read.** Reading serializers initializes the module's classes, so
+`extractWireSchema` reads them in a process-isolated Gradle worker. That worker's class loader
+carries Gradle's own Kotlin (2.3.20 under this repository's Gradle 9.5.1) and the build script's
+classpath, with a kotlinx.serialization that need not be the module's. The reader therefore runs in
+a `URLClassLoader` of its own inside the worker, holding the module's classes, the module's runtime
+classpath and the reader, under the platform class loader, so the kotlinx.serialization that builds
+the descriptors is the one the module ships (`ExtractWireSchemaTask.kt:63-91`).
+
+The reader takes every concrete class that implements `JetWhaleEvent` or `JetWhaleRequest` and gets
+its serializer's descriptor. It resolves a request's reply type `R` by reflection, through generic
+supertypes: in `Ping : BaseRequest<Pong>`, where `BaseRequest<R> : JetWhaleRequest<R>`, the reply is
+`Pong`. A reply type that no supertype binds is refused (`WireSchemaReader.kt:181-213`). From these
+roots it walks the descriptors: element names and types, nullability, which elements are optional,
+enum entries, sealed subtypes and the class discriminator. A value class is recorded as the value it
+encodes to.
 
 Two property annotations change the wire beyond the descriptor's shape. `@JsonNames` is in the
 descriptor's element annotations. `@EncodeDefault` is not, since the serialization plugin compiles
-it into the serializer, but Kotlin keeps it, with runtime retention, on the class's synthetic
-`get<Property>$annotations` method, where reflection reads it. The dump records both.
+it into the serializer, but Kotlin keeps it, with runtime retention, on the property's synthetic
+`<getter>$annotations` method, where reflection reads it; for a property whose type is a value
+class, that method's name carries the getter's mangling. The reader reads these methods on the
+module's classes up front. A class from a dependency is reached rarely, so the reader scans the
+runtime classpath for `@Serializable` classes lazily, the first time the walk reaches a class from
+outside the module, and reads them the same way (`WireSchemaReader.kt:57-132`). The dump records
+both annotations.
 
 Why compiled classes rather than a compiler-plugin side output: the descriptors are what
 kotlinx.serialization encodes with, custom serializers' included, so the dump cannot disagree with
 the wire. A compiler plugin would have to derive serial names, optionality and sealed subtypes from
 IR again, which is the serialization plugin's own work. Every protocol module has a JVM target,
-because the host plugin compiles against it; the plugin refuses a module without one. Descriptors
-come from common code, so the JVM ones stand for every target. The KMP network and semantics
-modules' JVM jars gave the same dump as JVM-only compiles of their sources.
+because the host plugin compiles against it. The plugin reads the classes of exactly one: a
+multiplatform module's JVM target (an Android target is not one), or a Kotlin JVM module's. It
+refuses a module with none, and one with more than one (`JetWhaleProtocolPlugin.kt:89-103`).
+Descriptors come from common code, so the JVM ones stand for every target. The KMP network and
+semantics modules' JVM jars gave the same dump as JVM-only compiles of their sources.
 
-**What is refused.** Open polymorphism and contextual serializers need a serializers module, and the
-payload format has none (`JetWhalePluginPeer.kt:20-26`), so such a type cannot be sent at all; the
-task fails with the property's path, as #436's generator does. A generic class reached with two
-different type arguments has one serial name for two shapes, and is refused too.
+**What is refused.** The task fails with the path of what it refuses, as #436's generator does
+(`WireSchemaReader.kt:137-311`). Two kinds of type cannot be sent at all:
+
+- **Open polymorphism and contextual serializers.** They need a serializers module, and the payload
+  format has none (`JetWhalePluginPeer.kt:20-26`).
+- **A map whose key is neither a primitive nor an enum**, nor a value class over one. The payload
+  format leaves `allowStructuredMapKeys` off, so nothing else can key a JSON object.
+
+The rest would make a dump that does not say what the wire carries:
+
+- **A generic class reached with two different type arguments**, or two classes with one serial
+  name: one serial name for two shapes.
+- **A message whose serializer describes something other than a class, an object or an enum**, such
+  as a value class. A message is routed by its serial name, and the dump records it as the shape of
+  that name.
+- **A field, a reply or a type argument whose type carries a built-in's serial name**, such as `int`
+  or `list`. A type reference names a shape by its serial name, so it would read back as the
+  built-in. A message or a sealed subtype may carry one, since the dump lists those by name and never
+  as a type: semantics' `ViewAttributeValue` has subtypes that serialize as `float` and `int`.
+- **A name that would not read back from the dump**: a type's serial name with `<`, `>`, `,` or
+  `?`, a field's with `: `, an `@JsonNames` name with `, ` or ` | `, and any name that starts or ends
+  with a space or holds a line break. The reader parses the dump it renders and refuses when the two
+  differ.
 
 **The format** is sorted text, one declaration per block, meant to be read in a diff. The network
 protocol's begins:
@@ -212,6 +266,12 @@ class com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
   url: string
 ```
 
+A type is a built-in or a shape's serial name. The built-ins are the primitives (`boolean`, `byte`,
+`char`, `double`, `float`, `int`, `long`, `short`, `string`), `list<…>` and `map<…, …>`, and
+kotlinx.serialization's JSON elements, written `json`, `json-object`, `json-array`, `json-primitive`
+and `json-null` (`WireSchema.kt:144-148`). A shape is a `class` with its fields, an `object`, an
+`enum` with its entries, or `sealed <name> by <discriminator>` with its subtypes' serial names.
+
 `= …` marks an optional element, one with a default. `, omitted at default` follows it for an
 element under `@EncodeDefault(NEVER)`, and `| also read as` lists an element's `@JsonNames`. The
 defaults themselves are not in a descriptor and need not be: the payload format encodes defaults,
@@ -221,10 +281,14 @@ fills in a field its peer did not know.
 **When the revision must change.** `dumpWireSchema` compares the new schema with the committed one.
 Messages are matched by serial name, which is what the wire carries. From each message the two
 schemas are walked side by side, so renaming a Kotlin class that is not polymorphic changes the
-dump's text but not the verdict. If a change is breaking and `protocolRevision` still equals the
-dump's `revision`, the task fails, lists each breaking change with its path, and names the revision
-to set. A raised revision lets any change through; a lowered one fails. The first dump is at
-revision 1, which the rule below relies on.
+dump's text but not the verdict. A change's path starts at the message that reaches it, such as
+`network/get_redaction_config (reply).mcpOnlyRules[].target`. A type that several messages reach is
+compared once, so a change to it is listed once, at the first path that reaches it, with messages
+and fields taken in sorted order (`WireSchemaClassifier.kt:62-63`). If a change is breaking and
+`protocolRevision` still equals the dump's `revision`, the task fails, lists each breaking change with
+its path, and names the revision to set. A raised revision lets any change through; a lowered one
+fails. The first dump must be at revision 1, which the rule below relies on: `dumpWireSchema` refuses
+to write one at another revision (`ProtocolRevisionRule.kt:15-23`).
 
 ### What counts as breaking
 
@@ -239,10 +303,12 @@ the other one sends. The verdicts follow from the payload format:
 | Remove a required field | breaking | The older peer still requires it |
 | Make a required field optional | additive | `encodeDefaults` keeps it on the wire |
 | Make a required field optional under `@EncodeDefault(NEVER)` | breaking | The newer peer leaves it out at its default |
+| Add or remove `@EncodeDefault(NEVER)` on an optional field | additive | The field is optional on both sides, so a peer that does not receive it falls back to its default |
 | Make an optional field required | breaking | |
 | Change a field's type, or its nullability either way | breaking | |
 | Rename a required field's serial name, even keeping the old one in `@JsonNames` | breaking | One required field removed and one added; `@JsonNames` only lets the newer peer read the old name |
 | Rename an optional field's serial name | additive | One optional field removed and one added; the value is lost between versions, which is a matter of meaning (below) |
+| Add or remove a field's `@JsonNames` name, keeping its serial name | additive | Peers send the serial name; the other names only change what one side also reads |
 | Add or remove an enum entry | breaking | An unknown entry does not decode: `coerceInputValues` is off |
 | Add or remove a sealed subtype, or change the discriminator | breaking | |
 | Add an event | additive | The older peer skips it |
@@ -477,7 +543,8 @@ its compatibility class (item 2). Items 3 and 4 are #320 follow-ups that nothing
 - `jetwhale-host-sdk`: `JetWhaleHostPluginManifest.protocolRevisionRange`, and
   `agentProtocolRevision` on `JetWhaleMessagingHostPlugin`.
 - Gradle: `com.kitakkun.jetwhale.protocol`, whose `jetwhaleProtocol` extension has `pluginId`,
-  `protocolRevision` and `contractQualifiedName`, with `dumpWireSchema` and `checkWireSchema`.
+  `protocolRevision` and `contractQualifiedName`, with `dumpWireSchema` and `checkWireSchema`, and
+  the `jetwhaleWireSchemaBaselineDir` Gradle property for the baseline comparison.
   `com.kitakkun.jetwhale.host` writes the manifest's `version` and `max`.
 - QA agent: `--plugin <id>[@<version>][#<revision>]`, and `runJetWhaleQaAgent` passes the module's
   revision.
@@ -577,8 +644,12 @@ dumps. Kotlin 2.4.10 and kotlinx.serialization 1.11.0, as the repository uses.
   With the revision raised to 2, the sealed-subtype change passed. `@EncodeDefault` was read from the
   synthetic annotations method, as described above; it is not in the descriptor.
 
-Not tried: the Gradle wiring (worker isolation, the configuration cache), manifest generation, and
-anything at runtime.
+#458 then built the reading, the dump and the classification into `com.kitakkun.jetwhale.protocol`.
+Its committed network and semantics dumps are byte for byte the scratch tool's, and its TestKit
+tests run the Gradle wiring, the isolated worker and the configuration cache included, on KMP and
+JVM-only fixtures.
+
+Not tried: manifest generation, and anything at runtime.
 
 ## Testing
 
@@ -593,20 +664,24 @@ anything at runtime.
   manifest.
 - **Reader and classifier.** One unit test per row of the classification table, from fixtures like
   the ones above, and the network alpha11 and alpha12 dumps as a regression case.
-- **Gradle.** TestKit tests of `com.kitakkun.jetwhale.protocol` on a small KMP fixture (generate,
-  dump, check, refuse a break without a new revision, refuse open polymorphism) and of the host
-  plugin's manifest (version written, a mismatch fails, `max` from a contract jar, a warning without
-  one), with the configuration cache on.
-- **This repository.** `checkWireSchema` runs in `check` for every official protocol module. PR CI
-  also compares each dump with its version on the base branch, which catches a dump edited by hand.
+- **Gradle.** TestKit tests of `com.kitakkun.jetwhale.protocol` on small KMP and JVM-only fixtures
+  (the same dump from both, generate, dump, check, refuse a break without a new revision, each
+  refusal above, the baseline comparison) and of the host plugin's manifest (version written, a
+  mismatch fails, `max` from a contract jar, a warning without one), with the configuration cache on.
+- **This repository.** `checkWireSchema` runs in `check` for every official protocol module. The
+  base-branch comparison is not part of `check`: a workflow of its own, `wire-schema-check.yml`,
+  copies the base branch's `wire/*.wire` into a directory laid out as in the repository and runs
+  `checkWireSchema` with `-PjetwhaleWireSchemaBaselineDir` pointing at it. That keeps `check`'s
+  invocation, and its configuration cache entry, as they are.
 - **By hand.** A sandboxed host with two versions of the example plugin, at revisions 1 and 2 with
   `min` 1, and QA agents at revisions 1, 2 and 3 and without one.
 
 ## Risks
 
-- **A dump edited by hand passes `checkWireSchema`.** The check proves the dump is current, not that
-  the previous one was respected. Here the base-branch comparison closes the gap; elsewhere it is a
-  diff in review.
+- **A dump edited by hand passes `checkWireSchema`** without a baseline. The check proves the dump is
+  current, not that the previous one was respected. The base-branch comparison closes the gap where
+  CI passes `-PjetwhaleWireSchemaBaselineDir`, as this repository's does; elsewhere it is a diff in
+  review.
 - **Verdicts are conservative.** A break in a direction nobody uses still asks for a new revision.
   The cost is one number, and a host `min` that keeps serving older agents when the author knows
   better.
@@ -653,9 +728,10 @@ anything at runtime.
    comparison, `agentProtocolRevision`, the verdict on the plugin page and in MCP, the agent's log
    line, and the protocol reference. Tested with manifests and infos built by hand; nothing
    produces revisions yet.
-2. **`com.kitakkun.jetwhale.protocol`.** `JetWhalePluginContract`, the generated contract, the jar
-   resource, `dumpWireSchema` and `checkWireSchema`, applied to network; then the other official
-   protocol modules at revision 1, and the base-branch comparison in CI.
+2. **`com.kitakkun.jetwhale.protocol`**, built in #458. `JetWhalePluginContract`, the generated
+   contract, the jar resource, `dumpWireSchema` and `checkWireSchema`, applied to network; then the
+   other official protocol modules at revision 1, and the base-branch comparison in a CI workflow of
+   its own.
 3. **Manifest generation** in `com.kitakkun.jetwhale.host`. Official manifests drop `version`.
 4. **Agent SDK, Breaking.** `contract`, sent by the runtime; the official agents and the QA agent;
    `runJetWhaleQaAgent` passing the revision; the plugin guide's opt-in steps.
