@@ -1,0 +1,5 @@
+package com.kitakkun.jetwhale.agent.runtime
+
+import android.os.Build
+
+internal actual fun resolveDefaultDeviceName(): String = Build.MODEL ?: "Unknown Android Device"

@@ -1,8 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -15,6 +14,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
 import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
@@ -81,15 +81,13 @@ class GetAccessibilityTreeMcpTool(
  * otherwise it would hand an agent the values a plugin redacts from captures.
  */
 @OptIn(InternalComposeUiApi::class)
-fun captureAccessibilityTree(scene: PluginComposeScene): String {
-    // The render's pixels are discarded; it runs to flush pending recompositions and sync the
-    // semantics tree.
-    val size = sceneViewportSize(scene)
-    val viewport = McpViewport(size = size, density = scene.composeScene.density)
+@VisibleForTesting
+internal fun captureAccessibilityTree(scene: PluginComposeScene): String {
+    val viewport = McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
         scene.whileCapturingForMcp {
-            scene.render(Canvas(ImageBitmap(size.width, size.height)))
+            scene.renderDiscardingPixels()
             scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::traverseSemanticsTree)
         }
     }
@@ -97,17 +95,17 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
 }
 
 private fun traverseSemanticsTree(node: SemanticsNode): List<NodeInfo> {
-    val info = nodeToInfo(node)
+    val info = node.toNodeInfo()
     val children = node.children.flatMap(::traverseSemanticsTree)
     return listOf(info.copy(children = children))
 }
 
-private fun nodeToInfo(node: SemanticsNode): NodeInfo {
-    val config = node.config
+/** This node as `jetwhale.getAccessibilityTree` reports it, with its children left empty. */
+internal fun SemanticsNode.toNodeInfo(): NodeInfo {
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
-    val bounds = node.boundsInRoot
+    val bounds = boundsInRoot
     return NodeInfo(
-        id = node.id,
+        id = id,
         role = config.getOrNull(SemanticsProperties.Role)?.toString(),
         text = config.getOrNull(SemanticsProperties.Text)
             ?.joinToString(separator = " ", transform = AnnotatedString::text)
@@ -131,12 +129,13 @@ private fun nodeToInfo(node: SemanticsNode): NodeInfo {
 }
 
 @Serializable
-data class AccessibilityTreeResult(
+@VisibleForTesting
+internal data class AccessibilityTreeResult(
     val nodes: List<NodeInfo>,
 )
 
 @Serializable
-data class NodeInfo(
+internal data class NodeInfo(
     val id: Int,
     val role: String? = null,
     val text: String? = null,
@@ -152,7 +151,7 @@ data class NodeInfo(
 )
 
 @Serializable
-data class BoundsInfo(
+internal data class BoundsInfo(
     val left: Float,
     val top: Float,
     val right: Float,

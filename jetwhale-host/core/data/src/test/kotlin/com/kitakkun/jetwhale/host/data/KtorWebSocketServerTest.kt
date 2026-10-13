@@ -92,6 +92,8 @@ class KtorWebSocketServerTest {
         }
     }
 
+    // The hot-swap is observable only on the wire: the server exposes no signal for "the TLS
+    // listener is back up with the new certificate", so the handshake has to be retried for it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `swapping the active certificate restarts the tls listener with the new certificate`() {
@@ -100,7 +102,7 @@ class KtorWebSocketServerTest {
         System.setProperty("user.home", tempHome.absolutePath)
         try {
             val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
-            sslCertificateManager.generateAndAddCertificate("first")
+            sslCertificateManager.generateAndActivateCertificate("first")
 
             val server = KtorWebSocketServer(
                 json = Json,
@@ -117,7 +119,7 @@ class KtorWebSocketServerTest {
 
                 val serialBefore = fetchLeafSerial(wssPort)
 
-                sslCertificateManager.generateAndAddCertificate("second")
+                sslCertificateManager.generateAndActivateCertificate("second")
 
                 val serialAfter = withTimeout(10_000) {
                     var serial = serialBefore
@@ -183,7 +185,7 @@ class KtorWebSocketServerTest {
         System.setProperty("user.home", tempHome.absolutePath)
         try {
             val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
-            sslCertificateManager.generateAndAddCertificate("tls-ca")
+            sslCertificateManager.generateAndActivateCertificate("tls-ca")
             val expectedPem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
 
             val server = KtorWebSocketServer(

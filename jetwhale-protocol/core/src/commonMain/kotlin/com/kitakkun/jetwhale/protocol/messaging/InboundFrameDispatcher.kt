@@ -177,5 +177,6 @@ internal class InboundFrameDispatcher(
 /** Human-readable reason a `trySend` failed, for the frame-dropped/undispatched log lines. */
 internal fun sendFailureReason(closed: Boolean): String = if (closed) "peer closed" else "buffer full"
 
+// A value decoded by this serializer only ever flows back into it, so erasing its type is safe.
 @Suppress("UNCHECKED_CAST")
 internal fun KSerializer<*>.castToAny(): KSerializer<Any> = this as KSerializer<Any>

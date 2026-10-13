@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +13,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -73,14 +75,16 @@ internal class StorageBrowser(
     private val children = mutableStateMapOf<FileLocation, List<FileEntry>>()
     private var expandedDirectories: Set<FileLocation> by mutableStateOf(emptySet())
 
-    val treeRows: List<FileTreeRow>
-        get() = flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
+    val treeRows: List<FileTreeRow> by derivedStateOf {
+        flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
+    }
 
     private var selectedLocation: FileLocation? by mutableStateOf(null)
 
     /** The row in the detail pane, looked up again after each reload so its size and date stay current. */
-    val selectedRow: FileTreeRow?
-        get() = selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    val selectedRow: FileTreeRow? by derivedStateOf {
+        selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    }
 
     var loadedFile: LoadedFile? by mutableStateOf(null)
         private set
@@ -272,8 +276,12 @@ internal class StorageBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = StorageStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = StorageStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

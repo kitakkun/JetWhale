@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -74,6 +75,7 @@ class MavenArtifactResolver(
      * through the version directory's `maven-metadata.xml`. Falls back to the literal `-SNAPSHOT`
      * file name when the metadata is missing or incomplete (some repositories serve it directly).
      */
+    @VisibleForTesting
     internal suspend fun resolveJarUrl(coordinates: MavenCoordinates): String {
         if (!coordinates.isSnapshot) return coordinates.toJarUrl()
 

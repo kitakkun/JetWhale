@@ -105,6 +105,7 @@ class ActionRunTest {
             timeout = 5.seconds
             perform(body)
         }
+        // The builder holds definitions of any argument type; this one was just built for [A].
         @Suppress("UNCHECKED_CAST")
         return builder.definitions.single() as DebugActionDefinition<A>
     }

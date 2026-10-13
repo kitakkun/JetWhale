@@ -64,6 +64,15 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `a node several levels down is found and counted`() {
+        val deep = node(id = 1, children = listOf(node(id = 2, children = listOf(node(id = 3, children = listOf(node(id = 4))))), node(id = 5)))
+        val snapshot = snapshot(root("window", node = deep))
+
+        assertEquals(4, snapshot.findRootOf(nodeId = 4)?.findNode(4)?.id)
+        assertEquals(5, snapshot.nodeCount())
+    }
+
+    @Test
     fun `findRootOf returns null for an unknown id`() {
         assertNull(snapshot(root("window", node = node(id = 1))).findRootOf(nodeId = 99))
     }
@@ -212,6 +221,14 @@ class NodeTreeTest {
         assertEquals("Send", node(id = 1, text = "Send").displayLabel())
         assertEquals("Button", node(id = 1, role = "Button").displayLabel())
         assertEquals("#1", node(id = 1).displayLabel())
+    }
+
+    @Test
+    fun `only a Compose node with no role or label of its own is labeled by its id`() {
+        assertTrue(node(id = 1).isLabeledById)
+        assertFalse(node(id = 1, text = "#hashtag").isLabeledById)
+        assertFalse(node(id = 1, role = "Button").isLabeledById)
+        assertFalse(viewNode(id = -1, viewClass = "android.widget.LinearLayout").isLabeledById)
     }
 
     @Test

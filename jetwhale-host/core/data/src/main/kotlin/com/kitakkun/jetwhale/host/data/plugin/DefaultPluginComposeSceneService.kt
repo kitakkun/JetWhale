@@ -162,6 +162,9 @@ private class DynamicWindowInfoPlatformContext(
     override val currentDpSize: DpSize get() = windowInfo.containerDpSize
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
+        // LocalWindowInfo is a static composition local: a new WindowInfo, even an equal one,
+        // recomposes the whole plugin UI.
+        if (intSize == currentIntSize && dpSize == currentDpSize) return
         windowInfoOverride = object : WindowInfo by baseContext.windowInfo {
             override val containerSize: IntSize = intSize
             override val containerDpSize: DpSize = dpSize

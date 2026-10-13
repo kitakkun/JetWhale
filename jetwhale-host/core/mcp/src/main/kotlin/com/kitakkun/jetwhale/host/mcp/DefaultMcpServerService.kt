@@ -136,7 +136,7 @@ class DefaultMcpServerService(
         bind(server, host, port)
     }
 
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+    // Every bind failure is shown as the MCP server's Error status.
     private suspend fun bind(server: EmbeddedServer<*, *>, host: String, port: Int) {
         try {
             server.start(wait = false)

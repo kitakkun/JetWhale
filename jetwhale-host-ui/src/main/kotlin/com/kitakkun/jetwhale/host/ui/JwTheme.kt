@@ -1,10 +1,13 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.compose.foundation.DefaultContextMenuRepresentation
+import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -35,6 +38,9 @@ public val LocalJwTextStyle: ProvidableCompositionLocal<TextStyle> = composition
  * reads [JwTheme.colors] and [JwTheme.textStyles]. Calling it inside a plugin is only useful to
  * deliberately re-theme a subtree, or in previews and tests.
  *
+ * Context menus inside it take its colors too: a `ContextMenuArea`'s menu and the cut/copy/paste
+ * menu of text fields and selectable text, through `LocalContextMenuRepresentation`.
+ *
  * @param colors the scheme; the built-in ones are [JwColors.light] and [JwColors.dark]. Its
  * [JwColors.isDark] is published through [LocalJetWhaleDarkTheme].
  * @param textStyles the type scale; [JwTextStyles.default] unless the host configures otherwise.
@@ -46,12 +52,21 @@ public fun JwTheme(
     textStyles: JwTextStyles = JwTextStyles.default(),
     content: @Composable () -> Unit,
 ) {
+    val contextMenuRepresentation = remember(colors) {
+        DefaultContextMenuRepresentation(
+            backgroundColor = colors.popupBackground,
+            textColor = colors.onSurface,
+            itemHoverColor = colors.hover,
+            disabledTextColor = colors.textDisabled,
+        )
+    }
     CompositionLocalProvider(
         LocalJwColors provides colors,
         LocalJwTextStyles provides textStyles,
         LocalJetWhaleDarkTheme provides colors.isDark,
         LocalJwContentColor provides colors.onSurface,
         LocalJwTextStyle provides textStyles.body,
+        LocalContextMenuRepresentation provides contextMenuRepresentation,
         content = content,
     )
 }

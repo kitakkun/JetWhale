@@ -89,6 +89,8 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
         unregister()
+        // Advertising is best effort: a JmDNS or network failure of any kind leaves agents to use
+        // an explicit host.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val address = primaryMulticastAddress()
@@ -119,6 +121,8 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun unregister() {
         registeredService?.let { service ->
+            // Unregistering is best effort; a failure must not block the shutdown or the next
+            // registration.
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 jmdns?.unregisterService(service)

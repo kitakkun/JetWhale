@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
-import android.content.res.Resources
 import android.graphics.drawable.ColorDrawable
 import android.util.TypedValue
 import android.view.View
@@ -56,7 +55,8 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
     val write = descriptor.write
         ?: return ViewAttributeResult(applied = false, message = "${descriptor.id} is read-only")
 
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+    // The write calls the app's own View setter, which may reject the value by throwing anything;
+    // the reply carries why.
     return try {
         write(this, value)
         if (descriptor.relayouts) requestLayout() else invalidate()
@@ -76,7 +76,7 @@ private const val GROUP_APPEARANCE = "Appearance"
 private const val GROUP_TEXT = "Text"
 private const val GROUP_INFO = "Info"
 
-private val VISIBILITY_OPTIONS = listOf("VISIBLE", "INVISIBLE", "GONE")
+internal val VISIBILITY_OPTIONS = listOf("VISIBLE", "INVISIBLE", "GONE")
 
 private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
     add(
@@ -376,81 +376,4 @@ private fun MutableList<ViewAttributeDescriptor>.addLayoutSize(
             relayouts = true,
         ),
     )
-}
-
-private fun View.density(): Float = resources.displayMetrics.density
-
-// A TextView's sp scales with the user's font-size setting on top of display density, so converting
-// to sp needs scaledDensity, not density.
-@Suppress("DEPRECATION")
-private fun View.scaledTextDensity(): Float = resources.displayMetrics.scaledDensity
-
-private fun View.dimension(px: Float): ViewAttributeValue.DimensionValue = ViewAttributeValue.DimensionValue(px = px, dp = px / density())
-
-private fun View.marginParams(): ViewGroup.MarginLayoutParams? = layoutParams as? ViewGroup.MarginLayoutParams
-
-private fun View.visibilityName(): String = when (visibility) {
-    View.VISIBLE -> "VISIBLE"
-    View.INVISIBLE -> "INVISIBLE"
-    else -> "GONE"
-}
-
-private fun layoutSizeConstantName(raw: Int): String? = when (raw) {
-    ViewGroup.LayoutParams.MATCH_PARENT -> "MATCH_PARENT"
-    ViewGroup.LayoutParams.WRAP_CONTENT -> "WRAP_CONTENT"
-    else -> null
-}
-
-/**
- * The entry name of the view's `android:id`, or `null` when it has none. A generated id has no entry
- * to look up, so the lookup is allowed to fail rather than being guarded by a check on the packing.
- */
-private fun View.resourceEntryNameOrNull(): String? {
-    if (id == View.NO_ID) return null
-    return try {
-        resources?.getResourceEntryName(id)
-    } catch (_: Resources.NotFoundException) {
-        null
-    }
-}
-
-private fun ViewAttributeValue.asBoolean(attributeId: String): Boolean = (this as? ViewAttributeValue.BooleanValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "bool", this))
-
-private fun ViewAttributeValue.asInt(attributeId: String): Int = (this as? ViewAttributeValue.IntValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "int", this))
-
-private fun ViewAttributeValue.asFloat(attributeId: String): Float = (this as? ViewAttributeValue.FloatValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "float", this))
-
-private fun ViewAttributeValue.asText(attributeId: String): String = (this as? ViewAttributeValue.TextValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "text", this))
-
-private fun ViewAttributeValue.asColor(attributeId: String): Int = (this as? ViewAttributeValue.ColorValue)?.argb
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "color", this))
-
-private fun ViewAttributeValue.asDimensionPx(attributeId: String): Float = (this as? ViewAttributeValue.DimensionValue)?.px
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "dimension", this))
-
-private fun ViewAttributeValue.asVisibility(attributeId: String): Int {
-    val name = (this as? ViewAttributeValue.EnumValue)?.value
-        ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "enum", this))
-    return when (name) {
-        "VISIBLE" -> View.VISIBLE
-        "INVISIBLE" -> View.INVISIBLE
-        "GONE" -> View.GONE
-        else -> throw IllegalArgumentException("unknown $attributeId: $name (expected one of ${VISIBILITY_OPTIONS.joinToString(", ")})")
-    }
-}
-
-/** Either of the two constants or a pixel length, exactly as the attribute reads back. */
-private fun ViewAttributeValue.asLayoutSize(attributeId: String): Int {
-    val size = this as? ViewAttributeValue.LayoutSizeValue
-        ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "layoutSize", this))
-    return when (size.constant) {
-        null -> (size.px ?: throw IllegalArgumentException("$attributeId needs either a constant or a pixel length, but neither was sent")).roundToInt()
-        "MATCH_PARENT" -> ViewGroup.LayoutParams.MATCH_PARENT
-        "WRAP_CONTENT" -> ViewGroup.LayoutParams.WRAP_CONTENT
-        else -> throw IllegalArgumentException("unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)")
-    }
 }

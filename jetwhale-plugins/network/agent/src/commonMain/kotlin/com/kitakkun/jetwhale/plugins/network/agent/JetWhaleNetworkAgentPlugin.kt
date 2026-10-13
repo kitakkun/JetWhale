@@ -80,7 +80,7 @@ class JetWhaleNetworkAgentPlugin(
     }
 
     fun recordFailure(failure: HttpRequestFailure) {
-        messenger.sendOrQueue(RequestFailed(failure))
+        messenger.sendOrQueue(RequestFailed(redaction.redactAtCapture(failure)))
     }
 
     /** Returns the mock response to serve for [method] [url], or null to perform the real call. */

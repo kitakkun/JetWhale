@@ -53,15 +53,45 @@ class DeviceListingsTest {
     @Test
     fun `idb lists physical devices and leaves simulators to simctl`() {
         val output = """
-            Takumi's iPhone | 00008110-00161D9801DA801E | Booted | device | iOS 26.6.1 | arm64e | No Companion Connected
+            Test iPhone | 00008110-0000000000000001 | Booted | device | iOS 26.6.1 | arm64e | No Companion Connected
             iPhone 16 | 0A1B2C3D-4E5F | Shutdown | simulator | iOS 18.5 | arm64 | No Companion Connected
             Apple TV | 37E509F4-ECF8 | Shutdown | simulator | tvOS 18.5 | x86_64 | No Companion Connected
         """.trimIndent()
 
         assertEquals(
-            listOf(DeviceListing(id = "00008110-00161D9801DA801E", name = "Takumi's iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
+            listOf(DeviceListing(id = "00008110-0000000000000001", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
             parseIdbDevices(output),
         )
+    }
+
+    @Test
+    fun `idb_companion lists physical devices by their keys and leaves simulators to simctl`() {
+        val output = """
+            {"model":"iPhone 17","os_version":"iOS 26.0","udid":"00008150-0000000000000001","architecture":"arm64e","type":"Device","name":"iPhone","state":"Booted"}
+            {"model":"iPhone 16","os_version":"iOS 18.5","udid":"0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9","architecture":"arm64","type":"Simulator","name":"iPhone 16","state":"Booted"}
+        """.trimIndent()
+
+        assertEquals(
+            listOf(DeviceListing(id = "00008150-0000000000000001", name = "iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.0")),
+            parseCompanionDevices(output),
+        )
+    }
+
+    @Test
+    fun `idb_companion with nothing attached lists no device`() {
+        assertEquals(emptyList(), parseCompanionDevices(""))
+    }
+
+    @Test
+    fun `idb_companion output without a single target in it is not taken for no devices`() {
+        assertNull(parseCompanionDevices("Unknown option --only\nUsage: idb_companion [options]"))
+    }
+
+    @Test
+    fun `idb_companion output with a target it cannot read is not taken for no devices`() {
+        assertNull(parseCompanionDevices("""{"type":"Device","name":"iPhone"}"""))
+        assertNull(parseCompanionDevices("""{"type":"Watch","udid":"00008150-0000000000000002","name":"Watch"}"""))
+        assertNull(parseCompanionDevices("""{"type":"Device","udid":null,"name":"iPhone"}"""))
     }
 
     @Test

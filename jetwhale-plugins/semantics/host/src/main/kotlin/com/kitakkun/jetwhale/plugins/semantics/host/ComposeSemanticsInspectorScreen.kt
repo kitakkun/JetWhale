@@ -350,7 +350,7 @@ private fun NodeRow(
             if (row.node.isInteractive && !row.node.isOperable) {
                 JwTag(text = "not operable", tone = JwTone.Warning)
             }
-            if (!label.startsWith("#")) {
+            if (!row.node.isLabeledById) {
                 JwText(
                     text = "#${row.node.id}",
                     style = JwTheme.textStyles.labelSmall,

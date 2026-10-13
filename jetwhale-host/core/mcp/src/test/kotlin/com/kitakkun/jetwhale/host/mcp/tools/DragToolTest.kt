@@ -19,6 +19,7 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class DragToolTest {
 
+    // A scene with no content has nothing to observe; the point is only that the drag completes.
     @Suppress("KOTRAIL_TEST_WITHOUT_ASSERTION")
     @Test
     fun `dispatchDrag does not throw on empty scene`() = runBlocking {

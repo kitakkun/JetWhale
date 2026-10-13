@@ -12,9 +12,11 @@ import java.io.ByteArrayOutputStream
 /** Edge length the app icon is rasterized to, matching the cap the negotiation payload documents. */
 private const val APP_ICON_SIZE_PX: Int = 64
 
+// The host groups sessions by device; ANDROID_ID is scoped to the app's signing key, not a hardware
+// serial.
 @SuppressLint("HardwareIds")
 internal actual fun getDeviceId(): String? = try {
-    val context = currentApplicationOrNull() ?: return null
+    val context = currentApplicationContextOrNull() ?: return null
     Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 } catch (_: SecurityException) {
     null
@@ -25,7 +27,7 @@ internal actual fun getDeviceId(): String? = try {
  * Uses the hidden `ActivityThread.currentApplication()` entry point reflectively so metadata
  * resolution stays best-effort and never crashes the debuggee.
  */
-private fun currentApplicationOrNull(): Context? = try {
+private fun currentApplicationContextOrNull(): Context? = try {
     val activityThread = Class.forName("android.app.ActivityThread")
     val method = activityThread.getMethod("currentApplication")
     method.invoke(null) as? Application
@@ -36,7 +38,7 @@ private fun currentApplicationOrNull(): Context? = try {
 }
 
 internal actual fun resolveDefaultAppName(): String? {
-    val context = currentApplicationOrNull() ?: return null
+    val context = currentApplicationContextOrNull() ?: return null
     return context.packageManager.getApplicationLabel(context.applicationInfo).toString()
 }
 
@@ -46,7 +48,7 @@ internal actual fun resolveDefaultAppName(): String? {
  */
 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
 internal actual fun resolveDefaultAppIconPng(): ByteArray? = try {
-    val context = currentApplicationOrNull() ?: return null
+    val context = currentApplicationContextOrNull() ?: return null
     context.packageManager.getApplicationIcon(context.applicationInfo).toPngBytesOrNull()
 } catch (_: Throwable) {
     null

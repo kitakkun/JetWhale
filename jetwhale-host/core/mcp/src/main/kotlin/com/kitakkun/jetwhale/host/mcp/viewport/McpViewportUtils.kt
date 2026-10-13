@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.viewport
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
@@ -37,13 +38,22 @@ internal fun sceneViewportSize(scene: PluginComposeScene): IntSize {
  */
 @OptIn(InternalComposeUiApi::class)
 internal fun ensureSceneRendered(scene: PluginComposeScene) {
-    val size = sceneViewportSize(scene)
-    val viewport = McpViewport(size = size, density = scene.composeScene.density)
-    applyViewport(scene, viewport)
-    scene.render(Canvas(ImageBitmap(size.width, size.height)))
+    applyViewport(scene, McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density))
+    scene.renderDiscardingPixels()
+}
+
+/**
+ * Runs a frame whose pixels nobody reads, so that recomposition, layout and semantics are current.
+ * Layout follows the scene's size, not the canvas, so a 1×1 canvas gives the same tree without
+ * rasterizing the whole viewport.
+ */
+@OptIn(InternalComposeUiApi::class)
+internal fun PluginComposeScene.renderDiscardingPixels() {
+    render(Canvas(ImageBitmap(1, 1)))
 }
 
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun applyViewport(scene: PluginComposeScene, viewport: McpViewport) {
     try {
         scene.composeScene.density = viewport.density

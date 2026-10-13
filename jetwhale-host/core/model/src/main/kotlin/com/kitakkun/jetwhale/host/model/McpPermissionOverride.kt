@@ -11,8 +11,9 @@ package com.kitakkun.jetwhale.host.model
  *
  * Setting it needs the ability to start the host process, which is already more than the
  * unauthenticated MCP port grants — so this widens no boundary that was not open to that caller
- * already. [McpPermissions.allOverriddenBy] keeps it visible in the settings screen and in
- * `jetwhale.getStatus` rather than silently disagreeing with what the checkboxes show.
+ * already. [McpPermissionsRepository.permissionsFlow] serves the permissions with it applied, which
+ * keeps it visible in the settings screen and in `jetwhale.getStatus` rather than silently
+ * disagreeing with what the checkboxes show.
  */
 @JvmInline
 value class McpPermissionOverride(val allowAll: Boolean) {

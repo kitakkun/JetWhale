@@ -22,12 +22,14 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.TimeSource
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ComposeSemanticsInspectorPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin = ComposeSemanticsInspectorHostPlugin()
@@ -83,8 +85,12 @@ private class ComposeSemanticsInspectorHostPlugin :
             onCapture = { options ->
                 try {
                     capture(options)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: JetWhaleMessagingException) {
                     errorMessage = "Capture failed: ${e.message}"
+                } catch (e: Exception) {
+                    errorMessage = "Capture failed unexpectedly: $e"
                 }
             },
             onPerformAction = { request ->
@@ -97,8 +103,12 @@ private class ComposeSemanticsInspectorHostPlugin :
                             result.performed -> "${request.action} on #${request.nodeId}: done"
                             else -> "${request.action} on #${request.nodeId}: ${result.message ?: "not performed"}"
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: JetWhaleMessagingException) {
                         "${request.action} on #${request.nodeId} failed: ${e.message}"
+                    } catch (e: Exception) {
+                        "${request.action} on #${request.nodeId} failed unexpectedly: $e"
                     }
                 }
             },

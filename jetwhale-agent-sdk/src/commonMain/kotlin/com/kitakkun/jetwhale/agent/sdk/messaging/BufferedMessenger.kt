@@ -10,7 +10,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -54,8 +53,11 @@ public class BufferedMessenger(
     /** The live transport, or null while disconnected. Sole writer is [bind]/[unbind]. */
     private val live = MutableStateFlow<JetWhaleTransportMessenger?>(null)
 
-    /** Whether buffered events may flush. Opened by [startFlush] (after init), reset by [unbind]. */
-    private val flushOpen = MutableStateFlow(false)
+    /**
+     * Where buffered events flush to: the live transport once [startFlush] has opened the gate, null
+     * while it is closed. Reset by [unbind].
+     */
+    private val flushTarget = MutableStateFlow<JetWhaleTransportMessenger?>(null)
 
     /** The offline buffer: a single bounded queue, drop-oldest. Null when buffering is disabled. */
     private val offlineBuffer: Channel<BufferedEvent>? =
@@ -65,17 +67,11 @@ public class BufferedMessenger(
         offlineBuffer?.let { buffer ->
             scope.launch {
                 for (event in buffer) {
-                    val transport = awaitFlushableTransport()
-                    transport.sendRaw(event.messageType, event.payload)
+                    flushTarget.filterNotNull().first().sendRaw(event.messageType, event.payload)
                 }
             }
         }
     }
-
-    /** Suspends until a transport is bound and flushing has been opened, then returns that transport. */
-    private suspend fun awaitFlushableTransport(): JetWhaleTransportMessenger = combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
-        .filterNotNull()
-        .first()
 
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
         val transport = live.value
@@ -114,24 +110,25 @@ public class BufferedMessenger(
      */
     public fun bind(transport: JetWhaleTransportMessenger) {
         live.value = transport
+        if (flushTarget.value != null) flushTarget.value = transport
     }
 
     /** Opens flushing of buffered events. Call after connection-time initialization has finished. */
     public fun startFlush() {
-        if (live.value != null) flushOpen.value = true
+        flushTarget.value = live.value
     }
 
     /** Detaches the live transport and re-closes the flush gate; QUEUE sends buffer again. */
     public fun unbind() {
         live.value = null
-        flushOpen.value = false
+        flushTarget.value = null
     }
 
     /** Permanently stops this messenger. Call when the owning plugin is disposed. */
     public fun close() {
         offlineBuffer?.close()
         live.value = null
-        flushOpen.value = false
+        flushTarget.value = null
         scope.cancel()
     }
 }

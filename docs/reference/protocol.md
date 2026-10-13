@@ -7,7 +7,7 @@ published as `com.kitakkun.jetwhale:jetwhale-protocol-core`.
 
 Messages travel as JSON over one WebSocket connection (plain **ws**, or **wss** when the agent
 declares a `wss` endpoint — `ssl { }` says what TLS trusts, not whether it is spoken; see
-[Secure connections](/guide/getting-started#secure-connections-wss)). Every message carries a stable
+[Secure connections](/guide/connecting#secure-connections-wss)). Every message carries a stable
 `type` discriminator; the current **protocol version is 2**.
 
 ## Finding the Host
@@ -24,9 +24,9 @@ plain-ws port. The rest is carried in TXT records:
 | `wssPort` | The port serving **wss**. Absent while the host has wss disabled. |
 | `hostName` | The host machine's hostname. Carried separately from the instance name because mDNS may uniquify that on collision (`name (2)`), and this is what the agent's `allowHostName` filter compares against. |
 
-A discovered host is only ever dialled over **wss**, on `wssPort`: the host binds plain ws to
+A discovered host is only ever dialed over **wss**, on `wssPort`: the host binds plain ws to
 loopback, which is not the address discovery returns, so a host advertising no `wssPort` is skipped.
-See [Zero-config host discovery](/guide/getting-started#zero-config-host-discovery-recommended-for-physical-devices)
+See [Finding the host on the network](/guide/connecting#finding-the-host-on-the-network)
 for the agent-side configuration.
 
 ## The two phases
@@ -52,7 +52,7 @@ The negotiation phase consists of the following steps:
    `deviceId` (a stable per-device identifier the debugger uses to group sessions), `deviceName`,
    and `appIconPngBase64` (a small app icon, at most 64×64 px; icons whose base64 form exceeds
    32KB are dropped to keep the negotiation payload small). See
-   [Session metadata](/guide/getting-started#session-metadata) for how the agent resolves and
+   [Session metadata](/guide/agent-configuration#session-metadata) for how the agent resolves and
    overrides these values.
 3. **Capabilities Exchange**: Both the debugger and debuggee exchange their capabilities to
    understand what features are supported during the debugging session.

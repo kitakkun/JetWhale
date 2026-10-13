@@ -104,21 +104,22 @@ class KtorWebSocketServer(
 
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
-    private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
-    override val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
+    override val statusFlow: StateFlow<DebugWebSocketServerStatus>
+        field = MutableStateFlow<DebugWebSocketServerStatus>(DebugWebSocketServerStatus.Stopped)
 
-    private val mutableDebuggeeEventFlow: MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = MutableSharedFlow()
-    val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = mutableDebuggeeEventFlow
+    val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>>
+        field = MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>>()
 
-    private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
-    val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
+    val sessionClosedFlow: SharedFlow<String>
+        field = MutableSharedFlow<String>()
 
-    private val mutableNegotiationCompletedFlow: MutableSharedFlow<SessionOpened> = MutableSharedFlow()
-    val negotiationCompletedFlow: SharedFlow<SessionOpened> = mutableNegotiationCompletedFlow
+    val sessionOpenedFlow: SharedFlow<SessionOpened>
+        field = MutableSharedFlow<SessionOpened>()
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+        statusFlow.update { DebugWebSocketServerStatus.Starting }
+        // Every start failure (a taken port, a bad certificate, the engine itself) is shown as the
+        // server's Error status.
         try {
             currentHost = host
             currentPort = port
@@ -139,18 +140,18 @@ class KtorWebSocketServer(
                 startCertificateObserver()
             }
 
-            mutableStatusFlow.update {
+            statusFlow.update {
                 DebugWebSocketServerStatus.Started(host, port, wssPort.takeIf { tlsStarted })
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
+            statusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
         }
     }
 
     suspend fun stop() {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopping }
+        statusFlow.update { DebugWebSocketServerStatus.Stopping }
         certificateObserverJob?.cancel()
         certificateObserverJob = null
         tlsServerMutex.withLock {
@@ -162,7 +163,7 @@ class KtorWebSocketServer(
         currentHost = null
         currentPort = null
         currentWssPort = null
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
+        statusFlow.update { DebugWebSocketServerStatus.Stopped }
     }
 
     /** Builds the plain-ws server: the ws connector on [host] plus the `GET /jetwhale/ca` route. */
@@ -183,7 +184,7 @@ class KtorWebSocketServer(
      */
     private suspend fun startTlsServerLocked(wssPort: Int): Boolean {
         if (!sslCertificateManager.hasCertificate()) {
-            sslCertificateManager.generateAndAddCertificate(null)
+            sslCertificateManager.generateAndActivateCertificate(null)
         }
 
         val keyStore = sslCertificateManager.getActiveKeyStore()
@@ -264,7 +265,7 @@ class KtorWebSocketServer(
         }
 
         routing {
-            get("/jetwhale/ca") {
+            get(CA_CERTIFICATE_URL_PATH) {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {
                     call.respond(HttpStatusCode.NotFound, "No active certificate")
@@ -274,14 +275,14 @@ class KtorWebSocketServer(
             }
             webSocket {
                 context(log) {
-                    configureSession()
+                    serveSession()
                 }
             }
         }
     }
 
     context(log: Logger)
-    private suspend fun DefaultWebSocketServerSession.configureSession() {
+    private suspend fun DefaultWebSocketServerSession.serveSession() {
         val transportSecurity = when {
             call.request.origin.scheme == "https" -> SessionTransportSecurity.TLS
 
@@ -310,11 +311,11 @@ class KtorWebSocketServer(
                         .filterIsInstance<Frame.Text>()
                         .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggeeEvent>(it.readText()) }
                         .collect {
-                            mutableDebuggeeEventFlow.emit(sessionId to it)
+                            debuggeeEventFlow.emit(sessionId to it)
                         }
                 }
 
-                mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
+                sessionOpenedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
 
                 val reason = closeReason.await()
 
@@ -323,7 +324,7 @@ class KtorWebSocketServer(
 
                 log.info("session $sessionId closed: ${reason?.message}")
 
-                mutableSessionClosedFlow.emit(sessionId)
+                sessionClosedFlow.emit(sessionId)
             }
         }
     }
@@ -336,6 +337,9 @@ class KtorWebSocketServer(
         sessions.values.forEach { session -> session.sendSerialized(event) }
     }
 }
+
+/** Where both servers serve the active CA certificate, for agents that trust it on first use. */
+internal const val CA_CERTIFICATE_URL_PATH = "/jetwhale/ca"
 
 /** Hosts treated as loopback for [SessionTransportSecurity.LOOPBACK] classification. */
 private val LOOPBACK_HOSTS = setOf("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "localhost")

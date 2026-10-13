@@ -18,25 +18,39 @@ jobs:
           - os: macOS-latest
             osArch: macos-arm64
             installerTask: packageDmg
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/dmg/*.dmg
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/dmg/*.dmg
             installerExt: dmg
           - os: ubuntu-latest
             osArch: linux-x64
             installerTask: packageDeb
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/deb/*.deb
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/deb/*.deb
             installerExt: deb
           - os: windows-latest
             osArch: windows-x64
             installerTask: packageMsi
-            installerGlob: jetwhale-host/app/build/compose/binaries/main/msi/*.msi
+            installerGlob: jetwhale-host/launcher/build/compose/binaries/main/msi/*.msi
             installerExt: msi
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
+      # The host reports the catalog version and orders releases by its own parser, so a tag that
+      # differs from the catalog, or does not parse, would leave hosts offering the wrong update.
+      - name: Check the release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          catalog_version="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)"
+          if [ "${GITHUB_REF_NAME}" != "${catalog_version}" ]; then
+            echo "The tag ${GITHUB_REF_NAME} is not the version the host is built as (${catalog_version})." >&2
+            exit 1
+          fi
+          ./gradlew :jetwhale-host:app:checkHostReleaseVersion -PhostReleaseVersion="${GITHUB_REF_NAME}"
+      # The installer is the launcher's, and it carries the same uber jar that is attached below.
       - name: Build installer and runnable uber jar
-        run: ./gradlew :jetwhale-host:app:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
+        run: ./gradlew :jetwhale-host:launcher:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
       # Rename assets to a predictable scheme that includes the FULL tag version (e.g. -alpha08),
       # which the installer's own packageVersion drops. No manual renaming needed afterwards, and the
       # uber-jar name matches what the `downloadJetWhaleHost` Gradle task expects. On a manual
@@ -66,12 +80,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
       - name: Take the release notes from the changelog
         run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME}" > release-notes.md
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
+      # Written from, and checked against, the very jars attached below.
+      - name: Write the host release metadata
+        run: ./gradlew :jetwhale-host:app:writeHostReleaseMetadata -PhostReleaseVersion="${GITHUB_REF_NAME}" -PhostReleaseDir="${PWD}/dist"
+      - name: Write SHA256SUMS
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
       - name: Create draft release and attach artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -79,5 +101,5 @@ jobs:
           # The changelog section comes first; the generated list of merged PRs follows it.
           body_path: release-notes.md
           generate_release_notes: true
-          files: dist/**/*
+          files: dist/*
           fail_on_unmatched_files: true

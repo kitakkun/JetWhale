@@ -98,6 +98,8 @@ public abstract class JetWhaleHostPlugin {
     }
 
     @InternalJetWhaleHostApi
+    // Unlike the other lifecycle hooks, onDispose is public, so this dispatcher is not a facade
+    // over a less visible callee; it stays as the host-side counterpart of dispatchCreate.
     @Suppress("KOTRAIL_PASS_THROUGH_FUNCTION")
     public fun dispatchDispose() {
         onDispose()

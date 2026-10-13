@@ -65,6 +65,8 @@ class BufferedMessengerTest {
 
     private fun messenger(capacity: Int) = BufferedMessenger(scope, Json, bufferCapacity = capacity)
 
+    // The claim is that nothing flushes while the gate is shut, and the messenger offers no signal
+    // for "the flusher has had its turn and stayed parked"; only elapsed time can establish it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `buffered events are held until startFlush opens the gate`() = runBlocking {
@@ -78,6 +80,39 @@ class BufferedMessengerTest {
 
         bufferedMessenger.startFlush()
         assertEquals(listOf("p0", "p1", "p2"), live.awaitPayloads(3))
+    }
+
+    @Test
+    fun `events queued after a reconnect go to the new transport once it opens flushing, not to the old one`() = runBlocking {
+        // Unconfined drains inside sendRaw, so an event flushed to the wrong transport is already there below.
+        val bufferedMessenger = BufferedMessenger(CoroutineScope(scope.coroutineContext + Dispatchers.Unconfined), Json, bufferCapacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+        bufferedMessenger.unbind()
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        bufferedMessenger.startFlush()
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `a transport bound while flushing is open receives the queued events from then on`() = runBlocking {
+        val bufferedMessenger = messenger(capacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
     }
 
     @Test
