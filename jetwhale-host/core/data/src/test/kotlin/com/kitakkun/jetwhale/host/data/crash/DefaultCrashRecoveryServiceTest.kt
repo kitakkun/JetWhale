@@ -263,9 +263,9 @@ class DefaultCrashRecoveryServiceTest {
     }
 
     private class FakePluginFactoryRepository : PluginFactoryRepository {
-        private val plugins = MutableStateFlow<Map<String, LoadedHostPlugin>>(emptyMap())
-        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = plugins
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = plugins.value
+        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
+            field = MutableStateFlow<Map<String, LoadedHostPlugin>>(emptyMap())
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginsFlow.value
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         fun load(pluginId: String, factoryClass: String) {
@@ -275,7 +275,7 @@ class DefaultCrashRecoveryServiceTest {
                     override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
                 },
             )
-            plugins.value = plugins.value + (pluginId to plugin)
+            loadedPluginsFlow.value = loadedPluginsFlow.value + (pluginId to plugin)
         }
 
         override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit

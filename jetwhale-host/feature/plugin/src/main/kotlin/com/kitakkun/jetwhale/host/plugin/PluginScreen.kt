@@ -50,15 +50,8 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         }
     }
 
-    // A scene that had already failed when it arrived is not reported again: it is the one the
-    // scene query still holds from before a Reload or a return to this screen, and the refetch that
-    // follows brings a fresh scene. Reporting it would put the fallback straight back up.
-    val failedOnArrival = remember(pluginComposeScene) { pluginComposeScene.failure.value != null }
-    val failure = pluginComposeScene.failure.value
+    ReportSceneFailureEffect(pluginComposeScene)
     val catchThrowHost = LocalCatchThrowHost.current
-    LaunchedEffect(failure) {
-        if (failure != null && !failedOnArrival) catchThrowHost[uuid()] = failure
-    }
 
     val density = LocalDensity.current
     Canvas(
@@ -141,16 +134,34 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         frameNanoTime
         if (pluginComposeScene.failure.value != null) return@Canvas
         this.drawIntoCanvas { canvas ->
-            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD") // render() runs the plugin's own drawing code, which may throw anything.
             try {
                 pluginComposeScene.render(canvas)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Throwable) {
                 // Rethrowing would take the host window down with the plugin. render() has recorded
-                // the exception in the scene's failure, which the effect above reports.
+                // the exception in the scene's failure, which ReportSceneFailureEffect reports.
             }
         }
+    }
+}
+
+/**
+ * Hands a failure of [pluginComposeScene] to the error boundary around the screen, once.
+ *
+ * A scene that had already failed when it arrived is not reported again: it is the one the scene
+ * query still holds from before a Reload or a return to this screen, and the refetch that follows
+ * brings a fresh scene. Reporting it would put the fallback straight back up.
+ */
+@Composable
+private fun ReportSceneFailureEffect(pluginComposeScene: PluginComposeScene) {
+    @Suppress("KOTRAIL_LIVE_VALUE_REMEMBERED") // Deliberately the failure as the scene arrived, not a live read: see the KDoc.
+    val failedOnArrival = remember(pluginComposeScene) { pluginComposeScene.failure.value != null }
+    val failure = pluginComposeScene.failure.value
+    val catchThrowHost = LocalCatchThrowHost.current
+    LaunchedEffect(failure) {
+        if (failure != null && !failedOnArrival) catchThrowHost[uuid()] = failure
     }
 }
 

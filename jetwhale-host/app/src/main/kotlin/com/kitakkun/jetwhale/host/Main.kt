@@ -56,8 +56,6 @@ import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.milliseconds
 import ch.qos.logback.classic.Logger as LogbackLogger
 
-private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
-
 fun main(args: Array<String>) = runBlocking {
     defaultToSystemAppearance(System.getProperties())
     val cliOptions = CommandLineArgumentsParser().parse(args)
@@ -161,6 +159,8 @@ private fun configureAppMetadata() {
         }
     }
 }
+
+private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 /** Restores the geometry of the previous run; an unplaced or absent one opens centered. */
 private fun PersistedWindowState?.toWindowState(): WindowState {

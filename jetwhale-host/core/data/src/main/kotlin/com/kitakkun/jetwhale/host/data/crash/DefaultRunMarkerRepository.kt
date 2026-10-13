@@ -91,6 +91,8 @@ class DefaultRunMarkerRepository(
             }
         } catch (e: IOException) {
             logger.log(Level.WARNING, "Could not write the run marker at ${file.path}", e)
+        } catch (e: Exception) {
+            logger.log(Level.WARNING, "Unexpected failure writing the run marker at ${file.path}", e)
         }
     }
 

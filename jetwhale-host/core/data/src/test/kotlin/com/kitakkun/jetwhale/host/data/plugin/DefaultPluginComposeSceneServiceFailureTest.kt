@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
@@ -140,8 +139,7 @@ class DefaultPluginComposeSceneServiceFailureTest {
         JetWhaleHostPluginUi {
         @Composable
         override fun Content() {
-            val isArmed by armed
-            if (!inDraw && isArmed) error("composition boom")
+            if (!inDraw && armed.value) error("composition boom")
             Box(Modifier.fillMaxSize().drawBehind { if (inDraw && armed.value) error("draw boom") })
         }
     }
