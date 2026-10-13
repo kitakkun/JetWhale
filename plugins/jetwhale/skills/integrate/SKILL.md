@@ -195,7 +195,7 @@ connection {
   </array>
   ```
 
-[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) covers each in full.
+[Connecting Devices](https://kitakkun.github.io/JetWhale/guide/connecting) covers each in full.
 
 ## 5. Verify — the classpath, not the wiring
 
@@ -265,7 +265,11 @@ before trusting the shape.
 
 - [Excluding from Release Builds](https://kitakkun.github.io/JetWhale/guide/excluding-from-release-builds)
   — the long-form version of §4, with the Metro examples in full
-- [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) — the
-  `startJetWhale { }` DSL, wss, per-platform startup locations
+- [Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started) — where each
+  platform calls `startJetWhale { }`
+- [Connecting Devices](https://kitakkun.github.io/JetWhale/guide/connecting) — endpoints, discovery,
+  the build machine's address, wss and trust, the iOS Local Network permission
+- [Configuring the Agent](https://kitakkun.github.io/JetWhale/guide/agent-configuration) — the rest
+  of the `startJetWhale { }` DSL: plugins, session metadata, logging, stopping and reconnecting
 - [Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector) — Ktor and
   OkHttp adapters, mocking, redaction

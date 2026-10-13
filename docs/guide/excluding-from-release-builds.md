@@ -207,9 +207,15 @@ dependencies {
 }
 ```
 
-### Android
+Then put that module on the debug classpath only. Android has build variants for this. Kotlin
+Multiplatform has none to hang the dependency on: the shape that keeps a release clean however the
+build is invoked is two thin entry-point modules — `:app-debug` and `:app-release` — each declaring
+its own graph and depending on the appropriate set of modules. The lighter alternative gates the
+dependency on a Gradle property:
 
-```kotlin
+::: code-group
+
+```kotlin [Android]
 // :app/build.gradle.kts
 dependencies {
     implementation(projects.core.debug)
@@ -217,15 +223,7 @@ dependencies {
 }
 ```
 
-### Kotlin Multiplatform
-
-KMP has no build variants to hang the dependency on. The shape that keeps a release clean however
-the build is invoked is two thin entry-point modules — `:app-debug` and `:app-release` — each
-declaring its own graph and depending on the appropriate set of modules.
-
-The lighter alternative gates the dependency on a Gradle property:
-
-```kotlin
+```kotlin [Kotlin Multiplatform]
 // :app/build.gradle.kts
 val jetwhaleEnabled = providers.gradleProperty("jetwhale.enabled").orNull.toBoolean()
 
@@ -238,6 +236,8 @@ kotlin {
     }
 }
 ```
+
+:::
 
 A property switches the whole invocation, not a build type: while it is set, every compilation in
 that run gets `:debug-jetwhale`, release and distribution binaries included. So pass
