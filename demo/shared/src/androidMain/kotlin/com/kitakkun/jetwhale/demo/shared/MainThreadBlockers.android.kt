@@ -10,12 +10,12 @@ import java.net.URL
 
 actual val platformMainThreadBlockers: List<MainThreadBlocker> = listOf(
     MainThreadBlocker("SharedPreferences commit on main") {
-        val preferences = demoApplication().getSharedPreferences("main_thread_demo", Context.MODE_PRIVATE)
+        val preferences = currentApplication().getSharedPreferences("main_thread_demo", Context.MODE_PRIVATE)
         repeat(50) { preferences.edit().putInt("counter", it).commit() }
         "Committed SharedPreferences 50 times on the main thread."
     },
     MainThreadBlocker("File read on main") {
-        val file = File(demoApplication().cacheDir, "main_thread_demo.bin").apply { writeBytes(ByteArray(4 * 1024 * 1024)) }
+        val file = File(currentApplication().cacheDir, "main_thread_demo.bin").apply { writeBytes(ByteArray(4 * 1024 * 1024)) }
         "Read ${file.readBytes().size} bytes on the main thread."
     },
     MainThreadBlocker("Sleep 400 ms on main") {
@@ -33,4 +33,4 @@ actual val platformMainThreadBlockers: List<MainThreadBlocker> = listOf(
     },
 )
 
-private fun demoApplication(): Application = Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as Application
+private fun currentApplication(): Application = Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as Application

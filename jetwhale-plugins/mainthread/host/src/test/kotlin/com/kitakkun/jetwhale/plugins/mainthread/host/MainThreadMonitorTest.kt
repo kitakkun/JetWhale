@@ -23,7 +23,7 @@ class MainThreadMonitorTest {
     fun `clearing empties the shown report`() {
         runBlocking { monitor.load() }
 
-        monitor.reset()
+        monitor.resetStats()
 
         assertTrue(monitor.report?.violations.orEmpty().isEmpty())
         assertEquals(false, monitor.status?.isError)
@@ -41,10 +41,10 @@ class MainThreadMonitorTest {
     @Test
     fun `a report arriving clears an earlier connection error`() {
         var failing = true
-        val flaky = object : MainThreadClient by client {
-            override suspend fun report(): MainThreadReport = if (failing) throw JetWhaleMessagingException("offline") else client.report()
+        val flakyClient = object : MainThreadClient by client {
+            override suspend fun requestReport(): MainThreadReport = if (failing) throw JetWhaleMessagingException("offline") else client.requestReport()
         }
-        val flakyMonitor = MainThreadMonitor(flaky, CoroutineScope(Dispatchers.Unconfined))
+        val flakyMonitor = MainThreadMonitor(flakyClient, CoroutineScope(Dispatchers.Unconfined))
 
         flakyMonitor.refresh()
         assertEquals(true, flakyMonitor.status?.isError)
@@ -56,8 +56,8 @@ class MainThreadMonitorTest {
 
     @Test
     fun `the thresholds form accepts only positive whole numbers`() {
-        assertEquals(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 20, unresponsiveThresholdMillis = 5_000), validSettingsOf(longTask = "100", interval = "20", unresponsive = "5000"))
-        assertNull(validSettingsOf(longTask = "0", interval = "20", unresponsive = "5000"))
-        assertNull(validSettingsOf(longTask = "100", interval = "fast", unresponsive = "5000"))
+        assertEquals(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 20, unresponsiveThresholdMillis = 5_000), validSettingsOf(longTaskThresholdText = "100", sampleIntervalText = "20", unresponsiveThresholdText = "5000"))
+        assertNull(validSettingsOf(longTaskThresholdText = "0", sampleIntervalText = "20", unresponsiveThresholdText = "5000"))
+        assertNull(validSettingsOf(longTaskThresholdText = "100", sampleIntervalText = "fast", unresponsiveThresholdText = "5000"))
     }
 }

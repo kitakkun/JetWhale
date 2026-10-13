@@ -15,7 +15,7 @@ import kotlin.time.TimeSource
 internal const val LONG_TASK_CAPACITY = 200
 internal const val HOTSPOT_CAPACITY = 100
 internal const val VIOLATION_GROUP_CAPACITY = 100
-internal const val FRAME_SAMPLE_CAPACITY = 1000
+internal const val FRAME_DURATION_CAPACITY = 1000
 internal const val JANKY_FRAME_CAPACITY = 100
 
 /** A frame longer than this many refresh intervals counts as janky. */
@@ -48,7 +48,7 @@ internal class MainThreadRecorder(
     private val lock = monitorLock()
 
     private var settings: MonitorSettings = initialSettings
-    private var recordingSince: Long = clock.epochMillis()
+    private var recordingSinceEpochMillis: Long = clock.epochMillis()
 
     private val longTasks = ArrayDeque<LongTask>()
     private val hotspots = LinkedHashMap<String, HotspotAccumulator>()
@@ -59,7 +59,7 @@ internal class MainThreadRecorder(
     private var jankyFrameCount = 0
     private var refreshIntervalMillis = 0.0
 
-    private var running: RunningTask? = null
+    private var runningTask: RunningTask? = null
     private var nextTaskId = 0L
     private var lastTaskEndMonotonic = Long.MIN_VALUE
 
@@ -74,9 +74,9 @@ internal class MainThreadRecorder(
      * [description] is kept as the probe saw it and only turned into a label by [formatTaskLabel]
      * if the task turns out long: most tasks are short, and this runs for every one of them.
      */
-    fun taskStarted(description: String, extraLabel: String?) = lock.withLock {
-        if (running?.isStall == true) finishRunning()
-        running = RunningTask(
+    fun recordTaskStart(description: String, extraLabel: String?) = lock.withLock {
+        if (runningTask?.isStall == true) endRunningTask()
+        runningTask = RunningTask(
             id = nextTaskId++,
             description = description,
             extraLabel = extraLabel,
@@ -86,21 +86,21 @@ internal class MainThreadRecorder(
         )
     }
 
-    fun taskFinished() = lock.withLock(::finishRunning)
+    fun recordTaskEnd() = lock.withLock(::endRunningTask)
 
     /**
      * The main thread has been busy for [busyForMillis] without the probe seeing a task start —
      * work the platform runs outside its task hooks, such as Android's input dispatch. It is recorded
      * as a task that began [busyForMillis] ago, or when the last task finished if that was later: a
      * probe that began waiting during a task counts that task's time too, but the work outside it
-     * began only once it ended. The stall ends at [stallEnded] or when the next task starts. While a
+     * began only once it ended. The stall ends at [recordStallEnd] or when the next task starts. While a
      * task is running, the stall is that task and nothing changes.
      */
-    fun stallDetected(description: String, busyForMillis: Long) = lock.withLock {
-        if (running != null) return@withLock
+    fun recordStall(description: String, busyForMillis: Long) = lock.withLock {
+        if (runningTask != null) return@withLock
         val now = clock.monotonicMillis()
         val startMonotonic = maxOf(now - busyForMillis, lastTaskEndMonotonic)
-        running = RunningTask(
+        runningTask = RunningTask(
             id = nextTaskId++,
             description = description,
             extraLabel = null,
@@ -110,13 +110,13 @@ internal class MainThreadRecorder(
         )
     }
 
-    fun stallEnded() = lock.withLock {
-        if (running?.isStall == true) finishRunning()
+    fun recordStallEnd() = lock.withLock {
+        if (runningTask?.isStall == true) endRunningTask()
     }
 
-    private fun finishRunning() {
-        val task = running ?: return
-        running = null
+    private fun endRunningTask() {
+        val task = runningTask ?: return
+        runningTask = null
         val now = clock.monotonicMillis()
         lastTaskEndMonotonic = now
         val duration = now - task.startMonotonic
@@ -126,7 +126,7 @@ internal class MainThreadRecorder(
                 startEpochMillis = task.startEpoch,
                 durationMillis = duration,
                 label = listOfNotNull(formatTaskLabel(task.description), task.extraLabel).joinToString(" · "),
-                sampleCount = task.samples,
+                sampleCount = task.sampleCount,
                 unresponsive = duration >= settings.unresponsiveThresholdMillis,
             ),
             LONG_TASK_CAPACITY,
@@ -140,7 +140,7 @@ internal class MainThreadRecorder(
      */
     fun sampleIfDue(readStack: () -> List<String>) {
         val task = lock.withLock {
-            val current = running ?: return
+            val current = runningTask ?: return
             val now = clock.monotonicMillis()
             val elapsed = now - current.startMonotonic
             if (elapsed < settings.longTaskThresholdMillis) return
@@ -151,11 +151,11 @@ internal class MainThreadRecorder(
         }
         val stack = readStack()
         lock.withLock {
-            if (running !== task || stack.isEmpty()) return
-            task.samples++
+            if (runningTask !== task || stack.isEmpty()) return
+            task.sampleCount++
             val signature = stackSignature(stack)
             val accumulator = hotspots.getOrPut(signature) { HotspotAccumulator() }
-            accumulator.samples++
+            accumulator.sampleCount++
             accumulator.blockedMillis += settings.sampleIntervalMillis
             accumulator.frames = stack
             if (accumulator.lastTaskId != task.id) {
@@ -163,13 +163,13 @@ internal class MainThreadRecorder(
                 accumulator.taskCount++
             }
             if (hotspots.size > HOTSPOT_CAPACITY) {
-                val weakest = hotspots.entries.filter { it.key != signature }.minBy { it.value.samples }.key
-                hotspots.remove(weakest)
+                val weakestSignature = hotspots.entries.filter { it.key != signature }.minBy { it.value.sampleCount }.key
+                hotspots.remove(weakestSignature)
             }
         }
     }
 
-    fun violation(kind: ViolationKind, message: String, stack: List<String>) = lock.withLock {
+    fun recordViolation(kind: ViolationKind, message: String, stack: List<String>) = lock.withLock {
         val callSite = callSiteOf(stack)
         val key = kind to callSite
         // LinkedHashMap keeps a replaced key's position; removing and re-adding moves the group to
@@ -186,10 +186,10 @@ internal class MainThreadRecorder(
         while (violations.size > VIOLATION_GROUP_CAPACITY) violations.remove(violations.keys.first())
     }
 
-    fun frame(durationMillis: Double, refreshIntervalMillis: Double) = lock.withLock {
+    fun recordFrame(durationMillis: Double, refreshIntervalMillis: Double) = lock.withLock {
         this.refreshIntervalMillis = refreshIntervalMillis
         totalFrames++
-        frameDurations.addBounded(durationMillis, FRAME_SAMPLE_CAPACITY)
+        frameDurations.addBounded(durationMillis, FRAME_DURATION_CAPACITY)
         if (durationMillis > refreshIntervalMillis * JANK_FACTOR) {
             jankyFrameCount++
             jankyFrames.addBounded(JankyFrame(endEpochMillis = clock.epochMillis(), durationMillis = durationMillis), JANKY_FRAME_CAPACITY)
@@ -197,8 +197,8 @@ internal class MainThreadRecorder(
     }
 
     fun reset() = lock.withLock {
-        recordingSince = clock.epochMillis()
-        running = null
+        recordingSinceEpochMillis = clock.epochMillis()
+        runningTask = null
         longTasks.clear()
         hotspots.clear()
         violations.clear()
@@ -208,17 +208,17 @@ internal class MainThreadRecorder(
         jankyFrameCount = 0
     }
 
-    fun report(capabilities: MonitorCapabilities): MainThreadReport = lock.withLock {
+    fun buildReport(capabilities: MonitorCapabilities): MainThreadReport = lock.withLock {
         MainThreadReport(
             capabilities = capabilities,
             settings = settings,
-            recordingSinceEpochMillis = recordingSince,
+            recordingSinceEpochMillis = recordingSinceEpochMillis,
             longTasks = longTasks.toList(),
             hotspots = hotspots.map { (signature, accumulator) ->
                 Hotspot(
                     signature = signature,
                     frames = accumulator.frames,
-                    sampleCount = accumulator.samples,
+                    sampleCount = accumulator.sampleCount,
                     blockedMillis = accumulator.blockedMillis,
                     taskCount = accumulator.taskCount,
                 )
@@ -251,11 +251,11 @@ internal class MainThreadRecorder(
         val isStall: Boolean,
     ) {
         var lastSampleMonotonic: Long? = null
-        var samples = 0
+        var sampleCount = 0
     }
 
     private class HotspotAccumulator {
-        var samples = 0
+        var sampleCount = 0
         var blockedMillis = 0L
         var taskCount = 0
         var lastTaskId: Long? = null

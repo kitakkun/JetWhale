@@ -18,7 +18,7 @@ internal val McpJson: Json = Json { encodeDefaults = true }
  * run — without them a caller cannot tell "nothing blocked" from "nothing was watched" — followed
  * by the part of [report] the tool is about.
  */
-internal fun reportJson(report: MainThreadReport, body: JsonObjectBuilder.() -> Unit): String = buildJsonObject {
+internal fun toolResultJson(report: MainThreadReport, body: JsonObjectBuilder.() -> Unit): String = buildJsonObject {
     put("capabilities", McpJson.encodeToJsonElement(MonitorCapabilities.serializer(), report.capabilities))
     put("settings", McpJson.encodeToJsonElement(MonitorSettings.serializer(), report.settings))
     put("recordingSinceEpochMillis", report.recordingSinceEpochMillis)

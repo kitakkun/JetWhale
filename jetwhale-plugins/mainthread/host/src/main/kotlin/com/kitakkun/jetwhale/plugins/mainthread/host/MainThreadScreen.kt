@@ -25,7 +25,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
 /** Often enough to watch a stall appear while driving the app, cheap enough to leave running. */
-private val REFRESH_INTERVAL = 1.seconds
+private val REPORT_POLL_INTERVAL = 1.seconds
 
 internal enum class MainThreadTab(val label: String) {
     Hotspots("Hotspots"),
@@ -40,7 +40,7 @@ internal fun MainThreadScreenRoot(monitor: MainThreadMonitor, modifier: Modifier
     var tab by rememberPersistent("tab", default = MainThreadTab.Hotspots)
     LaunchedEffect(monitor) {
         while (true) {
-            delay(REFRESH_INTERVAL)
+            delay(REPORT_POLL_INTERVAL)
             // A missed beat is retried on the next one; Refresh reports the error.
             try {
                 monitor.load()
@@ -63,7 +63,7 @@ internal fun MainThreadScreen(
     tab: MainThreadTab,
     report: MainThreadReport?,
     status: MonitorStatus?,
-    actions: MainThreadActions,
+    actions: MainThreadScreenActions,
     onSelectTab: (MainThreadTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -72,7 +72,7 @@ internal fun MainThreadScreen(
             title = "Main thread",
             actions = {
                 JwButton(text = "Refresh", onClick = actions::refresh, style = JwButtonStyle.Text)
-                JwButton(text = "Clear", onClick = actions::reset, style = JwButtonStyle.Text)
+                JwButton(text = "Clear", onClick = actions::resetStats, style = JwButtonStyle.Text)
             },
         )
         JwTabRow {

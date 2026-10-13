@@ -42,24 +42,24 @@ class JetWhaleMainThreadAgentPlugin : JetWhaleAgentPlugin() {
     private val recorder = MainThreadRecorder(
         clock = SystemMonitorClock(),
         initialSettings = MonitorSettings(
-            longTaskThresholdMillis = DEFAULT_LONG_TASK_MILLIS,
+            longTaskThresholdMillis = DEFAULT_LONG_TASK_THRESHOLD_MILLIS,
             sampleIntervalMillis = DEFAULT_SAMPLE_INTERVAL_MILLIS,
-            unresponsiveThresholdMillis = DEFAULT_UNRESPONSIVE_MILLIS,
+            unresponsiveThresholdMillis = DEFAULT_UNRESPONSIVE_THRESHOLD_MILLIS,
         ),
     )
 
     @Volatile private var hostConnected = false
 
     private val probe: MainThreadProbe by lazy {
-        createMainThreadProbe(recorder, labels = { labelProvider?.currentLabel() }, hostConnected = { hostConnected })
+        createMainThreadProbe(recorder, extraLabel = { labelProvider?.currentLabel() }, isHostConnected = { hostConnected })
     }
 
     override fun JetWhaleMessageHandlers.configure() {
-        onRequest { _: GetMainThreadReport -> reply(recorder.report(probe.capabilities)) }
+        onRequest { _: GetMainThreadReport -> reply(recorder.buildReport(probe.capabilities)) }
         onRequest { request: UpdateMonitorSettings -> reply(recorder.updateSettings(request.settings)) }
         onRequest { _: ResetMainThreadStats ->
             recorder.reset()
-            reply(recorder.report(probe.capabilities))
+            reply(recorder.buildReport(probe.capabilities))
         }
     }
 
@@ -82,10 +82,10 @@ class JetWhaleMainThreadAgentPlugin : JetWhaleAgentPlugin() {
 }
 
 /** Long enough to skip ordinary layout and input handling, short enough to catch visible stutter. */
-private const val DEFAULT_LONG_TASK_MILLIS = 100L
+private const val DEFAULT_LONG_TASK_THRESHOLD_MILLIS = 100L
 
 /** Fine enough to place a 100 ms stall within a few frames; reading a stack costs well under 1 ms. */
 private const val DEFAULT_SAMPLE_INTERVAL_MILLIS = 20L
 
 /** Android reports an ANR when input goes unanswered for 5 seconds. */
-private const val DEFAULT_UNRESPONSIVE_MILLIS = 5_000L
+private const val DEFAULT_UNRESPONSIVE_THRESHOLD_MILLIS = 5_000L

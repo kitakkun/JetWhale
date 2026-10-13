@@ -19,9 +19,9 @@ class EventDispatchThreadProbeTest {
             clock = SystemMonitorClock(),
             initialSettings = MonitorSettings(longTaskThresholdMillis = 50, sampleIntervalMillis = 10, unresponsiveThresholdMillis = 10_000),
         )
-        val probe = createMainThreadProbe(recorder, labels = { "label" }, hostConnected = { true })
+        val probe = createMainThreadProbe(recorder, extraLabel = { "label" }, isHostConnected = { true })
         EventQueue.invokeAndWait { }
-        val before = Toolkit.getDefaultToolkit().systemEventQueue
+        val originalEventQueue = Toolkit.getDefaultToolkit().systemEventQueue
 
         probe.start()
         EventQueue.invokeAndWait { busyFor(millis = 200) }
@@ -30,8 +30,8 @@ class EventDispatchThreadProbeTest {
         // finishes the task; this empty event waits until it has.
         EventQueue.invokeAndWait { }
 
-        assertSame(before, Toolkit.getDefaultToolkit().systemEventQueue)
-        val report = recorder.report(probe.capabilities)
+        assertSame(originalEventQueue, Toolkit.getDefaultToolkit().systemEventQueue)
+        val report = recorder.buildReport(probe.capabilities)
         val task = report.longTasks.single { it.durationMillis >= 200 }
         assertTrue(task.label.startsWith("InvocationEvent"), task.label)
         assertTrue(task.sampleCount > 0)

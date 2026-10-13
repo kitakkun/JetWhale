@@ -16,12 +16,12 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe = AndroidMainThreadProbe(recorder, labels, hostConnected)
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, extraLabel: () -> String?, isHostConnected: () -> Boolean): MainThreadProbe = AndroidMainThreadProbe(recorder, extraLabel, isHostConnected)
 
 private const val OUTSIDE_MESSAGE_LABEL = "Outside a Looper message (input dispatch or a native callback)"
 
-private const val LOOPER_DISPATCHING = ">>>>>"
-private const val LOOPER_FINISHED = "<<<<<"
+private const val LOOPER_DISPATCHING_PREFIX = ">>>>>"
+private const val LOOPER_FINISHED_PREFIX = "<<<<<"
 
 /**
  * Watches Android's main thread through the platform's own hooks, each put back as it was on [stop]:
@@ -31,12 +31,12 @@ private const val LOOPER_FINISHED = "<<<<<"
  */
 private class AndroidMainThreadProbe(
     private val recorder: MainThreadRecorder,
-    private val labels: () -> String?,
-    private val hostConnected: () -> Boolean,
+    private val extraLabel: () -> String?,
+    private val isHostConnected: () -> Boolean,
 ) : MainThreadProbe {
     private val mainLooper = Looper.getMainLooper()
     private val mainHandler = Handler(mainLooper)
-    private val sampler = StackSampler(recorder, mainThread = { mainLooper.thread }, onTick = ::checkHeartbeat)
+    private val sampler = StackSampler(recorder, mainThread = { mainLooper.thread }, onTick = ::postHeartbeatOrRecordStall)
 
     @Volatile private var heartbeatPostedAt: Long? = null
 
@@ -50,7 +50,7 @@ private class AndroidMainThreadProbe(
 
     private var violationExecutor: ExecutorService? = null
 
-    private var frameTiming: FrameTimingSession? = null
+    private var frameTimingSession: FrameTimingSession? = null
 
     override val capabilities: MonitorCapabilities
         get() = MonitorCapabilities(
@@ -70,12 +70,12 @@ private class AndroidMainThreadProbe(
     override fun start() {
         if (started) return
         started = true
-        previousPrinter = currentLooperPrinter()
-        mainLooper.setMessageLogging(::onLooperLine)
+        previousPrinter = readMainLooperPrinter()
+        mainLooper.setMessageLogging(::recordLooperLine)
         sampler.start()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::installStrictMode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            frameTiming = currentApplicationOrNull()?.let { FrameTimingSession(it, recorder, mainHandler) }
+            frameTimingSession = currentApplicationOrNull()?.let { FrameTimingSession(it, recorder, mainHandler) }
         }
     }
 
@@ -86,15 +86,15 @@ private class AndroidMainThreadProbe(
         sampler.stop()
         heartbeatPostedAt = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::restoreStrictMode)
-        frameTiming?.close()
-        frameTiming = null
+        frameTimingSession?.close()
+        frameTimingSession = null
     }
 
-    private fun onLooperLine(line: String) {
+    private fun recordLooperLine(line: String) {
         previousPrinter?.println(line)
         when {
-            line.startsWith(LOOPER_DISPATCHING) -> recorder.taskStarted(line, labels())
-            line.startsWith(LOOPER_FINISHED) -> recorder.taskFinished()
+            line.startsWith(LOOPER_DISPATCHING_PREFIX) -> recorder.recordTaskStart(line, extraLabel())
+            line.startsWith(LOOPER_FINISHED_PREFIX) -> recorder.recordTaskEnd()
         }
     }
 
@@ -107,20 +107,20 @@ private class AndroidMainThreadProbe(
      * Each heartbeat wakes the main thread, a tick apart even while the app is idle, so none is
      * posted while no host is connected; work outside messages goes unrecorded until one is.
      */
-    private fun checkHeartbeat() {
+    private fun postHeartbeatOrRecordStall() {
         val postedAt = heartbeatPostedAt
         if (postedAt == null) {
-            if (!hostConnected()) return
+            if (!isHostConnected()) return
             heartbeatPostedAt = SystemClock.uptimeMillis()
             mainHandler.postAtFrontOfQueue {
                 heartbeatPostedAt = null
-                recorder.stallEnded()
+                recorder.recordStallEnd()
             }
             return
         }
         val waited = SystemClock.uptimeMillis() - postedAt
         if (waited >= recorder.currentSettings.longTaskThresholdMillis) {
-            recorder.stallDetected(OUTSIDE_MESSAGE_LABEL, busyForMillis = waited)
+            recorder.recordStall(OUTSIDE_MESSAGE_LABEL, busyForMillis = waited)
         }
     }
 
@@ -148,7 +148,7 @@ private class AndroidMainThreadProbe(
                 .detectResourceMismatches()
                 .detectUnbufferedIo()
                 .penaltyListener(executor) { violation ->
-                    recorder.violation(
+                    recorder.recordViolation(
                         kind = violationKindOf(violation.javaClass.name),
                         message = violation.message ?: violation.javaClass.simpleName,
                         stack = violation.stackTrace.map(::frameText),
@@ -196,13 +196,13 @@ private class FrameTimingSession(
     private val handler by lazy { Handler(thread.looper) }
 
     // Touched only on the main thread, where Android delivers activity lifecycle callbacks.
-    private val windows = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
+    private val listenersByWindow = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
     private var closed = false
 
     private val callbacks = object : Application.ActivityLifecycleCallbacks {
-        override fun onActivityResumed(activity: Activity) = attach(activity)
+        override fun onActivityResumed(activity: Activity) = addFrameMetricsListener(activity)
 
-        override fun onActivityPaused(activity: Activity) = detach(activity)
+        override fun onActivityPaused(activity: Activity) = removeFrameMetricsListener(activity)
 
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
@@ -218,23 +218,23 @@ private class FrameTimingSession(
     init {
         thread.start()
         application.registerActivityLifecycleCallbacks(callbacks)
-        mainHandler.post { resumedActivitiesOrEmpty().forEach(::attach) }
+        mainHandler.post { resumedActivitiesOrEmpty().forEach(::addFrameMetricsListener) }
     }
 
     fun close() {
         application.unregisterActivityLifecycleCallbacks(callbacks)
         mainHandler.post {
             closed = true
-            windows.forEach { (window, listener) -> runCatching { window.removeOnFrameMetricsAvailableListener(listener) } }
-            windows.clear()
+            listenersByWindow.forEach { (window, listener) -> runCatching { window.removeOnFrameMetricsAvailableListener(listener) } }
+            listenersByWindow.clear()
             thread.quitSafely()
         }
     }
 
-    private fun attach(activity: Activity) {
+    private fun addFrameMetricsListener(activity: Activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || closed) return
         val window = activity.window ?: return
-        if (window in windows) return
+        if (window in listenersByWindow) return
         // A window drawn in software reports no frames: Android ignores a listener added to one
         // already attached, then throws when that listener is removed.
         val decor = window.peekDecorView()
@@ -243,16 +243,16 @@ private class FrameTimingSession(
         @Suppress("DEPRECATION")
         val refreshIntervalMillis = 1000.0 / activity.windowManager.defaultDisplay.refreshRate
         val listener = Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
-            recorder.frame(metrics.getMetric(FrameMetrics.TOTAL_DURATION) / 1_000_000.0, refreshIntervalMillis)
+            recorder.recordFrame(metrics.getMetric(FrameMetrics.TOTAL_DURATION) / 1_000_000.0, refreshIntervalMillis)
         }
         window.addOnFrameMetricsAvailableListener(listener, handler)
-        windows[window] = listener
+        listenersByWindow[window] = listener
     }
 
-    private fun detach(activity: Activity) {
+    private fun removeFrameMetricsListener(activity: Activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
         val window = activity.window ?: return
-        windows.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
+        listenersByWindow.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
     }
 }
 
@@ -260,7 +260,7 @@ private class FrameTimingSession(
  * The printer the app installed on the main Looper, if any, so it keeps receiving every line.
  * Looper has no getter for it; if the field cannot be read, there is assumed to be none.
  */
-private fun currentLooperPrinter(): Printer? = try {
+private fun readMainLooperPrinter(): Printer? = try {
     Looper::class.java.getDeclaredField("mLogging").apply { isAccessible = true }.get(Looper.getMainLooper()) as? Printer
 } catch (_: ReflectiveOperationException) {
     null
@@ -282,11 +282,11 @@ private fun currentApplicationOrNull(): Application? = try {
 private fun resumedActivitiesOrEmpty(): List<Activity> = try {
     val activityThreadClass = Class.forName("android.app.ActivityThread")
     val activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null)
-    val records = activityThreadClass.getDeclaredField("mActivities").apply { isAccessible = true }.get(activityThread) as Map<*, *>
-    records.values.mapNotNull { record ->
-        val recordClass = record?.javaClass ?: return@mapNotNull null
-        val paused = recordClass.getDeclaredField("paused").apply { isAccessible = true }.getBoolean(record)
-        val activity = recordClass.getDeclaredField("activity").apply { isAccessible = true }.get(record) as? Activity
+    val activityRecords = activityThreadClass.getDeclaredField("mActivities").apply { isAccessible = true }.get(activityThread) as Map<*, *>
+    activityRecords.values.mapNotNull { activityRecord ->
+        val activityRecordClass = activityRecord?.javaClass ?: return@mapNotNull null
+        val paused = activityRecordClass.getDeclaredField("paused").apply { isAccessible = true }.getBoolean(activityRecord)
+        val activity = activityRecordClass.getDeclaredField("activity").apply { isAccessible = true }.get(activityRecord) as? Activity
         activity?.takeUnless { paused }
     }
 } catch (_: ReflectiveOperationException) {

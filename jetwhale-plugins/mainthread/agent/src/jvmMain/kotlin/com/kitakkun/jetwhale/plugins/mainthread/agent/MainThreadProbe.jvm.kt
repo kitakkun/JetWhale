@@ -7,10 +7,10 @@ import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 import java.awt.event.InvocationEvent
 
-internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe = if (GraphicsEnvironment.isHeadless()) {
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, extraLabel: () -> String?, isHostConnected: () -> Boolean): MainThreadProbe = if (GraphicsEnvironment.isHeadless()) {
     UnsupportedMainThreadProbe(platform = "JVM", reason = "This JVM is headless: it has no AWT event dispatch thread to watch.")
 } else {
-    EventDispatchThreadProbe(recorder, labels)
+    EventDispatchThreadProbe(recorder, extraLabel)
 }
 
 /**
@@ -20,7 +20,7 @@ internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: 
  */
 private class EventDispatchThreadProbe(
     private val recorder: MainThreadRecorder,
-    private val labels: () -> String?,
+    private val extraLabel: () -> String?,
 ) : MainThreadProbe {
     override val capabilities = MonitorCapabilities(
         platform = "JVM (AWT/Swing)",
@@ -58,12 +58,12 @@ private class EventDispatchThreadProbe(
         override fun dispatchEvent(event: AWTEvent) {
             if (depth++ == 0) {
                 dispatchThread = Thread.currentThread()
-                recorder.taskStarted(describe(event), labels())
+                recorder.recordTaskStart(describe(event), extraLabel())
             }
             try {
                 super.dispatchEvent(event)
             } finally {
-                if (--depth == 0) recorder.taskFinished()
+                if (--depth == 0) recorder.recordTaskEnd()
             }
         }
 

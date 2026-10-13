@@ -24,38 +24,38 @@ private val FormWidth = 420.dp
 
 @Composable
 internal fun SettingsPane(settings: MonitorSettings, onApply: (MonitorSettings) -> Unit, modifier: Modifier = Modifier) {
-    var longTask by remember(settings) { mutableStateOf(settings.longTaskThresholdMillis.toString()) }
-    var interval by remember(settings) { mutableStateOf(settings.sampleIntervalMillis.toString()) }
-    var unresponsive by remember(settings) { mutableStateOf(settings.unresponsiveThresholdMillis.toString()) }
-    val edited = validSettingsOf(longTask = longTask, interval = interval, unresponsive = unresponsive)
+    var longTaskThresholdText by remember(settings) { mutableStateOf(settings.longTaskThresholdMillis.toString()) }
+    var sampleIntervalText by remember(settings) { mutableStateOf(settings.sampleIntervalMillis.toString()) }
+    var unresponsiveThresholdText by remember(settings) { mutableStateOf(settings.unresponsiveThresholdMillis.toString()) }
+    val editedSettings = validSettingsOf(longTaskThresholdText = longTaskThresholdText, sampleIntervalText = sampleIntervalText, unresponsiveThresholdText = unresponsiveThresholdText)
     Column(
         // Not fillMaxSize: a width fixed to the pane would leave widthIn nothing to narrow.
         modifier = modifier.fillMaxHeight().padding(JwSpacing.large).widthIn(max = FormWidth),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         JwFormField(label = "Long task (ms)", supportingText = "Tasks at least this long are recorded, and sampled while they run.") {
-            JwTextField(value = longTask, onValueChange = { longTask = it }, isError = longTask.toLongOrNull()?.takeIf { it > 0 } == null)
+            JwTextField(value = longTaskThresholdText, onValueChange = { longTaskThresholdText = it }, isError = longTaskThresholdText.toLongOrNull()?.takeIf { it > 0 } == null)
         }
         JwFormField(label = "Sample interval (ms)", supportingText = "How often a long task's stack is read. Shorter is finer and costs more.") {
-            JwTextField(value = interval, onValueChange = { interval = it }, isError = interval.toLongOrNull()?.takeIf { it > 0 } == null)
+            JwTextField(value = sampleIntervalText, onValueChange = { sampleIntervalText = it }, isError = sampleIntervalText.toLongOrNull()?.takeIf { it > 0 } == null)
         }
         JwFormField(label = "Unresponsive (ms)", supportingText = "Tasks this long are marked the way an ANR would report them.") {
-            JwTextField(value = unresponsive, onValueChange = { unresponsive = it }, isError = unresponsive.toLongOrNull()?.takeIf { it > 0 } == null)
+            JwTextField(value = unresponsiveThresholdText, onValueChange = { unresponsiveThresholdText = it }, isError = unresponsiveThresholdText.toLongOrNull()?.takeIf { it > 0 } == null)
         }
         JwButton(
             text = "Apply",
             style = JwButtonStyle.Primary,
-            enabled = edited != null && edited != settings,
-            onClick = { edited?.let(onApply) },
+            enabled = editedSettings != null && editedSettings != settings,
+            onClick = { editedSettings?.let(onApply) },
         )
     }
 }
 
 /** The form's values as settings, or null while any of them is not a positive whole number. */
 @VisibleForTesting
-internal fun validSettingsOf(longTask: String, interval: String, unresponsive: String): MonitorSettings? {
-    val longTaskMillis = longTask.toLongOrNull()?.takeIf { it > 0 } ?: return null
-    val intervalMillis = interval.toLongOrNull()?.takeIf { it > 0 } ?: return null
-    val unresponsiveMillis = unresponsive.toLongOrNull()?.takeIf { it > 0 } ?: return null
-    return MonitorSettings(longTaskThresholdMillis = longTaskMillis, sampleIntervalMillis = intervalMillis, unresponsiveThresholdMillis = unresponsiveMillis)
+internal fun validSettingsOf(longTaskThresholdText: String, sampleIntervalText: String, unresponsiveThresholdText: String): MonitorSettings? {
+    val longTaskThresholdMillis = longTaskThresholdText.toLongOrNull()?.takeIf { it > 0 } ?: return null
+    val sampleIntervalMillis = sampleIntervalText.toLongOrNull()?.takeIf { it > 0 } ?: return null
+    val unresponsiveThresholdMillis = unresponsiveThresholdText.toLongOrNull()?.takeIf { it > 0 } ?: return null
+    return MonitorSettings(longTaskThresholdMillis = longTaskThresholdMillis, sampleIntervalMillis = sampleIntervalMillis, unresponsiveThresholdMillis = unresponsiveThresholdMillis)
 }

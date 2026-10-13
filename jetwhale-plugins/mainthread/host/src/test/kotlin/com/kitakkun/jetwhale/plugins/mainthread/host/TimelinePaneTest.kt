@@ -13,12 +13,12 @@ import kotlin.test.Test
 class TimelinePaneTest {
     @Test
     fun `a platform that cannot time tasks says why instead of showing an empty timeline`() = runComposeUiTest {
-        val unsupported = report(hotspots = emptyList(), violations = emptyList(), longTasks = emptyList()).copy(
+        val unsupportedReport = report(hotspots = emptyList(), violations = emptyList(), longTasks = emptyList()).copy(
             capabilities = MonitorCapabilities(platform = "Web", taskTiming = false, stackSampling = false, strictMode = false, frameTiming = false, note = "Main-thread monitoring is not available on the web yet."),
         )
         setContent {
             JwTheme(darkTheme = false) {
-                TimelinePane(unsupported)
+                TimelinePane(unsupportedReport)
             }
         }
 

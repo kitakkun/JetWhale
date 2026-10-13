@@ -4,7 +4,7 @@ import kotlin.concurrent.AtomicInt
 
 // Kotlin/Native has no API for reading another thread's stack, so the main thread's work could be
 // timed here but not named.
-internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?, hostConnected: () -> Boolean): MainThreadProbe = UnsupportedMainThreadProbe(
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, extraLabel: () -> String?, isHostConnected: () -> Boolean): MainThreadProbe = UnsupportedMainThreadProbe(
     platform = "Apple",
     reason = "Main-thread monitoring is not available on iOS or macOS yet.",
 )

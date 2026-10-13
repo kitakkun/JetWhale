@@ -61,10 +61,10 @@ private val previewReport = MainThreadReport(
     ),
 )
 
-private object NoActions : MainThreadActions {
+private object NoActions : MainThreadScreenActions {
     override fun refresh() = Unit
 
-    override fun reset() = Unit
+    override fun resetStats() = Unit
 
     override fun updateSettings(settings: MonitorSettings) = Unit
 }

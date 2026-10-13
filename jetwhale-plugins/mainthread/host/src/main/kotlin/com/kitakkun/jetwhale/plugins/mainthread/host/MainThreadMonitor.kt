@@ -14,10 +14,10 @@ import kotlinx.coroutines.launch
 internal data class MonitorStatus(val message: String, val isError: Boolean)
 
 /** What the monitor's UI can ask for. */
-internal interface MainThreadActions {
+internal interface MainThreadScreenActions {
     fun refresh()
 
-    fun reset()
+    fun resetStats()
 
     fun updateSettings(settings: MonitorSettings)
 }
@@ -30,7 +30,7 @@ internal interface MainThreadActions {
 internal class MainThreadMonitor(
     private val client: MainThreadClient,
     private val scope: CoroutineScope,
-) : MainThreadActions {
+) : MainThreadScreenActions {
     var report: MainThreadReport? by mutableStateOf(null)
         private set
 
@@ -39,14 +39,14 @@ internal class MainThreadMonitor(
 
     /** Fetches the report; the screen calls this on a beat while it is shown. */
     suspend fun load() {
-        report = client.report()
+        report = client.requestReport()
         if (status?.isError == true) status = null
     }
 
     override fun refresh() = launchReporting(::load)
 
-    override fun reset() = launchReporting {
-        report = client.reset()
+    override fun resetStats() = launchReporting {
+        report = client.resetStats()
         status = MonitorStatus(message = "Cleared everything recorded so far.", isError = false)
     }
 

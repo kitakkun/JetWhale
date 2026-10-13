@@ -17,9 +17,9 @@ internal class GetLongTasksCommand(
     private val minDurationMillis by longOrNull("Only tasks at least this long.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val report = client.report()
+        val report = client.requestReport()
         val minimum = arguments[minDurationMillis] ?: 0
         val tasks = report.longTasks.filter { it.durationMillis >= minimum }
-        return reportJson(report) { put("longTasks", McpJson.encodeToJsonElement(ListSerializer(LongTask.serializer()), tasks)) }
+        return toolResultJson(report) { put("longTasks", McpJson.encodeToJsonElement(ListSerializer(LongTask.serializer()), tasks)) }
     }
 }

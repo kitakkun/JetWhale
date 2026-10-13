@@ -34,11 +34,11 @@ private class MainThreadHostPlugin :
         monitor.load()
     }
 
-    override suspend fun report(): MainThreadReport = messenger.request(GetMainThreadReport)
+    override suspend fun requestReport(): MainThreadReport = messenger.request(GetMainThreadReport)
 
     override suspend fun updateSettings(settings: MonitorSettings): MonitorSettings = messenger.request(UpdateMonitorSettings(settings))
 
-    override suspend fun reset(): MainThreadReport = messenger.request(ResetMainThreadStats)
+    override suspend fun resetStats(): MainThreadReport = messenger.request(ResetMainThreadStats)
 
     @Composable
     override fun Content() {

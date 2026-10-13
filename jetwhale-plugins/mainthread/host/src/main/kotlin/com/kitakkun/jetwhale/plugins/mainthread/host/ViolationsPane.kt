@@ -37,7 +37,7 @@ private val CountColumnWidth = 64.dp
 /** @param unavailableReason Why violations are not collected, or null when they are. */
 @Composable
 internal fun ViolationsPane(violations: List<ViolationGroup>, unavailableReason: String?, modifier: Modifier = Modifier) {
-    var selected by remember { mutableStateOf<Pair<ViolationKind, String>?>(null) }
+    var selectedGroupKey by remember { mutableStateOf<Pair<ViolationKind, String>?>(null) }
     Box(modifier.fillMaxSize()) {
         if (violations.isEmpty()) {
             JwEmptyState(
@@ -46,7 +46,7 @@ internal fun ViolationsPane(violations: List<ViolationGroup>, unavailableReason:
             )
             return@Box
         }
-        val selectedGroup = violations.firstOrNull { (it.kind to it.callSite) == selected } ?: violations.first()
+        val selectedGroup = violations.firstOrNull { (it.kind to it.callSite) == selectedGroupKey } ?: violations.first()
         JwSplitPane(
             state = rememberJwSplitPaneState(VIOLATION_LIST_FRACTION),
             first = {
@@ -59,7 +59,7 @@ internal fun ViolationsPane(violations: List<ViolationGroup>, unavailableReason:
                     ),
                     key = { it.kind to it.callSite },
                     isSelected = { it === selectedGroup },
-                    onClick = { selected = it.kind to it.callSite },
+                    onClick = { selectedGroupKey = it.kind to it.callSite },
                 )
             },
             second = { ViolationDetail(selectedGroup) },

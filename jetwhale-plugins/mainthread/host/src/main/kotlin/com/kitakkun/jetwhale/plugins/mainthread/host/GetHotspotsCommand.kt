@@ -21,10 +21,10 @@ internal class GetHotspotsCommand(
     private val limit by intOrNull("How many hotspots to return, most blocking first. Defaults to $DEFAULT_HOTSPOT_LIMIT.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val count = arguments[limit] ?: DEFAULT_HOTSPOT_LIMIT
-        if (count < 1) throw JetWhaleMcpArgumentException("limit must be at least 1, not $count")
-        val report = client.report()
-        val hotspots = report.hotspots.take(count)
-        return reportJson(report) { put("hotspots", McpJson.encodeToJsonElement(ListSerializer(Hotspot.serializer()), hotspots)) }
+        val hotspotLimit = arguments[limit] ?: DEFAULT_HOTSPOT_LIMIT
+        if (hotspotLimit < 1) throw JetWhaleMcpArgumentException("limit must be at least 1, not $hotspotLimit")
+        val report = client.requestReport()
+        val hotspots = report.hotspots.take(hotspotLimit)
+        return toolResultJson(report) { put("hotspots", McpJson.encodeToJsonElement(ListSerializer(Hotspot.serializer()), hotspots)) }
     }
 }

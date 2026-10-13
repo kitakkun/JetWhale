@@ -19,7 +19,7 @@ internal class StackSampler(
 
     fun start() {
         if (thread != null) return
-        thread = Thread(::run, "jetwhale-main-thread-sampler").apply {
+        thread = Thread(::tickUntilStopped, "jetwhale-main-thread-sampler").apply {
             isDaemon = true
             start()
         }
@@ -30,7 +30,7 @@ internal class StackSampler(
         thread = null
     }
 
-    private fun run() {
+    private fun tickUntilStopped() {
         val self = Thread.currentThread()
         while (thread === self) {
             onTick()

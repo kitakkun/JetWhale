@@ -82,23 +82,23 @@ private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFra
     val unresponsiveColor = JwTheme.colors.error
     val frameColor = JwTheme.colors.accent
     val axisColor = JwTheme.colors.border
-    val latest = (tasks.map { it.startEpochMillis + it.durationMillis } + jankyFrames.map(JankyFrame::endEpochMillis)).maxOrNull()
+    val latestEndEpochMillis = (tasks.map { it.startEpochMillis + it.durationMillis } + jankyFrames.map(JankyFrame::endEpochMillis)).maxOrNull()
     Canvas(modifier) {
         drawLine(axisColor, Offset(0f, size.height), Offset(size.width, size.height))
-        if (latest == null) return@Canvas
-        val start = latest - TIMELINE_WINDOW_MILLIS
+        if (latestEndEpochMillis == null) return@Canvas
+        val start = latestEndEpochMillis - TIMELINE_WINDOW_MILLIS
         fun x(epochMillis: Long): Float = ((epochMillis - start).toFloat() / TIMELINE_WINDOW_MILLIS) * size.width
         val tickHeight = size.height * 0.15f
-        val barArea = size.height - tickHeight
+        val barAreaHeight = size.height - tickHeight
         val shown = tasks.filter { it.startEpochMillis + it.durationMillis >= start }
         val longest = shown.maxOfOrNull(LongTask::durationMillis)?.toFloat() ?: 1f
         shown.forEach { task ->
             val left = x(task.startEpochMillis).coerceAtLeast(0f)
             val width = (x(task.startEpochMillis + task.durationMillis) - left).coerceAtLeast(2f)
-            val height = barArea * (task.durationMillis / longest).coerceAtLeast(MIN_BAR_FRACTION)
+            val height = barAreaHeight * (task.durationMillis / longest).coerceAtLeast(MIN_BAR_FRACTION)
             drawRect(
                 color = if (task.unresponsive) unresponsiveColor else taskColor,
-                topLeft = Offset(left, barArea - height),
+                topLeft = Offset(left, barAreaHeight - height),
                 size = Size(width, height),
             )
         }
@@ -110,11 +110,11 @@ private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFra
 }
 
 @Composable
-private fun FrameSummary(frames: FrameStats, frameTiming: Boolean) {
+private fun FrameSummary(frameStats: FrameStats, frameTiming: Boolean) {
     val text = when {
         !frameTiming -> "Frame timing is not reported on this platform."
-        frames.totalFrames == 0 -> "No frames measured yet."
-        else -> "${frames.jankyFrames} of ${frames.totalFrames} frames janky · p50 ${formatFrameMillis(frames.p50Millis)} · p90 ${formatFrameMillis(frames.p90Millis)} · p99 ${formatFrameMillis(frames.p99Millis)} · slowest ${formatFrameMillis(frames.slowestMillis)}"
+        frameStats.totalFrames == 0 -> "No frames measured yet."
+        else -> "${frameStats.jankyFrames} of ${frameStats.totalFrames} frames janky · p50 ${formatFrameMillis(frameStats.p50Millis)} · p90 ${formatFrameMillis(frameStats.p90Millis)} · p99 ${formatFrameMillis(frameStats.p99Millis)} · slowest ${formatFrameMillis(frameStats.slowestMillis)}"
     }
     Row(Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.small)) {
         JwText(text = text, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)

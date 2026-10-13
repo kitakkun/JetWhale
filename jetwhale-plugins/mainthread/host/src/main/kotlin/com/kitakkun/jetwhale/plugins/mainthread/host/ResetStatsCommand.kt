@@ -13,7 +13,7 @@ internal class ResetStatsCommand(
         "Clears every recorded long task, hotspot, violation and frame, so that a following interaction is measured on its own: reset, drive the app, then read the other tools."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val report = client.reset()
-        return reportJson(report) { }
+        val report = client.resetStats()
+        return toolResultJson(report) { }
     }
 }

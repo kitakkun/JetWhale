@@ -37,7 +37,7 @@ private val NumberColumnWidth = 88.dp
 
 @Composable
 internal fun HotspotsPane(hotspots: List<Hotspot>, capabilities: MonitorCapabilities, settings: MonitorSettings, modifier: Modifier = Modifier) {
-    var selected by remember { mutableStateOf<String?>(null) }
+    var selectedSignature by remember { mutableStateOf<String?>(null) }
     Box(modifier.fillMaxSize()) {
         if (hotspots.isEmpty()) {
             JwEmptyState(
@@ -50,7 +50,7 @@ internal fun HotspotsPane(hotspots: List<Hotspot>, capabilities: MonitorCapabili
             )
             return@Box
         }
-        val selectedHotspot = hotspots.firstOrNull { it.signature == selected } ?: hotspots.first()
+        val selectedHotspot = hotspots.firstOrNull { it.signature == selectedSignature } ?: hotspots.first()
         JwSplitPane(
             state = rememberJwSplitPaneState(HOTSPOT_LIST_FRACTION),
             first = {
@@ -63,7 +63,7 @@ internal fun HotspotsPane(hotspots: List<Hotspot>, capabilities: MonitorCapabili
                     ),
                     key = Hotspot::signature,
                     isSelected = { it.signature == selectedHotspot.signature },
-                    onClick = { selected = it.signature },
+                    onClick = { selectedSignature = it.signature },
                 )
             },
             second = { HotspotDetail(selectedHotspot) },

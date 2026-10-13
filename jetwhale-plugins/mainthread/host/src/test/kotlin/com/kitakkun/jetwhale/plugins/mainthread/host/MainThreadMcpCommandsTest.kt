@@ -29,12 +29,12 @@ import kotlin.test.assertTrue
 class MainThreadMcpCommandsTest {
     private val client = FakeMainThreadClient(
         report(
-            hotspots = (1..15).map { hotspot("com.example.Site$it.run", samples = 20 - it) },
+            hotspots = (1..15).map { hotspot("com.example.Site$it.run", sampleCount = 20 - it) },
             violations = listOf(
                 violation(ViolationKind.DiskWrite, "com.example.Prefs.save"),
                 violation(ViolationKind.Network, "com.example.Api.fetch"),
             ),
-            longTasks = listOf(longTask(duration = 120), longTask(duration = 6_000)),
+            longTasks = listOf(longTask(durationMillis = 120), longTask(durationMillis = 6_000)),
         ),
     )
 

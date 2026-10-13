@@ -14,7 +14,7 @@ internal class GetFrameStatsCommand(
         "Returns frame durations the platform reported (Android 7+): total and janky frame counts (longer than 1.5 refresh intervals), percentiles, the slowest frame and the latest janky frames with their end times, to line up with getLongTasks."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val report = client.report()
-        return reportJson(report) { put("frames", McpJson.encodeToJsonElement(FrameStats.serializer(), report.frames)) }
+        val report = client.requestReport()
+        return toolResultJson(report) { put("frames", McpJson.encodeToJsonElement(FrameStats.serializer(), report.frames)) }
     }
 }

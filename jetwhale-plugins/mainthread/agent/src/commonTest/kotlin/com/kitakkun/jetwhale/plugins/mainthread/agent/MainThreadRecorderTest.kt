@@ -21,20 +21,20 @@ class MainThreadRecorderTest {
 
     @Test
     fun `a task under the threshold is not recorded`() {
-        recorder.taskStarted("short", extraLabel = null)
+        recorder.recordTaskStart("short", extraLabel = null)
         clock.advance(99)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        assertTrue(recorder.report(capabilities).longTasks.isEmpty())
+        assertTrue(recorder.buildReport(capabilities).longTasks.isEmpty())
     }
 
     @Test
     fun `a long task is recorded with its formatted label and the app's own label`() {
-        recorder.taskStarted(">>>>> Dispatching to Handler (android.os.Handler) {1a} com.example.Job@2b: 0", extraLabel = "coroutine #3")
+        recorder.recordTaskStart(">>>>> Dispatching to Handler (android.os.Handler) {1a} com.example.Job@2b: 0", extraLabel = "coroutine #3")
         clock.advance(150)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        val task = recorder.report(capabilities).longTasks.single()
+        val task = recorder.buildReport(capabilities).longTasks.single()
         assertEquals("Handler (android.os.Handler) com.example.Job · coroutine #3", task.label)
         assertEquals(150, task.durationMillis)
     }
@@ -42,7 +42,7 @@ class MainThreadRecorderTest {
     @Test
     fun `a task is sampled only past the threshold and at most once per interval`() {
         var reads = 0
-        recorder.taskStarted("task", extraLabel = null)
+        recorder.recordTaskStart("task", extraLabel = null)
 
         clock.advance(50)
         recorder.sampleIfDue {
@@ -64,10 +64,10 @@ class MainThreadRecorderTest {
             reads++
             appStack
         }
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
         assertEquals(2, reads)
-        val report = recorder.report(capabilities)
+        val report = recorder.buildReport(capabilities)
         assertEquals(2, report.longTasks.single().sampleCount)
         val hotspot = report.hotspots.single()
         assertEquals(2, hotspot.sampleCount)
@@ -77,28 +77,28 @@ class MainThreadRecorderTest {
 
     @Test
     fun `a stack read while the task ended is not attributed to anything`() {
-        recorder.taskStarted("task", extraLabel = null)
+        recorder.recordTaskStart("task", extraLabel = null)
         clock.advance(120)
 
         recorder.sampleIfDue {
-            recorder.taskFinished()
-            recorder.taskStarted("next", extraLabel = null)
+            recorder.recordTaskEnd()
+            recorder.recordTaskStart("next", extraLabel = null)
             appStack
         }
 
-        assertTrue(recorder.report(capabilities).hotspots.isEmpty())
+        assertTrue(recorder.buildReport(capabilities).hotspots.isEmpty())
     }
 
     @Test
     fun `samples from different tasks at the same call site add up in one hotspot`() {
         repeat(2) {
-            recorder.taskStarted("task", extraLabel = null)
+            recorder.recordTaskStart("task", extraLabel = null)
             clock.advance(120)
             recorder.sampleIfDue { appStack }
-            recorder.taskFinished()
+            recorder.recordTaskEnd()
         }
 
-        val hotspot = recorder.report(capabilities).hotspots.single()
+        val hotspot = recorder.buildReport(capabilities).hotspots.single()
         assertEquals(2, hotspot.sampleCount)
         assertEquals(2, hotspot.taskCount)
     }
@@ -106,12 +106,12 @@ class MainThreadRecorderTest {
     @Test
     fun `work outside any task is recorded from when it began`() {
         clock.advance(10)
-        recorder.stallDetected("outside", busyForMillis = 120)
+        recorder.recordStall("outside", busyForMillis = 120)
         clock.advance(30)
         recorder.sampleIfDue { appStack }
-        recorder.stallEnded()
+        recorder.recordStallEnd()
 
-        val task = recorder.report(capabilities).longTasks.single()
+        val task = recorder.buildReport(capabilities).longTasks.single()
         assertEquals(150, task.durationMillis)
         assertEquals("outside", task.label)
         assertEquals(1, task.sampleCount)
@@ -119,111 +119,111 @@ class MainThreadRecorderTest {
 
     @Test
     fun `work outside a task is timed from the end of the task before it`() {
-        recorder.taskStarted("message", extraLabel = null)
+        recorder.recordTaskStart("message", extraLabel = null)
         clock.advance(70)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
         val messageEndEpoch = clock.epochMillis()
         clock.advance(150)
-        recorder.stallDetected("outside", busyForMillis = 220)
-        recorder.stallEnded()
+        recorder.recordStall("outside", busyForMillis = 220)
+        recorder.recordStallEnd()
 
-        val task = recorder.report(capabilities).longTasks.single()
+        val task = recorder.buildReport(capabilities).longTasks.single()
         assertEquals(messageEndEpoch, task.startEpochMillis)
         assertEquals(150, task.durationMillis)
     }
 
     @Test
     fun `a short task followed by short work outside it is not one long task`() {
-        recorder.taskStarted("message", extraLabel = null)
+        recorder.recordTaskStart("message", extraLabel = null)
         clock.advance(70)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
         clock.advance(40)
-        recorder.stallDetected("outside", busyForMillis = 110)
-        recorder.stallEnded()
+        recorder.recordStall("outside", busyForMillis = 110)
+        recorder.recordStallEnd()
 
-        assertTrue(recorder.report(capabilities).longTasks.isEmpty())
+        assertTrue(recorder.buildReport(capabilities).longTasks.isEmpty())
     }
 
     @Test
     fun `the next task ends a stall`() {
-        recorder.stallDetected("outside", busyForMillis = 200)
-        recorder.taskStarted("next", extraLabel = null)
-        recorder.taskFinished()
+        recorder.recordStall("outside", busyForMillis = 200)
+        recorder.recordTaskStart("next", extraLabel = null)
+        recorder.recordTaskEnd()
 
-        assertEquals(listOf("outside"), recorder.report(capabilities).longTasks.map(LongTask::label))
+        assertEquals(listOf("outside"), recorder.buildReport(capabilities).longTasks.map(LongTask::label))
     }
 
     @Test
     fun `a stall seen while a task runs is that task`() {
-        recorder.taskStarted("message", extraLabel = null)
+        recorder.recordTaskStart("message", extraLabel = null)
         clock.advance(150)
-        recorder.stallDetected("outside", busyForMillis = 150)
-        recorder.stallEnded()
-        recorder.taskFinished()
+        recorder.recordStall("outside", busyForMillis = 150)
+        recorder.recordStallEnd()
+        recorder.recordTaskEnd()
 
-        assertEquals(listOf("message"), recorder.report(capabilities).longTasks.map(LongTask::label))
+        assertEquals(listOf("message"), recorder.buildReport(capabilities).longTasks.map(LongTask::label))
     }
 
     @Test
     fun `a task running across a reset is left out of the fresh recording`() {
-        recorder.taskStarted("before", extraLabel = null)
+        recorder.recordTaskStart("before", extraLabel = null)
         clock.advance(120)
         recorder.reset()
         recorder.sampleIfDue { appStack }
         clock.advance(100)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        val report = recorder.report(capabilities)
+        val report = recorder.buildReport(capabilities)
         assertTrue(report.longTasks.isEmpty() && report.hotspots.isEmpty())
     }
 
     @Test
     fun `samples keep the interval they were taken at when the interval changes`() {
-        recorder.taskStarted("task", extraLabel = null)
+        recorder.recordTaskStart("task", extraLabel = null)
         clock.advance(120)
         recorder.sampleIfDue { appStack }
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
         recorder.updateSettings(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 100, unresponsiveThresholdMillis = 1_000))
 
-        assertEquals(20, recorder.report(capabilities).hotspots.single().blockedMillis)
+        assertEquals(20, recorder.buildReport(capabilities).hotspots.single().blockedMillis)
     }
 
     @Test
     fun `hotspots rank by blocked time rather than sample count`() {
-        recorder.taskStarted("fine", extraLabel = null)
+        recorder.recordTaskStart("fine", extraLabel = null)
         clock.advance(120)
         recorder.sampleIfDue { listOf("com.example.Fine.run(F.kt:1)") }
         clock.advance(20)
         recorder.sampleIfDue { listOf("com.example.Fine.run(F.kt:1)") }
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
         recorder.updateSettings(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 100, unresponsiveThresholdMillis = 1_000))
-        recorder.taskStarted("coarse", extraLabel = null)
+        recorder.recordTaskStart("coarse", extraLabel = null)
         clock.advance(120)
         recorder.sampleIfDue { listOf("com.example.Coarse.run(C.kt:1)") }
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        assertEquals(listOf("com.example.Coarse.run(C.kt:1)", "com.example.Fine.run(F.kt:1)"), recorder.report(capabilities).hotspots.map(Hotspot::signature))
+        assertEquals(listOf("com.example.Coarse.run(C.kt:1)", "com.example.Fine.run(F.kt:1)"), recorder.buildReport(capabilities).hotspots.map(Hotspot::signature))
     }
 
     @Test
     fun `a task past the unresponsive threshold is marked`() {
-        recorder.taskStarted("stuck", extraLabel = null)
+        recorder.recordTaskStart("stuck", extraLabel = null)
         clock.advance(1_200)
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        assertTrue(recorder.report(capabilities).longTasks.single().unresponsive)
+        assertTrue(recorder.buildReport(capabilities).longTasks.single().unresponsive)
     }
 
     @Test
     fun `the long task buffer keeps only the latest tasks`() {
         repeat(LONG_TASK_CAPACITY + 5) { index ->
-            recorder.taskStarted("task $index", extraLabel = null)
+            recorder.recordTaskStart("task $index", extraLabel = null)
             clock.advance(100)
-            recorder.taskFinished()
+            recorder.recordTaskEnd()
         }
 
-        val tasks = recorder.report(capabilities).longTasks
+        val tasks = recorder.buildReport(capabilities).longTasks
         assertEquals(LONG_TASK_CAPACITY, tasks.size)
         assertEquals("task 5", tasks.first().label)
     }
@@ -231,31 +231,31 @@ class MainThreadRecorderTest {
     @Test
     fun `a full hotspot table still takes in a new call site`() {
         repeat(HOTSPOT_CAPACITY) { index ->
-            recorder.taskStarted("task", extraLabel = null)
+            recorder.recordTaskStart("task", extraLabel = null)
             clock.advance(120)
             recorder.sampleIfDue { listOf("com.example.Site$index.run(S.kt:1)") }
             recorder.sampleIfDue { listOf("com.example.Site$index.run(S.kt:1)") }
             clock.advance(20)
             recorder.sampleIfDue { listOf("com.example.Site$index.run(S.kt:1)") }
-            recorder.taskFinished()
+            recorder.recordTaskEnd()
         }
-        recorder.taskStarted("task", extraLabel = null)
+        recorder.recordTaskStart("task", extraLabel = null)
         clock.advance(120)
         recorder.sampleIfDue { listOf("com.example.Newcomer.run(N.kt:1)") }
-        recorder.taskFinished()
+        recorder.recordTaskEnd()
 
-        val signatures = recorder.report(capabilities).hotspots.map(Hotspot::signature)
+        val signatures = recorder.buildReport(capabilities).hotspots.map(Hotspot::signature)
         assertEquals(HOTSPOT_CAPACITY, signatures.size)
         assertTrue("com.example.Newcomer.run(N.kt:1)" in signatures)
     }
 
     @Test
     fun `violations group by kind and call site and count up`() {
-        recorder.violation(ViolationKind.DiskWrite, "write", appStack)
-        recorder.violation(ViolationKind.DiskWrite, "write", appStack)
-        recorder.violation(ViolationKind.DiskRead, "read", appStack)
+        recorder.recordViolation(ViolationKind.DiskWrite, "write", appStack)
+        recorder.recordViolation(ViolationKind.DiskWrite, "write", appStack)
+        recorder.recordViolation(ViolationKind.DiskRead, "read", appStack)
 
-        val groups = recorder.report(capabilities).violations
+        val groups = recorder.buildReport(capabilities).violations
         assertEquals(listOf(ViolationKind.DiskWrite to 2, ViolationKind.DiskRead to 1), groups.map { it.kind to it.count })
         assertEquals("com.example.Slow.work(Slow.kt:5)", groups.first().callSite)
     }
@@ -265,18 +265,18 @@ class MainThreadRecorderTest {
         val platformFrames = (1..100).map { "android.os.Frame$it.call(Frame.java:1)" }
         val stack = platformFrames + "com.example.Deep.write(Deep.kt:9)"
 
-        recorder.violation(ViolationKind.DiskWrite, "write", stack)
+        recorder.recordViolation(ViolationKind.DiskWrite, "write", stack)
 
-        val group = recorder.report(capabilities).violations.single()
+        val group = recorder.buildReport(capabilities).violations.single()
         assertEquals(platformFrames.take(MAX_STACK_FRAMES), group.stack)
         assertEquals("com.example.Deep.write(Deep.kt:9)", group.callSite)
     }
 
     @Test
     fun `frames longer than one and a half refresh intervals are janky`() {
-        listOf(10.0, 16.0, 24.0, 26.0, 80.0).forEach { recorder.frame(it, refreshIntervalMillis = 16.67) }
+        listOf(10.0, 16.0, 24.0, 26.0, 80.0).forEach { recorder.recordFrame(it, refreshIntervalMillis = 16.67) }
 
-        val frames = recorder.report(capabilities).frames
+        val frames = recorder.buildReport(capabilities).frames
         assertEquals(5, frames.totalFrames)
         assertEquals(2, frames.jankyFrames)
         assertEquals(80.0, frames.slowestMillis)
@@ -285,15 +285,15 @@ class MainThreadRecorderTest {
 
     @Test
     fun `a reset clears everything recorded`() {
-        recorder.taskStarted("task", extraLabel = null)
+        recorder.recordTaskStart("task", extraLabel = null)
         clock.advance(150)
-        recorder.taskFinished()
-        recorder.violation(ViolationKind.Network, "net", appStack)
-        recorder.frame(50.0, refreshIntervalMillis = 16.67)
+        recorder.recordTaskEnd()
+        recorder.recordViolation(ViolationKind.Network, "net", appStack)
+        recorder.recordFrame(50.0, refreshIntervalMillis = 16.67)
 
         recorder.reset()
 
-        val report = recorder.report(capabilities)
+        val report = recorder.buildReport(capabilities)
         assertTrue(report.longTasks.isEmpty() && report.violations.isEmpty() && report.frames.totalFrames == 0)
     }
 }

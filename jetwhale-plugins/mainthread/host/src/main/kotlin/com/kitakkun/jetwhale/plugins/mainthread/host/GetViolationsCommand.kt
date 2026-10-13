@@ -23,11 +23,11 @@ internal class GetViolationsCommand(
     private val limit by intOrNull("How many violation groups to return, most frequent first. Defaults to $DEFAULT_VIOLATION_LIMIT.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val count = arguments[limit] ?: DEFAULT_VIOLATION_LIMIT
-        if (count < 1) throw JetWhaleMcpArgumentException("limit must be at least 1, not $count")
-        val report = client.report()
+        val violationLimit = arguments[limit] ?: DEFAULT_VIOLATION_LIMIT
+        if (violationLimit < 1) throw JetWhaleMcpArgumentException("limit must be at least 1, not $violationLimit")
+        val report = client.requestReport()
         val requested = arguments[kind]
-        val violations = report.violations.filter { requested == null || it.kind == requested }.take(count)
-        return reportJson(report) { put("violations", McpJson.encodeToJsonElement(ListSerializer(ViolationGroup.serializer()), violations)) }
+        val violations = report.violations.filter { requested == null || it.kind == requested }.take(violationLimit)
+        return toolResultJson(report) { put("violations", McpJson.encodeToJsonElement(ListSerializer(ViolationGroup.serializer()), violations)) }
     }
 }

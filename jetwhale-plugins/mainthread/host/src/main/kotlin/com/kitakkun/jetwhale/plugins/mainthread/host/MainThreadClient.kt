@@ -8,9 +8,9 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
  * implementation. Each call throws `JetWhaleMessagingException` when the app cannot be reached.
  */
 internal interface MainThreadClient {
-    suspend fun report(): MainThreadReport
+    suspend fun requestReport(): MainThreadReport
 
     suspend fun updateSettings(settings: MonitorSettings): MonitorSettings
 
-    suspend fun reset(): MainThreadReport
+    suspend fun resetStats(): MainThreadReport
 }
