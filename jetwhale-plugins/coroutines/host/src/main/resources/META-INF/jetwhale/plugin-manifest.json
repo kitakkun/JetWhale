@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.coroutines",
+      "pluginName": "Coroutine Inspector",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.coroutines.host.CoroutineInspectorHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/coroutines_filled.svg",
+        "inactivePath": "icons/coroutines_outlined.svg"
+      }
+    }
+  ]
+}

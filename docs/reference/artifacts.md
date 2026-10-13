@@ -22,6 +22,7 @@ same version as the host release they belong to.
 | `jetwhale-compose-semantics-inspector`, `-agent`, `-protocol` | [Compose Semantics Inspector](/guide/compose-semantics-inspector). |
 | `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 | `jetwhale-debug-actions`, `-agent`, `-agent-compose`, `-protocol` | [Debug Actions](/guide/debug-actions). |
+| `jetwhale-coroutine-inspector`, `-agent`, `-agent-compose`, `-protocol` | [Coroutine Inspector](/guide/coroutine-inspector). |
 | `jetwhale-device-mirror` | [Device Mirror](/guide/device-mirror); host-only, no app artifact. |
 
 In each plugin row, the first artifact (the one without an `-agent` or `-protocol` suffix) is the
@@ -34,7 +35,7 @@ Targets differ per artifact:
 
 | Artifacts | Targets |
 |---|---|
-| `jetwhale-agent-runtime`, `jetwhale-agent-sdk`, `jetwhale-protocol-core`, `jetwhale-annotations`, every plugin's `-protocol`, `jetwhale-network-inspector-agent` and `-agent-ktor`, `jetwhale-nav3-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64`, `linuxX64`, `linuxArm64`, `mingwX64` |
+| `jetwhale-agent-runtime`, `jetwhale-agent-sdk`, `jetwhale-protocol-core`, `jetwhale-annotations`, every plugin's `-protocol`, `jetwhale-network-inspector-agent` and `-agent-ktor`, `jetwhale-nav3-agent`, `jetwhale-coroutine-inspector-agent` and `-agent-compose` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64`, `linuxX64`, `linuxArm64`, `mingwX64` |
 | `jetwhale-storage-inspector-agent` and `-agent-datastore`, `jetwhale-debug-actions-agent` and `-agent-compose` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64`, `macosArm64` |
 | `jetwhale-compose-semantics-inspector-agent` | `android`, `jvm`, `js`, `wasmJs`, `iosArm64`, `iosSimulatorArm64` |
 | `jetwhale-network-inspector-agent-okhttp`, the host plugin jars, `jetwhale-host-sdk`, `jetwhale-host-ui`, the Gradle plugins and the compiler plugin, `jetwhale-qa-agent` | JVM only |
