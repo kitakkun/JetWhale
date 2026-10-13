@@ -56,9 +56,6 @@ private const val TREE_FRACTION = 0.35f
 /** A hex dump of more than this many bytes is too long to scroll through usefully. */
 private const val HEX_PREVIEW_BYTES = 16 * 1024
 
-/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
-private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
-
 @Composable
 internal fun FilesPane(
     treeRows: List<FileTreeRow>,
@@ -158,6 +155,9 @@ private fun FileTreeSplit(
         },
     )
 }
+
+/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
+private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
 
 @Composable
 private fun EntryDetail(
