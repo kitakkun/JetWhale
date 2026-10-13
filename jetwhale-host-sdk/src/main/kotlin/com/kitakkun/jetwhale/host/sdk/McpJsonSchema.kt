@@ -18,7 +18,6 @@ import kotlinx.serialization.descriptors.getContextualDescriptor
 import kotlinx.serialization.descriptors.nonNullOriginal
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
@@ -258,35 +257,6 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
     return schema.withoutProperty(ownDiscriminator).withDiscriminator(discriminator, serialName)
 }
 
-private fun JsonObject.withoutProperty(name: String): JsonObject {
-    val properties = (this["properties"] as? JsonObject).orEmpty() - name
-    val required = (this["required"] as? JsonArray).orEmpty().filterNot { (it as JsonPrimitive).content == name }
-    return buildJsonObject {
-        for ((key, value) in this@withoutProperty) {
-            when (key) {
-                "properties" -> put(key, JsonObject(properties))
-                "required" -> if (required.isNotEmpty()) put(key, JsonArray(required))
-                else -> put(key, value)
-            }
-        }
-    }
-}
-
-private fun JsonObject.withDiscriminator(discriminator: String, serialName: String): JsonObject {
-    val properties = this["properties"] as? JsonObject ?: JsonObject(emptyMap())
-    val required = (this["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
-    val discriminatorSchema = buildJsonObject {
-        put("type", "string")
-        put("const", serialName)
-    }
-    return buildJsonObject {
-        put("type", "object")
-        put("properties", JsonObject(mapOf(discriminator to discriminatorSchema) + properties))
-        putJsonArray("required") { (listOf(discriminator) + required).forEach { add(it) } }
-        this@withDiscriminator["description"]?.let { put("description", it) }
-    }
-}
-
 private fun List<Annotation>.classDiscriminatorOr(default: String): String = filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: default
 
 private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
@@ -301,34 +271,6 @@ private fun SchemaContext.jsonNameOf(descriptor: SerialDescriptor, index: Int): 
 }
 
 private fun List<Annotation>.mcpDescription(): String? = filterIsInstance<McpDescription>().firstOrNull()?.value
-
-private fun JsonObject.withDescription(description: String): JsonObject = JsonObject(this + ("description" to JsonPrimitive(description)))
-
-/**
- * Widens a schema so that JSON `null` validates against it, in the form each shape supports: `type`
- * gains `"null"`, an `enum` gains the `null` entry, and a `oneOf` or `anyOf` gains a null variant.
- */
-private fun JsonObject.allowingNull(): JsonObject {
-    val type = this["type"]
-    val variantsKeyword = listOf("oneOf", "anyOf").firstOrNull { it in this }
-    return when {
-        type is JsonPrimitive -> JsonObject(
-            mapValues { (key, value) ->
-                when (key) {
-                    "type" -> JsonArray(listOf(type, JsonPrimitive("null")))
-                    "enum" -> JsonArray(value as JsonArray + JsonNull)
-                    else -> value
-                }
-            },
-        )
-
-        variantsKeyword != null -> JsonObject(this + (variantsKeyword to JsonArray(getValue(variantsKeyword) as JsonArray + typeOnly("null"))))
-
-        else -> this
-    }
-}
-
-private fun typeOnly(type: String): JsonObject = buildJsonObject { put("type", type) }
 
 private val ANY_VALUE = JsonObject(emptyMap())
 

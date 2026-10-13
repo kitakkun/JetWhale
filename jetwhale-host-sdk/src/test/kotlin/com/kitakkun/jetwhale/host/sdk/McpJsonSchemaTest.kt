@@ -35,93 +35,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 
-@Serializable
-private data class Primitives(val text: String, val letter: Char, val count: Int, val size: Long, val ratio: Double, val flag: Boolean)
-
-@Serializable
-private data class Optionality(val requiredHere: String?, val optionalHere: String? = null)
-
-/** A sealed type that pins no discriminator of its own, so the format's is used. */
-@Serializable
-private sealed interface Payload {
-    @Serializable
-    @SerialName("text")
-    data class Text(val body: String) : Payload
-}
-
-@Serializable
-private data class Node(val name: String, val children: List<Node> = emptyList())
-
-@Serializable
-@JvmInline
-private value class RuleId(val value: String)
-
-@Serializable
-private data class HasValueClass(val id: RuleId)
-
-@Serializable
-private data class Nested(val counts: Map<String, Int>, val rows: List<List<String>>)
-
-@Serializable
-@JsonClassDiscriminator("kind")
-private sealed interface Shape {
-    @Serializable
-    @SerialName("circle")
-    @McpDescription("A circle.")
-    data class Circle(val radius: Double) : Shape
-
-    @Serializable
-    @SerialName("nothing")
-    data object Nothing : Shape
-}
-
-@Serializable
-private abstract class OpenBase
-
-@Serializable
-private enum class Verb { GET, POST }
-
-@Serializable
-private data class NullableKinds(val verb: Verb?, val shape: Shape?)
-
-@Serializable
-private data class Drawing(val shape: Shape)
-
-@Serializable
-private data class NullableHolder(val optionality: Optionality?)
-
-private class Opaque
-
-private object OpaqueAsStringSerializer : KSerializer<Opaque> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Opaque", PrimitiveKind.STRING)
-    override fun serialize(encoder: Encoder, value: Opaque) = encoder.encodeString("opaque")
-    override fun deserialize(decoder: Decoder): Opaque = Opaque().also { decoder.decodeString() }
-}
-
-@Serializable
-private data class HasContextual(@Contextual val value: Opaque)
-
-private class Box<T>(val content: T)
-
-private class BoxSerializer<T>(private val contentSerializer: KSerializer<T>) : KSerializer<Box<T>> {
-    override val descriptor: SerialDescriptor = contentSerializer.descriptor
-    override fun serialize(encoder: Encoder, value: Box<T>) = encoder.encodeSerializableValue(contentSerializer, value.content)
-    override fun deserialize(decoder: Decoder): Box<T> = Box(decoder.decodeSerializableValue(contentSerializer))
-}
-
-@Serializable
-private data class HasBox(@Contextual val box: Box<String>)
-
-@Serializable
-private data class HasBoxKeys(val byBox: Map<@Contextual Box<String>, Int>)
-
-private object ContentChosenSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
-    override fun selectDeserializer(element: JsonElement) = Payload.Text.serializer()
-}
-
-@Serializable
-private data class HasContentChosen(@Serializable(with = ContentChosenSerializer::class) val payload: Payload)
-
 class McpJsonSchemaTest {
     @Test
     fun `primitive kinds map onto the JSON Schema types`() {
@@ -329,4 +242,91 @@ class McpJsonSchemaTest {
         assertEquals(listOf("required_here", "optional_here"), schema.obj("properties").keys.toList())
         assertEquals(listOf("required_here"), schema.strings("required"))
     }
+
+    @Serializable
+    private data class Primitives(val text: String, val letter: Char, val count: Int, val size: Long, val ratio: Double, val flag: Boolean)
+
+    @Serializable
+    private data class Optionality(val requiredHere: String?, val optionalHere: String? = null)
+
+    /** A sealed type that pins no discriminator of its own, so the format's is used. */
+    @Serializable
+    private sealed interface Payload {
+        @Serializable
+        @SerialName("text")
+        data class Text(val body: String) : Payload
+    }
+
+    @Serializable
+    private data class Node(val name: String, val children: List<Node> = emptyList())
+
+    @Serializable
+    @JvmInline
+    private value class RuleId(val value: String)
+
+    @Serializable
+    private data class HasValueClass(val id: RuleId)
+
+    @Serializable
+    private data class Nested(val counts: Map<String, Int>, val rows: List<List<String>>)
+
+    @Serializable
+    @JsonClassDiscriminator("kind")
+    private sealed interface Shape {
+        @Serializable
+        @SerialName("circle")
+        @McpDescription("A circle.")
+        data class Circle(val radius: Double) : Shape
+
+        @Serializable
+        @SerialName("nothing")
+        data object Nothing : Shape
+    }
+
+    @Serializable
+    private abstract class OpenBase
+
+    @Serializable
+    private enum class Verb { GET, POST }
+
+    @Serializable
+    private data class NullableKinds(val verb: Verb?, val shape: Shape?)
+
+    @Serializable
+    private data class Drawing(val shape: Shape)
+
+    @Serializable
+    private data class NullableHolder(val optionality: Optionality?)
+
+    private class Opaque
+
+    private object OpaqueAsStringSerializer : KSerializer<Opaque> {
+        override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Opaque", PrimitiveKind.STRING)
+        override fun serialize(encoder: Encoder, value: Opaque) = encoder.encodeString("opaque")
+        override fun deserialize(decoder: Decoder): Opaque = Opaque().also { decoder.decodeString() }
+    }
+
+    @Serializable
+    private data class HasContextual(@Contextual val value: Opaque)
+
+    private class Box<T>(val content: T)
+
+    private class BoxSerializer<T>(private val contentSerializer: KSerializer<T>) : KSerializer<Box<T>> {
+        override val descriptor: SerialDescriptor = contentSerializer.descriptor
+        override fun serialize(encoder: Encoder, value: Box<T>) = encoder.encodeSerializableValue(contentSerializer, value.content)
+        override fun deserialize(decoder: Decoder): Box<T> = Box(decoder.decodeSerializableValue(contentSerializer))
+    }
+
+    @Serializable
+    private data class HasBox(@Contextual val box: Box<String>)
+
+    @Serializable
+    private data class HasBoxKeys(val byBox: Map<@Contextual Box<String>, Int>)
+
+    private object ContentChosenSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
+        override fun selectDeserializer(element: JsonElement) = Payload.Text.serializer()
+    }
+
+    @Serializable
+    private data class HasContentChosen(@Serializable(with = ContentChosenSerializer::class) val payload: Payload)
 }

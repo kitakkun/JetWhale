@@ -48,131 +48,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@Serializable
-private data class Measurement(
-    @McpDescription("Width in pixels.")
-    val widthPx: Int,
-    val heightPx: Int,
-    val label: String = "",
-)
-
-@Serializable
-private data class Answer(val detail: String?)
-
-private val noArguments = JetWhaleMcpArguments(JsonObject(emptyMap()))
-
-private class MeasureCommand(json: Json) : JetWhaleMcpCommand(json) {
-    override val name = "test.measure"
-    override val description = "answers with a measurement"
-    private val measurement = serializableOutput<Measurement>()
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = measurement.result(Measurement(widthPx = 120, heightPx = 40))
-}
-
-private class AnswerCommand(json: Json) : JetWhaleMcpCommand(json) {
-    override val name = "test.answer"
-    override val description = "answers with a possibly null detail"
-    private val answer = serializableOutput<Answer>()
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = null))
-}
-
-private object ArrayAnswerSerializer : KSerializer<Answer> {
-    private val wire = ListSerializer(String.serializer())
-    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ArrayAnswer") { element<String>("detail") }
-    override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(wire, listOf(value.detail.orEmpty()))
-    override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(wire).single())
-}
-
-@Serializable
-private data class Inner(val value: String)
-
-@Serializable
-private data class Outer(val inner: Inner, val note: String?)
-
-private class Stamp(val epochSeconds: Long)
-
-private object StampAsStringSerializer : KSerializer<Stamp> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Stamp", PrimitiveKind.STRING)
-    override fun serialize(encoder: Encoder, value: Stamp) = encoder.encodeString(value.epochSeconds.toString())
-    override fun deserialize(decoder: Decoder): Stamp = Stamp(decoder.decodeString().toLong())
-}
-
-@Serializable
-private sealed interface Outcome {
-    @Serializable
-    data class Ok(val value: Int) : Outcome
-
-    @Serializable
-    data class Partial(val value: Int, val note: String? = null) : Outcome
-}
-
-@Serializable
-private data class Report(
-    @Contextual val at: Stamp,
-    val payload: JsonObject,
-    val anything: JsonElement,
-    val scalar: JsonPrimitive,
-    val nothing: JsonNull,
-    val inner: Inner?,
-    val outcome: Outcome,
-)
-
-private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
-    override val name = "test.report"
-    override val description = "answers with a report"
-    private val report = serializableOutput<Report>()
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = report.result(
-        Report(
-            at = Stamp(epochSeconds = 5),
-            payload = buildJsonObject { put("count", 1) },
-            anything = buildJsonArray {
-                add(1)
-                add("two")
-            },
-            scalar = JsonPrimitive(3),
-            nothing = JsonNull,
-            inner = Inner(value = "x"),
-            outcome = Outcome.Ok(value = 1),
-        ),
-    )
-}
-
-@JvmInline
-@Serializable
-private value class Code(val value: String)
-
-private enum class Phase { Started }
-
-private interface Tag
-
-@Serializable
-private data class NamedTag(val name: String) : Tag
-
-@Serializable
-private data class Ledger(
-    val outcome: Outcome,
-    val tag: Tag,
-    val byInner: Map<Inner, Int>,
-    val byCode: Map<Code, Int>,
-    val byStamp: Map<@Contextual Stamp, Int>,
-    val byPhase: Map<Phase, Int>,
-)
-
-private class LedgerCommand(json: Json) : JetWhaleMcpCommand(json) {
-    override val name = "test.ledger"
-    override val description = "answers with a ledger"
-    private val ledger = serializableOutput<Ledger>()
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = ledger.result(
-        Ledger(
-            outcome = Outcome.Ok(value = 1),
-            tag = NamedTag(name = "a"),
-            byInner = mapOf(Inner(value = "x") to 1),
-            byCode = mapOf(Code("c") to 2),
-            byStamp = mapOf(Stamp(epochSeconds = 5) to 3),
-            byPhase = mapOf(Phase.Started to 4),
-        ),
-    )
-}
-
 class JetWhaleMcpCommandTest {
     @Test
     fun `a declared output advertises its properties and the ones without a default as required`() {
@@ -473,5 +348,130 @@ class JetWhaleMcpCommandTest {
         "integer" -> this is JsonPrimitive && !isString && longOrNull != null
         "number" -> this is JsonPrimitive && !isString && doubleOrNull != null
         else -> error("unknown JSON Schema type $type")
+    }
+
+    @Serializable
+    private data class Measurement(
+        @McpDescription("Width in pixels.")
+        val widthPx: Int,
+        val heightPx: Int,
+        val label: String = "",
+    )
+
+    @Serializable
+    private data class Answer(val detail: String?)
+
+    private val noArguments = JetWhaleMcpArguments(JsonObject(emptyMap()))
+
+    private class MeasureCommand(json: Json) : JetWhaleMcpCommand(json) {
+        override val name = "test.measure"
+        override val description = "answers with a measurement"
+        private val measurement = serializableOutput<Measurement>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = measurement.result(Measurement(widthPx = 120, heightPx = 40))
+    }
+
+    private class AnswerCommand(json: Json) : JetWhaleMcpCommand(json) {
+        override val name = "test.answer"
+        override val description = "answers with a possibly null detail"
+        private val answer = serializableOutput<Answer>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = null))
+    }
+
+    private object ArrayAnswerSerializer : KSerializer<Answer> {
+        private val wire = ListSerializer(String.serializer())
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ArrayAnswer") { element<String>("detail") }
+        override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(wire, listOf(value.detail.orEmpty()))
+        override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(wire).single())
+    }
+
+    @Serializable
+    private data class Inner(val value: String)
+
+    @Serializable
+    private data class Outer(val inner: Inner, val note: String?)
+
+    private class Stamp(val epochSeconds: Long)
+
+    private object StampAsStringSerializer : KSerializer<Stamp> {
+        override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("test.Stamp", PrimitiveKind.STRING)
+        override fun serialize(encoder: Encoder, value: Stamp) = encoder.encodeString(value.epochSeconds.toString())
+        override fun deserialize(decoder: Decoder): Stamp = Stamp(decoder.decodeString().toLong())
+    }
+
+    @Serializable
+    private sealed interface Outcome {
+        @Serializable
+        data class Ok(val value: Int) : Outcome
+
+        @Serializable
+        data class Partial(val value: Int, val note: String? = null) : Outcome
+    }
+
+    @Serializable
+    private data class Report(
+        @Contextual val at: Stamp,
+        val payload: JsonObject,
+        val anything: JsonElement,
+        val scalar: JsonPrimitive,
+        val nothing: JsonNull,
+        val inner: Inner?,
+        val outcome: Outcome,
+    )
+
+    private class ReportCommand(json: Json) : JetWhaleMcpCommand(json) {
+        override val name = "test.report"
+        override val description = "answers with a report"
+        private val report = serializableOutput<Report>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = report.result(
+            Report(
+                at = Stamp(epochSeconds = 5),
+                payload = buildJsonObject { put("count", 1) },
+                anything = buildJsonArray {
+                    add(1)
+                    add("two")
+                },
+                scalar = JsonPrimitive(3),
+                nothing = JsonNull,
+                inner = Inner(value = "x"),
+                outcome = Outcome.Ok(value = 1),
+            ),
+        )
+    }
+
+    @JvmInline
+    @Serializable
+    private value class Code(val value: String)
+
+    private enum class Phase { Started }
+
+    private interface Tag
+
+    @Serializable
+    private data class NamedTag(val name: String) : Tag
+
+    @Serializable
+    private data class Ledger(
+        val outcome: Outcome,
+        val tag: Tag,
+        val byInner: Map<Inner, Int>,
+        val byCode: Map<Code, Int>,
+        val byStamp: Map<@Contextual Stamp, Int>,
+        val byPhase: Map<Phase, Int>,
+    )
+
+    private class LedgerCommand(json: Json) : JetWhaleMcpCommand(json) {
+        override val name = "test.ledger"
+        override val description = "answers with a ledger"
+        private val ledger = serializableOutput<Ledger>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = ledger.result(
+            Ledger(
+                outcome = Outcome.Ok(value = 1),
+                tag = NamedTag(name = "a"),
+                byInner = mapOf(Inner(value = "x") to 1),
+                byCode = mapOf(Code("c") to 2),
+                byStamp = mapOf(Stamp(epochSeconds = 5) to 3),
+                byPhase = mapOf(Phase.Started to 4),
+            ),
+        )
     }
 }
