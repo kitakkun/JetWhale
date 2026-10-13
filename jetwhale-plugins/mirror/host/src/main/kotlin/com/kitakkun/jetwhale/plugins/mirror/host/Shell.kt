@@ -36,11 +36,21 @@ internal object SystemProcessLauncher : ProcessLauncher {
     override fun start(command: List<String>): Process = try {
         ProcessBuilder(if (runsOnWindows) command.take(1) + command.drop(1).map(::windowsCommandLineArgument) else command)
             .apply { launchedProcessPathVariable?.let { environment()["PATH"] = it } }
+            .setUtf8LangIfUnset()
             .start()
     } catch (e: IOException) {
         throw DeviceControlException("failed to launch '${command.first()}': ${e.message}", e)
     }
 }
+
+/**
+ * Sets the process's `LANG` to UTF-8 when it has none, as when the host is started from Finder.
+ * Without a locale, devicectl and simctl write every non-ASCII character of CoreDevice's and
+ * CoreSimulator's messages as '?'. A `LANG` the user set is kept, and an `LC_` variable they set
+ * still overrides it.
+ */
+@VisibleForTesting
+internal fun ProcessBuilder.setUtf8LangIfUnset(): ProcessBuilder = apply { environment().putIfAbsent("LANG", "en_US.UTF-8") }
 
 internal val runsOnWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 
