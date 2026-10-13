@@ -79,7 +79,7 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
                     appendLine()
                     appendLine("import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginContract")
                     appendLine()
-                    appendLine("/** The wire contract of $pluginId: its release version, protocol revision and wire schema hash. */")
+                    appendLine("/** The wire contract of this protocol module: its plugin id, release version, protocol revision and wire schema hash. */")
                     appendLine("public val $propertyName: JetWhalePluginContract = JetWhalePluginContract(")
                     appendLine("    pluginId = \"${escapeForKotlinStringLiteral(pluginId)}\",")
                     appendLine("    releaseVersion = \"${escapeForKotlinStringLiteral(releaseVersion)}\",")
@@ -107,10 +107,17 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
         }
     }
 
-    private fun escapeForKotlinStringLiteral(value: String): String = value
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("$", "\\$")
+    private fun escapeForKotlinStringLiteral(value: String): String = buildString {
+        value.forEach { char ->
+            when {
+                char == '"' -> append("\\\"")
+                char == '\\' -> append("\\\\")
+                char == '$' -> append("\\$")
+                char < ' ' -> append("\\u%04x".format(char.code))
+                else -> append(char)
+            }
+        }
+    }
 
     private fun escapeForJsonString(value: String): String = buildString {
         value.forEach { char ->

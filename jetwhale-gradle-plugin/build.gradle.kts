@@ -10,8 +10,8 @@ group = "com.kitakkun.jetwhale"
 version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 
 dependencies {
-    // Both come from the protocol module at run time: the Kotlin Gradle plugin it applies, and the
-    // kotlinx.serialization on its runtime classpath, which is what reads its descriptors.
+    // Both come from the protocol module's build at run time: the Kotlin Gradle plugin it applies,
+    // and the kotlinx.serialization on its runtime classpath, which is what reads its descriptors.
     compileOnly(libs.kotlinGradlePlugin)
     compileOnly(libs.kotlinxSerializationJson)
 

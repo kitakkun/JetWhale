@@ -164,6 +164,33 @@ class JetWhaleProtocolPluginTest {
     }
 
     @Test
+    fun `a reply type declared through a generic supertype is resolved`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            interface FixtureRequest<R : Any> : JetWhaleRequest<R>
+
+            interface FixtureListRequest<R : Any> : FixtureRequest<List<R>>
+
+            @SerialName("fixture/get_pong")
+            @Serializable
+            data object GetPong : FixtureRequest<Pong>
+
+            @SerialName("fixture/get_pongs")
+            @Serializable
+            data object GetPongs : FixtureListRequest<Pong>
+
+            """.trimIndent(),
+        )
+
+        runBuild("dumpWireSchema")
+
+        assertContains(committedWireSchemaFile.readText(), "request fixture/get_pong -> fixture/pong\n")
+        assertContains(committedWireSchemaFile.readText(), "request fixture/get_pongs -> list<fixture/pong>\n")
+    }
+
+    @Test
     fun `a field whose type is named like a built-in type is refused`() {
         writeFixture(withJvmOnlyModule = false)
         messagesFile.appendText(

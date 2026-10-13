@@ -20,6 +20,8 @@ import java.io.File
 import java.lang.reflect.Modifier
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.lang.reflect.TypeVariable
+import java.lang.reflect.WildcardType
 
 /**
  * Reads the wire schema of a protocol module's compiled JVM classes from their serial descriptors.
@@ -72,8 +74,8 @@ internal class WireSchemaReader {
             .filter { it.getAnnotation(EncodeDefault::class.java)?.mode == EncodeDefault.Mode.NEVER }
             .map { annotationsMethod ->
                 val getterName = annotationsMethod.name.removeSuffix(ANNOTATIONS_METHOD_SUFFIX)
-                // The getter of a property whose type is a value class has a mangled name: the
-                // getter name, a '-' and a hash.
+                // Kotlin mangles the getter of a property whose type is a value class, and so its
+                // $annotations method: the getter name, a '-' and a hash.
                 val propertyName = propertyNames.firstOrNull { kotlinGetterName(it) == getterName || getterName.startsWith(kotlinGetterName(it) + "-") }
                     ?: throw WireSchemaRefusal(
                         "${declaringClass.name}: cannot tell which property ${annotationsMethod.name} belongs to, so its @EncodeDefault(NEVER) cannot be recorded.",
@@ -128,13 +130,38 @@ internal class WireSchemaReader {
             throw WireSchemaRefusal("$type has no serializer: ${e.message}")
         }
 
+        /**
+         * The `R` of the request's `JetWhaleRequest<R>` supertype, with the type arguments of every
+         * generic supertype between them substituted, as in `Ping : BaseRequest<Pong>` where
+         * `BaseRequest<R> : JetWhaleRequest<R>`.
+         */
         private fun replyTypeOf(requestClass: Class<*>): Type {
-            fun replyTypeIn(type: Type?): Type? = when (type) {
-                is ParameterizedType -> if (type.rawType == requestMarker) type.actualTypeArguments.single() else replyTypeIn(type.rawType)
-                is Class<*> -> (type.genericInterfaces.asSequence() + sequenceOf(type.genericSuperclass)).firstNotNullOfOrNull(::replyTypeIn)
-                else -> null
+            fun replyTypeIn(supertype: Type, typeArgumentsByVariable: Map<TypeVariable<*>, Type>): Type? {
+                val rawClass = (if (supertype is ParameterizedType) supertype.rawType else supertype) as? Class<*> ?: return null
+                val typeArguments = (supertype as? ParameterizedType)?.actualTypeArguments.orEmpty().map { it.substitutedBy(typeArgumentsByVariable) }
+                if (rawClass == requestMarker) return typeArguments.single()
+                val rawClassTypeArgumentsByVariable = rawClass.typeParameters.zip(typeArguments).toMap<TypeVariable<*>, Type>()
+                return (rawClass.genericInterfaces.asSequence() + listOfNotNull(rawClass.genericSuperclass))
+                    .firstNotNullOfOrNull { replyTypeIn(it, rawClassTypeArgumentsByVariable) }
             }
-            return replyTypeIn(requestClass) ?: throw WireSchemaRefusal("${requestClass.name}: no JetWhaleRequest<R> supertype names its reply type.")
+            val replyType = replyTypeIn(requestClass, emptyMap())
+                ?: throw WireSchemaRefusal("${requestClass.name}: no JetWhaleRequest<R> supertype names its reply type.")
+            if (replyType is TypeVariable<*>) {
+                throw WireSchemaRefusal("${requestClass.name}: its reply type is the type variable ${replyType.name}, which no supertype binds.")
+            }
+            return replyType
+        }
+
+        private fun Type.substitutedBy(typeArgumentsByVariable: Map<TypeVariable<*>, Type>): Type = when (this) {
+            is TypeVariable<*> -> typeArgumentsByVariable[this] ?: this
+
+            is ParameterizedType -> SubstitutedParameterizedType(rawType, actualTypeArguments.map { it.substitutedBy(typeArgumentsByVariable) }, ownerType)
+
+            // Kotlin writes `List<R>` in a supertype as `List<? extends R>`, and serializer(Type)
+            // reads a wildcard as its first upper bound.
+            is WildcardType -> upperBounds.first().substitutedBy(typeArgumentsByVariable)
+
+            else -> this
         }
 
         private fun typeRefRecordingShapesOf(descriptor: SerialDescriptor, path: String): WireTypeRef {
@@ -273,6 +300,18 @@ internal class WireSchemaReader {
             PrimitiveKind.STRING -> "string"
         }
     }
+}
+
+private class SubstitutedParameterizedType(
+    private val rawType: Type,
+    private val typeArguments: List<Type>,
+    private val ownerType: Type?,
+) : ParameterizedType {
+    override fun getRawType(): Type = rawType
+
+    override fun getActualTypeArguments(): Array<Type> = typeArguments.toTypedArray()
+
+    override fun getOwnerType(): Type? = ownerType
 }
 
 /** A protocol module whose wire schema cannot be dumped, with what is wrong and where. */
