@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
@@ -194,6 +195,21 @@ class IosInputTest {
         runners.startFailure = "Developer Mode is off on the iPhone"
 
         val failure = assertFailsWith<DeviceControlException> { iphone().inputText("hi") }
+
+        assertEquals("Developer Mode is off on the iPhone", failure.message)
+    }
+
+    @Test
+    fun `an iPhone that takes input has the screen size its runner reports`() = runTest {
+        assertEquals(IntSize(1206, 2622), iphone().screenSize())
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
+    fun `an iPhone whose runner cannot start says why it has no screen size`() = runTest {
+        runners.startFailure = "Developer Mode is off on the iPhone"
+
+        val failure = assertFailsWith<DeviceControlException> { iphone().screenSize() }
 
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }

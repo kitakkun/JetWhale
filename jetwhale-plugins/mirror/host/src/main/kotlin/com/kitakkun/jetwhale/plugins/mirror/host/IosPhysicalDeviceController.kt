@@ -61,15 +61,20 @@ internal class IosPhysicalDeviceController(
         }
     }
 
+    /**
+     * The size the XCTest runner reports, in the device's own pixels: those of the frames idb
+     * streams. `idb describe` reports a physical device's sides as 0, so an iPhone that takes no
+     * input has no size to give.
+     */
     override suspend fun screenSize(): IntSize {
         screen?.let { return it }
-        companions.acquire(udid)
-        val description = try {
-            runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "describe", "--udid", udid, "--json").stdoutText
-        } finally {
-            companions.release(udid)
+        inputRefusal()?.let { throw deviceControlError("the size of an iPhone's screen comes from its XCTest runner, and $it") }
+        val size = try {
+            checkNotNull(runnerInput).screenSize(runnerTarget)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
         }
-        return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
+        return size.also { screen = it }
     }
 
     override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y) }
