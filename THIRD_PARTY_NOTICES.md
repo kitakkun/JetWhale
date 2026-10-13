@@ -20,6 +20,8 @@ License: Apache License 2.0. Source: Remix Icon v4.8.0, <https://github.com/Remi
 | `jetwhale-plugins/nav3/host/src/main/resources/icons/nav3_outlined.svg` | `stack-line` | [Business/stack-line.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/Business/stack-line.svg) |  |
 | `jetwhale-plugins/network/host/src/main/resources/icons/network_filled.svg` | `arrow-left-right-fill` | [Arrows/arrow-left-right-fill.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/Arrows/arrow-left-right-fill.svg) |  |
 | `jetwhale-plugins/network/host/src/main/resources/icons/network_outlined.svg` | `arrow-left-right-line` | [Arrows/arrow-left-right-line.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/Arrows/arrow-left-right-line.svg) |  |
+| `jetwhale-plugins/permissions/host/src/main/resources/icons/permissions_filled.svg` | `shield-check-fill` | [System/shield-check-fill.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/System/shield-check-fill.svg) |  |
+| `jetwhale-plugins/permissions/host/src/main/resources/icons/permissions_outlined.svg` | `shield-check-line` | [System/shield-check-line.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/System/shield-check-line.svg) |  |
 | `jetwhale-plugins/storage/host/src/main/resources/icons/storage_filled.svg` | `server-fill` | [Device/server-fill.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/Device/server-fill.svg) | modified: lower compartment and indicator marks |
 | `jetwhale-plugins/storage/host/src/main/resources/icons/storage_outlined.svg` | `server-line` | [Device/server-line.svg](https://github.com/Remix-Design/RemixIcon/blob/v4.8.0/icons/Device/server-line.svg) | modified: lower compartment and indicator marks |
 
