@@ -38,7 +38,7 @@ internal actual fun describeCoroutine(id: String, job: Job): CoroutineDetail {
     val info = coroutines.firstOrNull { it.job === job }
         ?: return unavailable(
             // DebugProbes stop listing a coroutine once its own body returns, even while its
-            // children still run. Only a coroutine, not a plain Job, is a CoroutineScope.
+            // children still run.
             if (job is CoroutineScope) {
                 "its own body has finished and it is waiting for its children, which have stacks of their own (or it started before DebugProbes were installed)"
             } else {

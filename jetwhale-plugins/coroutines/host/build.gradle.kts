@@ -13,11 +13,10 @@ plugins {
 }
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
-    // A separate compilation keeps the previews out of the plugin jar, the publication and the ABI
-    // dump; associateWith lets them use main's internal declarations.
+    // Only the main compilation goes into the plugin jar, the publication and the ABI dump;
+    // associateWith gives the previews main's internal declarations.
     target.compilations.create("preview") {
         associateWith(target.compilations.getByName("main"))
     }
