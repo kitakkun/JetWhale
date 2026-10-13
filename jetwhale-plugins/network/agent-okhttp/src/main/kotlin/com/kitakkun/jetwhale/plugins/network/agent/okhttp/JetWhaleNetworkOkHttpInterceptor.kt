@@ -78,6 +78,22 @@ private class JetWhaleNetworkOkHttpInterceptor(
         return condition?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
     }
 
+    private fun recordRequest(request: Request, txId: String) {
+        val body = captureRequestBodySafely(request.body, maxBodyChars, maxImageBytes)
+        agent.recordRequest(
+            CapturedHttpRequest(
+                txId = txId,
+                method = request.method,
+                url = request.url.toString(),
+                headers = request.headersWithBodyDefaults(),
+                body = body.text,
+                bodyTruncated = body.truncated,
+                bodyEncoding = body.encoding,
+                timestampMs = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     private fun exchange(
         chain: Interceptor.Chain,
         request: Request,
@@ -100,25 +116,41 @@ private class JetWhaleNetworkOkHttpInterceptor(
         throw e
     }
 
-    private fun recordRequest(request: Request, txId: String) {
-        val body = captureRequestBodySafely(request.body, maxBodyChars, maxImageBytes)
-        agent.recordRequest(
-            CapturedHttpRequest(
-                txId = txId,
-                method = request.method,
-                url = request.url.toString(),
-                headers = request.headersWithBodyDefaults(),
-                body = body.text,
-                bodyTruncated = body.truncated,
-                bodyEncoding = body.encoding,
-                timestampMs = System.currentTimeMillis(),
-            ),
-        )
-    }
-
     private fun serveMock(request: Request, mock: MockResponseSpec): Response {
         if (mock.delayMs > 0) Thread.sleep(mock.delayMs)
         return buildMockResponse(request, mock)
+    }
+
+    private fun buildMockResponse(request: Request, mock: MockResponseSpec): Response {
+        val headers = mock.headers.toHeaders()
+        return Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(mock.statusCode)
+            .message(httpStatusDescription(mock.statusCode))
+            .headers(headers)
+            .body(mock.bodyBytes().toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
+            .build()
+    }
+
+    private fun httpStatusDescription(code: Int): String = when (code) {
+        200 -> "OK"
+        201 -> "Created"
+        204 -> "No Content"
+        301 -> "Moved Permanently"
+        302 -> "Found"
+        304 -> "Not Modified"
+        400 -> "Bad Request"
+        401 -> "Unauthorized"
+        403 -> "Forbidden"
+        404 -> "Not Found"
+        409 -> "Conflict"
+        429 -> "Too Many Requests"
+        500 -> "Internal Server Error"
+        502 -> "Bad Gateway"
+        503 -> "Service Unavailable"
+        504 -> "Gateway Timeout"
+        else -> ""
     }
 
     private fun recordResponse(response: Response, fromMock: Boolean, condition: NetworkConditionPlan?, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
@@ -244,18 +276,6 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
     }
 }
 
-private fun buildMockResponse(request: Request, mock: MockResponseSpec): Response {
-    val headers = mock.headers.toHeaders()
-    return Response.Builder()
-        .request(request)
-        .protocol(Protocol.HTTP_1_1)
-        .code(mock.statusCode)
-        .message(httpStatusDescription(mock.statusCode))
-        .headers(headers)
-        .body(mock.bodyBytes().toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
-        .build()
-}
-
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
 internal fun Response.isWebSocketUpgrade(): Boolean = code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
 
@@ -276,24 +296,4 @@ private fun Request.headersWithBodyDefaults(): Map<String, List<String>> = build
         val length = runCatching { body.contentLength() }.getOrDefault(-1L)
         if (length >= 0) put("Content-Length", listOf(length.toString()))
     }
-}
-
-private fun httpStatusDescription(code: Int): String = when (code) {
-    200 -> "OK"
-    201 -> "Created"
-    204 -> "No Content"
-    301 -> "Moved Permanently"
-    302 -> "Found"
-    304 -> "Not Modified"
-    400 -> "Bad Request"
-    401 -> "Unauthorized"
-    403 -> "Forbidden"
-    404 -> "Not Found"
-    409 -> "Conflict"
-    429 -> "Too Many Requests"
-    500 -> "Internal Server Error"
-    502 -> "Bad Gateway"
-    503 -> "Service Unavailable"
-    504 -> "Gateway Timeout"
-    else -> ""
 }

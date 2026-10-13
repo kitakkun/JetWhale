@@ -30,7 +30,11 @@ internal fun ExampleTestScreen() {
     DIModule.debugActionsAgentPlugin.DebugActions {
         action<SetCounter>("Set counter") {
             description = "Sets the Example tab's click counter and returns the previous value."
-            perform { args -> counter.also { counter = args.value } }
+            perform { args ->
+                val previous = counter
+                counter = args.value
+                previous
+            }
         }
     }
 
@@ -40,7 +44,7 @@ internal fun ExampleTestScreen() {
     ) {
         item {
             Button(
-                onClick = { plugin.reportButtonClicked(++counter) },
+                onClick = { plugin.sendButtonClicked(++counter) },
             ) {
                 Text("Send ButtonClicked(${counter + 1})")
             }

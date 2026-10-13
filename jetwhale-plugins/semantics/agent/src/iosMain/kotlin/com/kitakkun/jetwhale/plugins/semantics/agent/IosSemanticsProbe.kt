@@ -24,15 +24,32 @@ import platform.darwin.NSObjectProtocol
  * `UIApplication.windows`. The keyboard's windows are left out: they belong to the system, not the
  * app.
  *
+ * The tree is there to read only while iOS has **application accessibility** on: without it UIKit
+ * reports no accessibility frames and SwiftUI lists none of its content, Compose included. On a
+ * simulator the install turns it on, unless [enableSimulatorApplicationAccessibility] is `false`.
+ * The setting belongs to the simulator, not the app, so it stays on for every app on that simulator
+ * until something turns it off. On a device nothing is changed: there the setting is on while an
+ * assistive feature such as VoiceOver, or the Accessibility Inspector, has turned it on.
+ *
  * The install is process-wide and idempotent: calling it twice returns the same handle. Closing it
- * unregisters every window and stops following notifications.
+ * unregisters every window and stops following notifications; it leaves application accessibility as
+ * it is.
  */
-fun installJetWhaleSemanticsProbe(): AutoCloseable = IosSemanticsProbe.install()
+fun installJetWhaleSemanticsProbe(enableSimulatorApplicationAccessibility: Boolean = true): AutoCloseable = IosSemanticsProbe.install(enableSimulatorApplicationAccessibility)
+
+/**
+ * Turns on the simulator's application accessibility, which UIKit checks before it loads its
+ * accessibility support into an app. It takes effect in the running app without a relaunch.
+ */
+internal expect fun enableApplicationAccessibilityOnSimulator()
 
 private object IosSemanticsProbe {
     private var installation: Installation? = null
 
-    fun install(): AutoCloseable = installation ?: Installation().also { installation = it }
+    fun install(enableSimulatorApplicationAccessibility: Boolean): AutoCloseable = installation ?: run {
+        if (enableSimulatorApplicationAccessibility) enableApplicationAccessibilityOnSimulator()
+        Installation().also { installation = it }
+    }
 
     fun uninstalled(installation: Installation) {
         if (this.installation === installation) this.installation = null

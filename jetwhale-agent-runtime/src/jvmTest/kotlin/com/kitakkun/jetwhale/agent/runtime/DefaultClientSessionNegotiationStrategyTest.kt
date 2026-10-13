@@ -46,7 +46,7 @@ class DefaultClientSessionNegotiationStrategyTest {
         routing {
             webSocket { acceptNegotiation(sessionId = "assigned-session") }
         }
-        val client = createClient { configureWebSocketClient(json) }
+        val client = createClient { installWebSocketsAndLogging(json) }
         val strategy = DefaultClientSessionNegotiationStrategy(plugins = emptyList(), appMetadata = JetWhaleAppMetadata(deviceName = "test-device"))
 
         repeat(2) { client.webSocket("/") { with(strategy) { negotiate() } } }
