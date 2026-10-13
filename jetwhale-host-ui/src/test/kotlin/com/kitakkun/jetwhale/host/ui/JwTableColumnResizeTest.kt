@@ -169,7 +169,7 @@ class JwTableColumnResizeTest {
             val canvas = Canvas(ImageBitmap(SCENE_WIDTH_PX, SCENE_HEIGHT_PX))
             scene.render(canvas, 0L)
 
-            state.fitting = NAME_COLUMN
+            state.startColumnFit(NAME_COLUMN)
             repeat(3) { frame -> scene.render(canvas, (frame + 1) * FRAME_NANOS) }
 
             val fitted = state.widths[NAME_COLUMN]

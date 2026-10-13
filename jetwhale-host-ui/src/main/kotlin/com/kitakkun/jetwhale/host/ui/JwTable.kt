@@ -493,7 +493,7 @@ private fun <T> ResizeHandle(
             val current = columnLayout.shownWidth(key) ?: columnState.laidOutWidths[key] ?: return@onDelta
             val growth = with(density) { deltaPx.toDp() }
             val widest = columnLayout.widest(key).coerceAtLeast(JwTableDefaults.minColumnWidth)
-            columnState.widths += key to (current + growth).coerceIn(JwTableDefaults.minColumnWidth, widest)
+            columnState.setColumnWidth(key, (current + growth).coerceIn(JwTableDefaults.minColumnWidth, widest))
         },
     )
     val headerNamesColumn = key.header.isNotBlank() && columnLayout.keys.count { it.header == key.header } == 1
@@ -507,10 +507,7 @@ private fun <T> ResizeHandle(
             .semantics { contentDescription = if (headerNamesColumn) "Resize ${key.header}" else "Resize column ${key.index + 1}" }
             .pointerInput(key, columnState) {
                 detectTapGestures(
-                    onDoubleTap = {
-                        columnState.fittedContentWidth = 0.dp
-                        columnState.fitting = key
-                    },
+                    onDoubleTap = { columnState.startColumnFit(key) },
                 )
             },
         contentAlignment = Alignment.CenterEnd,
@@ -590,9 +587,9 @@ private fun <T> FitColumnEffect(columns: List<JwTableColumn<T>>, columnState: Jw
     LaunchedEffect(fitted) {
         withFrameNanos { }
         if (columns.getOrNull(fitted.index)?.header == fitted.header && columnState.fittedContentWidth > 0.dp) {
-            columnState.widths += fitted to columnState.fittedContentWidth.coerceAtLeast(JwTableDefaults.minColumnWidth)
+            columnState.setColumnWidth(fitted, columnState.fittedContentWidth.coerceAtLeast(JwTableDefaults.minColumnWidth))
         }
-        columnState.fitting = null
+        columnState.endColumnFit()
     }
 }
 

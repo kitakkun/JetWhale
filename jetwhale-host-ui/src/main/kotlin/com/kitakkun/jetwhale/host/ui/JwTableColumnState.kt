@@ -32,12 +32,26 @@ public class JwTableColumnState(initialWidths: Map<JwTableColumnKey, Dp>) {
 
     /** The column whose content is being measured for a double-click fit, if any. */
     internal var fitting: JwTableColumnKey? by mutableStateOf(null)
+        private set
 
     /**
      * The widest content found for [fitting] in the rows laid out since the fit was asked for. Plain
      * rather than snapshot state: layout writes it, and reading it there must not invalidate layout.
      */
     internal var fittedContentWidth: Dp = 0.dp
+
+    internal fun setColumnWidth(key: JwTableColumnKey, width: Dp) {
+        widths += key to width
+    }
+
+    internal fun startColumnFit(key: JwTableColumnKey) {
+        fittedContentWidth = 0.dp
+        fitting = key
+    }
+
+    internal fun endColumnFit() {
+        fitting = null
+    }
 
     public companion object {
         /** Saves the [widths] as plain values, so a [JwTableColumnState] survives recreation. */
