@@ -9,12 +9,15 @@ read all of it over MCP to find a stuck or leaking coroutine.
 Nothing is instrumented behind your back and no compiler plugin is involved: you register what you
 want to see, in a few lines.
 
+**Works with:** every platform the agent runtime supports; dumps with suspension stacks on the
+desktop JVM only.
+
 ## Setup
 
 ### Install the host plugin
 
-The Coroutine Inspector is in the host's **official catalog**: **Settings → Plugins → Add Plugins
-→ Official Plugins**.
+Install **Coroutine Inspector** from **Settings → Plugins → Add Plugins → Official Plugins**. To
+install it by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
 
@@ -46,7 +49,7 @@ val prices = inspector.track(repository.prices, name = "prices")
 
 Name your coroutines with `CoroutineName` — the tree and the long-run list show that name.
 
-#### Dumps with suspension stacks (JVM desktop)
+### Dumps with suspension stacks (JVM desktop)
 
 Add `org.jetbrains.kotlinx:kotlinx-coroutines-debug` to a desktop app and call
 `DebugProbes.install()` at startup. A selected coroutine's detail then shows whether it is running or
@@ -56,7 +59,7 @@ agent does not bring the library along itself.
 Android cannot do this: `DebugProbes.install()` attaches a JVM agent through ByteBuddy, and ART has
 no `java.lang.management` to attach with, so it throws. iOS and the web have no DebugProbes.
 
-## What you get in the host
+## Using it
 
 - **Coroutines** — a tree per registered scope: each coroutine's name, state, how long the inspector
   has seen it and its dispatcher. Filter by state, by age (a coroutine alive for minutes where you
@@ -86,6 +89,9 @@ freeze what you see — the toolbar says the view is paused and when it was read
 running. **Refresh now** reads once either way.
 
 ## MCP tools
+
+With the [MCP server](/guide/mcp-server) running, an AI agent can read the same through these
+tools. Each takes the `sessionId` of the app's session.
 
 | Tool | What it does |
 |------|--------------|
