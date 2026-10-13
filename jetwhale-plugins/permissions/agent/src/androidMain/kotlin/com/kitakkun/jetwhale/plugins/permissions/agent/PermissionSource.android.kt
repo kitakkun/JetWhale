@@ -39,6 +39,15 @@ internal actual fun platformPermissionSource(): PermissionSource {
     return AndroidPermissionSource(application)
 }
 
+/** The app's Application, reached the same way the agent runtime does: no Context has to be passed in. */
+private fun currentApplicationOrNull(): Application? = try {
+    Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
+} catch (_: ReflectiveOperationException) {
+    null
+} catch (_: SecurityException) {
+    null
+}
+
 private class AndroidPermissionSource(private val application: Application) : PermissionSource {
     override val platform: String get() = "Android"
     override val unsupportedReason: String? get() = null
@@ -290,13 +299,4 @@ private class ForegroundActivityTracker(application: Application) {
 /** Runs [block] on the main thread and hands its outcome, a failure included, back to the caller. */
 private suspend fun onMainThread(block: () -> Unit) = suspendCancellableCoroutine { continuation ->
     Handler(Looper.getMainLooper()).post { continuation.resumeWith(runCatching(block)) }
-}
-
-/** The app's Application, reached the same way the agent runtime does: no Context has to be passed in. */
-private fun currentApplicationOrNull(): Application? = try {
-    Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
-} catch (_: ReflectiveOperationException) {
-    null
-} catch (_: SecurityException) {
-    null
 }
