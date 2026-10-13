@@ -125,7 +125,9 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(
+            FakePluginComposeSceneService(scene),
+        ).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(
@@ -158,7 +160,9 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(
+            FakePluginComposeSceneService(scene),
+        ).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         val request = CallToolRequest(

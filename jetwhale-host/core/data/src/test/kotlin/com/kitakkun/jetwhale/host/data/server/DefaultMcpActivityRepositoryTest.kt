@@ -20,7 +20,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a completed call is recorded with its attribution`() {
-        val id = repository.toolInvocationStarted("plugin.click", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            McpToolPermission.PluginInteract,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = "")
 
         val record = repository.activityFlow.value.recentCalls.single()
@@ -39,7 +45,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a failed call is recorded as unsuccessful`() {
-        val id = repository.toolInvocationStarted("plugin.click", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            McpToolPermission.PluginInteract,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = true, response = "")
 
         assertFalse(repository.activityFlow.value.recentCalls.single().succeeded)
@@ -48,7 +60,13 @@ class DefaultMcpActivityRepositoryTest {
     @Test
     fun `history is ordered newest first`() {
         listOf("first", "second", "third").forEach { toolName ->
-            val id = repository.toolInvocationStarted(toolName, McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+            val id = repository.toolInvocationStarted(
+                toolName,
+                McpToolPermission.PluginInteract,
+                "com.example.plugin",
+                "session-1",
+                emptyMap(),
+            )
             repository.toolInvocationFinished(id, failed = false, response = "")
         }
 
@@ -62,7 +80,13 @@ class DefaultMcpActivityRepositoryTest {
     fun `history drops the oldest calls once the cap is reached`() {
         val overflow = McpActivity.MAX_RECENT_CALLS + 5
         repeat(overflow) { index ->
-            val id = repository.toolInvocationStarted("tool-$index", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+            val id = repository.toolInvocationStarted(
+                "tool-$index",
+                McpToolPermission.PluginInteract,
+                "com.example.plugin",
+                "session-1",
+                emptyMap(),
+            )
             repository.toolInvocationFinished(id, failed = false, response = "")
         }
 
@@ -136,7 +160,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a call without arguments records an empty argument list`() {
-        val id = repository.toolInvocationStarted("plugin.screenshot", McpToolPermission.PluginInspect, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.screenshot",
+            McpToolPermission.PluginInspect,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = "")
 
         assertTrue(repository.activityFlow.value.recentCalls.single().arguments.isEmpty())
@@ -144,7 +174,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a completed call is recorded with the response it produced`() {
-        val id = repository.toolInvocationStarted("plugin.screenshot", McpToolPermission.PluginInspect, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.screenshot",
+            McpToolPermission.PluginInspect,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = "<image>")
 
         assertEquals("<image>", repository.activityFlow.value.recentCalls.single().response)
@@ -153,7 +189,13 @@ class DefaultMcpActivityRepositoryTest {
     @Test
     fun `a long response is truncated with an ellipsis`() {
         val response = "a".repeat(McpCallRecord.MAX_RESPONSE_LENGTH + 20)
-        val id = repository.toolInvocationStarted("plugin.tree", McpToolPermission.PluginInspect, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.tree",
+            McpToolPermission.PluginInspect,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = response)
 
         assertEquals(
@@ -165,7 +207,13 @@ class DefaultMcpActivityRepositoryTest {
     @Test
     fun `a response at the cap is kept whole`() {
         val response = "a".repeat(McpCallRecord.MAX_RESPONSE_LENGTH)
-        val id = repository.toolInvocationStarted("plugin.tree", McpToolPermission.PluginInspect, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.tree",
+            McpToolPermission.PluginInspect,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = response)
 
         assertEquals(response, repository.activityFlow.value.recentCalls.single().response)
@@ -173,7 +221,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a call without a response records an empty response`() {
-        val id = repository.toolInvocationStarted("plugin.click", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            McpToolPermission.PluginInteract,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = "")
 
         assertEquals("", repository.activityFlow.value.recentCalls.single().response)
@@ -181,7 +235,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a failed call is recorded with the failure message as its response`() {
-        val id = repository.toolInvocationStarted("plugin.click", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            McpToolPermission.PluginInteract,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = true, response = "boom")
 
         val record = repository.activityFlow.value.recentCalls.single()
@@ -191,7 +251,13 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `clear drops the recorded history`() {
-        val id = repository.toolInvocationStarted("plugin.click", McpToolPermission.PluginInteract, "com.example.plugin", "session-1", emptyMap())
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            McpToolPermission.PluginInteract,
+            "com.example.plugin",
+            "session-1",
+            emptyMap(),
+        )
         repository.toolInvocationFinished(id, failed = false, response = "")
 
         repository.clear()

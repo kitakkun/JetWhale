@@ -59,7 +59,11 @@ private fun SkikoComposeUiTest.setStorageInspectorContent(darkTheme: Boolean, ta
                 locations = StorageLocations(fileRoots = FILE_ROOTS, keyValueStores = KEY_VALUE_STORES),
                 treeRows = treeRows,
                 selectedRow = selectedRow,
-                loadedFile = LoadedFile(location = SETTINGS_FILE, bytes = SETTINGS_FILE_BYTES, totalSizeBytes = SETTINGS_FILE_BYTES.size.toLong()),
+                loadedFile = LoadedFile(
+                    location = SETTINGS_FILE,
+                    bytes = SETTINGS_FILE_BYTES,
+                    totalSizeBytes = SETTINGS_FILE_BYTES.size.toLong(),
+                ),
                 directoryMeasurement = null,
                 fileSha256 = null,
                 selectedStore = KEY_VALUE_STORES.first().name,

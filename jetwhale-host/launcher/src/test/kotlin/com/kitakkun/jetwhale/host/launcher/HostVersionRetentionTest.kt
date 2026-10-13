@@ -13,7 +13,9 @@ class HostVersionRetentionTest {
 
     @Test
     fun `keeps the running version and the newest newer one, and forgets the versions it deletes`() {
-        listOf("1.0.0-alpha14", "1.0.0-alpha15", "1.0.0-alpha16", "1.0.0-alpha17").forEach { writeHostVersion(hostDirectory.root.resolve(it), it) { metadata -> metadata } }
+        listOf("1.0.0-alpha14", "1.0.0-alpha15", "1.0.0-alpha16", "1.0.0-alpha17").forEach {
+            writeHostVersion(hostDirectory.root.resolve(it), it) { metadata -> metadata }
+        }
         val launcherState = LauncherState(
             completedStartVersions = hostVersions("1.0.0-alpha13", "1.0.0-alpha14"),
             setAsideVersions = hostVersions("1.0.0-alpha15", "1.0.0-alpha16", "1.0.0-alpha17"),

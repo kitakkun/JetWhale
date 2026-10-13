@@ -13,7 +13,10 @@ import kotlinx.serialization.json.JsonPrimitive
  * The form's starting text for each parameter: what the action last ran with, where there is one.
  * A boolean the app requires starts as "false", since a switch has no blank state.
  */
-internal fun initialFormValues(parameters: List<ActionParameter>, remembered: JsonObject?): Map<String, String> = parameters.associate { parameter ->
+internal fun initialFormValues(
+    parameters: List<ActionParameter>,
+    remembered: JsonObject?,
+): Map<String, String> = parameters.associate { parameter ->
     val previous = remembered?.get(parameter.name)
     parameter.name to when {
         previous == null || previous is JsonNull -> if (parameter.type == ParameterType.BOOLEAN && !parameter.optional) "false" else ""

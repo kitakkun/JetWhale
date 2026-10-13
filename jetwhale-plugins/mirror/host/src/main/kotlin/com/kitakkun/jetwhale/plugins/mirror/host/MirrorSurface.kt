@@ -92,7 +92,12 @@ internal class MirrorSurface : AutoCloseable {
          * into the bitmap it is given; [write] returns false when it could not, and the frame is
          * dropped. Called from the decoding thread.
          */
-        fun writeFrame(width: Int, height: Int, colorType: ColorType, write: (target: Bitmap) -> Boolean) = writeStreamFrame(generation, width, height, colorType, write)
+        fun writeFrame(
+            width: Int,
+            height: Int,
+            colorType: ColorType,
+            write: (target: Bitmap) -> Boolean,
+        ) = writeStreamFrame(generation, width, height, colorType, write)
 
         /**
          * Records the time the decoder took for one frame, for [stats]. Leave out the time spent
@@ -298,7 +303,8 @@ internal data class MirrorStats(
     val longestGapMillis: Double,
 ) {
     companion object {
-        val Empty = MirrorStats(receivedFps = 0, displayedFps = 0, decodeMillis = 0.0, copyMillis = 0.0, drawMillis = 0.0, longestGapMillis = 0.0)
+        val Empty =
+            MirrorStats(receivedFps = 0, displayedFps = 0, decodeMillis = 0.0, copyMillis = 0.0, drawMillis = 0.0, longestGapMillis = 0.0)
     }
 }
 

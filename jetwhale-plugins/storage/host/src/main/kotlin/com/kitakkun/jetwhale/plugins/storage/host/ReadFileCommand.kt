@@ -45,7 +45,10 @@ internal class ReadFileCommand(
             put("content", text ?: content.contentBase64)
             if (start == 0L && PreviewFormat.Preferences in previewFormatsOf(file)) {
                 try {
-                    put("preferences", McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)))
+                    put(
+                        "preferences",
+                        McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)),
+                    )
                 } catch (e: IllegalArgumentException) {
                     put("preferencesError", e.message)
                 }

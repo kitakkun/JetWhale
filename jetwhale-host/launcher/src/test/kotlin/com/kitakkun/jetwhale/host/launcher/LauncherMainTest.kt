@@ -68,7 +68,11 @@ class LauncherMainTest {
         assertEquals("1", found.getProperty("stub.common"))
         assertEquals("2", found.getProperty("stub.platform"))
         assertContains(Files.readString(hostDirectory.hostLogFile(bundledVersion)), "stub host output")
-        assertEquals(LauncherState.EMPTY, hostDirectory.readLauncherState(), "a main that returns ends its JVM, which is neither a failed nor a completed start")
+        assertEquals(
+            LauncherState.EMPTY,
+            hostDirectory.readLauncherState(),
+            "a main that returns ends its JVM, which is neither a failed nor a completed start",
+        )
     }
 
     @Test
@@ -103,13 +107,20 @@ class LauncherMainTest {
     fun `skips a downloaded version that needs a runtime module its host could not see`() {
         val version = hostVersion("1.0.0-alpha14")
         val directory = Files.createDirectories(hostDirectory.root.resolve(version.name))
-        val jar = Files.copy(packageResources.resolve("host/${BundledHostDirectory.JAR_FILE_NAME}"), directory.resolve(hostJarName(version, platformKey)))
+        val jar = Files.copy(
+            packageResources.resolve("host/${BundledHostDirectory.JAR_FILE_NAME}"),
+            directory.resolve(hostJarName(version, platformKey)),
+        )
         val metadata = hostMetadata(version.name, Files.readAllBytes(jar))
         Files.writeString(
             directory.resolve("release.json"),
             metadata.copy(
                 mainClass = StubHost::class.java.name,
-                runtime = metadata.runtime.copy(javaFeatureVersion = Runtime.version().feature(), modules = metadata.runtime.modules + "jdk.attach"),
+                runtime = metadata.runtime.copy(
+                    javaFeatureVersion = Runtime.version().feature(),
+                    modules =
+                    metadata.runtime.modules + "jdk.attach",
+                ),
                 platforms = mapOf(platformKey to metadata.platforms.getValue(PLATFORM)),
             ).encode(),
         )

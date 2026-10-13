@@ -64,9 +64,19 @@ internal class MirrorNotice(
     companion object {
         fun info(message: String): MirrorNotice = MirrorNotice(message, isError = false, actions = emptyList(), details = emptyList())
 
-        fun failure(message: String, retry: NoticeAction?): MirrorNotice = MirrorNotice(message, isError = true, actions = listOfNotNull(retry), details = emptyList())
+        fun failure(message: String, retry: NoticeAction?): MirrorNotice = MirrorNotice(
+            message,
+            isError = true,
+            actions = listOfNotNull(retry),
+            details = emptyList(),
+        )
 
-        fun saved(capture: Capture): MirrorNotice = MirrorNotice("Saved ${capture.file.name}", isError = false, actions = listOf(NoticeAction.OpenCapture(capture), NoticeAction.CopyCapture(capture)), details = emptyList())
+        fun saved(capture: Capture): MirrorNotice = MirrorNotice(
+            "Saved ${capture.file.name}",
+            isError = false,
+            actions = listOf(NoticeAction.OpenCapture(capture), NoticeAction.CopyCapture(capture)),
+            details = emptyList(),
+        )
 
         /** How saving a screenshot of each device went; Retry takes the failed ones again. */
         fun screenshotsSaved(results: List<ScreenshotResult>): MirrorNotice {
@@ -76,10 +86,32 @@ internal class MirrorNotice(
             val reasons = failed.map { "${it.deviceName}: ${it.reason}" }
             return when {
                 failed.isEmpty() && saved.size == 1 -> saved(saved.single().capture)
-                failed.isEmpty() -> MirrorNotice("Saved ${saved.size} screenshots", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())
-                results.size == 1 -> failure("Could not save a screenshot of ${failed.single().deviceName}: ${failed.single().reason}", retry)
-                saved.isEmpty() -> MirrorNotice("Could not save the screenshots", isError = true, actions = listOf(retry), details = reasons)
-                else -> MirrorNotice("Saved ${saved.size} of ${results.size} screenshots", isError = true, actions = listOf(NoticeAction.OpenCaptures, retry), details = reasons)
+
+                failed.isEmpty() -> MirrorNotice(
+                    "Saved ${saved.size} screenshots",
+                    isError = false,
+                    actions = listOf(NoticeAction.OpenCaptures),
+                    details = emptyList(),
+                )
+
+                results.size == 1 -> failure(
+                    "Could not save a screenshot of ${failed.single().deviceName}: ${failed.single().reason}",
+                    retry,
+                )
+
+                saved.isEmpty() -> MirrorNotice(
+                    "Could not save the screenshots",
+                    isError = true,
+                    actions = listOf(retry),
+                    details = reasons,
+                )
+
+                else -> MirrorNotice(
+                    "Saved ${saved.size} of ${results.size} screenshots",
+                    isError = true,
+                    actions = listOf(NoticeAction.OpenCaptures, retry),
+                    details = reasons,
+                )
             }
         }
 
@@ -91,10 +123,24 @@ internal class MirrorNotice(
             val reasons = failed.map { "${it.deviceName}: ${it.reason}" }
             return when {
                 results.isEmpty() -> info("No device can be recorded right now")
+
                 failed.isEmpty() -> info("Recording ${started.size} ${if (started.size == 1) "device" else "devices"}")
+
                 results.size == 1 -> failure("Could not start recording ${failed.single().deviceName}: ${failed.single().reason}", retry)
-                started.isEmpty() -> MirrorNotice("Could not start the recordings", isError = true, actions = listOf(retry), details = reasons)
-                else -> MirrorNotice("Recording ${started.size} of ${results.size} devices", isError = true, actions = listOf(retry), details = reasons)
+
+                started.isEmpty() -> MirrorNotice(
+                    "Could not start the recordings",
+                    isError = true,
+                    actions = listOf(retry),
+                    details = reasons,
+                )
+
+                else -> MirrorNotice(
+                    "Recording ${started.size} of ${results.size} devices",
+                    isError = true,
+                    actions = listOf(retry),
+                    details = reasons,
+                )
             }
         }
 
@@ -105,11 +151,26 @@ internal class MirrorNotice(
             val reasons = failed.map(RecordingResult.Failed::reason)
             return when {
                 results.isEmpty() -> info("No recording is running")
+
                 failed.isEmpty() && saved.size == 1 -> saved(saved.single().capture)
-                failed.isEmpty() -> MirrorNotice("Saved ${saved.size} recordings", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())
+
+                failed.isEmpty() -> MirrorNotice(
+                    "Saved ${saved.size} recordings",
+                    isError = false,
+                    actions = listOf(NoticeAction.OpenCaptures),
+                    details = emptyList(),
+                )
+
                 results.size == 1 -> failure(failed.single().reason, retry = null)
+
                 saved.isEmpty() -> MirrorNotice("Could not save the recordings", isError = true, actions = emptyList(), details = reasons)
-                else -> MirrorNotice("Saved ${saved.size} of ${results.size} recordings", isError = true, actions = listOf(NoticeAction.OpenCaptures), details = reasons)
+
+                else -> MirrorNotice(
+                    "Saved ${saved.size} of ${results.size} recordings",
+                    isError = true,
+                    actions = listOf(NoticeAction.OpenCaptures),
+                    details = reasons,
+                )
             }
         }
     }

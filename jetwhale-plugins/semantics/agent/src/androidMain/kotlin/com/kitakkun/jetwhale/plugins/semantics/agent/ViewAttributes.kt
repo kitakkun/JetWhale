@@ -187,9 +187,15 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             write = null,
         ),
     )
-    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = View::getElevation, write = { view, px -> view.elevation = px }, relayouts = false)
-    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = View::getTranslationX, write = { view, px -> view.translationX = px }, relayouts = false)
-    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = View::getTranslationY, write = { view, px -> view.translationY = px }, relayouts = false)
+    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = View::getElevation, write = { view, px ->
+        view.elevation = px
+    }, relayouts = false)
+    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = View::getTranslationX, write = { view, px ->
+        view.translationX = px
+    }, relayouts = false)
+    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = View::getTranslationY, write = { view, px ->
+        view.translationY = px
+    }, relayouts = false)
     addFloat(id = "rotation", group = GROUP_APPEARANCE, read = View::getRotation, write = { view, value -> view.rotation = value })
     addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = View::getScaleX, write = { view, value -> view.scaleX = value })
     addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = View::getScaleY, write = { view, value -> view.scaleY = value })
@@ -219,7 +225,15 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             id = "textSize",
             label = "textSize",
             group = GROUP_TEXT,
-            read = { view -> (view as? TextView)?.let { ViewAttributeValue.DimensionValue(px = it.textSize, dp = it.textSize / view.scaledTextDensity()) } },
+            read = { view ->
+                (view as? TextView)?.let {
+                    ViewAttributeValue.DimensionValue(
+                        px = it.textSize,
+                        dp =
+                        it.textSize / view.scaledTextDensity(),
+                    )
+                }
+            },
             write = { view, value -> (view as TextView).setTextSize(TypedValue.COMPLEX_UNIT_PX, value.asDimensionPx("textSize")) },
             relayouts = true,
         ),

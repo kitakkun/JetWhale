@@ -52,7 +52,12 @@ class FfmpegDecodingTest {
 
     @Test
     fun `an Android device without ffmpeg opens no stream and says how to install it`() = runBlocking {
-        val controller = AndroidDeviceController(adbPath = File(folder, "adb").path, serial = "device-1", emulatorScreens = null, ffmpegPath = null)
+        val controller = AndroidDeviceController(
+            adbPath = File(folder, "adb").path,
+            serial = "device-1",
+            emulatorScreens = null,
+            ffmpegPath = null,
+        )
 
         val failure = assertFailsWith<DeviceControlException> { controller.openVideoStream(wanted = null) }
 
@@ -67,7 +72,8 @@ class FfmpegDecodingTest {
 
     @Test
     fun `the frame size is read from ffmpeg's description of its rawvideo output`() {
-        val line = "  Stream #0:0: Video: rawvideo (BGRA / 0x41524742), bgra(pc, gbr/unknown/unknown, progressive), 360x640 [SAR 1:1 DAR 9:16], q=2-31, 30 fps"
+        val line = "  Stream #0:0: Video: rawvideo (BGRA / 0x41524742), bgra(pc, gbr/unknown/unknown, progressive), " +
+            "360x640 [SAR 1:1 DAR 9:16], q=2-31, 30 fps"
 
         assertEquals(IntSize(360, 640), parseStreamSize(line, codec = "rawvideo"))
         assertNull(parseStreamSize("  Stream #0:0: Video: h264 (High), yuv420p(progressive), 360x640, 30 fps", codec = "rawvideo"))
@@ -75,7 +81,8 @@ class FfmpegDecodingTest {
 
     @Test
     fun `a picture's new size is read from ffmpeg's note that it changed, in the current and the earlier wording`() {
-        val current = "[vf#0:0 @ 0x12c00d800] Reconfiguring filter graph because video parameters changed to yuv420p(unknown, unknown), 240x320, unspecified alpha"
+        val current = "[vf#0:0 @ 0x12c00d800] Reconfiguring filter graph because video parameters changed to yuv420p(unknown, unknown), " +
+            "240x320, unspecified alpha"
         val earlier = "Input stream #0:0 frame changed from size:320x240 fmt:yuv420p to size:240x320 fmt:yuv420p"
 
         assertEquals(IntSize(240, 320), parseChangedSize(current))
@@ -92,7 +99,14 @@ class FfmpegDecodingTest {
         val stream = SequenceInputStream(ByteArrayInputStream(resized), PipedInputStream(held))
 
         val decoding = CompletableFuture.runAsync {
-            MirrorSurface().use { surface -> decodeH264Into(surface.startStream(), VideoStream.H264(DeviceToolProcess(stream), ffmpegPath), IntSize(180, 320), onInput = {}) {} }
+            MirrorSurface().use { surface ->
+                decodeH264Into(
+                    surface.startStream(),
+                    VideoStream.H264(DeviceToolProcess(stream), ffmpegPath),
+                    IntSize(180, 320),
+                    onInput = {},
+                ) {}
+            }
         }
 
         val ended = try {
@@ -136,7 +150,11 @@ class FfmpegDecodingTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + WellKnownToolDirectories(File(System.getProperty("user.home"))).list())
+        val ffmpegPath = findToolPath(
+            "ffmpeg",
+            System.getenv("PATH").orEmpty().split(File.pathSeparator) +
+                WellKnownToolDirectories(File(System.getProperty("user.home"))).list(),
+        )
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }
@@ -159,7 +177,12 @@ class FfmpegDecodingTest {
     /** Decodes [h264] and returns the size of every frame that reached the surface. */
     private fun decode(ffmpegPath: String, h264: ByteArray, outputSize: IntSize?): List<IntSize> = MirrorSurface().use { surface ->
         val sizes = mutableListOf<IntSize>()
-        decodeH264Into(surface.startStream(), VideoStream.H264(DeviceToolProcess(ByteArrayInputStream(h264)), ffmpegPath), outputSize, onInput = {}) {
+        decodeH264Into(
+            surface.startStream(),
+            VideoStream.H264(DeviceToolProcess(ByteArrayInputStream(h264)), ffmpegPath),
+            outputSize,
+            onInput = {},
+        ) {
             surface.drawFrame { sizes += IntSize(it.width, it.height) }
         }
         sizes

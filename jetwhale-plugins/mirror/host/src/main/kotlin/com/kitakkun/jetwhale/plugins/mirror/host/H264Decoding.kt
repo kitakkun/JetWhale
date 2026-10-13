@@ -25,7 +25,13 @@ import kotlin.concurrent.thread
  * stream at the new size: ffmpeg keeps writing frames of the first size and squeezes the new
  * picture into them.
  */
-internal fun decodeH264Into(target: MirrorSurface.FrameStream, stream: VideoStream.H264, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit) {
+internal fun decodeH264Into(
+    target: MirrorSurface.FrameStream,
+    stream: VideoStream.H264,
+    outputSize: IntSize?,
+    onInput: () -> Unit,
+    onFrame: () -> Unit,
+) {
     val ffmpegProcess = SystemProcessLauncher.start(ffmpegDecodeCommand(stream.ffmpegPath, outputSize))
     // ffmpeg ends at the end of its input, which ends the copy without the error that killing it
     // mid-read would raise.
@@ -50,7 +56,13 @@ internal fun decodeH264Into(target: MirrorSurface.FrameStream, stream: VideoStre
  * Copies BGRA frames of [frameSize] from [output] into [target] until it ends; returns how many.
  * Once [isResized], the frames left hold a squeezed picture and are dropped.
  */
-private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, target: MirrorSurface.FrameStream, isResized: () -> Boolean, onFrame: () -> Unit): Int {
+private fun copyFrames(
+    output: WaitTimingInputStream,
+    frameSize: IntSize,
+    target: MirrorSurface.FrameStream,
+    isResized: () -> Boolean,
+    onFrame: () -> Unit,
+): Int {
     val frame = ByteArray(frameSize.width * frameSize.height * BYTES_PER_PIXEL)
     var frames = 0
     while (output.timingWork(target::recordDecode) { output.readNBytes(frame, 0, frame.size) } == frame.size) {
@@ -74,7 +86,8 @@ private fun copyFrames(output: WaitTimingInputStream, frameSize: IntSize, target
  */
 @VisibleForTesting
 internal fun ffmpegDecodeCommand(ffmpegPath: String, outputSize: IntSize?): List<String> = buildList {
-    addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info")) // info, not error: FfmpegLog reads the frame sizes and size changes from this log.
+    // info, not error: FfmpegLog reads the frame sizes and size changes from this log.
+    addAll(listOf(ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "info"))
     addAll(listOf("-flags", "low_delay", "-probesize", "65536", "-analyzeduration", "500000"))
     addAll(listOf("-f", "h264", "-i", "pipe:0"))
     outputSize?.let { addAll(listOf("-vf", "scale=${it.width}:${it.height}:flags=area")) }
@@ -172,7 +185,8 @@ internal fun parseChangedSize(line: String): IntSize? {
 }
 
 /** How to install ffmpeg, appended to every message about it missing. */
-internal const val FFMPEG_INSTALL = "Install ffmpeg: brew install ffmpeg (macOS), winget install ffmpeg (Windows) or apt install ffmpeg (Linux)."
+internal const val FFMPEG_INSTALL =
+    "Install ffmpeg: brew install ffmpeg (macOS), winget install ffmpeg (Windows) or apt install ffmpeg (Linux)."
 
 private const val BYTES_PER_PIXEL = 4
 

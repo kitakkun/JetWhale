@@ -117,7 +117,11 @@ class StorageBrowserTest {
     @Test
     fun `a file whose content the browser cannot decode shows the failure in the status`() {
         val undecodableFileClient = object : StorageClient by client {
-            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
+            override suspend fun readFile(
+                location: FileLocation,
+                offset: Long,
+                maxBytes: Int,
+            ): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
         }
         val browser = StorageBrowser(undecodableFileClient, CoroutineScope(Dispatchers.Unconfined))
         runBlocking { browser.load() }

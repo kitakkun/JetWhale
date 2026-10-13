@@ -175,14 +175,22 @@ class WriteHostReleaseMetadataTest {
     fun `explains arguments it cannot use`() {
         assertEquals(listOf("Unknown option --sign"), writeHostReleaseMetadata(listOf("--sign", "key")))
         assertEquals(listOf("Expected a value after --output"), writeHostReleaseMetadata(listOf("--output")))
-        assertEquals(listOf("Expected at least one --jar or --current-platform-jar"), writeHostReleaseMetadata(baseArguments(version = "1.0.0-alpha14")))
+        assertEquals(
+            listOf("Expected at least one --jar or --current-platform-jar"),
+            writeHostReleaseMetadata(baseArguments(version = "1.0.0-alpha14")),
+        )
         assertEquals(
             listOf("Expected --current-platform-jar at most once"),
-            writeHostReleaseMetadata(baseArguments(version = "1.0.0-alpha14") + listOf("--current-platform-jar", "$currentPlatformJar", "--current-platform-jar", "$otherPlatformJar")),
+            writeHostReleaseMetadata(
+                baseArguments(version = "1.0.0-alpha14") +
+                    listOf("--current-platform-jar", "$currentPlatformJar", "--current-platform-jar", "$otherPlatformJar"),
+            ),
         )
         assertEquals(
             listOf("Expected one jar per platform, but got several for macos-arm64"),
-            writeHostReleaseMetadata(baseArguments(version = "1.0.0-alpha14") + listOf("--jar", "macos-arm64=$macJar", "--jar", "macos-arm64=$linuxJar")),
+            writeHostReleaseMetadata(
+                baseArguments(version = "1.0.0-alpha14") + listOf("--jar", "macos-arm64=$macJar", "--jar", "macos-arm64=$linuxJar"),
+            ),
         )
         assertEquals(
             listOf("Expected <os-arch>=<value> after --jar, but was $macJar"),
@@ -190,7 +198,9 @@ class WriteHostReleaseMetadataTest {
         )
         assertEquals(
             listOf("Expected --version exactly once"),
-            writeHostReleaseMetadata(baseArguments(version = "1.0.0-alpha14") + listOf("--version", "1.0.0", "--jar", "macos-arm64=$macJar")),
+            writeHostReleaseMetadata(
+                baseArguments(version = "1.0.0-alpha14") + listOf("--version", "1.0.0", "--jar", "macos-arm64=$macJar"),
+            ),
         )
     }
 

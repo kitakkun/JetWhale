@@ -109,7 +109,12 @@ class DefaultFollowAiOperationServiceTest {
     fun `a host-level call that names a plugin is not followed`() = runBlocking {
         val following = startFollowing()
 
-        startCall("jetwhale.navigate", McpToolPermission.HostGroup(McpHostToolGroup.NAVIGATE), pluginId = "plugin-1", sessionId = "session-1")
+        startCall(
+            "jetwhale.navigate",
+            McpToolPermission.HostGroup(McpHostToolGroup.NAVIGATE),
+            pluginId = "plugin-1",
+            sessionId = "session-1",
+        )
 
         assertNull(awaitNoRequest())
         following.cancel()

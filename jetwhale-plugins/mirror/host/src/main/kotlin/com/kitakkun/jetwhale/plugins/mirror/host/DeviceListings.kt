@@ -75,7 +75,12 @@ internal fun parseCompanionDevices(output: String): List<DeviceListing>? {
 
             "device" -> {
                 val udid = target.text("udid") ?: return null
-                DeviceListing(id = udid, name = target.text("name") ?: udid, kind = DeviceKind.IosDevice, osVersion = target.text("os_version"))
+                DeviceListing(
+                    id = udid,
+                    name = target.text("name") ?: udid,
+                    kind = DeviceKind.IosDevice,
+                    osVersion = target.text("os_version"),
+                )
             }
 
             else -> return null

@@ -34,7 +34,11 @@ class AdbLocatorTest {
     fun `adb on PATH is found`() {
         val adb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(File.pathSeparator)), isWindows = onWindows)
+        val locator =
+            locator(
+                environment = mapOf("PATH" to listOf(emptyDirectory.path, adb.parent).joinToString(File.pathSeparator)),
+                isWindows = onWindows,
+            )
 
         assertEquals(adb, locator.find())
     }
@@ -44,7 +48,8 @@ class AdbLocatorTest {
         val sdkAdb = executableAdbIn(File(folder, "sdk/platform-tools"))
         val pathAdb = executableAdbIn(File(folder, "bin"))
 
-        val locator = locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent), isWindows = onWindows)
+        val locator =
+            locator(environment = mapOf("ANDROID_HOME" to File(folder, "sdk").path, "PATH" to pathAdb.parent), isWindows = onWindows)
 
         assertEquals(sdkAdb, locator.find())
     }
@@ -77,7 +82,14 @@ class AdbLocatorTest {
         val hostPathAdb = executableAdbIn(File(folder, "host"))
         val wellKnownAdb = executableAdbIn(File(folder, "well-known"))
 
-        val locator = AdbLocator(environment = mapOf("PATH" to hostPathAdb.parent), userHome = home.path, isWindows = false, wellKnownDirectories = listOf(wellKnownAdb.parent), loginShellPathVariableResolver = null)
+        val locator =
+            AdbLocator(
+                environment = mapOf("PATH" to hostPathAdb.parent),
+                userHome = home.path,
+                isWindows = false,
+                wellKnownDirectories = listOf(wellKnownAdb.parent),
+                loginShellPathVariableResolver = null,
+            )
 
         assertEquals(hostPathAdb, locator.find())
     }

@@ -59,7 +59,10 @@ class HostLauncherTest {
     fun `deletes a version whose jar does not match its metadata and starts the next`() {
         bed.download("1.0.0-alpha14")
         bed.download("1.0.0-alpha15")
-        Files.write(bed.versionDirectory("1.0.0-alpha15").resolve(hostJarName(hostVersion("1.0.0-alpha15"), PLATFORM)), "tampered!!!!!!!!".toByteArray())
+        Files.write(
+            bed.versionDirectory("1.0.0-alpha15").resolve(hostJarName(hostVersion("1.0.0-alpha15"), PLATFORM)),
+            "tampered!!!!!!!!".toByteArray(),
+        )
 
         assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostJar.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
@@ -80,7 +83,8 @@ class HostLauncherTest {
     fun `deletes a version that its signature verifier does not trust`() {
         bed.download("1.0.0-alpha15")
 
-        val outcome = bed.launcher(pid = 101, metadataReader = HostReleaseMetadataReader { _, _ -> false }).launch(afterPid = null, retryVersion = null)
+        val outcome = bed.launcher(pid = 101, metadataReader = HostReleaseMetadataReader { _, _ -> false })
+            .launch(afterPid = null, retryVersion = null)
 
         assertEquals("1.0.0-alpha13", starting(outcome).chosenHostJar.version.name)
         assertFalse(bed.versionDirectory("1.0.0-alpha15").exists())
@@ -120,7 +124,9 @@ class HostLauncherTest {
     @Test
     fun `keeps but skips a version that needs a JVM argument this JVM did not start with`() {
         bed.download("1.0.0-alpha14")
-        writeHostVersion(bed.versionDirectory("1.0.0-alpha15"), "1.0.0-alpha15") { it.copy(jvmArgs = it.jvmArgs + "--enable-native-access=ALL-UNNAMED") }
+        writeHostVersion(bed.versionDirectory("1.0.0-alpha15"), "1.0.0-alpha15") {
+            it.copy(jvmArgs = it.jvmArgs + "--enable-native-access=ALL-UNNAMED")
+        }
 
         assertEquals("1.0.0-alpha14", starting(bed.launch(pid = 101)).chosenHostJar.version.name)
         assertTrue(bed.versionDirectory("1.0.0-alpha15").exists())
@@ -258,7 +264,8 @@ class HostLauncherTest {
     fun `reports a running host that does not answer`() {
         bed.lockFiles.of(42).lock(hostDirectory.instanceLockFile)
 
-        val outcome = bed.launcher(pid = 101, runningHostChannel = FakeRunningHostChannel(hostDirectory, answers = false)).launch(afterPid = null, retryVersion = null)
+        val outcome = bed.launcher(pid = 101, runningHostChannel = FakeRunningHostChannel(hostDirectory, answers = false))
+            .launch(afterPid = null, retryVersion = null)
 
         assertEquals(LaunchOutcome.RunningHostUnreachable, outcome)
         assertNull(state().startedHostProcess)

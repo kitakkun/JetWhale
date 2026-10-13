@@ -86,7 +86,13 @@ private fun JetWhaleNetworkAgentPlugin.recordRequestAndFindMock(
     return findMock(method, url)
 }
 
-private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, limits: BodyCaptureLimits) {
+private fun JetWhaleNetworkAgentPlugin.recordRequest(
+    request: HttpRequestBuilder,
+    txId: String,
+    method: String,
+    url: String,
+    limits: BodyCaptureLimits,
+) {
     val body = captureRequestBodySafely(request.body, limits)
     recordRequest(
         CapturedHttpRequest(

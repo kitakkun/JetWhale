@@ -174,7 +174,9 @@ class Nav3McpCommandsTest {
         keyTypes = listOf(keyType("com.example.navigation.ProfileKey"), keyType("com.example.settings.SettingsKey"), keyType("Detail")),
     )
 
-    private fun JsonObject.serialNames(): List<String> = getValue("keyTypes").jsonArray.map { it.jsonObject.getValue("serialName").jsonPrimitive.content }
+    private fun JsonObject.serialNames(): List<String> = getValue("keyTypes").jsonArray.map {
+        it.jsonObject.getValue("serialName").jsonPrimitive.content
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

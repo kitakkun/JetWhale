@@ -312,7 +312,10 @@ class JetWhaleNetworkKtorPluginTest {
         assertEquals("ok", client.get("https://api.example.com/login").bodyAsText())
 
         val redirect = events.filterIsInstance<ResponseReceived>().single { it.response.statusCode == HttpStatusCode.Found.value }
-        assertEquals(listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"), redirect.response.headers[HttpHeaders.Location])
+        assertEquals(
+            listOf("https://api.example.com/callback?token=$REDACTED_PLACEHOLDER&page=2"),
+            redirect.response.headers[HttpHeaders.Location],
+        )
     }
 
     @Test

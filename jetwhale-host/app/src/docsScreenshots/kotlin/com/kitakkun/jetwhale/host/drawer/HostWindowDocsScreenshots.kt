@@ -63,16 +63,28 @@ class HostWindowDocsScreenshots {
     private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
-    fun `the window with the Network Inspector open`() = recorder.record(windowScreenshot(page = "what-is-jetwhale", name = "overview")) { darkTheme ->
-        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = {}) { NetworkInspectorContent() }
+    fun `the window with the Network Inspector open`() = recorder.record(
+        windowScreenshot(page = "what-is-jetwhale", name = "overview"),
+    ) { darkTheme ->
+        setHostWindowContent(
+            darkTheme,
+            uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS),
+            overlay = {},
+        ) { NetworkInspectorContent() }
         onNodeWithText(ITEMS_URL).mouseClickThenMovePointerAway()
         onSurface()
     }
 
     @Test
-    fun `the window with each part of the sidebar numbered`() = recorder.record(windowScreenshot(page = "host-window", name = "annotated")) { darkTheme ->
+    fun `the window with each part of the sidebar numbered`() = recorder.record(
+        windowScreenshot(page = "host-window", name = "annotated"),
+    ) { darkTheme ->
         val callouts = mutableStateListOf<Callout>()
-        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS), overlay = { CalloutMarkers(callouts) }) {
+        setHostWindowContent(
+            darkTheme,
+            uiState = toolingScaffoldUiState(aiActivity = AGENT_CONNECTED, plugins = DRAWER_PLUGINS),
+            overlay = { CalloutMarkers(callouts) },
+        ) {
             NetworkInspectorContent()
         }
         onNodeWithText(ITEMS_URL).mouseClickThenMovePointerAway()
@@ -81,21 +93,36 @@ class HostWindowDocsScreenshots {
         callouts += Callout(number = 2, center = Offset(sidebarEdge, centerYOf("Device Mirror")))
         callouts += Callout(number = 3, center = Offset(sidebarEdge, (centerYOf(DEVICE_NAME) + centerYOf(APP_NAME)) / 2))
         callouts += Callout(number = 4, center = Offset(sidebarEdge, centerYOf("Compose Semantics Inspector")))
-        callouts += Callout(number = 5, center = Offset(sidebarEdge / 2, (WINDOW_HEIGHT - JwMetrics.toolbarHeight / 2).value * WINDOW_DENSITY))
+        callouts += Callout(
+            number = 5,
+            center = Offset(sidebarEdge / 2, (WINDOW_HEIGHT - JwMetrics.toolbarHeight / 2).value * WINDOW_DENSITY),
+        )
         callouts += Callout(number = 6, center = Offset(sidebarEdge + PLUGIN_AREA_CALLOUT_INSET.value * WINDOW_DENSITY, centerYOf("Mocks")))
         onSurface()
     }
 
     @Test
-    fun `the first session before any plugin is installed`() = recorder.record(windowScreenshot(page = "getting-started", name = "first-session")) { darkTheme ->
-        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = MCP_READY, plugins = persistentListOf()), overlay = {}) { EmptyPluginScreen() }
+    fun `the first session before any plugin is installed`() = recorder.record(
+        windowScreenshot(page = "getting-started", name = "first-session"),
+    ) { darkTheme ->
+        setHostWindowContent(
+            darkTheme,
+            uiState = toolingScaffoldUiState(aiActivity = MCP_READY, plugins = persistentListOf()),
+            overlay = {},
+        ) { EmptyPluginScreen() }
         onSurface()
     }
 
     @Test
-    fun `an AI agent driving the Network Inspector with its activity details open`() = recorder.record(windowScreenshot(page = "host-window", name = "ai-activity")) { darkTheme ->
+    fun `an AI agent driving the Network Inspector with its activity details open`() = recorder.record(
+        windowScreenshot(page = "host-window", name = "ai-activity"),
+    ) { darkTheme ->
         val pluginsWithNetworkUnderAiControl = DRAWER_PLUGINS.map { if (it.id == NETWORK_PLUGIN_ID) it.copy(underAiControl = true) else it }
-        setHostWindowContent(darkTheme, uiState = toolingScaffoldUiState(aiActivity = AGENT_OPERATING, plugins = pluginsWithNetworkUnderAiControl.toPersistentList()), overlay = {}) {
+        setHostWindowContent(
+            darkTheme,
+            uiState = toolingScaffoldUiState(aiActivity = AGENT_OPERATING, plugins = pluginsWithNetworkUnderAiControl.toPersistentList()),
+            overlay = {},
+        ) {
             NetworkInspectorContent()
         }
         onNodeWithText(AGENT_OPERATING.operatingToolShortName.orEmpty()).mouseClickThenMovePointerAway()
@@ -104,7 +131,13 @@ class HostWindowDocsScreenshots {
 
     @Test
     fun `the plugin list with its folded groups open`() = recorder.record(
-        DocsScreenshot(page = "host-window", name = "plugin-groups", surfaceSize = DpSize(JwMetrics.sidebarWidth, 470.dp), density = 2f, displayWidthCssPx = JwMetrics.sidebarWidth.value.roundToInt()),
+        DocsScreenshot(
+            page = "host-window",
+            name = "plugin-groups",
+            surfaceSize = DpSize(JwMetrics.sidebarWidth, 470.dp),
+            density = 2f,
+            displayWidthCssPx = JwMetrics.sidebarWidth.value.roundToInt(),
+        ),
     ) { darkTheme ->
         setContent {
             HostWindowSurface(darkTheme = darkTheme) {
@@ -270,7 +303,9 @@ private const val NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
 
 private const val ITEMS_URL = "https://example.com/api/items?page=1&size=20"
 
-private val MCP_READY = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(McpClientSetup.forServer(host = "localhost", port = 7080)))
+private val MCP_READY = AiActivityUiState.Idle.copy(
+    mcpServer = McpServerAvailability.Ready(McpClientSetup.forServer(host = "localhost", port = 7080)),
+)
 
 private val AGENT_CONNECTED = MCP_READY.copy(isAgentConnected = true, isFollowModeOn = true)
 
@@ -302,35 +337,82 @@ private val SESSION = DebugSession(
  * the app has no Storage Inspector agent.
  */
 private val DRAWER_PLUGINS = persistentListOf(
-    drawerPlugin(name = "Device Mirror", id = "com.kitakkun.jetwhale.mirror", iconName = "mirror", availability = PluginAvailability.Enabled, needsApp = false),
-    drawerPlugin(name = "Network Inspector", id = NETWORK_PLUGIN_ID, iconName = "network", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Compose Semantics Inspector", id = "com.kitakkun.jetwhale.semantics", iconName = "node_tree", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Nav3 Navigator", id = "com.kitakkun.jetwhale.nav3", iconName = "nav3", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Debug Actions", id = "com.kitakkun.jetwhale.actions", iconName = "actions", availability = PluginAvailability.Disabled, needsApp = true),
-    drawerPlugin(name = "Storage Inspector", id = "com.kitakkun.jetwhale.storage", iconName = "storage", availability = PluginAvailability.Unavailable, needsApp = true),
+    drawerPlugin(
+        name = "Device Mirror",
+        id = "com.kitakkun.jetwhale.mirror",
+        iconName = "mirror",
+        availability = PluginAvailability.Enabled,
+        needsApp = false,
+    ),
+    drawerPlugin(
+        name = "Network Inspector",
+        id = NETWORK_PLUGIN_ID,
+        iconName = "network",
+        availability = PluginAvailability.Enabled,
+        needsApp = true,
+    ),
+    drawerPlugin(
+        name = "Compose Semantics Inspector",
+        id = "com.kitakkun.jetwhale.semantics",
+        iconName = "node_tree",
+        availability = PluginAvailability.Enabled,
+        needsApp = true,
+    ),
+    drawerPlugin(
+        name = "Nav3 Navigator",
+        id = "com.kitakkun.jetwhale.nav3",
+        iconName = "nav3",
+        availability = PluginAvailability.Enabled,
+        needsApp = true,
+    ),
+    drawerPlugin(
+        name = "Debug Actions",
+        id = "com.kitakkun.jetwhale.actions",
+        iconName = "actions",
+        availability = PluginAvailability.Disabled,
+        needsApp = true,
+    ),
+    drawerPlugin(
+        name = "Storage Inspector",
+        id = "com.kitakkun.jetwhale.storage",
+        iconName = "storage",
+        availability = PluginAvailability.Unavailable,
+        needsApp = true,
+    ),
 )
 
 /** An official plugin's row, with the icons its jar declares in its manifest. */
-private fun drawerPlugin(name: String, id: String, iconName: String, availability: PluginAvailability, needsApp: Boolean) = DrawerPluginItemUiState(
-    name = name,
-    id = id,
-    activeIconResource = pluginIcon("icons/${iconName}_filled.svg"),
-    inactiveIconResource = pluginIcon("icons/${iconName}_outlined.svg"),
-    pluginAvailability = availability,
-    underAiControl = false,
-    exposesMcpTools = availability == PluginAvailability.Enabled,
-    isHeadless = false,
-    needsApp = needsApp,
-)
+private fun drawerPlugin(name: String, id: String, iconName: String, availability: PluginAvailability, needsApp: Boolean) =
+    DrawerPluginItemUiState(
+        name = name,
+        id = id,
+        activeIconResource = pluginIcon("icons/${iconName}_filled.svg"),
+        inactiveIconResource = pluginIcon("icons/${iconName}_outlined.svg"),
+        pluginAvailability = availability,
+        underAiControl = false,
+        exposesMcpTools = availability == PluginAvailability.Enabled,
+        isHeadless = false,
+        needsApp = needsApp,
+    )
 
-private fun pluginIcon(path: String) = PluginIconResource(checkNotNull(HostWindowDocsScreenshots::class.java.classLoader.getResource(path)) { "$path is not on the classpath" })
+private fun pluginIcon(path: String) =
+    PluginIconResource(
+        checkNotNull(HostWindowDocsScreenshots::class.java.classLoader.getResource(path)) { "$path is not on the classpath" },
+    )
 
 private val JSON_HEADERS = mapOf("Content-Type" to listOf("application/json; charset=utf-8"))
 
 /** Oldest first, as the agent reports them; the list shows the newest on top. */
 @Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // Fixture data, kept with the screenshots' other fixtures.
 private val TRANSACTIONS = listOf(
-    transaction(txId = "tx-1", method = "GET", url = "https://example.com/api/session", status = 200 to "OK", body = """{"signedIn":true}""", durationMs = 64),
+    transaction(
+        txId = "tx-1",
+        method = "GET",
+        url = "https://example.com/api/session",
+        status = 200 to "OK",
+        body = """{"signedIn":true}""",
+        durationMs = 64,
+    ),
     transaction(
         txId = "tx-2",
         method = "GET",
@@ -339,22 +421,57 @@ private val TRANSACTIONS = listOf(
         body = """{"items":[{"id":41,"name":"Blue mug","price":12.5},{"id":42,"name":"Notebook","price":4.0}],"page":1,"total":2}""",
         durationMs = 142,
     ),
-    transaction(txId = "tx-3", method = "POST", url = "https://example.com/api/cart", status = 201 to "Created", body = """{"cartId":7,"items":1}""", durationMs = 210),
-    transaction(txId = "tx-4", method = "GET", url = "https://example.com/api/recommendations", status = 503 to "Service Unavailable", body = """{"error":"maintenance"}""", durationMs = 300)
-        .let { it.copy(response = it.response?.copy(fromMock = true)) },
-    transaction(txId = "tx-5", method = "GET", url = "https://example.com/api/profile", status = 401 to "Unauthorized", body = """{"error":"token expired"}""", durationMs = 55),
-    transaction(txId = "tx-6", method = "PUT", url = "https://example.com/api/cart/7", status = 200 to "OK", body = """{"cartId":7,"items":2}""", durationMs = 61),
-    transaction(txId = "tx-7", method = "GET", url = "https://example.com/api/orders?status=open", status = 200 to "OK", body = """{"orders":[]}""", durationMs = 97),
-)
-
-private fun transaction(txId: String, method: String, url: String, status: Pair<Int, String>, body: String, durationMs: Long) = HttpTransaction(
-    request = CapturedHttpRequest(txId = txId, method = method, url = url, timestampMs = 0),
-    response = CapturedHttpResponse(
-        txId = txId,
-        statusCode = status.first,
-        statusDescription = status.second,
-        headers = JSON_HEADERS,
-        body = body,
-        durationMs = durationMs,
+    transaction(
+        txId = "tx-3",
+        method = "POST",
+        url = "https://example.com/api/cart",
+        status = 201 to "Created",
+        body = """{"cartId":7,"items":1}""",
+        durationMs = 210,
+    ),
+    transaction(
+        txId = "tx-4",
+        method = "GET",
+        url = "https://example.com/api/recommendations",
+        status = 503 to "Service Unavailable",
+        body = """{"error":"maintenance"}""",
+        durationMs = 300,
+    ).let { it.copy(response = it.response?.copy(fromMock = true)) },
+    transaction(
+        txId = "tx-5",
+        method = "GET",
+        url = "https://example.com/api/profile",
+        status = 401 to "Unauthorized",
+        body = """{"error":"token expired"}""",
+        durationMs = 55,
+    ),
+    transaction(
+        txId = "tx-6",
+        method = "PUT",
+        url = "https://example.com/api/cart/7",
+        status = 200 to "OK",
+        body = """{"cartId":7,"items":2}""",
+        durationMs = 61,
+    ),
+    transaction(
+        txId = "tx-7",
+        method = "GET",
+        url = "https://example.com/api/orders?status=open",
+        status = 200 to "OK",
+        body = """{"orders":[]}""",
+        durationMs = 97,
     ),
 )
+
+private fun transaction(txId: String, method: String, url: String, status: Pair<Int, String>, body: String, durationMs: Long) =
+    HttpTransaction(
+        request = CapturedHttpRequest(txId = txId, method = method, url = url, timestampMs = 0),
+        response = CapturedHttpResponse(
+            txId = txId,
+            statusCode = status.first,
+            statusDescription = status.second,
+            headers = JSON_HEADERS,
+            body = body,
+            durationMs = durationMs,
+        ),
+    )

@@ -22,7 +22,8 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalTestApi::class)
 class DeviceGridTest {
-    private val devices = List(12) { index -> DeviceListing("device-$index", "Device $index", DeviceKind.AndroidEmulator, osVersion = null) }
+    private val devices =
+        List(12) { index -> DeviceListing("device-$index", "Device $index", DeviceKind.AndroidEmulator, osVersion = null) }
 
     @Test
     fun `only the tiles on screen poll, and a tile that scrolls away stops`() = runComposeUiTest {
@@ -163,7 +164,9 @@ class DeviceGridTest {
     fun `the grid's picker names how many devices it shows`() = runComposeUiTest {
         setContent {
             JwTheme(darkTheme = true) {
-                DevicePicker(devices = devices.take(3), selected = null, livenessOf = { DeviceLiveness.Unknown }, onSelect = {}, onShowAll = {})
+                DevicePicker(devices = devices.take(3), selected = null, livenessOf = {
+                    DeviceLiveness.Unknown
+                }, onSelect = {}, onShowAll = {})
             }
         }
 

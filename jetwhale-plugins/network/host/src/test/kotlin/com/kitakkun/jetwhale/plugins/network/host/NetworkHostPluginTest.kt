@@ -44,7 +44,13 @@ class NetworkHostPluginTest {
         agentPeer.configure {
             onRequest { _: GetMockConfig -> reply(MockConfig(enabled = true, rules = emptyList())) }
             onRequest { _: GetRedactionConfig ->
-                reply(RedactionConfig(listOf(RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER))))
+                reply(
+                    RedactionConfig(
+                        listOf(
+                            RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER),
+                        ),
+                    ),
+                )
             }
         }
         val plugin = NetworkHostPluginFactory().createPlugin() as JetWhaleMessagingHostPlugin
@@ -52,7 +58,9 @@ class NetworkHostPluginTest {
         hostPeer.configure { plugin.registerHandlers(this) }
         plugin.dispatchPrepare()
 
-        agentPeer.messenger.trySend(RequestSent(CapturedHttpRequest(txId = "tx-1", method = "GET", url = "https://api.example.com/login", timestampMs = 0L)))
+        agentPeer.messenger.trySend(
+            RequestSent(CapturedHttpRequest(txId = "tx-1", method = "GET", url = "https://api.example.com/login", timestampMs = 0L)),
+        )
         agentPeer.messenger.trySend(
             ResponseReceived(
                 CapturedHttpResponse(
@@ -85,7 +93,13 @@ class NetworkHostPluginTest {
             }
             onRequest { _: GetRedactionConfig ->
                 check(agentHasPluginActive) { NOT_ACTIVE_IN_AGENT }
-                reply(RedactionConfig(listOf(RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER))))
+                reply(
+                    RedactionConfig(
+                        listOf(
+                            RedactionRule(RedactionTarget.URL_QUERY_PARAM, "token", RedactionScope.MCP_ONLY, RedactionStrategy.PLACEHOLDER),
+                        ),
+                    ),
+                )
             }
         }
         val plugin = NetworkHostPluginFactory().createPlugin() as JetWhaleMessagingHostPlugin
@@ -94,7 +108,16 @@ class NetworkHostPluginTest {
         hostPeer.configure { plugin.registerHandlers(this) }
         assertFailsWith<JetWhaleRequestException> { plugin.dispatchPrepare() }
 
-        agentPeer.messenger.trySend(RequestSent(CapturedHttpRequest(txId = "tx-1", method = "GET", url = "https://api.example.com/login?token=secret-value&page=2", timestampMs = 0L)))
+        agentPeer.messenger.trySend(
+            RequestSent(
+                CapturedHttpRequest(
+                    txId = "tx-1",
+                    method = "GET",
+                    url = "https://api.example.com/login?token=secret-value&page=2",
+                    timestampMs = 0L,
+                ),
+            ),
+        )
         runCurrent()
 
         val mcpCommands = (plugin as JetWhaleMcpCapablePlugin).mcpCommands

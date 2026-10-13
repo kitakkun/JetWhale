@@ -15,14 +15,23 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class ActionDetailPaneTest {
-    private val signIn = action("Sign in", destructive = false, parameters = listOf(parameter("email", ParameterType.STRING, optional = false, nullable = false)))
+    private val signIn =
+        action(
+            "Sign in",
+            destructive = false,
+            parameters = listOf(parameter("email", ParameterType.STRING, optional = false, nullable = false)),
+        )
 
     @Test
     fun `last arguments that load after the first frame fill the form`() = runComposeUiTest {
         var remembered by mutableStateOf<JsonObject?>(null)
         setContent {
             JwTheme(darkTheme = false) {
-                ActionDetailPane(action = signIn, options = emptyMap(), rememberedArguments = remembered, runs = emptyList(), onRun = { _, _ -> }, onCancel = {})
+                ActionDetailPane(action = signIn, options = emptyMap(), rememberedArguments = remembered, runs = emptyList(), onRun = {
+                        _,
+                        _,
+                    ->
+                }, onCancel = {})
             }
         }
 

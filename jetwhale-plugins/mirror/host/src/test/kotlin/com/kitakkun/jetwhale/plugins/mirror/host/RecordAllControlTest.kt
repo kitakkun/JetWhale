@@ -27,7 +27,10 @@ class RecordAllControlTest {
         actions.onSuppress = { suppressed = true }
         setContent {
             JwTheme(darkTheme = true) {
-                RecordAllButton(GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = targets, warningSuppressed = suppressed), actions)
+                RecordAllButton(
+                    GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = targets, warningSuppressed = suppressed),
+                    actions,
+                )
             }
         }
 
@@ -52,7 +55,10 @@ class RecordAllControlTest {
         val actions = CountingActions()
         setContent {
             JwTheme(darkTheme = true) {
-                RecordAllButton(GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = targets, warningSuppressed = false), actions)
+                RecordAllButton(
+                    GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = targets, warningSuppressed = false),
+                    actions,
+                )
             }
         }
 
@@ -70,7 +76,14 @@ class RecordAllControlTest {
         val actions = CountingActions()
         setContent {
             JwTheme(darkTheme = true) {
-                RecordAllButton(GridRecordingState(recordingDeviceIds = setOf("emulator-5554", "sim-1"), recordableDevices = emptyList(), warningSuppressed = false), actions)
+                RecordAllButton(
+                    GridRecordingState(
+                        recordingDeviceIds = setOf("emulator-5554", "sim-1"),
+                        recordableDevices = emptyList(),
+                        warningSuppressed = false,
+                    ),
+                    actions,
+                )
             }
         }
 

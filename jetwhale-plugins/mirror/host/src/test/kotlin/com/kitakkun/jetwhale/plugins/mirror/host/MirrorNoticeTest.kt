@@ -59,7 +59,9 @@ class MirrorNoticeTest {
 
     @Test
     fun `a single failed screenshot names the device and retries it`() {
-        val notice = MirrorNotice.screenshotsSaved(listOf(ScreenshotResult.Failed(deviceId = "emulator-5554", deviceName = "Pixel 9", reason = "adb is gone")))
+        val notice = MirrorNotice.screenshotsSaved(
+            listOf(ScreenshotResult.Failed(deviceId = "emulator-5554", deviceName = "Pixel 9", reason = "adb is gone")),
+        )
 
         assertEquals("Could not save a screenshot of Pixel 9: adb is gone", notice.message)
         assertEquals(listOf<NoticeAction>(NoticeAction.RetryScreenshots(listOf("emulator-5554"))), notice.actions)
@@ -134,7 +136,10 @@ class MirrorNoticeTest {
     @Test
     fun `the notice's buttons open, dismiss, and show the reasons`() = runComposeUiTest {
         val notice = MirrorNotice.screenshotsSaved(
-            listOf(ScreenshotResult.Saved(capture), ScreenshotResult.Failed(deviceId = "00008110-DEVICE", deviceName = "iPhone 13", reason = "the device is locked")),
+            listOf(
+                ScreenshotResult.Saved(capture),
+                ScreenshotResult.Failed(deviceId = "00008110-DEVICE", deviceName = "iPhone 13", reason = "the device is locked"),
+            ),
         )
         val recorded = RecordingNotices(notice)
         setContent { JwTheme(darkTheme = true) { MirrorNoticeHost(recorded) } }

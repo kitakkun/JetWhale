@@ -21,7 +21,8 @@ internal class IosPhysicalDeviceController(
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
 ) : DeviceController {
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = ffmpegPath != null, screenPower = false)
+    override val capabilities =
+        DeviceCapabilities(input = false, buttons = emptyList(), recording = ffmpegPath != null, screenPower = false)
 
     private var holdsStreamCompanion = false
 
@@ -51,7 +52,9 @@ internal class IosPhysicalDeviceController(
         } finally {
             companions.release(udid)
         }
-        return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
+        return (parseIdbScreen(description)?.size ?: throw deviceControlError("'idb describe' reported no screen size")).also {
+            screen = it
+        }
     }
 
     override suspend fun tap(x: Int, y: Int) = throw deviceControlError(VIEW_ONLY)
@@ -111,7 +114,8 @@ internal class IosPhysicalDeviceController(
         }
     }
 
-    private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
+    private fun requireFfmpegPath(use: String): String =
+        ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
 
     private suspend fun holdCompanion() {
         if (holdsStreamCompanion) return

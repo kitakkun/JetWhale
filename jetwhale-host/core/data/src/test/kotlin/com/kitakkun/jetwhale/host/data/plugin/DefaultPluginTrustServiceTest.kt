@@ -55,7 +55,13 @@ class DefaultPluginTrustServiceTest {
         factoryRepository = FakePluginFactoryRepository()
         swapService = FakePluginJarSwapService()
         signer = FakeTrustRegistrySigner(keyPresent = false)
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), trustRepository, factoryRepository, swapService, signer)
+        service = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            trustRepository,
+            factoryRepository,
+            swapService,
+            signer,
+        )
     }
 
     @AfterTest
@@ -157,14 +163,29 @@ class DefaultPluginTrustServiceTest {
 
         val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val diskFactory = FakePluginFactoryRepository()
-        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, FakePluginJarSwapService(), diskSigner)
+        val diskService = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            diskRepository,
+            diskFactory,
+            FakePluginJarSwapService(),
+            diskSigner,
+        )
 
         diskService.trustAndLoad(jar.absolutePath, approvedSha256 = null)
         diskService.setSigningEnabled(true)
 
-        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
+        val reloadedRepository = DefaultPluginTrustRepository(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            diskSigner,
+        )
         val reloadedFactory = FakePluginFactoryRepository()
-        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, FakePluginJarSwapService(), diskSigner)
+        val reloadedService = DefaultPluginTrustService(
+            AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+            reloadedRepository,
+            reloadedFactory,
+            FakePluginJarSwapService(),
+            diskSigner,
+        )
         reloadedService.loadTrustedPlugins()
 
         assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)
@@ -369,9 +390,12 @@ class DefaultPluginTrustServiceTest {
         }
     }
 
-    private fun networkManifest(version: String): String = """{"plugins":[{"pluginId":"com.example.network","pluginName":"Network Inspector","version":"$version","factoryClass":"com.example.Factory"}]}"""
+    private fun networkManifest(version: String): String =
+        """{"plugins":[{"pluginId":"com.example.network","pluginName":"Network Inspector",""" +
+            """"version":"$version","factoryClass":"com.example.Factory"}]}"""
 
-    private fun networkPlugin(version: String) = DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = version)
+    private fun networkPlugin(version: String) =
+        DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = version)
 
     private fun runningNetwork(version: String) = JetWhaleHostPluginManifest(
         pluginId = "com.example.network",
@@ -380,7 +404,8 @@ class DefaultPluginTrustServiceTest {
         factoryClass = "com.example.Factory",
     )
 
-    private fun sha256Of(file: File): String = MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+    private fun sha256Of(file: File): String =
+        MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
 
     private class FakePluginTrustRepository : PluginTrustRepository {
         val entries = mutableMapOf<String, TrustedPluginEntry>()
@@ -432,7 +457,8 @@ class DefaultPluginTrustServiceTest {
 
         override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
 
-        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = runningPluginsByJar[pluginJarPath].orEmpty().map(JetWhaleHostPluginManifest::pluginId)
+        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> =
+            runningPluginsByJar[pluginJarPath].orEmpty().map(JetWhaleHostPluginManifest::pluginId)
 
         override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
 
@@ -489,6 +515,7 @@ class DefaultPluginTrustServiceTest {
             keyPresent = false
         }
 
-        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+        private fun digest(payload: String): String =
+            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

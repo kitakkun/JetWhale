@@ -147,7 +147,10 @@ class PlatformFileSystemTest {
 
         val measurement = measureDirectoryTree("${directory.path}/cache", entryLimit = 100)
 
-        assertEquals(DirectoryMeasurement(totalSizeBytes = 15, fileCount = 3, directoryCount = 1, truncated = false, error = null), measurement)
+        assertEquals(
+            DirectoryMeasurement(totalSizeBytes = 15, fileCount = 3, directoryCount = 1, truncated = false, error = null),
+            measurement,
+        )
     }
 
     @Test
@@ -158,7 +161,10 @@ class PlatformFileSystemTest {
 
         val measurement = measureDirectoryTree("${directory.path}/link", entryLimit = 100)
 
-        assertEquals(DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null), measurement)
+        assertEquals(
+            DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null),
+            measurement,
+        )
     }
 
     @Test

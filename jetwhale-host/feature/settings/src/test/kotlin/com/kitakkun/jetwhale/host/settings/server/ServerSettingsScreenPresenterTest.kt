@@ -241,6 +241,8 @@ private val emptyPermissions = McpPermissions(
 private object TestScreenContext : ScreenContext
 
 /** Every key is a no-op except the one under test, which records what Apply handed it. */
+// One argument per key of SettingsPresenterContext; a shorter function would only split the list.
+@Suppress("KOTRAIL_FUNCTION_TOO_LONG")
 private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsPresenterContext(
     appLanguageMutationKey = noop("app_language"),
     appColorSchemeMutationKey = noop("app_color_scheme"),
@@ -263,7 +265,9 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     pluginInstallMutationKey = noop("plugin_install"),
     startPluginInstallMutationKey = unexercised("start_plugin_install"),
     cancelPluginInstallMutationKey = object : CancelPluginInstallMutationKey, MutationKey<Unit, String> by noop("cancel_plugin_install") {},
-    dismissPluginInstallMutationKey = object : DismissPluginInstallMutationKey, MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
+    dismissPluginInstallMutationKey = object :
+        DismissPluginInstallMutationKey,
+        MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
     trustPluginMutationKey = noop("trust_plugin"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
@@ -271,10 +275,14 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     followAiOperationMutationKey = object :
         FollowAiOperationMutationKey,
         MutationKey<Unit, Boolean> by noop("follow_ai_operation") {},
-    checkForUpdatesOnStartupMutationKey = object : CheckForUpdatesOnStartupMutationKey, MutationKey<Unit, Boolean> by noop("startup_check") {},
+    checkForUpdatesOnStartupMutationKey = object :
+        CheckForUpdatesOnStartupMutationKey,
+        MutationKey<Unit, Boolean> by noop("startup_check") {},
     checkForHostUpdateMutationKey = object : CheckForHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("check_for_host_update") {},
     downloadHostUpdateMutationKey = object : DownloadHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("download_host_update") {},
-    cancelHostUpdateDownloadMutationKey = object : CancelHostUpdateDownloadMutationKey, MutationKey<Unit, Unit> by noop("cancel_download") {},
+    cancelHostUpdateDownloadMutationKey = object :
+        CancelHostUpdateDownloadMutationKey,
+        MutationKey<Unit, Unit> by noop("cancel_download") {},
     restartToUpdateMutationKey = object : RestartToUpdateMutationKey, MutationKey<Unit, Unit> by noop("restart_to_update") {},
     tryHostVersionAgainMutationKey = object : TryHostVersionAgainMutationKey, MutationKey<Unit, HostVersion> by noop("try_again") {},
     hostVersionInfo = HostVersionInfo("0.0.0-test"),

@@ -262,7 +262,11 @@ internal class DeviceMirror(
             return StreamOutcome.Unavailable(e.message.orEmpty())
         }
         // Whatever the tool logs goes unread otherwise, and a full pipe would stall it.
-        if (stream is ProcessVideoStream) thread(isDaemon = true, name = "mirror-stream-stderr") { stream.process.errorStream.use(InputStream::readAllBytes) }
+        if (stream is ProcessVideoStream) {
+            thread(isDaemon = true, name = "mirror-stream-stderr") {
+                stream.process.errorStream.use(InputStream::readAllBytes)
+            }
+        }
         val isAndroid = device.kind.platform == DevicePlatform.Android
         return try {
             coroutineScope<StreamOutcome> {
@@ -272,7 +276,9 @@ internal class DeviceMirror(
                     screen?.takeIf { isAndroid }?.let { launch { reopenWhenScreenChanges(device, it, stream) } },
                     // Only screenrecord holds a still screen's last frame back; the emulator's own
                     // stream sends every change as it happens.
-                    stream.takeIf { isAndroid && it is VideoStream.H264 }?.let { launch { settleStillScreen(device, frames, screen, it, lastFrameAt) } },
+                    stream.takeIf {
+                        isAndroid && it is VideoStream.H264
+                    }?.let { launch { settleStillScreen(device, frames, screen, it, lastFrameAt) } },
                 )
                 val watchdog = FirstFrameWatchdog(FIRST_FRAME_TIMEOUT_MILLIS)
                 val decoding = async(Dispatchers.IO) {
@@ -320,7 +326,13 @@ internal class DeviceMirror(
      * Shows [stream] until it ends. A failure comes back as a value, so a stream this side closed on
      * purpose is not mistaken for one that broke.
      */
-    private fun decode(stream: VideoStream, frames: MirrorSurface.FrameStream, outputSize: IntSize?, onInput: () -> Unit, onFrame: () -> Unit): StreamOutcome = try {
+    private fun decode(
+        stream: VideoStream,
+        frames: MirrorSurface.FrameStream,
+        outputSize: IntSize?,
+        onInput: () -> Unit,
+        onFrame: () -> Unit,
+    ): StreamOutcome = try {
         when (stream) {
             is VideoStream.H264 -> decodeH264Into(frames, stream, outputSize, onInput, onFrame)
             is VideoStream.RawBgra -> readRawBgraInto(frames, stream, onFrame)
@@ -383,7 +395,13 @@ internal class DeviceMirror(
      * still screen would show nothing at first and, after motion, the frame before the last.
      * A screenshot fills in at the start and again whenever the stream has gone quiet.
      */
-    private suspend fun settleStillScreen(device: MirrorDevice, frames: MirrorSurface.FrameStream, screen: IntSize?, stream: VideoStream, lastFrameAt: AtomicLong) {
+    private suspend fun settleStillScreen(
+        device: MirrorDevice,
+        frames: MirrorSurface.FrameStream,
+        screen: IntSize?,
+        stream: VideoStream,
+        lastFrameAt: AtomicLong,
+    ) {
         var settledAt = 0L
         while (coroutineContext.isActive) {
             val last = lastFrameAt.get()
@@ -449,7 +467,9 @@ internal class DeviceMirror(
 
     override fun tap(x: Int, y: Int) = control { it.tap(x, y) }
 
-    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) = control { it.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = 250) }
+    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) = control {
+        it.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = 250)
+    }
 
     override fun pressButton(button: DeviceButton) = control { it.pressButton(button) }
 
@@ -510,7 +530,12 @@ internal class DeviceMirror(
         try {
             startRecordingLocked(device)
         } catch (e: DeviceControlException) {
-            notices.show(MirrorNotice.failure("Could not start recording ${device.listing.name}: ${e.message}", retry = NoticeAction.RetryRecording(device.id)))
+            notices.show(
+                MirrorNotice.failure(
+                    "Could not start recording ${device.listing.name}: ${e.message}",
+                    retry = NoticeAction.RetryRecording(device.id),
+                ),
+            )
         }
     }
 
@@ -538,9 +563,11 @@ internal class DeviceMirror(
 
     override fun resolve(deviceId: String?): MirrorDevice {
         if (deviceId == null) {
-            return selectedDevice ?: throw deviceControlError("no device is connected; start an emulator or simulator, then call $TOOL_PREFIX.listDevices")
+            return selectedDevice
+                ?: throw deviceControlError("no device is connected; start an emulator or simulator, then call $TOOL_PREFIX.listDevices")
         }
-        return devices.firstOrNull { it.id == deviceId } ?: throw deviceControlError("no device has the id '$deviceId'; call $TOOL_PREFIX.listDevices")
+        return devices.firstOrNull { it.id == deviceId }
+            ?: throw deviceControlError("no device has the id '$deviceId'; call $TOOL_PREFIX.listDevices")
     }
 
     override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, screenshotOf(device))
@@ -612,8 +639,14 @@ internal class DeviceMirror(
         val running = synchronized(activeRecordings) { activeRecordings.values.toList() }
         return when (running.size) {
             0 -> throw deviceControlError("no recording is running")
+
             1 -> running.single().device.id
-            else -> throw deviceControlError("${running.size} recordings are running (${running.joinToString { it.device.listing.name }}); name the device to stop, or stop them all")
+
+            else -> throw deviceControlError(
+                "${running.size} recordings are running (${running.joinToString {
+                    it.device.listing.name
+                }}); name the device to stop, or stop them all",
+            )
         }
     }
 
@@ -624,12 +657,18 @@ internal class DeviceMirror(
         } catch (e: DeviceControlException) {
             RecordingResult.Failed(deviceId = deviceId, deviceName = name, reason = "Could not stop the recording of $name: ${e.message}")
         } catch (e: IOException) {
-            RecordingResult.Failed(deviceId = deviceId, deviceName = name, reason = "The recording of $name stopped, but could not be saved: ${e.message}")
+            RecordingResult.Failed(
+                deviceId = deviceId,
+                deviceName = name,
+                reason = "The recording of $name stopped, but could not be saved: ${e.message}",
+            )
         }
     }
 
     private suspend fun stopRecordingLocked(deviceId: String): Capture {
-        val running = changeRecordings { it.remove(deviceId) } ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
+        val running =
+            changeRecordings { it.remove(deviceId) }
+                ?: throw deviceControlError("${devices.firstOrNull { it.id == deviceId }?.listing?.name ?: deviceId} is not recording")
         val file = try {
             running.handle.stop()
         } catch (e: DeviceControlException) {
@@ -652,7 +691,11 @@ internal class DeviceMirror(
         }
     }
 
-    override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = captures.library.list(deviceId, kind, sinceEpochMillis)
+    override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = captures.library.list(
+        deviceId,
+        kind,
+        sinceEpochMillis,
+    )
 
     /**
      * Stops what outlives the UI: the recordings in progress, each kept in the library. Every one is
@@ -688,4 +731,10 @@ internal class DeviceMirror(
 }
 
 /** The devices Record all starts: those that can record and are not recording already. */
-internal fun recordAllTargets(devices: List<MirrorDevice>, recordingDeviceIds: Set<String>): List<MirrorDevice> = devices.filter { it.controller.capabilities.recording && it.id !in recordingDeviceIds }
+internal fun recordAllTargets(
+    devices: List<MirrorDevice>,
+    recordingDeviceIds: Set<String>,
+): List<MirrorDevice> = devices.filter {
+    it.controller.capabilities.recording &&
+        it.id !in recordingDeviceIds
+}

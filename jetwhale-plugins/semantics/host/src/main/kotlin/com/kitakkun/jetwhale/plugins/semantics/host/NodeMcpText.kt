@@ -42,7 +42,11 @@ internal fun NodeTreeSnapshot.toMcpText(): String = buildString {
         append("root ${root.rootId} ${quoted(root.label)}")
         root.node?.let { append(" unit=${if (it is AppleNode) "pt" else "px"}") }
         append(" density=${root.density}")
-        if (root.windowOffsetX != 0f || root.windowOffsetY != 0f) append(" offset=${root.windowOffsetX.roundToInt()},${root.windowOffsetY.roundToInt()}")
+        if (root.windowOffsetX != 0f ||
+            root.windowOffsetY != 0f
+        ) {
+            append(" offset=${root.windowOffsetX.roundToInt()},${root.windowOffsetY.roundToInt()}")
+        }
         appendLine()
         root.node?.let { appendOutline(it, depth = 1) }
     }
@@ -90,7 +94,9 @@ internal fun UiNode.toMcpTextLine(rootId: String?): String = buildList {
     }
     addAll(flags())
     obscuredBy?.let { add("obscuredBy=${it.rootId}#${it.nodeId}") }
-    performableActions().takeIf { it.isNotEmpty() }?.let { performable -> add("actions=${performable.joinToString(",", transform = NodeAction::name)}") }
+    performableActions().takeIf {
+        it.isNotEmpty()
+    }?.let { performable -> add("actions=${performable.joinToString(",", transform = NodeAction::name)}") }
     if (!boundsInScreen.isEmpty) add("tap=${boundsInScreen.centerX.roundToInt()},${boundsInScreen.centerY.roundToInt()}")
 }.joinToString(" ")
 

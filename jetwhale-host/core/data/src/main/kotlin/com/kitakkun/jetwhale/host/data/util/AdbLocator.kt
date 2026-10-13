@@ -57,9 +57,14 @@ class AdbLocator(
             ?: loginShellPathVariable?.let { findAdbIn(directoriesOn(it)) }
     }
 
-    private fun directoriesOn(pathVariable: String?): List<String> = pathVariable?.split(if (isWindows) ';' else ':').orEmpty().filter(String::isNotBlank)
+    private fun directoriesOn(pathVariable: String?): List<String> = pathVariable?.split(
+        if (isWindows) ';' else ':',
+    ).orEmpty().filter(String::isNotBlank)
 
-    private fun findAdbIn(directories: List<String>): File? = directories.map { File(it, executableName) }.firstOrNull { it.isFile && it.canExecute() }
+    private fun findAdbIn(directories: List<String>): File? = directories.map { File(it, executableName) }.firstOrNull {
+        it.isFile &&
+            it.canExecute()
+    }
 
     companion object {
         fun ofCurrentProcess(): AdbLocator {
@@ -76,7 +81,9 @@ class AdbLocator(
                     null
                 } else {
                     LoginShellPathVariableResolver(
-                        shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (HostOs.current == HostOs.MAC) "/bin/zsh" else "/bin/sh",
+                        shellPath =
+                        System.getenv("SHELL")?.takeIf(String::isNotBlank)
+                            ?: if (HostOs.current == HostOs.MAC) "/bin/zsh" else "/bin/sh",
                         timeout = 5.seconds,
                     )
                 },

@@ -135,7 +135,8 @@ internal fun DeviceGrid(
     Column(modifier.fillMaxSize()) {
         JwToolbar(
             navigationIcon = {
-                DevicePicker(devices = devices, selected = null, livenessOf = livenessOf, onSelect = onOpen, onShowAll = {}, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
+                DevicePicker(devices = devices, selected = null, livenessOf = livenessOf, onSelect = onOpen, onShowAll = {
+                }, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
             },
             actions = {
                 RecordAllButton(recording, recordingActions)
@@ -175,8 +176,17 @@ private fun TileGroup(
         }
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val aspectRatios = devices.map { device -> thumbnailOf(device.id).image?.let { it.width.toFloat() / it.height } ?: PHONE_ASPECT_RATIO }
-        val layout = layoutDeviceTiles(aspectRatios, width = (maxWidth - TILE_GAP * 2).value, height = (maxHeight - TILE_GAP * 2).value, metrics = TILE_METRICS)
+        val aspectRatios = devices.map { device ->
+            thumbnailOf(device.id).image?.let { it.width.toFloat() / it.height }
+                ?: PHONE_ASPECT_RATIO
+        }
+        val layout =
+            layoutDeviceTiles(
+                aspectRatios,
+                width = (maxWidth - TILE_GAP * 2).value,
+                height = (maxHeight - TILE_GAP * 2).value,
+                metrics = TILE_METRICS,
+            )
         val screenHeight = layout.screenHeight.dp
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -240,7 +250,13 @@ private fun DeviceTile(
             .clip(shape)
             .background(if (hovered) JwTheme.colors.hover else Color.Transparent)
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = "Open ${device.name}", onClick = onOpen)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = "Open ${device.name}",
+                onClick = onOpen,
+            )
             .padding(TILE_PADDING),
     ) {
         Box(Modifier.size(screenWidth, screenHeight)) {
@@ -257,7 +273,14 @@ private fun DeviceTile(
 @Composable
 private fun TileScreen(device: DeviceListing, thumbnail: DeviceThumbnail, selected: Boolean, cornerRadius: Dp) {
     val screenShape = RoundedCornerShape(cornerRadius)
-    val outline = if (selected) BorderStroke(SELECTED_OUTLINE_WIDTH, JwTheme.colors.accent) else BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border)
+    val outline = if (selected) {
+        BorderStroke(
+            SELECTED_OUTLINE_WIDTH,
+            JwTheme.colors.accent,
+        )
+    } else {
+        BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border)
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -292,7 +315,11 @@ private fun RecordingBadge(modifier: Modifier) {
         border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
         modifier = modifier.semantics { contentDescription = "Recording" },
     ) {
-        Row(Modifier.padding(horizontal = JwSpacing.small, vertical = JwSpacing.tiny), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny)) {
+        Row(
+            Modifier.padding(horizontal = JwSpacing.small, vertical = JwSpacing.tiny),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
+        ) {
             RecordingDot()
             JwText(text = "REC", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.error)
         }
@@ -314,8 +341,12 @@ private fun TileActions(device: DeviceListing, modifier: Modifier, onOpen: () ->
         modifier = modifier,
     ) {
         Row(Modifier.padding(JwSpacing.tiny)) {
-            JwIconButton(tooltip = "Open ${device.name}", onClick = onOpen) { JwIcon(imageVector = OpenFullIcon, contentDescription = null) }
-            JwIconButton(tooltip = "Screenshot of ${device.name}", onClick = onScreenshot) { JwIcon(imageVector = ScreenshotIcon, contentDescription = null) }
+            JwIconButton(tooltip = "Open ${device.name}", onClick = onOpen) {
+                JwIcon(imageVector = OpenFullIcon, contentDescription = null)
+            }
+            JwIconButton(tooltip = "Screenshot of ${device.name}", onClick = onScreenshot) {
+                JwIcon(imageVector = ScreenshotIcon, contentDescription = null)
+            }
         }
     }
 }

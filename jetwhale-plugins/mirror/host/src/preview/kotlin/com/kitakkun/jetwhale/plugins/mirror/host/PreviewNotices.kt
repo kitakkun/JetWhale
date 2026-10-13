@@ -19,9 +19,22 @@ internal class PreviewNotices(override val notice: MirrorNotice?) : MirrorNotice
 }
 
 private val previewNotices = listOf(
-    MirrorNotice("Saved 20260926-125424-screenshot.png", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList()),
-    MirrorNotice("Saved 2 of 3 screenshots", isError = true, actions = listOf(NoticeAction.OpenCaptures, NoticeAction.RetryScreenshots(listOf("00008110-DEVICE"))), details = listOf("iPhone 13: idb could not reach the device; unlock it and trust this Mac")),
-    MirrorNotice.failure("Could not start recording Pixel 9: screenrecord is not available on this device", retry = NoticeAction.RetryRecording("emulator-5554")),
+    MirrorNotice(
+        "Saved 20260926-125424-screenshot.png",
+        isError = false,
+        actions = listOf(NoticeAction.OpenCaptures),
+        details = emptyList(),
+    ),
+    MirrorNotice(
+        "Saved 2 of 3 screenshots",
+        isError = true,
+        actions = listOf(NoticeAction.OpenCaptures, NoticeAction.RetryScreenshots(listOf("00008110-DEVICE"))),
+        details = listOf("iPhone 13: idb could not reach the device; unlock it and trust this Mac"),
+    ),
+    MirrorNotice.failure(
+        "Could not start recording Pixel 9: screenrecord is not available on this device",
+        retry = NoticeAction.RetryRecording("emulator-5554"),
+    ),
 )
 
 @Preview

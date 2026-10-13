@@ -49,13 +49,18 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
         loginShellPathVariableResolver = if (runsOnWindows) {
             null
         } else {
-            val shellPath = System.getenv("SHELL")?.takeIf(String::isNotBlank) ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
+            val shellPath =
+                System.getenv("SHELL")?.takeIf(String::isNotBlank)
+                    ?: if (System.getProperty("os.name").orEmpty().startsWith("Mac")) "/bin/zsh" else "/bin/sh"
             LoginShellPathVariableResolver(shellPath = shellPath, timeout = 5.seconds)
         },
     ).locateTools()
     // On Windows the search adds nothing to the PATH, and the variable is spelled `Path` there, so
     // setting `PATH` would add a second one beside it.
-    if (!runsOnWindows) SystemProcessLauncher.launchedProcessPathVariable = toolSearchResult.searchedDirectories.joinToString(File.pathSeparator)
+    if (!runsOnWindows) {
+        SystemProcessLauncher.launchedProcessPathVariable =
+            toolSearchResult.searchedDirectories.joinToString(File.pathSeparator)
+    }
     toolSearchResult.toolPaths
 }
 
@@ -73,9 +78,14 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
 internal class WellKnownToolDirectories(private val homeDirectory: File) {
     fun list(): List<String> {
         val pipUserDirectories = File(homeDirectory, "Library/Python").listFiles(File::isDirectory).orEmpty()
-            .sortedWith(compareByDescending<File> { it.name.substringBefore('.').toIntOrNull() }.thenByDescending { it.name.substringAfter('.').toIntOrNull() })
+            .sortedWith(
+                compareByDescending<File> {
+                    it.name.substringBefore('.').toIntOrNull()
+                }.thenByDescending { it.name.substringAfter('.').toIntOrNull() },
+            )
             .map { File(it, "bin").path }
-        return listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path) + pipUserDirectories + File(homeDirectory, ".pyenv/shims").path
+        return listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path) + pipUserDirectories +
+            File(homeDirectory, ".pyenv/shims").path
     }
 }
 
@@ -130,7 +140,19 @@ private class MirrorHostPlugin :
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
             discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
+            captures = MirrorCaptures(
+                defaultCapturesRoot(),
+                storage,
+                pluginScope,
+                ZoneId.systemDefault(),
+                notices,
+                ffmpegPath,
+                CaptureClipboard(
+                    osascriptPath = "/usr/bin/osascript".takeIf {
+                        File(it).canExecute()
+                    },
+                ),
+            ),
             notices = notices,
             scope = pluginScope,
         )

@@ -68,7 +68,13 @@ internal fun MirrorVideo(
         val started = System.nanoTime()
         // Until the surface has switched to the selected device, the previous one's stream is still
         // shutting down: its frames must not appear under this device's name.
-        val drawFrame: ((Bitmap) -> Unit) -> Unit = if (surface.deviceId == deviceId) surface::drawFrame else { draw -> surface.drawKeptFrame(deviceId, draw) }
+        val drawFrame: ((Bitmap) -> Unit) -> Unit = if (surface.deviceId ==
+            deviceId
+        ) {
+            surface::drawFrame
+        } else {
+            { draw -> surface.drawKeptFrame(deviceId, draw) }
+        }
         drawFrame { bitmap ->
             val fitted = FittedFrame(bitmap.width, bitmap.height, size.width, size.height)
             drawn.fitted = fitted

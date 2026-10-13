@@ -12,7 +12,8 @@ internal class SetScreenCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.setScreen"
     override val description =
-        "Turns an Android device's screen on or off; a screen that is off shows as black in screenshots and the mirror. Turning it on also dismisses a lock screen " +
+        "Turns an Android device's screen on or off; a screen that is off shows as black in screenshots and the mirror. " +
+            "Turning it on also dismisses a lock screen " +
             "that has no PIN, pattern or password. Answers the screen state afterwards; \"locked\": true means the device still needs unlocking. iOS devices are not supported."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)

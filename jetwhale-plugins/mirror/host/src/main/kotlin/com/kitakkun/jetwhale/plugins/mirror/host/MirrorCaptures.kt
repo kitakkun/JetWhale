@@ -187,7 +187,14 @@ internal class MirrorCaptures(
     override fun open(capture: Capture) = desktop { it.open(capture.file) }
 
     override fun reveal(capture: Capture) = desktop { desktop ->
-        if (desktop.isSupported(Desktop.Action.BROWSE_FILE_DIR)) desktop.browseFileDirectory(capture.file) else desktop.open(capture.file.parentFile)
+        if (desktop.isSupported(
+                Desktop.Action.BROWSE_FILE_DIR,
+            )
+        ) {
+            desktop.browseFileDirectory(capture.file)
+        } else {
+            desktop.open(capture.file.parentFile)
+        }
     }
 
     override fun copy(capture: Capture) {

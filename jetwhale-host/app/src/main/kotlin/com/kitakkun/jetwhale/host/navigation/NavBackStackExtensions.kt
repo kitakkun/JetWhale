@@ -50,7 +50,8 @@ fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?, tab
  * dialog created after it, so one left open could cover the destination just opened. Each open
  * dialog also adds its own scrim.
  */
-private fun NavKey.isDialogDestination(): Boolean = this is SettingsNavKey || this is McpToolsNavKey || this is InfoNavKey || this is LicensesNavKey
+private fun NavKey.isDialogDestination(): Boolean =
+    this is SettingsNavKey || this is McpToolsNavKey || this is InfoNavKey || this is LicensesNavKey
 
 /**
  * Whether the given plugin is currently shown in a separate popout window for [sessionId].

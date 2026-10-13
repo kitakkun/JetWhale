@@ -27,7 +27,8 @@ class MavenPluginInstallServiceTest {
     private var originalUserHome: String? = null
     private lateinit var tempHome: File
     private lateinit var provider: AppDataDirectoryProvider
-    private val coordinates = MavenCoordinates(groupId = "com.example", artifactId = "network", version = "1.3.0", repositoryUrl = "https://example.com/releases")
+    private val coordinates =
+        MavenCoordinates(groupId = "com.example", artifactId = "network", version = "1.3.0", repositoryUrl = "https://example.com/releases")
     private val trustRepository = FakeTrustRepository()
     private val factoryRepository = FakeFactoryRepository()
 
@@ -53,7 +54,13 @@ class MavenPluginInstallServiceTest {
     fun `an update whose approval fails puts back the jar it replaced`() = runBlocking {
         val installed = File(provider.getPluginDirectory(), coordinates.jarFileName()).apply { writeBytes(jarBytes("installed", "")) }
         val previousBytes = installed.readBytes()
-        val trustService = FakeTrustService(onApprove = { _, approvedSha256 -> if (approvedSha256 == null) throw IOException("the trust registry could not be written") })
+        val trustService = FakeTrustService(onApprove = { _, approvedSha256 ->
+            if (approvedSha256 ==
+                null
+            ) {
+                throw IOException("the trust registry could not be written")
+            }
+        })
 
         assertFailsWith<PluginInstallationException> { service(trustService).installFirstAvailable(listOf(coordinates)) }
 
@@ -69,7 +76,11 @@ class MavenPluginInstallServiceTest {
         val previousSha256 = installed.sha256Hex()
         trustRepository.entries[installed.absolutePath] = TrustedPluginEntry(installed.absolutePath, previousSha256, 0L)
         val trustService = FakeTrustService(onApprove = { jarPath, approvedSha256 ->
-            if (approvedSha256 == null) factoryRepository.failedJarsFlow.value = listOf(FailedPluginJar(jarPath, "a declared dependency is missing"))
+            if (approvedSha256 ==
+                null
+            ) {
+                factoryRepository.failedJarsFlow.value = listOf(FailedPluginJar(jarPath, "a declared dependency is missing"))
+            }
         })
 
         val failure = assertFailsWith<PluginInstallationException> { service(trustService).installFirstAvailable(listOf(coordinates)) }

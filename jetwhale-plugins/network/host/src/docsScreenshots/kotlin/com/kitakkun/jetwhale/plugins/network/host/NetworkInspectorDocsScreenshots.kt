@@ -85,7 +85,14 @@ private val JSON_HEADERS = mapOf("Content-Type" to listOf("application/json; cha
 private val TRANSACTIONS = listOf(
     HttpTransaction(
         request = CapturedHttpRequest(txId = "tx-1", method = "GET", url = "https://example.com/api/session", timestampMs = 0),
-        response = CapturedHttpResponse(txId = "tx-1", statusCode = 200, statusDescription = "OK", headers = JSON_HEADERS, body = """{"signedIn":true}""", durationMs = 64),
+        response = CapturedHttpResponse(
+            txId = "tx-1",
+            statusCode = 200,
+            statusDescription = "OK",
+            headers = JSON_HEADERS,
+            body = """{"signedIn":true}""",
+            durationMs = 64,
+        ),
     ),
     HttpTransaction(
         request = CapturedHttpRequest(
@@ -106,7 +113,13 @@ private val TRANSACTIONS = listOf(
     ),
     HttpTransaction(
         request = CapturedHttpRequest(txId = "tx-3", method = "GET", url = "https://example.com/images/banner.png", timestampMs = 2),
-        response = CapturedHttpResponse(txId = "tx-3", statusCode = 200, statusDescription = "OK", headers = mapOf("Content-Type" to listOf("image/png")), durationMs = 88),
+        response = CapturedHttpResponse(
+            txId = "tx-3",
+            statusCode = 200,
+            statusDescription = "OK",
+            headers = mapOf("Content-Type" to listOf("image/png")),
+            durationMs = 88,
+        ),
     ),
     HttpTransaction(
         request = CapturedHttpRequest(txId = "tx-4", method = "GET", url = "https://example.com/api/recommendations", timestampMs = 3),
@@ -129,11 +142,25 @@ private val TRANSACTIONS = listOf(
             body = """{"itemId":42,"quantity":1}""",
             timestampMs = 4,
         ),
-        response = CapturedHttpResponse(txId = "tx-5", statusCode = 201, statusDescription = "Created", headers = JSON_HEADERS, body = """{"cartId":7,"items":1}""", durationMs = 210),
+        response = CapturedHttpResponse(
+            txId = "tx-5",
+            statusCode = 201,
+            statusDescription = "Created",
+            headers = JSON_HEADERS,
+            body = """{"cartId":7,"items":1}""",
+            durationMs = 210,
+        ),
     ),
     HttpTransaction(
         request = CapturedHttpRequest(txId = "tx-6", method = "GET", url = "https://example.com/api/profile", timestampMs = 5),
-        response = CapturedHttpResponse(txId = "tx-6", statusCode = 401, statusDescription = "Unauthorized", headers = JSON_HEADERS, body = """{"error":"token expired"}""", durationMs = 55),
+        response = CapturedHttpResponse(
+            txId = "tx-6",
+            statusCode = 401,
+            statusDescription = "Unauthorized",
+            headers = JSON_HEADERS,
+            body = """{"error":"token expired"}""",
+            durationMs = 55,
+        ),
     ),
     HttpTransaction(
         request = CapturedHttpRequest(txId = "tx-7", method = "GET", url = "https://example.com/api/search?q=whale", timestampMs = 6),
@@ -146,7 +173,12 @@ private val MOCK_RULES = listOf(
         id = "rule-1",
         name = "Recommendations are down",
         matcher = MockMatcher(method = "GET", urlPattern = "/api/recommendations", matchType = MockMatchType.CONTAINS),
-        response = MockResponseSpec(statusCode = 503, headers = mapOf("Content-Type" to "application/json"), body = """{"error":"maintenance"}""", delayMs = 300),
+        response = MockResponseSpec(
+            statusCode = 503,
+            headers = mapOf("Content-Type" to "application/json"),
+            body = """{"error":"maintenance"}""",
+            delayMs = 300,
+        ),
     ),
     MockRule(
         id = "rule-2",

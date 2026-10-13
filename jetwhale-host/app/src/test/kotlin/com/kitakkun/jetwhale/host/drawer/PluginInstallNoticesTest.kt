@@ -26,7 +26,8 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class PluginInstallNoticesTest {
     private val request = mavenRequest("network")
-    private val failed = PluginInstallJob(id = "job-1", request = request, status = PluginInstallStatus.Failed("the repository is unreachable"))
+    private val failed =
+        PluginInstallJob(id = "job-1", request = request, status = PluginInstallStatus.Failed("the repository is unreachable"))
     private val failureMessage = "Couldn’t install network: the repository is unreachable"
 
     private var jobs: ImmutableList<PluginInstallJob> by mutableStateOf(persistentListOf())
@@ -125,7 +126,15 @@ class PluginInstallNoticesTest {
 
     @Test
     fun `a long batch names the first few plugins and counts the rest`() = runComposeUiTest {
-        showNotices(persistentListOf(succeeded("job-1", "a"), succeeded("job-2", "b"), succeeded("job-3", "c"), succeeded("job-4", "d"), succeeded("job-5", "e")))
+        showNotices(
+            persistentListOf(
+                succeeded("job-1", "a"),
+                succeeded("job-2", "b"),
+                succeeded("job-3", "c"),
+                succeeded("job-4", "d"),
+                succeeded("job-5", "e"),
+            ),
+        )
 
         onNodeWithText("Installed: a, b, c, +2 more").assertExists()
     }
@@ -237,9 +246,18 @@ class PluginInstallNoticesTest {
         waitForIdle()
     }
 
-    private fun succeeded(id: String, artifactId: String) = PluginInstallJob(id = id, request = mavenRequest(artifactId), status = PluginInstallStatus.Succeeded)
+    private fun succeeded(id: String, artifactId: String) = PluginInstallJob(
+        id = id,
+        request = mavenRequest(artifactId),
+        status = PluginInstallStatus.Succeeded,
+    )
 
     private fun mavenRequest(artifactId: String) = PluginInstallRequest.Maven(
-        MavenCoordinates(groupId = "com.example", artifactId = artifactId, version = "1.3.0", repositoryUrl = "https://example.com/releases"),
+        MavenCoordinates(
+            groupId = "com.example",
+            artifactId = artifactId,
+            version = "1.3.0",
+            repositoryUrl = "https://example.com/releases",
+        ),
     )
 }

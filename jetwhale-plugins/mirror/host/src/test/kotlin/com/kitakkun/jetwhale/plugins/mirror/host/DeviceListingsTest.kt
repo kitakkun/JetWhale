@@ -59,7 +59,14 @@ class DeviceListingsTest {
         """.trimIndent()
 
         assertEquals(
-            listOf(DeviceListing(id = "00008110-0000000000000001", name = "Test iPhone", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1")),
+            listOf(
+                DeviceListing(
+                    id = "00008110-0000000000000001",
+                    name = "Test iPhone",
+                    kind = DeviceKind.IosDevice,
+                    osVersion = "iOS 26.6.1",
+                ),
+            ),
             parseIdbDevices(output),
         )
     }

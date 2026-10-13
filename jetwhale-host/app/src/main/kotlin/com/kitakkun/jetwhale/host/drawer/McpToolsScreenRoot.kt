@@ -115,27 +115,28 @@ private fun rememberMcpToolsUiState(
             .toImmutableList()
     }
 
-    val toolRows = remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginIds, selectedSessionIds, runningPluginId, runningToolName) {
-        val callCounts = callHistory.groupingBy { it.pluginId to it.toolName }.eachCount()
-        mcpCapablePlugins.toolsBySessionAndPlugin
-            .filterKeys { selectedSessionIds.isEmpty() || it in selectedSessionIds }
-            .values
-            .flatMap { toolsByPlugin -> toolsByPlugin.entries }
-            .filter { selectedPluginIds.isEmpty() || it.key in selectedPluginIds }
-            .flatMap { (pluginId, tools) -> tools.map { pluginId to it } }
-            .distinctBy { (pluginId, tool) -> "$pluginId/${tool.name}" }
-            .map { (pluginId, tool) ->
-                McpToolRowUiState(
-                    pluginId = pluginId,
-                    pluginName = pluginNamesById[pluginId] ?: pluginId,
-                    tool = tool,
-                    callCount = callCounts[pluginId to tool.name] ?: 0,
-                    running = pluginId == runningPluginId && tool.name == runningToolName,
-                )
-            }
-            .sortedWith(compareBy(McpToolRowUiState::pluginName, { it.tool.name }))
-            .toImmutableList()
-    }
+    val toolRows =
+        remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginIds, selectedSessionIds, runningPluginId, runningToolName) {
+            val callCounts = callHistory.groupingBy { it.pluginId to it.toolName }.eachCount()
+            mcpCapablePlugins.toolsBySessionAndPlugin
+                .filterKeys { selectedSessionIds.isEmpty() || it in selectedSessionIds }
+                .values
+                .flatMap { toolsByPlugin -> toolsByPlugin.entries }
+                .filter { selectedPluginIds.isEmpty() || it.key in selectedPluginIds }
+                .flatMap { (pluginId, tools) -> tools.map { pluginId to it } }
+                .distinctBy { (pluginId, tool) -> "$pluginId/${tool.name}" }
+                .map { (pluginId, tool) ->
+                    McpToolRowUiState(
+                        pluginId = pluginId,
+                        pluginName = pluginNamesById[pluginId] ?: pluginId,
+                        tool = tool,
+                        callCount = callCounts[pluginId to tool.name] ?: 0,
+                        running = pluginId == runningPluginId && tool.name == runningToolName,
+                    )
+                }
+                .sortedWith(compareBy(McpToolRowUiState::pluginName, { it.tool.name }))
+                .toImmutableList()
+        }
 
     return McpToolsScreenUiState(
         pluginOptions = pluginOptions,
@@ -155,7 +156,11 @@ private fun rememberMcpToolsUiState(
  * still there.
  */
 @VisibleForTesting
-internal fun sessionFilterOptions(sessions: List<DebugSession>, hostLabel: String, disconnectedLabel: String): ImmutableList<McpFilterOption> {
+internal fun sessionFilterOptions(
+    sessions: List<DebugSession>,
+    hostLabel: String,
+    disconnectedLabel: String,
+): ImmutableList<McpFilterOption> {
     val appOptions = sessions
         .sortedByDescending(DebugSession::isActive)
         .map { session ->

@@ -137,7 +137,9 @@ private fun RunHistory(runs: List<RunRecord>) {
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
-                run.result?.let { JwText(text = "${it.durationMillis} ms", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary) }
+                run.result?.let {
+                    JwText(text = "${it.durationMillis} ms", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+                }
             }
         }
     }

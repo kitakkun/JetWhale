@@ -19,7 +19,9 @@ object DIModule {
     val exampleAgentPlugin: ExampleAgentPlugin by lazy { ExampleAgentPlugin() }
 
     @OptIn(ExperimentalJetWhaleApi::class)
-    val debugActionsAgentPlugin: JetWhaleDebugActionsAgentPlugin by lazy { JetWhaleDebugActionsAgentPlugin().also(::registerDemoDebugActions) }
+    val debugActionsAgentPlugin: JetWhaleDebugActionsAgentPlugin by lazy {
+        JetWhaleDebugActionsAgentPlugin().also(::registerDemoDebugActions)
+    }
 
     val networkAgentPlugin: JetWhaleNetworkAgentPlugin by lazy { JetWhaleNetworkAgentPlugin() }
 

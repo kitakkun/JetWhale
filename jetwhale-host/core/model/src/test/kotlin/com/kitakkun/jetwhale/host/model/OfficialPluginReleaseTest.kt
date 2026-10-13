@@ -59,12 +59,18 @@ class OfficialPluginReleaseTest {
 
     @Test
     fun `the agent coordinates follow the host's version`() {
-        assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", OfficialPluginRelease(HostVersionInfo("1.2.0-SNAPSHOT")).agentCoordinatesOf(plugin))
+        assertEquals(
+            "com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT",
+            OfficialPluginRelease(HostVersionInfo("1.2.0-SNAPSHOT")).agentCoordinatesOf(plugin),
+        )
     }
 
     @Test
     fun `the agent runtime follows the host's version`() {
-        assertEquals("com.kitakkun.jetwhale:jetwhale-agent-runtime:1.2.0", OfficialPluginRelease(HostVersionInfo("1.2.0")).agentRuntimeCoordinates)
+        assertEquals(
+            "com.kitakkun.jetwhale:jetwhale-agent-runtime:1.2.0",
+            OfficialPluginRelease(HostVersionInfo("1.2.0")).agentRuntimeCoordinates,
+        )
     }
 
     @Test

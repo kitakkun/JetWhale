@@ -92,7 +92,11 @@ internal class InboundFrameDispatcher(
             )
 
             is PluginFrame.Notification ->
-                logger("JetWhale: dropped inbound notification '${frame.messageType}' for plugin '$pluginId' (${sendFailureReason(result.isClosed)}).")
+                logger(
+                    "JetWhale: dropped inbound notification '${frame.messageType}' for plugin '$pluginId' (${sendFailureReason(
+                        result.isClosed,
+                    )}).",
+                )
 
             is PluginFrame.Reply -> Unit
         }
@@ -105,7 +109,9 @@ internal class InboundFrameDispatcher(
      */
     private fun dispatchRequest(frame: PluginFrame.Request) {
         if (!requestSlots.tryAcquire()) {
-            logger("JetWhale: rejecting request '${frame.messageType}' for plugin '$pluginId' ($maxConcurrentRequests concurrent requests in flight).")
+            logger(
+                "JetWhale: rejecting request '${frame.messageType}' for plugin '$pluginId' ($maxConcurrentRequests concurrent requests in flight).",
+            )
             outgoingQueue.trySend(
                 PluginFrame.Reply.Failure(
                     pluginId = pluginId,

@@ -38,7 +38,11 @@ import io.ktor.client.plugins.HttpSendInterceptor
  * @param maxImageBytes image bodies larger than this are skipped rather than truncated, since a
  *   partial image cannot be decoded.
  */
-fun JetWhaleNetworkAgentPlugin.ktorSendInterceptor(client: HttpClient, maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): HttpSendInterceptor {
+fun JetWhaleNetworkAgentPlugin.ktorSendInterceptor(
+    client: HttpClient,
+    maxBodyChars: Int = 100_000,
+    maxImageBytes: Int = 2 * 1024 * 1024,
+): HttpSendInterceptor {
     val agent = this
     return { request ->
         agent.monitorSend(client, request, BodyCaptureLimits(maxBodyChars, maxImageBytes), ::execute)

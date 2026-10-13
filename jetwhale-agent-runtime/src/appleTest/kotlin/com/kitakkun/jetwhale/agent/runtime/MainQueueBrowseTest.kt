@@ -31,5 +31,7 @@ class MainQueueBrowseTest {
     // Its own frame, so no temporary left in the test's frame keeps the delegate alive through the
     // collection. The delegate is a Kotlin object, so its Kotlin side is what has to survive.
     @Suppress("KOTRAIL_OBJC_WEAK_REFERENCE")
-    private fun weakDelegateOf(browse: MainQueueBrowse): WeakReference<NSNetServiceBrowserDelegateProtocol>? = browse.browser?.delegate?.let(::WeakReference)
+    private fun weakDelegateOf(
+        browse: MainQueueBrowse,
+    ): WeakReference<NSNetServiceBrowserDelegateProtocol>? = browse.browser?.delegate?.let(::WeakReference)
 }

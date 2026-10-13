@@ -54,7 +54,11 @@ class DeviceMirrorDocsScreenshots {
             IPHONE.id to ThumbnailState.Live,
             PIXEL_DEVICE.id to ThumbnailState.ScreenOff,
         ).mapValues { (id, state) ->
-            DeviceThumbnail(image = sampleAppScreenImage(SCREEN_SIZES.getValue(id)), updatedAtMillis = DOCS_SCREENSHOT_TIME_MILLIS, state = state)
+            DeviceThumbnail(
+                image = sampleAppScreenImage(SCREEN_SIZES.getValue(id)),
+                updatedAtMillis = DOCS_SCREENSHOT_TIME_MILLIS,
+                state = state,
+            )
         }
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
@@ -63,11 +67,23 @@ class DeviceMirrorDocsScreenshots {
                     selectedId = PIXEL_EMULATOR.id,
                     missingTools = emptyList(),
                     notices = PreviewNotices(notice = null),
-                    recording = GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = listOf(PIXEL_EMULATOR, IPHONE, PIXEL_DEVICE), warningSuppressed = false),
+                    recording = GridRecordingState(
+                        recordingDeviceIds = emptySet(),
+                        recordableDevices = listOf(PIXEL_EMULATOR, IPHONE, PIXEL_DEVICE),
+                        warningSuppressed = false,
+                    ),
                     recordingActions = NoGridRecordingActions,
                     thumbnailOf = thumbnails::getValue,
                     poll = { _, _ -> awaitCancellation() },
-                    livenessOf = { id -> if (thumbnails.getValue(id).state == ThumbnailState.ScreenOff) DeviceLiveness.ScreenOff else DeviceLiveness.Live },
+                    livenessOf = { id ->
+                        if (thumbnails.getValue(id).state ==
+                            ThumbnailState.ScreenOff
+                        ) {
+                            DeviceLiveness.ScreenOff
+                        } else {
+                            DeviceLiveness.Live
+                        }
+                    },
                     onOpen = {},
                     onScreenshot = {},
                     onScreenshotAll = {},
@@ -195,7 +211,8 @@ private const val PAGE = "device-mirror"
 
 private val PIXEL_EMULATOR = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
 
-private val IPHONE = DeviceListing(id = "4F1C2B9A-7D3E-4A55-9C10-2B6E8F0A1D34", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
+private val IPHONE =
+    DeviceListing(id = "4F1C2B9A-7D3E-4A55-9C10-2B6E8F0A1D34", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
 private val PIXEL_DEVICE = DeviceListing(id = "28241FDH20031K", name = "Pixel 7", kind = DeviceKind.AndroidDevice, osVersion = null)
 
@@ -235,7 +252,13 @@ private fun pixelEmulatorCapture(kind: CaptureKind, minutesBeforeDocsScreenshot:
     val capturedAtEpochMillis = DOCS_SCREENSHOT_TIME_MILLIS - minutesBeforeDocsScreenshot * MILLIS_PER_MINUTE
     val time = LocalDateTime.ofEpochSecond(capturedAtEpochMillis / MILLIS_PER_SECOND, 0, ZoneOffset.UTC)
     return Capture(
-        file = File("$CAPTURES_DIRECTORY/${time.toLocalDate()}/%02d%02d%02d-${kind.suffix}.${kind.extension}".format(time.hour, time.minute, time.second)),
+        file = File(
+            "$CAPTURES_DIRECTORY/${time.toLocalDate()}/%02d%02d%02d-${kind.suffix}.${kind.extension}".format(
+                time.hour,
+                time.minute,
+                time.second,
+            ),
+        ),
         info = CaptureInfo(
             deviceId = PIXEL_EMULATOR.id,
             deviceName = PIXEL_EMULATOR.name,
@@ -272,32 +295,82 @@ private class SampleAppScreenPainter(private val canvas: Canvas, private val wid
     fun drawScreen() {
         canvas.clear(SCREEN_BACKGROUND)
         drawHeader()
-        PRODUCTS.forEachIndexed { index, product -> drawProduct(product, top = dpToPx(PRODUCTS_TOP + index * (PRODUCT_HEIGHT + PRODUCT_GAP))) }
+        PRODUCTS.forEachIndexed { index, product ->
+            drawProduct(product, top = dpToPx(PRODUCTS_TOP + index * (PRODUCT_HEIGHT + PRODUCT_GAP)))
+        }
         drawButtonAndGestureHandle()
     }
 
     private fun drawHeader() {
         canvas.drawString(s = "9:41", x = dpToPx(16), y = dpToPx(17), font = Font(boldTypeface, dpToPx(12)), paint = paint(TEXT_PRIMARY))
-        canvas.drawRRect(RRect.makeXYWH(l = width - dpToPx(40), t = dpToPx(7), w = dpToPx(22), h = dpToPx(11), radius = dpToPx(3)), paint(TEXT_PRIMARY))
-        canvas.drawString(s = "Sample App", x = dpToPx(16), y = dpToPx(62), font = Font(boldTypeface, dpToPx(22)), paint = paint(TEXT_PRIMARY))
-        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = dpToPx(80), w = width - dpToPx(32), h = dpToPx(40), radius = dpToPx(20)), paint(SEARCH_FIELD_COLOR))
-        canvas.drawString(s = "Search products", x = dpToPx(36), y = dpToPx(105), font = Font(regularTypeface, dpToPx(14)), paint = paint(TEXT_SECONDARY))
+        canvas.drawRRect(
+            RRect.makeXYWH(l = width - dpToPx(40), t = dpToPx(7), w = dpToPx(22), h = dpToPx(11), radius = dpToPx(3)),
+            paint(TEXT_PRIMARY),
+        )
+        canvas.drawString(
+            s = "Sample App",
+            x = dpToPx(16),
+            y = dpToPx(62),
+            font = Font(boldTypeface, dpToPx(22)),
+            paint = paint(TEXT_PRIMARY),
+        )
+        canvas.drawRRect(
+            RRect.makeXYWH(l = dpToPx(16), t = dpToPx(80), w = width - dpToPx(32), h = dpToPx(40), radius = dpToPx(20)),
+            paint(SEARCH_FIELD_COLOR),
+        )
+        canvas.drawString(
+            s = "Search products",
+            x = dpToPx(36),
+            y = dpToPx(105),
+            font = Font(regularTypeface, dpToPx(14)),
+            paint = paint(TEXT_SECONDARY),
+        )
     }
 
     private fun drawProduct(product: Product, top: Float) {
-        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(PRODUCT_HEIGHT), radius = dpToPx(12)), paint(CARD_COLOR))
-        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(28), t = top + dpToPx(12), w = dpToPx(60), h = dpToPx(60), radius = dpToPx(8)), paint(product.thumbnailColor))
-        canvas.drawString(s = product.name, x = dpToPx(104), y = top + dpToPx(36), font = Font(boldTypeface, dpToPx(16)), paint = paint(TEXT_PRIMARY))
-        canvas.drawString(s = product.price, x = dpToPx(104), y = top + dpToPx(60), font = Font(regularTypeface, dpToPx(14)), paint = paint(TEXT_SECONDARY))
+        canvas.drawRRect(
+            RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(PRODUCT_HEIGHT), radius = dpToPx(12)),
+            paint(CARD_COLOR),
+        )
+        canvas.drawRRect(
+            RRect.makeXYWH(l = dpToPx(28), t = top + dpToPx(12), w = dpToPx(60), h = dpToPx(60), radius = dpToPx(8)),
+            paint(product.thumbnailColor),
+        )
+        canvas.drawString(
+            s = product.name,
+            x = dpToPx(104),
+            y = top + dpToPx(36),
+            font = Font(boldTypeface, dpToPx(16)),
+            paint = paint(TEXT_PRIMARY),
+        )
+        canvas.drawString(
+            s = product.price,
+            x = dpToPx(104),
+            y = top + dpToPx(60),
+            font = Font(regularTypeface, dpToPx(14)),
+            paint = paint(TEXT_SECONDARY),
+        )
     }
 
     private fun drawButtonAndGestureHandle() {
         val top = height - dpToPx(88)
-        canvas.drawRRect(RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(48), radius = dpToPx(24)), paint(ACCENT))
+        canvas.drawRRect(
+            RRect.makeXYWH(l = dpToPx(16), t = top, w = width - dpToPx(32), h = dpToPx(48), radius = dpToPx(24)),
+            paint(ACCENT),
+        )
         val label = "Add to cart"
         val font = Font(boldTypeface, dpToPx(16))
-        canvas.drawString(s = label, x = (width - font.measureTextWidth(label)) / 2, y = top + dpToPx(30), font = font, paint = paint(ON_ACCENT))
-        canvas.drawRect(Rect.makeXYWH(l = width / 2f - dpToPx(54), t = height - dpToPx(14), w = dpToPx(108), h = dpToPx(4)), paint(TEXT_SECONDARY))
+        canvas.drawString(
+            s = label,
+            x = (width - font.measureTextWidth(label)) / 2,
+            y = top + dpToPx(30),
+            font = font,
+            paint = paint(ON_ACCENT),
+        )
+        canvas.drawRect(
+            Rect.makeXYWH(l = width / 2f - dpToPx(54), t = height - dpToPx(14), w = dpToPx(108), h = dpToPx(4)),
+            paint(TEXT_SECONDARY),
+        )
     }
 
     /** [dp] of the 360-wide layout the app is designed at, in this screen's pixels. */

@@ -35,7 +35,9 @@ import platform.darwin.NSObjectProtocol
  * unregisters every window and stops following notifications; it leaves application accessibility as
  * it is.
  */
-fun installJetWhaleSemanticsProbe(enableSimulatorApplicationAccessibility: Boolean = true): AutoCloseable = IosSemanticsProbe.install(enableSimulatorApplicationAccessibility)
+fun installJetWhaleSemanticsProbe(
+    enableSimulatorApplicationAccessibility: Boolean = true,
+): AutoCloseable = IosSemanticsProbe.install(enableSimulatorApplicationAccessibility)
 
 /**
  * Turns on the simulator's application accessibility, which UIKit checks before it loads its
@@ -67,10 +69,18 @@ private object IosSemanticsProbe {
         init {
             val center = NSNotificationCenter.defaultCenter
             observers = listOf(
-                center.addObserverForName(UIWindowDidBecomeVisibleNotification, `object` = null, queue = NSOperationQueue.mainQueue) { notification ->
+                center.addObserverForName(
+                    UIWindowDidBecomeVisibleNotification,
+                    `object` = null,
+                    queue = NSOperationQueue.mainQueue,
+                ) { notification ->
                     notification?.window()?.let(::track)
                 },
-                center.addObserverForName(UIWindowDidBecomeHiddenNotification, `object` = null, queue = NSOperationQueue.mainQueue) { notification ->
+                center.addObserverForName(
+                    UIWindowDidBecomeHiddenNotification,
+                    `object` = null,
+                    queue = NSOperationQueue.mainQueue,
+                ) { notification ->
                     notification?.window()?.let(::untrack)
                 },
             )

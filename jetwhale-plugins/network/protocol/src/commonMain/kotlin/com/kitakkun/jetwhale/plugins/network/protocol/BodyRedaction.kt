@@ -20,7 +20,10 @@ internal fun List<RedactionRule>.redactBody(body: String, headers: Map<String, L
     }
     return when {
         element != null -> Json.encodeToString(JsonElement.serializer(), redactFields(element))
-        (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) && namesBodyField(body) -> WITHHELD_BODY
+
+        (headers.mediaType()?.contains("json") == true || body.trimStart().let { it.startsWith('{') || it.startsWith('[') }) &&
+            namesBodyField(body) -> WITHHELD_BODY
+
         else -> body
     }
 }

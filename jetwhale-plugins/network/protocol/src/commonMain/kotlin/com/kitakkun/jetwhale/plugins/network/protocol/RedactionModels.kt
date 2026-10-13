@@ -79,16 +79,19 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
  * up to the next `&`, `#` or whitespace, whatever the URL's scheme (WebSocket URLs included) and
  * wherever the URL seems to end.
  */
-fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure = failure.copy(message = redactQueryParamsInText(failure.message))
+fun List<RedactionRule>.redact(failure: HttpRequestFailure): HttpRequestFailure =
+    failure.copy(message = redactQueryParamsInText(failure.message))
 
-private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
-    when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
-        null -> values.map { redactQueryParamsInText(it) }
-        else -> values.map(strategy::render)
+private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> =
+    headers.mapValues { (name, values) ->
+        when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
+            null -> values.map { redactQueryParamsInText(it) }
+            else -> values.map(strategy::render)
+        }
     }
-}
 
-internal fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: String): RedactionStrategy? = lastOrNull { it.target == target && it.name.equals(name, ignoreCase = true) }?.strategy
+internal fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: String): RedactionStrategy? =
+    lastOrNull { it.target == target && it.name.equals(name, ignoreCase = true) }?.strategy
 
 internal fun RedactionStrategy.render(original: String): String = when (this) {
     RedactionStrategy.PLACEHOLDER -> REDACTED_PLACEHOLDER

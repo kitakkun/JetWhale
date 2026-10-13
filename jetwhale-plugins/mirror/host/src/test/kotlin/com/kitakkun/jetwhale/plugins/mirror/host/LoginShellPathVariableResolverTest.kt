@@ -27,13 +27,22 @@ class LoginShellPathVariableResolverTest {
         assumeShellScriptsLaunch()
         shellRuns("PATH='/opt/login/bin:/usr/bin:/bin'", "eval \"\$4\"")
 
-        assertEquals("/opt/login/bin:/usr/bin:/bin", LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable())
+        assertEquals(
+            "/opt/login/bin:/usr/bin:/bin",
+            LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable(),
+        )
     }
 
     @Test
     fun `what startup files print around the PATH is left out`() {
         assumeShellScriptsLaunch()
-        shellRuns("echo 'Last login: Tue Oct  6 on ttys001'", "printf 'a prompt without a line break'", "PATH='/opt/login/bin'", "eval \"\$4\"", "echo 'Saving session...'")
+        shellRuns(
+            "echo 'Last login: Tue Oct  6 on ttys001'",
+            "printf 'a prompt without a line break'",
+            "PATH='/opt/login/bin'",
+            "eval \"\$4\"",
+            "echo 'Saving session...'",
+        )
 
         assertEquals("/opt/login/bin", LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable())
     }

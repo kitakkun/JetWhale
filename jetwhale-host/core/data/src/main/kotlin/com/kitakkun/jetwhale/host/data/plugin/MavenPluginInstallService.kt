@@ -82,7 +82,9 @@ class MavenPluginInstallService(
     private suspend fun putInPlaceAndLoad(stagedJar: File, coordinates: MavenCoordinates) {
         val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
         val previousJar = installedJar.takeIf(File::isFile)?.let { installed ->
-            File.createTempFile("${installed.name}.", ".previous", appDataDirectoryProvider.getPluginStagingDirectory()).also { installed.copyTo(it, overwrite = true) }
+            File.createTempFile("${installed.name}.", ".previous", appDataDirectoryProvider.getPluginStagingDirectory()).also {
+                installed.copyTo(it, overwrite = true)
+            }
         }
         val previousTrustedSha256 = previousJar?.let { previous ->
             pluginTrustRepository.trustedEntry(installedJar.absolutePath)?.sha256?.takeIf { it == previous.sha256Hex() }

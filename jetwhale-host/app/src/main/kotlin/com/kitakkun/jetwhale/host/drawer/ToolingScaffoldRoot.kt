@@ -95,7 +95,9 @@ fun ToolingScaffoldRoot(
             PluginInstallNotices(
                 installJobs = installJobs,
                 snackbarHostState = snackbarHostState,
-                onOpen = { job -> openInstalledPlugin(job, uiState, screenChannel, onClickPlugin, onClickInactivePlugin, onNavigateSettings) },
+                onOpen = { job ->
+                    openInstalledPlugin(job, uiState, screenChannel, onClickPlugin, onClickInactivePlugin, onNavigateSettings)
+                },
                 onRetry = { request -> screenChannel.send(ToolingScaffoldScreenAction.RetryPluginInstall(request)) },
                 onDismiss = { jobIds -> screenChannel.send(ToolingScaffoldScreenAction.DismissPluginInstalls(jobIds)) },
                 onShowInstalledPlugins = { onNavigateSettings(SettingsScreenPage.InstalledPlugins) },
@@ -356,7 +358,10 @@ internal suspend fun ToolingScaffoldScreenActionResult.snackbarMessage(): String
         ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
 
-    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(Res.string.plugin_enabled_change_failed_message, error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName ?: error.javaClass.name)
+    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(
+        Res.string.plugin_enabled_change_failed_message,
+        error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName ?: error.javaClass.name,
+    )
 }
 
 /**

@@ -52,11 +52,12 @@ import kotlin.time.TimeSource
  * @param maxImageBytes image bodies larger than this are skipped rather than truncated, since a
  *   partial image cannot be decoded.
  */
-fun JetWhaleNetworkAgentPlugin.okHttpInterceptor(maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): Interceptor = JetWhaleNetworkOkHttpInterceptor(
-    agent = this,
-    maxBodyChars = maxBodyChars,
-    maxImageBytes = maxImageBytes,
-)
+fun JetWhaleNetworkAgentPlugin.okHttpInterceptor(maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): Interceptor =
+    JetWhaleNetworkOkHttpInterceptor(
+        agent = this,
+        maxBodyChars = maxBodyChars,
+        maxImageBytes = maxImageBytes,
+    )
 
 private class JetWhaleNetworkOkHttpInterceptor(
     private val agent: JetWhaleNetworkAgentPlugin,
@@ -133,18 +134,24 @@ private class JetWhaleNetworkOkHttpInterceptor(
         else -> ""
     }
 
-    private fun sendRequest(chain: Interceptor.Chain, request: Request, txId: String, started: TimeSource.Monotonic.ValueTimeMark): Response = try {
-        chain.proceed(request)
-    } catch (e: Throwable) {
-        agent.recordFailure(
-            HttpRequestFailure(
-                txId = txId,
-                message = e.message ?: e.toString(),
-                durationMs = started.elapsedNow().inWholeMilliseconds,
-            ),
-        )
-        throw e
-    }
+    private fun sendRequest(
+        chain: Interceptor.Chain,
+        request: Request,
+        txId: String,
+        started: TimeSource.Monotonic.ValueTimeMark,
+    ): Response =
+        try {
+            chain.proceed(request)
+        } catch (e: Throwable) {
+            agent.recordFailure(
+                HttpRequestFailure(
+                    txId = txId,
+                    message = e.message ?: e.toString(),
+                    durationMs = started.elapsedNow().inWholeMilliseconds,
+                ),
+            )
+            throw e
+        }
 
     private fun recordResponse(response: Response, fromMock: Boolean, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
         val body = captureResponseBodySafely(response, maxBodyChars, maxImageBytes)

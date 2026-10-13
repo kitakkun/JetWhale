@@ -109,7 +109,10 @@ class HostInstanceTest {
         assertNull(lockFiles.tryLock(hostDirectory.instanceLockFile))
     }
 
-    private fun bringToFrontThreads(): Set<Thread> = Thread.getAllStackTraces().keys.filterTo(mutableSetOf()) { it.name == "host-instance-bring-to-front" }
+    private fun bringToFrontThreads(): Set<Thread> = Thread.getAllStackTraces().keys.filterTo(mutableSetOf()) {
+        it.name ==
+            "host-instance-bring-to-front"
+    }
 
     /** OS file locks as two processes would see them, for two hosts in one test JVM. */
     private class InProcessLockFiles : LockFiles {

@@ -43,7 +43,15 @@ internal class TileMetrics(
  * @param aspectRatios each device's screen width divided by its height.
  */
 internal fun layoutDeviceTiles(aspectRatios: List<Float>, width: Float, height: Float, metrics: TileMetrics): DeviceTileLayout {
-    if (aspectRatios.isEmpty()) return DeviceTileLayout(screenHeight = 0f, rows = emptyList(), scrolls = false, groupWidth = 0f, groupHeight = 0f)
+    if (aspectRatios.isEmpty()) {
+        return DeviceTileLayout(
+            screenHeight = 0f,
+            rows = emptyList(),
+            scrolls = false,
+            groupWidth = 0f,
+            groupHeight = 0f,
+        )
+    }
     val fitter = TileFitter(aspectRatios, metrics)
     val (fitting, best) = (1..aspectRatios.size)
         .map { columns -> aspectRatios.indices.chunked(columns) }
@@ -61,7 +69,10 @@ private class TileFitter(private val aspectRatios: List<Float>, private val metr
     /** The tallest screen at which [rows] fit [width] by [height]; negative when not even a sliver does. */
     fun tallestScreenFor(rows: List<List<Int>>, width: Float, height: Float): Float {
         val byHeight = (height - metrics.gap * (rows.size - 1)) / rows.size - metrics.captionHeight
-        val byWidth = rows.minOf { row -> (width - metrics.gap * (row.size - 1) - metrics.tileExtraWidth * row.size) / row.sumOf { aspectRatios[it].toDouble() }.toFloat() }
+        val byWidth = rows.minOf { row ->
+            (width - metrics.gap * (row.size - 1) - metrics.tileExtraWidth * row.size) /
+                row.sumOf { aspectRatios[it].toDouble() }.toFloat()
+        }
         return minOf(byHeight, byWidth)
     }
 
@@ -86,7 +97,13 @@ private class TileFitter(private val aspectRatios: List<Float>, private val metr
     fun measured(rows: List<List<Int>>, screenHeight: Float, scrolls: Boolean): DeviceTileLayout {
         val groupWidth = rows.maxOf { row -> row.sumOf { tileWidth(it, screenHeight).toDouble() }.toFloat() + metrics.gap * (row.size - 1) }
         val groupHeight = (screenHeight + metrics.captionHeight) * rows.size + metrics.gap * (rows.size - 1)
-        return DeviceTileLayout(screenHeight = screenHeight, rows = rows, scrolls = scrolls, groupWidth = ceil(groupWidth), groupHeight = ceil(groupHeight))
+        return DeviceTileLayout(
+            screenHeight = screenHeight,
+            rows = rows,
+            scrolls = scrolls,
+            groupWidth = ceil(groupWidth),
+            groupHeight = ceil(groupHeight),
+        )
     }
 
     private fun tileWidth(index: Int, screenHeight: Float): Float = aspectRatios[index] * screenHeight + metrics.tileExtraWidth

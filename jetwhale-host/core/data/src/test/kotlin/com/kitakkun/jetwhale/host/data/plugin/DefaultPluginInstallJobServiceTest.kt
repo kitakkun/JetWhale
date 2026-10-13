@@ -43,7 +43,8 @@ class DefaultPluginInstallJobServiceTest {
     private lateinit var provider: AppDataDirectoryProvider
     private lateinit var service: DefaultPluginInstallJobService
 
-    private val coordinates = MavenCoordinates(groupId = "com.example", artifactId = "network", version = "1.3.0", repositoryUrl = "https://example.com/releases")
+    private val coordinates =
+        MavenCoordinates(groupId = "com.example", artifactId = "network", version = "1.3.0", repositoryUrl = "https://example.com/releases")
     private val request = PluginInstallRequest.Maven(coordinates)
 
     private val pluginDownloadGate = CompletableDeferred<Unit>()
@@ -283,7 +284,13 @@ class DefaultPluginInstallJobServiceTest {
         val shutdown = try {
             service.cancel(job.id)
             withTimeout(TIMEOUT_MILLIS) {
-                while (ManagementFactory.getThreadMXBean().dumpAllThreads(false, false).none { it.threadState == Thread.State.BLOCKED && it.lockInfo?.identityHashCode == System.identityHashCode(service) }) yield()
+                while (ManagementFactory.getThreadMXBean().dumpAllThreads(false, false).none {
+                        it.threadState == Thread.State.BLOCKED &&
+                            it.lockInfo?.identityHashCode == System.identityHashCode(service)
+                    }
+                ) {
+                    yield()
+                }
             }
             launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }.also { assertFalse(it.isCompleted) }
         } finally {

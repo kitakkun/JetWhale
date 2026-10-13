@@ -85,7 +85,8 @@ internal actual fun deleteRecursively(path: String) {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun isSymbolicLink(path: String): Boolean = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeSymbolicLink
+internal actual fun isSymbolicLink(path: String): Boolean =
+    NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeSymbolicLink
 
 // stringByResolvingSymlinksInPath also drops a leading "/private", which is harmless: the root and
 // the path are both resolved the same way before they are compared.

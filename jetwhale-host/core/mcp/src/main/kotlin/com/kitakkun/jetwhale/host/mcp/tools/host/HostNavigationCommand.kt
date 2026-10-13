@@ -52,7 +52,10 @@ class HostNavigationCommand(
     private val sessionId by stringOrNull(
         "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in \"${HostSession.ID}\".",
     )
-    private val settingsSection by enumOrNull("Only for SETTINGS: opens the first page of that section. Defaults to GENERAL.", HostSettingsSection.entries)
+    private val settingsSection by enumOrNull(
+        "Only for SETTINGS: opens the first page of that section. Defaults to GENERAL.",
+        HostSettingsSection.entries,
+    )
     private val settingsPage by enumOrNull(
         "Only for SETTINGS: the page to open, named as the settings menu labels it. Takes the place of settingsSection; if both are given, the page has to be in that section.",
         HostSettingsPage.entries,
@@ -69,7 +72,8 @@ class HostNavigationCommand(
             ?: return Json.encodeToString(
                 NavigateResult(
                     applied = false,
-                    reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. It may still be starting up.",
+                    reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. " +
+                        "It may still be starting up.",
                 ),
             )
 
@@ -98,7 +102,10 @@ class HostNavigationCommand(
             val section = this[settingsSection]
             val page = this[settingsPage] ?: (section ?: HostSettingsSection.GENERAL).firstPage
             if (section != null && page.section != section) {
-                throw JetWhaleMcpArgumentException("invalid settingsPage: ${page.name} is in ${page.section.name}, not ${section.name}. Pass settingsPage alone to open it.")
+                throw JetWhaleMcpArgumentException(
+                    "invalid settingsPage: ${page.name} is in ${page.section.name}, not ${section.name}. " +
+                        "Pass settingsPage alone to open it.",
+                )
             }
             HostNavigationRequest.Settings(page)
         }
@@ -120,21 +127,29 @@ class HostNavigationCommand(
             throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is not installed. See jetwhale.listInstalledPlugins.")
         }
         if (targetPluginId !in enabledPluginsRepository.enabledPluginIdsFlow.first()) {
-            throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is installed but disabled. Enable it with jetwhale.setPluginEnabled.")
+            throw JetWhaleMcpArgumentException(
+                "invalid pluginId: '$targetPluginId' is installed but disabled. Enable it with jetwhale.setPluginEnabled.",
+            )
         }
         if (targetSessionId == null) return
 
         if (!reconciliationService.requiresAgent(targetPluginId)) return
         if (HostSession.isHost(targetSessionId)) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.",
+            )
         }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
             ?: throw JetWhaleMcpArgumentException("invalid sessionId: no session '$targetSessionId'. See jetwhale.listSessions.")
         if (!session.isActive) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.",
+            )
         }
         if (session.installedPlugins.none { it.pluginId == targetPluginId }) {
-            throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.")
+            throw JetWhaleMcpArgumentException(
+                "invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.",
+            )
         }
     }
 }

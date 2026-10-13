@@ -19,7 +19,8 @@ sealed interface PluginInstallRequest {
     }
 
     data class Maven(val coordinates: MavenCoordinates) : PluginInstallRequest {
-        override val key: String get() = "maven:${coordinates.groupId}:${coordinates.artifactId}:${coordinates.version}@${coordinates.repositoryUrl}"
+        override val key: String
+            get() = "maven:${coordinates.groupId}:${coordinates.artifactId}:${coordinates.version}@${coordinates.repositoryUrl}"
         override val displayName: String get() = coordinates.artifactId
         override val pluginId: String? get() = null
     }

@@ -80,7 +80,10 @@ internal fun CapturesPanel(
         CaptureFilters(allDevices, kind, day, days, actions)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (shown.isEmpty()) {
-                JwEmptyState(title = "No captures", description = "Screenshots and recordings of this device appear here as soon as they are taken.")
+                JwEmptyState(
+                    title = "No captures",
+                    description = "Screenshots and recordings of this device appear here as soon as they are taken.",
+                )
             } else {
                 CaptureGrid(shown, selected, thumbnails, onSelect = actions::select)
             }
@@ -92,7 +95,10 @@ internal fun CapturesPanel(
 @Composable
 private fun CaptureFilters(allDevices: Boolean, kind: CaptureKind?, day: String?, days: List<String>, actions: CapturesActions) {
     Column(Modifier.padding(JwSpacing.medium), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+        ) {
             FilterChip(text = "This device", selected = !allDevices, onClick = { actions.showAllDevices(false) })
             FilterChip(text = "All devices", selected = allDevices, onClick = { actions.showAllDevices(true) })
             FilterChip(text = "All kinds", selected = kind == null, onClick = { actions.filterKind(null) })
@@ -173,7 +179,9 @@ private fun Thumbnail(capture: Capture, thumbnails: ThumbnailSource, modifier: M
         if (image == null) image = thumbnails.loadThumbnail(capture)
     }
     Box(modifier, contentAlignment = Alignment.Center) {
-        image?.let { Image(bitmap = it, contentDescription = capture.file.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+        image?.let {
+            Image(bitmap = it, contentDescription = capture.file.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+        }
             ?: JwText(text = capture.info.kind.label, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
     }
 }
@@ -186,7 +194,10 @@ private fun CaptureDetail(capture: Capture, thumbnails: ThumbnailSource, actions
             Thumbnail(capture, thumbnails, Modifier.height(DetailPreviewHeight).aspectRatio(THUMBNAIL_ASPECT))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) { CaptureFacts(capture) }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
+        ) {
             JwButton(text = "Open", onClick = { actions.open(capture) })
             JwButton(text = "Reveal", onClick = { actions.reveal(capture) }, style = JwButtonStyle.Text)
             val copyLabel = when (capture.info.kind) {
@@ -224,9 +235,23 @@ private fun CaptureDetail(capture: Capture, thumbnails: ThumbnailSource, actions
 @Composable
 private fun CaptureFacts(capture: Capture) {
     val info = capture.info
-    Fact(label = "Device", value = listOfNotNull(info.deviceName, info.deviceKind, info.osVersion).joinToString(" · "), overflow = TextOverflow.Ellipsis)
-    Fact(label = "Taken", value = "${DayFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))} ${TimeFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))}", overflow = TextOverflow.Ellipsis)
-    if (info.widthPx != null && info.heightPx != null) Fact(label = "Size", value = "${info.widthPx}×${info.heightPx}", overflow = TextOverflow.Ellipsis)
+    Fact(
+        label = "Device",
+        value = listOfNotNull(info.deviceName, info.deviceKind, info.osVersion).joinToString(" · "),
+        overflow = TextOverflow.Ellipsis,
+    )
+    Fact(
+        label = "Taken",
+        value = "${DayFormat.format(
+            Instant.ofEpochMilli(info.capturedAtEpochMillis),
+        )} ${TimeFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))}",
+        overflow = TextOverflow.Ellipsis,
+    )
+    if (info.widthPx != null &&
+        info.heightPx != null
+    ) {
+        Fact(label = "Size", value = "${info.widthPx}×${info.heightPx}", overflow = TextOverflow.Ellipsis)
+    }
     info.durationMillis?.let { Fact(label = "Length", value = "%.1f s".format(it / 1000.0), overflow = TextOverflow.Ellipsis) }
     JwTooltip(text = capture.file.absolutePath) {
         Fact(label = "File", value = capture.file.absolutePath, overflow = TextOverflow.MiddleEllipsis)

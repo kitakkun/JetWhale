@@ -58,7 +58,9 @@ class DefaultPluginInstallJobService(
     override suspend fun install(request: PluginInstallRequest): PluginInstallStatus = enqueueWithOutcome(request).second.await()
 
     /** The job for [request], and its outcome, taken under the same lock that retires finished jobs. */
-    private fun enqueueWithOutcome(request: PluginInstallRequest): Pair<PluginInstallJob, CompletableDeferred<PluginInstallStatus>> = synchronized(this) {
+    private fun enqueueWithOutcome(
+        request: PluginInstallRequest,
+    ): Pair<PluginInstallJob, CompletableDeferred<PluginInstallStatus>> = synchronized(this) {
         jobsFlow.value.firstOrNull { it.request.key == request.key && it.status.isActive }?.let { active ->
             return active to checkNotNull(pendingOutcomes[active.id]) { "no outcome is tracked for install ${active.id}" }
         }

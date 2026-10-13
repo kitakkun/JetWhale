@@ -12,7 +12,8 @@ internal class GetTransactionCommand(
     private val mcpRedactionRules: () -> List<RedactionRule>?,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.getTransaction"
-    override val description = "Returns the full detail of one captured HTTP transaction (request/response headers and bodies, or the failure)."
+    override val description =
+        "Returns the full detail of one captured HTTP transaction (request/response headers and bodies, or the failure)."
 
     private val txId by string("The transaction id from listTransactions.")
 

@@ -25,10 +25,19 @@ class Nav3NavigatorDocsScreenshots {
 
     @Test
     fun `the back stack beside a filtered list of key types`() = recorder.record(
-        DocsScreenshot(page = "nav3-navigator", name = "back-stack", surfaceSize = DpSize(860.dp, 440.dp), density = 1.6f, displayWidthCssPx = 688),
+        DocsScreenshot(
+            page = "nav3-navigator",
+            name = "back-stack",
+            surfaceSize = DpSize(860.dp, 440.dp),
+            density = 1.6f,
+            displayWidthCssPx = 688,
+        ),
     ) { darkTheme ->
         setContent {
-            PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(mapOf("push-draft" to JsonPrimitive(DRAFT).toString()))) {
+            PluginSceneSurface(
+                darkTheme = darkTheme,
+                storage = InMemoryPluginStorage(mapOf("push-draft" to JsonPrimitive(DRAFT).toString())),
+            ) {
                 Nav3NavigatorScreenRoot(
                     stacks = listOf(BACK_STACK),
                     keyTypes = KEY_TYPES,
@@ -76,9 +85,18 @@ private val BACK_STACK = NavBackStackSnapshot(
 private val KEY_TYPES = listOf(
     keyType(serialName = "Cart", fields = emptyList()),
     keyType(serialName = "Home", fields = emptyList()),
-    keyType(serialName = "ProductDetail", fields = listOf(NavKeyFieldDescriptor(name = "id", type = "String", optional = false, nullable = false))),
-    keyType(serialName = "ProductList", fields = listOf(NavKeyFieldDescriptor(name = "category", type = "String", optional = false, nullable = false))),
-    keyType(serialName = "Settings", fields = listOf(NavKeyFieldDescriptor(name = "section", type = "String", optional = true, nullable = true))),
+    keyType(
+        serialName = "ProductDetail",
+        fields = listOf(NavKeyFieldDescriptor(name = "id", type = "String", optional = false, nullable = false)),
+    ),
+    keyType(
+        serialName = "ProductList",
+        fields = listOf(NavKeyFieldDescriptor(name = "category", type = "String", optional = false, nullable = false)),
+    ),
+    keyType(
+        serialName = "Settings",
+        fields = listOf(NavKeyFieldDescriptor(name = "section", type = "String", optional = true, nullable = true)),
+    ),
 )
 
 /** A key type with the template the agent derives: the type name, and an empty value per field. */

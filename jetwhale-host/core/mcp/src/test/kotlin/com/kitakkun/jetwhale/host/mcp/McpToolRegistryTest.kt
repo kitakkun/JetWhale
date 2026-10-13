@@ -107,7 +107,9 @@ class McpToolRegistryTest {
         registry.register("com.example.a", "session-2", FakeTooledPlugin("a.greet"))
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
-        val error = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.greet", emptyMap()))).jsonObject.getValue("error").jsonPrimitive.content
+        val error = Json.parseToJsonElement(
+            checkNotNull(registry.dispatch("a.greet", emptyMap())),
+        ).jsonObject.getValue("error").jsonPrimitive.content
 
         assertContains(error, "'sessionId' is required")
         assertContains(error, "session-1, session-2")
@@ -117,7 +119,9 @@ class McpToolRegistryTest {
     fun `a plugin tool called in a session it is not offered in answers with an error naming the sessions it runs in`() = runBlocking {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
-        val error = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-9"))))).jsonObject.getValue("error").jsonPrimitive.content
+        val error = Json.parseToJsonElement(
+            checkNotNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-9")))),
+        ).jsonObject.getValue("error").jsonPrimitive.content
 
         assertContains(error, "'a.greet' is not available in session 'session-9'")
         assertContains(error, "session-1")

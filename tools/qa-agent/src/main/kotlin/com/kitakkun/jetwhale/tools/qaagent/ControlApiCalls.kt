@@ -27,7 +27,10 @@ internal suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadReques
  * Resolves the app a call is addressed to, answering the caller itself when it cannot be resolved
  * and returning null so the handler stops without touching a session.
  */
-internal suspend fun ApplicationCall.resolveApp(apps: Map<String, QaApp>, requested: String?): QaApp? = when (val resolution = resolveAppName(requested, apps.keys)) {
+internal suspend fun ApplicationCall.resolveApp(
+    apps: Map<String, QaApp>,
+    requested: String?,
+): QaApp? = when (val resolution = resolveAppName(requested, apps.keys)) {
     is AppResolution.Resolved -> apps.getValue(resolution.name)
 
     is AppResolution.Failed -> {

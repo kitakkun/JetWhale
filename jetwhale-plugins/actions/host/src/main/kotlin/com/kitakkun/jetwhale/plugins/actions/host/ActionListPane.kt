@@ -64,7 +64,9 @@ internal fun ActionListPane(
                 JwListItem(selected = action.id == selectedId, onClick = { onSelect(action.id) }) {
                     Column(Modifier.weight(1f)) {
                         JwText(text = action.title, maxLines = 1)
-                        action.group?.let { JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1) }
+                        action.group?.let {
+                            JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1)
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
                         if (action.destructive) JwTag(text = "Destructive", tone = JwTone.Error)

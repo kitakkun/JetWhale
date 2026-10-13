@@ -13,7 +13,14 @@ plugins {
 val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/buildconfig")
     val version = libs.versions.jetwhale.get()
-    val testBuildReleaseSourceVariable = if (providers.gradleProperty("jetwhaleTestBuild").isPresent) "\"JETWHALE_RELEASE_SOURCE\"" else "null"
+    val testBuildReleaseSourceVariable = if (providers.gradleProperty(
+            "jetwhaleTestBuild",
+        ).isPresent
+    ) {
+        "\"JETWHALE_RELEASE_SOURCE\""
+    } else {
+        "null"
+    }
 
     inputs.property("version", version)
     inputs.property("testBuildReleaseSourceVariable", testBuildReleaseSourceVariable)

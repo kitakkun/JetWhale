@@ -147,7 +147,9 @@ class InstallOfficialPluginCommand(
         val targetPluginId = arguments[pluginId]
         val plugin = OfficialPluginCatalog.plugins.find { it.pluginId == targetPluginId }
             ?: throw JetWhaleMcpArgumentException(
-                "invalid pluginId: '$targetPluginId' is not an official plugin. Only ${OfficialPluginCatalog.plugins.joinToString(transform = OfficialPlugin::pluginId)} can be installed over MCP.",
+                "invalid pluginId: '$targetPluginId' is not an official plugin. Only ${OfficialPluginCatalog.plugins.joinToString(
+                    transform = OfficialPlugin::pluginId,
+                )} can be installed over MCP.",
             )
         if (targetPluginId in pluginFactoryRepository.loadedPlugins) {
             return Json.encodeToString(

@@ -28,7 +28,13 @@ class DebugActionsDocsScreenshots {
 
     @Test
     fun `the actions with one selected and its runs`() = recorder.record(
-        DocsScreenshot(page = "debug-actions", name = "actions", surfaceSize = DpSize(860.dp, 520.dp), density = 1.6f, displayWidthCssPx = 688),
+        DocsScreenshot(
+            page = "debug-actions",
+            name = "actions",
+            surfaceSize = DpSize(860.dp, 520.dp),
+            density = 1.6f,
+            displayWidthCssPx = 688,
+        ),
     ) { darkTheme ->
         setContent {
             PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
@@ -79,8 +85,24 @@ private val LOG_IN_AS = ActionDescriptor(
     destructive = false,
     scoped = false,
     parameters = listOf(
-        ActionParameter("email", ParameterType.STRING, optional = false, nullable = false, description = "The test account", enumValues = emptyList(), hasOptions = true),
-        ActionParameter("tier", ParameterType.ENUM, optional = false, nullable = false, description = null, enumValues = listOf("FREE", "PRO"), hasOptions = false),
+        ActionParameter(
+            "email",
+            ParameterType.STRING,
+            optional = false,
+            nullable = false,
+            description = "The test account",
+            enumValues = emptyList(),
+            hasOptions = true,
+        ),
+        ActionParameter(
+            "tier",
+            ParameterType.ENUM,
+            optional = false,
+            nullable = false,
+            description = null,
+            enumValues = listOf("FREE", "PRO"),
+            hasOptions = false,
+        ),
     ),
 )
 
@@ -112,7 +134,15 @@ private val SHIFT_CLOCK = ActionDescriptor(
     destructive = false,
     scoped = false,
     parameters = listOf(
-        ActionParameter("hours", ParameterType.INTEGER, optional = false, nullable = false, description = "Negative goes back", enumValues = emptyList(), hasOptions = false),
+        ActionParameter(
+            "hours",
+            ParameterType.INTEGER,
+            optional = false,
+            nullable = false,
+            description = "Negative goes back",
+            enumValues = emptyList(),
+            hasOptions = false,
+        ),
     ),
 )
 
@@ -124,7 +154,15 @@ private val OPEN_DEEP_LINK = ActionDescriptor(
     destructive = false,
     scoped = false,
     parameters = listOf(
-        ActionParameter("url", ParameterType.STRING, optional = false, nullable = false, description = null, enumValues = emptyList(), hasOptions = false),
+        ActionParameter(
+            "url",
+            ParameterType.STRING,
+            optional = false,
+            nullable = false,
+            description = null,
+            enumValues = emptyList(),
+            hasOptions = false,
+        ),
     ),
 )
 
@@ -147,7 +185,14 @@ private val RUNS = listOf(
         arguments = arguments("email" to "pro@example.com", "tier" to "PRO"),
         origin = RunOrigin.AI_AGENT,
         startedAtMillis = 1_791_021_720_000,
-        result = ActionResult(ActionOutcome.SUCCESS, text = "Signed in as pro@example.com (PRO)", json = null, error = null, stackTrace = null, durationMillis = 214),
+        result = ActionResult(
+            ActionOutcome.SUCCESS,
+            text = "Signed in as pro@example.com (PRO)",
+            json = null,
+            error = null,
+            stackTrace = null,
+            durationMillis = 214,
+        ),
     ),
     RunRecord(
         runId = "2",
@@ -156,7 +201,14 @@ private val RUNS = listOf(
         arguments = arguments("email" to "nobody@example.com", "tier" to "FREE"),
         origin = RunOrigin.USER,
         startedAtMillis = 1_791_021_660_000,
-        result = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "No test account nobody@example.com", stackTrace = null, durationMillis = 35),
+        result = ActionResult(
+            ActionOutcome.FAILURE,
+            text = null,
+            json = null,
+            error = "No test account nobody@example.com",
+            stackTrace = null,
+            durationMillis = 35,
+        ),
     ),
     RunRecord(
         runId = "1",
@@ -165,7 +217,14 @@ private val RUNS = listOf(
         arguments = arguments("email" to "qa@example.com", "tier" to "FREE"),
         origin = RunOrigin.USER,
         startedAtMillis = 1_791_021_600_000,
-        result = ActionResult(ActionOutcome.SUCCESS, text = "Signed in as qa@example.com (FREE)", json = null, error = null, stackTrace = null, durationMillis = 180),
+        result = ActionResult(
+            ActionOutcome.SUCCESS,
+            text = "Signed in as qa@example.com (FREE)",
+            json = null,
+            error = null,
+            stackTrace = null,
+            durationMillis = 180,
+        ),
     ),
 )
 

@@ -54,5 +54,7 @@ class NavKeyTypeQueryTest {
         assertEquals(listOf("com.example.navigation.ProfileKey"), keyTypes.filter(query::matches).map(NavKeyTypeDescriptor::serialName))
     }
 
-    private fun matchingSerialNames(typedText: String): List<String> = keyTypes.filter(NavKeyTypeQuery(typedText)::matches).map(NavKeyTypeDescriptor::serialName)
+    private fun matchingSerialNames(typedText: String): List<String> = keyTypes.filter(
+        NavKeyTypeQuery(typedText)::matches,
+    ).map(NavKeyTypeDescriptor::serialName)
 }

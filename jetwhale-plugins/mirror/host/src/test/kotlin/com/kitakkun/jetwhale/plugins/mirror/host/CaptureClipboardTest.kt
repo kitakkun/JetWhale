@@ -11,7 +11,8 @@ import kotlin.test.assertFailsWith
 
 class CaptureClipboardTest {
     private val folder: File = Files.createTempDirectory("mirror-clipboard").toFile()
-    private val recording = Capture(File(folder, "123412-recording.mp4").apply { writeBytes(byteArrayOf(0, 0, 0, 0x18)) }, info(CaptureKind.Recording))
+    private val recording =
+        Capture(File(folder, "123412-recording.mp4").apply { writeBytes(byteArrayOf(0, 0, 0, 0x18)) }, info(CaptureKind.Recording))
 
     // Records the capture's path and kind, which follow the script it is given.
     private val fakeOsascript = File(folder, "osascript").apply {

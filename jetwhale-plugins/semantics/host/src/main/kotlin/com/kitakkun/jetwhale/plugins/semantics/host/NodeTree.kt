@@ -41,7 +41,13 @@ internal fun UiNode.asSequence(): Sequence<UiNode> = sequence {
 internal fun ComposeRoot.findNode(nodeId: Int): UiNode? = node?.findDescendant(nodeId)
 
 /** This node, or the node below it with [nodeId]. */
-internal fun UiNode.findDescendant(nodeId: Int): UiNode? = if (id == nodeId) this else children.firstNotNullOfOrNull { it.findDescendant(nodeId) }
+internal fun UiNode.findDescendant(nodeId: Int): UiNode? = if (id ==
+    nodeId
+) {
+    this
+} else {
+    children.firstNotNullOfOrNull { it.findDescendant(nodeId) }
+}
 
 /** How many nodes this subtree holds, this node included. */
 internal fun UiNode.subtreeSize(): Int = 1 + children.sumOf(UiNode::subtreeSize)

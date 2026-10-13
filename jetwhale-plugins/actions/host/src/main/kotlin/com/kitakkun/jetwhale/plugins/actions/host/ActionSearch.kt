@@ -16,6 +16,9 @@ internal fun searchActions(actions: List<ActionDescriptor>, query: String, pinne
             words.all(haystack::contains)
         }
         .sortedWith(
-            compareBy<ActionDescriptor>({ it.id !in pinnedIds }, { trimmedQuery.isEmpty() || !it.title.startsWith(trimmedQuery, ignoreCase = true) }),
+            compareBy<ActionDescriptor>({ it.id !in pinnedIds }, {
+                trimmedQuery.isEmpty() ||
+                    !it.title.startsWith(trimmedQuery, ignoreCase = true)
+            }),
         )
 }

@@ -27,8 +27,15 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class MirrorMcpCommandsTest {
-    private val emulator = FakeController(DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true))
-    private val iphone = FakeController(DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false), refusal = VIEW_ONLY)
+    private val emulator =
+        FakeController(
+            DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true),
+        )
+    private val iphone =
+        FakeController(
+            DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false),
+            refusal = VIEW_ONLY,
+        )
     private val mirror = FakeMirrorDevices(
         listOf(
             MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
@@ -43,7 +50,11 @@ class MirrorMcpCommandsTest {
         val phone = devices.single { it.getValue("deviceId").jsonPrimitive.content == "00008110" }
         assertEquals("iOS", phone.getValue("platform").jsonPrimitive.content)
         assertFalse(phone.getValue("input").jsonPrimitive.boolean)
-        assertTrue(devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }.getValue("input").jsonPrimitive.boolean)
+        assertTrue(
+            devices.single {
+                it.getValue("deviceId").jsonPrimitive.content == "emulator-5554"
+            }.getValue("input").jsonPrimitive.boolean,
+        )
     }
 
     @Test
@@ -210,7 +221,11 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `startRecording with all starts every device at once and reports each device's result`() {
-        val results = StartRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.map(JsonElement::jsonObject)
+        val results = StartRecordingCommand(mirror).run(
+            buildJsonObject {
+                put("all", true)
+            },
+        ).getValue("results").jsonArray.map(JsonElement::jsonObject)
 
         assertEquals(listOf<List<String>?>(null), mirror.recordingRequests)
         assertEquals(listOf("started", "failed"), results.map { it.getValue("status").jsonPrimitive.content })
@@ -239,7 +254,11 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `stopRecording with all reports each saved file`() {
-        val result = StopRecordingCommand(mirror).run(buildJsonObject { put("all", true) }).getValue("results").jsonArray.single().jsonObject
+        val result = StopRecordingCommand(mirror).run(
+            buildJsonObject {
+                put("all", true)
+            },
+        ).getValue("results").jsonArray.single().jsonObject
 
         assertEquals("stopped", result.getValue("status").jsonPrimitive.content)
         assertEquals(recording.file.absolutePath, result.getValue("path").jsonPrimitive.content)
@@ -257,7 +276,10 @@ class MirrorMcpCommandsTest {
 
         assertEquals(listOf(CaptureQuery("emulator-5554", CaptureKind.Recording, 1_789_000_000_000)), mirror.captureQueries)
         val capture = captures.single()
-        assertEquals(File("/captures/Pixel-9-0a1b2c3d/2026-09-25/123005-recording.mp4").absolutePath, capture.getValue("path").jsonPrimitive.content)
+        assertEquals(
+            File("/captures/Pixel-9-0a1b2c3d/2026-09-25/123005-recording.mp4").absolutePath,
+            capture.getValue("path").jsonPrimitive.content,
+        )
         assertEquals("Recording", capture.getValue("kind").jsonPrimitive.content)
         assertEquals(12_400, capture.getValue("durationMillis").jsonPrimitive.long)
     }
@@ -302,7 +324,13 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
     override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> {
         recordingRequests += deviceIds
         return (deviceIds ?: devices.map(MirrorDevice::id)).map { id ->
-            if (id == devices.first().id) RecordingResult.Started(deviceId = id, deviceName = "Pixel 9") else RecordingResult.Failed(deviceId = id, deviceName = id, reason = "cannot record")
+            if (id ==
+                devices.first().id
+            ) {
+                RecordingResult.Started(deviceId = id, deviceName = "Pixel 9")
+            } else {
+                RecordingResult.Failed(deviceId = id, deviceName = id, reason = "cannot record")
+            }
         }
     }
 
@@ -351,7 +379,9 @@ private class FakeController(
 
     override suspend fun tap(x: Int, y: Int) = record("tap $x,$y")
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = record("swipe $fromX,$fromY -> $toX,$toY in $durationMillis")
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = record(
+        "swipe $fromX,$fromY -> $toX,$toY in $durationMillis",
+    )
 
     override suspend fun pressButton(button: DeviceButton) = record("press $button")
 

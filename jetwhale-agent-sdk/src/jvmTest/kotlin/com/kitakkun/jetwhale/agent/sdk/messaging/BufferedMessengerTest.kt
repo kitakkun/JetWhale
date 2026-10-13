@@ -85,7 +85,8 @@ class BufferedMessengerTest {
     @Test
     fun `events queued after a reconnect go to the new transport once it opens flushing, not to the old one`() = runBlocking {
         // Unconfined drains inside sendRaw, so an event flushed to the wrong transport is already there below.
-        val bufferedMessenger = BufferedMessenger(CoroutineScope(scope.coroutineContext + Dispatchers.Unconfined), Json, bufferCapacity = 16)
+        val bufferedMessenger =
+            BufferedMessenger(CoroutineScope(scope.coroutineContext + Dispatchers.Unconfined), Json, bufferCapacity = 16)
         val first = Recorder()
         bufferedMessenger.bind(first)
         bufferedMessenger.startFlush()

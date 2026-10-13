@@ -80,7 +80,9 @@ private class RiffChunk(val id: String, val bytes: ByteArray)
 
 private fun readRiffChunks(webp: ByteArray): List<RiffChunk> {
     val buffer = ByteBuffer.wrap(webp).order(ByteOrder.LITTLE_ENDIAN)
-    check(String(webp, 0, RIFF_ID.length) == RIFF_ID && String(webp, RIFF_ID.length + Int.SIZE_BYTES, WEBP_ID.length) == WEBP_ID) { "not a WebP file" }
+    check(String(webp, 0, RIFF_ID.length) == RIFF_ID && String(webp, RIFF_ID.length + Int.SIZE_BYTES, WEBP_ID.length) == WEBP_ID) {
+        "not a WebP file"
+    }
     val chunks = mutableListOf<RiffChunk>()
     var offset = RIFF_HEADER_BYTES
     while (offset < webp.size) {

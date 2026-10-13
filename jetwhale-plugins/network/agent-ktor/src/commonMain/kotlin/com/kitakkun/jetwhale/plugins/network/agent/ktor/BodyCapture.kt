@@ -83,4 +83,5 @@ internal suspend fun captureResponseBodySafely(call: HttpClientCall, limits: Bod
 }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
+private fun HttpResponse.isWebSocketUpgrade(): Boolean =
+    status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true

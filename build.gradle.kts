@@ -24,16 +24,24 @@ plugins {
     alias(libs.plugins.kotrail) apply false
 }
 
+// Spotless takes properties such as max_line_length from .editorconfig but ignores its rule switches,
+// so these two are switched off here as well: they would join every wrapped signature that fits
+// within the line length back onto one line.
+val ktlintDisabledRules = mapOf(
+    "ktlint_standard_function-signature" to "disabled",
+    "ktlint_standard_class-signature" to "disabled",
+)
+
 spotless {
     kotlin {
         target("**/*.kt")
         targetExclude("**/build/**", "**/testData/**")
-        ktlint()
+        ktlint().editorConfigOverride(ktlintDisabledRules)
     }
     kotlinGradle {
         target("**/*.gradle.kts")
         targetExclude("**/build/**")
-        ktlint()
+        ktlint().editorConfigOverride(ktlintDisabledRules)
     }
 }
 

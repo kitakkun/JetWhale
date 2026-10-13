@@ -85,7 +85,9 @@ class ActionsBrowserTest {
     fun `the history keeps only the latest hundred runs with the newest first`() {
         runBlocking {
             browser.load()
-            repeat(105) { index -> browser.runNow(signIn.id, emailArguments("user$index@example.com"), RunOrigin.USER, confirmedDestructive = false) }
+            repeat(105) { index ->
+                browser.runNow(signIn.id, emailArguments("user$index@example.com"), RunOrigin.USER, confirmedDestructive = false)
+            }
         }
 
         assertEquals(100, browser.history.size)

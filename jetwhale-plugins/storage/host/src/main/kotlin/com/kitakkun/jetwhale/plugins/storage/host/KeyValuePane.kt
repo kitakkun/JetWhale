@@ -60,7 +60,8 @@ internal fun KeyValuePane(
         if (stores.isEmpty()) {
             JwEmptyState(
                 title = "No key-value stores",
-                description = "The app has no store this plugin can read. On the JVM there is no platform store; pass your own KeyValueStore to JetWhaleStorageAgentPlugin.",
+                description = "The app has no store this plugin can read. " +
+                    "On the JVM there is no platform store; pass your own KeyValueStore to JetWhaleStorageAgentPlugin.",
             )
             return@Box
         }

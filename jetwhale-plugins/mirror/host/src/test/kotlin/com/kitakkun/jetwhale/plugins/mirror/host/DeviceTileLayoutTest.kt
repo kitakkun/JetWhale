@@ -80,7 +80,10 @@ class DeviceTileLayoutTest {
         assertEquals("Updated 5 s ago", freshness(thumbnail(ThumbnailState.Live), nowMillis = 15_000L))
         assertEquals("Updated 2 min ago", freshness(thumbnail(ThumbnailState.Live), nowMillis = 130_000L))
         assertEquals("Screen off · last seen 5 s ago", freshness(thumbnail(ThumbnailState.ScreenOff), nowMillis = 15_000L))
-        assertEquals("Capturing…", freshness(DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading), nowMillis = 0L))
+        assertEquals(
+            "Capturing…",
+            freshness(DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading), nowMillis = 0L),
+        )
     }
 
     private fun assertFits(layout: DeviceTileLayout, width: Float, height: Float) {

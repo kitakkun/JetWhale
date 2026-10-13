@@ -50,7 +50,9 @@ class SettingsDocsScreenshots {
     private val recorder = DocsScreenshotRecorder.fromImagesDirectorySystemProperty()
 
     @Test
-    fun `the official plugins on the Add Plugins page`() = recorder.record(dialogScreenshot(guidePage = "getting-started", name = "official-plugins", windowHeightDp = 700)) { darkTheme ->
+    fun `the official plugins on the Add Plugins page`() = recorder.record(
+        dialogScreenshot(guidePage = "getting-started", name = "official-plugins", windowHeightDp = 700),
+    ) { darkTheme ->
         setSettingsDialogContent(darkTheme, SettingsScreenPage.AddPlugins) { page ->
             PluginSettingsScreen(
                 page = page,
@@ -80,23 +82,52 @@ class SettingsDocsScreenshots {
     }
 
     @Test
-    fun `the MCP Server page with the client setups`() = recorder.record(dialogScreenshot(guidePage = "mcp-server", name = "setup", windowHeightDp = 680)) { darkTheme ->
-        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpServer) { page -> ServerSettings(page, serverSettingsUiState(McpPermissionsUiState(DEFAULT_ALLOWED_HOST_GROUPS, emptyList(), isOverriddenForLaunch = false))) }
+    fun `the MCP Server page with the client setups`() = recorder.record(
+        dialogScreenshot(guidePage = "mcp-server", name = "setup", windowHeightDp = 680),
+    ) { darkTheme ->
+        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpServer) { page ->
+            ServerSettings(
+                page,
+                serverSettingsUiState(McpPermissionsUiState(DEFAULT_ALLOWED_HOST_GROUPS, emptyList(), isOverriddenForLaunch = false)),
+            )
+        }
         onNodeWithTag(SETTINGS_DIALOG_TAG)
     }
 
     @Test
-    fun `the permissions tree with a plugin open`() = recorder.record(dialogScreenshot(guidePage = "mcp-server", name = "permissions", windowHeightDp = 680)) { darkTheme ->
+    fun `the permissions tree with a plugin open`() = recorder.record(
+        dialogScreenshot(guidePage = "mcp-server", name = "permissions", windowHeightDp = 680),
+    ) { darkTheme ->
         val permissions = McpPermissionsUiState(
             allowedHostGroups = DEFAULT_ALLOWED_HOST_GROUPS,
             plugins = listOf(
-                McpPluginPermissionUiState(pluginId = NETWORK_PLUGIN_ID, displayName = "Network Inspector", inspectAllowed = true, interactAllowed = true, tools = networkToolPermissions()),
-                McpPluginPermissionUiState(pluginId = "com.kitakkun.jetwhale.semantics", displayName = "Compose Semantics Inspector", inspectAllowed = true, interactAllowed = true, tools = emptyList()),
-                McpPluginPermissionUiState(pluginId = "com.kitakkun.jetwhale.mirror", displayName = "Device Mirror", inspectAllowed = true, interactAllowed = false, tools = emptyList()),
+                McpPluginPermissionUiState(
+                    pluginId = NETWORK_PLUGIN_ID,
+                    displayName = "Network Inspector",
+                    inspectAllowed = true,
+                    interactAllowed = true,
+                    tools = networkToolPermissions(),
+                ),
+                McpPluginPermissionUiState(
+                    pluginId = "com.kitakkun.jetwhale.semantics",
+                    displayName = "Compose Semantics Inspector",
+                    inspectAllowed = true,
+                    interactAllowed = true,
+                    tools = emptyList(),
+                ),
+                McpPluginPermissionUiState(
+                    pluginId = "com.kitakkun.jetwhale.mirror",
+                    displayName = "Device Mirror",
+                    inspectAllowed = true,
+                    interactAllowed = false,
+                    tools = emptyList(),
+                ),
             ),
             isOverriddenForLaunch = false,
         )
-        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpPermissions) { page -> ServerSettings(page, serverSettingsUiState(permissions)) }
+        setSettingsDialogContent(darkTheme, SettingsScreenPage.McpPermissions) { page ->
+            ServerSettings(page, serverSettingsUiState(permissions))
+        }
         onNodeWithText("Network Inspector").mouseClickThenMovePointerAway()
         onNodeWithTag(SETTINGS_DIALOG_TAG)
     }
@@ -120,7 +151,11 @@ private fun dialogScreenshot(guidePage: String, name: String, windowHeightDp: In
 private const val WINDOW_PER_DIALOG = 1.25f
 
 @OptIn(ExperimentalTestApi::class)
-private fun SkikoComposeUiTest.setSettingsDialogContent(darkTheme: Boolean, page: SettingsScreenPage, pageContent: @Composable (SettingsScreenPage) -> Unit) {
+private fun SkikoComposeUiTest.setSettingsDialogContent(
+    darkTheme: Boolean,
+    page: SettingsScreenPage,
+    pageContent: @Composable (SettingsScreenPage) -> Unit,
+) {
     setContent {
         HostWindowSurface(darkTheme = darkTheme) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

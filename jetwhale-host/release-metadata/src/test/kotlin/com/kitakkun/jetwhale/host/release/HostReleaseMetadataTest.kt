@@ -29,7 +29,9 @@ class HostReleaseMetadataTest {
               "runtime": { "javaFeatureVersion": 21, "modules": ["java.base"], "vendor": "corretto" },
               "jvmArgs": [],
               "platforms": {
-                "linux-x64": { "url": "https://example.com/host.jar", "size": 3, "sha256": "${"a".repeat(64)}", "jvmArgs": [], "mirror": "x" }
+                "linux-x64": { "url": "https://example.com/host.jar", "size": 3, "sha256": "${"a".repeat(
+            64,
+        )}", "jvmArgs": [], "mirror": "x" }
               }
             }
         """.trimIndent()

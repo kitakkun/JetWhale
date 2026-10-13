@@ -82,10 +82,24 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
         registered.update { current ->
             val takenIds = current.mapTo(mutableSetOf(), RegisteredAction::id)
             current + definitions.map { definition ->
-                RegisteredAction(id = uniqueId(definition, takenIds).also(takenIds::add), definition = definition, scoped = scoped, owner = handle)
+                RegisteredAction(
+                    id = uniqueId(definition, takenIds).also(takenIds::add),
+                    definition = definition,
+                    scoped = scoped,
+                    owner = handle,
+                )
             }
         }
         return DebugActionsRegistration { registered.update { current -> current.filterNot { it.owner === handle } } }
+    }
+
+    /**
+     * The action's path — group and title — made unique among [takenIds] by a numeric suffix, since a
+     * screen shown twice registers the same actions twice.
+     */
+    private fun uniqueId(definition: DebugActionDefinition<*>, takenIds: Set<String>): String {
+        val base = listOfNotNull(definition.group, definition.title).joinToString(" / ")
+        return generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base #$it" }.first { it !in takenIds }
     }
 
     override fun JetWhaleMessageHandlers.configure() {
@@ -133,12 +147,33 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
     @InternalJetWhaleApi
     suspend fun runAction(request: RunAction): ActionResult {
         val action = registered.value.firstOrNull { it.id == request.actionId }
-            ?: return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "no action has the id '${request.actionId}'; list the actions again", stackTrace = null, durationMillis = 0)
+            ?: return ActionResult(
+                ActionOutcome.FAILURE,
+                text = null,
+                json = null,
+                error = "no action has the id '${request.actionId}'; list the actions again",
+                stackTrace = null,
+                durationMillis = 0,
+            )
         if (action.definition.destructive && !request.confirmedDestructive) {
-            return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "'${action.definition.title}' is destructive and the run was not confirmed; list the actions again and confirm", stackTrace = null, durationMillis = 0)
+            return ActionResult(
+                ActionOutcome.FAILURE,
+                text = null,
+                json = null,
+                error = "'${action.definition.title}' is destructive and the run was not confirmed; list the actions again and confirm",
+                stackTrace = null,
+                durationMillis = 0,
+            )
         }
         val scope = activeScope
-            ?: return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "the plugin is not active", stackTrace = null, durationMillis = 0)
+            ?: return ActionResult(
+                ActionOutcome.FAILURE,
+                text = null,
+                json = null,
+                error = "the plugin is not active",
+                stackTrace = null,
+                durationMillis = 0,
+            )
         // Started only once registered, so a cancel that arrives right away finds the run.
         val deferred = scope.async(start = CoroutineStart.LAZY) { action.definition.runWith(request.arguments, json) }
         runs.update { it + (request.runId to deferred) }
@@ -147,7 +182,14 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
         } catch (_: CancellationException) {
             // The run was cancelled on request; the request handling itself carries on to reply.
             currentCoroutineContext().ensureActive()
-            ActionResult(ActionOutcome.CANCELLED, text = null, json = null, error = "the run was cancelled", stackTrace = null, durationMillis = 0)
+            ActionResult(
+                ActionOutcome.CANCELLED,
+                text = null,
+                json = null,
+                error = "the run was cancelled",
+                stackTrace = null,
+                durationMillis = 0,
+            )
         } finally {
             runs.update { it - request.runId }
         }
@@ -175,13 +217,4 @@ private class RegisteredAction(
         scoped = scoped,
         parameters = definition.argumentSerializer.descriptor.toActionParameters(definition.optionProviders.keys),
     )
-}
-
-/**
- * The action's path — group and title — made unique among [takenIds] by a numeric suffix, since a
- * screen shown twice registers the same actions twice.
- */
-private fun uniqueId(definition: DebugActionDefinition<*>, takenIds: Set<String>): String {
-    val base = listOfNotNull(definition.group, definition.title).joinToString(" / ")
-    return generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base #$it" }.first { it !in takenIds }
 }

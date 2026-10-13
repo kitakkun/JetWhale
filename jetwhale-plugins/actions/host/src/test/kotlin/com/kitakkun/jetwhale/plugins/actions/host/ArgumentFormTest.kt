@@ -20,7 +20,17 @@ class ArgumentFormTest {
 
     @Test
     fun `filled fields become typed JSON values`() {
-        val built = buildArguments(parameters, mapOf("email" to "qa@example.com", "count" to "3", "ratio" to "0.5", "enabled" to "true", "tier" to "PRO", "tags" to """["a"]"""))
+        val built = buildArguments(
+            parameters,
+            mapOf(
+                "email" to "qa@example.com",
+                "count" to "3",
+                "ratio" to "0.5",
+                "enabled" to "true",
+                "tier" to "PRO",
+                "tags" to """["a"]""",
+            ),
+        )
 
         assertEquals(
             FormArguments.Valid(
@@ -57,7 +67,16 @@ class ArgumentFormTest {
 
     @Test
     fun `malformed text is reported per field instead of being sent`() {
-        val built = buildArguments(parameters, mapOf("email" to "a", "count" to "three", "enabled" to "false", "tier" to "GOLD", "tags" to "[unclosed"))
+        val built = buildArguments(
+            parameters,
+            mapOf(
+                "email" to "a",
+                "count" to "three",
+                "enabled" to "false",
+                "tier" to "GOLD",
+                "tags" to "[unclosed",
+            ),
+        )
 
         assertEquals(setOf("count", "tier", "tags"), (built as FormArguments.Invalid).errors.keys)
     }
