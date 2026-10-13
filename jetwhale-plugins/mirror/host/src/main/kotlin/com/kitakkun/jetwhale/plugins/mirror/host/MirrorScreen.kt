@@ -293,7 +293,13 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
-        (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
+        (pane.state as? MirrorState.Polling)?.let { polling ->
+            JwBanner(
+                text = "Showing screenshots${if (pane.capabilities.inputRefusal != null) " without input" else ""}, since live video is unavailable: ${polling.reason}",
+                tone = JwTone.Warning,
+                actions = { JwButton(text = "Retry", onClick = actions::retryLiveVideo, style = JwButtonStyle.Text) },
+            )
+        }
         if (pane.device.kind == DeviceKind.IosDevice) IphoneInputBanner(pane.capabilities.inputRefusal, actions.developmentTeam, actions::updateDevelopmentTeam)
         if (pane.capabilities.inputRefusal == null) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)

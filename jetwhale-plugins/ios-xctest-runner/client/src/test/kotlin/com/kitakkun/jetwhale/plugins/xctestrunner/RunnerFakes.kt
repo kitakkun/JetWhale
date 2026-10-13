@@ -168,18 +168,21 @@ internal class FakeToolProcess(val command: List<String>, private val pid: Long,
 }
 
 /**
- * An `xcrun xcodebuild` stand-in for builds: it reports Xcode [buildVersion], and a build writes an
- * `.xctestrun` where xcodebuild would, or fails with [buildFailure] when that is set.
+ * An `xcrun xcodebuild` stand-in for builds: it reports Xcode [buildVersion], or fails with
+ * [versionFailure] when that is set, and a build writes an `.xctestrun` where xcodebuild would, or
+ * fails with [buildFailure] when that is set.
  */
 internal class FakeXcodebuildCommands(var buildVersion: String = "27A266a", var buildFailure: String? = null) : CommandOutputRunner {
     val commands = mutableListOf<List<String>>()
+
+    var versionFailure: String? = null
 
     val buildCommands: List<List<String>> get() = commands.filter { "build-for-testing" in it }
 
     override suspend fun run(command: List<String>): CommandOutput {
         commands += command
         return when {
-            "-version" in command -> CommandOutput(exitCode = 0, text = "Xcode 27.0\nBuild version $buildVersion\n")
+            "-version" in command -> versionFailure?.let { CommandOutput(exitCode = 69, text = it) } ?: CommandOutput(exitCode = 0, text = "Xcode 27.0\nBuild version $buildVersion\n")
 
             "build-for-testing" in command -> buildFailure?.let { CommandOutput(exitCode = 65, text = it) } ?: run {
                 val products = File(command[command.indexOf("-derivedDataPath") + 1], "Build/Products").apply { mkdirs() }

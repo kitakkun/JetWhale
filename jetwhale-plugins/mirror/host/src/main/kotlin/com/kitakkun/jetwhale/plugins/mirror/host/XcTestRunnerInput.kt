@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunner
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
 import kotlinx.coroutines.flow.Flow
@@ -17,8 +18,8 @@ import kotlin.time.Duration
 /**
  * Taps, swipes, text and buttons sent to iOS simulators and devices through their XCTest runners,
  * and their screens streamed from them, in the pixels of the device's screen that the mirror works
- * in. A command the runner refuses, or whose runner cannot start, throws [DeviceControlException]
- * with the reason.
+ * in. A command the runner refuses throws [DeviceControlException] with the reason, and one whose
+ * runner cannot be built or started throws [RunnerStartException].
  */
 internal class XcTestRunnerInput(private val runners: XcTestRunners) {
     /** Why [target] takes no input, when that is known without starting a runner. */
@@ -49,10 +50,11 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
 
     /**
      * [target]'s screen as JPEG frames, at most [maxFps] a second, starting its runner first when none
-     * runs; see [XcTestRunner.streamScreenAsJpeg]. The flow fails with [DeviceControlException].
+     * runs; see [XcTestRunner.streamScreenAsJpeg]. The flow fails with [RunnerStartException] when no
+     * runner can be built or started, and with [DeviceControlException] when the stream breaks.
      */
     fun streamScreenAsJpeg(target: XcTestRunnerTarget, maxFps: Int): Flow<ByteArray> = flow { emitAll(runners.runnerFor(target).streamScreenAsJpeg(maxFps)) }
-        .catch { e -> throw if (e is XcTestRunnerException) DeviceControlException(e.message.orEmpty(), e) else e }
+        .catch { e -> throw if (e is XcTestRunnerException) e.toDeviceControlException() else e }
 
     /** Starts [target]'s runner ahead of its first input, without waiting for it. */
     fun startRunnerInBackground(target: XcTestRunnerTarget) = runners.startRunnerInBackground(target)
@@ -60,6 +62,11 @@ internal class XcTestRunnerInput(private val runners: XcTestRunners) {
     private suspend fun <T> withRunner(target: XcTestRunnerTarget, command: suspend (XcTestRunner) -> T): T = try {
         command(runners.runnerFor(target))
     } catch (e: XcTestRunnerException) {
-        throw DeviceControlException(e.message.orEmpty(), e)
+        throw e.toDeviceControlException()
     }
+
+    private fun XcTestRunnerException.toDeviceControlException(): DeviceControlException = if (this is XcTestRunnerStartException) RunnerStartException(message.orEmpty(), this) else DeviceControlException(message.orEmpty(), this)
 }
+
+/** No XCTest runner could be built or started for the device; [message] says what to do about it. */
+internal class RunnerStartException(message: String, cause: Throwable?) : DeviceControlException(message, cause)

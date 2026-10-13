@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -57,6 +58,14 @@ private const val SCREEN_CHANGE_POLL_MILLIS = 2_000L
 
 /** How fast the still-image fallback polls, for a device whose stream never started. */
 private const val SCREENSHOT_POLL_MILLIS = 250L
+
+/**
+ * How fast a simulator's still-image fallback polls. A simulator whose XCTest runner cannot run is
+ * shown this way for as long as it is watched, and simctl spends about a quarter of a second of CPU
+ * on each screenshot, which takes 150 to 450 ms: this shows it at one to one and a half frames a
+ * second.
+ */
+private const val SIMULATOR_SCREENSHOT_POLL_MILLIS = 500L
 
 /**
  * How long screenshots stand in before the stream is tried again, after one, two, and three or more
@@ -109,6 +118,9 @@ internal interface MirrorActions {
     fun wake()
 
     fun sleep()
+
+    /** Tries the selected device's live video again now, while screenshots stand in for it. */
+    fun retryLiveVideo()
 
     /** The Apple development team that signs the XCTest runner driving iPhones; null until set. */
     val developmentTeam: String?
@@ -165,6 +177,9 @@ internal class DeviceMirror(
 
     private val recordingLocks = ConcurrentHashMap<String, Mutex>()
 
+    /** Ends the screenshots standing in for a stream, so the stream is tried again at once. */
+    private val liveVideoRetryRequests = Channel<Unit>(Channel.CONFLATED)
+
     val selectedDevice: MirrorDevice? get() = devices.firstOrNull { it.id == selectedId }
 
     /** Keeps [devices] current until the caller is cancelled; the mirror runs it while it is shown. */
@@ -193,6 +208,7 @@ internal class DeviceMirror(
                 streamUntilCancelled(device)
             }
         } finally {
+            (device.controller as? IosSimulatorDeviceController)?.forgetRunnerStartFailure()
             state = MirrorState.Idle
             screenPower = null
         }
@@ -287,7 +303,7 @@ internal class DeviceMirror(
                         lastFrameAt.set(System.nanoTime())
                         watchdog.frameArrived()
                         state = MirrorState.Streaming
-                    }
+                    }.also { if (it is StreamOutcome.Unavailable) watchdog.endFirstFrameWait() }
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation; only the stream closing
                 // lets it return, and this scope waits for it, so the stream is closed here once
@@ -408,18 +424,30 @@ internal class DeviceMirror(
         }
     }
 
+    /** Shows screenshots of [device] in place of its stream for [forMillis], or until [retryLiveVideo]. */
     private suspend fun pollScreenshots(device: MirrorDevice, reason: String, forMillis: Long) {
         state = MirrorState.Polling(reason)
         surface.deviceSize = null
         val frames = surface.startStream()
+        val pollMillis = if (device.kind == DeviceKind.IosSimulator) SIMULATOR_SCREENSHOT_POLL_MILLIS else SCREENSHOT_POLL_MILLIS
+        // Drops a Retry pressed again while the stream was being retried, which would otherwise end
+        // this poll at once.
+        liveVideoRetryRequests.tryReceive()
         withTimeoutOrNull(forMillis) {
-            while (true) {
-                try {
-                    showScreenshot(device, frames, streamShape = null)
-                } catch (e: DeviceControlException) {
-                    state = MirrorState.Failed(e.message.orEmpty())
+            coroutineScope {
+                val polling = launch {
+                    while (true) {
+                        try {
+                            showScreenshot(device, frames, streamShape = null)
+                        } catch (e: DeviceControlException) {
+                            state = MirrorState.Failed(e.message.orEmpty())
+                        }
+                        delay(pollMillis)
+                    }
                 }
-                delay(SCREENSHOT_POLL_MILLIS)
+                liveVideoRetryRequests.receive()
+                (device.controller as? IosSimulatorDeviceController)?.forgetRunnerStartFailure()
+                polling.cancel()
             }
         }
     }
@@ -450,6 +478,10 @@ internal class DeviceMirror(
 
     override fun select(deviceId: String) {
         selectedId = deviceId
+    }
+
+    override fun retryLiveVideo() {
+        liveVideoRetryRequests.trySend(Unit)
     }
 
     override fun tap(x: Int, y: Int) = control { it.tap(x, y) }

@@ -89,6 +89,17 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a stream that fails before its first frame ends the wait for one`() = runTest {
+        val watchdog = FirstFrameWatchdog(timeoutMillis = 7_000)
+        launch {
+            delay(1_000)
+            watchdog.endFirstFrameWait()
+        }
+
+        assertTrue(watchdog.awaitFirstFrame())
+    }
+
+    @Test
     fun `a silent iPhone is explained by the lock screen and the USB connection`() {
         val hints = noFramesHints(DeviceKind.IosDevice).joinToString(" ")
 

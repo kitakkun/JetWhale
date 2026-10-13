@@ -124,9 +124,9 @@ class IosInputTest {
     fun `a simulator without Xcode's runners has no input and no live video and says why`() = runTest {
         val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", runnerInput = null)
 
-        assertEquals("a simulator's live video and input need Xcode's xcodebuild, which was not found", simulator.capabilities.inputRefusal)
+        assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", simulator.capabilities.inputRefusal)
         assertEquals(emptyList(), simulator.capabilities.buttons)
-        assertEquals("a simulator's live video and input need Xcode's xcodebuild, which was not found", assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
+        assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
     }
 
     @Test
@@ -151,7 +151,7 @@ class IosInputTest {
         assertEquals("screenshot", shown.first())
         assertEquals("runner-2", shown.last())
         assertTrue(shown.dropWhile { it == "screenshot" }.none { it == "screenshot" }, "a screenshot came after a frame of the runner: $shown")
-        assertEquals(listOf(30), runners.runner.screenStreamRates)
+        assertEquals(listOf(60), runners.runner.screenStreamRates)
     }
 
     @Test
@@ -163,6 +163,64 @@ class IosInputTest {
         val failure = assertFailsWith<DeviceControlException> { withTimeout(10.seconds) { stream.collectUntilClosed {} } }
 
         assertEquals("the XCTest runner did not start: error: something broke", failure.message)
+    }
+
+    @Test
+    fun `a simulator whose runner cannot be built or started is view only with the reason, and its runner is not tried again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val reasons = listOf(
+            "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again",
+            "the XCTest runner needs Xcode, and xcodebuild cannot run: install Xcode from the App Store, or choose it with 'sudo xcode-select -s /Applications/Xcode.app', then try again",
+            "the XCTest runner did not start: error: iOS 26.2 Platform Not Installed.",
+            "the XCTest runner did not answer within 3m",
+        )
+        for (reason in reasons) {
+            val failingRunners = FakeXcTestRunners().apply { startFailure = reason }
+            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(failingRunners))
+            val stream = simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages
+
+            val streamFailure = assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { stream.collectUntilClosed {} } }
+
+            assertEquals(reason, streamFailure.message)
+            assertEquals(reason, simulator.capabilities.inputRefusal)
+            assertEquals(emptyList(), simulator.capabilities.buttons)
+            assertEquals(reason, assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
+            assertEquals(reason, assertFailsWith<DeviceControlException> { simulator.tap(x = 10, y = 10) }.message)
+            assertEquals(1, failingRunners.askedFor.size)
+        }
+    }
+
+    @Test
+    fun `a simulator whose runner failure is forgotten streams from its runner and takes input again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        runners.startFailure = "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again"
+        val simulator = simulator()
+        assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed {} } }
+        runners.startFailure = null
+        runners.runner.screenFrames = flow { emit("runner-1".encodeToByteArray()) }
+
+        simulator.forgetRunnerStartFailure()
+        val shown = mutableListOf<String>()
+        withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed { shown += it.decodeToString() } }
+        simulator.tap(x = 30, y = 60)
+
+        assertNull(simulator.capabilities.inputRefusal)
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator.capabilities.buttons)
+        assertEquals("runner-1", shown.last())
+        assertEquals(listOf("tap 10.0,20.0 on screen"), runners.runner.calls)
+    }
+
+    @Test
+    fun `a simulator whose runner's stream breaks still takes input and tries its runner again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        runners.runner.screenFrames = flow { throw XcTestRunnerException("the XCTest runner's screen stream ended before its first frame", null) }
+        val simulator = simulator()
+
+        val failures = List(2) { assertFailsWith<DeviceControlException> { withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed {} } } }
+
+        assertEquals(List(2) { "the XCTest runner's screen stream ended before its first frame" }, failures.map(DeviceControlException::message))
+        assertNull(simulator.capabilities.inputRefusal)
+        assertEquals(2, runners.askedFor.size)
     }
 
     @Test
@@ -323,7 +381,7 @@ class IosInputTest {
 }
 
 /** Runners that hand out [runner] for every target, or refuse as told. */
-private class FakeXcTestRunners : XcTestRunners {
+internal class FakeXcTestRunners : XcTestRunners {
     val runner = FakeXcTestRunner()
     val askedFor = mutableListOf<XcTestRunnerTarget>()
     val startedInBackground = mutableListOf<XcTestRunnerTarget>()
@@ -349,7 +407,7 @@ private class FakeXcTestRunners : XcTestRunners {
 }
 
 /** A runner on a 1206x2622-pixel screen at 3x that notes what it is told, or refuses with [refusal]. */
-private class FakeXcTestRunner : XcTestRunner {
+internal class FakeXcTestRunner : XcTestRunner {
     val calls = mutableListOf<String>()
     var refusal: String? = null
     var interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.Portrait, widthPixels = 1206, heightPixels = 2622)
@@ -399,3 +457,5 @@ private class FakeXcTestRunner : XcTestRunner {
 private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")
 
 private val TEST_TIMEOUT = 10.seconds
+
+private val STREAM_END_TIMEOUT = 10.seconds
