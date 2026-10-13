@@ -1,7 +1,7 @@
 # Host Settings
 
 The JetWhale host's behavior is configured from its **Settings** screen, opened from the gear icon in
-the [drawer](/guide/host-window#the-rest-of-the-drawer).
+the [sidebar footer](/guide/host-window#the-sidebar-footer).
 
 Settings are organized into four **sections**, each holding one or more **pages**:
 
@@ -26,6 +26,9 @@ configure.
 |---------|-------------|
 | **Language** | UI language of the host: **English** or **Japanese**. |
 | **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
+
+An AI agent can change the theme through `jetwhale.updateSettings` (`theme`: `DYNAMIC`, `LIGHT` or
+`DARK`).
 
 ### Application
 
@@ -58,6 +61,14 @@ is downloaded or applied without a click.
 A host started any other way (`java -jar`, the Gradle tasks) does not update itself; the section
 links to the release page instead. In the IDE plugin the section is hidden.
 
+Banners above the host's plugin area report on the same states:
+
+- A newer release is available, or needs a new installer: **View in Settings** opens this section.
+- A newer version is installed and starts next time: **Restart to Update** restarts into it now.
+- A new version failed to start, so the previous one is running: **View Log** opens the failed
+  start's output, and **Try Again** restarts into the new version once more.
+- A restart could not happen: quit the app and open it again.
+
 ## Connection
 
 ### Debug Server
@@ -85,13 +96,14 @@ picked.
 
 ::: tip Also settable outside the UI
 The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
-to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). Before connecting over
-wss, generate a certificate under [SSL Certificate](#ssl-certificates).
+to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). The certificate wss
+serves is generated the first time the wss connector starts; [SSL Certificate](#ssl-certificates)
+is where to export, replace or switch it.
 :::
 
 ### SSL certificates
 
-To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
+To let agents connect over [wss](/guide/connecting#secure-connections-wss), the host serves TLS
 using a **locally-issued certificate**. Each entry is a self-contained local PKI: a root CA plus a
 `localhost` server certificate signed by it. The host serves wss with the server certificate; the
 agent trusts the CA.

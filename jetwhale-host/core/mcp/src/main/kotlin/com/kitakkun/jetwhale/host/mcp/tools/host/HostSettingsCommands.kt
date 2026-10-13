@@ -2,8 +2,10 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 
 import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.model.AppAppearanceRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
@@ -16,12 +18,22 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+/** The themes Settings → General → Appearance offers, by the names an agent passes and reads back. */
+internal enum class BuiltInTheme(val colorSchemeId: JetWhaleColorSchemeId) {
+    LIGHT(JetWhaleColorSchemeId.BuiltInLight),
+    DARK(JetWhaleColorSchemeId.BuiltInDark),
+
+    /** Light or dark, following the operating system's appearance. */
+    DYNAMIC(JetWhaleColorSchemeId.BuiltInDynamic),
+}
+
 private const val SERVER_RESTART_NOTE = "Every agent session was dropped; call jetwhale.listSessions again before using any sessionId you were holding."
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
 class UpdateSettingsCommand(
     private val settingsRepository: DebuggerSettingsRepository,
+    private val appAppearanceRepository: AppAppearanceRepository,
     private val debugWebSocketServer: DebugWebSocketServer,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.updateSettings"
@@ -36,11 +48,16 @@ class UpdateSettingsCommand(
     private val adbAutoPortMappingEnabled by booleanOrNull("Whether the host runs `adb reverse` automatically for connected Android devices.")
     private val persistData by booleanOrNull("Whether captured debug data survives a host restart.")
     private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
+    private val theme by enumOrNull(
+        "The window's color theme, as on Settings → General → Appearance. DYNAMIC follows the OS light or dark appearance. Applies at once; on macOS the title bar keeps following the OS appearance.",
+        BuiltInTheme.entries,
+    )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val newServerPort = arguments[serverPort]?.also { it.requireValidPort("serverPort") }
         val newWssPort = arguments[wssPort]?.also { it.requireValidPort("wssPort") }
         val newMcpServerPort = arguments[mcpServerPort]?.also { it.requireValidPort("mcpServerPort") }
+        val newTheme = arguments[theme]
 
         val applied = mutableMapOf<String, String>()
         val notes = mutableListOf<String>()
@@ -69,6 +86,10 @@ class UpdateSettingsCommand(
         arguments[persistData]?.let { enabled ->
             settingsRepository.updatePersistData(enabled)
             applied["persistData"] = enabled.toString()
+        }
+        newTheme?.let {
+            appAppearanceRepository.setPreferredColorSchemeId(it.colorSchemeId)
+            applied["theme"] = it.name
         }
 
         if (applied.isEmpty()) {

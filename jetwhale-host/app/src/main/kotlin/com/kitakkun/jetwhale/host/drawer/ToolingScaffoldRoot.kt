@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginInstallJob
+import com.kitakkun.jetwhale.host.navigation.toMcpToolsTab
 import com.kitakkun.jetwhale.host.navigation.toPage
 import com.kitakkun.jetwhale.host.plugin_enabled_change_failed_message
 import com.kitakkun.jetwhale.host.session_connected_message
@@ -38,7 +39,7 @@ fun ToolingScaffoldRoot(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
-    onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
@@ -113,6 +114,7 @@ fun ToolingScaffoldRoot(
                 onNavigateHome = onNavigateHome,
                 onNavigateSettings = onNavigateSettings,
                 onNavigateLogViewer = onNavigateLogViewer,
+                onOpenMcpTools = onOpenMcpTools,
                 sessions = debugSessions,
                 uiState = uiState,
             )
@@ -153,7 +155,7 @@ private fun ToolingScaffoldWithActions(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
-    onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
@@ -174,8 +176,8 @@ private fun ToolingScaffoldWithActions(
             screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
             onClickInactivePlugin(it.id, it.name, uiState.sessionIdFor(it.id), it.pluginAvailability == PluginAvailability.Unavailable)
         },
-        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it)) },
-        onOpenAllMcpTools = { onOpenMcpTools(null, null) },
+        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it), McpToolsTab.Tools) },
+        onOpenAllMcpTools = { onOpenMcpTools(null, null, McpToolsTab.Tools) },
         onClickPopout = {
             val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
             onClickPopout(it.id, it.name, sessionId)
@@ -245,6 +247,7 @@ private fun HostNavigationRequestEffect(
     onNavigateHome: () -> Unit,
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     onNavigateLogViewer: () -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
 ) {
     val currentSessions by rememberUpdatedState(sessions)
     val currentUiState by rememberUpdatedState(uiState)
@@ -253,6 +256,7 @@ private fun HostNavigationRequestEffect(
     val currentOnNavigateHome by rememberUpdatedState(onNavigateHome)
     val currentOnNavigateSettings by rememberUpdatedState(onNavigateSettings)
     val currentOnNavigateLogViewer by rememberUpdatedState(onNavigateLogViewer)
+    val currentOnOpenMcpTools by rememberUpdatedState(onOpenMcpTools)
     val currentOnFollowAgent by rememberUpdatedState(onFollowAgent)
 
     LaunchedEffect(screenChannel) {
@@ -264,32 +268,50 @@ private fun HostNavigationRequestEffect(
 
                 is HostNavigationRequest.LogViewer -> currentOnNavigateLogViewer()
 
-                is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
+                is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.page.toPage())
 
-                is HostNavigationRequest.Plugin -> {
-                    val announceFollow = {
-                        if (request.followsAgent) {
-                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
-                        }
-                    }
-                    if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                        currentOnClickPlugin(request.pluginId, HostSession.ID)
-                        announceFollow()
-                        return@collect
-                    }
-                    val targetSession = navigationTargetSession(request.sessionId, currentUiState.selectedSession, currentSessions)
-                        ?: return@collect
-                    if (targetSession.id != currentUiState.selectedSessionId) {
-                        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
-                    }
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                    currentOnClickPlugin(request.pluginId, targetSession.id)
-                    announceFollow()
-                }
+                is HostNavigationRequest.McpTools -> currentOnOpenMcpTools(null, null, request.tab.toMcpToolsTab())
+
+                is HostNavigationRequest.Plugin -> openRequestedPlugin(
+                    request = request,
+                    uiState = currentUiState,
+                    sessions = currentSessions,
+                    screenChannel = screenChannel,
+                    onClickPlugin = currentOnClickPlugin,
+                    onFollowAgent = currentOnFollowAgent,
+                )
             }
         }
     }
+}
+
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openRequestedPlugin(
+    request: HostNavigationRequest.Plugin,
+    uiState: ToolingScaffoldUiState,
+    sessions: List<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onFollowAgent: (pluginName: String) -> Unit,
+) {
+    val announceFollow = {
+        if (request.followsAgent) {
+            onFollowAgent(uiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+        }
+    }
+    if (HostSession.isHost(uiState.sessionIdFor(request.pluginId))) {
+        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+        onClickPlugin(request.pluginId, HostSession.ID)
+        announceFollow()
+        return
+    }
+    val targetSession = navigationTargetSession(request.sessionId, uiState.selectedSession, sessions) ?: return
+    if (targetSession.id != uiState.selectedSessionId) {
+        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
+    }
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+    onClickPlugin(request.pluginId, targetSession.id)
+    announceFollow()
 }
 
 /**

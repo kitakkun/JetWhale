@@ -1,5 +1,5 @@
 [versions]
-jetwhale = "1.0.0-alpha13"
+jetwhale = "1.0.0-alpha14"
 mavenPublish = "0.37.0"
 
 # kotlin
@@ -39,7 +39,7 @@ kermit = "2.1.0"
 
 aboutLibraries = "15.0.4"
 spotless = "8.9.0"
-kotrail = "0.1.0-20260926.144921-21"
+kotrail = "0.1.0-20261011.225401-28"
 roborazzi = "1.73.0"
 intellijIdea = "2026.2.3"
 intellijPlatform = "2.19.0"
@@ -212,3 +212,5 @@ jetwhaleAgent = { id = "com.kitakkun.jetwhale.agent" }
 jetwhaleHostLaunch = { id = "jetwhale-host-launch" }
 # In-repo only: release metadata for the host and the bundled host the launcher packages. Not published.
 jetwhaleHostRelease = { id = "jetwhale-host-release" }
+# In-repo only: renders the user guides' screenshots from a module's UI. Not published.
+docsScreenshots = { id = "docs-screenshots" }

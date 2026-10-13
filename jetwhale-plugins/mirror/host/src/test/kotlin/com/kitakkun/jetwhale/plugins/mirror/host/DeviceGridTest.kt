@@ -18,6 +18,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 @OptIn(ExperimentalTestApi::class)
 class DeviceGridTest {
@@ -48,6 +49,7 @@ class DeviceGridTest {
                     onOpen = {},
                     onScreenshot = {},
                     onScreenshotAll = {},
+                    clock = Clock.System,
                     modifier = Modifier.size(width = 400.dp, height = 400.dp),
                 )
             }
@@ -78,6 +80,7 @@ class DeviceGridTest {
                     onOpen = { opened = it },
                     onScreenshot = {},
                     onScreenshotAll = {},
+                    clock = Clock.System,
                 )
             }
         }
@@ -146,6 +149,7 @@ class DeviceGridTest {
                     onOpen = {},
                     onScreenshot = {},
                     onScreenshotAll = {},
+                    clock = Clock.System,
                 )
             }
         }
@@ -184,6 +188,7 @@ class DeviceGridTest {
                     onOpen = {},
                     onScreenshot = { screenshotOf = it },
                     onScreenshotAll = {},
+                    clock = Clock.System,
                 )
             }
         }
@@ -213,6 +218,7 @@ class DeviceGridTest {
                     onOpen = { opened = it },
                     onScreenshot = {},
                     onScreenshotAll = {},
+                    clock = Clock.System,
                 )
             }
         }

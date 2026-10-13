@@ -194,10 +194,10 @@ private object JsonObjectOkioSerializer : OkioSerializer<JsonObject> {
     override val defaultValue: JsonObject = JsonObject(emptyMap())
 
     override suspend fun readFrom(source: BufferedSource): JsonObject {
-        val text = source.readUtf8()
-        if (text.isBlank()) return defaultValue
+        val jsonText = source.readUtf8()
+        if (jsonText.isBlank()) return defaultValue
         return try {
-            json.decodeFromString(JsonObject.serializer(), text)
+            json.decodeFromString(JsonObject.serializer(), jsonText)
         } catch (e: SerializationException) {
             // DataStore only routes CorruptionException to the ReplaceFileCorruptionHandler; wrap
             // malformed JSON so a corrupted store is replaced instead of crashing every read.

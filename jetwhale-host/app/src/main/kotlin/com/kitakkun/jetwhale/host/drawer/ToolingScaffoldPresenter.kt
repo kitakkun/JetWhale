@@ -104,6 +104,7 @@ internal fun newlyConnectedSessions(
 }
 
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // A flat sealed dispatch; Kotrail scores each row as a branch, tracked in #450.
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
@@ -138,28 +139,15 @@ fun toolingScaffoldPresenter(
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, boundPluginVersions, activeInvocation) {
         derivedStateOf {
-            loadedPlugins.map { metaData ->
-                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-                val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-                val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
-
-                DrawerPluginItemUiState(
-                    id = metaData.id,
-                    name = metaData.name,
-                    activeIconResource = metaData.activeIconResource,
-                    inactiveIconResource = metaData.inactiveIconResource,
-                    pluginAvailability = when {
-                        metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-                        isEnabledInSettings -> PluginAvailability.Enabled
-                        else -> PluginAvailability.Disabled
-                    },
-                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
-                    needsApp = metaData.requiresAgent,
-                    versionBadge = boundPluginVersions.versionOf(sessionId, metaData.id)?.takeIf { metaData.installedVersions.size > 1 },
-                )
-            }.toImmutableList()
+            drawerPluginItems(
+                loadedPlugins = loadedPlugins,
+                selectedSession = selectedSession,
+                enabledPluginIds = enabledPluginIds,
+                mcpCapablePlugins = mcpCapablePlugins,
+                headlessPlugins = headlessPlugins,
+                boundPluginVersions = boundPluginVersions,
+                activeInvocation = activeInvocation,
+            )
         }
     }
 
@@ -226,6 +214,37 @@ fun toolingScaffoldPresenter(
         sidebarWidth = sidebarWidth,
     )
 }
+
+private fun drawerPluginItems(
+    loadedPlugins: List<PluginMetaData>,
+    selectedSession: DebugSession?,
+    enabledPluginIds: Set<String>,
+    mcpCapablePlugins: McpCapablePlugins,
+    headlessPlugins: HeadlessPlugins,
+    boundPluginVersions: BoundPluginVersions,
+    activeInvocation: McpToolInvocation?,
+): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.map { metaData ->
+    val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
+    val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
+    val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
+
+    DrawerPluginItemUiState(
+        id = metaData.id,
+        name = metaData.name,
+        activeIconResource = metaData.activeIconResource,
+        inactiveIconResource = metaData.inactiveIconResource,
+        pluginAvailability = when {
+            metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
+            isEnabledInSettings -> PluginAvailability.Enabled
+            else -> PluginAvailability.Disabled
+        },
+        underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+        exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+        isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
+        needsApp = metaData.requiresAgent,
+        versionBadge = boundPluginVersions.versionOf(sessionId, metaData.id)?.takeIf { metaData.installedVersions.size > 1 },
+    )
+}.toImmutableList()
 
 @Composable
 context(presenterContext: ToolingScaffoldPresenterContext)

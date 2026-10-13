@@ -18,7 +18,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -48,8 +47,8 @@ class DefaultPluginFactoryRepository(
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = loadedPluginVersionsFlow.map(::newestOfEach).distinctUntilChanged()
     override val loadedPlugins: Map<String, LoadedHostPlugin> get() = newestOfEach(loadedPluginVersionsFlow.value)
 
-    private val mutableFailedJarsFlow: MutableStateFlow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
-    override val failedJarsFlow: Flow<List<FailedPluginJar>> = mutableFailedJarsFlow.asStateFlow()
+    override val failedJarsFlow: Flow<List<FailedPluginJar>>
+        field = MutableStateFlow<List<FailedPluginJar>>(emptyList())
 
     /**
      * The classloader that owns each loaded jar, keyed by absolute jar path. A single jar may declare
@@ -96,7 +95,6 @@ class DefaultPluginFactoryRepository(
 
         // A missing dependency jar or an unreadable manifest fails only this plugin's load, which
         // lists its jar as failed.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val dependencyJarUrls = try {
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
         } catch (e: Exception) {
@@ -116,7 +114,6 @@ class DefaultPluginFactoryRepository(
         var committed = false
         // Loading runs the plugin's own code, so any failure, LinkageError included, marks this jar
         // failed.
-        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
             val loadedVersionKeys = loaded.map(LoadedHostPlugin::versionKey)
@@ -133,7 +130,7 @@ class DefaultPluginFactoryRepository(
                 (current.withoutJar(pluginJarPath).values.flatten() + loaded).toVersionsById()
             }
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
-            mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
+            failedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -149,7 +146,7 @@ class DefaultPluginFactoryRepository(
 
     /** Records [pluginJarPath] as failed with [reason], replacing any previous failure for the jar. */
     private fun recordFailedJar(pluginJarPath: String, reason: String) {
-        mutableFailedJarsFlow.update { failed ->
+        failedJarsFlow.update { failed ->
             failed.filterNot { it.jarPath == pluginJarPath } + FailedPluginJar(pluginJarPath, reason)
         }
     }
@@ -259,7 +256,7 @@ class DefaultPluginFactoryRepository(
         loadedPluginVersionsFlow.update { current -> current.withoutJar(pluginJarPath) }
         classLoaders.remove(pluginJarPath)?.close()
         runtimeJars.remove(pluginJarPath)
-        mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
+        failedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         unloadedVersionKeys.forEach { println("Unloaded plugin: ${it.pluginId} v${it.version}") }
     }
 
@@ -267,7 +264,7 @@ class DefaultPluginFactoryRepository(
 
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
         loadPluginUnderLock(pluginJarPath, expectedSha256)
-        if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
+        if (failedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
             emptyList()
         } else {
             findPluginIdsByJarPath(pluginJarPath)

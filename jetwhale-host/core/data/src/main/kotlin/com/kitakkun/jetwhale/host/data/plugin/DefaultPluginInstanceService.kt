@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -90,8 +89,8 @@ class DefaultPluginInstanceService(
 
     // Unbounded: the server stopping disposes every app session's instances in one burst, and a
     // dropped Disposed would leave that instance's MCP tools listed.
-    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = Channel.UNLIMITED)
-    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
+    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+        field = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = Channel.UNLIMITED)
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
@@ -135,7 +134,7 @@ class DefaultPluginInstanceService(
         publishHeadlessPluginsAndBoundVersions()
         newlyInitializedSessions.forEach { sessionId ->
             val version = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.loadedVersion?.manifest?.version ?: return@forEach
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId = pluginId, sessionId = sessionId, version = version))
+            pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId = pluginId, sessionId = sessionId, version = version))
         }
         return newlyInitializedSessions
     }
@@ -314,7 +313,7 @@ class DefaultPluginInstanceService(
             }
         }
         publishHeadlessPluginsAndBoundVersions()
-        mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+        pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**

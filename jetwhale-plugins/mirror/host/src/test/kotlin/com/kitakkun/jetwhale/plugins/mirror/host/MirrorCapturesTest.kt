@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -27,11 +29,11 @@ class MirrorCapturesTest {
 
     private val captures = MirrorCaptures(
         defaultRoot = File(folder, "captures"),
-        storage = null,
+        storage = InMemoryPluginStorage(emptyMap()),
         scope = scope,
         zone = ZoneOffset.UTC,
         notices = MirrorNotices(scope),
-        ffmpegPath = null,
+        ffmpegPath = CompletableDeferred(value = null),
         clipboard = CaptureClipboard(osascriptPath = fakeOsascript.absolutePath),
     )
 
