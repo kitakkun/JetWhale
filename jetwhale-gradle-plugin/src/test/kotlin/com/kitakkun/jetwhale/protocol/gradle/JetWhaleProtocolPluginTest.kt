@@ -70,7 +70,7 @@ class JetWhaleProtocolPluginTest {
 
         val checkFailure = runFailingBuild("checkWireSchema")
 
-        assertContains(checkFailure.output, "fixture/item_added.item<box>.color: enum entry BLUE added")
+        assertContains(checkFailure.output, "fixture/item_added.colorCounts{key}: enum entry BLUE added")
         assertContains(checkFailure.output, "Set protocolRevision to 2 and run dumpWireSchema.")
 
         val dumpFailure = runFailingBuild("dumpWireSchema")
@@ -118,7 +118,7 @@ class JetWhaleProtocolPluginTest {
         val failure = runFailingBuild("checkWireSchema", "-PjetwhaleWireSchemaBaselineDir=${baselineDirectory.absolutePath}")
 
         assertContains(failure.output, "protocol.wire cannot follow the baseline's dump")
-        assertContains(failure.output, "fixture/item_added.item<box>.color: enum entry BLUE added")
+        assertContains(failure.output, "fixture/item_added.colorCounts{key}: enum entry BLUE added")
     }
 
     @Test
@@ -161,6 +161,79 @@ class JetWhaleProtocolPluginTest {
         val failure = runFailingBuild("dumpWireSchema")
 
         assertContains(failure.output, "fixture/labels_changed.name: com.example.fixture.protocol.Labeled is reached with two different shapes")
+    }
+
+    @Test
+    fun `a field whose type is named like a built-in type is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            @SerialName("string")
+            @Serializable
+            data class Label(val text: String)
+
+            @SerialName("fixture/label_seen")
+            @Serializable
+            data class LabelSeen(val label: Label) : JetWhaleEvent
+
+            """.trimIndent(),
+        )
+
+        val failure = runFailingBuild("dumpWireSchema")
+
+        assertContains(failure.output, "fixture/label_seen.label: its type is named string, which is what the wire schema dump calls a built-in type.")
+    }
+
+    @Test
+    fun `a map keyed by a class is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            @Serializable
+            data class Point(val x: Int, val y: Int)
+
+            @SerialName("fixture/points_seen")
+            @Serializable
+            data class PointsSeen(val labels: Map<Point, String>) : JetWhaleEvent
+
+            """.trimIndent(),
+        )
+
+        val failure = runFailingBuild("dumpWireSchema")
+
+        assertContains(failure.output, "fixture/points_seen.labels{key}: com.example.fixture.protocol.Point cannot key a JSON object.")
+    }
+
+    @Test
+    fun `a name the dump would not read back is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            @SerialName("fixture/tagged")
+            @Serializable
+            data class Tagged(@JsonNames("label, name") val tag: String = "") : JetWhaleEvent
+
+            """.trimIndent(),
+        )
+
+        val failure = runFailingBuild("dumpWireSchema")
+
+        assertContains(failure.output, "fixture/tagged: A name uses what the wire schema dump uses as syntax")
+    }
+
+    @Test
+    fun `a contract name with a Kotlin keyword is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        projectDirectory.resolve("protocol/build.gradle.kts").apply {
+            writeText(readText().replace("com.example.fixture.protocol.FixturePluginContract", "com.example.object.FixturePluginContract"))
+        }
+
+        val failure = runFailingBuild(":protocol:generateJetWhalePluginContract")
+
+        assertContains(failure.output, "jetwhaleProtocol.contractQualifiedName must be a qualified Kotlin name")
     }
 
     @Test
@@ -349,6 +422,8 @@ class JetWhaleProtocolPluginTest {
                 @EncodeDefault(EncodeDefault.Mode.NEVER) val isActive: Boolean = true,
                 @EncodeDefault(EncodeDefault.Mode.NEVER) val owner: ItemId = ItemId("nobody"),
                 val attributes: Map<String, Int> = emptyMap(),
+                val colorCounts: Map<Color, Int> = emptyMap(),
+                val ownerNotes: Map<ItemId, String> = emptyMap(),
                 val payload: JsonElement? = null,
             ) : JetWhaleEvent
 
@@ -376,6 +451,10 @@ class JetWhaleProtocolPluginTest {
                 @SerialName("empty")
                 @Serializable
                 data object Empty : Item
+
+                @SerialName("int")
+                @Serializable
+                data class Counted(val value: Int) : Item
             }
 
             @JsonClassDiscriminator("kind")
@@ -408,6 +487,7 @@ class JetWhaleProtocolPluginTest {
             sealed com.example.fixture.protocol.Item by type
               box
               empty
+              int
 
             sealed com.example.fixture.protocol.Shape by kind
               circle
@@ -418,6 +498,7 @@ class JetWhaleProtocolPluginTest {
 
             class fixture/item_added
               attributes: map<string, int> = …
+              colorCounts: map<com.example.fixture.protocol.Color, int> = …
               count: int = … | also read as legacyCount
               hidden_flag: boolean = …, omitted at default
               id: string
@@ -425,6 +506,7 @@ class JetWhaleProtocolPluginTest {
               item: com.example.fixture.protocol.Item
               note: string? = …, omitted at default
               owner: string = …, omitted at default
+              ownerNotes: map<string, string> = …
               payload: json? = …
               tag_list: list<string> = …
 
@@ -435,6 +517,9 @@ class JetWhaleProtocolPluginTest {
 
             class fixture/set_shape
               shape: com.example.fixture.protocol.Shape
+
+            class int
+              value: int
 
         """.trimIndent()
     }

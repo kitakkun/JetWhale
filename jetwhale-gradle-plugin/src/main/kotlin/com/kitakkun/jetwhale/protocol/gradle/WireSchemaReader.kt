@@ -108,7 +108,18 @@ internal class WireSchemaReader {
             messages.groupBy { it.serialName }.filterValues { it.size > 1 }.keys.firstOrNull()?.let { serialName ->
                 throw WireSchemaRefusal("Two messages have the serial name $serialName, and a message is routed by it.")
             }
-            return WireSchema(revision, messages.associateBy { it.serialName }, shapes.toMap())
+            val schema = WireSchema(revision, messages.associateBy { it.serialName }, shapes.toMap())
+            val readBack = try {
+                WireSchema.parse(schema.render())
+            } catch (e: IllegalArgumentException) {
+                throw WireSchemaRefusal("$UNREADABLE_NAME_REFUSAL ${e.message}")
+            }
+            if (readBack != schema) {
+                val serialNameNotReadBack = (schema.messages.keys + schema.shapes.keys).sorted()
+                    .firstOrNull { readBack.messages[it] != schema.messages[it] || readBack.shapes[it] != schema.shapes[it] }
+                throw WireSchemaRefusal("${serialNameNotReadBack ?: "A serial name"}: $UNREADABLE_NAME_REFUSAL")
+            }
+            return schema
         }
 
         private fun serializerDescriptorOf(type: Type): SerialDescriptor = try {
@@ -135,44 +146,46 @@ internal class WireSchemaReader {
 
                 StructureKind.LIST -> WireTypeRef("list", listOf(typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), "$path[]")), isNullable)
 
-                StructureKind.MAP -> WireTypeRef(
-                    "map",
-                    listOf(typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), "$path{key}"), typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(1), "$path{value}")),
-                    isNullable,
-                )
+                StructureKind.MAP -> {
+                    val keyTypeRef = typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), "$path{key}")
+                    if (keyTypeRef.head !in MAP_KEY_HEADS && shapes[keyTypeRef.head] !is EnumShape) {
+                        throw WireSchemaRefusal(
+                            "$path{key}: $keyTypeRef cannot key a JSON object. The plugin payload format leaves allowStructuredMapKeys off, " +
+                                "so a map's key is a primitive, an enum or a value class over one.",
+                        )
+                    }
+                    WireTypeRef("map", listOf(keyTypeRef, typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(1), "$path{value}")), isNullable)
+                }
 
                 StructureKind.CLASS -> if (nonNullDescriptor.isInline) {
                     typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), path).copy(isNullable = isNullable)
                 } else {
-                    recordShape(nonNullDescriptor, path) { classShapeOf(nonNullDescriptor, path) }
-                    WireTypeRef(nonNullDescriptor.serialName, emptyList(), isNullable)
+                    shapeTypeRefRecordingShapesOf(nonNullDescriptor, path, isNullable)
                 }
 
-                StructureKind.OBJECT -> {
-                    recordShape(nonNullDescriptor, path) { ObjectShape(nonNullDescriptor.serialName) }
-                    WireTypeRef(nonNullDescriptor.serialName, emptyList(), isNullable)
-                }
-
-                SerialKind.ENUM -> {
-                    recordShape(nonNullDescriptor, path) { EnumShape(nonNullDescriptor.serialName, (0 until nonNullDescriptor.elementsCount).map(nonNullDescriptor::getElementName).toSet()) }
-                    WireTypeRef(nonNullDescriptor.serialName, emptyList(), isNullable)
-                }
-
-                PolymorphicKind.SEALED -> {
-                    recordShape(nonNullDescriptor, path) {
-                        val discriminator = nonNullDescriptor.annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: DEFAULT_CLASS_DISCRIMINATOR
-                        val subtypesDescriptor = nonNullDescriptor.getElementDescriptor(SEALED_SUBTYPES_ELEMENT_INDEX)
-                        val subtypeSerialNames = subtypesDescriptor.elementDescriptors.map { subtype -> typeRefRecordingShapesOf(subtype, "$path<${subtype.serialName}>").head }
-                        SealedShape(nonNullDescriptor.serialName, discriminator, subtypeSerialNames.toSet())
-                    }
-                    WireTypeRef(nonNullDescriptor.serialName, emptyList(), isNullable)
-                }
+                StructureKind.OBJECT, SerialKind.ENUM, PolymorphicKind.SEALED -> shapeTypeRefRecordingShapesOf(nonNullDescriptor, path, isNullable)
 
                 PolymorphicKind.OPEN, SerialKind.CONTEXTUAL -> throw WireSchemaRefusal(
                     "$path: ${nonNullDescriptor.serialName} is ${if (kind == SerialKind.CONTEXTUAL) "contextual" else "open polymorphic"}. " +
                         "The plugin payload format has no serializers module, so it cannot be sent.",
                 )
             }
+        }
+
+        /**
+         * A type ref names a shape by its serial name, so a shape that a field, a reply or a type
+         * argument refers to cannot have a built-in's name. A sealed subtype may: its sealed type
+         * lists it by name, never as a type.
+         */
+        private fun shapeTypeRefRecordingShapesOf(descriptor: SerialDescriptor, path: String, isNullable: Boolean): WireTypeRef {
+            if (descriptor.serialName in WireTypeRef.BUILT_IN_HEADS) {
+                throw WireSchemaRefusal(
+                    "$path: its type is named ${descriptor.serialName}, which is what the wire schema dump calls a built-in type. " +
+                        "Give the class another @SerialName.",
+                )
+            }
+            recordShape(descriptor, path)
+            return WireTypeRef(descriptor.serialName, emptyList(), isNullable)
         }
 
         private fun classShapeOf(descriptor: SerialDescriptor, path: String): ClassShape {
@@ -190,8 +203,8 @@ internal class WireSchemaReader {
             return ClassShape(descriptor.serialName, fields)
         }
 
-        /** Records the shape of [descriptor] the first time its serial name is reached. */
-        private fun recordShape(descriptor: SerialDescriptor, path: String, shapeOf: () -> WireShape) {
+        /** Records the shape of [descriptor], and every shape it reaches, the first time its serial name is reached. */
+        private fun recordShape(descriptor: SerialDescriptor, path: String) {
             val recordedDescriptor = descriptorsBySerialName[descriptor.serialName]
             if (recordedDescriptor != null) {
                 if (recordedDescriptor != descriptor) {
@@ -203,15 +216,38 @@ internal class WireSchemaReader {
                 return
             }
             descriptorsBySerialName[descriptor.serialName] = descriptor
-            shapes[descriptor.serialName] = shapeOf()
+            shapes[descriptor.serialName] = when (descriptor.kind) {
+                StructureKind.CLASS -> classShapeOf(descriptor, path)
+
+                StructureKind.OBJECT -> ObjectShape(descriptor.serialName)
+
+                SerialKind.ENUM -> EnumShape(descriptor.serialName, (0 until descriptor.elementsCount).map(descriptor::getElementName).toSet())
+
+                PolymorphicKind.SEALED -> {
+                    val discriminator = descriptor.annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: DEFAULT_CLASS_DISCRIMINATOR
+                    val subtypeDescriptors = descriptor.getElementDescriptor(SEALED_SUBTYPES_ELEMENT_INDEX).elementDescriptors.toList()
+                    subtypeDescriptors.forEach { subtype -> recordShape(subtype, "$path<${subtype.serialName}>") }
+                    SealedShape(descriptor.serialName, discriminator, subtypeDescriptors.map { it.serialName }.toSet())
+                }
+
+                else -> throw WireSchemaRefusal("$path: ${descriptor.serialName} is a ${descriptor.kind}, which the dump does not record as a shape.")
+            }
         }
     }
 
     private companion object {
         const val ANNOTATIONS_METHOD_SUFFIX = "\$annotations"
 
-        /** A sealed descriptor's elements are the discriminator and then one whose elements are the subtypeSerialNames. */
+        /** A sealed descriptor's elements are the discriminator and then one whose elements are the subtypes. */
         const val SEALED_SUBTYPES_ELEMENT_INDEX = 1
+
+        /** The types kotlinx.serialization's JSON writes as an object key without `allowStructuredMapKeys`. */
+        val MAP_KEY_HEADS: Set<String> = setOf("boolean", "byte", "char", "double", "float", "int", "long", "short", "string", "json-primitive")
+
+        const val UNREADABLE_NAME_REFUSAL: String =
+            "A name uses what the wire schema dump uses as syntax, so the dump would not read back. A type's serial name " +
+                "cannot contain '<', '>', ',' or '?', a field's cannot contain ': ', an @JsonNames name cannot contain ', ' or ' | ', " +
+                "and no name can start or end with a space or hold a line break."
 
         /** The payload format leaves `classDiscriminator` at kotlinx.serialization's default. */
         const val DEFAULT_CLASS_DISCRIMINATOR = "type"

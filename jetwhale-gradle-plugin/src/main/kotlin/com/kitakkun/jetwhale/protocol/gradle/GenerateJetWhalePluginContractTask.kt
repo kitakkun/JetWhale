@@ -55,7 +55,7 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
         if (protocolRevision < 1) {
             throw GradleException("jetwhaleProtocol.protocolRevision starts at 1, but it is $protocolRevision.")
         }
-        if (!contractQualifiedName.matches(QUALIFIED_NAME_REGEX)) {
+        if (!contractQualifiedName.matches(QUALIFIED_NAME_REGEX) || contractQualifiedName.split('.').any { it in KOTLIN_HARD_KEYWORDS }) {
             throw GradleException("jetwhaleProtocol.contractQualifiedName must be a qualified Kotlin name such as com.example.MyPluginContract, not '$contractQualifiedName'.")
         }
         if (releaseVersion == UNSPECIFIED_VERSION) {
@@ -126,5 +126,12 @@ internal abstract class GenerateJetWhalePluginContractTask : DefaultTask() {
     private companion object {
         const val UNSPECIFIED_VERSION = "unspecified"
         val QUALIFIED_NAME_REGEX = Regex("([A-Za-z_][A-Za-z0-9_]*\\.)*[A-Za-z_][A-Za-z0-9_]*")
+
+        /** Words that cannot name a package segment or a property without backticks. */
+        val KOTLIN_HARD_KEYWORDS = setOf(
+            "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is",
+            "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof",
+            "val", "var", "when", "while",
+        )
     }
 }
