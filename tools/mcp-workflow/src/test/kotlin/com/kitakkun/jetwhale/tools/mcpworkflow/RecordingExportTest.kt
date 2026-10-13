@@ -87,7 +87,6 @@ class RecordingExportTest {
 
         val workflow = exportWorkflow(listOf(calls[0], checked), options(dropReads = true, parameters = emptyMap()))
 
-        // listSessions stays too: the check's call uses the session id it returned.
         assertEquals(listOf("listSessions", "getPluginStatus"), workflow.steps.map(Step::call))
         assertEquals(1, workflow.steps.last().expect.size)
     }

@@ -39,7 +39,6 @@ private fun StringBuilder.writeValueAfterKey(value: JsonElement, indent: Int) {
     }
 }
 
-// Sequences under a key sit at the key's own indentation, the usual YAML style.
 private fun StringBuilder.writeArray(value: JsonArray, indent: Int) {
     value.forEach { item ->
         append(" ".repeat(indent)).append("- ")
@@ -65,14 +64,13 @@ private fun inlineText(value: JsonElement): String = when (value) {
     is JsonNull -> "null"
 }
 
-// `@` and the other indicators cannot start a plain scalar, so only a letter, `_`, `$` or `/` may.
+// YAML indicators such as `@`, `*` and `#` cannot start a plain scalar.
 private val PlainSafe = Regex("""^[A-Za-z_$/][A-Za-z0-9_$./@{}\-]*$""")
-private val Reserved = setOf("true", "false", "null", "yes", "no", "on", "off", "~")
+private val WordsYamlReadsAsBooleanOrNull = setOf("true", "false", "null", "yes", "no", "on", "off", "~")
 
-// A string is written plain only when YAML would read it back as the same string; otherwise it is
-// double-quoted, and a JSON string literal is a valid YAML double-quoted scalar.
 private fun scalarText(value: JsonPrimitive): String {
     if (!value.isString) return value.content
     val text = value.content
-    return if (PlainSafe.matches(text) && text.lowercase() !in Reserved) text else Json.encodeToString(JsonPrimitive.serializer(), value)
+    // A JSON string literal is a valid YAML double-quoted scalar.
+    return if (PlainSafe.matches(text) && text.lowercase() !in WordsYamlReadsAsBooleanOrNull) text else Json.encodeToString(JsonPrimitive.serializer(), value)
 }

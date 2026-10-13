@@ -22,8 +22,9 @@ import java.util.Collections
  * An MCP server that stands in front of real servers: it lists their tools as its own, forwards every
  * call unchanged, and records each call with its result.
  *
- * It adds three tools of its own so the agent being recorded can manage the recording:
- * `workflow_recording_status`, `workflow_recording_clear` and `workflow_recording_save`.
+ * It adds four tools of its own so the agent being recorded can manage the recording:
+ * `workflow_recording_status`, `workflow_recording_clear`, `workflow_recording_expect` and
+ * `workflow_recording_save`.
  *
  * @param serverNames The upstream servers, in the order their tools are listed. With more than one, each
  *   tool is listed as `<server>__<tool>` so the names stay unique.
@@ -120,7 +121,6 @@ class RecordingProxy(
             calls[calls.lastIndex] = last.copy(expectations = last.expectations + expectation)
             failureOf(expectation, last.document, last.isError)
         }
-        // A check that already fails on the recorded result would fail every replay; say so now.
         return textResult(
             buildJsonObject {
                 put("attached", true)

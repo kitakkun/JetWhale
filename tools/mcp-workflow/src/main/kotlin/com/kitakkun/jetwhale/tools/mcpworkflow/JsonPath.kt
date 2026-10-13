@@ -131,7 +131,6 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             }
         }
 
-        // A filter's literal may itself hold a ']', so brackets inside quotes are skipped.
         private fun indexOfClosingBracket(): Int {
             var quote: Char? = null
             for (index in position + 1 until text.length) {

@@ -66,8 +66,6 @@ class WorkflowRunner(
 ) {
     suspend fun run(workflow: Workflow, inputs: Map<String, JsonElement>): RunOutcome {
         val started = timeSource.markNow()
-        // Each run writes its images to a directory of its own, so runs sharing a report directory
-        // — several workflows in one `run`, or concurrent calls in `serve` — keep each other's.
         val runState = RunState(
             variables = initialVariables(workflow, inputs),
             artifactDirectory = artifactRootDirectory?.let { File(it, "${slug(workflow.name)}-${UUID.randomUUID().toString().take(RUN_ID_LENGTH)}") },
@@ -164,8 +162,6 @@ class WorkflowRunner(
     )
 
     private suspend fun attempt(step: Step, server: String, variables: Map<String, JsonElement>): Attempt {
-        // Expectations and paths are templated like arguments, so a step can check the value it just
-        // sent, or pick a list item by a variable.
         val (arguments, expectations, savePaths) = try {
             RenderedStepFields(
                 arguments = renderTemplate(step.args, variables, environment) as JsonObject,

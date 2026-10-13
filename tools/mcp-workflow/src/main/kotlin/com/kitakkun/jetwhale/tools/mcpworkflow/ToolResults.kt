@@ -42,7 +42,7 @@ fun failureOf(expectation: Expectation, document: JsonElement, isError: Boolean)
     }
     val path = JsonPath.parse(expectation.path)
     val value = path.select(document)
-    // A JSON null counts as absent: APIs send "error": null and leave "error" out to mean the same.
+    // Servers send "error": null and leave error out to mean the same thing.
     val present = value != null && value !is JsonNull && !(path.selectsMany && value is JsonArray && value.isEmpty())
     expectation.exists?.let { expected ->
         if (expected != present) return if (expected) "$path matched nothing" else "$path matched ${value.toTruncatedText()}"

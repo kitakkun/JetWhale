@@ -20,7 +20,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
-// currentTime is how these tests check that waiting took virtual, not real, time.
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkflowRunnerTest {
     @Test

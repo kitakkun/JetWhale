@@ -82,7 +82,7 @@ private class YamlToJsonConverter(private val lines: List<String>) {
         return when {
             content == "true" || content == "false" -> JsonPrimitive(content.toBoolean())
             content.toLongOrNull() != null -> JsonPrimitive(content.toLong())
-            content.toDoubleOrNull() != null && content.any(Char::isDigit) -> JsonPrimitive(content.toDouble())
+            content.toDoubleOrNull()?.isFinite() == true -> JsonPrimitive(content.toDouble())
             else -> JsonPrimitive(content)
         }
     }

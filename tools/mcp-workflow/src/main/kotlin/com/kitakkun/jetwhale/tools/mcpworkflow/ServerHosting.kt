@@ -34,7 +34,7 @@ internal fun newToolServer(name: String): Server = Server(
  */
 internal suspend fun serveStdio(server: Server) {
     val closed = CompletableDeferred<Unit>()
-    val transport = StdioServerTransport(System.`in`.asSource().buffered(), System.out.asSink().buffered()) {}
+    val transport = StdioServerTransport(input = System.`in`.asSource().buffered(), output = System.out.asSink().buffered())
     val session = server.createSession(transport)
     session.onClose { closed.complete(Unit) }
     closed.await()

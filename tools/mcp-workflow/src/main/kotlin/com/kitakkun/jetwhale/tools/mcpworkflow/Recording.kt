@@ -121,7 +121,6 @@ private class MutableStep(
     var keep: Boolean,
 )
 
-// A recorded tool error is kept as an expected error, so the replay checks the same outcome.
 private fun RecordedCall.toMutableStep(id: String) = MutableStep(
     id = id,
     server = server,
@@ -169,6 +168,7 @@ internal fun findPath(document: JsonElement, value: JsonPrimitive): String? {
     return search(document, "$")
 }
 
+// JsonPath's quoted keys take no escapes, so a key holding a quote cannot be written as a path.
 private fun memberSegment(key: String): String = if (key.all { it.isLetterOrDigit() || it == '_' }) ".$key" else "['${key.replace("'", "")}']"
 
 /** Field names that identify an item in a list well enough to find it again in a later run. */
