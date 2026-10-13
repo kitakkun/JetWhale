@@ -102,7 +102,7 @@ private fun rememberPersistedTrafficColumnState(): JwTableColumnState {
         }
         snapshotFlow { columnState.widths }
             .drop(1)
-            .collect { widths -> storedWidths = widths.map { (column, width) -> StoredColumnWidth(column.index, column.header, width.value) } }
+            .collect { widths -> storedWidths = widths.map { (key, width) -> StoredColumnWidth(key.index, key.header, width.value) } }
     }
     return columnState
 }

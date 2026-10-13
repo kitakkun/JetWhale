@@ -86,8 +86,8 @@ class NetworkInspectorScreenRootTest {
 private const val PAST_PERSIST_DEBOUNCE_MILLIS = 1_000L
 
 /** Plugin storage held in memory, values kept as the JSON the real store would write. */
-private class InMemoryPluginStorage(initial: Map<String, String>) : JetWhalePluginStorage {
-    val values = MutableStateFlow(initial)
+private class InMemoryPluginStorage(initialValues: Map<String, String>) : JetWhalePluginStorage {
+    val values = MutableStateFlow(initialValues)
 
     override suspend fun <T> put(key: String, value: T, serializer: KSerializer<T>) {
         values.update { it + (key to Json.encodeToString(serializer, value)) }

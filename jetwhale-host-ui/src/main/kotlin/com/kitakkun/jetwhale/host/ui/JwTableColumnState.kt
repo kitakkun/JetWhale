@@ -31,12 +31,13 @@ public class JwTableColumnState(initialWidths: Map<JwTableColumnKey, Dp>) {
     internal val laidOutWidths = mutableStateMapOf<JwTableColumnKey, Dp>()
 
     /** The column whose content is being measured for a double-click fit, if any. */
-    internal var fitting: JwTableColumnKey? by mutableStateOf(null)
+    internal var fittingColumnKey: JwTableColumnKey? by mutableStateOf(null)
         private set
 
     /**
-     * The widest content found for [fitting] in the rows laid out since the fit was asked for. Plain
-     * rather than snapshot state: layout writes it, and reading it there must not invalidate layout.
+     * The widest content found for [fittingColumnKey] in the rows laid out since the fit was asked
+     * for. Plain rather than snapshot state: layout writes it, and reading it there must not
+     * invalidate layout.
      */
     internal var fittedContentWidth: Dp = 0.dp
 
@@ -46,17 +47,17 @@ public class JwTableColumnState(initialWidths: Map<JwTableColumnKey, Dp>) {
 
     internal fun startColumnFit(key: JwTableColumnKey) {
         fittedContentWidth = 0.dp
-        fitting = key
+        fittingColumnKey = key
     }
 
     internal fun endColumnFit() {
-        fitting = null
+        fittingColumnKey = null
     }
 
     public companion object {
         /** Saves the [widths] as plain values, so a [JwTableColumnState] survives recreation. */
         public val Saver: Saver<JwTableColumnState, Any> = listSaver(
-            save = { state -> state.widths.flatMap { (column, width) -> listOf(column.index, column.header, width.value) } },
+            save = { state -> state.widths.flatMap { (key, width) -> listOf(key.index, key.header, width.value) } },
             restore = { saved ->
                 JwTableColumnState(saved.chunked(3).associate { (index, header, width) -> JwTableColumnKey(index as Int, header as String) to (width as Float).dp })
             },
