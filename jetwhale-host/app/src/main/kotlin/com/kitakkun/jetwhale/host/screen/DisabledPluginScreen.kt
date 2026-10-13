@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.screen
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,7 +116,8 @@ private fun DisabledPluginPresenter(
 }
 
 @Composable
-fun DisabledPluginScreen(
+@VisibleForTesting
+internal fun DisabledPluginScreen(
     pluginName: String,
     enableFailed: Boolean,
     onClickEnable: () -> Unit,

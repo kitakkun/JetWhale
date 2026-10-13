@@ -1,10 +1,18 @@
 package com.kitakkun.jetwhale.tools.qaagent
 
+import androidx.annotation.VisibleForTesting
+
+@VisibleForTesting
 internal const val DEFAULT_CONTROL_PORT = 7100
+
+@VisibleForTesting
 internal const val DEFAULT_HOST_PORT = 5443
+
+@VisibleForTesting
 internal const val DEFAULT_PLUGIN_VERSION = "1.0.0"
 
 /** App name used when the run does not ask for any, so the common single-session case needs no flag. */
+@VisibleForTesting
 internal const val DEFAULT_APP_NAME = "qa-agent"
 
 /**
@@ -13,6 +21,7 @@ internal const val DEFAULT_APP_NAME = "qa-agent"
  * session, and the stand-in — which registers no request handlers — would shadow the real plugin's,
  * leaving mocking unreachable. Pinned against the real plugin by `QaAgentOptionsTest`.
  */
+@VisibleForTesting
 internal const val BUILT_IN_NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
 
 /**

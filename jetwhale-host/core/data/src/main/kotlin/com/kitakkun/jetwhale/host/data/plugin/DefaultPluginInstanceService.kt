@@ -25,16 +25,17 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -50,7 +51,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  *   instance belongs to.
  * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
  * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
- *   cannot outrace disposal. Null for a pure plugin.
+ *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
+ *   unstarted, for [PluginInstanceService.startPluginInstancePreparation].
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  */
 private class LoadedInstance(
@@ -77,8 +79,10 @@ class DefaultPluginInstanceService(
 
     private val loadedPlugins: ConcurrentHashMap<PluginInstanceKey, LoadedInstance> = ConcurrentHashMap()
 
-    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
-    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
+    // Unbounded: the server stopping disposes every app session's instances in one burst, and a
+    // dropped Disposed would leave that instance's MCP tools listed.
+    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+        field = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = Channel.UNLIMITED)
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
@@ -95,7 +99,7 @@ class DefaultPluginInstanceService(
         loadedPlugins.entries
             .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
             .map { it.key }
-            .forEach { disposeInstance(it) }
+            .forEach(::disposeInstance)
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
@@ -104,7 +108,7 @@ class DefaultPluginInstanceService(
 
         publishHeadlessPlugins()
         newlyInitializedSessions.forEach { sessionId ->
-            emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
+            pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
     }
@@ -153,14 +157,16 @@ class DefaultPluginInstanceService(
         }
         dispatchCreateGuarded(plugin, descriptor)
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            instanceScope.launchPeerPreparation(
-                peer = peer,
-                descriptor = descriptor,
-                prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
-                dispatchPrepare = plugin::dispatchPrepare,
-                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
-                onReady = {},
-            )
+            instanceScope.launch(start = if (loaded.manifest.requiresAgent) CoroutineStart.LAZY else CoroutineStart.DEFAULT) {
+                launchPeerPreparation(
+                    peer = peer,
+                    descriptor = descriptor,
+                    prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
+                    dispatchPrepare = plugin::dispatchPrepare,
+                    warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+                    onReady = {},
+                )
+            }
         } else {
             null
         }
@@ -209,6 +215,10 @@ class DefaultPluginInstanceService(
         }
     }
 
+    override fun startPluginInstancePreparation(pluginId: String, sessionId: String) {
+        loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.prepareJob?.start()
+    }
+
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
         val peer = loadedPlugins[PluginInstanceKey(frame.pluginId, sessionId)]?.peer
         if (peer != null) {
@@ -225,18 +235,18 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
-        loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach { disposeInstance(it) }
+        loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach(::disposeInstance)
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
-        loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach { disposeInstance(it) }
+        loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach(::disposeInstance)
     }
 
     override fun clearAppSessionPluginInstances() {
-        loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach { disposeInstance(it, emitEvent = false) }
+        loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
     }
 
-    private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
+    private fun disposeInstance(key: PluginInstanceKey) {
         val removed = loadedPlugins.remove(key) ?: return
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.
@@ -255,7 +265,7 @@ class DefaultPluginInstanceService(
             }
         }
         publishHeadlessPlugins()
-        if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+        pluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**
@@ -270,11 +280,5 @@ class DefaultPluginInstanceService(
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
         )
-    }
-
-    private fun emitEvent(event: PluginInstanceEvent) {
-        if (!mutablePluginInstanceEventFlow.tryEmit(event)) {
-            logger.warning("Plugin instance event dropped (buffer full): $event")
-        }
     }
 }

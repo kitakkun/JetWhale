@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
@@ -43,6 +44,7 @@ public fun rememberJwPopupPositionProvider(
     return remember(key1 = anchor, key2 = gapPx, key3 = edgeMarginPx) { JwPopupPositionProvider(anchor = anchor, gapPx = gapPx, edgeMarginPx = edgeMarginPx) }
 }
 
+@VisibleForTesting
 internal class JwPopupPositionProvider(
     private val anchor: JwPopupAnchor,
     private val gapPx: Int,

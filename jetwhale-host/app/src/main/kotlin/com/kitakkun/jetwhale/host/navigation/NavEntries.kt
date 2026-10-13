@@ -176,6 +176,7 @@ fun EntryProviderScope<NavKey>.mcpToolsEntry() {
             McpToolsScreenRoot(
                 initialPluginId = navKey.pluginId,
                 initialSessionId = navKey.sessionId,
+                initialTab = navKey.initialTab,
             )
         }
     }

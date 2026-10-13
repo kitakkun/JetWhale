@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.navigation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.drawer.McpToolsTab
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import kotlinx.serialization.Serializable
 
@@ -100,12 +101,13 @@ data object LogViewerNavKey : OverlayNavKey {
 /**
  * The MCP tools browser. [pluginId] and [sessionId] seed the screen's filters — null means
  * "all", so opening it from a plugin's badge lands on that plugin while the screen itself can
- * widen the view afterwards.
+ * widen the view afterwards. [initialTab] is the tab it opens on.
  */
 @Serializable
 data class McpToolsNavKey(
     val pluginId: String?,
     val sessionId: String?,
+    val initialTab: McpToolsTab,
 ) : OverlayNavKey {
     override val presentation: OverlayPresentation get() = PRESENTATION
 

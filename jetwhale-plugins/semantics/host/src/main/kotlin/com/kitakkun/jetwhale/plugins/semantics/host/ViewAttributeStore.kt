@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -59,9 +60,16 @@ internal class ViewAttributeStore(
         scope.launch {
             val response = try {
                 read(GetViewAttributes(rootId = rootId, nodeId = nodeId))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 if (node == key) {
                     state = state.copy(attributes = null, message = "The app did not answer: ${e.message}")
+                }
+                return@launch
+            } catch (e: Exception) {
+                if (node == key) {
+                    state = state.copy(attributes = null, message = "Reading the attributes failed: $e")
                 }
                 return@launch
             }
@@ -88,6 +96,8 @@ internal class ViewAttributeStore(
         val key = node ?: return
         scope.launch {
             writeLock.withLock {
+                // Parsing only reads the text, and the exception it constructs is the one it throws.
+                @Suppress("KOTRAIL_BOUNDARY_UNGUARDED")
                 val value = try {
                     parseViewAttributeValue(attribute.id, attribute.value, text)
                 } catch (e: JetWhaleMcpArgumentException) {
@@ -96,8 +106,12 @@ internal class ViewAttributeStore(
                 }
                 try {
                     writeAndRecord(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: JetWhaleMessagingException) {
                     state = state.copy(writeStatus = "${attribute.id} failed: ${e.message}", writeFailed = true)
+                } catch (e: Exception) {
+                    state = state.copy(writeStatus = "${attribute.id} failed unexpectedly: $e", writeFailed = true)
                 }
             }
         }

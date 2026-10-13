@@ -123,7 +123,7 @@ class KtorWebSocketClientTest {
         json = json,
         negotiationStrategy = NoopClientSessionNegotiationStrategy(),
         sslConfiguration = JetWhaleSslConfiguration(),
-        httpClientProvider = { createClient { configureWebSocketClient(json) } },
+        httpClientProvider = { createClient { installWebSocketsAndLogging(json) } },
     )
 
     private fun ApplicationTestBuilder.configureTestServer(

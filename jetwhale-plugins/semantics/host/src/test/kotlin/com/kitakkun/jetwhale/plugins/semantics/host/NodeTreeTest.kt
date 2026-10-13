@@ -224,6 +224,14 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `only a Compose node with no role or label of its own is labeled by its id`() {
+        assertTrue(node(id = 1).isLabeledById)
+        assertFalse(node(id = 1, text = "#hashtag").isLabeledById)
+        assertFalse(node(id = 1, role = "Button").isLabeledById)
+        assertFalse(viewNode(id = -1, viewClass = "android.widget.LinearLayout").isLabeledById)
+    }
+
+    @Test
     fun `viewAttributeNode takes a selected View node`() {
         val tree = snapshot(root("window-1", node = node(id = 1, children = listOf(viewNode(id = -4, viewClass = "android.widget.TextView")))))
 

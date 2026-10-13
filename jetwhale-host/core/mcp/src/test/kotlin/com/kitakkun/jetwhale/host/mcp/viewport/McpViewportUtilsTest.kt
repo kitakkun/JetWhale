@@ -25,6 +25,8 @@ import com.kitakkun.jetwhale.host.mcp.tools.TEST_SCENE_HEIGHT
 import com.kitakkun.jetwhale.host.mcp.tools.TEST_SCENE_WIDTH
 import com.kitakkun.jetwhale.host.mcp.tools.createTestScene
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -32,7 +34,7 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class McpViewportUtilsTest {
     @Test
-    fun `a frame whose pixels are discarded leaves the same semantics as a full-size render`() {
+    fun `a frame whose pixels are discarded leaves the same semantics as a full-size render`(): Unit = runBlocking(Dispatchers.Main) {
         val fullSize = layeredScene().apply { render(Canvas(ImageBitmap(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT))) }
         val discarded = layeredScene().apply { renderDiscardingPixels() }
 

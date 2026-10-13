@@ -39,21 +39,15 @@ class FfmpegDecodingTest {
             setExecutable(true)
         }
 
-        assertEquals(found.path, findToolPath("ffmpeg", listOf(first.path, second.path)))
+        assertEquals(found, findToolPath("ffmpeg", listOf(first.path, second.path))?.let(::File))
     }
 
     @Test
     fun `a file that is not executable is not taken for the tool`() {
+        assumePosixPermissions()
         File(folder, "ffmpeg").writeText("not a program")
 
         assertNull(findToolPath("ffmpeg", listOf(folder.path)))
-    }
-
-    @Test
-    fun `Homebrew's directories are searched even when PATH lacks them`() {
-        val directories = toolDirectories(pathVariable = null)
-
-        assertTrue("/opt/homebrew/bin" in directories && "/usr/local/bin" in directories)
     }
 
     @Test
@@ -142,7 +136,7 @@ class FfmpegDecodingTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", toolDirectories(System.getenv("PATH")))
+        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + WellKnownToolDirectories(File(System.getProperty("user.home"))).list())
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }

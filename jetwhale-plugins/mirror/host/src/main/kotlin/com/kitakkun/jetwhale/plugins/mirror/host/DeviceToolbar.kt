@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -185,6 +186,7 @@ private val CAPTURE_DIVIDER_HEIGHT = 20.dp
 private const val RECORDING_TICK_MILLIS = 1_000L
 
 /** "0:12", or "1:02:03" past an hour. */
+@VisibleForTesting
 internal fun recordingElapsed(millis: Long): String {
     val seconds = (millis / 1_000).coerceAtLeast(0)
     val hours = seconds / 3_600

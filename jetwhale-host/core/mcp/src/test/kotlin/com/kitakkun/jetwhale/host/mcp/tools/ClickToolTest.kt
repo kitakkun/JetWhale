@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +23,7 @@ import kotlin.test.assertTrue
 class ClickToolTest {
 
     @Test
-    fun `dispatchClick returns false when scene has no clickable elements`() {
+    fun `dispatchClick returns false when scene has no clickable elements`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         renderTestScene(scene)
 
@@ -30,7 +32,7 @@ class ClickToolTest {
     }
 
     @Test
-    fun `dispatchClick returns true when a clickable element is at the given position`() {
+    fun `dispatchClick returns true when a clickable element is at the given position`(): Unit = runBlocking(Dispatchers.Main) {
         var clicked = false
         val scene = createTestScene {
             Box(
@@ -48,7 +50,7 @@ class ClickToolTest {
     }
 
     @Test
-    fun `dispatchClick returns false when coordinates are outside clickable element`() {
+    fun `dispatchClick returns false when coordinates are outside clickable element`(): Unit = runBlocking(Dispatchers.Main) {
         var clicked = false
         val scene = createTestScene {
             Box(
@@ -66,7 +68,7 @@ class ClickToolTest {
     }
 
     @Test
-    fun `a click on a dialog button reaches the dialog rather than the clickable content beneath it`() {
+    fun `a click on a dialog button reaches the dialog rather than the clickable content beneath it`(): Unit = runBlocking(Dispatchers.Main) {
         var clicked = "nothing"
         val scene = createTestScene {
             Box(Modifier.fillMaxSize().clickable { clicked = "content" })

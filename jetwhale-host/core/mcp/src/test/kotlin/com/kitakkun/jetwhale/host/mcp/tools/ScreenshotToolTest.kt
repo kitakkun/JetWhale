@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -25,7 +27,7 @@ import kotlin.test.assertTrue
 class ScreenshotToolTest {
 
     @Test
-    fun `a screenshot of an empty scene encodes to non-empty PNG bytes`() {
+    fun `a screenshot of an empty scene encodes to non-empty PNG bytes`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         val viewport = McpViewport(size = IntSize(320, 240), density = Density(1f))
 
@@ -36,7 +38,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `a screenshot encodes to a PNG of the viewport size`() {
+    fun `a screenshot encodes to a PNG of the viewport size`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Box(modifier = Modifier.size(100.dp).background(Color.Red))
         }
@@ -55,7 +57,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `a screenshot renders at any viewport size`() {
+    fun `a screenshot renders at any viewport size`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
 
         for ((width, height) in listOf(160 to 120, 640 to 480, 1280 to 720)) {
@@ -66,7 +68,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `a render shows side-by-side boxes in their own colors`() {
+    fun `a render shows side-by-side boxes in their own colors`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Row {
                 Box(modifier = Modifier.size(50.dp).background(Color.Red))
@@ -85,7 +87,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `a screenshot leaves the scene on the size and density it had`() {
+    fun `a screenshot leaves the scene on the size and density it had`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         scene.composeScene.size = IntSize(320, 240)
         scene.composeScene.density = Density(density = 1.5f, fontScale = 1.25f)
@@ -97,7 +99,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `a screenshot leaves the window info it had`() {
+    fun `a screenshot leaves the window info it had`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         scene.composeScene.size = IntSize(320, 240)
         applyViewport(scene, McpViewport(size = IntSize(320, 240), density = Density(1f)))
@@ -109,7 +111,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `the frame drawn after a capture uses the scene's own density`() {
+    fun `the frame drawn after a capture uses the scene's own density`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Box(modifier = Modifier.size(50.dp).background(Color.Red))
         }
@@ -126,7 +128,7 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `LocalIsMcpCapture is true only while capturing`() {
+    fun `LocalIsMcpCapture is true only while capturing`(): Unit = runBlocking(Dispatchers.Main) {
         val observed = mutableListOf<Boolean>()
         val scene = createTestScene {
             observed.add(LocalIsMcpCapture.current)

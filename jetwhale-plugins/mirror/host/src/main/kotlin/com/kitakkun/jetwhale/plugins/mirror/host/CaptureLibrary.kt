@@ -137,6 +137,6 @@ private fun safeName(name: String): String = name.replace(Regex("[^A-Za-z0-9._-]
  * `~/.jetwhale`.
  */
 internal fun defaultCapturesRoot(): File {
-    val appData = System.getProperty("jetwhale.appDataDir")?.takeIf(String::isNotBlank) ?: "${System.getProperty("user.home")}/.jetwhale"
-    return File(appData, "plugin-data/com.kitakkun.jetwhale.mirror/captures")
+    val appDataDir = System.getProperty("jetwhale.appDataDir")?.takeIf(String::isNotBlank) ?: "${System.getProperty("user.home")}/.jetwhale"
+    return File(appDataDir, "plugin-data/com.kitakkun.jetwhale.mirror/captures")
 }

@@ -22,7 +22,7 @@ class LogEntryRowTest {
             runComposeUiTest {
                 setContent {
                     JwTheme(darkTheme = false) {
-                        LogEntryRow(LogEntry(timestamp = Instant.parse("2026-09-24T16:30:43.497Z"), message = "hello", level = LogLevel.INFO))
+                        LogEntryRow(LogEntry(id = 0, timestamp = Instant.parse("2026-09-24T16:30:43.497Z"), message = "hello", level = LogLevel.INFO))
                     }
                 }
 
