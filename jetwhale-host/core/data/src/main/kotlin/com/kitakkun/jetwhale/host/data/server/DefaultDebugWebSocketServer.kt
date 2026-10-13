@@ -18,10 +18,13 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Inject
 @SingleIn(AppScope::class)
@@ -38,8 +41,8 @@ class DefaultDebugWebSocketServer(
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     override val statusFlow: StateFlow<DebugWebSocketServerStatus> get() = ktorWebSocketServer.statusFlow
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
-    private val mutableServerStoppedFlow: MutableSharedFlow<Unit> = MutableSharedFlow()
-    override val serverStoppedFlow: Flow<Unit> = mutableServerStoppedFlow
+    override val serverStoppedFlow: Flow<Unit>
+        field = MutableSharedFlow<Unit>()
 
     private var serverMonitoringJob: Job? = null
 
@@ -54,13 +57,13 @@ class DefaultDebugWebSocketServer(
     }
 
     override suspend fun stop() {
-        serverMonitoringJob?.cancel()
+        serverMonitoringJob?.cancelAndJoin()
         serverMonitoringJob = null
         hostDiscoveryAdvertiser.stop()
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAppSessionPluginInstances()
-        mutableServerStoppedFlow.emit(Unit)
+        serverStoppedFlow.emit(Unit)
     }
 
     private fun subscribeServerEvents() {
@@ -79,18 +82,16 @@ class DefaultDebugWebSocketServer(
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
         var mappedPorts: List<Int> = emptyList()
-        ktorWebSocketServer.statusFlow.collect { status ->
-            when (status) {
-                is DebugWebSocketServerStatus.Started -> {
+        try {
+            ktorWebSocketServer.statusFlow.collect { status ->
+                if (status is DebugWebSocketServerStatus.Started) {
                     mappedPorts = listOfNotNull(status.port, status.wssPort)
                     mappedPorts.forEach(adbAutoPortMappingService::startPortMapping)
                 }
-
-                is DebugWebSocketServerStatus.Stopped -> {
-                    mappedPorts.forEach(adbAutoPortMappingService::stopPortMapping)
-                }
-
-                else -> Unit
+            }
+        } finally {
+            withContext(NonCancellable) {
+                mappedPorts.forEach { adbAutoPortMappingService.stopPortMapping(it) }
             }
         }
     }

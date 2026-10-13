@@ -10,7 +10,9 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -64,11 +66,11 @@ internal interface CapturesActions {
 @Stable
 internal class MirrorCaptures(
     defaultRoot: File,
-    private val storage: JetWhalePluginStorage?,
+    private val storage: JetWhalePluginStorage,
     private val scope: CoroutineScope,
     private val zone: ZoneId,
     private val notices: MirrorNotices,
-    private val ffmpegPath: String?,
+    private val ffmpegPath: Deferred<String?>,
     private val clipboard: CaptureClipboard,
 ) : CapturesActions,
     ThumbnailSource {
@@ -109,8 +111,12 @@ internal class MirrorCaptures(
                 try {
                     if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
                     notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: IOException) {
                     notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                } catch (e: Exception) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: $e", retry = null))
                 }
             }
         }
@@ -118,8 +124,8 @@ internal class MirrorCaptures(
 
     /** Reads the folder the user picked last time, if any. */
     suspend fun restoreFolder() {
-        val saved = storage?.get<String>(ROOT_KEY) ?: return
-        library = CaptureLibrary(File(saved), zone)
+        val savedRootPath = storage.get<String>(ROOT_KEY) ?: return
+        library = CaptureLibrary(File(savedRootPath), zone)
     }
 
     /** Lists the captures of [device], or of every device when [allDevices]. */
@@ -152,7 +158,7 @@ internal class MirrorCaptures(
     override fun cachedThumbnail(capture: Capture): ImageBitmap? = synchronized(thumbnails) { thumbnails[capture.file] }
 
     override suspend fun loadThumbnail(capture: Capture): ImageBitmap? = withContext(Dispatchers.IO) {
-        val file = thumbnailOf(library, capture, ffmpegPath) ?: return@withContext null
+        val file = thumbnailOf(library, capture, ffmpegPath.await()) ?: return@withContext null
         val bitmap = Image.makeFromEncoded(file.readBytes()).use(Image::toComposeImageBitmap)
         synchronized(thumbnails) { thumbnails[capture.file] = bitmap }
         bitmap
@@ -214,7 +220,7 @@ internal class MirrorCaptures(
             if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) return@invokeLater
             val folder = chooser.selectedFile ?: return@invokeLater
             library = CaptureLibrary(folder, zone)
-            scope.launch { storage?.put(ROOT_KEY, folder.absolutePath) }
+            scope.launch { storage.put(ROOT_KEY, folder.absolutePath) }
             refresh()
         }
     }

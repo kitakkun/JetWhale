@@ -105,6 +105,7 @@ include(":jetwhale-plugins:mirror:host")
 include(":test-annotations")
 
 include(":tools:qa-agent")
+include(":tools:docs-screenshots")
 
 include(":demo:shared")
 include(":demo:android")

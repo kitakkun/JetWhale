@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.FakeAppAppearanceRepository
 import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -10,10 +11,12 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
+import com.kitakkun.jetwhale.host.model.HostMcpToolsTab
 import com.kitakkun.jetwhale.host.model.HostNavigationService
-import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
+import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -21,6 +24,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -30,6 +34,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -46,11 +51,24 @@ class HostStatusCommandTest {
         update(McpServerStatus.Running(host = "localhost", port = 7080))
     }
 
+    private val debugWebSocketServer = mock<DebugWebSocketServer>(MockMode.autoUnit) {
+        every { statusFlow } returns MutableStateFlow(DebugWebSocketServerStatus.Started("localhost", 5080, 5443))
+    }
+
+    private val settingsRepository = mock<DebuggerSettingsRepository>(MockMode.autoUnit) {
+        every { serverPortFlow } returns MutableStateFlow(5080)
+        every { wssPortFlow } returns MutableStateFlow(5443)
+        every { wssEnabledFlow } returns MutableStateFlow(true)
+        every { mcpServerPortFlow } returns MutableStateFlow(7080)
+        every { adbAutoPortMappingEnabledFlow } returns MutableStateFlow(true)
+        every { persistDataFlow } returns MutableStateFlow(false)
+    }
+
+    private val appAppearanceRepository = FakeAppAppearanceRepository()
+
     private val command = HostStatusCommand(
         hostVersionInfo = HostVersionInfo("1.2.3-SNAPSHOT"),
-        debugWebSocketServer = mock<DebugWebSocketServer> {
-            every { statusFlow } returns MutableStateFlow(DebugWebSocketServerStatus.Started("localhost", 5080, 5443))
-        },
+        debugWebSocketServer = debugWebSocketServer,
         mcpServerStatusHolder = mcpServerStatusHolder,
         debugSessionRepository = mock<DebugSessionRepository> {
             every { debugSessionsFlow } returns flowOf(persistentListOf(session("s1", isActive = true), session("s2", isActive = false)))
@@ -68,14 +86,8 @@ class HostStatusCommandTest {
         pluginInstallProgressRepository = mock<PluginInstallProgressRepository> {
             every { progressFlow } returns MutableStateFlow(null)
         },
-        settingsRepository = mock<DebuggerSettingsRepository> {
-            every { serverPortFlow } returns MutableStateFlow(5080)
-            every { wssPortFlow } returns MutableStateFlow(5443)
-            every { wssEnabledFlow } returns MutableStateFlow(true)
-            every { mcpServerPortFlow } returns MutableStateFlow(7080)
-            every { adbAutoPortMappingEnabledFlow } returns MutableStateFlow(true)
-            every { persistDataFlow } returns MutableStateFlow(false)
-        },
+        settingsRepository = settingsRepository,
+        appAppearanceRepository = appAppearanceRepository,
         mcpPermissionsRepository = permissions,
         hostNavigationService = mock<HostNavigationService> {
             every { this@mock.currentView } returns this@HostStatusCommandTest.currentView
@@ -131,7 +143,7 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports an open log viewer next to what the main window shows`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL, logViewerOpen = true),
+            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE, logViewerOpen = true),
             selectedSessionId = null,
             selectedPluginId = null,
         )
@@ -139,6 +151,48 @@ class HostStatusCommandTest {
         val ui = requireNotNull(command.execute(arguments()).decode().ui)
         assertEquals("SETTINGS", ui.destination)
         assertTrue(ui.logViewerOpen)
+    }
+
+    @Test
+    fun `getStatus reports the settings page the window opened on`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS, logViewerOpen = false),
+            selectedSessionId = null,
+            selectedPluginId = null,
+        )
+
+        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        assertEquals("SETTINGS", ui.destination)
+        assertEquals("PERMISSIONS", ui.settingsPage)
+        assertEquals("AI_AGENTS", ui.settingsSection)
+    }
+
+    @Test
+    fun `getStatus reports the tab the MCP tools browser opened on`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.HISTORY, logViewerOpen = false),
+            selectedSessionId = null,
+            selectedPluginId = null,
+        )
+
+        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        assertEquals("MCP_TOOLS", ui.destination)
+        assertEquals("HISTORY", ui.mcpToolsTab)
+    }
+
+    @Test
+    fun `getStatus reports the theme by the name updateSettings takes`() = runBlocking {
+        appAppearanceRepository.setPreferredColorSchemeId(JetWhaleColorSchemeId.BuiltInLight)
+
+        assertEquals("LIGHT", command.execute(arguments()).decode().settings.theme)
+    }
+
+    @Test
+    fun `getStatus reports the theme updateSettings just set`() = runBlocking {
+        UpdateSettingsCommand(settingsRepository, appAppearanceRepository, debugWebSocketServer)
+            .execute(JetWhaleMcpArguments(JsonObject(mapOf("theme" to JsonPrimitive("DARK")))))
+
+        assertEquals("DARK", command.execute(arguments()).decode().settings.theme)
     }
 
     @Test

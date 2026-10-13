@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
@@ -36,6 +37,7 @@ import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
+import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.release.HostDirectory
 import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.release.LauncherContract
@@ -44,6 +46,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.emptyFlow
@@ -61,6 +64,7 @@ import java.util.Properties
 import java.util.concurrent.atomic.AtomicReference
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.milliseconds
 import ch.qos.logback.classic.Logger as LogbackLogger
 
 private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
@@ -175,7 +179,6 @@ private fun PersistedWindowState?.toWindowState(): WindowState {
     )
 }
 
-@OptIn(FlowPreview::class)
 @Composable
 private fun ApplicationScope.JetWhaleMainWindow(
     appGraph: JetWhaleAppGraph,
@@ -208,41 +211,8 @@ private fun ApplicationScope.JetWhaleMainWindow(
         MacApplicationMenuEffect(mainWindowMenuCommands = mainWindowMenuCommands, systemQuitResponse = systemQuitResponse)
     }
 
-    LaunchedEffect(Unit) {
-        appGraph
-            .applicationLifecycleOwner
-            .applicationStateFlow
-            .collect {
-                if (it == ApplicationLifecycleOwner.ApplicationState.STOPPED) {
-                    exitApplication()
-                    // macOS waits for an answer to a quit it asked for (the application menu, the
-                    // Dock, a logout), so the answer comes once the host has shut down.
-                    systemQuitResponse.getAndSet(null)?.performQuit()
-                }
-            }
-    }
-
-    LaunchedEffect(windowState) {
-        snapshotFlow { Triple(windowState.size, windowState.position, windowState.placement) }
-            // Only a floating window's geometry is saved: a maximized or full-screen one would
-            // overwrite it, and the next launch would open a floating window the size of the
-            // screen.
-            .map { (size, position, placement) ->
-                if (placement != WindowPlacement.Floating) return@map null
-                PersistedWindowState(
-                    width = size.width.value,
-                    height = size.height.value,
-                    x = position.takeIf(WindowPosition::isSpecified)?.x?.value,
-                    y = position.takeIf(WindowPosition::isSpecified)?.y?.value,
-                )
-            }
-            .debounce(500)
-            .collect { state ->
-                if (state != null) {
-                    appGraph.windowStateRepository.saveWindowState(state)
-                }
-            }
-    }
+    ExitApplicationWhenStoppedEffect(applicationLifecycleOwner = appGraph.applicationLifecycleOwner, systemQuitResponse = systemQuitResponse)
+    SaveFloatingWindowStateEffect(windowState = windowState, windowStateRepository = appGraph.windowStateRepository)
 
     Window(
         title = "JetWhale",
@@ -254,30 +224,10 @@ private fun ApplicationScope.JetWhaleMainWindow(
         // has declined the key.
         onKeyEvent = { keyEvent -> !isMac && mainWindowMenuCommands.runShortcut(keyEvent) },
     ) {
-        LaunchedEffect(hostInstance) {
-            hostInstance?.publishInstanceJson()
-            merge(menuBringToFrontRequests, hostInstance?.bringToFrontRequests ?: emptyFlow()).collect {
-                windowState.isMinimized = false
-                window.toFront()
-                window.requestFocus()
-                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
-                    Desktop.getDesktop().requestForeground(true)
-                }
-            }
-        }
+        PublishInstanceAndBringToFrontEffect(hostInstance = hostInstance, menuBringToFrontRequests = menuBringToFrontRequests, windowState = windowState)
 
         JwTheme(darkTheme = isSystemInDarkTheme()) {
-            when (applicationState) {
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
-                    InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
-
-                ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
-
-                ApplicationLifecycleOwner.ApplicationState.NONE,
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
-                ApplicationLifecycleOwner.ApplicationState.STOPPED,
-                -> Unit
-            }
+            ApplicationLifecycleDialog(applicationState = applicationState, verifyingTrustRegistry = verifyingTrustRegistry)
         }
 
         CompositionLocalProvider(LocalMainWindowMenuCommands provides mainWindowMenuCommands) {
@@ -316,6 +266,88 @@ private fun MacApplicationMenuEffect(mainWindowMenuCommands: MainWindowMenuComma
             desktop.setPreferencesHandler(null)
             desktop.setQuitHandler(null)
         }
+    }
+}
+
+@Composable
+private fun ApplicationScope.ExitApplicationWhenStoppedEffect(
+    applicationLifecycleOwner: ApplicationLifecycleOwner,
+    systemQuitResponse: AtomicReference<QuitResponse?>,
+) {
+    LaunchedEffect(Unit) {
+        applicationLifecycleOwner
+            .applicationStateFlow
+            .collect {
+                if (it == ApplicationLifecycleOwner.ApplicationState.STOPPED) {
+                    exitApplication()
+                    // macOS waits for an answer to a quit it asked for (the application menu, the
+                    // Dock, a logout), so the answer comes once the host has shut down.
+                    systemQuitResponse.getAndSet(null)?.performQuit()
+                }
+            }
+    }
+}
+
+@OptIn(FlowPreview::class)
+@Composable
+private fun SaveFloatingWindowStateEffect(windowState: WindowState, windowStateRepository: WindowStateRepository) {
+    LaunchedEffect(windowState) {
+        snapshotFlow { Triple(windowState.size, windowState.position, windowState.placement) }
+            // Only a floating window's geometry is saved: a maximized or full-screen one would
+            // overwrite it, and the next launch would open a floating window the size of the
+            // screen.
+            .map { (size, position, placement) ->
+                if (placement != WindowPlacement.Floating) return@map null
+                PersistedWindowState(
+                    width = size.width.value,
+                    height = size.height.value,
+                    x = position.takeIf(WindowPosition::isSpecified)?.x?.value,
+                    y = position.takeIf(WindowPosition::isSpecified)?.y?.value,
+                )
+            }
+            .debounce(500.milliseconds)
+            .collect { state ->
+                if (state != null) {
+                    windowStateRepository.saveWindowState(state)
+                }
+            }
+    }
+}
+
+@Composable
+private fun FrameWindowScope.PublishInstanceAndBringToFrontEffect(
+    hostInstance: HostInstance?,
+    menuBringToFrontRequests: Flow<Unit>,
+    windowState: WindowState,
+) {
+    LaunchedEffect(hostInstance) {
+        hostInstance?.publishInstanceJson()
+        merge(menuBringToFrontRequests, hostInstance?.bringToFrontRequests ?: emptyFlow()).collect {
+            windowState.isMinimized = false
+            window.toFront()
+            window.requestFocus()
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.APP_REQUEST_FOREGROUND)) {
+                Desktop.getDesktop().requestForeground(true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApplicationLifecycleDialog(
+    applicationState: ApplicationLifecycleOwner.ApplicationState,
+    verifyingTrustRegistry: Boolean,
+) {
+    when (applicationState) {
+        ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
+            InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
+
+        ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
+
+        ApplicationLifecycleOwner.ApplicationState.NONE,
+        ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
+        ApplicationLifecycleOwner.ApplicationState.STOPPED,
+        -> Unit
     }
 }
 

@@ -42,13 +42,16 @@ versioned by `major.minor`, and the compiler accepts metadata up to one minor ah
 - **Minor/major bump** (e.g. 2.4.x → 2.5.x): metadata version changes → the minimum consumer
   Kotlin moves up. This is a breaking change for consumers; call it out in release notes.
 - Older consumers can use `-Xskip-metadata-version-check` as an unofficial escape hatch — it is
-  documented in `docs/guide/getting-started.md` but is unsupported and fragile (notably around
+  documented in `docs/reference/artifacts.md` but is unsupported and fragile (notably around
   `inline` functions).
 
 On ANY Kotlin bump, update the hardcoded "built with" version:
 
-- `docs/guide/getting-started.md` — the "currently **X.Y.Z**" in the Kotlin compatibility warning
-  (and the stated minimum consumer Kotlin, if a minor bump moved it).
+- `docs/reference/artifacts.md` — the "currently **X.Y.Z**" under Kotlin compatibility (and the
+  stated minimum consumer Kotlin, if a minor bump moved it).
+- `docs/guide/getting-started.md` — the minimum consumer Kotlin in step 2, if a minor bump moved it.
+- `docs/guide/connecting.md` — the Kotlin range CI proves `buildMachineWss`'s compiler plugin
+  against, if the bump widens it.
 - `README.md` — the `Kotlin-X.Y.Z` badge.
 - `docs/guide/developing-plugins.md` — no hardcoded version (it defers to release notes), but the
   next release notes MUST state the Kotlin (and Compose) version the host was built with, since

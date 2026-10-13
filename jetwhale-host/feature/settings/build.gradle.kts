@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.debuggerComposeFeature)
+    alias(libs.plugins.docsScreenshots)
 }
 
 dependencies {
@@ -15,6 +16,7 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
+    "docsScreenshotsImplementation"(projects.jetwhalePlugins.network.host)
 }
 
 compose.resources {

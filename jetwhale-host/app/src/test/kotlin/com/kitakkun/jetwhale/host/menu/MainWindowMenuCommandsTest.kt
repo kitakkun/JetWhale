@@ -22,7 +22,7 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostOs
-import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.HostViewState
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import kotlinx.coroutines.CoroutineScope
@@ -104,7 +104,7 @@ class MainWindowMenuCommandsTest {
 
         assertEquals(
             listOf(
-                HostNavigationRequest.Settings(HostSettingsSection.GENERAL),
+                HostNavigationRequest.Settings(HostSettingsPage.APPEARANCE),
                 HostNavigationRequest.Home,
                 HostNavigationRequest.LogViewer,
                 HostNavigationRequest.Plugin("network", sessionId = null, followsAgent = false),

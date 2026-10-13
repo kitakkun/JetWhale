@@ -16,7 +16,7 @@ import com.kitakkun.jetwhale.host.menu_home
 import com.kitakkun.jetwhale.host.menu_no_plugins
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
-import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.plugins
 import kotlinx.collections.immutable.ImmutableList
@@ -53,7 +53,7 @@ internal class MainWindowMenuCommands(
             .toImmutableList()
     }
 
-    fun openSettings() = showInMainWindow(HostNavigationRequest.Settings(HostSettingsSection.GENERAL))
+    fun openSettings() = showInMainWindow(HostNavigationRequest.Settings(HostSettingsPage.APPEARANCE))
 
     fun openInfo() = showInMainWindow(HostNavigationRequest.Info)
 

@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.jetwhalePlugin)
     alias(libs.plugins.jetwhaleHostLaunch)
     alias(libs.plugins.publish)
+    alias(libs.plugins.docsScreenshots)
 }
 
 kotlin {

@@ -165,13 +165,13 @@ class DefaultPluginSessionReconciliationServiceTest {
     }
 
     private class FakePluginFactoryRepository : PluginFactoryRepository {
-        private val plugins: MutableStateFlow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
-        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = plugins
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = plugins.value
+        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
+            field = MutableStateFlow<Map<String, LoadedHostPlugin>>(emptyMap())
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginsFlow.value
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         fun load(plugin: LoadedHostPlugin) {
-            plugins.value = plugins.value + (plugin.manifest.pluginId to plugin)
+            loadedPluginsFlow.value = loadedPluginsFlow.value + (plugin.manifest.pluginId to plugin)
         }
 
         override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
