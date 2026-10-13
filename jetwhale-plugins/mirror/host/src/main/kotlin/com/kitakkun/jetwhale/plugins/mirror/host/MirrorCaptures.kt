@@ -10,7 +10,9 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.put
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -64,11 +66,11 @@ internal interface CapturesActions {
 @Stable
 internal class MirrorCaptures(
     defaultRoot: File,
-    private val storage: JetWhalePluginStorage?,
+    private val storage: JetWhalePluginStorage,
     private val scope: CoroutineScope,
     private val zone: ZoneId,
     private val notices: MirrorNotices,
-    private val ffmpegPath: String?,
+    private val ffmpegPath: Deferred<String?>,
     private val clipboard: CaptureClipboard,
 ) : CapturesActions,
     ThumbnailSource {
@@ -92,7 +94,7 @@ internal class MirrorCaptures(
 
     private var device: DeviceListing? = null
 
-    private val listings = AtomicLong()
+    private val captureListGeneration = AtomicLong()
 
     // One copy at a time, in the order they were asked for, so a slow copy cannot land on the
     // clipboard after a later one.
@@ -109,8 +111,12 @@ internal class MirrorCaptures(
                 try {
                     if (pathOnly) clipboard.putText(capture.file.absolutePath) else clipboard.putCapture(capture)
                     notices.show(MirrorNotice.info("Copied $what"))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: IOException) {
                     notices.show(MirrorNotice.failure("Could not copy $what: ${e.message}", retry = null))
+                } catch (e: Exception) {
+                    notices.show(MirrorNotice.failure("Could not copy $what: $e", retry = null))
                 }
             }
         }
@@ -118,8 +124,8 @@ internal class MirrorCaptures(
 
     /** Reads the folder the user picked last time, if any. */
     suspend fun restoreFolder() {
-        val saved = storage?.get<String>(ROOT_KEY) ?: return
-        library = CaptureLibrary(File(saved), zone)
+        val savedRootPath = storage.get<String>(ROOT_KEY) ?: return
+        library = CaptureLibrary(File(savedRootPath), zone)
     }
 
     /** Lists the captures of [device], or of every device when [allDevices]. */
@@ -133,7 +139,7 @@ internal class MirrorCaptures(
         val at = Instant.now()
         val file = library.newFile(device, CaptureKind.Screenshot, at).apply { writeBytes(png) }
         val size = Image.makeFromEncoded(png).use { IntSize(it.width, it.height) }
-        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::prependToCaptureList)
     }
 
     /** A new, empty file for a recording of [device] that starts now. */
@@ -145,14 +151,14 @@ internal class MirrorCaptures(
      */
     suspend fun addRecording(device: DeviceListing, file: File, startedAt: Instant, size: IntSize?): Capture = withContext(Dispatchers.IO) {
         val duration = mp4DurationMillis(file) ?: (Instant.now().toEpochMilli() - startedAt.toEpochMilli())
-        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::added)
+        library.record(file, captureInfo(device, CaptureKind.Recording, size, startedAt, duration)).also(::prependToCaptureList)
     }
 
     /** The decoded thumbnail of [capture] if it is cached; null means [loadThumbnail] it. */
     override fun cachedThumbnail(capture: Capture): ImageBitmap? = synchronized(thumbnails) { thumbnails[capture.file] }
 
     override suspend fun loadThumbnail(capture: Capture): ImageBitmap? = withContext(Dispatchers.IO) {
-        val file = thumbnailOf(library, capture, ffmpegPath) ?: return@withContext null
+        val file = thumbnailOf(library, capture, ffmpegPath.await()) ?: return@withContext null
         val bitmap = Image.makeFromEncoded(file.readBytes()).use(Image::toComposeImageBitmap)
         synchronized(thumbnails) { thumbnails[capture.file] = bitmap }
         bitmap
@@ -197,7 +203,7 @@ internal class MirrorCaptures(
             library.delete(capture)
             synchronized(thumbnails) { thumbnails.remove(capture.file) }
             refresh()
-            synchronized(listings) { captures = captures - capture }
+            synchronized(captureListGeneration) { captures = captures - capture }
             if (selected == capture) selected = null
         }
     }
@@ -214,24 +220,24 @@ internal class MirrorCaptures(
             if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) return@invokeLater
             val folder = chooser.selectedFile ?: return@invokeLater
             library = CaptureLibrary(folder, zone)
-            scope.launch { storage?.put(ROOT_KEY, folder.absolutePath) }
+            scope.launch { storage.put(ROOT_KEY, folder.absolutePath) }
             refresh()
         }
     }
 
     private fun refresh() {
         val deviceId = device?.id?.takeUnless { allDevices }
-        val listing = listings.incrementAndGet()
+        val listing = captureListGeneration.incrementAndGet()
         scope.launch(Dispatchers.IO) {
             val listed = library.list(deviceId, kind, sinceEpochMillis = null)
-            synchronized(listings) { if (listings.get() == listing) captures = listed }
+            synchronized(captureListGeneration) { if (captureListGeneration.get() == listing) captures = listed }
         }
     }
 
-    private fun added(capture: Capture) {
+    private fun prependToCaptureList(capture: Capture) {
         refresh()
         val shown = (allDevices || capture.info.deviceId == device?.id) && (kind == null || kind == capture.info.kind)
-        if (shown) synchronized(listings) { captures = listOf(capture) + captures }
+        if (shown) synchronized(captureListGeneration) { captures = listOf(capture) + captures }
     }
 
     private fun desktop(action: (Desktop) -> Unit) {

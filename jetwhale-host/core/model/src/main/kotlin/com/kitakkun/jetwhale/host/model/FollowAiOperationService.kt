@@ -7,6 +7,9 @@ package com.kitakkun.jetwhale.host.model
  * The follow only ever moves the main window: a plugin already popped out into its own window is
  * visible as it is, and dragging the main window onto it would take the user off whatever they were
  * looking at for no gain.
+ *
+ * Only a call that operates a plugin is followed. A host-level call that names one, such as
+ * `jetwhale.navigate` or `jetwhale.setPluginEnabled`, leaves the window to the call itself.
  */
 interface FollowAiOperationService {
     /**

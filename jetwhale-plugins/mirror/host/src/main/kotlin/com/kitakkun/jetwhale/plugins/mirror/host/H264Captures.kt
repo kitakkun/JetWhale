@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -47,6 +48,7 @@ internal fun ffmpegFirstFramePngCommand(ffmpegPath: String): List<String> = list
  * again. Raw H.264 carries no timestamps, so each frame is stamped with when it arrived, which is
  * when the device sent it. `+faststart` puts the index first, so the file plays while it loads.
  */
+@VisibleForTesting
 internal fun ffmpegRemuxCommand(ffmpegPath: String, outputPath: String): List<String> = listOf(
     ffmpegPath, "-hide_banner", "-nostats", "-loglevel", "error",
     "-use_wallclock_as_timestamps", "1", "-f", "h264", "-i", "pipe:0",

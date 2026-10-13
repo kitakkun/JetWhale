@@ -75,12 +75,17 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
      * That key is stripped before forwarding to the plugin.
      *
+     * A missing `sessionId`, or a session the tool is not offered in, is answered with an error
+     * payload that names the sessions the tool is available in.
+     *
      * @return The result string, or null if not found or plugin returned null.
      */
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
-        val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
         val entry = registrations[toolName] ?: return null
-        val pluginId = entry.sessionToPlugin[sessionId] ?: return null
+        val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content
+            ?: return errorPayload("'sessionId' is required: the session to run '$toolName' in (available in: ${entry.availableSessions()}).")
+        val pluginId = entry.sessionToPlugin[sessionId]
+            ?: return errorPayload("'$toolName' is not available in session '$sessionId' (available in: ${entry.availableSessions()}).")
         val plugin = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
@@ -89,7 +94,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         return try {
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
         } catch (e: JetWhaleMcpArgumentException) {
-            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+            errorPayload(e.message.orEmpty())
         }
     }
 
@@ -98,6 +103,12 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Used to attribute an in-flight tool call to a plugin for the AI activity indicator.
      */
     fun pluginIdFor(toolName: String, sessionId: String): String? = registrations[toolName]?.sessionToPlugin?.get(sessionId)
+
+    private fun errorPayload(message: String): String = buildJsonObject { put("error", message) }.toString()
+
+    // toSortedSet() copies the live view in one pass; sorted() on a single session reads the size,
+    // then the key, and throws if the session leaves in between.
+    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.toSortedSet().joinToString().ifEmpty { "no session" }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() = synchronized(publishLock) {

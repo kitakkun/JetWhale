@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -77,6 +78,7 @@ sealed interface ToolingScaffoldScreenActionResult {
  * current list alone cannot: a disconnected session stays in it, so every later update would
  * re-report it.
  */
+@VisibleForTesting
 internal fun closedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
@@ -91,6 +93,7 @@ internal fun closedSessions(
  * "Connected" is what the diff is on, not "present": a disconnected session keeps its entry in the
  * list, so an id reappearing as active is a genuine arrival and is announced — a reconnect included.
  */
+@VisibleForTesting
 internal fun newlyConnectedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
@@ -100,6 +103,7 @@ internal fun newlyConnectedSessions(
 }
 
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // A flat sealed dispatch; Kotrail scores each row as a branch, tracked in #450.
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
@@ -133,27 +137,14 @@ fun toolingScaffoldPresenter(
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
-            loadedPlugins.map { metaData ->
-                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-                val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-                val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
-
-                DrawerPluginItemUiState(
-                    id = metaData.id,
-                    name = metaData.name,
-                    activeIconResource = metaData.activeIconResource,
-                    inactiveIconResource = metaData.inactiveIconResource,
-                    pluginAvailability = when {
-                        metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-                        isEnabledInSettings -> PluginAvailability.Enabled
-                        else -> PluginAvailability.Disabled
-                    },
-                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
-                    needsApp = metaData.requiresAgent,
-                )
-            }.toImmutableList()
+            drawerPluginItems(
+                loadedPlugins = loadedPlugins,
+                selectedSession = selectedSession,
+                enabledPluginIds = enabledPluginIds,
+                mcpCapablePlugins = mcpCapablePlugins,
+                headlessPlugins = headlessPlugins,
+                activeInvocation = activeInvocation,
+            )
         }
     }
 
@@ -221,6 +212,35 @@ fun toolingScaffoldPresenter(
     )
 }
 
+private fun drawerPluginItems(
+    loadedPlugins: List<PluginMetaData>,
+    selectedSession: DebugSession?,
+    enabledPluginIds: Set<String>,
+    mcpCapablePlugins: McpCapablePlugins,
+    headlessPlugins: HeadlessPlugins,
+    activeInvocation: McpToolInvocation?,
+): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.map { metaData ->
+    val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
+    val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
+    val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
+
+    DrawerPluginItemUiState(
+        id = metaData.id,
+        name = metaData.name,
+        activeIconResource = metaData.activeIconResource,
+        inactiveIconResource = metaData.inactiveIconResource,
+        pluginAvailability = when {
+            metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
+            isEnabledInSettings -> PluginAvailability.Enabled
+            else -> PluginAvailability.Disabled
+        },
+        underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+        exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+        isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
+        needsApp = metaData.requiresAgent,
+    )
+}.toImmutableList()
+
 @Composable
 context(presenterContext: ToolingScaffoldPresenterContext)
 private fun SessionArrivalEffect(
@@ -255,12 +275,14 @@ private val MIN_SIDEBAR_WIDTH = 200.dp
 private val MAX_SIDEBAR_WIDTH = 480.dp
 
 /** [width] kept within what the sidebar can usefully be; a stored width is clamped the same way. */
+@VisibleForTesting
 internal fun clampSidebarWidth(width: Dp): Dp = width.coerceIn(MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
 
 /**
  * The tool's name without its plugin id's package: `com.kitakkun.jetwhale.mirror.tap` reads as
  * `mirror.tap`. A host tool, which belongs to no plugin, keeps its own short name (`jetwhale.click`).
  */
+@VisibleForTesting
 internal fun McpToolInvocation.shortToolName(): String {
     val pluginId = pluginId ?: return toolName
     if (!toolName.startsWith("$pluginId.")) return toolName

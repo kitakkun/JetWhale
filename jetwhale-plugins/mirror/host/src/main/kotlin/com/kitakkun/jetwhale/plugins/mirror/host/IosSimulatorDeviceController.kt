@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -8,6 +9,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl`; the live stream and all
@@ -36,7 +39,7 @@ internal class IosSimulatorDeviceController(
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
         try {
-            runCommandChecked(xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
+            runCommandChecked(SIMCTL_SCREENSHOT_TIMEOUT, xcrunPath, "simctl", "io", udid, "screenshot", file.toString())
             return file.readBytes()
         } finally {
             file.deleteIfExists()
@@ -45,24 +48,24 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun tap(x: Int, y: Int) {
         val scale = pixelsPerPoint()
-        runCommandChecked(requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
         val scale = pixelsPerPoint()
         runCommandChecked(
-            requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
+            IDB_COMMAND_TIMEOUT + durationMillis.milliseconds, requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
             "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
         )
     }
 
     override suspend fun pressButton(button: DeviceButton) {
         val presses = iosSimulatorPressesOf(button) ?: throw deviceControlError("the iOS simulator has no ${button.label} button")
-        presses.forEach { idbButton -> runCommandChecked(requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
+        presses.forEach { idbButton -> runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "ui", "button", "--udid", udid, idbButton) }
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(requireIdbPath(), "ui", "text", "--udid", udid, text)
+        runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "ui", "text", "--udid", udid, text)
     }
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
@@ -98,7 +101,7 @@ internal class IosSimulatorDeviceController(
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
                 // recordVideo finishes the file only on SIGINT; Process.destroy() sends SIGTERM,
                 // which leaves it unplayable.
-                runCommand("kill", "-INT", "${process.pid()}")
+                runCommand(5.seconds, "kill", "-INT", "${process.pid()}")
                 if (!process.waitFor(15, TimeUnit.SECONDS)) process.destroyForcibly()
                 if (!outputFile.exists() || outputFile.length() == 0L) throw deviceControlError("recording failed: ${outputFile.absolutePath} was not written")
                 outputFile
@@ -110,17 +113,29 @@ internal class IosSimulatorDeviceController(
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
-    override suspend fun screenSize(): IntSize = describe().size
+    override suspend fun screenSize(): IntSize = readSimulatorScreenFromIdb().size
 
     // idb takes points; the mirror works in pixels, so the screen's density converts between them.
-    private suspend fun pixelsPerPoint(): Double = describe().pixelsPerPoint
+    private suspend fun pixelsPerPoint(): Double = readSimulatorScreenFromIdb().pixelsPerPoint
 
-    private suspend fun describe(): IdbScreen {
+    private suspend fun readSimulatorScreenFromIdb(): IdbScreen {
         screen?.let { return it }
-        val description = runCommandChecked(requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
+        val description = runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }
+
+/**
+ * How long simctl may take to write a screenshot. It takes well under a second, but can wait forever
+ * on a simulator that is shut down or deleted while it runs.
+ */
+private val SIMCTL_SCREENSHOT_TIMEOUT = 10.seconds
+
+/**
+ * How long an idb command may take. idb's Python client takes seconds to start and may start a
+ * companion for the simulator first, so a slow command still finishes well within this.
+ */
+internal val IDB_COMMAND_TIMEOUT = 30.seconds
 
 // The formula installs the command-line client and the companion together, at matching versions.
 internal const val IDB_INSTALL = "brew install facebook/fb/idb"
@@ -133,6 +148,7 @@ internal const val IDB_MISSING = "iOS input and live streaming need idb (https:/
  * switcher on two HOME presses in quick succession; two idb calls in a row land about 0.3 s apart,
  * well inside that window.
  */
+@VisibleForTesting
 internal fun iosSimulatorPressesOf(button: DeviceButton): List<String>? = when (button) {
     DeviceButton.Home -> listOf("HOME")
     DeviceButton.Recents -> listOf("HOME", "HOME")
