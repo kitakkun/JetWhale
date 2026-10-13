@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
@@ -52,7 +53,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             factoryClass = "com.example.TestFactory",
         ),
         factory = object : JetWhaleHostPluginFactory {
-            override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+            override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
         },
     )
 
@@ -67,7 +68,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             requiresAgent = false,
         ),
         factory = object : JetWhaleHostPluginFactory {
-            override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+            override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
         },
     )
 

@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.TrustedPluginEntry
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import kotlinx.coroutines.flow.Flow
@@ -440,7 +441,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     private object UnusedFactory : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = error("the trust service never creates plugins")
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = error("the trust service never creates plugins")
     }
 
     private class FakePluginJarSwapService : PluginJarSwapService {

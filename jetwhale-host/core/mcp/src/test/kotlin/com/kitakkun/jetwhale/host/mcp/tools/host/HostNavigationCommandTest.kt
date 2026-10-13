@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -363,7 +364,7 @@ private fun loadedPlugin(pluginId: String) = LoadedHostPlugin(
         factoryClass = "$pluginId.Factory",
     ),
     factory = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = throw UnsupportedOperationException()
     },
 )
 
