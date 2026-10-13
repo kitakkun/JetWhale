@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
+import com.kitakkun.jetwhale.host.model.OfficialPluginRelease
 import com.kitakkun.jetwhale.host.model.PluginInstallJob
 import com.kitakkun.jetwhale.host.model.PluginInstallJobService
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
@@ -39,9 +40,10 @@ import java.util.concurrent.ConcurrentHashMap
 class DefaultPluginInstallJobService(
     private val mavenPluginInstallService: MavenPluginInstallService,
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
-    private val hostVersionInfo: HostVersionInfo,
+    hostVersionInfo: HostVersionInfo,
 ) : PluginInstallJobService {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val officialPluginRelease = OfficialPluginRelease(hostVersionInfo)
 
     // Installs share the staging directory and the single progress slot, so they run one at a time.
     private val installLock = Mutex()
@@ -84,7 +86,9 @@ class DefaultPluginInstallJobService(
 
     override suspend fun cancelAll() {
         jobsFlow.value.filter { it.status.isCancellable }.forEach { runningJobs[it.id]?.cancel() }
-        runningJobs.values.toList().joinAll()
+        // toMutableList() copies the live view in one pass; toList() on a single job reads the
+        // size, then the element, and throws if the job leaves in between.
+        runningJobs.values.toMutableList().joinAll()
     }
 
     private suspend fun run(job: PluginInstallJob) {
@@ -103,13 +107,13 @@ class DefaultPluginInstallJobService(
                 pendingOutcomes.remove(job.id)?.complete(outcome)
             }
         } finally {
-            runningJobs.remove(job.id)
             synchronized(this) {
                 pendingOutcomes.remove(job.id)?.let { outcome ->
                     jobsFlow.update { jobs -> jobs.filterNot { it.id == job.id }.toPersistentList() }
                     outcome.complete(PluginInstallStatus.Failed(reason = "the install was cancelled"))
                 }
             }
+            runningJobs.remove(job.id)
         }
     }
 
@@ -119,7 +123,7 @@ class DefaultPluginInstallJobService(
         }
         try {
             val candidates = when (val request = job.request) {
-                is PluginInstallRequest.Official -> request.plugin.installCandidatesFor(hostVersionInfo)
+                is PluginInstallRequest.Official -> officialPluginRelease.installCandidatesOf(request.plugin)
                 is PluginInstallRequest.Maven -> listOf(request.coordinates)
             }
             mavenPluginInstallService.installFirstAvailable(candidates)

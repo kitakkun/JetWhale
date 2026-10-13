@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.copy
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
-import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
+import com.kitakkun.jetwhale.host.model.OfficialPluginRelease
 import com.kitakkun.jetwhale.host.plugin_not_in_app_add_agent
 import com.kitakkun.jetwhale.host.plugin_not_in_app_open_guide
 import com.kitakkun.jetwhale.host.plugin_not_in_app_register
@@ -47,18 +47,18 @@ data class AgentSetup(
 ) {
     companion object {
         /**
-         * The setup of [pluginId]: exact for an official plugin, whose agent is released under the
-         * host's own [hostVersion]; placeholders for any other.
+         * The setup of [pluginId]: exact for an official plugin, as [OfficialPluginRelease] releases
+         * it for [hostVersion]; placeholders for any other.
          */
         fun forPlugin(pluginId: String, hostVersion: HostVersionInfo): AgentSetup {
             val official = OfficialPluginCatalog.plugins.find { it.pluginId == pluginId }
-            val runtime = "${OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID}:jetwhale-agent-runtime:${hostVersion.version}"
-            val agent = official?.agentCoordinates(hostVersion) ?: "<group>:<plugin agent artifact>:<version>"
+            val officialPluginRelease = OfficialPluginRelease(hostVersion)
+            val agentCoordinates = official?.let(officialPluginRelease::agentCoordinatesOf) ?: "<group>:<plugin agent artifact>:<version>"
             return AgentSetup(
                 gradleDependencies = """
                     |dependencies {
-                    |    implementation("$runtime")
-                    |    implementation("$agent")
+                    |    implementation("${officialPluginRelease.agentRuntimeCoordinates}")
+                    |    implementation("$agentCoordinates")
                     |}
                 """.trimMargin(),
                 registration = """

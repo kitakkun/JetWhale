@@ -22,7 +22,7 @@ class DefaultGenerateSslCertificateMutationKey(
         id = MutationId("generate_ssl_certificate"),
         mutate = { name: String? ->
             withContext(Dispatchers.IO) {
-                sslCertificateManager.generateAndAddCertificate(name)
+                sslCertificateManager.generateAndActivateCertificate(name)
             }
         },
     )

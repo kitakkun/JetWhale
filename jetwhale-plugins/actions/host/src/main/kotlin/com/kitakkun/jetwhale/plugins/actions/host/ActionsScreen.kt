@@ -47,7 +47,7 @@ internal fun ActionsScreenRoot(browser: ActionsBrowser, modifier: Modifier = Mod
     var pinned by rememberPersistent("pinned-actions", default = emptyList<String>())
     var lastArguments by rememberPersistent("last-arguments", default = emptyMap<String, String>())
     var query by remember { mutableStateOf("") }
-    val rememberedArguments = remember(lastArguments) { lastArguments.mapValues { (_, text) -> Json.parseToJsonElement(text).jsonObject } }
+    val rememberedArguments = remember(lastArguments) { lastArguments.mapValues { (_, argumentsJson) -> Json.parseToJsonElement(argumentsJson).jsonObject } }
     ActionsScreen(
         catalog = browser.catalog,
         selectedAction = browser.selectedAction,
@@ -129,7 +129,7 @@ internal fun ActionsScreen(
                 runs = history,
                 selectedRunId = selectedRunId,
                 onSelect = actions::selectRun,
-                onRunAgain = actions::runAgain,
+                onRunAgain = actions::prefillFormFromRun,
             )
         }
     }

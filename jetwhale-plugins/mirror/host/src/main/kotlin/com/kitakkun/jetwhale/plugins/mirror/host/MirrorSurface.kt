@@ -100,7 +100,7 @@ internal class MirrorSurface : AutoCloseable {
          */
         fun recordDecode(nanos: Long) {
             window.recordDecode(nanos)
-            publishStatsIfDue()
+            window.takeIfDue(STATS_WINDOW_NANOS)?.let { stats = it }
         }
     }
 
@@ -130,6 +130,10 @@ internal class MirrorSurface : AutoCloseable {
             }
         }
         discarded?.close()
+    }
+
+    private fun newBitmap(width: Int, height: Int, colorType: ColorType): Bitmap = Bitmap().apply {
+        allocPixels(ImageInfo(width, height, colorType, ColorAlphaType.OPAQUE))
     }
 
     /**
@@ -277,14 +281,6 @@ internal class MirrorSurface : AutoCloseable {
 
     private fun Bitmap.closeUnlessDrawn() {
         if (this === drawn) closeWhenDrawn = true else close()
-    }
-
-    private fun publishStatsIfDue() {
-        window.takeIfDue(STATS_WINDOW_NANOS)?.let { stats = it }
-    }
-
-    private fun newBitmap(width: Int, height: Int, colorType: ColorType): Bitmap = Bitmap().apply {
-        allocPixels(ImageInfo(width, height, colorType, ColorAlphaType.OPAQUE))
     }
 }
 

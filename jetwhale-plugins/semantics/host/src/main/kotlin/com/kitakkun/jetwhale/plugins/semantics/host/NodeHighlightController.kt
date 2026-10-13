@@ -36,11 +36,11 @@ internal class NodeHighlightController(
     private var rootShowingBox: String? = null
 
     /** Keeps the current target alive; a new target replaces it. */
-    private var holding: Job? = null
+    private var highlightRenewalJob: Job? = null
 
     /**
      * One [show] at a time, in the order the targets were set — the bookkeeping included, not just
-     * the request. Cancelling [holding] stops it only at its next suspension, so without this a
+     * the request. Cancelling [highlightRenewalJob] stops it only at its next suspension, so without this a
      * replaced target could still enqueue its request after the replacement's and be the one the app
      * paints last; and a call resuming after its answer arrived could write [rootShowingBox] over
      * what a newer, already-finished one recorded, since `pluginScope` runs on more than one thread.
@@ -60,8 +60,8 @@ internal class NodeHighlightController(
      * long as it stands — neither is something a composition should be holding open.
      */
     fun setTarget(target: NodeKey?) {
-        holding?.cancel()
-        holding = scope.launch {
+        highlightRenewalJob?.cancel()
+        highlightRenewalJob = scope.launch {
             if (target != null) delay(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
             var result = show(target)
             while (result.shown || result.retryLater) {
@@ -131,7 +131,7 @@ internal class NodeHighlightController(
      * that is caught where the send is.
      */
     fun clearAsync() {
-        holding?.cancel()
+        highlightRenewalJob?.cancel()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             withContext(NonCancellable) { show(null) }
         }

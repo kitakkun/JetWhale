@@ -36,8 +36,8 @@ class DefaultEnabledPluginsRepository(
             initialValue = emptySet(),
         )
 
-    private val mutableDisabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 1)
-    override val disabledPluginIdFlow: Flow<String> = mutableDisabledPluginIdFlow
+    override val disabledPluginIdFlow: Flow<String>
+        field = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
     override suspend fun setPluginEnabled(pluginId: String, enabled: Boolean) {
         dataStore.edit { preferences ->
@@ -49,7 +49,7 @@ class DefaultEnabledPluginsRepository(
             }
         }
         if (!enabled) {
-            mutableDisabledPluginIdFlow.emit(pluginId)
+            disabledPluginIdFlow.emit(pluginId)
         }
     }
 
