@@ -21,16 +21,16 @@ import kotlin.time.TimeSource
 
 /** Runs, records and serves against real MCP servers over SSE on loopback, all in this process. */
 class EndToEndTest {
-    private val engines = mutableListOf<EmbeddedServer<*, *>>()
+    private val embeddedServers = mutableListOf<EmbeddedServer<*, *>>()
     private val directory: File = Files.createTempDirectory("mcp-workflow-e2e").toFile()
 
     @AfterTest
-    fun stop() {
-        engines.forEach { it.stop(gracePeriodMillis = 0, timeoutMillis = 1000) }
+    fun stopServersAndDeleteTempDirectory() {
+        embeddedServers.forEach { it.stop(gracePeriodMillis = 0, timeoutMillis = 1000) }
         directory.deleteRecursively()
     }
 
-    private val accountFlow = """
+    private val accountWorkflowYaml = """
         version: 1
         name: Account round trip
         inputs:
@@ -52,11 +52,11 @@ class EndToEndTest {
 
     @Test
     fun `a workflow runs against a server over SSE`() = runBlocking {
-        val servers = mapOf("accounts" to demo())
-        val caller = McpServers(servers)
-        val runner = WorkflowRunner(caller, servers.keys, TimeSource.Monotonic, emptyMap(), artifactDirectory = null) {}
+        val servers = mapOf("accounts" to startDemoServer())
+        val caller = McpServerConnections(servers)
+        val runner = WorkflowRunner(caller, servers.keys, TimeSource.Monotonic, emptyMap(), artifactRootDirectory = null) {}
 
-        val outcome = runner.run(parseWorkflow(accountFlow, source = "flow.yaml"), inputs = emptyMap())
+        val outcome = runner.run(parseWorkflow(accountWorkflowYaml, source = "flow.yaml"), inputs = emptyMap())
         caller.close()
 
         assertTrue(outcome.passed, outcome.steps.joinToString { "${it.label}: ${it.message}" })
@@ -65,9 +65,9 @@ class EndToEndTest {
 
     @Test
     fun `a recording through the proxy replays against a fresh server`() = runBlocking {
-        val proxy = RecordingProxy(McpServers(mapOf("accounts" to demo())), listOf("accounts"))
-        val agent = McpServers(mapOf("proxy" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false, proxy::createServer)))))
-        val created = agent.callTool(
+        val proxy = RecordingProxy(McpServerConnections(mapOf("accounts" to startDemoServer())), listOf("accounts"))
+        val mcpClient = McpServerConnections(mapOf("proxy" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false, proxy::createServer)))))
+        val created = mcpClient.callTool(
             "proxy",
             "createAccount",
             buildJsonObject {
@@ -76,42 +76,42 @@ class EndToEndTest {
             },
         )
         val id = Json.parseToJsonElement((created.content.single() as TextContent).text).jsonObject.getValue("id")
-        agent.callTool("proxy", "getAccount", buildJsonObject { put("id", id) })
-        val saved = File(directory, "recorded.yaml")
-        agent.callTool(
+        mcpClient.callTool("proxy", "getAccount", buildJsonObject { put("id", id) })
+        val recordedWorkflowFile = File(directory, "recorded.yaml")
+        mcpClient.callTool(
             "proxy",
             "workflow_recording_save",
             buildJsonObject {
-                put("path", saved.path)
+                put("path", recordedWorkflowFile.path)
                 put("name", "Recorded")
             },
         )
-        agent.close()
+        mcpClient.close()
 
-        val workflow = readWorkflow(saved)
+        val workflow = readWorkflow(recordedWorkflowFile)
         assertEquals(JsonPrimitive("\${id}"), workflow.steps[1].args["id"])
-        val fresh = mapOf("accounts" to demo())
-        val replay = WorkflowRunner(McpServers(fresh), fresh.keys, TimeSource.Monotonic, emptyMap(), artifactDirectory = null) {}
+        val fresh = mapOf("accounts" to startDemoServer())
+        val replay = WorkflowRunner(McpServerConnections(fresh), fresh.keys, TimeSource.Monotonic, emptyMap(), artifactRootDirectory = null) {}
         assertTrue(replay.run(workflow, inputs = emptyMap()).passed)
     }
 
     @Test
     fun `a served workflow is one tool whose result reports the run`() = runBlocking {
-        val file = File(directory, "account-round-trip.yaml").apply { writeText(accountFlow) }
-        val servers = mapOf("accounts" to demo())
+        val file = File(directory, "account-round-trip.yaml").apply { writeText(accountWorkflowYaml) }
+        val servers = mapOf("accounts" to startDemoServer())
         val toolServer = WorkflowToolServer(listOf(file)) { workflow, inputs ->
-            val caller = McpServers(servers)
+            val caller = McpServerConnections(servers)
             try {
-                WorkflowRunner(caller, servers.keys, TimeSource.Monotonic, emptyMap(), artifactDirectory = null) {}.run(workflow, inputs)
+                WorkflowRunner(caller, servers.keys, TimeSource.Monotonic, emptyMap(), artifactRootDirectory = null) {}.run(workflow, inputs)
             } finally {
                 caller.close()
             }
         }
-        val agent = McpServers(mapOf("workflows" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false) { toolServer.createServer() }))))
+        val mcpClient = McpServerConnections(mapOf("workflows" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false) { toolServer.createServer() }))))
 
-        val tool = agent.listTools("workflows").single()
-        val result = agent.callTool("workflows", tool.name, buildJsonObject { put("email", "served@example.com") })
-        agent.close()
+        val tool = mcpClient.listTools("workflows").single()
+        val result = mcpClient.callTool("workflows", tool.name, buildJsonObject { put("email", "served@example.com") })
+        mcpClient.close()
 
         assertEquals("workflow_account-round-trip", tool.name)
         assertEquals(JsonPrimitive("qa@example.com"), (tool.inputSchema.properties?.get("email") as JsonObject)["default"])
@@ -119,11 +119,11 @@ class EndToEndTest {
         assertTrue(summary.getValue("passed").jsonPrimitive.boolean, summary.toString())
     }
 
-    private fun demo(): ServerConfig = ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false, ::demoServer)))
+    private fun startDemoServer(): ServerConfig = ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false, ::demoServer)))
 
-    private fun sseUrl(engine: EmbeddedServer<*, *>): String {
-        engines += engine
-        val port = runBlocking { engine.engine.resolvedConnectors().first().port }
+    private fun sseUrl(embeddedServer: EmbeddedServer<*, *>): String {
+        embeddedServers += embeddedServer
+        val port = runBlocking { embeddedServer.engine.resolvedConnectors().first().port }
         return "http://127.0.0.1:$port/sse"
     }
 }

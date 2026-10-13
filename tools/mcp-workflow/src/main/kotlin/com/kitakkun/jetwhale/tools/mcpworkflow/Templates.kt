@@ -6,7 +6,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-private val Placeholder = Regex("""\$\{([^}]+)}""")
+private val PlaceholderRegex = Regex("""\$\{([^}]+)}""")
 
 class TemplateException(message: String) : Exception(message)
 
@@ -25,11 +25,11 @@ fun renderTemplate(element: JsonElement, variables: Map<String, JsonElement>, en
 }
 
 private fun renderString(text: String, variables: Map<String, JsonElement>, environment: Map<String, String>): JsonElement {
-    val whole = Placeholder.matchEntire(text)
-    if (whole != null) return resolve(whole.groupValues[1].trim(), variables, environment)
+    val whole = PlaceholderRegex.matchEntire(text)
+    if (whole != null) return resolveReference(whole.groupValues[1].trim(), variables, environment)
     return JsonPrimitive(
-        Placeholder.replace(text) { match ->
-            when (val value = resolve(match.groupValues[1].trim(), variables, environment)) {
+        PlaceholderRegex.replace(text) { match ->
+            when (val value = resolveReference(match.groupValues[1].trim(), variables, environment)) {
                 is JsonPrimitive -> value.content
                 else -> value.toString()
             }
@@ -37,7 +37,7 @@ private fun renderString(text: String, variables: Map<String, JsonElement>, envi
     )
 }
 
-private fun resolve(reference: String, variables: Map<String, JsonElement>, environment: Map<String, String>): JsonElement {
+private fun resolveReference(reference: String, variables: Map<String, JsonElement>, environment: Map<String, String>): JsonElement {
     if (reference.startsWith("env.")) {
         val name = reference.removePrefix("env.")
         return JsonPrimitive(environment[name] ?: throw TemplateException("environment variable $name is not set"))
@@ -50,13 +50,13 @@ private fun resolve(reference: String, variables: Map<String, JsonElement>, envi
 }
 
 /** The variable names [element] refers to, for checking a workflow before it runs. */
-fun templateReferences(element: JsonElement): Set<String> = when (element) {
-    is JsonObject -> element.values.flatMapTo(mutableSetOf(), ::templateReferences)
+fun referencedVariableNames(element: JsonElement): Set<String> = when (element) {
+    is JsonObject -> element.values.flatMapTo(mutableSetOf(), ::referencedVariableNames)
 
-    is JsonArray -> element.flatMapTo(mutableSetOf(), ::templateReferences)
+    is JsonArray -> element.flatMapTo(mutableSetOf(), ::referencedVariableNames)
 
     is JsonPrimitive -> if (element.isString) {
-        Placeholder.findAll(element.content)
+        PlaceholderRegex.findAll(element.content)
             .map { it.groupValues[1].trim() }
             .filterNot { it.startsWith("env.") }
             .mapTo(mutableSetOf()) { reference -> reference.takeWhile { it != '.' && it != '[' } }

@@ -131,22 +131,22 @@ class WorkflowRunnerTest {
                 else -> textResult("""{"error":"denied"}""", isError = true)
             }
         }
-        val flow = Workflow(
+        val workflow = Workflow(
             version = WORKFLOW_FORMAT_VERSION,
             name = "Defaults",
             defaults = StepDefaults(expect = listOf(Expectation(path = "$.error", exists = false))),
             steps = listOf(Step(call = "refused", expect = listOf(Expectation(error = true))), Step(call = "mistaken")),
         )
 
-        val outcome = runner(caller, setOf("app")).run(flow, inputs = emptyMap())
+        val outcome = runner(caller, setOf("app")).run(workflow, inputs = emptyMap())
 
         assertEquals(listOf(StepStatus.PASSED, StepStatus.FAILED), outcome.steps.map(StepOutcome::status))
     }
 
     @Test
     fun `retries repeat a failed call without waiting`() = runTest {
-        var calls = 0
-        val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = ++calls < 3) }
+        var callCount = 0
+        val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = ++callCount < 3) }
 
         val outcome = runner(caller, setOf("app")).run(workflow(Step(call = "flaky", retries = 2)), inputs = emptyMap())
 
@@ -200,15 +200,15 @@ class WorkflowRunnerTest {
     @Test
     fun `inputs take their defaults and unknown inputs are refused`() = runTest {
         val caller = FakeToolCaller { _, _, arguments -> textResult(JsonObject(arguments).toString(), isError = false) }
-        val flow = workflow(
+        val workflow = workflow(
             Step(call = "login", args = buildJsonObject { put("email", "\${email}") }),
             inputs = mapOf("email" to InputSpec(default = JsonPrimitive("qa@example.com"))),
         )
 
-        runner(caller, setOf("app")).run(flow, inputs = emptyMap())
+        runner(caller, setOf("app")).run(workflow, inputs = emptyMap())
 
         assertEquals(JsonPrimitive("qa@example.com"), caller.calls.single().third["email"])
-        val failure = runCatching { runner(caller, setOf("app")).run(flow, inputs = mapOf("mail" to JsonPrimitive("x"))) }.exceptionOrNull()
+        val failure = runCatching { runner(caller, setOf("app")).run(workflow, inputs = mapOf("mail" to JsonPrimitive("x"))) }.exceptionOrNull()
         assertTrue(failure is WorkflowFormatException)
     }
 
@@ -225,13 +225,13 @@ class WorkflowRunnerTest {
 
         val artifact = outcome.steps.single().artifacts.single()
         assertEquals("01-shot-1.png", artifact.name)
-        val second = runner.run(workflow(Step(id = "shot", call = "screenshot")), inputs = emptyMap()).steps.single().artifacts.single()
-        assertTrue(second.exists() && artifact.exists() && second.parentFile != artifact.parentFile, "each run keeps its own images")
+        val secondRunArtifact = runner.run(workflow(Step(id = "shot", call = "screenshot")), inputs = emptyMap()).steps.single().artifacts.single()
+        assertTrue(secondRunArtifact.exists() && artifact.exists() && secondRunArtifact.parentFile != artifact.parentFile, "each run keeps its own images")
         assertTrue(png.contentEquals(artifact.readBytes()))
         directory.deleteRecursively()
     }
 
-    private fun TestScope.runner(caller: ToolCaller, servers: Set<String>) = WorkflowRunner(caller, servers, testScheduler.timeSource, emptyMap(), artifactDirectory = null) {}
+    private fun TestScope.runner(caller: ToolCaller, serverNames: Set<String>) = WorkflowRunner(caller, serverNames, testScheduler.timeSource, emptyMap(), artifactRootDirectory = null) {}
 
     private fun workflow(vararg steps: Step, inputs: Map<String, InputSpec> = emptyMap(), outputs: Map<String, JsonElement> = emptyMap()) = Workflow(version = WORKFLOW_FORMAT_VERSION, name = "Test", inputs = inputs, steps = steps.toList(), outputs = outputs)
 }

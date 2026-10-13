@@ -9,15 +9,15 @@ import kotlin.test.assertTrue
 
 class RecordingExportTest {
     private val calls = listOf(
-        call(tool = "listSessions", arguments = "{}", result = """[{"sessionId":"s-8f2c","appName":"Demo"}]""", readOnly = true),
-        call(tool = "getPluginStatus", arguments = """{"sessionId":"s-8f2c"}""", result = """{"ready":true}""", readOnly = true),
-        call(
+        recordedCall(tool = "listSessions", arguments = "{}", result = """[{"sessionId":"s-8f2c","appName":"Demo"}]""", readOnly = true),
+        recordedCall(tool = "getPluginStatus", arguments = """{"sessionId":"s-8f2c"}""", result = """{"ready":true}""", readOnly = true),
+        recordedCall(
             tool = "findNodes",
             arguments = """{"sessionId":"s-8f2c","text":"Settings"}""",
             result = """{"nodes":[{"id":1361,"text":"Profile"},{"id":1377,"text":"Settings"}]}""",
             readOnly = true,
         ),
-        call(tool = "performNodeAction", arguments = """{"sessionId":"s-8f2c","nodeId":1377,"action":"OnClick"}""", result = """{"applied":true}""", readOnly = false),
+        recordedCall(tool = "performNodeAction", arguments = """{"sessionId":"s-8f2c","nodeId":1377,"action":"OnClick"}""", result = """{"applied":true}""", readOnly = false),
     )
 
     @Test
@@ -32,13 +32,13 @@ class RecordingExportTest {
     fun `a live item is told from dead ones with the same name by its liveness flag`() {
         val workflow = exportWorkflow(
             listOf(
-                call(
+                recordedCall(
                     tool = "listSessions",
                     arguments = "{}",
                     result = """[{"sessionId":"old-5f1a","sessionName":"Mac","isActive":false},{"sessionId":"new-7c2e","sessionName":"Mac","isActive":true}]""",
                     readOnly = true,
                 ),
-                call(tool = "getBackStack", arguments = """{"sessionId":"new-7c2e"}""", result = "{}", readOnly = true),
+                recordedCall(tool = "getBackStack", arguments = """{"sessionId":"new-7c2e"}""", result = "{}", readOnly = true),
             ),
             options(dropReads = false, parameters = emptyMap()),
         )
@@ -58,8 +58,8 @@ class RecordingExportTest {
     fun `a constant that also appears in an earlier result stays a literal`() {
         val workflow = exportWorkflow(
             listOf(
-                call(tool = "listNavKeyTypes", arguments = "{}", result = """{"keyTypes":[{"serialName":"Home"},{"serialName":"Settings"}]}""", readOnly = true),
-                call(tool = "pushNavKey", arguments = """{"key":{"type":"Settings","section":"Privacy"}}""", result = "{}", readOnly = false),
+                recordedCall(tool = "listNavKeyTypes", arguments = "{}", result = """{"keyTypes":[{"serialName":"Home"},{"serialName":"Settings"}]}""", readOnly = true),
+                recordedCall(tool = "pushNavKey", arguments = """{"key":{"type":"Settings","section":"Privacy"}}""", result = "{}", readOnly = false),
             ),
             options(dropReads = true, parameters = emptyMap()),
         )
@@ -72,8 +72,8 @@ class RecordingExportTest {
     fun `a small number is not taken for a value an earlier result returned`() {
         val workflow = exportWorkflow(
             listOf(
-                call(tool = "getBackStack", arguments = "{}", result = """{"size":1}""", readOnly = true),
-                call(tool = "popBackStack", arguments = """{"count":1}""", result = "{}", readOnly = false),
+                recordedCall(tool = "getBackStack", arguments = "{}", result = """{"size":1}""", readOnly = true),
+                recordedCall(tool = "popBackStack", arguments = """{"count":1}""", result = "{}", readOnly = false),
             ),
             options(dropReads = true, parameters = emptyMap()),
         )
@@ -118,7 +118,7 @@ class RecordingExportTest {
     @Test
     fun `an id nothing returned becomes an input flagged as likely to change`() {
         val workflow = exportWorkflow(
-            listOf(call(tool = "getAccount", arguments = """{"accountId":"acc-1001"}""", result = "{}", readOnly = true)),
+            listOf(recordedCall(tool = "getAccount", arguments = """{"accountId":"acc-1001"}""", result = "{}", readOnly = true)),
             options(dropReads = false, parameters = emptyMap()),
         )
 
@@ -141,7 +141,7 @@ class RecordingExportTest {
         assertEquals(false, isReadOnlyTool("getOrCreate", readOnlyHint = false))
     }
 
-    private fun call(tool: String, arguments: String, result: String, readOnly: Boolean) = RecordedCall(
+    private fun recordedCall(tool: String, arguments: String, result: String, readOnly: Boolean) = RecordedCall(
         server = "app",
         tool = tool,
         arguments = Json.parseToJsonElement(arguments).jsonObject,
@@ -151,5 +151,5 @@ class RecordingExportTest {
         expectations = emptyList(),
     )
 
-    private fun options(dropReads: Boolean, parameters: Map<String, JsonPrimitive>) = ExportOptions(name = "Flow", description = null, dropReads = dropReads, parameters = parameters, multipleServers = false)
+    private fun options(dropReads: Boolean, parameters: Map<String, JsonPrimitive>) = ExportOptions(workflowName = "Flow", workflowDescription = null, dropReads = dropReads, parameters = parameters, namesServerOnEveryStep = false)
 }

@@ -7,7 +7,7 @@ import kotlin.time.Duration
  * Problems found without running anything: unknown servers, variables used before any step saves
  * them, paths and durations that do not parse, duplicate step ids.
  */
-fun validate(workflow: Workflow, servers: Set<String>): List<String> {
+fun validate(workflow: Workflow, serverNames: Set<String>): List<String> {
     val problems = mutableListOf<String>()
     val defined = (workflow.inputs.keys + workflow.vars.keys).toMutableSet()
     val ids = mutableSetOf<String>()
@@ -16,15 +16,15 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
         val where = "step ${index + 1} (${stepLabel(step)})"
         step.id?.let { if (!ids.add(it)) problems += "$where: duplicate id '$it'" }
         when {
-            step.server != null && step.server !in servers -> problems += "$where: no server named '${step.server}'; configured: ${servers.joinToString().ifEmpty { "none" }}"
-            step.server == null && servers.size != 1 -> problems += "$where: names no `server`, and there are ${servers.size} servers to choose from"
+            step.server != null && step.server !in serverNames -> problems += "$where: no server named '${step.server}'; configured: ${serverNames.joinToString().ifEmpty { "none" }}"
+            step.server == null && serverNames.size != 1 -> problems += "$where: names no `server`, and there are ${serverNames.size} servers to choose from"
         }
-        (templateReferences(step.args) - defined).forEach { problems += "$where: refers to '$it' before anything defines it" }
+        (referencedVariableNames(step.args) - defined).forEach { problems += "$where: refers to '$it' before anything defines it" }
         step.save.forEach { (name, path) -> checkPath(path, defined)?.let { problems += "$where: save '$name': $it" } }
         step.expect.forEach { expectation ->
             checkPath(expectation.path, defined)?.let { problems += "$where: expect: $it" }
             val templates = listOfNotNull(expectation.equals, expectation.notEquals, expectation.contains, expectation.matches?.let(::JsonPrimitive))
-            (templates.flatMap(::templateReferences).toSet() - defined).forEach { problems += "$where: expect refers to '$it' before anything defines it" }
+            (templates.flatMap(::referencedVariableNames).toSet() - defined).forEach { problems += "$where: expect refers to '$it' before anything defines it" }
             expectation.matches?.let { pattern -> runCatching { Regex(pattern) }.onFailure { problems += "$where: expect: /$pattern/ is not a regex" } }
         }
         listOfNotNull(step.timeout, step.wait?.timeout, step.wait?.interval).forEach { text ->
@@ -34,7 +34,7 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
         defined += step.save.keys
     }
     workflow.outputs.values.forEach { template ->
-        (templateReferences(template) - defined).forEach { problems += "outputs refer to '$it', which no input, var or step defines" }
+        (referencedVariableNames(template) - defined).forEach { problems += "outputs refer to '$it', which no input, var or step defines" }
     }
     return problems
 }
@@ -43,14 +43,14 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
 private fun varProblems(workflow: Workflow): List<String> {
     val declared = workflow.inputs.keys.toMutableSet()
     return workflow.vars.flatMap { (name, template) ->
-        (templateReferences(template) - declared).map { "var '$name' refers to '$it', which is not an input or a var declared above it" }
+        (referencedVariableNames(template) - declared).map { "var '$name' refers to '$it', which is not an input or a var declared above it" }
             .also { declared += name }
     }
 }
 
 /** Why [path] is unusable, or null. A templated path can only be parsed once it is rendered, so only its references are checked. */
 private fun checkPath(path: String, defined: Set<String>): String? {
-    val references = templateReferences(JsonPrimitive(path))
+    val references = referencedVariableNames(JsonPrimitive(path))
     if (references.isNotEmpty()) return (references - defined).firstOrNull()?.let { "$path refers to '$it' before anything defines it" }
     return try {
         JsonPath.parse(path)

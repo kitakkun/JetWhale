@@ -19,11 +19,11 @@ import kotlinx.serialization.json.doubleOrNull
  */
 fun resultDocument(result: CallToolResult): JsonElement {
     result.structuredContent?.let { return it }
-    val texts = result.content.filterIsInstance<TextContent>().map { parseOrText(it.text) }
-    return when (texts.size) {
+    val textDocuments = result.content.filterIsInstance<TextContent>().map { parseOrText(it.text) }
+    return when (textDocuments.size) {
         0 -> JsonNull
-        1 -> texts.single()
-        else -> JsonArray(texts)
+        1 -> textDocuments.single()
+        else -> JsonArray(textDocuments)
     }
 }
 
@@ -45,12 +45,12 @@ fun failureOf(expectation: Expectation, document: JsonElement, isError: Boolean)
     // A JSON null counts as absent: APIs send "error": null and leave "error" out to mean the same.
     val present = value != null && value !is JsonNull && !(path.selectsMany && value is JsonArray && value.isEmpty())
     expectation.exists?.let { expected ->
-        if (expected != present) return if (expected) "$path matched nothing" else "$path matched ${value.render()}"
+        if (expected != present) return if (expected) "$path matched nothing" else "$path matched ${value.toTruncatedText()}"
     }
     val checks = listOfNotNull(
-        expectation.equals?.let { expected -> ("equal ${expected.render()}" to (value != null && jsonEquals(value, expected))) },
-        expectation.notEquals?.let { expected -> ("differ from ${expected.render()}" to (value == null || !jsonEquals(value, expected))) },
-        expectation.contains?.let { expected -> ("contain ${expected.render()}" to contains(value, expected)) },
+        expectation.equals?.let { expected -> ("equal ${expected.toTruncatedText()}" to (value != null && jsonEquals(value, expected))) },
+        expectation.notEquals?.let { expected -> ("differ from ${expected.toTruncatedText()}" to (value == null || !jsonEquals(value, expected))) },
+        expectation.contains?.let { expected -> ("contain ${expected.toTruncatedText()}" to contains(value, expected)) },
         expectation.matches?.let { pattern -> ("match /$pattern/" to ((value as? JsonPrimitive)?.content?.let { Regex(pattern).containsMatchIn(it) } == true)) },
         expectation.gt?.let { bound -> ("be > $bound" to (value.number()?.let { it > bound } == true)) },
         expectation.gte?.let { bound -> ("be >= $bound" to (value.number()?.let { it >= bound } == true)) },
@@ -58,8 +58,8 @@ fun failureOf(expectation: Expectation, document: JsonElement, isError: Boolean)
         expectation.lte?.let { bound -> ("be <= $bound" to (value.number()?.let { it <= bound } == true)) },
         expectation.length?.let { expected -> ("have length $expected" to (value.lengthOrNull() == expected)) },
     )
-    val failed = checks.firstOrNull { (_, holds) -> !holds } ?: return null
-    return "expected $path to ${failed.first}, but it was ${value.render()}"
+    val failedCheck = checks.firstOrNull { (_, holds) -> !holds } ?: return null
+    return "expected $path to ${failedCheck.first}, but it was ${value.toTruncatedText()}"
 }
 
 private fun contains(value: JsonElement?, expected: JsonElement): Boolean = when (value) {
@@ -78,9 +78,9 @@ private fun JsonElement?.lengthOrNull(): Int? = when (this) {
     else -> null
 }
 
-private const val RENDER_LIMIT = 200
+private const val TRUNCATED_TEXT_LIMIT = 200
 
-internal fun JsonElement?.render(): String {
+internal fun JsonElement?.toTruncatedText(): String {
     val text = this?.toString() ?: "nothing"
-    return if (text.length <= RENDER_LIMIT) text else text.take(RENDER_LIMIT) + "…"
+    return if (text.length <= TRUNCATED_TEXT_LIMIT) text else text.take(TRUNCATED_TEXT_LIMIT) + "…"
 }

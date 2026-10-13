@@ -36,7 +36,7 @@ fun readWorkflow(file: File): Workflow = parseWorkflow(file.readText(), source =
 
 fun parseWorkflow(text: String, source: String): Workflow {
     val tree = try {
-        YamlToJson(text.lines()).convert(Yaml.default.parseToYamlNode(text))
+        YamlToJsonConverter(text.lines()).convert(Yaml.default.parseToYamlNode(text))
     } catch (e: Exception) {
         throw WorkflowFormatException("$source is not valid YAML: ${e.message}")
     }
@@ -65,16 +65,16 @@ fun readMcpConfig(file: File): Map<String, ServerConfig> {
  * YAML itself would type it; a quoted scalar always stays a string, which is how a file keeps `"8080"`
  * a string. kaml keeps each scalar's location but not its quoting, so the quote is read from [lines].
  */
-private class YamlToJson(private val lines: List<String>) {
+private class YamlToJsonConverter(private val lines: List<String>) {
     fun convert(node: YamlNode): JsonElement = when (node) {
         is YamlNull -> JsonNull
-        is YamlScalar -> scalar(node)
+        is YamlScalar -> convertScalar(node)
         is YamlList -> JsonArray(node.items.map(::convert))
         is YamlMap -> JsonObject(node.entries.entries.associate { (key, value) -> key.content to convert(value) })
         is YamlTaggedNode -> convert(node.innerNode)
     }
 
-    private fun scalar(scalar: YamlScalar): JsonElement {
+    private fun convertScalar(scalar: YamlScalar): JsonElement {
         val content = scalar.content
         val location = scalar.location
         val firstChar = lines.getOrNull(location.line - 1)?.getOrNull(location.column - 1)

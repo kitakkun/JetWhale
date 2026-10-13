@@ -25,8 +25,8 @@ import kotlinx.serialization.json.doubleOrNull
 class JsonPath private constructor(val source: String, private val segments: List<Segment>) {
     val selectsMany: Boolean
         get() {
-            val lastFirst = segments.indexOfLast { it is Segment.First }
-            return segments.drop(lastFirst + 1).any { it is Segment.Wildcard || it is Segment.Filter }
+            val lastFirstIndex = segments.indexOfLast { it is Segment.First }
+            return segments.drop(lastFirstIndex + 1).any { it is Segment.Wildcard || it is Segment.Filter }
         }
 
     /** The selected value — a [JsonArray] of matches when [selectsMany] — or null when nothing matches. */
@@ -35,7 +35,7 @@ class JsonPath private constructor(val source: String, private val segments: Lis
         for (segment in segments) {
             current = when (segment) {
                 is Segment.First -> current.take(1)
-                else -> current.flatMap(segment::apply)
+                else -> current.flatMap(segment::select)
             }
         }
         return when {
@@ -47,14 +47,14 @@ class JsonPath private constructor(val source: String, private val segments: Lis
     override fun toString(): String = source
 
     private sealed interface Segment {
-        fun apply(node: JsonElement): List<JsonElement>
+        fun select(node: JsonElement): List<JsonElement>
 
         data class Member(val key: String) : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> = listOfNotNull((node as? JsonObject)?.get(key))
+            override fun select(node: JsonElement): List<JsonElement> = listOfNotNull((node as? JsonObject)?.get(key))
         }
 
         data class Index(val index: Int) : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> {
+            override fun select(node: JsonElement): List<JsonElement> {
                 val array = node as? JsonArray ?: return emptyList()
                 val resolved = if (index < 0) array.size + index else index
                 return listOfNotNull(array.getOrNull(resolved))
@@ -62,11 +62,11 @@ class JsonPath private constructor(val source: String, private val segments: Lis
         }
 
         data object First : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> = listOf(node)
+            override fun select(node: JsonElement): List<JsonElement> = listOf(node)
         }
 
         data object Wildcard : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> = when (node) {
+            override fun select(node: JsonElement): List<JsonElement> = when (node) {
                 is JsonArray -> node
                 is JsonObject -> node.values.toList()
                 else -> emptyList()
@@ -74,12 +74,12 @@ class JsonPath private constructor(val source: String, private val segments: Lis
         }
 
         data class Filter(val conditions: List<Condition>) : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> = Wildcard.apply(node).filter { item -> conditions.all { it.holds(item) } }
+            override fun select(node: JsonElement): List<JsonElement> = Wildcard.select(node).filter { item -> conditions.all { it.holds(item) } }
         }
 
-        data class Condition(val field: JsonPath, val negated: Boolean, val literal: JsonElement) {
+        data class Condition(val fieldPath: JsonPath, val negated: Boolean, val literal: JsonElement) {
             fun holds(item: JsonElement): Boolean {
-                val value = field.select(item)
+                val value = fieldPath.select(item)
                 return (value != null && jsonEquals(value, literal)) != negated
             }
         }
@@ -99,15 +99,15 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             val segments = mutableListOf<Segment>()
             while (position < text.length) {
                 segments += when (text[position]) {
-                    '.' -> member()
-                    '[' -> bracket()
+                    '.' -> parseDotSegment()
+                    '[' -> parseBracketSegment()
                     else -> throw IllegalArgumentException("unexpected '${text[position]}' at ${position + 1} in path '$text'")
                 }
             }
             return segments
         }
 
-        private fun member(): Segment {
+        private fun parseDotSegment(): Segment {
             position++
             if (text.startsWith("first()", position)) {
                 position += "first()".length
@@ -119,20 +119,20 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             return Segment.Member(text.substring(start, position))
         }
 
-        private fun bracket(): Segment {
-            val close = closingBracket()
-            val inner = text.substring(position + 1, close).trim()
-            position = close + 1
+        private fun parseBracketSegment(): Segment {
+            val closingBracketIndex = indexOfClosingBracket()
+            val inner = text.substring(position + 1, closingBracketIndex).trim()
+            position = closingBracketIndex + 1
             return when {
                 inner == "*" -> Segment.Wildcard
-                inner.startsWith("?(") && inner.endsWith(")") -> filter(inner.substring(2, inner.length - 1).trim())
+                inner.startsWith("?(") && inner.endsWith(")") -> parseFilter(inner.substring(2, inner.length - 1).trim())
                 inner.startsWith("'") || inner.startsWith("\"") -> Segment.Member(unquote(inner))
                 else -> Segment.Index(inner.toIntOrNull() ?: throw IllegalArgumentException("'$inner' is not an index in path '$text'"))
             }
         }
 
         // A filter's literal may itself hold a ']', so brackets inside quotes are skipped.
-        private fun closingBracket(): Int {
+        private fun indexOfClosingBracket(): Int {
             var quote: Char? = null
             for (index in position + 1 until text.length) {
                 val char = text[index]
@@ -145,14 +145,14 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             throw IllegalArgumentException("unclosed '[' in path '$text'")
         }
 
-        private fun filter(expression: String): Segment = Segment.Filter(splitOutsideQuotes(expression, "&&").map { condition(it.trim()) })
+        private fun parseFilter(expression: String): Segment = Segment.Filter(splitOutsideQuotes(expression, "&&").map { parseCondition(it.trim()) })
 
-        private fun condition(expression: String): Segment.Condition {
+        private fun parseCondition(expression: String): Segment.Condition {
             val negated = "!=" in expression
             val operator = if (negated) "!=" else "=="
             val parts = expression.split(operator, limit = 2)
             require(parts.size == 2) { "filter '$expression' must compare with == or != in path '$text'" }
-            return Segment.Condition(field = JsonPath.parse(parts[0].trim()), negated = negated, literal = literal(parts[1].trim()))
+            return Segment.Condition(fieldPath = JsonPath.parse(parts[0].trim()), negated = negated, literal = parseLiteral(parts[1].trim()))
         }
 
         private fun splitOutsideQuotes(expression: String, separator: String): List<String> {
@@ -179,7 +179,7 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             return parts
         }
 
-        private fun literal(token: String): JsonElement = when {
+        private fun parseLiteral(token: String): JsonElement = when {
             token.startsWith("'") || token.startsWith("\"") -> JsonPrimitive(unquote(token))
             token == "true" || token == "false" -> JsonPrimitive(token.toBoolean())
             token == "null" -> JsonNull

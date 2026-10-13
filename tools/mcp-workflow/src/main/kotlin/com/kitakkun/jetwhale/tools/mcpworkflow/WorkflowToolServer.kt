@@ -24,37 +24,37 @@ private const val INLINE_IMAGE_LIMIT = 2
  * whole checked flow in one call instead of re-deriving it call by call.
  *
  * @param files Workflow files, read afresh for every connection so edits show up on reconnect.
- * @param run Runs one workflow with the caller's inputs, releasing whatever connections it opened.
+ * @param runWorkflow Runs one workflow with the caller's inputs, releasing whatever connections it opened.
  */
 class WorkflowToolServer(
     private val files: List<File>,
-    private val run: suspend (Workflow, Map<String, JsonElement>) -> RunOutcome,
+    private val runWorkflow: suspend (Workflow, Map<String, JsonElement>) -> RunOutcome,
 ) {
     fun createServer(): Server {
         val server = newToolServer("mcp-workflow")
-        val taken = mutableSetOf<String>()
+        val takenToolNames = mutableSetOf<String>()
         files.forEach { file ->
             val workflow = readWorkflow(file)
-            val name = toolNameFor(file, taken)
-            server.addTool(name = name, description = describe(workflow, file), inputSchema = inputSchema(workflow)) { request ->
+            val toolName = reserveToolName(file, takenToolNames)
+            server.addTool(name = toolName, description = describe(workflow, file), inputSchema = inputSchema(workflow)) { request ->
                 val inputs = (request.params.arguments ?: JsonObject(emptyMap())).filterKeys(workflow.inputs::containsKey)
                 val outcome = try {
-                    run(workflow, inputs)
+                    runWorkflow(workflow, inputs)
                 } catch (e: WorkflowFormatException) {
                     return@addTool CallToolResult(content = listOf(TextContent(buildJsonObject { put("error", e.message) }.toString())), isError = true)
                 }
-                resultOf(outcome)
+                buildCallToolResult(outcome)
             }
         }
         return server
     }
 }
 
-internal fun toolNameFor(file: File, taken: MutableSet<String>): String {
+internal fun reserveToolName(file: File, takenToolNames: MutableSet<String>): String {
     val base = "workflow_" + file.nameWithoutExtension.replace(Regex("[^A-Za-z0-9_-]"), "_")
     var candidate = base
     var suffix = 2
-    while (!taken.add(candidate)) candidate = "${base}_${suffix++}"
+    while (!takenToolNames.add(candidate)) candidate = "${base}_${suffix++}"
     return candidate
 }
 
@@ -78,9 +78,9 @@ internal fun inputSchema(workflow: Workflow): ToolSchema = ToolSchema(
     required = workflow.inputs.filterValues { it.default == null }.keys.toList(),
 )
 
-private fun resultOf(outcome: RunOutcome): CallToolResult {
+private fun buildCallToolResult(outcome: RunOutcome): CallToolResult {
     val summary = buildJsonObject {
-        put("workflow", outcome.workflow)
+        put("workflow", outcome.workflowName)
         put("passed", outcome.passed)
         put("durationMs", outcome.duration.inWholeMilliseconds)
         put(

@@ -24,7 +24,7 @@ import kotlinx.io.buffered
 import java.util.concurrent.ConcurrentHashMap
 
 internal fun newToolServer(name: String): Server = Server(
-    serverInfo = Implementation(name = name, version = TOOL_VERSION),
+    serverInfo = Implementation(name = name, version = MCP_WORKFLOW_VERSION),
     options = ServerOptions(capabilities = ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = false))),
 )
 

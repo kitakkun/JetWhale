@@ -29,14 +29,14 @@ data class RecordedCall(
  * @property dropReads Leave out read-only calls whose results no later call uses — the looking-around
  *   an agent does before acting.
  * @property parameters Literal values to turn into workflow inputs: input name to the recorded value.
- * @property multipleServers Name the server on every step; needed when the recording spans several.
+ * @property namesServerOnEveryStep Name the server on every step; needed when the recording spans several.
  */
 data class ExportOptions(
-    val name: String,
-    val description: String?,
+    val workflowName: String,
+    val workflowDescription: String?,
     val dropReads: Boolean,
     val parameters: Map<String, JsonElement>,
-    val multipleServers: Boolean,
+    val namesServerOnEveryStep: Boolean,
 )
 
 /**
@@ -49,7 +49,7 @@ data class ExportOptions(
  * an index, since order is what changes most between runs. An `...Id` argument whose value nothing
  * returned becomes an input with the recorded value as default, flagged as likely to change.
  */
-fun exportWorkflow(calls: List<RecordedCall>, options: ExportOptions): Workflow = RecordingExport(calls, options).export()
+fun exportWorkflow(calls: List<RecordedCall>, options: ExportOptions): Workflow = RecordingExport(calls, options).buildWorkflow()
 
 private class RecordingExport(private val calls: List<RecordedCall>, private val options: ExportOptions) {
     private val steps = calls.mapIndexed { index, call ->
@@ -60,24 +60,24 @@ private class RecordingExport(private val calls: List<RecordedCall>, private val
     private val inputs = linkedMapOf<String, InputSpec>()
     private val variableNames = mutableSetOf<String>()
 
-    fun export(): Workflow {
+    fun buildWorkflow(): Workflow {
         options.parameters.forEach { (name, value) ->
-            inputs[name] = InputSpec(type = value.jsonType(), description = "recorded as ${value.render()}", default = value)
+            inputs[name] = InputSpec(type = value.jsonType(), description = "recorded as ${value.toTruncatedText()}", default = value)
             variableNames += name
         }
         calls.forEachIndexed { index, call ->
-            steps[index].args = rewrite(call.arguments, argumentKey = null) { key, value -> templateFor(index, key, value) } as JsonObject
+            steps[index].args = replacePrimitiveLeaves(call.arguments, argumentKey = null) { key, value -> bindToVariable(index, key, value) } as JsonObject
         }
         val kept = steps.filterIndexed { index, step -> !options.dropReads || !calls[index].readOnly || step.keep }
         return Workflow(
             version = WORKFLOW_FORMAT_VERSION,
-            name = options.name,
-            description = options.description,
+            name = options.workflowName,
+            description = options.workflowDescription,
             inputs = inputs,
             steps = kept.map { step ->
                 Step(
                     id = step.id,
-                    server = step.server.takeIf { options.multipleServers },
+                    server = step.server.takeIf { options.namesServerOnEveryStep },
                     call = step.tool,
                     args = step.args,
                     save = step.save,
@@ -88,24 +88,24 @@ private class RecordingExport(private val calls: List<RecordedCall>, private val
     }
 
     /** The template that replaces [value] in call [index]'s arguments, or null to keep the literal. */
-    private fun templateFor(index: Int, key: String?, value: JsonPrimitive): String? {
+    private fun bindToVariable(index: Int, key: String?, value: JsonPrimitive): String? {
         options.parameters.entries.firstOrNull { (_, parameter) -> jsonEquals(parameter, value) }?.let { return "\${${it.key}}" }
         if (!value.isTrackable(key)) return null
-        savedEarlier(index, key, value)?.let { return "\${$it}" }
+        saveFromEarlierResult(index, key, value)?.let { return "\${$it}" }
         if (key == null || !(key.endsWith("Id") || key == "id")) return null
-        val input = uniqueName(key, variableNames)
-        inputs[input] = InputSpec(type = value.jsonType(), description = "recorded as ${value.render()}; likely different in another run", default = value)
-        return "\${$input}"
+        val inputName = reserveUniqueName(key, variableNames)
+        inputs[inputName] = InputSpec(type = value.jsonType(), description = "recorded as ${value.toTruncatedText()}; likely different in another run", default = value)
+        return "\${$inputName}"
     }
 
     /** The variable an earlier step saves [value] into, adding the save when needed; null when no earlier result holds it. */
-    private fun savedEarlier(index: Int, key: String?, value: JsonPrimitive): String? {
+    private fun saveFromEarlierResult(index: Int, key: String?, value: JsonPrimitive): String? {
         for (earlier in index - 1 downTo 0) {
             val path = findPath(calls[earlier].document, value) ?: continue
             val step = steps[earlier]
             step.keep = true
             return step.save.entries.firstOrNull { it.value == path }?.key
-                ?: uniqueName(key ?: "value", variableNames).also { step.save[it] = path }
+                ?: reserveUniqueName(key ?: "value", variableNames).also { step.save[it] = path }
         }
         return null
     }
@@ -133,9 +133,9 @@ private fun RecordedCall.toMutableStep(id: String) = MutableStep(
 )
 
 /** Replaces primitive leaves of [element] for which [replacement] returns a template. */
-private fun rewrite(element: JsonElement, argumentKey: String?, replacement: (key: String?, value: JsonPrimitive) -> String?): JsonElement = when (element) {
-    is JsonObject -> JsonObject(element.mapValues { (key, value) -> rewrite(value, key, replacement) })
-    is JsonArray -> JsonArray(element.map { rewrite(it, argumentKey, replacement) })
+private fun replacePrimitiveLeaves(element: JsonElement, argumentKey: String?, replacement: (key: String?, value: JsonPrimitive) -> String?): JsonElement = when (element) {
+    is JsonObject -> JsonObject(element.mapValues { (key, value) -> replacePrimitiveLeaves(value, key, replacement) })
+    is JsonArray -> JsonArray(element.map { replacePrimitiveLeaves(it, argumentKey, replacement) })
     is JsonPrimitive -> replacement(argumentKey, element)?.let(::JsonPrimitive) ?: element
     is JsonNull -> JsonNull
 }
@@ -187,17 +187,17 @@ private val LivenessFlags = listOf("isActive", "active", "connected", "isConnect
 private fun itemSegment(array: JsonArray, index: Int): String {
     val item = array[index] as? JsonObject ?: return "[$index]"
     val flags = LivenessFlags.filter { (item[it] as? JsonPrimitive)?.content == "true" }
-    val identity = IdentifyingFields.firstOrNull { field ->
+    val identifyingField = IdentifyingFields.firstOrNull { field ->
         val value = (item[field] as? JsonPrimitive)?.takeIf { it.isString && "'" !in it.content } ?: return@firstOrNull false
         array.count { sibling -> sibling is JsonObject && sibling.sameAs(item, listOf(field) + flags) } == 1 && value.content.isNotEmpty()
     } ?: return "[$index]"
-    val conditions = listOf("@.$identity == '${(item[identity] as JsonPrimitive).content}'") + flags.map { "@.$it == true" }
+    val conditions = listOf("@.$identifyingField == '${(item[identifyingField] as JsonPrimitive).content}'") + flags.map { "@.$it == true" }
     return "[?(${conditions.joinToString(" && ")})].first()"
 }
 
 private fun JsonObject.sameAs(other: JsonObject, fields: List<String>): Boolean = fields.all { field -> (this[field] as? JsonPrimitive)?.content == (other[field] as? JsonPrimitive)?.content }
 
-private fun uniqueName(base: String, taken: MutableSet<String>): String {
+private fun reserveUniqueName(base: String, taken: MutableSet<String>): String {
     val clean = base.replace(Regex("[^A-Za-z0-9_]"), "_").ifEmpty { "value" }
     var candidate = clean
     var suffix = 2
@@ -219,6 +219,6 @@ private val ReadOnlyVerbs = listOf("get", "list", "find", "describe", "read", "q
 /** A tool is read-only when its server says so, or when its name starts with a reading verb. */
 fun isReadOnlyTool(name: String, readOnlyHint: Boolean?): Boolean {
     if (readOnlyHint != null) return readOnlyHint
-    val verb = name.substringAfterLast('.').substringAfterLast("__").lowercase()
-    return ReadOnlyVerbs.any(verb::startsWith)
+    val unqualifiedToolName = name.substringAfterLast('.').substringAfterLast("__").lowercase()
+    return ReadOnlyVerbs.any(unqualifiedToolName::startsWith)
 }

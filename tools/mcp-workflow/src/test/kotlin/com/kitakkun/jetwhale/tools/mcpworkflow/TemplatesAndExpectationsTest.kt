@@ -40,38 +40,38 @@ class TemplatesAndExpectationsTest {
         assertEquals(true, "missing" in failure.message.orEmpty())
     }
 
-    private val result = Json.parseToJsonElement("""{"size":2,"entries":["Home","Detail"],"title":"Settings page"}""")
+    private val document = Json.parseToJsonElement("""{"size":2,"entries":["Home","Detail"],"title":"Settings page"}""")
 
     @Test
     fun `expectations hold for matching values and explain mismatches`() {
-        assertNull(check(Expectation(path = "$.size", equals = JsonPrimitive(2.0)), isError = false))
-        assertNull(check(Expectation(path = "$.entries", contains = JsonPrimitive("Detail"), length = 2), isError = false))
-        assertNull(check(Expectation(path = "$.title", matches = "^Settings"), isError = false))
-        assertNull(check(Expectation(path = "$.size", gte = 2.0, lt = 3.0), isError = false))
-        assertNull(check(Expectation(path = "$.missing", exists = false), isError = false))
+        assertNull(failureOnDocument(Expectation(path = "$.size", equals = JsonPrimitive(2.0)), isError = false))
+        assertNull(failureOnDocument(Expectation(path = "$.entries", contains = JsonPrimitive("Detail"), length = 2), isError = false))
+        assertNull(failureOnDocument(Expectation(path = "$.title", matches = "^Settings"), isError = false))
+        assertNull(failureOnDocument(Expectation(path = "$.size", gte = 2.0, lt = 3.0), isError = false))
+        assertNull(failureOnDocument(Expectation(path = "$.missing", exists = false), isError = false))
         assertNull(failureOf(Expectation(path = "$.error", exists = false), Json.parseToJsonElement("""{"error":null}"""), isError = false))
 
-        val failure = assertNotNull(check(Expectation(path = "$.size", equals = JsonPrimitive(3)), isError = false))
+        val failure = assertNotNull(failureOnDocument(Expectation(path = "$.size", equals = JsonPrimitive(3)), isError = false))
         assertEquals("expected $.size to equal 3, but it was 2", failure)
     }
 
     @Test
     fun `an expectation about errors checks the tool's error flag`() {
-        assertNull(check(Expectation(error = true), isError = true))
-        assertNotNull(check(Expectation(error = false), isError = true))
+        assertNull(failureOnDocument(Expectation(error = true), isError = true))
+        assertNotNull(failureOnDocument(Expectation(error = false), isError = true))
     }
 
     @Test
     fun `a var may use the vars declared above it but not below`() {
-        fun vars(vararg entries: Pair<String, String>) = Workflow(
+        fun workflowWithVars(vararg entries: Pair<String, String>) = Workflow(
             version = WORKFLOW_FORMAT_VERSION,
             name = "Vars",
             vars = linkedMapOf(*entries.map { (name, value) -> name to JsonPrimitive(value) }.toTypedArray()),
             steps = listOf(Step(call = "a")),
         )
 
-        assertEquals(emptyList(), validate(vars("name" to "qa", "greeting" to "hello \${name}"), servers = setOf("app")))
-        assertEquals(1, validate(vars("greeting" to "hello \${name}", "name" to "qa"), servers = setOf("app")).size)
+        assertEquals(emptyList(), validate(workflowWithVars("name" to "qa", "greeting" to "hello \${name}"), serverNames = setOf("app")))
+        assertEquals(1, validate(workflowWithVars("greeting" to "hello \${name}", "name" to "qa"), serverNames = setOf("app")).size)
     }
 
     @Test
@@ -86,10 +86,10 @@ class TemplatesAndExpectationsTest {
             ),
         )
 
-        val problems = validate(workflow, servers = setOf("app"))
+        val problems = validate(workflow, serverNames = setOf("app"))
 
         assertEquals(3, problems.size, problems.joinToString("\n"))
     }
 
-    private fun check(expectation: Expectation, isError: Boolean) = failureOf(expectation, result, isError)
+    private fun failureOnDocument(expectation: Expectation, isError: Boolean) = failureOf(expectation, document, isError)
 }

@@ -22,7 +22,7 @@ private val DEFAULT_STEP_TIMEOUT: Duration = 30.seconds
 enum class StepStatus { PASSED, FAILED, SKIPPED }
 
 /**
- * What one step did. [result] is the result document of the last attempt, kept for reports and for
+ * What one step did. [document] is the result document of the last attempt, kept for reports and for
  * the recorder's value tracking.
  */
 data class StepOutcome(
@@ -35,12 +35,12 @@ data class StepOutcome(
     val attempts: Int,
     val duration: Duration,
     val arguments: JsonObject?,
-    val result: JsonElement?,
+    val document: JsonElement?,
     val artifacts: List<File>,
 )
 
 data class RunOutcome(
-    val workflow: String,
+    val workflowName: String,
     val steps: List<StepOutcome>,
     val outputs: Map<String, JsonElement>,
     val duration: Duration,
@@ -51,38 +51,38 @@ data class RunOutcome(
 /**
  * Runs workflows against [caller].
  *
- * @param servers Names of the servers the workflow may call; a step without `server` goes to the only
+ * @param serverNames Names of the servers the workflow may call; a step without `server` goes to the only
  *   one when there is exactly one.
- * @param artifactDirectory Where images returned by tools are written; null keeps none.
+ * @param artifactRootDirectory Where images returned by tools are written; null keeps none.
  * @param onStep Told about each step as it finishes, for live progress.
  */
 class WorkflowRunner(
     private val caller: ToolCaller,
-    private val servers: Set<String>,
+    private val serverNames: Set<String>,
     private val timeSource: TimeSource,
     private val environment: Map<String, String>,
-    private val artifactDirectory: File?,
+    private val artifactRootDirectory: File?,
     private val onStep: (StepOutcome) -> Unit,
 ) {
     suspend fun run(workflow: Workflow, inputs: Map<String, JsonElement>): RunOutcome {
         val started = timeSource.markNow()
         // Each run writes its images to a directory of its own, so runs sharing a report directory
         // — several workflows in one `run`, or concurrent calls in `serve` — keep each other's.
-        val run = RunState(
+        val runState = RunState(
             variables = initialVariables(workflow, inputs),
-            artifactDirectory = artifactDirectory?.let { File(it, "${slug(workflow.name)}-${UUID.randomUUID().toString().take(RUN_ID_LENGTH)}") },
+            artifactDirectory = artifactRootDirectory?.let { File(it, "${slug(workflow.name)}-${UUID.randomUUID().toString().take(RUN_ID_LENGTH)}") },
         )
         val outcomes = mutableListOf<StepOutcome>()
         var stopped = false
         workflow.steps.map { it.withDefaults(workflow.defaults) }.forEachIndexed { index, step ->
-            val outcome = if (stopped && !step.always) skipped(index, step) else runStep(index, step, run)
+            val outcome = if (stopped && !step.always) skippedOutcome(index, step) else runStep(index, step, runState)
             outcomes += outcome
             onStep(outcome)
             if (outcome.status == StepStatus.FAILED && !step.continueOnFailure) stopped = true
         }
         val outputs = workflow.outputs.mapValues { (_, template) ->
             try {
-                renderTemplate(template, run.variables, environment)
+                renderTemplate(template, runState.variables, environment)
             } catch (e: TemplateException) {
                 JsonPrimitive("<unavailable: ${e.message}>")
             }
@@ -103,12 +103,12 @@ class WorkflowRunner(
 
     private class RunState(val variables: MutableMap<String, JsonElement>, val artifactDirectory: File?)
 
-    private suspend fun runStep(index: Int, step: Step, run: RunState): StepOutcome {
+    private suspend fun runStep(index: Int, step: Step, runState: RunState): StepOutcome {
         val started = timeSource.markNow()
-        val server = step.server ?: servers.singleOrNull() ?: ""
+        val server = step.server ?: serverNames.singleOrNull() ?: ""
         if (step.reconnect && server.isNotEmpty()) caller.reconnect(server)
-        val (last, attempts) = attemptUntilSettled(step, server, run.variables, started)
-        if (last.failure == null) run.variables.putAll(last.saved)
+        val (last, attempts) = attemptUntilSettled(step, server, runState.variables, started)
+        if (last.failure == null) runState.variables.putAll(last.saved)
         return StepOutcome(
             index = index,
             label = stepLabel(step),
@@ -119,8 +119,8 @@ class WorkflowRunner(
             attempts = attempts,
             duration = started.elapsedNow(),
             arguments = last.arguments,
-            result = last.document,
-            artifacts = last.result?.let { writeImages(index, step, it, run.artifactDirectory) }.orEmpty(),
+            document = last.document,
+            artifacts = last.result?.let { writeImages(index, step, it, runState.artifactDirectory) }.orEmpty(),
         )
     }
 
@@ -167,7 +167,7 @@ class WorkflowRunner(
         // Expectations and paths are templated like arguments, so a step can check the value it just
         // sent, or pick a list item by a variable.
         val (arguments, expectations, savePaths) = try {
-            Rendered(
+            RenderedStepFields(
                 arguments = renderTemplate(step.args, variables, environment) as JsonObject,
                 expectations = step.expect.map { it.rendered(variables) },
                 savePaths = step.save.mapValues { (_, path) -> renderText(path, variables) },
@@ -176,7 +176,7 @@ class WorkflowRunner(
             return Attempt(null, null, null, emptyMap(), e.message, fatal = true)
         }
         if (server.isEmpty()) {
-            return Attempt(arguments, null, null, emptyMap(), "the step names no `server` and the workflow has ${servers.size} servers", fatal = true)
+            return Attempt(arguments, null, null, emptyMap(), "the step names no `server` and the workflow has ${serverNames.size} servers", fatal = true)
         }
         val timeout = step.timeout?.let(Duration::parse) ?: DEFAULT_STEP_TIMEOUT
         val result = try {
@@ -185,29 +185,29 @@ class WorkflowRunner(
             return Attempt(arguments, null, null, emptyMap(), "no result within $timeout", fatal = false)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: UnknownServerException) {
+        } catch (e: ServerConfigException) {
             return Attempt(arguments, null, null, emptyMap(), e.message, fatal = true)
         } catch (e: Exception) {
             return Attempt(arguments, null, null, emptyMap(), "call failed: ${e.message ?: e::class.simpleName}", fatal = false)
         }
         val document = resultDocument(result)
         val isError = result.isError == true
-        val failure = evaluate(expectations, document, isError)
+        val failure = firstFailureOf(expectations, document, isError)
         if (failure != null) return Attempt(arguments, result, document, emptyMap(), failure, fatal = false)
         val saved = mutableMapOf<String, JsonElement>()
         savePaths.forEach { (name, path) ->
             saved[name] = JsonPath.parse(path).select(document)
-                ?: return Attempt(arguments, result, document, emptyMap(), "save '$name': $path matched nothing in ${document.render()}", fatal = false)
+                ?: return Attempt(arguments, result, document, emptyMap(), "save '$name': $path matched nothing in ${document.toTruncatedText()}", fatal = false)
         }
         return Attempt(arguments, result, document, saved, null, fatal = false)
     }
 
-    private fun evaluate(expectations: List<Expectation>, document: JsonElement, isError: Boolean): String? {
-        if (isError && expectations.none { it.error != null }) return "the tool reported an error: ${document.render()}"
+    private fun firstFailureOf(expectations: List<Expectation>, document: JsonElement, isError: Boolean): String? {
+        if (isError && expectations.none { it.error != null }) return "the tool reported an error: ${document.toTruncatedText()}"
         return expectations.firstNotNullOfOrNull { failureOf(it, document, isError) }
     }
 
-    private data class Rendered(val arguments: JsonObject, val expectations: List<Expectation>, val savePaths: Map<String, String>)
+    private data class RenderedStepFields(val arguments: JsonObject, val expectations: List<Expectation>, val savePaths: Map<String, String>)
 
     private fun renderText(text: String, variables: Map<String, JsonElement>): String = (renderTemplate(JsonPrimitive(text), variables, environment) as JsonPrimitive).content
 
@@ -223,25 +223,25 @@ class WorkflowRunner(
         if (directory == null) return emptyList()
         return resultImages(result).mapIndexed { imageIndex, image ->
             val extension = image.mimeType.substringAfter('/').substringBefore('+').ifEmpty { "img" }
-            val name = "%02d-%s-%d.%s".format(index + 1, stepSlug(step), imageIndex + 1, extension)
-            File(directory, name).apply {
+            val fileName = "%02d-%s-%d.%s".format(index + 1, stepSlug(step), imageIndex + 1, extension)
+            File(directory, fileName).apply {
                 parentFile.mkdirs()
                 writeBytes(Base64.decode(image.data))
             }
         }
     }
 
-    private fun skipped(index: Int, step: Step) = StepOutcome(
+    private fun skippedOutcome(index: Int, step: Step) = StepOutcome(
         index = index,
         label = stepLabel(step),
-        server = step.server ?: servers.singleOrNull().orEmpty(),
+        server = step.server ?: serverNames.singleOrNull().orEmpty(),
         tool = step.call,
         status = StepStatus.SKIPPED,
         message = "an earlier step failed",
         attempts = 0,
         duration = Duration.ZERO,
         arguments = null,
-        result = null,
+        document = null,
         artifacts = emptyList(),
     )
 }

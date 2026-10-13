@@ -8,12 +8,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 
-private val CompactJson = Json { encodeDefaults = false }
+private val DefaultsOmittingJson = Json { encodeDefaults = false }
 
 /** Writes [workflow] as block-style YAML, leaving out every field that has its default value. */
 fun workflowToYaml(workflow: Workflow): String = buildString {
     appendLine("# Written by mcp-workflow. Edit freely; comments are kept only until the next export.")
-    writeObject(CompactJson.encodeToJsonElement(workflow) as JsonObject, indent = 0)
+    writeObject(DefaultsOmittingJson.encodeToJsonElement(workflow) as JsonObject, indent = 0)
 }
 
 private fun StringBuilder.writeObject(value: JsonObject, indent: Int) {

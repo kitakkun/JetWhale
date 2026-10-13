@@ -33,18 +33,18 @@ private const val EXIT_USAGE = 2
 
 fun main(arguments: Array<String>) {
     val command = arguments.firstOrNull()
-    val options = CommandLine(arguments.drop(1))
-    val code = try {
+    val commandLine = CommandLine(arguments.drop(1))
+    val exitCode = try {
         when (command) {
-            "run" -> run(options)
+            "run" -> runWorkflows(commandLine)
 
-            "validate" -> validateCommand(options)
+            "validate" -> validateWorkflowFiles(commandLine)
 
-            "record" -> record(options)
+            "record" -> serveRecordingProxy(commandLine)
 
-            "serve" -> serve(options)
+            "serve" -> serveWorkflowTools(commandLine)
 
-            "tools" -> listToolsCommand(options)
+            "tools" -> printServerTools(commandLine)
 
             "demo-server" -> runBlocking { serveStdio(demoServer()) }.let { 0 }
 
@@ -62,18 +62,18 @@ fun main(arguments: Array<String>) {
         System.err.println("mcp-workflow: ${e.message}")
         EXIT_USAGE
     }
-    exitProcess(code)
+    exitProcess(exitCode)
 }
 
-private fun run(options: CommandLine): Int {
-    val files = options.positional.map(::File)
+private fun runWorkflows(commandLine: CommandLine): Int {
+    val files = commandLine.positionalArguments.map(::File)
     if (files.isEmpty()) throw WorkflowFormatException("run needs at least one workflow file")
-    val reportDirectory = options.single("report-dir")?.let(::File)
-    val inputs = options.all("input").associate(::parseAssignment)
+    val reportDirectory = commandLine.optionValue("report-dir")?.let(::File)
+    val inputs = commandLine.optionValues("input").associate(::parseAssignment)
     val runs = files.map { file ->
         val workflow = readWorkflow(file)
-        val configs = serverConfigs(options, workflow)
-        val caller = McpServers(configs)
+        val configs = readServerConfigs(commandLine, workflow)
+        val caller = McpServerConnections(configs)
         println("▶ ${workflow.name} (${file.path})")
         runBlocking {
             try {
@@ -106,21 +106,21 @@ private fun parseAssignment(text: String): Pair<String, JsonElement> {
     return name to value
 }
 
-private fun validateCommand(options: CommandLine): Int {
-    var problems = 0
-    options.positional.map(::File).forEach { file ->
+private fun validateWorkflowFiles(commandLine: CommandLine): Int {
+    var problemCount = 0
+    commandLine.positionalArguments.map(::File).forEach { file ->
         val workflow = readWorkflow(file)
-        val configs = serverConfigs(options, workflow)
-        val found = validate(workflow, configs.keys) + if (options.flag("online")) onlineProblems(workflow, configs) else emptyList()
-        found.forEach { System.err.println("${file.path}: $it") }
-        if (found.isEmpty()) println("${file.path}: ok")
-        problems += found.size
+        val configs = readServerConfigs(commandLine, workflow)
+        val problems = validate(workflow, configs.keys) + if (commandLine.hasSwitch("online")) checkToolCallsAgainstServers(workflow, configs) else emptyList()
+        problems.forEach { System.err.println("${file.path}: $it") }
+        if (problems.isEmpty()) println("${file.path}: ok")
+        problemCount += problems.size
     }
-    return if (problems == 0) 0 else EXIT_FAILED
+    return if (problemCount == 0) 0 else EXIT_FAILED
 }
 
-private fun onlineProblems(workflow: Workflow, configs: Map<String, ServerConfig>): List<String> = runBlocking {
-    val caller = McpServers(configs)
+private fun checkToolCallsAgainstServers(workflow: Workflow, configs: Map<String, ServerConfig>): List<String> = runBlocking {
+    val caller = McpServerConnections(configs)
     try {
         val toolsByServer = configs.keys.associateWith { server -> runCatching { caller.listTools(server) }.getOrNull() }
         workflow.steps.mapIndexedNotNull { index, step ->
@@ -135,17 +135,17 @@ private fun onlineProblems(workflow: Workflow, configs: Map<String, ServerConfig
     }
 }
 
-private fun record(options: CommandLine): Int {
-    val configs = options.single("mcp-config")?.let { readMcpConfig(File(it)) }
+private fun serveRecordingProxy(commandLine: CommandLine): Int {
+    val configs = commandLine.optionValue("mcp-config")?.let { readMcpConfig(File(it)) }
         ?: throw WorkflowFormatException("record needs --mcp-config with the servers to record")
-    val selected = options.all("server").ifEmpty { configs.keys.toList() }
-    val caller = McpServers(configs.filterKeys(selected::contains))
-    val proxy = RecordingProxy(caller, selected)
-    options.single("out")?.let(::File)?.let { output ->
-        val workflowName = options.single("name") ?: "Recorded flow"
+    val selectedServers = commandLine.optionValues("server").ifEmpty { configs.keys.toList() }
+    val caller = McpServerConnections(configs.filterKeys(selectedServers::contains))
+    val proxy = RecordingProxy(caller, selectedServers)
+    commandLine.optionValue("out")?.let(::File)?.let { output ->
+        val workflowName = commandLine.optionValue("name") ?: "Recorded flow"
         Runtime.getRuntime().addShutdownHook(Thread { proxy.writeRecording(output, workflowName) })
     }
-    val port = options.single("port")?.toInt()
+    val port = commandLine.optionValue("port")?.toInt()
     if (port != null) {
         System.err.println("mcp-workflow: recording proxy on http://127.0.0.1:$port/sse")
         serveSse(port, wait = true, proxy::createServer)
@@ -155,22 +155,22 @@ private fun record(options: CommandLine): Int {
     return 0
 }
 
-private fun serve(options: CommandLine): Int {
-    val files = options.positional.map(::File).flatMap { path ->
+private fun serveWorkflowTools(commandLine: CommandLine): Int {
+    val files = commandLine.positionalArguments.map(::File).flatMap { path ->
         if (path.isDirectory) path.listFiles { file -> file.extension in setOf("yaml", "yml", "json") }.orEmpty().sortedBy(File::getName) else listOf(path)
     }
     if (files.isEmpty()) throw WorkflowFormatException("serve found no workflow files")
-    val reportDirectory = options.single("report-dir")?.let(::File)
+    val reportDirectory = commandLine.optionValue("report-dir")?.let(::File)
     val toolServer = WorkflowToolServer(files) { workflow, inputs ->
-        val configs = serverConfigs(options, workflow)
-        val caller = McpServers(configs)
+        val configs = readServerConfigs(commandLine, workflow)
+        val caller = McpServerConnections(configs)
         try {
             WorkflowRunner(caller, configs.keys, TimeSource.Monotonic, System.getenv(), reportDirectory?.let { File(it, "artifacts") }) {}.run(workflow, inputs)
         } finally {
             caller.close()
         }
     }
-    val port = options.single("port")?.toInt()
+    val port = commandLine.optionValue("port")?.toInt()
     if (port != null) {
         System.err.println("mcp-workflow: serving ${files.size} workflows on http://127.0.0.1:$port/sse")
         serveSse(port, wait = true) { toolServer.createServer() }
@@ -180,14 +180,14 @@ private fun serve(options: CommandLine): Int {
     return 0
 }
 
-private fun listToolsCommand(options: CommandLine): Int {
-    val configs = options.single("mcp-config")?.let { readMcpConfig(File(it)) }
+private fun printServerTools(commandLine: CommandLine): Int {
+    val configs = commandLine.optionValue("mcp-config")?.let { readMcpConfig(File(it)) }
         ?: throw WorkflowFormatException("tools needs --mcp-config")
-    val selected = options.all("server").ifEmpty { configs.keys.toList() }
-    val caller = McpServers(configs.filterKeys(selected::contains))
+    val selectedServers = commandLine.optionValues("server").ifEmpty { configs.keys.toList() }
+    val caller = McpServerConnections(configs.filterKeys(selectedServers::contains))
     runBlocking {
         try {
-            selected.forEach { server ->
+            selectedServers.forEach { server ->
                 println("# $server")
                 caller.listTools(server).sortedBy(Tool::name).forEach { tool ->
                     val required = tool.inputSchema.required.orEmpty()
@@ -203,14 +203,14 @@ private fun listToolsCommand(options: CommandLine): Int {
     return 0
 }
 
-private fun serverConfigs(options: CommandLine, workflow: Workflow): Map<String, ServerConfig> {
-    val fromConfig = options.single("mcp-config")?.let { readMcpConfig(File(it)) }.orEmpty()
+private fun readServerConfigs(commandLine: CommandLine, workflow: Workflow): Map<String, ServerConfig> {
+    val fromConfig = commandLine.optionValue("mcp-config")?.let { readMcpConfig(File(it)) }.orEmpty()
     return fromConfig + workflow.servers
 }
 
 /** `--name value` options (repeatable), `--flag` switches, and positional arguments. */
 private class CommandLine(arguments: List<String>) {
-    val positional = mutableListOf<String>()
+    val positionalArguments = mutableListOf<String>()
     private val values = mutableMapOf<String, MutableList<String>>()
     private val switches = mutableSetOf<String>()
 
@@ -221,24 +221,24 @@ private class CommandLine(arguments: List<String>) {
             if (argument.startsWith("--")) {
                 val name = argument.removePrefix("--")
                 val next = arguments.getOrNull(index + 1)
-                if (name in Switches || next == null || next.startsWith("--")) {
+                if (name in KnownSwitchNames || next == null || next.startsWith("--")) {
                     switches += name
                 } else {
                     values.getOrPut(name) { mutableListOf() } += next
                     index++
                 }
             } else {
-                positional += argument
+                positionalArguments += argument
             }
             index++
         }
     }
 
-    fun single(name: String): String? = values[name]?.last()
+    fun optionValue(name: String): String? = values[name]?.last()
 
-    fun all(name: String): List<String> = values[name].orEmpty()
+    fun optionValues(name: String): List<String> = values[name].orEmpty()
 
-    fun flag(name: String): Boolean = name in switches
+    fun hasSwitch(name: String): Boolean = name in switches
 }
 
-private val Switches = setOf("online")
+private val KnownSwitchNames = setOf("online")

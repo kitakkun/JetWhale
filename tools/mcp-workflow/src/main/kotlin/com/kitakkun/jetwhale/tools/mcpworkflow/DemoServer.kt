@@ -36,7 +36,7 @@ fun demoServer(): Server {
             put("name", args["name"]?.jsonPrimitive?.content)
         }
         accounts[id] = account
-        json(account.toString())
+        textResult(account.toString())
     }
     server.addTool(
         name = "getAccount",
@@ -45,21 +45,21 @@ fun demoServer(): Server {
         toolAnnotations = ToolAnnotations(readOnlyHint = true),
     ) { request ->
         val id = request.params.arguments?.get("id")?.jsonPrimitive?.content
-        accounts[id]?.let { json(it.toString()) } ?: CallToolResult(content = listOf(TextContent("""{"error":"no account $id"}""")), isError = true)
+        accounts[id]?.let { textResult(it.toString()) } ?: CallToolResult(content = listOf(TextContent("""{"error":"no account $id"}""")), isError = true)
     }
     server.addTool(
         name = "listAccounts",
         description = "Lists every account.",
         inputSchema = ToolSchema(),
         toolAnnotations = ToolAnnotations(readOnlyHint = true),
-    ) { json(buildJsonObject { put("accounts", JsonArray(accounts.values.toList())) }.toString()) }
+    ) { textResult(buildJsonObject { put("accounts", JsonArray(accounts.values.toList())) }.toString()) }
     server.addTool(
         name = "deleteAccount",
         description = "Deletes the account with the given id.",
         inputSchema = schema(required = listOf("id"), "id" to "string"),
     ) { request ->
         val removed = accounts.remove(request.params.arguments?.get("id")?.jsonPrimitive?.content) != null
-        json("""{"deleted":$removed}""")
+        textResult("""{"deleted":$removed}""")
     }
     return server
 }
@@ -69,4 +69,4 @@ private fun schema(required: List<String>, vararg properties: Pair<String, Strin
     required = required,
 )
 
-private fun json(text: String): CallToolResult = CallToolResult(content = listOf(TextContent(text)))
+private fun textResult(text: String): CallToolResult = CallToolResult(content = listOf(TextContent(text)))
