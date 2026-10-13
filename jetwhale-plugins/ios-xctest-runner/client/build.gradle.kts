@@ -16,6 +16,7 @@ kotlin {
 group = "com.kitakkun.jetwhale.plugins.xctestrunner"
 
 dependencies {
+    compileOnly(libs.androidxAnnotation)
     compileOnly(libs.kotlinxCoroutinesCore)
     compileOnly(libs.kotlinxSerializationJson)
     implementation(libs.okhttp)
