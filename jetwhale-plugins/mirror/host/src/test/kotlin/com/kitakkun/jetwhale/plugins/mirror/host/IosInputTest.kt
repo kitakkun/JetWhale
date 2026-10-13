@@ -227,6 +227,21 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
+    @Test
+    fun `an iPhone that takes input has the screen size its runner reports`() = runTest {
+        assertEquals(IntSize(1206, 2622), iphone().screenSize())
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
+    fun `an iPhone whose runner cannot start says why it has no screen size`() = runTest {
+        runners.startFailure = "Developer Mode is off on the iPhone"
+
+        val failure = assertFailsWith<DeviceControlException> { iphone().screenSize() }
+
+        assertEquals("Developer Mode is off on the iPhone", failure.message)
+    }
+
     private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, runnerInput = XcTestRunnerInput(runners))
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(

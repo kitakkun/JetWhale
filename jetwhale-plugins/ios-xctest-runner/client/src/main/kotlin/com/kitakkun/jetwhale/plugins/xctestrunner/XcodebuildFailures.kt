@@ -13,6 +13,9 @@ internal object XcodebuildFailures {
         val deviceReason = when {
             destination !is RunnerDestination.Device -> null
 
+            "developer app certificate is not trusted" in lowercaseOutput ->
+                "the iPhone does not trust the developer that signed the XCTest runner yet: on the iPhone, open Settings → General → VPN & Device Management, choose the developer app for your Apple ID, tap Trust, and try again"
+
             "developer mode" in lowercaseOutput -> "Developer Mode is off on the iPhone: turn it on in Settings → Privacy & Security → Developer Mode, then restart it"
 
             "passcode protected" in lowercaseOutput || "is locked" in lowercaseOutput || "unlock" in lowercaseOutput -> "the iPhone is locked: unlock it and keep it unlocked while it is driven"

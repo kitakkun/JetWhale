@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
@@ -18,11 +19,20 @@ internal fun interface ProcessLauncher {
 
 internal val SystemProcessLauncher = ProcessLauncher { command ->
     try {
-        ProcessBuilder(command).start()
+        ProcessBuilder(command).setUtf8LangIfUnset().start()
     } catch (e: IOException) {
         throw XcTestRunnerStartException("failed to launch '${command.first()}': ${e.message}", e)
     }
 }
+
+/**
+ * Sets the process's `LANG` to UTF-8 when it has none, as when the host is started from Finder.
+ * Without a locale, devicectl, and xcodebuild where it relays CoreDevice's errors, write every
+ * non-ASCII character as '?'. A `LANG` the user set is kept, and an `LC_` variable they set still
+ * overrides it.
+ */
+@VisibleForTesting
+internal fun ProcessBuilder.setUtf8LangIfUnset(): ProcessBuilder = apply { environment().putIfAbsent("LANG", "en_US.UTF-8") }
 
 /** What a command printed, and how it exited. */
 internal class CommandOutput(val exitCode: Int, val text: String)

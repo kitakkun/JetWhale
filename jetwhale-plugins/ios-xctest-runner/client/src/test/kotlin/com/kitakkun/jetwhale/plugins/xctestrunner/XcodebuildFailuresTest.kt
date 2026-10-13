@@ -31,6 +31,20 @@ class XcodebuildFailuresTest {
     }
 
     @Test
+    fun `an iPhone that does not trust the runner's developer is told where to trust it`() {
+        val output = """
+            IDELaunchReport: … Finished with error: The application could not be launched because the Developer App Certificate is not trusted.
+            ERROR: The operation couldn?t be completed. (CoreDeviceCLISupport.DiagnoseError error 0.)
+            JetWhaleRunnerUITests-Runner encountered an error (Failed to install or launch the test )
+        """.trimIndent()
+
+        val reason = XcodebuildFailures.reasonOf(output, device)
+
+        assertTrue(reason.startsWith("the iPhone does not trust the developer that signed the XCTest runner yet: on the iPhone, open Settings → General → VPN & Device Management"), reason)
+        assertTrue(XcodebuildFailures.reasonOf("$output\nerror: the runner's code signature is invalid", device).startsWith("the iPhone does not trust the developer"))
+    }
+
+    @Test
     fun `a signing failure names the team`() {
         assertTrue(XcodebuildFailures.reasonOf("error: No profiles for 'com.kitakkun.jetwhale.xctestrunner.abcde12345.uitests' were found", device).startsWith("the XCTest runner could not be signed for team ABCDE12345"))
     }

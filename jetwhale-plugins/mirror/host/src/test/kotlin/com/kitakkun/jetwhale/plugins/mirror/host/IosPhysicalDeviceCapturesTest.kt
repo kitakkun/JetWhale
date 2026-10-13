@@ -120,14 +120,12 @@ class IosPhysicalDeviceCapturesTest {
         )
         val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
 
-        // Record, stop, then ask the size, as a recording started from the grid does. The stand-in
-        // stream can stop before ffmpeg reads any of it, which fails the file; the companion must
-        // be released either way.
+        // The stand-in stream can end before ffmpeg reads any of it, which fails the recording; the
+        // companion must be released either way.
         try {
             iphone.startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {
         }
-        iphone.screenSize()
 
         assertTrue(companionProcesses.last().stopped.await(COMPANION_STOP_WAIT_SECONDS, TimeUnit.SECONDS), "the companion was still held after the recording")
     }
@@ -189,7 +187,7 @@ class IosPhysicalDeviceCapturesTest {
         runnerInput = null,
     )
 
-    /** An idb stand-in that describes a 360x640 screen, streams [h264] once, and notes each call in [IDB_CALLS]. */
+    /** An idb stand-in that streams [h264] once, and notes each call in [IDB_CALLS]. */
     private fun fakeIdbPath(h264: ByteArray): String {
         val sample = File(folder, "stream.h264").apply { writeBytes(h264) }
         val calls = File(folder, IDB_CALLS)
@@ -199,7 +197,6 @@ class IosPhysicalDeviceCapturesTest {
                 #!/bin/sh
                 echo "${'$'}*" >> '${calls.path}'
                 case "${'$'}1" in
-                  describe) echo '{"screen_dimensions":{"width":$SAMPLE_WIDTH,"height":$SAMPLE_HEIGHT,"density":3}}' ;;
                   video-stream) exec cat '${sample.path}' ;;
                 esac
                 """.trimIndent() + "\n",
