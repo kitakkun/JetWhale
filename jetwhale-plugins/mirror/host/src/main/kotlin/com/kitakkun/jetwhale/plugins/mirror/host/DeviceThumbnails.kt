@@ -134,7 +134,7 @@ internal class DeviceThumbnails(
                 if (image == null) {
                     ThumbnailState.Failed("the screenshot could not be read as an image")
                 } else {
-                    publish(device.id, image)
+                    replaceThumbnailImage(device.id, image)
                     ThumbnailState.Live
                 }
             }
@@ -150,7 +150,7 @@ internal class DeviceThumbnails(
         }
     }
 
-    private fun publish(deviceId: String, image: ImageBitmap) {
+    private fun replaceThumbnailImage(deviceId: String, image: ImageBitmap) {
         val dropped = synchronized(lock) {
             if (!accepts(deviceId)) return closeImage(image)
             val shown = thumbnails[deviceId]?.image
