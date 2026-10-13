@@ -11,6 +11,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.host.ui.rememberJwTableColumnState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import kotlin.test.Test
@@ -30,6 +31,7 @@ class TrafficRowMockTagTest {
                         ),
                         selectedTxId = null,
                         splitPaneState = rememberJwSplitPaneState(0.42f),
+                        columnState = rememberJwTableColumnState(),
                         onSelectTx = {},
                         onClear = {},
                         onCreateMock = {},
