@@ -58,7 +58,7 @@ fun PluginScreenRoot() {
             ),
         ) { state ->
             when (state) {
-                PluginScreenState.Starting -> PluginStartingScreen()
+                is PluginScreenState.Starting -> PluginStartingScreen()
 
                 // soil's ErrorBoundary keeps an error that PluginScreen hands it from the plugin's
                 // input until the boundary is recreated, so each scene and each Reload get a fresh
@@ -79,7 +79,7 @@ fun PluginScreenRoot() {
                     }
                 }
 
-                PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
+                is PluginScreenState.Headless -> HeadlessPluginScreen(pluginId = screenContext.pluginId)
 
                 is PluginScreenState.FailedToStart -> PluginScreenErrorFallback(
                     title = stringResource(Res.string.plugin_start_failed_title),
