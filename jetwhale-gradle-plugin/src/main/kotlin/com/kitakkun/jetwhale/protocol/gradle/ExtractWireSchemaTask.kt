@@ -74,8 +74,8 @@ internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSche
             .map { it.toURI().toURL() }
             .toTypedArray()
         val renderedWireSchema = URLClassLoader(classLoaderUrls, ClassLoader.getPlatformClassLoader()).use { classLoader ->
-            val reader = classLoader.loadClass(WireSchemaReader::class.java.name).getConstructor().newInstance()
             try {
+                val reader = classLoader.loadClass(WireSchemaReader::class.java.name).getConstructor().newInstance()
                 reader.javaClass
                     .getMethod("renderWireSchema", List::class.java, Int::class.javaPrimitiveType)
                     .invoke(reader, moduleClassDirectories, parameters.protocolRevision.get()) as String

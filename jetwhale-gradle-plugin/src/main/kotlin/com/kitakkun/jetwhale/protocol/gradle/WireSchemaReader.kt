@@ -99,6 +99,12 @@ internal class WireSchemaReader {
                 .filter { eventMarker.isAssignableFrom(it) || requestMarker.isAssignableFrom(it) }
                 .map { messageClass ->
                     val descriptor = serializerDescriptorOf(messageClass)
+                    if (descriptor.isInline || descriptor.kind !in MESSAGE_SERIAL_KINDS) {
+                        throw WireSchemaRefusal(
+                            "${messageClass.name}: a message is routed by its serial name, so the dump records it as a class, an object " +
+                                "or an enum of that name, but its serializer describes a ${if (descriptor.isInline) "value class" else descriptor.kind}.",
+                        )
+                    }
                     val messageTypeRef = typeRefRecordingShapesOf(descriptor, path = descriptor.serialName)
                     if (requestMarker.isAssignableFrom(messageClass)) {
                         val replyPath = "${messageTypeRef.head} (reply)"
@@ -264,6 +270,8 @@ internal class WireSchemaReader {
 
     private companion object {
         const val ANNOTATIONS_METHOD_SUFFIX = "\$annotations"
+
+        val MESSAGE_SERIAL_KINDS: Set<SerialKind> = setOf(StructureKind.CLASS, StructureKind.OBJECT, SerialKind.ENUM)
 
         /** A sealed descriptor's elements are the discriminator and then one whose elements are the subtypes. */
         const val SEALED_SUBTYPES_ELEMENT_INDEX = 1

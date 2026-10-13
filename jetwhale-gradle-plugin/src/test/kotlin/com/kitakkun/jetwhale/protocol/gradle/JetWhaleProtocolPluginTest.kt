@@ -213,6 +213,25 @@ class JetWhaleProtocolPluginTest {
     }
 
     @Test
+    fun `a message whose serializer describes no class is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        messagesFile.appendText(
+            """
+
+            @JvmInline
+            @SerialName("fixture/count_changed")
+            @Serializable
+            value class CountChanged(val count: Int) : JetWhaleEvent
+
+            """.trimIndent(),
+        )
+
+        val failure = runFailingBuild("dumpWireSchema")
+
+        assertContains(failure.output, "com.example.fixture.protocol.CountChanged: a message is routed by its serial name")
+    }
+
+    @Test
     fun `a map keyed by a class is refused`() {
         writeFixture(withJvmOnlyModule = false)
         messagesFile.appendText(
