@@ -35,7 +35,10 @@ interface PluginSessionReconciliationService {
 
 /** An agent-facing notification produced while reconciling enabled plugins against active sessions. */
 sealed interface PluginReconciliationEvent {
-    /** [pluginId] was newly activated for [sessionIds]; notify each of those sessions' agents. */
+    /**
+     * [pluginId] was newly activated for [sessionIds]; notify each of those sessions' agents, then
+     * start that session's instance preparation ([PluginInstanceService.startPluginInstancePreparation]).
+     */
     data class Activated(val pluginId: String, val sessionIds: Set<String>) : PluginReconciliationEvent
 
     /** [pluginId] was disabled; notify every connected agent. */

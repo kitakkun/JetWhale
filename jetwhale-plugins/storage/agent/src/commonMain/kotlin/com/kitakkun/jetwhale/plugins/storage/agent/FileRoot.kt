@@ -49,8 +49,8 @@ internal class UploadPaths(val staging: String, val target: String)
 internal fun FileRoot.uploadPaths(segments: List<String>, uploadId: String): UploadPaths {
     require(segments.isNotEmpty()) { "a file root cannot be written over, only a file inside it" }
     require(UPLOAD_ID.matches(uploadId)) { "'$uploadId' is not an upload id; use letters, digits and '-'" }
-    val staging = segments.dropLast(1) + ".${segments.last()}.jetwhale-upload-$uploadId"
-    return UploadPaths(staging = resolve(staging), target = resolve(segments))
+    val stagingSegments = segments.dropLast(1) + ".${segments.last()}.jetwhale-upload-$uploadId"
+    return UploadPaths(staging = resolve(stagingSegments), target = resolve(segments))
 }
 
 private val UPLOAD_ID = Regex("[A-Za-z0-9-]{1,64}")

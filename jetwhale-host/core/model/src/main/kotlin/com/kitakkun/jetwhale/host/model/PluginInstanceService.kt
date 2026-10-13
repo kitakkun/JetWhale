@@ -39,9 +39,20 @@ interface PluginInstanceService {
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.
      * Each new instance is wired to its own messaging peer.
+     *
+     * A new instance of a plugin that requires an agent does not run its `onPrepare` until
+     * [startPluginInstancePreparation] is called for it.
      * @return The set of session IDs for which new plugin instances were initialized.
      */
     fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String>
+
+    /**
+     * Runs the `onPrepare` of [pluginId]'s instance in [sessionId]. Call it once that session's agent
+     * has the plugin active: an agent fails every request for a plugin it has not activated, so a
+     * preparation that runs earlier loses the plugin's initial exchange. Does nothing when the
+     * instance has already started preparing or does not exist.
+     */
+    fun startPluginInstancePreparation(pluginId: String, sessionId: String)
 
     /** Routes an inbound plugin [frame] to the peer of the matching plugin instance in [sessionId]. */
     suspend fun routeFrame(sessionId: String, frame: PluginFrame)

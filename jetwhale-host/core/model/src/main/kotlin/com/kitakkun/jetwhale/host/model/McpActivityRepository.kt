@@ -26,6 +26,7 @@ interface McpActivityRepository {
      */
     fun toolInvocationStarted(
         toolName: String,
+        permission: McpToolPermission,
         pluginId: String?,
         sessionId: String?,
         arguments: Map<String, String>,

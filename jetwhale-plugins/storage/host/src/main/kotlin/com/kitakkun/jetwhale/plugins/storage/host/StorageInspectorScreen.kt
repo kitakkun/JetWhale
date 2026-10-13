@@ -109,7 +109,7 @@ internal fun StorageInspectorScreen(
             confirmLabel = "Replace",
             confirmTone = JwTone.Error,
             onConfirm = actions::confirmUpload,
-            onDismiss = actions::cancelUpload,
+            onDismiss = actions::cancelPendingUpload,
         )
     }
     pendingZipDownload?.let { download ->

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -90,6 +91,20 @@ class ViewAttributeStoreTest {
     }
 
     @Test
+    fun `a read that fails in an unexpected way is reported rather than lost`() {
+        val store = ViewAttributeStore(
+            scope = scope(),
+            read = { error("reply unreadable") },
+            write = { error("not written") },
+        )
+
+        store.select(rootId = "window-1", nodeId = -4)
+
+        assertNull(store.state.attributes)
+        assertContains(store.state.message.orEmpty(), "reply unreadable")
+    }
+
+    @Test
     fun `clearing forgets the node it was holding`() {
         val store = ViewAttributeStore(
             scope = scope(),
@@ -154,6 +169,21 @@ class ViewAttributeStoreTest {
 
         assertTrue(store.state.writeFailed)
         assertEquals("alpha: this view ignores alpha", store.state.writeStatus)
+    }
+
+    @Test
+    fun `a write that fails in an unexpected way is reported rather than lost`() {
+        val store = ViewAttributeStore(
+            scope = scope(),
+            read = { request -> snapshotOf(request.rootId, request.nodeId, alpha) },
+            write = { error("reply unreadable") },
+        )
+        store.select(rootId = "window-1", nodeId = -4)
+
+        store.commit(alpha, "0.5")
+
+        assertTrue(store.state.writeFailed)
+        assertContains(store.state.writeStatus.orEmpty(), "reply unreadable")
     }
 
     @Test

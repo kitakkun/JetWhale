@@ -19,7 +19,6 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 
     var jmdns: JmDNS? = null
     // jmDNS fails in undocumented, unchecked ways on some interfaces; every failure is an unavailable browse the caller retries.
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     try {
         jmdns = JmDNS.create(address)
         DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull(ServiceInfo::toDiscoveredService))

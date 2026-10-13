@@ -24,7 +24,7 @@ internal expect fun moveReplacing(source: String, target: String)
  * and, on the [isLast] chunk, moves the staged file over [targetPath]. Any failure removes the
  * staged file, so a broken upload leaves [targetPath] as it was and has to start again from offset 0.
  */
-internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
+internal fun writeUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
     // Refused before the try, so the cleanup below never removes what was already at the staging
     // path. Writing would follow a link, and opening a FIFO for writing can block.
     require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }

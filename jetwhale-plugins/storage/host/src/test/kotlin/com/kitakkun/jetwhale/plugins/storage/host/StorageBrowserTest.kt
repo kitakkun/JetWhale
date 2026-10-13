@@ -209,6 +209,21 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `a file whose content the browser cannot decode shows the failure in the status`() {
+        val undecodableFileClient = object : StorageClient by client {
+            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
+        }
+        val browser = StorageBrowser(undecodableFileClient, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+
+        assertNull(browser.loadedFile)
+        assertEquals(true, browser.status?.isError)
+    }
+
+    @Test
     fun `expanding a subtree opens every directory below it`() {
         runBlocking { browser.load() }
 
@@ -347,7 +362,7 @@ class StorageBrowserTest {
         browser.requestUpload(location("Files", "large.bin"), source)
 
         assertEquals(listOf(0L to MAX_FILE_READ_BYTES, MAX_FILE_READ_BYTES.toLong() to MAX_FILE_READ_BYTES, 2L * MAX_FILE_READ_BYTES to 7), client.chunkWrites)
-        assertContentEquals(large, runBlocking { client.wholeFile(location("Files", "large.bin")) })
+        assertContentEquals(large, runBlocking { client.readWholeFileBytes(location("Files", "large.bin")) })
         assertEquals(false, browser.status?.isError)
     }
 
@@ -367,7 +382,7 @@ class StorageBrowserTest {
         browser.confirmUpload()
 
         assertNull(browser.pendingUpload)
-        assertEquals("replaced", runBlocking { client.wholeFile(location("Files", "notes.txt")) }.decodeToString())
+        assertEquals("replaced", runBlocking { client.readWholeFileBytes(location("Files", "notes.txt")) }.decodeToString())
     }
 
     @Test
@@ -387,7 +402,7 @@ class StorageBrowserTest {
         runBlocking { browser.load() }
         browser.requestUpload(location("Files", "notes.txt"), source)
 
-        browser.cancelUpload()
+        browser.cancelPendingUpload()
 
         assertNull(browser.pendingUpload)
         assertTrue(client.chunkWrites.isEmpty())
@@ -398,7 +413,7 @@ class StorageBrowserTest {
         val source = File.createTempFile("storage-upload", ".bin").apply { deleteOnExit() }
         runBlocking { browser.load() }
 
-        browser.requestUpload(location("Files", client.unwritableName), source)
+        browser.requestUpload(location("Files", client.unwritableFileName), source)
 
         assertEquals(true, browser.status?.isError)
     }

@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -62,7 +63,7 @@ internal interface StorageInspectorActions {
 
     fun confirmUpload()
 
-    fun cancelUpload()
+    fun cancelPendingUpload()
 
     /** Adds up the size of the directory at [location] and everything below it. */
     fun measureDirectory(location: FileLocation)
@@ -263,12 +264,12 @@ internal class StorageBrowser(
     }
 
     override fun confirmUpload() {
-        val upload = pendingUpload ?: return
+        val confirmedUpload = pendingUpload ?: return
         pendingUpload = null
-        launchReporting { upload(upload.target, upload.source) }
+        launchReporting { upload(confirmedUpload.target, confirmedUpload.source) }
     }
 
-    override fun cancelUpload() {
+    override fun cancelPendingUpload() {
         pendingUpload = null
     }
 
@@ -422,8 +423,12 @@ internal class StorageBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = StorageStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = StorageStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

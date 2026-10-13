@@ -143,7 +143,7 @@ class StorageMcpCommandsTest {
             },
         )
 
-        assertEquals("{\"id\": 1}", runBlocking { client.wholeFile(location("Files", "seed.json")) }.decodeToString())
+        assertEquals("{\"id\": 1}", runBlocking { client.readWholeFileBytes(location("Files", "seed.json")) }.decodeToString())
     }
 
     @Test
@@ -157,7 +157,7 @@ class StorageMcpCommandsTest {
             },
         )
 
-        assertEquals(binary.toList(), runBlocking { client.wholeFile(location("Files", "app.db")) }.toList())
+        assertEquals(binary.toList(), runBlocking { client.readWholeFileBytes(location("Files", "app.db")) }.toList())
     }
 
     @Test

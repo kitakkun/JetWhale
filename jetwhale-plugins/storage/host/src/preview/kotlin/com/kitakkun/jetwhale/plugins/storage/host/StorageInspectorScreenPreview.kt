@@ -64,7 +64,7 @@ private object NoActions : StorageInspectorActions {
 
     override fun confirmUpload() = Unit
 
-    override fun cancelUpload() = Unit
+    override fun cancelPendingUpload() = Unit
 
     override fun measureDirectory(location: FileLocation) = Unit
 

@@ -15,7 +15,7 @@ import java.net.InetSocketAddress
  * mechanism that lets the configuration cache notice instead of serving yesterday's value.
  */
 internal abstract class BuildMachineAddressSource : ValueSource<String, ValueSourceParameters.None> {
-    override fun obtain(): String? = primaryAddress()
+    override fun obtain(): String? = routedSourceAddress()
 }
 
 /**
@@ -26,7 +26,7 @@ internal abstract class BuildMachineAddressSource : ValueSource<String, ValueSou
  * routing table instead — and because UDP connect sends nothing, the address need not exist.
  * [TEST_NET_1] is reserved by RFC 5737 for exactly this kind of use.
  */
-private fun primaryAddress(): String? = runCatching {
+private fun routedSourceAddress(): String? = runCatching {
     DatagramSocket().use { socket ->
         socket.connect(InetSocketAddress(InetAddress.getByName(TEST_NET_1), DISCARD_PORT))
         (socket.localAddress as? Inet4Address)

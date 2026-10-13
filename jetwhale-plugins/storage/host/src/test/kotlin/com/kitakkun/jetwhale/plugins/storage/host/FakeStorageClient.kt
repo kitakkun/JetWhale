@@ -24,7 +24,7 @@ internal class FakeStorageClient(
     private val staged = mutableMapOf<String, ByteArray>()
 
     /** A file name the app refuses to write, to exercise the error path. */
-    val unwritableName = "read-only.bin"
+    val unwritableFileName = "read-only.bin"
 
     override suspend fun locations(): StorageLocations = StorageLocations(
         fileRoots = directories.keys.filter { it.path.isEmpty() }.map { FileRootInfo(name = it.rootName, absolutePath = "/data/${it.rootName}") },
@@ -45,7 +45,7 @@ internal class FakeStorageClient(
 
     override suspend fun writeFileChunk(location: FileLocation, uploadId: String, offset: Long, bytes: ByteArray, isLast: Boolean): StorageOperationResult {
         chunkWrites += offset to bytes.size
-        if (location.name == unwritableName) return StorageOperationResult(error = "'${location.name}' is read-only")
+        if (location.name == unwritableFileName) return StorageOperationResult(error = "'${location.name}' is read-only")
         val received = staged[uploadId] ?: ByteArray(0)
         if (received.size.toLong() != offset) return StorageOperationResult(error = "the upload expected offset ${received.size}")
         val assembled = received + bytes
@@ -106,7 +106,7 @@ internal fun directoryEntry(name: String): FileEntry = fileEntry(name, sizeBytes
 
 internal fun location(rootName: String, vararg path: String): FileLocation = FileLocation(rootName, path.toList())
 
-internal suspend fun StorageClient.wholeFile(location: FileLocation): ByteArray {
+internal suspend fun StorageClient.readWholeFileBytes(location: FileLocation): ByteArray {
     var bytes = ByteArray(0)
     readWholeFile(location) { bytes += it }
     return bytes
