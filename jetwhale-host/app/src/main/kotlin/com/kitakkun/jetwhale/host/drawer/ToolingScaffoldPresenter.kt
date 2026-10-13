@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -19,8 +20,11 @@ import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpClientSetup
+import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.SidebarWidth
@@ -44,6 +48,16 @@ sealed interface ToolingScaffoldScreenAction {
 
     /** Switches the follow mode from the AI indicator, without a trip to the settings. */
     data class SetFollowAiOperation(val enabled: Boolean) : ToolingScaffoldScreenAction
+
+    /** From a failed install's notice: the same install again. */
+    data class RetryPluginInstall(val request: PluginInstallRequest) : ToolingScaffoldScreenAction
+
+    /**
+     * A finished installs' notice left; the installs leave the plugin settings' list with it. One
+     * action for the whole notice, since a UI callback's send is not suspending and a large batch sent
+     * one install at a time could overrun the action buffer.
+     */
+    data class DismissPluginInstalls(val jobIds: List<String>) : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -64,6 +78,7 @@ sealed interface ToolingScaffoldScreenActionResult {
  * current list alone cannot: a disconnected session stays in it, so every later update would
  * re-report it.
  */
+@VisibleForTesting
 internal fun closedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
@@ -78,6 +93,7 @@ internal fun closedSessions(
  * "Connected" is what the diff is on, not "present": a disconnected session keeps its entry in the
  * list, so an id reappearing as active is a genuine arrival and is announced — a reconnect included.
  */
+@VisibleForTesting
 internal fun newlyConnectedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
@@ -87,6 +103,7 @@ internal fun newlyConnectedSessions(
 }
 
 @Composable
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // A flat sealed dispatch; Kotrail scores each row as a branch, tracked in #450.
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
@@ -99,6 +116,7 @@ fun toolingScaffoldPresenter(
     headlessPlugins: HeadlessPlugins,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
+    mcpServerStatus: McpServerStatus,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -112,40 +130,21 @@ fun toolingScaffoldPresenter(
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
     val saveSidebarWidthMutation = rememberMutation(presenterContext.saveSidebarWidthMutationKey)
-    // Retained so a settings dialog over the window does not reset a width being dragged; seeded
-    // from storage only until the user drags.
+    val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
+    val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
-            loadedPlugins.map { metaData ->
-                // A plugin that needs no app lives in the host session, whatever app is selected.
-                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-                val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-                val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
-
-                DrawerPluginItemUiState(
-                    id = metaData.id,
-                    name = metaData.name,
-                    activeIconResource = metaData.activeIconResource,
-                    inactiveIconResource = metaData.inactiveIconResource,
-                    pluginAvailability = when {
-                        // An app plugin runs only where the selected app's agent advertised it.
-                        metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-
-                        isEnabledInSettings -> PluginAvailability.Enabled
-
-                        else -> PluginAvailability.Disabled
-                    },
-                    // Attributed only when the operation targets the session this row opens in;
-                    // highlighting a plugin for some other device would be misleading.
-                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
-                    needsApp = metaData.requiresAgent,
-                )
-            }.toImmutableList()
+            drawerPluginItems(
+                loadedPlugins = loadedPlugins,
+                selectedSession = selectedSession,
+                enabledPluginIds = enabledPluginIds,
+                mcpCapablePlugins = mcpCapablePlugins,
+                headlessPlugins = headlessPlugins,
+                activeInvocation = activeInvocation,
+            )
         }
     }
 
@@ -155,21 +154,7 @@ fun toolingScaffoldPresenter(
         }
     }
 
-    // Seeded from the sessions of the first composition so opening the window announces nothing:
-    // whoever was already connected is not an arrival. Read only inside the effect below, never
-    // during composition, so writing it back cannot drive a recomposition loop.
-    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
-    LaunchedEffect(debugSessions) {
-        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        connectedSessions = debugSessions.filter(DebugSession::isActive)
-        if (closedSessions.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
-        }
-        if (connectedSessionsToAnnounce.isNotEmpty()) {
-            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
-        }
-    }
+    SessionArrivalEffect(debugSessions, screenChannel)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -197,6 +182,10 @@ fun toolingScaffoldPresenter(
                 val width = draggedSidebarWidth ?: return@ActionEffect
                 saveSidebarWidthMutation.mutateAsync(width.value)
             }
+
+            is ToolingScaffoldScreenAction.RetryPluginInstall -> startPluginInstallMutation.mutateAsync(action.request)
+
+            is ToolingScaffoldScreenAction.DismissPluginInstalls -> action.jobIds.forEach { dismissPluginInstallMutation.mutateAsync(it) }
         }
     }
 
@@ -217,9 +206,66 @@ fun toolingScaffoldPresenter(
             operatingPluginName = activeInvocation?.pluginId?.let { pluginId -> loadedPlugins.find { it.id == pluginId }?.name },
             operatingAppName = activeInvocation?.sessionId?.let { sessionId -> debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName },
             isFollowModeOn = followAiOperationEnabled,
+            mcpServer = mcpServerStatus.toAvailability(),
         ),
         sidebarWidth = sidebarWidth,
     )
+}
+
+private fun drawerPluginItems(
+    loadedPlugins: List<PluginMetaData>,
+    selectedSession: DebugSession?,
+    enabledPluginIds: Set<String>,
+    mcpCapablePlugins: McpCapablePlugins,
+    headlessPlugins: HeadlessPlugins,
+    activeInvocation: McpToolInvocation?,
+): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.map { metaData ->
+    val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
+    val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
+    val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
+
+    DrawerPluginItemUiState(
+        id = metaData.id,
+        name = metaData.name,
+        activeIconResource = metaData.activeIconResource,
+        inactiveIconResource = metaData.inactiveIconResource,
+        pluginAvailability = when {
+            metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
+            isEnabledInSettings -> PluginAvailability.Enabled
+            else -> PluginAvailability.Disabled
+        },
+        underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+        exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+        isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
+        needsApp = metaData.requiresAgent,
+    )
+}.toImmutableList()
+
+@Composable
+context(presenterContext: ToolingScaffoldPresenterContext)
+private fun SessionArrivalEffect(
+    debugSessions: ImmutableList<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+) {
+    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
+    LaunchedEffect(debugSessions) {
+        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        connectedSessions = debugSessions.filter(DebugSession::isActive)
+        if (closedSessions.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
+        }
+        if (connectedSessionsToAnnounce.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
+        }
+    }
+}
+
+private fun McpServerStatus.toAvailability(): McpServerAvailability = when (this) {
+    is McpServerStatus.Running -> McpServerAvailability.Ready(McpClientSetup.forServer(host = host, port = port))
+    is McpServerStatus.Starting -> McpServerAvailability.Starting
+    is McpServerStatus.Error -> McpServerAvailability.Off(reason = message)
+    is McpServerStatus.Stopped, is McpServerStatus.Stopping -> McpServerAvailability.Off(reason = null)
 }
 
 /** Narrow enough to leave the plugin room in a small window, wide enough to read a plugin's name. */
@@ -229,12 +275,14 @@ private val MIN_SIDEBAR_WIDTH = 200.dp
 private val MAX_SIDEBAR_WIDTH = 480.dp
 
 /** [width] kept within what the sidebar can usefully be; a stored width is clamped the same way. */
+@VisibleForTesting
 internal fun clampSidebarWidth(width: Dp): Dp = width.coerceIn(MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
 
 /**
  * The tool's name without its plugin id's package: `com.kitakkun.jetwhale.mirror.tap` reads as
  * `mirror.tap`. A host tool, which belongs to no plugin, keeps its own short name (`jetwhale.click`).
  */
+@VisibleForTesting
 internal fun McpToolInvocation.shortToolName(): String {
     val pluginId = pluginId ?: return toolName
     if (!toolName.startsWith("$pluginId.")) return toolName

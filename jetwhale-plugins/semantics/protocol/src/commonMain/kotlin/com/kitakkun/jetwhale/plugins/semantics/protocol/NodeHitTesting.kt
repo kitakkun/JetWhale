@@ -64,10 +64,6 @@ object NodeHitTesting {
             if (!insideWindow && !root.isTouchModal) continue
 
             rootNode.topmostAt(screenX, screenY)?.let { return TouchTarget.Node(NodeRef(root.rootId, it.id)) }
-            // Either way the search stops here: a window takes delivery of everything inside it,
-            // and a touch-modal one takes what lands outside it as well. Neither passes the touch
-            // to the window below. Landing inside a window that has nothing to accept it is not
-            // the window swallowing the tap — it is nothing taking it, and the app reports as much.
             return when {
                 insideWindow -> TouchTarget.Nothing
                 else -> TouchTarget.Window(root.rootId, NodeRef(root.rootId, rootNode.id))
@@ -119,7 +115,6 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
             )
         }
 
-        // Named rather than left blank: the window is what a caller looks at next.
         is NodeHitTesting.TouchTarget.Window -> withHits(isHittable = false, obscuredBy = winner.rootNode, children = resolvedChildren)
 
         is NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)

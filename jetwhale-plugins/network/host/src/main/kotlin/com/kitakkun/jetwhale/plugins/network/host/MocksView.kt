@@ -206,8 +206,6 @@ private fun MockRuleForm(
         MockResponseFields(draft = draft, onDraftChange = onDraftChange)
         JwFormField(label = "Response body") {
             if (draft.response.bodyEncoding == BodyEncoding.BASE64) {
-                // Binary bodies come from "Mock this" on a captured image. They are served
-                // verbatim; editing Base64 by hand in a text field would only corrupt them.
                 JwText(
                     text = "Binary body captured from the response • ${formatByteSize(base64DecodedSize(draft.response.body))}",
                     style = JwTheme.textStyles.bodySmall,

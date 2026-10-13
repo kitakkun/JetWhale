@@ -48,5 +48,7 @@ fun HeadlessPluginScreen(pluginId: String) {
 @Preview
 @Composable
 private fun HeadlessPluginScreenPreview() {
-    HeadlessPluginScreen(pluginId = "com.example.sample-plugin")
+    JwTheme(darkTheme = false) {
+        HeadlessPluginScreen(pluginId = "com.example.sample-plugin")
+    }
 }

@@ -12,11 +12,12 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginPoppedOutScreen(
-    onBringbackToMainWindow: () -> Unit,
+    onBringBackToMainWindow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwEmptyState(
@@ -26,7 +27,7 @@ fun PluginPoppedOutScreen(
         action = {
             JwButton(
                 text = stringResource(Res.string.bring_back_to_main_window),
-                onClick = onBringbackToMainWindow,
+                onClick = onBringBackToMainWindow,
                 style = JwButtonStyle.Primary,
             )
         },
@@ -36,7 +37,9 @@ fun PluginPoppedOutScreen(
 @Preview
 @Composable
 private fun PluginPoppedOutScreenPreview() {
-    PluginPoppedOutScreen(
-        onBringbackToMainWindow = {},
-    )
+    JwTheme(darkTheme = false) {
+        PluginPoppedOutScreen(
+            onBringBackToMainWindow = {},
+        )
+    }
 }

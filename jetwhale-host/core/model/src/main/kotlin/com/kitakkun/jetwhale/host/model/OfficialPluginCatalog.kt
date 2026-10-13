@@ -2,14 +2,13 @@ package com.kitakkun.jetwhale.host.model
 
 /**
  * An officially published JetWhale plugin that can be installed without entering Maven
- * coordinates by hand. Official plugin artifacts are released in lockstep with the host under the
- * host's own version, so the concrete coordinates are derived from [HostVersionInfo] at install
- * time (snapshot hosts install the matching `-SNAPSHOT` artifact from the snapshots repository).
+ * coordinates by hand. It carries no version: [OfficialPluginRelease] derives the concrete
+ * coordinates from the host's own version.
  *
  * @property pluginId The `pluginId` the plugin declares in its manifest; used to mark it as already
  * installed.
  * @property agentArtifactId The app-side library an app adds for this plugin, released under the
- * same version as the host plugin.
+ * same version as the host plugin; null for a host-only plugin, which needs nothing in the app.
  * @property agentRegistration What the app passes to `register(...)` in `startJetWhale`, when one
  * expression does it; null when the plugin's guide has to explain the choice.
  * @property guidePath The plugin's page under the documentation site's `guide/`.
@@ -19,41 +18,11 @@ data class OfficialPlugin(
     val displayName: String,
     val description: String,
     val artifactId: String,
-    val agentArtifactId: String,
+    val agentArtifactId: String?,
     val agentRegistration: String?,
     val guidePath: String,
 ) {
     val guideUrl: String get() = "$DOCUMENTATION_URL/guide/$guidePath"
-
-    /** The Gradle coordinates of [agentArtifactId] for a host of [hostVersion]. */
-    fun agentCoordinates(hostVersion: HostVersionInfo): String = "$OFFICIAL_PLUGIN_GROUP_ID:$agentArtifactId:${hostVersion.version}"
-
-    /**
-     * Install candidates in the order to attempt them. A snapshot host installs the matching
-     * `-SNAPSHOT` from the snapshots repository. A release host prefers the release artifact from
-     * Maven Central, but falls back to the matching snapshot build for host versions whose plugin
-     * release has not been published yet (e.g. a locally built host of an unreleased version).
-     */
-    fun installCandidatesFor(hostVersion: HostVersionInfo): List<MavenCoordinates> = if (hostVersion.isSnapshot) {
-        listOf(snapshotCoordinates(hostVersion.version))
-    } else {
-        listOf(
-            MavenCoordinates(
-                groupId = OFFICIAL_PLUGIN_GROUP_ID,
-                artifactId = artifactId,
-                version = hostVersion.version,
-                repositoryUrl = MavenCoordinates.MAVEN_CENTRAL_URL,
-            ),
-            snapshotCoordinates("${hostVersion.version}-SNAPSHOT"),
-        )
-    }
-
-    private fun snapshotCoordinates(version: String): MavenCoordinates = MavenCoordinates(
-        groupId = OFFICIAL_PLUGIN_GROUP_ID,
-        artifactId = artifactId,
-        version = version,
-        repositoryUrl = MavenCoordinates.MAVEN_SNAPSHOTS_URL,
-    )
 
     companion object {
         const val OFFICIAL_PLUGIN_GROUP_ID = "com.kitakkun.jetwhale"
@@ -98,6 +67,24 @@ object OfficialPluginCatalog {
             agentArtifactId = "jetwhale-storage-inspector-agent",
             agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
             guidePath = "storage-inspector",
+        ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.actions",
+            displayName = "Debug Actions",
+            description = "Run the debug actions connected apps register, from the host or an AI agent.",
+            artifactId = "jetwhale-debug-actions",
+            agentArtifactId = "jetwhale-debug-actions-agent",
+            agentRegistration = null,
+            guidePath = "debug-actions",
+        ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.mirror",
+            displayName = "Device Mirror",
+            description = "Mirror Android devices, iOS simulators and iPhones, drive Android devices and simulators, and record their screens.",
+            artifactId = "jetwhale-device-mirror",
+            agentArtifactId = null,
+            agentRegistration = null,
+            guidePath = "device-mirror",
         ),
     )
 }

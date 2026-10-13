@@ -28,6 +28,8 @@ runs:
 
     - name: Set konan cache key
       id: konan-cache-key
+      # The Windows job builds no Kotlin/Native target, so there is no ~/.konan to cache.
+      if: runner.os != 'Windows'
       shell: bash
       # POSIX character classes rather than `\s`, which is a GNU extension: this step now runs on
       # macOS runners too, and relying on one grep implementation's extras across two is a bet with
@@ -42,6 +44,7 @@ runs:
         echo "KOTLIN_VERSION=$version" >> "$GITHUB_OUTPUT"
 
     - name: Cache Konan
+      if: runner.os != 'Windows'
       uses: actions/cache@v5.0.2
       with:
         path: |

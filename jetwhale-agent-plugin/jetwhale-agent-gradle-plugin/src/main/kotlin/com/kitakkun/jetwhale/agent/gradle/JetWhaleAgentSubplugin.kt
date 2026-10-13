@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 abstract class JetWhaleAgentSubplugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create("jetwhaleAgent", JetWhaleAgentExtension::class.java)
-        target.reportKotlinSupport()
+        target.checkKotlinVersionSupported()
     }
 
     /**
@@ -31,7 +31,7 @@ abstract class JetWhaleAgentSubplugin : KotlinCompilerPluginSupportPlugin {
      * fails here, because the plugin provably cannot load; merely untested only warns, since it may
      * well work and blocking an upgrade on the absence of evidence would be its own nuisance.
      */
-    private fun Project.reportKotlinSupport() {
+    private fun Project.checkKotlinVersionSupported() {
         val support = kotlinSupportFor(getKotlinPluginVersion())
         val message = support.message() ?: return
         when (support) {

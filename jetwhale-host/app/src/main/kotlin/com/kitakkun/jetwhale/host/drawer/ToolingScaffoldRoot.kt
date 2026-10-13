@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -11,12 +12,14 @@ import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
-import com.kitakkun.jetwhale.host.following_ai_toast
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginInstallJob
+import com.kitakkun.jetwhale.host.navigation.toMcpToolsTab
 import com.kitakkun.jetwhale.host.navigation.toPage
+import com.kitakkun.jetwhale.host.plugin_enabled_change_failed_message
 import com.kitakkun.jetwhale.host.session_connected_message
 import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_connected_message
@@ -25,7 +28,6 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -37,7 +39,7 @@ fun ToolingScaffoldRoot(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
-    onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
@@ -55,20 +57,17 @@ fun ToolingScaffoldRoot(
         state5 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
         state6 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
     ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars, mcpActivity, mcpCapablePlugins ->
-        // Nested rather than further states: the boundary above is already at the arity it provides,
-        // and both reads here are backed by an eagerly-started store, so the extra level resolves in
-        // the same frame.
         SoilDataBoundary(
             state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
             state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
             state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth ->
+            state4 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
+            state5 = rememberSubscription(screenContext.pluginInstallJobsSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus, installJobs ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
-                // showSnackbar suspends until dismissed, which serializes the queue.
-                val message = result.sessionChangeMessage() ?: return@ActionResultEffect
-                snackbarHostState.showSnackbar(message = message, duration = JwSnackbarDuration.Short)
+                snackbarHostState.showSnackbar(message = result.snackbarMessage(), duration = JwSnackbarDuration.Short)
             }
             val uiState = context(screenContext.presenterContext) {
                 toolingScaffoldPresenter(
@@ -82,6 +81,7 @@ fun ToolingScaffoldRoot(
                     headlessPlugins = headlessPlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     persistedSidebarWidth = persistedSidebarWidth,
+                    mcpServerStatus = mcpServerStatus,
                 )
             }
 
@@ -92,21 +92,27 @@ fun ToolingScaffoldRoot(
                 selectedPluginId = uiState.selectedPluginId,
             )
 
+            PluginInstallNotices(
+                installJobs = installJobs,
+                snackbarHostState = snackbarHostState,
+                onOpen = { job -> openInstalledPlugin(job, uiState, screenChannel, onClickPlugin, onClickInactivePlugin, onNavigateSettings) },
+                onRetry = { request -> screenChannel.send(ToolingScaffoldScreenAction.RetryPluginInstall(request)) },
+                onDismiss = { jobIds -> screenChannel.send(ToolingScaffoldScreenAction.DismissPluginInstalls(jobIds)) },
+                onShowInstalledPlugins = { onNavigateSettings(SettingsScreenPage.InstalledPlugins) },
+                onReviewInstalls = { onNavigateSettings(SettingsScreenPage.AddPlugins) },
+            )
+
             val scope = rememberCoroutineScope()
+            val followingAiNotice = remember { FollowingAiNotice(snackbarHostState, scope) }
             HostNavigationRequestEffect(
                 screenChannel = screenChannel,
-                // Launched, not awaited: showing a snackbar suspends until it is dismissed, and the
-                // next navigation request must not wait for that.
-                onFollowAgent = { pluginName ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message = getString(Res.string.following_ai_toast, pluginName), duration = JwSnackbarDuration.Short)
-                    }
-                },
+                onFollowAgent = followingAiNotice::show,
                 onClickPlugin = onClickPlugin,
                 onClickInfo = onClickInfo,
                 onNavigateHome = onNavigateHome,
                 onNavigateSettings = onNavigateSettings,
                 onNavigateLogViewer = onNavigateLogViewer,
+                onOpenMcpTools = onOpenMcpTools,
                 sessions = debugSessions,
                 uiState = uiState,
             )
@@ -123,6 +129,7 @@ fun ToolingScaffoldRoot(
                 onClickPopout = onClickPopout,
                 isPoppedOut = isPoppedOut,
                 onClickBringBack = onClickBringBack,
+                onNavigateSettings = onNavigateSettings,
                 snackbarHostState = snackbarHostState,
                 content = content,
             )
@@ -146,10 +153,11 @@ private fun ToolingScaffoldWithActions(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
-    onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
+    onNavigateSettings: (SettingsScreenPage) -> Unit,
     content: @Composable () -> Unit,
 ) {
     ToolingScaffold(
@@ -166,10 +174,8 @@ private fun ToolingScaffoldWithActions(
             screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
             onClickInactivePlugin(it.id, it.name, uiState.sessionIdFor(it.id), it.pluginAvailability == PluginAvailability.Unavailable)
         },
-        // The browser tolerates a missing session, so the badge stays usable while no session
-        // is selected: it simply opens with the session filter on "All".
-        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it)) },
-        onOpenAllMcpTools = { onOpenMcpTools(null, null) },
+        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it), McpToolsTab.Tools) },
+        onOpenAllMcpTools = { onOpenMcpTools(null, null, McpToolsTab.Tools) },
         onClickPopout = {
             val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
             onClickPopout(it.id, it.name, sessionId)
@@ -190,6 +196,7 @@ private fun ToolingScaffoldWithActions(
         onFollowAiOperationChange = { enabled ->
             screenChannel.send(ToolingScaffoldScreenAction.SetFollowAiOperation(enabled))
         },
+        onOpenMcpSettings = { onNavigateSettings(SettingsScreenPage.McpServer) },
         onResizeSidebar = { screenChannel.send(ToolingScaffoldScreenAction.ResizeSidebar(it)) },
         onSidebarResizeFinished = { screenChannel.send(ToolingScaffoldScreenAction.SaveSidebarWidth) },
         snackbarHostState = snackbarHostState,
@@ -238,9 +245,8 @@ private fun HostNavigationRequestEffect(
     onNavigateHome: () -> Unit,
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     onNavigateLogViewer: () -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?, tab: McpToolsTab) -> Unit,
 ) {
-    // The collector outlives every recomposition, so it must not close over the sessions, the
-    // selection or the callbacks of the composition that started it.
     val currentSessions by rememberUpdatedState(sessions)
     val currentUiState by rememberUpdatedState(uiState)
     val currentOnClickPlugin by rememberUpdatedState(onClickPlugin)
@@ -248,6 +254,7 @@ private fun HostNavigationRequestEffect(
     val currentOnNavigateHome by rememberUpdatedState(onNavigateHome)
     val currentOnNavigateSettings by rememberUpdatedState(onNavigateSettings)
     val currentOnNavigateLogViewer by rememberUpdatedState(onNavigateLogViewer)
+    val currentOnOpenMcpTools by rememberUpdatedState(onOpenMcpTools)
     val currentOnFollowAgent by rememberUpdatedState(onFollowAgent)
 
     LaunchedEffect(screenChannel) {
@@ -259,46 +266,88 @@ private fun HostNavigationRequestEffect(
 
                 is HostNavigationRequest.LogViewer -> currentOnNavigateLogViewer()
 
-                is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
+                is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.page.toPage())
 
-                is HostNavigationRequest.Plugin -> {
-                    // Announced only on the paths that actually move the window, below.
-                    val announceFollow = {
-                        if (request.followsAgent) {
-                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
-                        }
-                    }
-                    // A plugin that needs no app opens in the host session and leaves the app
-                    // selection alone, whether or not the request named that session.
-                    if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                        currentOnClickPlugin(request.pluginId, HostSession.ID)
-                        announceFollow()
-                        return@collect
-                    }
-                    val targetSession = navigationTargetSession(request.sessionId, currentUiState.selectedSession, currentSessions)
-                        ?: return@collect
-                    // Drive the same path a drawer click takes, so an MCP-driven navigation and a
-                    // click are indistinguishable downstream.
-                    if (targetSession.id != currentUiState.selectedSessionId) {
-                        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
-                    }
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                    currentOnClickPlugin(request.pluginId, targetSession.id)
-                    announceFollow()
-                }
+                is HostNavigationRequest.McpTools -> currentOnOpenMcpTools(null, null, request.tab.toMcpToolsTab())
+
+                is HostNavigationRequest.Plugin -> openRequestedPlugin(
+                    request = request,
+                    uiState = currentUiState,
+                    sessions = currentSessions,
+                    screenChannel = screenChannel,
+                    onClickPlugin = currentOnClickPlugin,
+                    onFollowAgent = currentOnFollowAgent,
+                )
             }
         }
     }
 }
 
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openRequestedPlugin(
+    request: HostNavigationRequest.Plugin,
+    uiState: ToolingScaffoldUiState,
+    sessions: List<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onFollowAgent: (pluginName: String) -> Unit,
+) {
+    val announceFollow = {
+        if (request.followsAgent) {
+            onFollowAgent(uiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+        }
+    }
+    if (HostSession.isHost(uiState.sessionIdFor(request.pluginId))) {
+        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+        onClickPlugin(request.pluginId, HostSession.ID)
+        announceFollow()
+        return
+    }
+    val targetSession = navigationTargetSession(request.sessionId, uiState.selectedSession, sessions) ?: return
+    if (targetSession.id != uiState.selectedSessionId) {
+        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
+    }
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+    onClickPlugin(request.pluginId, targetSession.id)
+    announceFollow()
+}
+
 /**
- * What to announce for a session coming or going, or null when the result announces nothing.
+ * Where Open on an install's notice goes: where a click on the plugin in the drawer goes, judged by
+ * the drawer as it is now. A plugin the drawer does not know by id is found in the settings'
+ * installed list.
+ */
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openInstalledPlugin(
+    job: PluginInstallJob,
+    uiState: ToolingScaffoldUiState,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
+    onNavigateSettings: (SettingsScreenPage) -> Unit,
+) {
+    val plugin = job.request.pluginId?.let { id -> uiState.plugins.find { it.id == id } }
+    if (plugin == null) {
+        onNavigateSettings(SettingsScreenPage.InstalledPlugins)
+        return
+    }
+    val sessionId = uiState.sessionIdFor(plugin.id)
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(plugin.id))
+    if (plugin.pluginAvailability == PluginAvailability.Enabled && sessionId != null) {
+        onClickPlugin(plugin.id, sessionId)
+    } else {
+        onClickInactivePlugin(plugin.id, plugin.name, sessionId, plugin.pluginAvailability == PluginAvailability.Unavailable)
+    }
+}
+
+/**
+ * What the snackbar announces for this result: a session coming or going, or a plugin that could not
+ * be enabled or disabled.
  *
  * A single disconnect or arrival names the session; a simultaneous batch (the server stopping, say)
  * is collapsed into a count so the snackbar queue stays short enough to read.
  */
-private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): String? = when (this) {
+internal suspend fun ToolingScaffoldScreenActionResult.snackbarMessage(): String = when (this) {
     is ToolingScaffoldScreenActionResult.SessionClosed -> closedSessions.singleOrNull()
         ?.let { getString(Res.string.session_disconnected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_disconnected_message, closedSessions.size)
@@ -307,7 +356,7 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
         ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
         ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
 
-    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> null
+    is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> getString(Res.string.plugin_enabled_change_failed_message, error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName ?: error.javaClass.name)
 }
 
 /**
@@ -317,6 +366,7 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
  * instances are unloaded, so there is nothing to show, and navigating to some other app instead
  * would surprise the caller.
  */
+@VisibleForTesting
 internal fun navigationTargetSession(
     requestedSessionId: String?,
     selectedSession: DebugSession?,

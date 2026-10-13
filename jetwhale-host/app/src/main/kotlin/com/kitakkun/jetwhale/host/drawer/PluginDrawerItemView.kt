@@ -110,8 +110,6 @@ fun PluginDrawerItemView(
             },
         )
         if (underAiControl) {
-            // A rotating gradient ring drawn over the row makes the plugin an agent is driving
-            // unmistakable even when the list is scrolled and the label is out of view.
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -139,7 +137,6 @@ private fun McpBadge(
         style = if (operating) JwTagStyle.Filled else JwTagStyle.Outlined,
         onClick = onClick,
         trailingIcon = {
-            // Signals that clicking opens a separate window.
             JwIcon(
                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                 contentDescription = null,
@@ -152,15 +149,17 @@ private fun McpBadge(
 @Preview
 @Composable
 private fun PluginDrawerItemViewPreview() {
-    PluginDrawerItemView(
-        active = true,
-        name = "Inspector",
-        selected = true,
-        underAiControl = true,
-        exposesMcpTools = true,
-        activeIconResource = null,
-        inactiveIconResource = null,
-        onClick = {},
-        onClickMcpBadge = {},
-    )
+    JwTheme(darkTheme = false) {
+        PluginDrawerItemView(
+            active = true,
+            name = "Inspector",
+            selected = true,
+            underAiControl = true,
+            exposesMcpTools = true,
+            activeIconResource = null,
+            inactiveIconResource = null,
+            onClick = {},
+            onClickMcpBadge = {},
+        )
+    }
 }

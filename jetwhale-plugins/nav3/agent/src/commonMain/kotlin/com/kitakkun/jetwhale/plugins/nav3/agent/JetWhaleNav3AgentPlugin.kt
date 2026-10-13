@@ -61,12 +61,13 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
     private val codec: Nav3KeyCodec<K>,
 ) : JetWhaleAgentPlugin() {
     override val pluginId: String get() = NAV3_PLUGIN_ID
+
+    // The host's plugin-manifest.json accepts only the agent versions inside its agentVersionRange,
+    // so bump that range together with this.
     override val pluginVersion: String get() = "1.0.0"
 
     private val backStacks = MutableStateFlow<Map<String, MutableList<K>>>(emptyMap())
 
-    // Non-null exactly while the host has this plugin activated, so it doubles as the "may send
-    // events" gate: a stack registered before activation is picked up when observation starts.
     private var observationScope: CoroutineScope? = null
 
     /**
@@ -84,7 +85,6 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
      * @param stackId Names the stack for the host. The default suits the common single-stack app;
      *   an app with nested navigation gives each stack its own id.
      */
-    // The host's pushes and pops are applied to the app's own list, so it has to arrive mutable.
     @Suppress("KOTRAIL_MUTABLE_COLLECTION_IN_PUBLIC_API")
     fun registerBackStack(backStack: MutableList<K>, stackId: String = DEFAULT_NAV_STACK_ID) {
         backStacks.update { it + (stackId to backStack) }
@@ -94,15 +94,12 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
     fun unregisterBackStack(stackId: String) {
         val previous = backStacks.getAndUpdate { it - stackId }
         if (stackId in previous && observationScope != null) {
-            // A stack leaving composition is only news while someone is watching; dropping it when
-            // offline is fine because the host asks for the full state on reconnect.
+            // Not sent while inactive: the host asks for the full state on reconnect.
             messenger.trySend(BackStackUnregistered(stackId))
         }
     }
 
     override fun JetWhaleMessageHandlers.configure() {
-        // The host asks for this once per connection: the events below only report changes, and the
-        // key catalog never travels any other way.
         onRequest { _: GetNavState ->
             reply(
                 NavState(
@@ -118,8 +115,6 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         observationScope = scope
         scope.launch {
-            // Re-collected whenever a stack is registered or unregistered; each collection emits
-            // the stack's current contents first, so registering is itself reported to the host.
             backStacks.collectLatest { current ->
                 coroutineScope {
                     current.forEach { (stackId, backStack) ->

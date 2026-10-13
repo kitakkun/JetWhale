@@ -11,10 +11,8 @@ plugins {
 
 group = "com.kitakkun.jetwhale.plugins.storage"
 
-// The storage agent's targets, all of which datastore-preferences-core also publishes.
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     jvm()
     jvmToolchain(17)

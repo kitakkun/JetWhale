@@ -17,3 +17,6 @@ rules:
     # reports every component with more than a handful of inputs. Lazy list sections take the
     # same inputs without the annotation.
     exclude: composable || extension(androidx.compose.foundation.lazy.LazyListScope)
+  native.objcThrows:
+    # The agent SDK and runtime, whose public functions an app's Swift code calls.
+    packages: [com.kitakkun.jetwhale.agent.*]

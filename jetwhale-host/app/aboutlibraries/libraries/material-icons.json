@@ -1,0 +1,14 @@
+{
+  "uniqueId": "material-design-icons",
+  "name": "Material Icons",
+  "description": "Material Design icons by Google",
+  "developers": [
+    {
+      "name": "Google"
+    }
+  ],
+  "licenses": [
+    "Apache-2.0"
+  ],
+  "website": "https://github.com/google/material-design-icons"
+}

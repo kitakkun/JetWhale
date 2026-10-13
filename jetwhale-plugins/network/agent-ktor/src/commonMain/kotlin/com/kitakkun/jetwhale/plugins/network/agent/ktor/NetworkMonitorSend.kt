@@ -1,21 +1,15 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
-import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.bodyBytes
-import com.kitakkun.jetwhale.plugins.network.protocol.isPreviewableImageMediaType
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
-import io.ktor.client.call.save
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpResponseData
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
@@ -29,7 +23,6 @@ import io.ktor.utils.io.InternalAPI
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlin.io.encoding.Base64
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
@@ -110,6 +103,28 @@ private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder
 }
 
 /**
+ * Captures the request headers visible at the send phase, enriched with the body's
+ * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
+ * (e.g. User-Agent, Accept-Encoding, Host) are not visible here and are omitted.
+ */
+private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
+    putAll(headers.build().toCapturedMap())
+    val content = body as? OutgoingContent ?: return@buildMap
+    content.contentType?.let { putIfAbsentIgnoringCase("Content-Type", listOf(it.toString())) }
+    content.contentLength?.let { putIfAbsentIgnoringCase("Content-Length", listOf(it.toString())) }
+    content.headers.entries().forEach { (key, value) -> putIfAbsentIgnoringCase(key, value) }
+}
+
+/**
+ * Adds a body-derived header only when the request doesn't already carry it. The comparison ignores
+ * case because header names are case-insensitive but this map keeps whatever spelling the request
+ * used, so a case-sensitive check would let `content-length` and `Content-Length` both through.
+ */
+private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
+    if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
+}
+
+/**
  * Serves [mock] when there is one; otherwise continues the send, recording a thrown failure
  * before rethrowing it.
  */
@@ -136,127 +151,31 @@ private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMock(
     }
 }
 
-@OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
+@OptIn(InternalAPI::class)
 private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, mock: MockResponseSpec): HttpClientCall {
     if (mock.delayMs > 0) delay(mock.delayMs.milliseconds)
     // Ktor completes the call context's Job when the response is done, so it must be a
-    // CompletableJob. The Send-pipeline coroutine's own Job is a StandaloneCoroutine, and handing
-    // that over crashes with "StandaloneCoroutine cannot be cast to CompletableJob" the moment the
-    // caller reads the mocked response — so give the call its own Job(parent), exactly as a real
-    // client engine builds its call context.
+    // CompletableJob; the Send pipeline's own StandaloneCoroutine fails that cast once the caller
+    // reads the mocked response. A real client engine builds its call context the same way.
     val parentContext = currentCoroutineContext()
     val responseData = HttpResponseData(
         statusCode = HttpStatusCode.fromValue(mock.statusCode),
         requestTime = GMTDate(),
         headers = HeadersBuilder().apply {
             mock.headers.forEach { (key, value) -> append(key, value) }
-            // A mock without a Content-Type synthesizes a response whose header is null, which makes
-            // a client using ContentNegotiation reject the body. Default it so headerless JSON mocks
-            // stay usable, without overriding a Content-Type the mock already sets.
+            // A mock without a Content-Type synthesizes a null header, which makes a
+            // ContentNegotiation client reject the body.
             if (mock.headers.keys.none { it.equals(HttpHeaders.ContentType, ignoreCase = true) }) {
                 append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             }
         }.build(),
         version = HttpProtocolVersion.HTTP_1_1,
         body = ByteReadChannel(mock.bodyBytes()),
+        // Ktor completes a response by casting callContext[Job] to CompletableJob, which the
+        // request coroutine's own Job is not; a child Job of our own satisfies it.
         callContext = parentContext + Job(parentContext[Job]),
     )
     return HttpClientCall(client, request.build(), responseData)
 }
 
-private data class BodyCapture(val text: String?, val truncated: Boolean, val encoding: BodyEncoding = BodyEncoding.TEXT)
-
-/**
- * Reads the request body for capture without breaking the actual send: channel/stream bodies
- * that can't be read without consuming them are replaced with a placeholder instead.
- */
-private fun captureRequestBodySafely(content: Any?, limits: BodyCaptureLimits): BodyCapture = when (content) {
-    is OutgoingContent.ByteArrayContent -> {
-        val mediaType = content.contentType?.mediaType()
-        if (isPreviewableImageMediaType(mediaType)) {
-            encodeImage(content.bytes(), mediaType, limits.maxImageBytes)
-        } else {
-            content.bytes().decodeToString().truncate(limits.maxBodyChars)
-        }
-    }
-
-    is OutgoingContent -> BodyCapture(content.contentType?.let { "<$it>" }, false)
-
-    else -> BodyCapture(null, false)
-}
-
-private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
-
-/**
- * Base64-encodes an image body for transport, or replaces it with a marker when it exceeds
- * [maxImageBytes] — the host can render nothing useful from a partial image, and a large one would
- * dominate the event stream.
- */
-private fun encodeImage(bytes: ByteArray, mediaType: String?, maxImageBytes: Int): BodyCapture = if (bytes.size > maxImageBytes) {
-    BodyCapture("<${mediaType ?: "image"} body over the $maxImageBytes-byte maxImageBytes limit>", false)
-} else {
-    BodyCapture(Base64.encode(bytes), false, BodyEncoding.BASE64)
-}
-
-/** The content type without its parameters, lowercased, as [isPreviewableImageMediaType] expects. */
-private fun ContentType.mediaType(): String = "$contentType/$contentSubtype".lowercase()
-
-/**
- * Reads the response body for capture without consuming or blocking the caller's response:
- * bodies that can't be buffered safely (WebSocket upgrades, endless streams) are replaced with a
- * placeholder instead. Returns the call the caller should receive — the original one when the
- * body was left untouched, or a saved copy whose body is still readable.
- */
-private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: BodyCaptureLimits): Pair<HttpClientCall, BodyCapture> {
-    val response = call.response
-
-    // A WebSocket upgrade response (101) has no conventional body — by the time this runs, the
-    // connection has already switched to the raw frame stream, so save()/bodyAsText() would read
-    // live WebSocket frames as if they were an HTTP body, corrupting the frame stream for the caller.
-    if (response.isWebSocketUpgrade()) {
-        return call to BodyCapture("<websocket upgrade>", false)
-    }
-
-    // save() buffers the entire body before returning, so on a never-ending stream (SSE) the
-    // caller would wait forever for a response that has already started arriving.
-    val contentType = response.headers[HttpHeaders.ContentType]
-    if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
-        return call to BodyCapture("<streaming response body>", false)
-    }
-
-    // save() buffers the body so we can read it for inspection and still hand a fresh, readable
-    // response to the caller.
-    val saved = call.save()
-    val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
-    if (isPreviewableImageMediaType(mediaType)) {
-        return saved to encodeImage(saved.response.readRawBytes(), mediaType, limits.maxImageBytes)
-    }
-    return saved to saved.response.bodyAsText().truncate(limits.maxBodyChars)
-}
-
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
-
-/** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
-
-/**
- * Captures the request headers visible at the send phase, enriched with the body's
- * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
- * (e.g. User-Agent, Accept-Encoding, Host) are not visible here and are omitted.
- */
-private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
-    putAll(headers.build().toCapturedMap())
-    val content = body as? OutgoingContent ?: return@buildMap
-    content.contentType?.let { putIfAbsentIgnoringCase("Content-Type", listOf(it.toString())) }
-    content.contentLength?.let { putIfAbsentIgnoringCase("Content-Length", listOf(it.toString())) }
-    content.headers.entries().forEach { (key, value) -> putIfAbsentIgnoringCase(key, value) }
-}
-
-/**
- * Adds a body-derived header only when the request doesn't already carry it. The comparison ignores
- * case because header names are case-insensitive but this map keeps whatever spelling the request
- * used, so a case-sensitive check would let `content-length` and `Content-Length` both through.
- */
-private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
-    if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
-}

@@ -53,12 +53,12 @@ class BufferedMessengerTest {
 
     @Test
     fun `queued events while offline flush in order once flushing opens`() = runBlocking {
-        val bm = messenger(capacity = 16)
-        repeat(5) { bm.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+        val bufferedMessenger = messenger(capacity = 16)
+        repeat(5) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
 
         val live = Recorder()
-        bm.bind(live)
-        bm.startFlush()
+        bufferedMessenger.bind(live)
+        bufferedMessenger.startFlush()
 
         assertEquals(listOf("p0", "p1", "p2", "p3", "p4"), live.awaitPayloads(5))
     }
@@ -66,69 +66,98 @@ class BufferedMessengerTest {
     private fun messenger(capacity: Int) = BufferedMessenger(scope, Json, bufferCapacity = capacity)
 
     // The claim is that nothing flushes while the gate is shut, and the messenger offers no signal
-    // for "the flusher has had its turn and stayed parked" — only elapsed time can establish it.
+    // for "the flusher has had its turn and stayed parked"; only elapsed time can establish it.
     @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `buffered events are held until startFlush opens the gate`() = runBlocking {
-        val bm = messenger(capacity = 16)
-        repeat(3) { bm.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+        val bufferedMessenger = messenger(capacity = 16)
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
 
         val live = Recorder()
-        bm.bind(live)
-        delay(100) // bound, but flushing not opened yet
+        bufferedMessenger.bind(live)
+        delay(100)
         assertTrue(live.arrivals.tryReceive().isFailure, "must not flush before startFlush (init phase)")
 
-        bm.startFlush()
+        bufferedMessenger.startFlush()
         assertEquals(listOf("p0", "p1", "p2"), live.awaitPayloads(3))
     }
 
     @Test
-    fun `trySend (DROP) is dropped and reported while offline`() {
-        val bm = messenger(capacity = 16)
-        assertFalse(bm.sendRaw("t", "p", OfflineSendPolicy.DROP), "DROP should report false while offline")
+    fun `events queued after a reconnect go to the new transport once it opens flushing, not to the old one`() = runBlocking {
+        // Unconfined drains inside sendRaw, so an event flushed to the wrong transport is already there below.
+        val bufferedMessenger = BufferedMessenger(CoroutineScope(scope.coroutineContext + Dispatchers.Unconfined), Json, bufferCapacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+        bufferedMessenger.unbind()
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
 
-        // It must not have been buffered: binding flushes nothing.
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        bufferedMessenger.startFlush()
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `a transport bound while flushing is open receives the queued events from then on`() = runBlocking {
+        val bufferedMessenger = messenger(capacity = 16)
+        val first = Recorder()
+        bufferedMessenger.bind(first)
+        bufferedMessenger.startFlush()
+
+        val second = Recorder()
+        bufferedMessenger.bind(second)
+        repeat(3) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+
+        assertEquals(listOf("p0", "p1", "p2"), second.awaitPayloads(3))
+        assertTrue(first.arrivals.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `trySend (DROP) is dropped and reported while offline`() {
+        val bufferedMessenger = messenger(capacity = 16)
+        assertFalse(bufferedMessenger.sendRaw("t", "p", OfflineSendPolicy.DROP), "DROP should report false while offline")
+
         val live = Recorder()
-        bm.bind(live)
+        bufferedMessenger.bind(live)
         assertTrue(live.arrivals.tryReceive().isFailure)
     }
 
     @Test
     fun `sendOrFail (FAIL) throws while offline`() {
-        val bm = messenger(capacity = 16)
+        val bufferedMessenger = messenger(capacity = 16)
         assertFailsWith<JetWhaleConnectionClosedException> {
-            bm.sendRaw("t", "p", OfflineSendPolicy.FAIL)
+            bufferedMessenger.sendRaw("t", "p", OfflineSendPolicy.FAIL)
         }
     }
 
     @Test
     fun `while bound, sends forward to the live transport`() = runBlocking {
-        val bm = messenger(capacity = 16)
+        val bufferedMessenger = messenger(capacity = 16)
         val live = Recorder()
-        bm.bind(live)
-        bm.startFlush()
+        bufferedMessenger.bind(live)
+        bufferedMessenger.startFlush()
 
-        assertTrue(bm.sendRaw("t", "drop", OfflineSendPolicy.DROP))
-        bm.sendRaw("t", "queue", OfflineSendPolicy.QUEUE)
+        assertTrue(bufferedMessenger.sendRaw("t", "drop", OfflineSendPolicy.DROP))
+        bufferedMessenger.sendRaw("t", "queue", OfflineSendPolicy.QUEUE)
 
         assertEquals(setOf("drop", "queue"), live.awaitPayloads(2).toSet())
     }
 
     @Test
     fun `the offline buffer is bounded and drops oldest, keeping the newest in order`() = runBlocking {
-        val bm = messenger(capacity = 4)
-        repeat(20) { bm.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
+        val bufferedMessenger = messenger(capacity = 4)
+        repeat(20) { bufferedMessenger.sendRaw("t", "p$it", OfflineSendPolicy.QUEUE) }
 
         val live = Recorder()
-        bm.bind(live)
-        bm.startFlush()
+        bufferedMessenger.bind(live)
+        bufferedMessenger.startFlush()
 
-        // Once the bound's worth has arrived the buffer has room again, so a sentinel queued now
-        // cannot evict anything and — the buffer being FIFO with a single consumer — arrives last.
-        // Its arrival is what marks the flush complete, with no straggler left to come.
         val received = buildList {
             addAll(live.awaitPayloads(4))
-            bm.sendRaw("t", "end", OfflineSendPolicy.QUEUE)
+            bufferedMessenger.sendRaw("t", "end", OfflineSendPolicy.QUEUE)
             while (true) {
                 val payload = live.awaitPayloads(1).single()
                 if (payload == "end") break
@@ -136,9 +165,7 @@ class BufferedMessengerTest {
             }
         }
 
-        // Bounded: never the full 20 (one event may be held by the consumer beyond the buffer bound).
         assertTrue(received.size <= 5, "retained too many: $received")
-        // Newest preserved and in FIFO order.
         assertEquals("p19", received.last())
         val indices = received.map { it.removePrefix("p").toInt() }
         assertEquals(indices.sorted(), indices, "not in FIFO order: $received")
@@ -146,26 +173,25 @@ class BufferedMessengerTest {
 
     @Test
     fun `capacity zero degrades queue to drop`() = runBlocking {
-        val bm = messenger(capacity = 0)
-        bm.sendRaw("t", "lost", OfflineSendPolicy.QUEUE) // no buffer: dropped
+        val bufferedMessenger = messenger(capacity = 0)
+        bufferedMessenger.sendRaw("t", "lost", OfflineSendPolicy.QUEUE)
 
         val live = Recorder()
-        bm.bind(live)
-        bm.sendRaw("t", "kept", OfflineSendPolicy.DROP) // bound now: forwarded
+        bufferedMessenger.bind(live)
+        bufferedMessenger.sendRaw("t", "kept", OfflineSendPolicy.DROP)
 
-        // With no buffer there is nothing "lost" could be held in, so nothing can follow "kept".
         assertEquals(listOf("kept"), live.awaitPayloads(1))
         assertTrue(live.arrivals.tryReceive().isFailure)
     }
 
     @Test
     fun `requests throw while offline and forward while bound`() = runBlocking {
-        val bm = messenger(capacity = 16)
+        val bufferedMessenger = messenger(capacity = 16)
         assertFailsWith<JetWhaleConnectionClosedException> {
-            bm.requestRaw("t", "payload", timeout = null)
+            bufferedMessenger.requestRaw("t", "payload", timeout = null)
         }
 
-        bm.bind(Recorder())
-        assertEquals("reply:payload", bm.requestRaw("t", "payload", timeout = null))
+        bufferedMessenger.bind(Recorder())
+        assertEquals("reply:payload", bufferedMessenger.requestRaw("t", "payload", timeout = null))
     }
 }

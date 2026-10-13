@@ -7,6 +7,17 @@ plugins {
 
 extensions.create("jetwhalePublish", JetWhalePublishExtension::class)
 
+val gitRepositoryRootDir: File = generateSequence(rootDir, File::getParentFile).first { File(it, "LICENSE").isFile }
+
+// Apache-2.0 asks every redistribution to carry the license, and the notices credit the icon
+// artwork the jars bundle.
+val legalFiles = listOf(File(gitRepositoryRootDir, "LICENSE"), File(gitRepositoryRootDir, "THIRD_PARTY_NOTICES.md"))
+    .filter(File::isFile)
+
+tasks.withType<Jar>().configureEach {
+    from(legalFiles) { into("META-INF") }
+}
+
 afterEvaluate {
     val jetwhalePublish = extensions.getByType(JetWhalePublishExtension::class)
 
@@ -31,9 +42,6 @@ afterEvaluate {
 
     logger.info("Configuring publishing for $artifactName ($artifactId)")
 
-    // -PjetwhalePublishOnly=<selectors> restricts a `publishToMavenCentral` run to some artifacts;
-    // the others keep their publications configured but their publish tasks disabled, so one
-    // invocation still covers the whole build and skips what was not asked for.
     val selectors = findProperty("jetwhalePublishOnly")?.toString()?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
     if (selectors != null && selectors.none { it.selects(artifactId) }) {
         logger.lifecycle("Not publishing $artifactId: not selected by jetwhalePublishOnly=${selectors.joinToString(",")}")
@@ -71,12 +79,25 @@ afterEvaluate {
             }
         }
     }
+
+    // publishToMavenCentral uploads one Central Portal deployment per Gradle build, and each
+    // deployment counts against the namespace's monthly release limit. A release stages the
+    // artifacts of every build, the included Gradle plugin builds too, in this one directory, and
+    // the Publish workflow uploads it as a single deployment.
+    publishing {
+        repositories {
+            maven {
+                name = "mavenCentralBundle"
+                url = uri(gitRepositoryRootDir.resolve("build/maven-central-bundle"))
+            }
+        }
+    }
 }
 
 /**
  * A selector is an artifactId, or one of the groups the snapshot workflow offers: `sdk` (the
  * runtime, the SDKs and everything an app or a host plugin links against), one official plugin by
- * name (`network`, `nav3`, `semantics`, `storage`), `gradle-plugin` and `agent-plugin`.
+ * name (`network`, `nav3`, `semantics`, `storage`, `actions`, `mirror`), `gradle-plugin` and `agent-plugin`.
  */
 private fun String.selects(artifactId: String): Boolean = when (this) {
     artifactId -> true
@@ -84,8 +105,10 @@ private fun String.selects(artifactId: String): Boolean = when (this) {
     "nav3" -> artifactId.startsWith("jetwhale-nav3-")
     "semantics" -> artifactId.startsWith("jetwhale-compose-semantics-inspector")
     "storage" -> artifactId.startsWith("jetwhale-storage-inspector")
+    "actions" -> artifactId.startsWith("jetwhale-debug-actions")
+    "mirror" -> artifactId == "jetwhale-device-mirror"
     "gradle-plugin" -> artifactId == "jetwhale-host-gradle-plugin"
     "agent-plugin" -> artifactId == "jetwhale-agent-compiler-plugin" || artifactId == "jetwhale-agent-gradle-plugin"
-    "sdk" -> listOf("network", "nav3", "semantics", "storage", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
+    "sdk" -> listOf("network", "nav3", "semantics", "storage", "actions", "mirror", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
     else -> false
 }

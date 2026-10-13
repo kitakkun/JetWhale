@@ -200,8 +200,6 @@ internal object AppleNodeScrollActions {
 
             val window = view.window ?: return NodeActionResult.notSupported("the view is not in a window")
             val scrollViews = view.scrollViewAncestors()
-            // Inside the window is not enough: a scroll view between the view and the window clips
-            // to its own bounds, so the view is in view only when every one of them shows all of it.
             val wholeViewShown = frame.intersect(window.frame.toNodeBounds()) == frame &&
                 scrollViews.all { scrollView ->
                     val inScrollView = view.convertRect(view.bounds, toView = scrollView).toNodeBounds()

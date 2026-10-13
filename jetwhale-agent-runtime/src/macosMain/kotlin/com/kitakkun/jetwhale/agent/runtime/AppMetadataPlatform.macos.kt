@@ -16,8 +16,7 @@ import platform.Foundation.NSBundle
 /** Edge length the app icon is rasterized to, matching the cap the negotiation payload documents. */
 private const val APP_ICON_SIZE_PX: Int = 64
 
-// macOS does not expose a stable per-device id without extra entitlements, so device id is left
-// unresolved; the bundle name is used as the application name when available.
+// macOS exposes no stable per-device id without extra entitlements.
 internal actual fun getDeviceId(): String? = null
 
 internal actual fun resolveDefaultAppName(): String? {

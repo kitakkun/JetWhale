@@ -90,15 +90,13 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
 
     override suspend fun resolve(): List<ResolvedEndpoint> {
         if (discovery.acceptsAnyHost && discovery.hasFilter) {
-            // Two answers to one question. The narrower is kept, because widening a stated allowlist
-            // by accident is the failure that costs something; it is still worth saying out loud.
-            report(
+            logUnlessRepeated(
                 "discoverWss { } states allowAll() alongside an allowlist. The allowlist still " +
                     "applies, so allowAll() adds nothing here — drop one of the two.",
             )
         }
         if (discovery.acceptsNothing) {
-            report(
+            logUnlessRepeated(
                 "discoverWss { } was declared without a policy, so no discovered host can be accepted. " +
                     "Name the machine with allowHostName/allowAddress, or state allowAll() to take any " +
                     "JetWhale host on the network.",
@@ -108,19 +106,19 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
         val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
         return when (result) {
             is DiscoveryResult.Unavailable -> {
-                report("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
+                logUnlessRepeated("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
                 emptyList()
             }
 
             is DiscoveryResult.Browsed -> {
                 val usable = selectHosts(result.services, discovery)
-                report(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
+                logUnlessRepeated(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
                 usable.map { ResolvedEndpoint(it.service.address, it.port, useWss = true) }
             }
         }
     }
 
-    private fun report(message: String) {
+    private fun logUnlessRepeated(message: String) {
         if (message == lastReported) return
         lastReported = message
         JetWhaleLogger.i(message)
@@ -136,8 +134,6 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
         if (matched.isEmpty()) {
             return "mDNS host discovery found no matching host within ${HOST_DISCOVERY_TIMEOUT_MILLIS}ms"
         }
-        // Matched but unusable is worth spelling out: the agent would otherwise look like it simply
-        // found nothing, when in fact the host is there and only its wss connector is missing.
         val listed = matched.joinToString(transform = DiscoveredService::displayName)
         return "mDNS host discovery matched ${matched.size} host(s) ($listed) but none advertised a wss port. " +
             "A host advertises its wss port only while wss is enabled in its settings."
@@ -147,12 +143,9 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
 private fun DiscoveredService.displayName(): String = advertisedHostName ?: instanceName
 
 private fun DiscoveredService.matches(discovery: HostDiscoveryConfig): Boolean {
-    // hostName allowlist: exact, case-insensitive, compared against the advertised hostname (falling
-    // back to the instance name when the host advertised no hostName TXT record).
     if (discovery.hostNames.isNotEmpty() && discovery.hostNames.none { displayName().equals(it, ignoreCase = true) }) {
         return false
     }
-    // address allowlist: the resolved address must be one of the configured addresses.
     if (discovery.addresses.isNotEmpty() && address !in discovery.addresses) {
         return false
     }

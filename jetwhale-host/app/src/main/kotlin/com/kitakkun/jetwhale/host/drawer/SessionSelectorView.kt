@@ -27,6 +27,7 @@ import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwStatusDot
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.unnamed_app
 import kotlinx.collections.immutable.ImmutableList
@@ -60,7 +61,6 @@ fun SessionSelectorView(
             devices = devices,
             selectedDeviceId = selectedDeviceId,
             onSelectDevice = { deviceSessions ->
-                // Selecting a device selects its first app so a session is always active.
                 deviceSessions.firstOrNull()?.let(onSelectSession)
             },
         )
@@ -172,8 +172,6 @@ internal fun AppIcon(session: DebugSession?) {
             modifier = Modifier.size(JwMetrics.iconSize),
         )
     } else {
-        // An app sends no icon from a platform the agent cannot read one on (desktop, web), so the
-        // fallback must not name a platform.
         JwIcon(imageVector = Icons.Default.Apps, contentDescription = null)
     }
 }
@@ -181,21 +179,23 @@ internal fun AppIcon(session: DebugSession?) {
 @Preview
 @Composable
 private fun SessionSelectorViewPreview() {
-    val session = DebugSession(
-        id = "session-1",
-        name = "Sample app",
-        isActive = true,
-        transportSecurity = SessionTransportSecurity.TLS,
-        installedPlugins = persistentListOf(),
-        appName = "Sample app",
-        deviceId = "device-1",
-        deviceName = "Pixel 9",
-    )
-    SessionSelectorView(
-        selectedSession = session,
-        sessions = persistentListOf(session),
-        onSelectSession = {},
-    )
+    JwTheme(darkTheme = false) {
+        val session = DebugSession(
+            id = "session-1",
+            name = "Sample app",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.TLS,
+            installedPlugins = persistentListOf(),
+            appName = "Sample app",
+            deviceId = "device-1",
+            deviceName = "Pixel 9",
+        )
+        SessionSelectorView(
+            selectedSession = session,
+            sessions = persistentListOf(session),
+            onSelectSession = {},
+        )
+    }
 }
 
 @Preview

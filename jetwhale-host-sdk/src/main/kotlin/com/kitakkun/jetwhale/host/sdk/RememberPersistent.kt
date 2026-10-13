@@ -64,7 +64,6 @@ public fun <T> rememberPersistent(
         snapshotFlow { state.value }
             .drop(1)
             .collectLatest { value ->
-                // Debounce bursts of writes (e.g. typing) into a single persist.
                 delay(PERSIST_DEBOUNCE_MILLIS)
                 storage.put(key, value, currentSerializer)
             }

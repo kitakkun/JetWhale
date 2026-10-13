@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -9,6 +9,7 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
+import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session_disconnected
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session_host
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -20,13 +21,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import soil.query.compose.rememberSubscription
-import kotlin.time.Duration.Companion.milliseconds
-
-/** How long a finished MCP tool call keeps reading as "running" on the screen. */
-private val MCP_TOOLS_RUNNING_LINGER = 1500.milliseconds
 
 /** One tool row, carrying the plugin that publishes it because the list mixes plugins. */
 data class McpToolRowUiState(
@@ -51,6 +47,7 @@ context(screenContext: McpToolsScreenContext)
 fun McpToolsScreenRoot(
     initialPluginId: String?,
     initialSessionId: String?,
+    initialTab: McpToolsTab,
 ) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
@@ -58,21 +55,10 @@ fun McpToolsScreenRoot(
         state3 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
         state4 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
     ) { loadedPlugins, debugSessions, mcpActivity, mcpCapablePlugins ->
-        // An empty set filters nothing, so the nav key's "no preference" maps onto it directly.
         var selectedPluginIds by retain { mutableStateOf(setOfNotNull(initialPluginId).toPersistentSet()) }
         var selectedSessionIds by retain { mutableStateOf(setOfNotNull(initialSessionId).toPersistentSet()) }
 
-        // A call can start and finish between two frames, so watching the running list drops fast
-        // calls entirely. Latch on the monotonic counter and hold briefly instead, matching how the
-        // drawer decides a plugin is under AI control.
-        var running by remember { mutableStateOf(false) }
-        LaunchedEffect(mcpActivity.startedCount) {
-            if (mcpActivity.startedCount > 0L) {
-                running = true
-                delay(MCP_TOOLS_RUNNING_LINGER)
-                running = false
-            }
-        }
+        val running = rememberAiOperating(mcpActivity.startedCount)
         val runningInvocation = mcpActivity.lastStartedInvocation?.takeIf { running }
 
         val pluginNamesById = remember(loadedPlugins) { loadedPlugins.associate { it.id to it.name } }
@@ -88,6 +74,7 @@ fun McpToolsScreenRoot(
                 runningPluginId = runningInvocation?.pluginId,
                 runningToolName = runningInvocation?.toolName,
             ),
+            initialTab = initialTab,
             onSelectPluginFilters = { selectedPluginIds = it.toPersistentSet() },
             onSelectSessionFilters = { selectedSessionIds = it.toPersistentSet() },
         )
@@ -111,8 +98,6 @@ private fun rememberMcpToolsUiState(
         sessionFilterOptions(sessions = debugSessions, hostLabel = hostLabel, disconnectedLabel = disconnectedLabel)
     }
 
-    // Built from every session so the list of plugins does not shift under the user when they narrow
-    // the session filter, which would make their own plugin selection disappear.
     val pluginOptions = remember(key1 = mcpCapablePlugins, key2 = recentCalls, key3 = pluginNamesById) {
         val publishingIds = mcpCapablePlugins.toolsBySessionAndPlugin.values.flatMap { it.keys }
         val calledIds = recentCalls.mapNotNull(McpCallRecord::pluginId)
@@ -123,8 +108,6 @@ private fun rememberMcpToolsUiState(
             .toImmutableList()
     }
 
-    // Calls that named no session came from a tool that targets none, so they stay visible under a
-    // specific session too; hiding them would make a session look quieter than it was.
     val callHistory = remember(key1 = recentCalls, key2 = selectedPluginIds, key3 = selectedSessionIds) {
         recentCalls
             .filter { selectedPluginIds.isEmpty() || it.pluginId in selectedPluginIds }
@@ -133,8 +116,6 @@ private fun rememberMcpToolsUiState(
     }
 
     val toolRows = remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginIds, selectedSessionIds, runningPluginId, runningToolName) {
-        // The same plugin publishes the same tools in every session it is active in, so the scope can
-        // yield duplicates that carry no extra information.
         val callCounts = callHistory.groupingBy { it.pluginId to it.toolName }.eachCount()
         mcpCapablePlugins.toolsBySessionAndPlugin
             .filterKeys { selectedSessionIds.isEmpty() || it in selectedSessionIds }
@@ -173,6 +154,7 @@ private fun rememberMcpToolsUiState(
  * the connected ones and say so: listed like the rest, a session that went away reads as one that is
  * still there.
  */
+@VisibleForTesting
 internal fun sessionFilterOptions(sessions: List<DebugSession>, hostLabel: String, disconnectedLabel: String): ImmutableList<McpFilterOption> {
     val appOptions = sessions
         .sortedByDescending(DebugSession::isActive)

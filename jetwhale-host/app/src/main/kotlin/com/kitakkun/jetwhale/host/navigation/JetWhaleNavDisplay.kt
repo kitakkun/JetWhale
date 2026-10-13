@@ -19,7 +19,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 
 // This builds its entries from the whole dependency graph it takes as a context parameter, which a
-// @Preview has no way to build.
+// `@Preview` has no way to build.
 @Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -32,6 +32,8 @@ fun JetWhaleNavDisplay(
     val dialogSceneStrategy = remember { StableDialogSceneStrategy<NavKey>() }
     val windowSceneStrategy = remember(backStack) {
         WindowSceneStrategy<NavKey> { contentKey ->
+            // A NavEntry's contentKey defaults to its key's toString(), so the closed window's
+            // entry is found by that string.
             backStack.removeAll { it.toString() == contentKey.toString() }
         }
     }
@@ -61,14 +63,17 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(
                 onClickClose = { backStack.removeIf { it is SettingsNavKey } },
+                // At the bottom of the stack, not on top: dismissing a dialog pops the last entry,
+                // so with the log viewer window last, closing Settings would close the log viewer
+                // instead.
                 onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) },
             )
             licensesEntry(onClickBack = backStack::removeLastOrNull)
             logViewerEntry()
             mcpToolsEntry()
             pluginEntries(
-                isOpenedOnPopout = backStack::isPluginPoppedOut,
-                onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,
+                isPoppedOut = backStack::isPluginPoppedOut,
+                onBringBackToMainWindow = backStack::bringPluginBackToMainWindow,
             )
             disabledPluginEntry(onEnabled = backStack::openEnabledPlugin)
         },

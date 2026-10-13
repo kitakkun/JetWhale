@@ -45,6 +45,7 @@ fun ToolingScaffold(
     onResizeSidebar: (Dp) -> Unit,
     onSidebarResizeFinished: () -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -64,6 +65,7 @@ fun ToolingScaffold(
             onResizeSidebar = onResizeSidebar,
             onSidebarResizeFinished = onSidebarResizeFinished,
             onFollowAiOperationChange = onFollowAiOperationChange,
+            onOpenMcpSettings = onOpenMcpSettings,
             onClickSettings = onClickSettings,
             onClickPluginSettings = onClickPluginSettings,
             onClickInfo = onClickInfo,
@@ -78,8 +80,6 @@ fun ToolingScaffold(
             onSetPluginEnabled = onSetPluginEnabled,
         )
         JwVerticalDivider()
-        // The snackbar is overlaid on the content area only: messages stay clear of the sidebar
-        // and of any popped-out plugin window.
         Box(modifier = Modifier.fillMaxSize()) {
             content()
             JwSnackbarHost(
@@ -95,33 +95,36 @@ fun ToolingScaffold(
 @Preview
 @Composable
 private fun ToolingScaffoldPreview() {
-    ToolingScaffold(
-        uiState = ToolingScaffoldUiState(
-            selectedSessionId = "",
-            selectedPluginId = "",
-            sessions = persistentListOf(),
-            plugins = persistentListOf(),
-            hasFailedJars = false,
-            aiActivity = AiActivityUiState.Idle,
-            sidebarWidth = JwMetrics.sidebarWidth,
-        ),
-        onClickSettings = {},
-        onClickPluginSettings = {},
-        onClickInfo = {},
-        onClickPlugin = {},
-        onClickInactivePlugin = {},
-        onOpenMcpTools = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-        onClickPopout = {},
-        isPoppedOut = { false },
-        onClickBringBack = {},
-        onSetPluginEnabled = { _, _ -> },
-        onResizeSidebar = {},
-        onSidebarResizeFinished = {},
-        onFollowAiOperationChange = {},
-        snackbarHostState = remember { JwSnackbarHostState() },
-    ) {
-        JwText("Hello, World!")
+    JwTheme(darkTheme = false) {
+        ToolingScaffold(
+            uiState = ToolingScaffoldUiState(
+                selectedSessionId = "",
+                selectedPluginId = "",
+                sessions = persistentListOf(),
+                plugins = persistentListOf(),
+                hasFailedJars = false,
+                aiActivity = AiActivityUiState.Idle,
+                sidebarWidth = JwMetrics.sidebarWidth,
+            ),
+            onClickSettings = {},
+            onClickPluginSettings = {},
+            onClickInfo = {},
+            onClickPlugin = {},
+            onClickInactivePlugin = {},
+            onOpenMcpTools = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+            onClickPopout = {},
+            isPoppedOut = { false },
+            onClickBringBack = {},
+            onSetPluginEnabled = { _, _ -> },
+            onResizeSidebar = {},
+            onSidebarResizeFinished = {},
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            snackbarHostState = remember { JwSnackbarHostState() },
+        ) {
+            JwText("Hello, World!")
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.settings.logviewer.components
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -28,9 +29,8 @@ fun LogEntryRow(
     logEntry: LogEntry,
     modifier: Modifier = Modifier,
 ) {
-    // Per-item SelectionContainer: the log list is a LazyColumn, so selection is scoped to a
-    // single line. Wrapping the whole LazyColumn in one SelectionContainer is avoided because it
-    // forces composition of off-screen items and has known perf/UX issues.
+    // Selection is per line: one SelectionContainer around the whole LazyColumn would force
+    // off-screen items to compose.
     val backgroundColor = logEntry.level.backgroundColor
     val textColor = logEntry.level.textColor
     SelectionContainer {
@@ -58,6 +58,7 @@ fun LogEntryRow(
 }
 
 /** [this] in [zone] as logcat's default format prints it: `MM-dd HH:mm:ss.SSS`, with no year. */
+@VisibleForTesting
 internal fun Instant.logTimestampIn(zone: TimeZone): String = LOGCAT_TIMESTAMP_FORMAT.format(toLocalDateTime(zone))
 
 private val LOGCAT_TIMESTAMP_FORMAT = LocalDateTime.Format {
@@ -133,6 +134,7 @@ private fun LogEntryRowPreview() {
     JwTheme(darkTheme = false) {
         LogEntryRow(
             logEntry = LogEntry(
+                id = 0,
                 timestamp = Clock.System.now(),
                 message = "Error connecting to server",
                 level = LogLevel.ERROR,

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -90,6 +91,20 @@ class ViewAttributeStoreTest {
     }
 
     @Test
+    fun `a read that fails in an unexpected way is reported rather than lost`() {
+        val store = ViewAttributeStore(
+            scope = scope(),
+            read = { error("reply unreadable") },
+            write = { error("not written") },
+        )
+
+        store.select(rootId = "window-1", nodeId = -4)
+
+        assertNull(store.state.attributes)
+        assertContains(store.state.message.orEmpty(), "reply unreadable")
+    }
+
+    @Test
     fun `clearing forgets the node it was holding`() {
         val store = ViewAttributeStore(
             scope = scope(),
@@ -157,6 +172,21 @@ class ViewAttributeStoreTest {
     }
 
     @Test
+    fun `a write that fails in an unexpected way is reported rather than lost`() {
+        val store = ViewAttributeStore(
+            scope = scope(),
+            read = { request -> snapshotOf(request.rootId, request.nodeId, alpha) },
+            write = { error("reply unreadable") },
+        )
+        store.select(rootId = "window-1", nodeId = -4)
+
+        store.commit(alpha, "0.5")
+
+        assertTrue(store.state.writeFailed)
+        assertContains(store.state.writeStatus.orEmpty(), "reply unreadable")
+    }
+
+    @Test
     fun `two writes made in quick succession reach the app in the order they were made`() = runBlocking {
         val started = mutableListOf<String>()
         val first = CompletableDeferred<Unit>()
@@ -166,8 +196,6 @@ class ViewAttributeStoreTest {
             write = { request ->
                 val text = (request.value as ViewAttributeValue.FloatValue).value.toString()
                 started += text
-                // The first write is held open, so the second one would overtake it were the two
-                // not serialised.
                 if (started.size == 1) first.await()
                 ViewAttributeResult(applied = true, attribute = attribute("alpha", request.value))
             },

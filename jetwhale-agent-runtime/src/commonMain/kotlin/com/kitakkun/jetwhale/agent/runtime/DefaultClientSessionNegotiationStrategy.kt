@@ -20,8 +20,8 @@ internal class DefaultClientSessionNegotiationStrategy(
         negotiateProtocolVersion()
         sessionId = negotiateSessionId(sessionId)
 
-        // Currently, we are not using the capabilities response for anything,
-        // Just for future extensibility.
+        // The capabilities response is unused; the exchange stays as a wire-visible step for
+        // forward compatibility.
         negotiateCapabilities()
 
         val response = negotiatePlugins(plugins)
@@ -30,7 +30,6 @@ internal class DefaultClientSessionNegotiationStrategy(
             availablePluginIds = response.availablePlugins.map(JetWhalePluginInfo::pluginId),
         )
     } catch (e: Throwable) {
-        // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
         if (e is CancellationException) throw e
         ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
     }
@@ -63,11 +62,11 @@ internal class DefaultClientSessionNegotiationStrategy(
         sendSerialized(
             JetWhaleAgentNegotiationRequest.Session(
                 sessionId = resumingSessionId,
-                sessionName = appMetadata.deviceName ?: getDeviceModelName(),
+                sessionName = appMetadata.deviceName ?: resolveDefaultDeviceName(),
                 appMetadata = appMetadata,
             ),
         )
-        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $resumingSessionId".takeIf { resumingSessionId != null })
+        JetWhaleLogger.v("Sent session negotiation request" + resumingSessionId?.let { " with sessionId: $it" }.orEmpty())
 
         val assignedSessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
         JetWhaleLogger.d("Session negotiation completed with sessionId: $assignedSessionId")

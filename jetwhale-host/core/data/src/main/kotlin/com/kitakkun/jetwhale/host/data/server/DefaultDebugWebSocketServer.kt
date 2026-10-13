@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
+import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
@@ -18,16 +18,19 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
-    private val adbAutoWiringService: ADBAutoWiringService,
+    private val adbAutoPortMappingService: AdbAutoPortMappingService,
     private val sessionRepository: DebugSessionRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
@@ -38,15 +41,13 @@ class DefaultDebugWebSocketServer(
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     override val statusFlow: StateFlow<DebugWebSocketServerStatus> get() = ktorWebSocketServer.statusFlow
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
-    private val mutableServerStoppedFlow: MutableSharedFlow<Unit> = MutableSharedFlow()
-    override val serverStoppedFlow: Flow<Unit> = mutableServerStoppedFlow
+    override val serverStoppedFlow: Flow<Unit>
+        field = MutableSharedFlow<Unit>()
 
     private var serverMonitoringJob: Job? = null
 
     override suspend fun start(host: String, port: Int, wssPort: Int?) {
         subscribeServerEvents()
-        // Advertise the server over mDNS while it runs so LAN devices can discover it. The advertiser
-        // tracks statusFlow itself, so it registers once the connectors report Started.
         hostDiscoveryAdvertiser.start()
         ktorWebSocketServer.start(
             host = host,
@@ -56,54 +57,47 @@ class DefaultDebugWebSocketServer(
     }
 
     override suspend fun stop() {
-        serverMonitoringJob?.cancel()
+        serverMonitoringJob?.cancelAndJoin()
         serverMonitoringJob = null
         hostDiscoveryAdvertiser.stop()
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAppSessionPluginInstances()
-        mutableServerStoppedFlow.emit(Unit)
+        serverStoppedFlow.emit(Unit)
     }
 
     private fun subscribeServerEvents() {
         serverMonitoringJob?.cancel()
 
         serverMonitoringJob = coroutineScope.launch {
-            launch { monitorAdbAutoWiring() }
-            launch { monitorNegotiationCompleted() }
-            launch { monitorSessionClosed() }
-            launch { monitorEnabledPluginChanges() }
-            launch { monitorPluginFrames() }
+            launch { mapServerPortsOverAdb() }
+            launch { registerOpenedSessions() }
+            launch { deactivateClosedSessionsAndDisposeTheirInstances() }
+            launch { forwardPluginActivationChangesToAgents() }
+            launch { routePluginFramesToInstances() }
         }
     }
 
-    private suspend fun monitorAdbAutoWiring() {
-        // Read the stored value instead of sampling the flow: the flow reports the default until the
-        // store answers, and this decision is made once per server start. Sampling it too early would
-        // wire devices for a user who turned the setting off, for the whole run.
+    private suspend fun mapServerPortsOverAdb() {
         if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
-        var wiredPorts: List<Int> = emptyList()
-        ktorWebSocketServer.statusFlow.collect { status ->
-            when (status) {
-                is DebugWebSocketServerStatus.Started -> {
-                    // Wire both connectors so an on-device app can reach ws and wss alike through
-                    // localhost, whichever it is configured for.
-                    wiredPorts = listOfNotNull(status.port, status.wssPort)
-                    wiredPorts.forEach(adbAutoWiringService::startAutoWiring)
+        var mappedPorts: List<Int> = emptyList()
+        try {
+            ktorWebSocketServer.statusFlow.collect { status ->
+                if (status is DebugWebSocketServerStatus.Started) {
+                    mappedPorts = listOfNotNull(status.port, status.wssPort)
+                    mappedPorts.forEach(adbAutoPortMappingService::startPortMapping)
                 }
-
-                is DebugWebSocketServerStatus.Stopped -> {
-                    wiredPorts.forEach(adbAutoWiringService::stopAutoWiring)
-                }
-
-                else -> Unit
+            }
+        } finally {
+            withContext(NonCancellable) {
+                mappedPorts.forEach { adbAutoPortMappingService.stopPortMapping(it) }
             }
         }
     }
 
-    private suspend fun monitorNegotiationCompleted() {
-        ktorWebSocketServer.negotiationCompletedFlow.collect { opened ->
+    private suspend fun registerOpenedSessions() {
+        ktorWebSocketServer.sessionOpenedFlow.collect { opened ->
             sessionRepository.registerDebugSession(
                 sessionId = opened.result.session.sessionId,
                 sessionName = opened.result.session.sessionName,
@@ -114,16 +108,14 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorSessionClosed() {
+    private suspend fun deactivateClosedSessionsAndDisposeTheirInstances() {
         ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
             sessionRepository.unregisterDebugSession(sessionId)
             pluginInstanceService.unloadPluginInstanceForSession(sessionId)
         }
     }
 
-    private suspend fun monitorEnabledPluginChanges() {
-        // Thin subscriber: the reconciliation service owns the enabled-plugin x session mapping and
-        // the instance lifecycle; this only forwards the resulting notifications to the agents.
+    private suspend fun forwardPluginActivationChangesToAgents() {
         reconciliationService.reconciliationEvents().collect { event ->
             when (event) {
                 is PluginReconciliationEvent.Activated -> event.sessionIds.forEach { sessionId ->
@@ -131,6 +123,7 @@ class DefaultDebugWebSocketServer(
                         sessionId = sessionId,
                         event = JetWhaleDebuggerEvent.PluginActivated(pluginId = event.pluginId),
                     )
+                    pluginInstanceService.startPluginInstancePreparation(pluginId = event.pluginId, sessionId = sessionId)
                 }
 
                 is PluginReconciliationEvent.Deactivated ->
@@ -139,7 +132,7 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorPluginFrames() {
+    private suspend fun routePluginFramesToInstances() {
         ktorWebSocketServer.debuggeeEventFlow.collect { (sessionId, event) ->
             if (event !is JetWhaleDebuggeeEvent.PluginFrameMessage) return@collect
             pluginInstanceService.routeFrame(sessionId = sessionId, frame = event.frame)

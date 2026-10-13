@@ -18,8 +18,6 @@ class DefaultPluginTrustRepositoryTest {
 
     @BeforeTest
     fun setUp() {
-        // AppDataDirectoryProvider resolves its paths from user.home in field initializers, so point
-        // it at an isolated temp home before any provider is constructed in a test.
         originalUserHome = System.getProperty("user.home")
         tempHome = File.createTempFile("jetwhale-home-", "").apply {
             delete()
@@ -82,9 +80,6 @@ class DefaultPluginTrustRepositoryTest {
         assertEquals("hash-b", reloaded.trustedEntry("/plugins/b.jar")?.sha256)
     }
 
-    // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
-    // cache. Whether the registry is signed is decided entirely by the injected signer (key present
-    // or not); the repository holds no policy of its own.
     private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
 
     @Test
@@ -102,8 +97,6 @@ class DefaultPluginTrustRepositoryTest {
     fun `a tampered registry is rejected wholesale`() = runBlocking {
         newRepository().trust("/plugins/a.jar", "hash-a")
 
-        // Simulate a malicious process rewriting the file: swap in a different hash while leaving the
-        // recorded signature untouched. With a key present the signature no longer matches → INVALID.
         val registryFile = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())).getTrustRegistryFile()
         registryFile.writeText(registryFile.readText().replace("hash-a", "forged-hash"))
 
@@ -113,8 +106,6 @@ class DefaultPluginTrustRepositoryTest {
 
     @Test
     fun `a signed registry with its signature stripped is rejected`() = runBlocking {
-        // The core attack: with a key present, an attacker rewrites trusted-plugins.json and drops the
-        // signature it cannot produce. A key exists, so a missing signature must be rejected wholesale.
         newRepository().trust("/plugins/a.jar", "hash-a")
 
         val registryFile = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())).getTrustRegistryFile()
@@ -127,8 +118,6 @@ class DefaultPluginTrustRepositoryTest {
 
     @Test
     fun `no signing key loads the registry unverified and never provisions a key`() = runBlocking {
-        // Signing off (no key): the registry is written and read unsigned, and merely reading it must
-        // never bring a key into existence.
         val signer = FakeTrustRegistrySigner(keyPresent = false)
         newRepository(signer).trust("/plugins/a.jar", "hash-a")
 
@@ -147,12 +136,9 @@ class DefaultPluginTrustRepositoryTest {
 
     @Test
     fun `resign signs a previously unsigned registry so it verifies once a key exists`() = runBlocking {
-        // Approve while signing is off (no key) → the registry is written unsigned but kept in memory.
         val signer = FakeTrustRegistrySigner(keyPresent = false)
         val repository = newRepository(signer).apply { trust("/plugins/a.jar", "hash-a") }
 
-        // A key is provisioned (as setSigningEnabled(true) does); re-signing rewrites the in-memory
-        // entries with a signature, so a fresh signing-on load verifies instead of rejecting.
         signer.provisionKey()
         repository.resign()
 

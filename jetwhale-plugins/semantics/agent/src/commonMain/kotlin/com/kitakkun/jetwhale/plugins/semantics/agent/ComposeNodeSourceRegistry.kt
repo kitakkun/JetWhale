@@ -58,13 +58,17 @@ object ComposeNodeSourceRegistry {
 
     /** One claim on a registered root; releasing the last one unregisters it. */
     class Registration internal constructor(private val sourceId: String) : AutoCloseable {
-        // Closing twice must not release a claim someone else took out in the meantime.
+        // compareAndSet makes a racing second close a no-op, so it cannot release a claim someone
+        // else took out; common code has no stable atomic boolean outside the experimental
+        // kotlin.concurrent.atomics.
         private val closed = MutableStateFlow(false)
 
         override fun close() {
             if (!closed.compareAndSet(expect = false, update = true)) return
             var unregistered: ComposeNodeSource? = null
             entries.update { current ->
+                // update re-runs this lambda when another thread wins the race; resetting here lets
+                // only the attempt that committed decide what was unregistered.
                 unregistered = null
                 val index = current.indexOfFirst { it.source.sourceId == sourceId }
                 when {

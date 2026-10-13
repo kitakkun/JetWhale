@@ -185,8 +185,6 @@ class NodeMcpJsonTest {
 
     @Test
     fun `reports where a root's window sits on screen`() {
-        // A dialog's window is not at the screen origin, which is the case where node coordinates
-        // would drift if they were reported window-relative — so the offset is worth surfacing.
         val dialog = root("dialog", node = node(id = 1)).copy(windowOffsetX = 120.4f, windowOffsetY = 926.6f)
 
         val offset = snapshot(dialog).toMcpJson().getValue("roots").jsonArray.single().jsonObject.getValue("windowOffset").jsonObject

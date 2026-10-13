@@ -19,7 +19,6 @@ class ImageBodyViewTest {
 
         assertEquals(4, decoded.bitmap.width)
         assertEquals(3, decoded.bitmap.height)
-        // The original bytes are kept as-is: saving must write the file the server sent.
         assertContentEquals(png, decoded.bytes)
     }
 
@@ -32,7 +31,6 @@ class ImageBodyViewTest {
     @Test
     fun `file name comes from the URL path and the media type`() {
         assertEquals("avatar.png", suggestedImageFileName("https://example.com/users/avatar.png", "image/png"))
-        // jpeg is spelled jpg, and query strings are not part of the name.
         assertEquals("photo.jpg", suggestedImageFileName("https://example.com/photo?size=large", "image/jpeg"))
         assertEquals("image.webp", suggestedImageFileName("https://example.com/", "image/webp"))
         assertEquals("icon.ico", suggestedImageFileName("https://example.com/icon.ico", "image/x-icon"))

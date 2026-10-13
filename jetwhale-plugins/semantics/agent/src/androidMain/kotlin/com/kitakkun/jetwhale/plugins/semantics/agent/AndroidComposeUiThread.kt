@@ -18,8 +18,6 @@ internal object AndroidComposeUiThread : ComposeUiThread {
         if (Looper.myLooper() == Looper.getMainLooper()) return block()
         return suspendCancellableCoroutine { continuation ->
             val posted = mainHandler.post {
-                // The caller may have been cancelled while the message sat in the queue; running
-                // the block then would touch the UI for a request nobody is waiting on any more.
                 if (!continuation.isActive) return@post
                 continuation.resumeWith(runCatching(block))
             }

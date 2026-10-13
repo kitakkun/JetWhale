@@ -19,7 +19,7 @@ internal fun decodeIconOrNull(base64Png: String): ImageBitmap? {
     if (base64Png.length > MAX_APP_ICON_BASE64_LENGTH) return null
     return try {
         val bytes = Base64.getDecoder().decode(base64Png)
-        Image.makeFromEncoded(bytes).toComposeImageBitmap()
+        Image.makeFromEncoded(bytes).use { it.toComposeImageBitmap() }
     } catch (_: IllegalArgumentException) {
         null
     }

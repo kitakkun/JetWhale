@@ -10,7 +10,6 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -62,15 +61,15 @@ internal class KtorWebSocketClient(
             // client is being built, so the SSL setup cannot be applied to it afterwards.
             HttpClient(defaultKtorEngineFactory()) {
                 engine {
-                    configureSsl(resolvedConfiguration)
+                    pinTrustedCertificates(resolvedConfiguration)
                 }
-                configureWebSocketClient(json)
+                installWebSocketsAndLogging(json)
             }
         },
     )
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
-        session?.sendSerialized(event)
+        session?.send(Frame.Text(json.encodeToString(JetWhaleDebuggeeEvent.serializer(), event)))
     }
 
     override suspend fun closeConnection() {
@@ -81,12 +80,8 @@ internal class KtorWebSocketClient(
     }
 
     override suspend fun openConnection(endpoint: ResolvedEndpoint): JetWhaleConnection {
-        // A connection that ended on its own (host disconnect, error) never reached closeConnection,
-        // so its client is still held here. Release it before this attempt allocates another.
         releaseHttpClient()
 
-        // A plain endpoint has no certificate to fetch or pin, so none of the trust machinery runs for
-        // it — including the CA fetch, which on a browser is two failed requests before every attempt.
         val resolvedConfiguration = if (endpoint.useWss) {
             resolveSslConfiguration(endpoint.host, endpoint.port)
         } else {
@@ -101,17 +96,12 @@ internal class KtorWebSocketClient(
                 port = endpoint.port,
             ) {
                 url {
-                    // From the endpoint, not from whether trust material was obtained: a wss endpoint
-                    // whose CA could not be fetched must fail visibly on trust, not quietly dial plain
-                    // text at a TLS port and fail there instead.
                     protocol = if (endpoint.useWss) URLProtocol.WSS else URLProtocol.WS
                 }
             }
             this.session = session
-            return session.configureSession()
+            return session.negotiateSession()
         } catch (e: Throwable) {
-            // A refused host and a failed negotiation both land here, and the reconnect loop will
-            // try again; without this every attempt would strand an engine's thread pool.
             releaseHttpClient()
             throw e
         }
@@ -189,8 +179,8 @@ internal class KtorWebSocketClient(
     }
 
     @OptIn(InternalJetWhaleApi::class)
-    private suspend fun DefaultClientWebSocketSession.configureSession(): JetWhaleConnection {
-        JetWhaleLogger.v("Configuring WebSocket session")
+    private suspend fun DefaultClientWebSocketSession.negotiateSession(): JetWhaleConnection {
+        JetWhaleLogger.v("Negotiating WebSocket session")
 
         val negotiationResult = with(negotiationStrategy) { negotiate() }
 
@@ -227,7 +217,7 @@ internal class KtorWebSocketClient(
  * Installs what [KtorWebSocketClient] needs from a client. Applied while the client is being built,
  * so a connection costs exactly one client rather than one plus a `config { }` derivative.
  */
-internal fun HttpClientConfig<*>.configureWebSocketClient(json: Json) {
+internal fun HttpClientConfig<*>.installWebSocketsAndLogging(json: Json) {
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(json)
     }

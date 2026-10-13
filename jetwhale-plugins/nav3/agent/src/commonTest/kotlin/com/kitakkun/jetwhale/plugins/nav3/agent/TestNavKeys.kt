@@ -4,9 +4,6 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Stand-ins for the keys a debugged app would define: an object, a class with a defaulted and a
-// nullable field, an enum field, and a closed hierarchy.
-
 @SerialName("Home")
 @Serializable
 data object HomeKey : NavKey

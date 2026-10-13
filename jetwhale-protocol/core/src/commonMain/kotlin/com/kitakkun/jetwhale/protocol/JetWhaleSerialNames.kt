@@ -5,17 +5,14 @@ package com.kitakkun.jetwhale.protocol
  * Caution: Editing these values breaks compatibility with older JetWhale implementations.
  */
 internal object JetWhaleSerialNames {
-    // negotiation/*
     const val NEGOTIATION_AGENT = "negotiation/agent"
     const val NEGOTIATION_HOST = "negotiation/host"
 
-    // negotiation/agent/*
     const val NEGOTIATION_AGENT_SESSION = "negotiation/agent/session"
     const val NEGOTIATION_AGENT_PROTOCOL_VERSION = "negotiation/agent/protocol_version"
     const val NEGOTIATION_AGENT_CAPABILITIES = "negotiation/agent/capabilities"
     const val NEGOTIATION_AGENT_AVAILABLE_PLUGINS = "negotiation/agent/available_plugins"
 
-    // negotiation/host/*
     const val NEGOTIATION_HOST_ACCEPT_SESSION = "negotiation/host/accept_session"
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE = "negotiation/host/protocol_version_response"
     const val NEGOTIATION_HOST_CAPABILITIES_RESPONSE = "negotiation/host/capabilities_response"
@@ -23,19 +20,15 @@ internal object JetWhaleSerialNames {
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_ACCEPT = "negotiation/host/protocol_version_response/accept"
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_REJECT = "negotiation/host/protocol_version_response/reject"
 
-    // event/*
     const val EVENT_AGENT = "event/agent"
     const val EVENT_HOST = "event/host"
 
-    // event/agent/*
     const val EVENT_AGENT_PLUGIN_FRAME = "event/agent/plugin_frame"
 
-    // event/host/*
     const val EVENT_HOST_PLUGIN_FRAME = "event/host/plugin_frame"
     const val EVENT_HOST_PLUGIN_ACTIVATED = "event/host/plugin_activated"
     const val EVENT_HOST_PLUGIN_DEACTIVATED = "event/host/plugin_deactivated"
 
-    // model/*
     const val MODEL_PLUGIN_INFO = "model/plugin_info"
     const val MODEL_PROTOCOL_VERSION = "model/protocol_version"
     const val MODEL_APP_METADATA = "model/app_metadata"

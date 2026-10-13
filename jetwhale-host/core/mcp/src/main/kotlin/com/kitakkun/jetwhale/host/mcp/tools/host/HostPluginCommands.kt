@@ -10,7 +10,6 @@ import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
-import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
@@ -20,6 +19,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -76,8 +76,8 @@ class ListInstalledPluginsCommand(
     }
 }
 
-/** How long to wait for reconciliation to instantiate a freshly enabled plugin before reporting what happened. */
-private const val INSTANTIATION_TIMEOUT_MILLIS = 2_000L
+/** How long Ready events are collected after enabling a plugin; the result lists the sessions that became ready within it. */
+private const val INSTANTIATION_WINDOW_MILLIS = 2_000L
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
@@ -102,22 +102,20 @@ class SetPluginEnabledCommand(
         }
         val shouldEnable = arguments[enabled]
 
-        // Reconciliation runs asynchronously, so collect the Ready events before flipping the flag —
-        // otherwise "ok" would be reported before any instance actually exists. An app plugin with
-        // nothing connected has nothing to instantiate, so skip the wait; a plugin that needs no app
-        // is instantiated in the host session, which is always there.
         val hasTargetSession = !pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.requiresAgent ||
             debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
-            val collector = launch {
+            // pluginInstanceEventFlow does not replay, and a session can become ready while the
+            // flag is still being written, so the collector subscribes before the write starts.
+            val collector = launch(start = CoroutineStart.UNDISPATCHED) {
                 pluginInstanceService.pluginInstanceEventFlow
                     .filterIsInstance<PluginInstanceEvent.Ready>()
                     .filter { it.pluginId == targetPluginId }
                     .collect { instantiatedSessions += it.sessionId }
             }
             enabledPluginsRepository.setPluginEnabled(targetPluginId, shouldEnable)
-            if (shouldEnable && hasTargetSession) delay(INSTANTIATION_TIMEOUT_MILLIS)
+            if (shouldEnable && hasTargetSession) delay(INSTANTIATION_WINDOW_MILLIS)
             collector.cancel()
         }
 
@@ -137,7 +135,6 @@ class SetPluginEnabledCommand(
 class InstallOfficialPluginCommand(
     private val officialPluginInstallService: OfficialPluginInstallService,
     private val pluginFactoryRepository: PluginFactoryRepository,
-    private val pluginInstallProgressRepository: PluginInstallProgressRepository,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.installOfficialPlugin"
     override val group: McpHostToolGroup = McpHostToolGroup.MANAGE_PLUGINS
@@ -147,8 +144,6 @@ class InstallOfficialPluginCommand(
     private val pluginId by string("The official plugin to install; from the availableOfficial list of jetwhale.listInstalledPlugins.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        // Whether an agent may install at all is the Manage plugins permission, enforced for every
-        // tool in the group by McpToolRegistrar before this runs.
         val targetPluginId = arguments[pluginId]
         val plugin = OfficialPluginCatalog.plugins.find { it.pluginId == targetPluginId }
             ?: throw JetWhaleMcpArgumentException(
@@ -164,11 +159,6 @@ class InstallOfficialPluginCommand(
                 ),
             )
         }
-        // A single in-flight slot is shared with the settings screen's install flow.
-        if (pluginInstallProgressRepository.progressFlow.first() != null) {
-            throw JetWhaleMcpArgumentException("another plugin installation is already in progress; try again once it finishes")
-        }
-
         withContext(Dispatchers.IO) { officialPluginInstallService.install(plugin) }
 
         return Json.encodeToString(

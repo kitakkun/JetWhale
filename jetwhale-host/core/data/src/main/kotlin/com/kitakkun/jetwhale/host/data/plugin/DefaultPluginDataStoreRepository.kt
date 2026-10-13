@@ -36,8 +36,8 @@ import java.util.logging.Logger
 class DefaultPluginDataStoreRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginDataStoreRepository {
-    // One storage handle per pluginId, shared across that plugin's sessions. A single DataStore per
-    // file is required anyway: DataStore forbids more than one active instance over the same file.
+    // DataStore forbids more than one active instance over the same file, so each pluginId gets one
+    // storage shared across its sessions.
     private val storages: ConcurrentHashMap<String, JetWhalePluginStorage> = ConcurrentHashMap()
 
     override fun storageFor(pluginId: String): JetWhalePluginStorage = storages.computeIfAbsent(pluginId) {
@@ -51,9 +51,6 @@ class DefaultPluginDataStoreRepository(
             producePath = { appDataDirectoryProvider.resolvePluginDataFilePath(pluginId) },
         ),
         corruptionHandler = ReplaceFileCorruptionHandler { exception ->
-            // Replacing a corrupted store keeps the plugin functional, but silently discarding user
-            // data would be dangerous — keep a timestamped copy next to the store for recovery and
-            // make the incident visible in the logs.
             backUpCorruptedStore(pluginId, exception)
             EMPTY_JSON_OBJECT
         },
@@ -126,10 +123,10 @@ private object JsonObjectOkioSerializer : OkioSerializer<JsonObject> {
     override val defaultValue: JsonObject = JsonObject(emptyMap())
 
     override suspend fun readFrom(source: BufferedSource): JsonObject {
-        val text = source.readUtf8()
-        if (text.isBlank()) return defaultValue
+        val jsonText = source.readUtf8()
+        if (jsonText.isBlank()) return defaultValue
         return try {
-            json.decodeFromString(JsonObject.serializer(), text)
+            json.decodeFromString(JsonObject.serializer(), jsonText)
         } catch (e: SerializationException) {
             // DataStore only routes CorruptionException to the ReplaceFileCorruptionHandler; wrap
             // malformed JSON so a corrupted store is replaced instead of crashing every read.

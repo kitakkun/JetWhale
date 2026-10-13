@@ -14,8 +14,19 @@ interface PluginFactoryRepository {
     val loadedPlugins: Map<String, LoadedHostPlugin>
     val failedJarsFlow: Flow<List<FailedPluginJar>>
 
-    suspend fun loadPlugin(pluginJarPath: String)
-    suspend fun unloadPlugin(pluginId: String)
+    /**
+     * Loads every plugin [pluginJarPath] declares. When [expectedSha256] is set, the jar is loaded only
+     * if the bytes the classloader opens have that hash; otherwise the jar is recorded as failed. The
+     * check reads the same copy the classloader opens, so a jar replaced after it was approved cannot
+     * be loaded in its place.
+     */
+    suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?)
+
+    /**
+     * Unloads every plugin loaded from [pluginJarPath] in one step and closes the jar's classloader,
+     * so no observer sees some of a jar's plugins while the classloader they need is being closed.
+     */
+    suspend fun unloadPluginJar(pluginJarPath: String)
 
     /**
      * Returns the `pluginId`s currently loaded from [pluginJarPath] (a single jar may provide several
@@ -27,9 +38,10 @@ interface PluginFactoryRepository {
     /**
      * Reloads every plugin from [pluginJarPath]: the previous classloader for that jar is closed and
      * discarded, then the factories are loaded again from a fresh classloader. Returns the `pluginId`s
-     * that were (re)loaded, or an empty list if loading failed.
+     * that were (re)loaded, or an empty list if loading failed. [expectedSha256] is checked as in
+     * [loadPlugin].
      */
-    suspend fun reloadPlugin(pluginJarPath: String): List<String>
+    suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String>
 
     /**
      * Attempts an in-place hot swap of the plugins served by [pluginJarPath]: the jar's already-loaded

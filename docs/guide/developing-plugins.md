@@ -634,9 +634,13 @@ entirely.
 
 The download is cached under `~/.jetwhale/dev-host/<version>/` and reused. A released version is only
 fetched once; a `-SNAPSHOT` `hostVersion` is re-checked against the release asset's ETag on every
-launch, so you pick up a newer snapshot without clearing anything by hand. The supported matrix is
-macOS / Linux / Windows on `arm64` or `x64`; anything else fails with an explicit
-*Unsupported OS/architecture* message.
+launch, so you pick up a newer snapshot without clearing anything by hand.
+
+Releases carry host jars for **macOS on `arm64`, Linux on `x64` and Windows on `x64`**. On any other
+machine (an Intel Mac, Linux or Windows on `arm64`), the download fails with a message saying so:
+build the host from the JetWhale repository with `./gradlew :jetwhale-host:app:packageUberJarForCurrentOS`
+and pass the jar with `-PjetwhaleHostJar=<path>`. An OS or architecture outside macOS / Linux /
+Windows on `arm64` or `x64` fails earlier, with an explicit *Unsupported OS/architecture* message.
 
 ### Isolated sandbox environment
 

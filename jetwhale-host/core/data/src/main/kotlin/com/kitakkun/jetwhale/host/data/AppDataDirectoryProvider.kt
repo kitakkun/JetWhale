@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -8,6 +9,9 @@ import okio.Path
 import okio.Path.Companion.toPath
 import java.io.File
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 @SingleIn(AppScope::class)
 @Inject
@@ -16,16 +20,12 @@ class AppDataDirectoryProvider(
 ) {
     private val homeDir = System.getProperty("user.home")
 
-    // The app data root. Normally `~/.jetwhale`, but a launch may point it elsewhere via the
-    // `jetwhale.appDataDir` system property. The plugin-developer Gradle tasks (`runJetWhale`,
-    // `runJetWhaleHot`, `runJetWhaleLocal`) set it to a disposable per-project sandbox under the plugin module's `build/`
-    // directory, so trying a plugin never reads or mutates the developer's real installed plugins,
-    // settings, plugin-data or trust registry. Every path below is derived from this single root.
     private val appDataDir = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf(String::isNotBlank)
         ?: "$homeDir/.jetwhale"
     private val isAppDataDirOverridden = System.getProperty(APP_DATA_DIR_PROPERTY)?.isNotBlank() == true
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
+    private val pluginStagingDir = "$pluginDir/staging"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
     private val pluginDataDir = "$appDataDir/plugin-data"
     private val sslDir = "$appDataDir/ssl"
@@ -45,9 +45,8 @@ class AppDataDirectoryProvider(
                 append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
             }
         }
-        // Sanitization is lossy: distinct ids like "a/b" and "a_b" would otherwise collapse into the
-        // same directory (breaking isolation and DataStore's single-instance-per-file rule). When any
-        // character was replaced, a hash of the original id is appended to keep the name unique.
+        // Sanitizing is lossy, so a hash of the original id keeps ids like "a/b" and "a_b" in
+        // separate directories: DataStore allows only one active instance per file.
         val hashSuffix = "_" + pluginId.hashCode().toUInt().toString(16)
         return when {
             sanitized.isEmpty() || sanitized == "." || sanitized == ".." -> "plugin$hashSuffix"
@@ -56,9 +55,6 @@ class AppDataDirectoryProvider(
         }
     }
 
-    // For display (diagnostics/settings). Shows the literal sandbox path when overridden so a developer
-    // can see they are running against the isolated directory, and the tilde-abbreviated `~/.jetwhale`
-    // otherwise.
     fun getAppDataPath(): String = if (isAppDataDirOverridden) appDataDir else "~/.jetwhale"
 
     /**
@@ -76,8 +72,6 @@ class AppDataDirectoryProvider(
         if (!exists()) {
             mkdirs()
         }
-        // TLS material (including the CA private key) lives here, so restrict the directory to the
-        // owning user only (0700 on POSIX; owner-only fallback on non-POSIX filesystems).
         FilePermissionsWriter.restrictToOwnerDirectory(this)
     }
 
@@ -110,15 +104,36 @@ class AppDataDirectoryProvider(
         if (!pluginLibsDirectory.exists()) {
             pluginLibsDirectory.mkdirs()
         }
+        val pluginStagingDirectory = File(pluginStagingDir)
+        if (!pluginStagingDirectory.exists()) {
+            pluginStagingDirectory.mkdirs()
+        }
     }
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
-        val jarFileName = jarFilePath.substringAfterLast('/')
-        val destinationPath = "$pluginDir/$jarFileName"
+        val jarFileName = File(jarFilePath).name
+        val destination = File(pluginDir, jarFileName)
+        val staged = File.createTempFile("$jarFileName.", ".part", File(pluginStagingDir))
+        try {
+            File(jarFilePath).copyTo(staged, overwrite = true)
+            moveStagedJarIntoPluginDirectory(staged, destination)
+        } finally {
+            staged.delete()
+        }
+        return destination.path
+    }
 
-        File(jarFilePath).copyTo(File(destinationPath), overwrite = true)
-
-        return destinationPath
+    /**
+     * Moves a complete jar from the staging directory to [destination] in the plugins directory,
+     * replacing a jar of the same name. Atomic where the file system supports it, so the watcher sees
+     * either the old jar or the new one; a replacing move otherwise.
+     */
+    fun moveStagedJarIntoPluginDirectory(staged: File, destination: File) {
+        try {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     fun getAllPluginJarFilePaths(): List<String> {
@@ -134,6 +149,12 @@ class AppDataDirectoryProvider(
      * directory so the jars are not themselves picked up as plugins by [getAllPluginJarFilePaths].
      */
     fun getPluginLibsDirectory(): File = File(pluginLibsDir)
+
+    /**
+     * Directory an install downloads a plugin jar into before moving it into the plugins directory,
+     * so the jar enters that watched directory complete and only right before it is approved.
+     */
+    fun getPluginStagingDirectory(): File = File(pluginStagingDir)
 
     /**
      * The development-only "dev plugins directory" supplied by a plugin developer via the
@@ -154,9 +175,8 @@ class AppDataDirectoryProvider(
      */
     fun getAdditionalPluginJarFilePaths(): List<String> = additionalPluginDirectories.paths
         .flatMap { path ->
-            // listFiles returns null for a missing path or a plain file, but *throws* SecurityException
-            // when a directory exists and cannot be read. Both are the same thing from here — one
-            // unusable directory — and neither should take the launch down with it.
+            // listFiles returns null for a missing path but throws SecurityException for an
+            // unreadable directory.
             runCatching { File(path).listFiles { file -> file.extension == "jar" }?.toList() }
                 .getOrNull()
                 .orEmpty()
@@ -177,6 +197,7 @@ class AppDataDirectoryProvider(
          * JVM system property overriding the app data root (normally `~/.jetwhale`). Set by the
          * plugin-developer Gradle tasks to an isolated per-project sandbox directory.
          */
-        const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
+        @VisibleForTesting
+        internal const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
     }
 }

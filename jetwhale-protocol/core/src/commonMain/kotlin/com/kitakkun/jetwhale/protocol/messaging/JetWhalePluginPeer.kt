@@ -18,6 +18,9 @@ import kotlin.time.Duration.Companion.seconds
 
 /** Default payload format used when none is provided. */
 public val DefaultJetWhaleMessagingFormat: StringFormat = Json {
+    // Both flags are wire compatibility between peer versions: a peer skips keys a newer one added,
+    // and a field sent even at its default still decodes on a peer whose class has no default for
+    // it.
     ignoreUnknownKeys = true
     encodeDefaults = true
 }
@@ -80,16 +83,12 @@ public class JetWhalePluginPeer(
     )
 
     init {
-        // Single writer: every outbound frame goes through one queue so send order is preserved.
         scope.launch {
             for (frame in outgoingQueue) {
                 try {
                     sendFrame(frame)
                 } catch (e: Throwable) {
                     if (e is CancellationException) throw e
-                    // The transport is broken (e.g. a half-closed socket). Without this the pump would
-                    // die silently and every later request would wait out its full timeout: close the
-                    // outbound side and fail pending requests fast instead.
                     logger("JetWhale: transport send failed for plugin '$pluginId'; closing outbound. (${e.message})")
                     outgoingQueue.close()
                     pendingRequestStore.failAll()
@@ -150,19 +149,13 @@ public class JetWhalePluginPeer(
             "Frame for plugin '${frame.pluginId}' was routed to the peer of plugin '$pluginId'."
         }
         when (frame) {
-            // Off-queue on purpose: a notification/request handler may be awaiting this very reply, so
-            // it must not queue behind that handler (it would deadlock the serial inbound consumer).
             is PluginFrame.Reply -> completePending(frame)
-
-            // Notifications and requests share one ordered queue so they are dispatched in the order
-            // the other side sent them.
             is PluginFrame.Notification, is PluginFrame.Request -> inboundFrameDispatcher.enqueue(frame)
         }
     }
 
     /** Fails every pending request and stops this peer. Call when the connection closes. */
     public suspend fun close() {
-        // Close the queues first so further sends fail fast instead of enqueueing with no consumer.
         outgoingQueue.close()
         inboundFrameDispatcher.close()
         pendingRequestStore.failAll()
@@ -211,7 +204,6 @@ public class JetWhalePluginPeer(
 
     private suspend fun completePending(reply: PluginFrame.Reply) {
         if (!pendingRequestStore.complete(reply)) {
-            // Late reply after timeout/close, or a correlation bug on the other side.
             logger("JetWhale: dropping reply with unknown correlation id '${reply.inReplyTo}' for plugin '$pluginId'.")
         }
     }

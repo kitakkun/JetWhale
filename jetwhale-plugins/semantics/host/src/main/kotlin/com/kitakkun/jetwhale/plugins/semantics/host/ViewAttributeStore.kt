@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -43,10 +44,6 @@ internal class ViewAttributeStore(
     var state: ViewAttributesUiState by mutableStateOf(ViewAttributesUiState.Empty)
         private set
 
-    // Writes run one at a time. Each is its own coroutine, so two edits made in quick succession —
-    // a switch toggled twice, a field committed and then a dropdown picked, a user and an agent
-    // writing at once — would otherwise race, and the row and the status line would settle on
-    // whichever answer happened to arrive last rather than on the last edit made.
     private val writeLock = Mutex()
 
     /**
@@ -63,11 +60,16 @@ internal class ViewAttributeStore(
         scope.launch {
             val response = try {
                 read(GetViewAttributes(rootId = rootId, nodeId = nodeId))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
-                // A read that comes back after the selection moved on describes a node nobody is
-                // looking at any more, so it is dropped rather than shown against the new one.
                 if (node == key) {
                     state = state.copy(attributes = null, message = "The app did not answer: ${e.message}")
+                }
+                return@launch
+            } catch (e: Exception) {
+                if (node == key) {
+                    state = state.copy(attributes = null, message = "Reading the attributes failed: $e")
                 }
                 return@launch
             }
@@ -94,6 +96,8 @@ internal class ViewAttributeStore(
         val key = node ?: return
         scope.launch {
             writeLock.withLock {
+                // Parsing only reads the text, and the exception it constructs is the one it throws.
+                @Suppress("KOTRAIL_BOUNDARY_UNGUARDED")
                 val value = try {
                     parseViewAttributeValue(attribute.id, attribute.value, text)
                 } catch (e: JetWhaleMcpArgumentException) {
@@ -101,9 +105,13 @@ internal class ViewAttributeStore(
                     return@withLock
                 }
                 try {
-                    apply(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
+                    writeAndRecord(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: JetWhaleMessagingException) {
                     state = state.copy(writeStatus = "${attribute.id} failed: ${e.message}", writeFailed = true)
+                } catch (e: Exception) {
+                    state = state.copy(writeStatus = "${attribute.id} failed unexpectedly: $e", writeFailed = true)
                 }
             }
         }
@@ -116,13 +124,11 @@ internal class ViewAttributeStore(
      * Writes one attribute of any node and returns what came back, for the MCP tool — which has a
      * caller waiting on the answer, and so cannot go through [commit].
      */
-    suspend fun writeAttribute(request: SetViewAttribute): ViewAttributeResult = writeLock.withLock { apply(request) }
+    suspend fun writeAttribute(request: SetViewAttribute): ViewAttributeResult = writeLock.withLock { writeAndRecord(request) }
 
     /** The write itself, already serialised by [writeLock]. */
-    private suspend fun apply(request: SetViewAttribute): ViewAttributeResult {
+    private suspend fun writeAndRecord(request: SetViewAttribute): ViewAttributeResult {
         val result = write(request)
-        // Only the node the panel is holding: an agent may write to one the user is not looking at,
-        // and the panel must go on showing the node it is showing.
         if (node == NodeKey(rootId = request.rootId, nodeId = request.nodeId)) {
             record(attributeId = request.attributeId, result = result)
         }
@@ -130,8 +136,6 @@ internal class ViewAttributeStore(
     }
 
     private fun record(attributeId: String, result: ViewAttributeResult) {
-        // The row shows what came back, not what was asked for: an app may clamp a value or ignore
-        // it, and the difference is exactly what the panel is for.
         val attributes = when (val written = result.attribute) {
             null -> state.attributes
             else -> state.attributes?.map { if (it.id == written.id) written else it }

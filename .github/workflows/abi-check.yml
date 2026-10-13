@@ -19,6 +19,9 @@ on:
       - 'jetwhale-plugins/network/**'
       - 'jetwhale-plugins/nav3/**'
       - 'jetwhale-plugins/semantics/**'
+      - 'jetwhale-plugins/storage/**'
+      - 'jetwhale-plugins/actions/**'
+      - 'jetwhale-plugins/mirror/**'
       # Adding or removing a target here rewrites the `// Targets: [...]` header of every klib dump,
       # so a change confined to the convention would otherwise slip past unchecked.
       - 'gradle-conventions/**'
@@ -67,4 +70,9 @@ jobs:
             :jetwhale-plugins:storage:protocol:checkKotlinAbi \
             :jetwhale-plugins:storage:agent:checkKotlinAbi \
             :jetwhale-plugins:storage:agent-datastore:checkKotlinAbi \
-            :jetwhale-plugins:storage:host:checkKotlinAbi
+            :jetwhale-plugins:storage:host:checkKotlinAbi \
+            :jetwhale-plugins:actions:protocol:checkKotlinAbi \
+            :jetwhale-plugins:actions:agent:checkKotlinAbi \
+            :jetwhale-plugins:actions:agent-compose:checkKotlinAbi \
+            :jetwhale-plugins:actions:host:checkKotlinAbi \
+            :jetwhale-plugins:mirror:host:checkKotlinAbi

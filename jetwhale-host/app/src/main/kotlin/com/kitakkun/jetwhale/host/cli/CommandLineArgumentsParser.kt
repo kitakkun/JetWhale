@@ -89,8 +89,6 @@ class CommandLineArgumentsParser {
         if (!hasNext()) error("Expected a port number after $option")
         val rawPort = next()
         val port = rawPort.toIntOrNull()
-        // Reject out-of-range values here rather than letting the server fail to bind later: the
-        // failure would surface long after startup, without naming the option that caused it.
         check(port != null && port in 1..65535) { "Expected a port number in 1..65535 after $option, but was: $rawPort" }
         return port
     }

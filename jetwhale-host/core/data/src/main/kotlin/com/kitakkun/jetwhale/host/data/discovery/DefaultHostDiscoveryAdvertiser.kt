@@ -36,8 +36,6 @@ class DefaultHostDiscoveryAdvertiser(
 
     private var observeJob: Job? = null
 
-    // The ports the currently registered service was advertised with, used to skip redundant
-    // re-registration when the status flow re-emits an equivalent Started state.
     private var advertisedPorts: Pair<Int, Int?>? = null
 
     override fun start() {

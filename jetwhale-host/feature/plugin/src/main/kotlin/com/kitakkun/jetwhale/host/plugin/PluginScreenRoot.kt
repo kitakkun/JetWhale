@@ -30,17 +30,15 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(InternalComposeUiApi::class)
 @Composable
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reset by remember { mutableStateOf(false) }
-    // Bumped on every hot reload to trigger the transient "Hot reloaded" indicator.
     var reloadCount by remember { mutableIntStateOf(0) }
 
-    // On hot reload, toggling `reset` re-creates the query so a fresh compose scene is built from the
-    // freshly loaded plugin code. Inert in production (the flow never emits without a dev directory).
     LaunchedEffect(screenContext) {
         screenContext.pluginReloadedFlow.collect {
             reset = !reset
@@ -53,8 +51,6 @@ fun PluginScreenRoot() {
             SoilDataBoundary(
                 state = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
             ) { headlessPlugins ->
-                // Branch before the scene query so a headless plugin never gets a ComposeScene
-                // built for it: there is no content to put in one, and it would render blank.
                 if (headlessPlugins.isHeadless(screenContext.sessionId, screenContext.pluginId)) {
                     HeadlessPluginScreen(pluginId = screenContext.pluginId)
                     return@SoilDataBoundary
@@ -90,9 +86,8 @@ fun PluginScreenRoot() {
 private val HOT_RELOAD_BADGE_SHADOW = 4.dp
 
 /**
- * Shows a brief "Hot reloaded" badge each time [reloadCount] changes (i.e. on every hot reload),
- * fading out shortly after so it does not obscure the plugin UI. Never appears in production, where
- * hot reload is inert.
+ * Shows a brief "Reloaded" badge each time [reloadCount] changes (i.e. on every reload), fading
+ * out shortly after so it does not obscure the plugin UI.
  */
 @Composable
 private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) {
@@ -100,7 +95,7 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
     LaunchedEffect(reloadCount) {
         if (reloadCount == 0) return@LaunchedEffect
         visible = true
-        delay(1_500)
+        delay(1_500.milliseconds)
         visible = false
     }
     AnimatedVisibility(
@@ -122,7 +117,7 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 JwText("⟳", style = JwTheme.textStyles.label)
-                JwText("Hot reloaded", style = JwTheme.textStyles.label)
+                JwText("Reloaded", style = JwTheme.textStyles.label)
             }
         }
     }

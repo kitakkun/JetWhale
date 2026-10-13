@@ -33,23 +33,21 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
         val frame = window.frame.toNodeBounds()
         ComposeRoot(
             rootId = sourceId,
-            label = window.describe(),
-            // Bounds are reported in points, which are already density-independent: a point is
-            // what every iOS tool takes, so nothing is gained by scaling to pixels and back.
+            label = window.labelFromRootViewController(),
+            // Bounds are in points, which are already density-independent and what every iOS tool
+            // takes.
             density = 1f,
             windowOffsetX = frame.left,
             windowOffsetY = frame.top,
             // Modality on iOS lives inside the window — a presented controller over the content —
             // so no window claims the touches that land outside it.
             isTouchModal = false,
-            node = AppleNodeIds.trackingCapture(window) {
+            node = AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) {
                 window.toAppleNode(options = options, window = window, depth = 0)
             },
         )
     }
 
-    // A window that has gone off screen has nothing readable to report, so the check gates every
-    // call rather than only the registration.
     private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden }
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = IosUiThread.await {
@@ -83,7 +81,7 @@ private fun NSObject.anyDescendant(predicate: (NSObject) -> Boolean): Boolean = 
 }
 
 /** Names the window by what it shows — its root view controller — since a window has no name of its own. */
-private fun UIWindow.describe(): String {
+private fun UIWindow.labelFromRootViewController(): String {
     val controller = rootViewController ?: return className()
     val name = (controller as NSObject).className()
     return if (isKeyWindow()) name else "$name / ${className()}"

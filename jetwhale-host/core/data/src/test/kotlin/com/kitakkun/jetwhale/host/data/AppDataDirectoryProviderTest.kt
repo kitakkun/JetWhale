@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.data
 
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -29,12 +31,11 @@ class AppDataDirectoryProviderTest {
 
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
+        val appData = File(home, ".jetwhale").toPath()
         assertEquals("~/.jetwhale", provider.getAppDataPath())
-        assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
-        assertTrue(provider.getTrustRegistryFile().path.startsWith("$home/.jetwhale"))
-        assertTrue(
-            provider.resolveDataStoreFilePath("prefs.preferences_pb").toString().startsWith("$home/.jetwhale"),
-        )
+        assertTrue(provider.getPluginDirectory().toPath().startsWith(appData))
+        assertTrue(provider.getTrustRegistryFile().toPath().startsWith(appData))
+        assertTrue(provider.resolveDataStoreFilePath("prefs.preferences_pb").toNioPath().startsWith(appData))
     }
 
     @Test
@@ -46,7 +47,6 @@ class AppDataDirectoryProviderTest {
 
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
-        // Nothing resolves under the real home; everything flows from the sandbox root.
         assertEquals(sandbox, provider.getAppDataPath())
         assertTrue(provider.getPluginDirectory().path.startsWith(sandbox))
         assertTrue(provider.getPluginLibsDirectory().path.startsWith(sandbox))
@@ -67,6 +67,21 @@ class AppDataDirectoryProviderTest {
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
         assertEquals("~/.jetwhale", provider.getAppDataPath())
-        assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
+        assertTrue(provider.getPluginDirectory().toPath().startsWith(File(home, ".jetwhale").toPath()))
+    }
+
+    @Test
+    fun `a jar installed from a file lands whole and leaves nothing in staging`() {
+        val home = Files.createTempDirectory("jetwhale-home").toString()
+        System.setProperty("user.home", home)
+        val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
+        provider.createAppDataDirectoriesIfNeeded()
+        val source = Files.createTempFile("network", ".jar").toFile().apply { writeBytes(ByteArray(4096, Int::toByte)) }
+
+        val installed = File(provider.copyJarFileToAppDataDirectory(source.absolutePath))
+
+        assertContentEquals(source.readBytes(), installed.readBytes())
+        assertEquals(provider.getPluginDirectory().canonicalFile, installed.parentFile.canonicalFile)
+        assertEquals(emptyList(), provider.getPluginStagingDirectory().listFiles().orEmpty().toList())
     }
 }

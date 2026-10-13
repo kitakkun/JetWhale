@@ -52,7 +52,6 @@ internal fun NetworkTestScreen() {
             val line = try {
                 "$label → ${block(target)}"
             } catch (e: Throwable) {
-                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
                 if (e is CancellationException) throw e
                 "$label → error: ${e.message}"
             }
@@ -99,8 +98,8 @@ private fun LazyListScope.sampleRequestButtons(fire: (String, suspend (baseUrl: 
     item {
         Button(
             onClick = {
-                fire("GET /todos/1") { base ->
-                    val response = DIModule.httpClient.get("$base/todos/1")
+                fire("GET /todos/1") { baseUrl ->
+                    val response = DIModule.httpClient.get("$baseUrl/todos/1")
                     "${response.status.value} ${response.bodyAsText()}"
                 }
             },
@@ -111,8 +110,8 @@ private fun LazyListScope.sampleRequestButtons(fire: (String, suspend (baseUrl: 
     item {
         Button(
             onClick = {
-                fire("POST /todos") { base ->
-                    val response = DIModule.httpClient.post("$base/todos") {
+                fire("POST /todos") { baseUrl ->
+                    val response = DIModule.httpClient.post("$baseUrl/todos") {
                         contentType(ContentType.Application.Json)
                         setBody("""{"title":"New todo"}""")
                     }
@@ -126,8 +125,8 @@ private fun LazyListScope.sampleRequestButtons(fire: (String, suspend (baseUrl: 
     item {
         Button(
             onClick = {
-                fire("DELETE /todos/1") { base ->
-                    val response = DIModule.httpClient.delete("$base/todos/1")
+                fire("DELETE /todos/1") { baseUrl ->
+                    val response = DIModule.httpClient.delete("$baseUrl/todos/1")
                     "${response.status.value} ${response.bodyAsText()}"
                 }
             },
@@ -150,8 +149,8 @@ private fun LazyListScope.sampleRequestButtons(fire: (String, suspend (baseUrl: 
     item {
         Button(
             onClick = {
-                fire("GET /nonexistent-path") { base ->
-                    val response = DIModule.httpClient.get("$base/nonexistent-path")
+                fire("GET /nonexistent-path") { baseUrl ->
+                    val response = DIModule.httpClient.get("$baseUrl/nonexistent-path")
                     "${response.status.value} ${response.bodyAsText()}"
                 }
             },

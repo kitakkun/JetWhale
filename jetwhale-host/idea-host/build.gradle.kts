@@ -6,8 +6,6 @@ plugins {
 }
 
 kotlin {
-    // Matches the host app: this jar and its whole runtime classpath run inside the IDE's JVM, but
-    // in their own classloader, so they can be 21 like the app rather than what the IDE was built with.
     jvmToolchain(21)
 }
 

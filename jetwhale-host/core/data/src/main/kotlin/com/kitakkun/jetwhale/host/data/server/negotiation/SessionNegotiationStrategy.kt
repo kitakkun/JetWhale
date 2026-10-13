@@ -15,7 +15,8 @@ class SessionNegotiationStrategy : NegotiationStrategy<SessionNegotiationResult>
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): SessionNegotiationResult {
         val sessionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.Session>()
-        // The host session's id names no app; an agent asking for it gets a fresh id like any other.
+        // HostSession.ID belongs to the host's own plugin instances; an agent that claims it gets a
+        // fresh id instead.
         val sessionId = sessionNegotiationRequest.sessionId
             ?.takeUnless(HostSession::isHost)
             ?: UUID.randomUUID().toString()

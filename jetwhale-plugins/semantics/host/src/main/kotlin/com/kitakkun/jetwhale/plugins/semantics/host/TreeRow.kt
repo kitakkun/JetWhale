@@ -37,7 +37,7 @@ internal fun buildTreeRows(
 ): List<TreeRow> = buildList {
     for (root in roots) {
         val filtered = root.node?.filterTree(predicate)
-        add(TreeRow.RootHeader(root, nodeCount = filtered?.asSequence()?.count() ?: 0))
+        add(TreeRow.RootHeader(root, nodeCount = filtered?.subtreeSize() ?: 0))
         if (filtered != null) appendNodeRows(root.rootId, filtered, depth = 0, collapsedKeys = collapsedKeys)
     }
 }

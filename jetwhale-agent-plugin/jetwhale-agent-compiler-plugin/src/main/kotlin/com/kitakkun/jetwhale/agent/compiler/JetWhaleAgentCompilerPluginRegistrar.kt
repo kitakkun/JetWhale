@@ -13,9 +13,6 @@ class JetWhaleAgentCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val supportsK2: Boolean = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
-        // No address: every buildMachineWss call is left as written, and its own body explains the
-        // silence at runtime. Registering nothing keeps this compilation identical to an unplugged
-        // one rather than half-transformed.
         val address = configuration.get(BUILD_MACHINE_ADDRESS_KEY) ?: return
         val messageCollector = configuration.get(
             CommonConfigurationKeys.MESSAGE_COLLECTOR_KEY,

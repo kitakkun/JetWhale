@@ -89,8 +89,6 @@ public abstract class JetWhaleAgentPlugin {
      */
     protected open fun onDeactivate() {}
 
-    // -- runtime hooks (not for plugin authors) -------------------------------
-
     /** The requested offline buffer capacity; the runtime reads this to size the [messenger]. */
     @InternalJetWhaleApi
     public fun offlineEventBufferCapacity(): Int = offlineEventBufferCapacity

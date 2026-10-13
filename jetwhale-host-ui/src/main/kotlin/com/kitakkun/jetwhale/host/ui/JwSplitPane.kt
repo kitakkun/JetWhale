@@ -90,7 +90,8 @@ public fun JwSplitPane(
             Box(modifier = Modifier.then(if (horizontal) Modifier.fillMaxHeight() else Modifier.fillMaxWidth())) { first() }
             Box(modifier = Modifier.then(if (horizontal) Modifier.fillMaxHeight() else Modifier.fillMaxWidth())) { second() }
             if (horizontal) JwVerticalDivider() else JwHorizontalDivider()
-            // A wider, invisible hit area over the divider, so it stays comfortable to grab.
+            // The measurables destructuring below takes this as the fourth child, and it is placed
+            // last so its grab area lies over the edges of the panes it overlaps.
             Box(
                 modifier = Modifier
                     .then(if (horizontal) Modifier.width(JwSplitPaneDefaults.handleSize).fillMaxHeight() else Modifier.height(JwSplitPaneDefaults.handleSize).fillMaxWidth())

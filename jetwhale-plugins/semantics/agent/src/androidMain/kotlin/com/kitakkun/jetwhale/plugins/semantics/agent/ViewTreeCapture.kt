@@ -50,9 +50,8 @@ internal fun View.toViewNode(
 
     val bounds = boundsInWindow()
     val visibleBounds = visibleBoundsInWindow()
-    // Decided on the clipped bounds, as the Compose side is: `isShown` says the view and its
-    // ancestors are VISIBLE, not that any of it is on screen, so a row scrolled out of a container
-    // would otherwise report itself visible while occupying no pixels a finger could reach.
+    // `isShown` only means the view and its ancestors are VISIBLE, not that any of it is on screen,
+    // so a row scrolled out of its container would otherwise count as visible.
     val visible = visibility == View.VISIBLE && isShown && !visibleBounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 

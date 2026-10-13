@@ -38,7 +38,6 @@ private class StorageHostPlugin :
 
     private val browser by lazy { StorageBrowser(client = this, scope = pluginScope) }
 
-    // The agent pushes nothing, so the whole view is fetched once per connection.
     override suspend fun onPrepare() {
         browser.load()
     }

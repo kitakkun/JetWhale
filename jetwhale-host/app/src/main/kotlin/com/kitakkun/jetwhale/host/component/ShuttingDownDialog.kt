@@ -37,5 +37,7 @@ fun ShuttingDownDialog() {
 @Preview
 @Composable
 private fun ShuttingDownDialogPreview() {
-    ShuttingDownDialog()
+    JwTheme(darkTheme = false) {
+        ShuttingDownDialog()
+    }
 }

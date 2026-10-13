@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +13,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -71,16 +73,18 @@ internal class StorageBrowser(
         private set
 
     private val children = mutableStateMapOf<FileLocation, List<FileEntry>>()
-    private var expanded: Set<FileLocation> by mutableStateOf(emptySet())
+    private var expandedDirectories: Set<FileLocation> by mutableStateOf(emptySet())
 
-    val treeRows: List<FileTreeRow>
-        get() = flattenFileTree(locations?.fileRoots.orEmpty(), children, expanded)
+    val treeRows: List<FileTreeRow> by derivedStateOf {
+        flattenFileTree(locations?.fileRoots.orEmpty(), children, expandedDirectories)
+    }
 
     private var selectedLocation: FileLocation? by mutableStateOf(null)
 
     /** The row in the detail pane, looked up again after each reload so its size and date stay current. */
-    val selectedRow: FileTreeRow?
-        get() = selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    val selectedRow: FileTreeRow? by derivedStateOf {
+        selectedLocation?.let { location -> treeRows.firstOrNull { it.location == location } }
+    }
 
     var loadedFile: LoadedFile? by mutableStateOf(null)
         private set
@@ -105,14 +109,13 @@ internal class StorageBrowser(
     /** Loads the locations, then everything the user had open, so a reconnect restores the view. */
     suspend fun load() {
         val loaded = client.locations()
-        // Sizes and contents may have changed since they were computed.
         directoryMeasurement = null
         fileSha256 = null
         locations = loaded
         val rootNames = loaded.fileRoots.map(FileRootInfo::name).toSet()
-        expanded = expanded.filterTo(mutableSetOf()) { it.rootName in rootNames }
-        children.keys.retainAll(expanded)
-        expanded.forEach { loadDirectory(it) }
+        expandedDirectories = expandedDirectories.filterTo(mutableSetOf()) { it.rootName in rootNames }
+        children.keys.retainAll(expandedDirectories)
+        expandedDirectories.forEach { loadDirectory(it) }
         val selected = selectedRow
         if (selected == null) {
             selectedLocation = null
@@ -135,17 +138,17 @@ internal class StorageBrowser(
     }
 
     override fun toggleDirectory(location: FileLocation) {
-        if (location in expanded) {
-            expanded = expanded - location
+        if (location in expandedDirectories) {
+            expandedDirectories = expandedDirectories - location
             return
         }
-        expanded = expanded + location
+        expandedDirectories = expandedDirectories + location
         launchReporting { loadDirectory(location) }
     }
 
     override fun toggleSubtree(location: FileLocation) {
-        if (location in expanded) {
-            expanded = expanded.filterNot(location::contains).toSet()
+        if (location in expandedDirectories) {
+            expandedDirectories = expandedDirectories.filterNot(location::contains).toSet()
             return
         }
         launchReporting { expandSubtree(location) }
@@ -161,7 +164,7 @@ internal class StorageBrowser(
                 return
             }
             val directory = pending.removeFirst()
-            expanded = expanded + directory
+            expandedDirectories = expandedDirectories + directory
             loadDirectory(directory)
             val entries = children[directory].orEmpty()
             listed += entries.size
@@ -190,7 +193,7 @@ internal class StorageBrowser(
             selectedLocation = null
             loadedFile = null
         }
-        expanded = expanded.filterNot(location::contains).toSet()
+        expandedDirectories = expandedDirectories.filterNot(location::contains).toSet()
         loadDirectory(FileLocation(location.rootName, location.path.dropLast(1)))
         status = StorageStatus(message = "Deleted ${location.name}.", isError = false)
     }
@@ -216,8 +219,6 @@ internal class StorageBrowser(
 
     override fun measureDirectory(location: FileLocation) = launchReporting {
         val measurement = client.measureDirectory(location)
-        // The user may have picked another entry while the walk was running; its outcome, failure
-        // included, no longer belongs on screen.
         if (selectedLocation != location) return@launchReporting
         when (val error = measurement.error) {
             null -> directoryMeasurement = measurement
@@ -251,7 +252,6 @@ internal class StorageBrowser(
 
     private suspend fun loadStore(storeName: String) {
         val content = client.readKeyValueStore(storeName)
-        // The user may have picked another store while this one was in flight.
         if (selectedStore == storeName) storeContent = content
     }
 
@@ -263,7 +263,6 @@ internal class StorageBrowser(
 
     private suspend fun loadFile(location: FileLocation) {
         val content = client.readFile(location, offset = 0, maxBytes = PREVIEW_BYTES)
-        // The user may have picked another file while this one was in flight.
         if (selectedLocation != location) return
         val error = content.error
         if (error != null) {
@@ -277,8 +276,12 @@ internal class StorageBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = StorageStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = StorageStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

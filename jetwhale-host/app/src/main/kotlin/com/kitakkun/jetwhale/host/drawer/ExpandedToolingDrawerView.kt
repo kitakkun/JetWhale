@@ -115,6 +115,7 @@ fun ExpandedToolingDrawerView(
     onResize: (Dp) -> Unit,
     onResizeFinished: () -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
@@ -141,11 +142,10 @@ fun ExpandedToolingDrawerView(
             SidebarHeader(
                 aiActivity = aiActivity,
                 onFollowAiOperationChange = onFollowAiOperationChange,
+                onOpenMcpSettings = onOpenMcpSettings,
                 onClickShrinkDrawer = onClickShrinkDrawer,
             )
             JwHorizontalDivider()
-            // The plugins that need no app come first, with no heading: the divider and the app picker
-            // below are what set the app's plugins apart.
             if (hostPlugins.isNotEmpty()) {
                 // Capped rather than weighted: it takes what it needs, yet never more than half the
                 // sidebar, so a long list scrolls instead of pushing the picker out of view. A weight
@@ -178,14 +178,11 @@ fun ExpandedToolingDrawerView(
                     modifier = Modifier.weight(1f),
                 )
 
-                // With no app selected every app plugin would be greyed, which reads as broken; say what
-                // brings them instead.
                 selectedSession == null -> JwEmptyState(
                     title = stringResource(Res.string.no_app_connected),
                     modifier = Modifier.weight(1f),
                 )
 
-                // Otherwise the area below the picker is blank, which reads as a failure to load.
                 appPlugins.isEmpty() -> JwEmptyState(
                     title = stringResource(Res.string.app_has_no_plugins),
                     modifier = Modifier.weight(1f),
@@ -211,7 +208,6 @@ fun ExpandedToolingDrawerView(
                 onClickInfo = onClickInfo,
             )
         }
-        // Laid over the sidebar's trailing edge, where the divider beside it is.
         SidebarResizeHandle(
             width = width,
             onResize = onResize,
@@ -231,8 +227,6 @@ private fun SidebarResizeHandle(
 ) {
     val currentWidth by rememberUpdatedState(width)
     val density = LocalDensity.current
-    // Accumulated here rather than read back from [width]: several drag deltas can arrive before
-    // the new width comes back through the presenter, and each must add to the last.
     var draggedWidth by remember { mutableStateOf(width) }
     Box(
         modifier = modifier
@@ -257,6 +251,7 @@ private fun SidebarResizeHandle(
 private fun SidebarHeader(
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickShrinkDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -268,10 +263,8 @@ private fun SidebarHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
-        // The row keeps its height with or without an agent, so nothing below it moves as the banner
-        // comes and goes.
         Box(modifier = Modifier.weight(1f)) {
-            AiActivityBanner(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
+            AiActivityBanner(uiState = aiActivity, onFollowChange = onFollowAiOperationChange, onOpenMcpSettings = onOpenMcpSettings)
         }
         JwIconButton(
             onClick = onClickShrinkDrawer,
@@ -280,8 +273,6 @@ private fun SidebarHeader(
             JwIcon(
                 painter = painterResource(Res.drawable.sidebar_unfold),
                 contentDescription = null,
-                // The same glyph as the rail's "expand", mirrored: the arrow then points at the
-                // edge the sidebar collapses toward.
                 modifier = Modifier.scale(scaleX = -1f, scaleY = 1f),
             )
         }
@@ -303,8 +294,6 @@ private fun SidebarFooter(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
     ) {
-        // Opens the browser unscoped, so the tools an agent can reach are visible without first
-        // finding a plugin that happens to publish some.
         JwIconButton(onClick = onOpenAllMcpTools, tooltip = stringResource(Res.string.mcp_tools_open_all)) {
             JwIcon(imageVector = Icons.Default.Build, contentDescription = null)
         }
@@ -488,8 +477,6 @@ private fun LazyListScope.enabledPluginRows(
                         },
                     )
                 } else if (!plugin.isHeadless) {
-                    // A window of its own would only carry the "no UI" notice, so a headless
-                    // plugin is not offered one.
                     JwMenuItem(
                         text = stringResource(Res.string.popout),
                         leadingIcon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
@@ -526,7 +513,6 @@ private fun LazyListScope.inactivePluginRows(
                 name = plugin.name,
                 activeIconResource = plugin.activeIconResource,
                 inactiveIconResource = plugin.inactiveIconResource,
-                // Selected while its screen, which explains why it can't run, is the one shown.
                 selected = plugin.id == selectedPluginId,
                 underAiControl = plugin.underAiControl,
                 exposesMcpTools = plugin.exposesMcpTools,
@@ -578,73 +564,76 @@ private fun InactivePluginsFoldRow(
 @Preview
 @Composable
 private fun ExpandedToolingDrawerViewPreview() {
-    val session = DebugSession(
-        id = "session-1",
-        name = "Sample app",
-        isActive = true,
-        transportSecurity = SessionTransportSecurity.LOOPBACK,
-        installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId = "com.example.inspector", pluginVersion = "1.0.0")),
-        appName = "Sample app",
-        deviceId = "device-1",
-        deviceName = "Pixel 9",
-    )
-    ExpandedToolingDrawerView(
-        selectedPluginId = "com.example.inspector",
-        plugins = persistentListOf(
-            DrawerPluginItemUiState(
-                name = "Device tool",
-                id = "com.example.device",
-                activeIconResource = null,
-                inactiveIconResource = null,
-                pluginAvailability = PluginAvailability.Enabled,
-                underAiControl = false,
-                exposesMcpTools = false,
-                isHeadless = false,
-                needsApp = false,
+    JwTheme(darkTheme = false) {
+        val session = DebugSession(
+            id = "session-1",
+            name = "Sample app",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.LOOPBACK,
+            installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId = "com.example.inspector", pluginVersion = "1.0.0")),
+            appName = "Sample app",
+            deviceId = "device-1",
+            deviceName = "Pixel 9",
+        )
+        ExpandedToolingDrawerView(
+            selectedPluginId = "com.example.inspector",
+            plugins = persistentListOf(
+                DrawerPluginItemUiState(
+                    name = "Device tool",
+                    id = "com.example.device",
+                    activeIconResource = null,
+                    inactiveIconResource = null,
+                    pluginAvailability = PluginAvailability.Enabled,
+                    underAiControl = false,
+                    exposesMcpTools = false,
+                    isHeadless = false,
+                    needsApp = false,
+                ),
+                DrawerPluginItemUiState(
+                    name = "Inspector",
+                    id = "com.example.inspector",
+                    activeIconResource = null,
+                    inactiveIconResource = null,
+                    pluginAvailability = PluginAvailability.Enabled,
+                    underAiControl = false,
+                    exposesMcpTools = true,
+                    isHeadless = false,
+                    needsApp = true,
+                ),
+                DrawerPluginItemUiState(
+                    name = "Recorder",
+                    id = "com.example.recorder",
+                    activeIconResource = null,
+                    inactiveIconResource = null,
+                    pluginAvailability = PluginAvailability.Disabled,
+                    underAiControl = false,
+                    exposesMcpTools = false,
+                    isHeadless = false,
+                    needsApp = true,
+                ),
             ),
-            DrawerPluginItemUiState(
-                name = "Inspector",
-                id = "com.example.inspector",
-                activeIconResource = null,
-                inactiveIconResource = null,
-                pluginAvailability = PluginAvailability.Enabled,
-                underAiControl = false,
-                exposesMcpTools = true,
-                isHeadless = false,
-                needsApp = true,
-            ),
-            DrawerPluginItemUiState(
-                name = "Recorder",
-                id = "com.example.recorder",
-                activeIconResource = null,
-                inactiveIconResource = null,
-                pluginAvailability = PluginAvailability.Disabled,
-                underAiControl = false,
-                exposesMcpTools = false,
-                isHeadless = false,
-                needsApp = true,
-            ),
-        ),
-        hasFailedJars = false,
-        selectedSession = session,
-        sessions = persistentListOf(session),
-        aiActivity = AiActivityUiState.Idle,
-        width = JwMetrics.sidebarWidth,
-        onResize = {},
-        onResizeFinished = {},
-        onFollowAiOperationChange = {},
-        onClickShrinkDrawer = {},
-        onClickSettings = {},
-        onClickPluginSettings = {},
-        onClickInfo = {},
-        onOpenMcpTools = {},
-        onOpenAllMcpTools = {},
-        onClickPlugin = {},
-        onClickInactivePlugin = {},
-        onSelectSession = {},
-        onClickPopout = {},
-        isPoppedOut = { false },
-        onClickBringBack = {},
-        onSetPluginEnabled = { _, _ -> },
-    )
+            hasFailedJars = false,
+            selectedSession = session,
+            sessions = persistentListOf(session),
+            aiActivity = AiActivityUiState.Idle,
+            width = JwMetrics.sidebarWidth,
+            onResize = {},
+            onResizeFinished = {},
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            onClickShrinkDrawer = {},
+            onClickSettings = {},
+            onClickPluginSettings = {},
+            onClickInfo = {},
+            onOpenMcpTools = {},
+            onOpenAllMcpTools = {},
+            onClickPlugin = {},
+            onClickInactivePlugin = {},
+            onSelectSession = {},
+            onClickPopout = {},
+            isPoppedOut = { false },
+            onClickBringBack = {},
+            onSetPluginEnabled = { _, _ -> },
+        )
+    }
 }

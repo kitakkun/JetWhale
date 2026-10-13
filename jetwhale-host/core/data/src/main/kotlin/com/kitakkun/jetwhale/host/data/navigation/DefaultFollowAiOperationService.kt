@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -25,10 +26,6 @@ class DefaultFollowAiOperationService(
 ) : FollowAiOperationService {
 
     override suspend fun followAiOperations() {
-        // lastStartedInvocation rather than runningInvocations: a call can finish before this
-        // collector is resumed, and a window that missed it would sit on the wrong plugin for the
-        // rest of the run. Every started call carries a fresh id, so keying distinctness on the id
-        // follows each new call exactly once while leaving the completion updates alone.
         mcpActivityRepository.activityFlow
             .mapNotNull { it.lastStartedInvocation }
             .distinctUntilChangedBy(McpToolInvocation::id)
@@ -36,15 +33,11 @@ class DefaultFollowAiOperationService(
     }
 
     private suspend fun follow(invocation: McpToolInvocation) {
-        // Read per call, not once: turning the mode off has to stop the next call from moving the
-        // window, without restarting the collector.
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
-        // Host tools (navigation, settings, status) name no plugin, and there is nothing to follow.
+        if (invocation.permission is McpToolPermission.HostGroup) return
         val pluginId = invocation.pluginId ?: return
 
         val currentView = hostNavigationService.currentView.value
-        // Null until the window reports its first destination; navigating then is still right,
-        // because the request waits in the channel until the window is there to take it.
         if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
 
         hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId, followsAgent = true))

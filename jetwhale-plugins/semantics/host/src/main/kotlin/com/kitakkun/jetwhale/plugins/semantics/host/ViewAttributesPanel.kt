@@ -289,9 +289,8 @@ private fun TextEditor(
         enabled = enabled,
         placeholder = placeholder,
         textStyle = JwTheme.textStyles.code,
-        // Enter arrives as the field's own IME action rather than being taken off the key stream
-        // before it: an input method composing a word — a Japanese one converting kana — spends
-        // Enter on accepting its candidate, and a preview handler would swallow that keystroke and
+        // Enter is taken as the field's IME action, not off the key stream: an input method
+        // composing a word spends Enter on accepting its candidate, and a preview key handler would
         // write the half-composed text instead.
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { commit() }),

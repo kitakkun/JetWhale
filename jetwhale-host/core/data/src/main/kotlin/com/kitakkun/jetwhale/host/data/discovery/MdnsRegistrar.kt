@@ -89,6 +89,8 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
         unregister()
+        // Advertising is best effort: a JmDNS or network failure of any kind leaves agents to use
+        // an explicit host.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val address = primaryMulticastAddress()
@@ -113,15 +115,14 @@ class JmDnsRegistrar : MdnsRegistrar {
                 "Advertising JetWhale host over mDNS: $SERVICE_TYPE ws=$wsPort wss=$wssPort on ${address.hostAddress}",
             )
         } catch (e: Exception) {
-            // mDNS advertising is a convenience; a failure (e.g. multicast blocked) must not stop the
-            // debug server. Explicit host/port configuration remains the fallback for agents.
             logger.warn("Failed to advertise JetWhale host over mDNS; agents must use an explicit host", e)
         }
     }
 
     override fun unregister() {
         registeredService?.let { service ->
-            // Unregistering is best effort: whatever jmDNS throws, shutting down or re-registering goes on.
+            // Unregistering is best effort; a failure must not block the shutdown or the next
+            // registration.
             @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 jmdns?.unregisterService(service)
@@ -134,7 +135,6 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun close() {
         unregister()
-        // Idempotent: once closed, jmdns is null and a later register() recreates it on demand.
         val instance = jmdns ?: return
         jmdns = null
         try {

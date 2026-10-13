@@ -40,6 +40,14 @@ private const val STORE_LIST_FRACTION = 0.25f
 /** Fits the longest type name a platform store reports, "Set<String>". */
 private val TypeColumnWidth = 96.dp
 
+// Built once: a list made in composition would be new on every pass, and the table re-runs every
+// visible cell whenever its columns change.
+private val KeyValueColumns: List<JwTableColumn<KeyValueEntry>> = listOf(
+    JwTableColumn.text(header = "Key", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::key),
+    JwTableColumn.text(header = "Type", width = JwColumnWidth.Fixed(TypeColumnWidth), text = KeyValueEntry::type),
+    JwTableColumn.text(header = "Value", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::value),
+)
+
 @Composable
 internal fun KeyValuePane(
     stores: List<KeyValueStoreInfo>,
@@ -123,11 +131,7 @@ internal fun KeyValueTable(
 ) {
     JwTable(
         items = entries,
-        columns = listOf(
-            JwTableColumn.text(header = "Key", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::key),
-            JwTableColumn.text(header = "Type", width = JwColumnWidth.Fixed(TypeColumnWidth), text = KeyValueEntry::type),
-            JwTableColumn.text(header = "Value", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::value),
-        ),
+        columns = KeyValueColumns,
         key = KeyValueEntry::key,
         isSelected = { it.key == selectedKey },
         onClick = onSelect,

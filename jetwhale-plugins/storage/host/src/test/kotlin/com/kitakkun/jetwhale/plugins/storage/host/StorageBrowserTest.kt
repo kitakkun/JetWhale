@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
+import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -14,7 +15,9 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class StorageBrowserTest {
@@ -30,7 +33,6 @@ class StorageBrowserTest {
         ),
     )
 
-    // The fake answers without suspending, so every launched call has finished by the time launch returns.
     private val browser = StorageBrowser(client, CoroutineScope(Dispatchers.Unconfined))
 
     @Test
@@ -113,6 +115,21 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `a file whose content the browser cannot decode shows the failure in the status`() {
+        val undecodableFileClient = object : StorageClient by client {
+            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
+        }
+        val browser = StorageBrowser(undecodableFileClient, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+
+        assertNull(browser.loadedFile)
+        assertEquals(true, browser.status?.isError)
+    }
+
+    @Test
     fun `expanding a subtree opens every directory below it`() {
         runBlocking { browser.load() }
 
@@ -134,7 +151,6 @@ class StorageBrowserTest {
 
     @Test
     fun `expanding a very large subtree stops at the entry limit`() {
-        // 30 directories of 30 directories each: 930 entries, well past the limit.
         val directories = mutableMapOf(location("Cache") to (0 until 30).map { directoryEntry("d$it") })
         (0 until 30).forEach { outer -> directories[location("Cache", "d$outer")] = (0 until 30).map { directoryEntry("e$it") } }
         val wideApp = FakeStorageClient(directories = directories, files = emptyMap(), stores = mutableMapOf())
@@ -191,6 +207,21 @@ class StorageBrowserTest {
         browser.computeSha256(location("Files", "notes.txt"))
 
         assertNull(browser.fileSha256)
+    }
+
+    @Test
+    fun `the tree rows are the same objects until something they show changes`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+        val rows = browser.treeRows
+
+        browser.computeSha256(location("Files", "notes.txt"))
+
+        assertSame(rows, browser.treeRows)
+        browser.toggleDirectory(location("Files", "datastore"))
+        assertNotSame(rows, browser.treeRows)
+        assertEquals(listOf("Files", "datastore", "settings.preferences_pb", "notes.txt"), browser.treeRows.map { it.location.name })
     }
 
     @Test

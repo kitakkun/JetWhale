@@ -65,6 +65,7 @@ fun ShrunkToolingDrawerView(
     selectedPluginId: String,
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPlugin: (String) -> Unit,
@@ -89,9 +90,12 @@ fun ShrunkToolingDrawerView(
                 JwIcon(painter = painterResource(Res.drawable.sidebar_unfold), contentDescription = null)
             }
         }
-        // The rail's form of the header's AI banner. Its slot is kept while no agent is connected, so
-        // the rail below never moves.
-        AiActivityIndicator(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
+        AiActivityIndicator(
+            uiState = aiActivity,
+            onFollowChange = onFollowAiOperationChange,
+            onOpenMcpSettings = onOpenMcpSettings,
+            modifier = Modifier.padding(bottom = JwSpacing.extraSmall),
+        )
         JwHorizontalDivider()
         Column(
             modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
@@ -112,7 +116,6 @@ fun ShrunkToolingDrawerView(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             items(
-                // The tools that need no app first, as in the expanded sidebar.
                 items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
                 key = DrawerPluginItemUiState::id,
             ) {
@@ -136,8 +139,6 @@ fun ShrunkToolingDrawerView(
                             contentDescription = null,
                         )
                     }
-                    // No room for the "MCP" tag in the rail, so the plugin's MCP status collapses to
-                    // a dot: filled while an agent is operating it, a ring when it merely exposes tools.
                     if (it.underAiControl || it.exposesMcpTools) {
                         RailBadge(
                             tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
@@ -154,8 +155,6 @@ fun ShrunkToolingDrawerView(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
-            // Opens the browser unscoped, so the tools an agent can reach are visible without first
-            // finding a plugin that happens to publish some.
             JwIconButton(onClick = onOpenAllMcpTools, tooltip = stringResource(Res.string.mcp_tools_open_all)) {
                 JwIcon(imageVector = Icons.Default.Build, contentDescription = null)
             }
@@ -252,30 +251,33 @@ fun rememberPluginIconSvgPainter(
 @Preview
 @Composable
 private fun ShrunkToolingDrawerViewPreview() {
-    ShrunkToolingDrawerView(
-        plugins = persistentListOf(
-            DrawerPluginItemUiState(
-                name = "Inspector",
-                id = "com.example.inspector",
-                activeIconResource = null,
-                inactiveIconResource = null,
-                pluginAvailability = PluginAvailability.Enabled,
-                underAiControl = false,
-                exposesMcpTools = true,
-                isHeadless = false,
-                needsApp = true,
+    JwTheme(darkTheme = false) {
+        ShrunkToolingDrawerView(
+            plugins = persistentListOf(
+                DrawerPluginItemUiState(
+                    name = "Inspector",
+                    id = "com.example.inspector",
+                    activeIconResource = null,
+                    inactiveIconResource = null,
+                    pluginAvailability = PluginAvailability.Enabled,
+                    underAiControl = false,
+                    exposesMcpTools = true,
+                    isHeadless = false,
+                    needsApp = true,
+                ),
             ),
-        ),
-        sessions = persistentListOf(),
-        selectedSession = null,
-        selectedPluginId = "com.example.inspector",
-        aiActivity = AiActivityUiState.Idle,
-        onFollowAiOperationChange = {},
-        onClickExpandMenu = {},
-        onClickSettings = {},
-        onClickPlugin = {},
-        onClickInfo = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-    )
+            sessions = persistentListOf(),
+            selectedSession = null,
+            selectedPluginId = "com.example.inspector",
+            aiActivity = AiActivityUiState.Idle,
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            onClickExpandMenu = {},
+            onClickSettings = {},
+            onClickPlugin = {},
+            onClickInfo = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+        )
+    }
 }

@@ -100,5 +100,7 @@ fun InfoScreen(
 @Preview
 @Composable
 private fun InfoScreenPreview() {
-    InfoScreen(onClickOSSLicenses = {})
+    JwTheme(darkTheme = false) {
+        InfoScreen(onClickOSSLicenses = {})
+    }
 }

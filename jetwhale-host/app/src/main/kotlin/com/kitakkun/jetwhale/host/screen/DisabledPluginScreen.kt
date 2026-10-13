@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.screen
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +24,7 @@ import com.kitakkun.jetwhale.host.plugin_enable_failed
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
@@ -96,10 +98,8 @@ private fun DisabledPluginPresenter(
     ActionEffect(screenChannel) { action ->
         when (action) {
             is DisabledPluginScreenAction.Enable -> {
-                // mutate, not mutateAsync: it waits until the setting is stored, so the plugin opens
-                // only once it is on, and a failure is reported here instead of after navigating away.
-                // Whatever keeps the setting from being stored is shown as "could not enable"; the
-                // screen must not crash over it.
+                // mutate, not mutateAsync: it waits until the setting is stored, so the plugin
+                // opens only once it is on and a failure is reported here.
                 @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                 val result = try {
                     setPluginEnabledMutation.mutate(SetPluginEnabledParams(pluginId, enabled = true))
@@ -116,7 +116,8 @@ private fun DisabledPluginPresenter(
 }
 
 @Composable
-fun DisabledPluginScreen(
+@VisibleForTesting
+internal fun DisabledPluginScreen(
     pluginName: String,
     enableFailed: Boolean,
     onClickEnable: () -> Unit,
@@ -133,5 +134,7 @@ fun DisabledPluginScreen(
 @Preview
 @Composable
 private fun DisabledPluginScreenPreview() {
-    DisabledPluginScreen(pluginName = "Network Inspector", enableFailed = false, onClickEnable = {})
+    JwTheme(darkTheme = false) {
+        DisabledPluginScreen(pluginName = "Network Inspector", enableFailed = false, onClickEnable = {})
+    }
 }

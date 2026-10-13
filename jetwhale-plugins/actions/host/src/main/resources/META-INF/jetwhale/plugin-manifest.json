@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.actions",
+      "pluginName": "Debug Actions",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.actions.host.ActionsHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/actions_filled.svg",
+        "inactivePath": "icons/actions_outlined.svg"
+      }
+    }
+  ]
+}

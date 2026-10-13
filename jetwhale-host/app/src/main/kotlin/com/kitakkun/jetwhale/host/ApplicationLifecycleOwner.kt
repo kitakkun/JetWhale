@@ -3,7 +3,9 @@ package com.kitakkun.jetwhale.host
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.PluginDirectoryWatchService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
+import com.kitakkun.jetwhale.host.model.PluginInstallJobService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -18,11 +20,13 @@ import kotlinx.coroutines.launch
 @Inject
 @SingleIn(AppScope::class)
 class ApplicationLifecycleOwner(
-    private val server: DebugWebSocketServer,
+    private val debugWebSocketServer: DebugWebSocketServer,
     private val mcpServerService: McpServerService,
     private val pluginTrustService: PluginTrustService,
     private val pluginHotReloadService: PluginHotReloadService,
+    private val pluginDirectoryWatchService: PluginDirectoryWatchService,
     private val settingsRepository: DebuggerSettingsRepository,
+    private val pluginInstallJobService: PluginInstallJobService,
 ) {
     enum class ApplicationState {
         NONE,
@@ -34,21 +38,18 @@ class ApplicationLifecycleOwner(
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
-    private val mutableApplicationStateFlow: MutableStateFlow<ApplicationState> = MutableStateFlow(ApplicationState.NONE)
-    val applicationStateFlow: StateFlow<ApplicationState> = mutableApplicationStateFlow
+    val applicationStateFlow: StateFlow<ApplicationState>
+        field = MutableStateFlow(ApplicationState.NONE)
 
     fun initialize() {
-        mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
+        applicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
-            // Read the stored value rather than sampling the flow: this runs before anything has
-            // awaited the store, so the flow still carries its default here, and the decision is
-            // made once for the whole run.
             val wssPort = if (settingsRepository.readWssEnabled()) {
                 settingsRepository.readWssPort()
             } else {
                 null
             }
-            server.start(
+            debugWebSocketServer.start(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
                 wssPort = wssPort,
@@ -58,26 +59,24 @@ class ApplicationLifecycleOwner(
                 port = settingsRepository.readMcpServerPort(),
             )
 
-            // Load only jars the user has explicitly approved (pinned by content hash). Anything else
-            // in the plugins directory — a jar that was never approved, or one whose bytes changed
-            // after approval — is surfaced for review instead of being executed. This is what stops a
-            // malicious jar dropped into ~/.jetwhale/plugins from auto-running in the host process.
             pluginTrustService.loadTrustedPlugins()
+            pluginDirectoryWatchService.start()
 
-            // A no-op unless the jetwhale.devPluginsDir system property is set.
             pluginHotReloadService.start()
 
-            mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }
+            applicationStateFlow.update { ApplicationState.INITIALIZED }
         }
     }
 
     fun shutdown() {
-        mutableApplicationStateFlow.update { ApplicationState.STOPPING }
+        applicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
+            pluginInstallJobService.cancelAll()
             pluginHotReloadService.stop()
+            pluginDirectoryWatchService.stop()
             mcpServerService.stop()
-            server.stop()
-            mutableApplicationStateFlow.update { ApplicationState.STOPPED }
+            debugWebSocketServer.stop()
+            applicationStateFlow.update { ApplicationState.STOPPED }
         }
     }
 }

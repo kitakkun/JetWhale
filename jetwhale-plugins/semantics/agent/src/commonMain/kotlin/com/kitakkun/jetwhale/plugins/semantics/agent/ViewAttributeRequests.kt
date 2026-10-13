@@ -6,9 +6,6 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import kotlinx.coroutines.CancellationException
 
-// Answers the two attribute requests, kept apart from the capture and action handlers because the
-// capability is optional: a root has attributes only when its source implements ViewAttributeSource.
-
 /** Reads every attribute of one node, or says why it has none. */
 internal suspend fun readViewAttributes(request: GetViewAttributes): ViewAttributeResponse {
     val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)

@@ -26,14 +26,9 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // The composition is hosted by a plain View layout rather than by setContent, so the
-        // Compose Semantics Inspector's Android View support has both directions to show: the
-        // views around a ComposeView, and the views an AndroidView places inside the composition.
         val header = TextView(this).apply {
             id = R.id.demo_view_host_header
             text = getString(R.string.demo_view_host_header)
-            // Edge-to-edge puts this view under the status bar; the composition below handles its
-            // own insets, so only the header needs padding.
             ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
                 val statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars())
                 view.setPadding(statusBar.left, statusBar.top, statusBar.right, 0)

@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpCallArgument
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -37,6 +38,7 @@ class DefaultMcpActivityRepository : McpActivityRepository {
 
     override fun toolInvocationStarted(
         toolName: String,
+        permission: McpToolPermission,
         pluginId: String?,
         sessionId: String?,
         arguments: Map<String, String>,
@@ -45,6 +47,7 @@ class DefaultMcpActivityRepository : McpActivityRepository {
         val invocation = McpToolInvocation(
             id = invocationId,
             toolName = toolName,
+            permission = permission,
             pluginId = pluginId,
             sessionId = sessionId,
             arguments = arguments
@@ -62,7 +65,6 @@ class DefaultMcpActivityRepository : McpActivityRepository {
     }
 
     override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
-        // Sampled once outside the update block, which may re-run under contention.
         val finishedAtEpochMillis = System.currentTimeMillis()
         val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
@@ -72,7 +74,6 @@ class DefaultMcpActivityRepository : McpActivityRepository {
                     .filterNot { it.id == invocationId }
                     .toImmutableList(),
                 recentCalls = if (finished == null) {
-                    // The invocation is unknown here, so there is nothing to describe in history.
                     activity.recentCalls
                 } else {
                     val record = McpCallRecord(

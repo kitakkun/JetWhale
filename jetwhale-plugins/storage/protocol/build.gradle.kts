@@ -13,8 +13,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.storage"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.storage.protocol"
 }

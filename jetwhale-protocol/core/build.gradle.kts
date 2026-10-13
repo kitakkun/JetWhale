@@ -15,12 +15,10 @@ kotlin {
 
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 
     sourceSets.commonMain.dependencies {
         api(projects.jetwhaleAnnotations)
-        // The symmetric messaging peer exposes CoroutineScope on JetWhaleMessenger.
         api(libs.kotlinxCoroutinesCore)
     }
 

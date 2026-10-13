@@ -45,6 +45,8 @@ fun HostTheme(
             typography = remember { materialTypography(JwTextStyles.default()) },
             shapes = remember(calculation = ::materialShapes),
         ) {
+            // MaterialTheme provides no content color, so Material text outside a Surface would
+            // stay black on a dark scheme.
             CompositionLocalProvider(
                 LocalContentColor provides material.onSurface,
                 LocalTextStyle provides MaterialTheme.typography.bodyMedium,
@@ -70,11 +72,7 @@ private fun ColorScheme.toJwColors(dark: Boolean): JwColors {
         toolbarBackground = surface.takeOrElse { base.toolbarBackground },
         panelBackground = surfaceContainerLowest.takeOrElse { base.panelBackground },
         elevatedBackground = surfaceContainer.takeOrElse { base.elevatedBackground },
-        // A popup is the lightest container of the scheme: white over light chrome, the highest
-        // tone over dark, so it never matches the pane it opens over.
         popupBackground = (if (dark) surfaceContainerHighest else surfaceContainerLowest).takeOrElse { base.popupBackground },
-        // Each endpoint falls back on its own, so a scheme that sets only one of them still moves the
-        // popup edge with it; with neither set, the library's own popup edge stands.
         popupBorder = if (outlineVariant.isUnspecified && outline.isUnspecified) {
             base.popupBorder
         } else {

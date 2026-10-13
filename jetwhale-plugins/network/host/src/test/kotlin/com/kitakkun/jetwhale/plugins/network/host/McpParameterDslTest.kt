@@ -80,7 +80,6 @@ class McpParameterDslTest {
         override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
     }
 
-    // Both the advertised schema and the decoder come from this format, so they cannot disagree.
     private class SnakeCaseCommand :
         JetWhaleMcpCommand(
             Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase },
@@ -91,8 +90,6 @@ class McpParameterDslTest {
         override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].single().matcher.urlPattern
     }
 
-    // PluginFrame is a sealed interface whose subclasses (including those of the nested sealed
-    // Reply) kotlinx flattens into one set of leaves.
     private class SealedCommand : JetWhaleMcpCommand() {
         override val name = "test.sealed"
         override val description = "echoes a plugin frame"
@@ -239,7 +236,6 @@ class McpParameterDslTest {
         val rule = SerializableCommand().schemaOf("rules").obj("items")
         assertEquals(listOf("id", "matcher", "response"), rule.strings("required"))
         assertEquals(listOf("urlPattern"), rule.property("matcher").strings("required"))
-        // Every property of MockResponseSpec has a default, so nothing is required.
         assertNull(rule.property("response")["required"])
     }
 
@@ -257,15 +253,12 @@ class McpParameterDslTest {
             "Human-readable rule name shown in the UI.",
             (rule.property("name").getValue("description") as JsonPrimitive).content,
         )
-        // A class-level annotation describes the nested object itself.
         assertEquals(
             "Which requests the rule applies to.",
             (rule.property("matcher").getValue("description") as JsonPrimitive).content,
         )
     }
 
-    // The oneOf shape itself is covered by McpJsonSchemaTest; this checks that a value written in
-    // that shape actually decodes back through the DSL.
     @Test
     fun `serializable decodes a sealed value through its class discriminator`() {
         val frame = PluginFrame.Notification(pluginId = "plugin-1", messageType = "m", payload = "{}")

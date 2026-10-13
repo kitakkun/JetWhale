@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -29,6 +30,7 @@ fun ToolingDrawer(
     onResizeSidebar: (Dp) -> Unit,
     onSidebarResizeFinished: () -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
@@ -43,12 +45,10 @@ fun ToolingDrawer(
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Retained rather than remembered: a settings dialog opening over the window must not reset a
-    // sidebar the user just collapsed.
-    var expandMenu by retain { mutableStateOf(true) }
+    var isExpanded by retain { mutableStateOf(true) }
 
     AnimatedSwappableContent(
-        showContent1 = expandMenu,
+        showContent1 = isExpanded,
         modifier = modifier,
         content1 = {
             ExpandedToolingDrawerView(
@@ -62,7 +62,8 @@ fun ToolingDrawer(
                 onResize = onResizeSidebar,
                 onResizeFinished = onSidebarResizeFinished,
                 onFollowAiOperationChange = onFollowAiOperationChange,
-                onClickShrinkDrawer = { expandMenu = false },
+                onOpenMcpSettings = onOpenMcpSettings,
+                onClickShrinkDrawer = { isExpanded = false },
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
                 onClickInfo = onClickInfo,
@@ -85,8 +86,9 @@ fun ToolingDrawer(
                 selectedPluginId = selectedPluginId,
                 aiActivity = aiActivity,
                 onFollowAiOperationChange = onFollowAiOperationChange,
+                onOpenMcpSettings = onOpenMcpSettings,
                 onClickPlugin = onClickPlugin,
-                onClickExpandMenu = { expandMenu = true },
+                onClickExpandMenu = { isExpanded = true },
                 onClickSettings = onClickSettings,
                 onClickInfo = onClickInfo,
                 onOpenAllMcpTools = onOpenAllMcpTools,
@@ -99,28 +101,31 @@ fun ToolingDrawer(
 @Preview
 @Composable
 private fun ToolingDrawerPreview() {
-    ToolingDrawer(
-        plugins = persistentListOf(),
-        hasFailedJars = false,
-        sessions = persistentListOf(),
-        selectedSession = null,
-        selectedPluginId = "",
-        aiActivity = AiActivityUiState.Idle,
-        sidebarWidth = JwMetrics.sidebarWidth,
-        onResizeSidebar = {},
-        onSidebarResizeFinished = {},
-        onFollowAiOperationChange = {},
-        onClickSettings = {},
-        onClickPluginSettings = {},
-        onClickInfo = {},
-        onClickPlugin = {},
-        onClickInactivePlugin = {},
-        onOpenMcpTools = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-        onClickPopout = {},
-        isPoppedOut = { false },
-        onClickBringBack = {},
-        onSetPluginEnabled = { _, _ -> },
-    )
+    JwTheme(darkTheme = false) {
+        ToolingDrawer(
+            plugins = persistentListOf(),
+            hasFailedJars = false,
+            sessions = persistentListOf(),
+            selectedSession = null,
+            selectedPluginId = "",
+            aiActivity = AiActivityUiState.Idle,
+            sidebarWidth = JwMetrics.sidebarWidth,
+            onResizeSidebar = {},
+            onSidebarResizeFinished = {},
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            onClickSettings = {},
+            onClickPluginSettings = {},
+            onClickInfo = {},
+            onClickPlugin = {},
+            onClickInactivePlugin = {},
+            onOpenMcpTools = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+            onClickPopout = {},
+            isPoppedOut = { false },
+            onClickBringBack = {},
+            onSetPluginEnabled = { _, _ -> },
+        )
+    }
 }

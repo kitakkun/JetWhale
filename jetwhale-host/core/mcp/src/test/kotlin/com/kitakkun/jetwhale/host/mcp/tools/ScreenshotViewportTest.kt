@@ -93,8 +93,6 @@ class ScreenshotViewportTest {
 
     @Test
     fun `a non-finite density is rejected`() {
-        // A JSON number too large for a Float parses to Infinity, and NaN parses to NaN. Neither is
-        // caught by a `<= 0` test, so both would otherwise reach Compose layout.
         assertNotNull(invalidDensityMessage("1e400".toFloat()))
         assertNotNull(invalidDensityMessage(Float.POSITIVE_INFINITY))
         assertNotNull(invalidDensityMessage(Float.NEGATIVE_INFINITY))
