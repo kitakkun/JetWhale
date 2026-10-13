@@ -73,8 +73,8 @@ class Nav3NavigatorScreenTest {
 
     @Test
     fun `walking the key types with the arrow keys keeps the typed draft, and Enter fills the editor`() = runComposeUiTest {
-        val typed = """{"type":"Typed","id":"7"}"""
-        var draft by mutableStateOf(typed)
+        val typedDraft = """{"type":"Typed","id":"7"}"""
+        var draft by mutableStateOf(typedDraft)
         setContent {
             JwTheme(darkTheme = false) {
                 Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
@@ -96,7 +96,7 @@ class Nav3NavigatorScreenTest {
         onNodeWithText("app.SearchKey").requestFocus()
         press(Key.DirectionDown)
         onNodeWithText("app.DetailKey").assertIsFocused()
-        assertEquals(typed, draft)
+        assertEquals(typedDraft, draft)
 
         press(Key.Enter)
         assertTrue("app.DetailKey" in draft, "Enter fills the editor with the key type's template, now $draft")

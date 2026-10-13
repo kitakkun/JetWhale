@@ -132,13 +132,13 @@ public fun Modifier.jwListRowKeys(
     val currentOnKey by rememberUpdatedState(onKey)
     var focused by remember { mutableStateOf(false) }
     val focusRequester = remember(calculation = ::FocusRequester)
-    val move = LocalArrowKeyRowMove.current
+    val arrowKeyRowMove = LocalArrowKeyRowMove.current
     val focusManager = LocalFocusManager.current
-    return focusRequester(focusRequester).onFocusChanged { state ->
-        focused = state.isFocused
-        if (state.isFocused && move.awaitingRow) {
-            move.awaitingRow = false
-            move.reachedRow = true
+    return focusRequester(focusRequester).onFocusChanged { focusState ->
+        focused = focusState.isFocused
+        if (focusState.isFocused && arrowKeyRowMove.awaitingRow) {
+            arrowKeyRowMove.awaitingRow = false
+            arrowKeyRowMove.reachedRow = true
             currentOnSelect()
         }
     }.onKeyEvent { event ->
@@ -148,16 +148,16 @@ public fun Modifier.jwListRowKeys(
             Key.DirectionUp -> FocusDirection.Up
             else -> return@onKeyEvent currentOnKey(event.key)
         }
-        move.awaitingRow = true
-        move.reachedRow = false
+        arrowKeyRowMove.awaitingRow = true
+        arrowKeyRowMove.reachedRow = false
         val moved = try {
             focusManager.moveFocus(direction)
         } finally {
-            move.awaitingRow = false
+            arrowKeyRowMove.awaitingRow = false
         }
         // moveFocus searches the whole scene, not just this list, so past the first or last row it
         // lands on a neighboring control such as a filter field.
-        if (moved && !move.reachedRow) focusRequester.requestFocus()
-        moved && move.reachedRow
+        if (moved && !arrowKeyRowMove.reachedRow) focusRequester.requestFocus()
+        moved && arrowKeyRowMove.reachedRow
     }
 }
