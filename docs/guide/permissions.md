@@ -6,9 +6,17 @@ granted a permission in the settings. An AI agent can do the same over MCP.
 
 It needs no configuration beyond registering the agent.
 
+**Works with:** Android and iOS. Desktop (JVM) and web apps report it as unsupported.
+
 ## Setup
 
-Install the host plugin from **Settings → Plugins**, then add the agent to your app:
+### Install the host plugin
+
+The Permissions plugin is not in the official catalog. Install it from **Settings → Plugins → Add
+Plugins → Install from Maven** with `com.kitakkun.jetwhale:jetwhale-permissions-inspector:<version>`,
+released with the host under the host's version; see [Host Settings → Plugins](/guide/host-settings#plugins).
+
+### Add the agent to your app
 
 ```kotlin
 dependencies {
@@ -29,7 +37,7 @@ On Android, construct the plugin before the app's first activity resumes, in
 `Application.onCreate` or the first activity's `onCreate`: the plugin learns which activity is in
 the foreground from the next resume, and a request needs one.
 
-## What it reports
+## Using it
 
 ### Android
 
@@ -82,7 +90,7 @@ reported.
 Reported as unsupported: a desktop JVM app has no permission model of its own, and browser
 permissions are not queried.
 
-## Changes
+### Changes
 
 The agent reads the permissions once a second while the host is connected and pushes every change
 to the host, which lists them newest first. A change made in the system settings shows up the same
@@ -90,13 +98,10 @@ way as one made through the plugin. On Android a denial often leaves the status 
 denial that changes what a request would do is recorded all the same, with the note that says what
 a request would now do.
 
-Android ends the app's process when a permission is revoked, so a revocation is not recorded as a
-change: the app reports the new state when it connects again.
-
-Revoking a permission is not possible from inside an app. Use the app's settings page, or
-`adb shell pm revoke <package> <permission>` on Android.
-
 ## MCP tools
+
+With the [MCP server](/guide/mcp-server) running, an AI agent can do the same through these tools.
+Each takes the `sessionId` of the app's session.
 
 | Tool | What it does |
 |------|--------------|
@@ -106,3 +111,10 @@ Revoking a permission is not possible from inside an app. Use the app's settings
 
 A request reports whether it was started, not what the user chose; call `listPermissions`
 afterwards to see the outcome.
+
+## Limits
+
+- **Revoking is not possible from inside an app.** Use the app's settings page, or
+  `adb shell pm revoke <package> <permission>` on Android.
+- **A revocation is not recorded as a change.** Android ends the app's process when a permission is
+  revoked, so the app reports the new state when it connects again.
