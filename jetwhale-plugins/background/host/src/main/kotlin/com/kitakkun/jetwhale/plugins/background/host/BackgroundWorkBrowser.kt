@@ -13,7 +13,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-internal data class WorkStatus(val message: String, val isError: Boolean)
+internal data class BackgroundWorkStatus(val message: String, val isError: Boolean)
 
 /** What the user does to the app's background work from the UI. */
 internal interface BackgroundWorkActions {
@@ -50,7 +50,7 @@ internal class BackgroundWorkBrowser(
     var selectedKey: WorkKey? by mutableStateOf(null)
         private set
 
-    var status: WorkStatus? by mutableStateOf(null)
+    var status: BackgroundWorkStatus? by mutableStateOf(null)
         private set
 
     val visibleItems: List<BackgroundWorkItem>
@@ -60,18 +60,18 @@ internal class BackgroundWorkBrowser(
         get() = selectedKey?.let { key -> snapshot?.items?.firstOrNull { it.key == key } }
 
     /** Takes a snapshot the app sent or answered with, and records any state changes it shows as of [nowEpochMillis]. */
-    fun accept(next: BackgroundWorkSnapshot, nowEpochMillis: Long) {
+    fun updateSnapshot(next: BackgroundWorkSnapshot, nowEpochMillis: Long) {
         snapshot = next
         history = recordTransitions(history, next.items, nowEpochMillis)
     }
 
     suspend fun load() {
-        accept(client.snapshot(), System.currentTimeMillis())
+        updateSnapshot(client.snapshot(), System.currentTimeMillis())
     }
 
     override fun refresh() = launchReporting {
         load()
-        status = WorkStatus(message = "Reloaded from the app.", isError = false)
+        status = BackgroundWorkStatus(message = "Reloaded from the app.", isError = false)
     }
 
     override fun select(key: WorkKey) {
@@ -79,12 +79,12 @@ internal class BackgroundWorkBrowser(
     }
 
     override fun cancel(source: String, target: CancelTarget) = launchReporting {
-        report(client.cancel(source, target))
+        updateStatus(client.cancel(source, target))
         load()
     }
 
     override fun runNow(key: WorkKey) = launchReporting {
-        report(client.runNow(key.source, key.id))
+        updateStatus(client.runNow(key.source, key.id))
         load()
     }
 
@@ -92,10 +92,10 @@ internal class BackgroundWorkBrowser(
         this.filter = filter
     }
 
-    private fun report(result: WorkOperationResult) {
+    private fun updateStatus(result: WorkOperationResult) {
         status = when (val error = result.error) {
-            null -> WorkStatus(message = result.message ?: "Done.", isError = false)
-            else -> WorkStatus(message = error, isError = true)
+            null -> BackgroundWorkStatus(message = result.message ?: "Done.", isError = false)
+            else -> BackgroundWorkStatus(message = error, isError = true)
         }
     }
 
@@ -106,9 +106,9 @@ internal class BackgroundWorkBrowser(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: JetWhaleMessagingException) {
-                status = WorkStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+                status = BackgroundWorkStatus(message = "Failed to reach the app: ${e.message}", isError = true)
             } catch (e: Exception) {
-                status = WorkStatus(message = "Unexpected error: $e", isError = true)
+                status = BackgroundWorkStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

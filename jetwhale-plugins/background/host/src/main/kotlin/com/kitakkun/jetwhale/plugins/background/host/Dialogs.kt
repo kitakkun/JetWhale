@@ -21,7 +21,7 @@ import com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget
 
 /** Asks before work is cancelled; nothing a cancellation does can be undone. */
 @Composable
-internal fun ConfirmDialog(
+internal fun ConfirmCancelDialog(
     title: String,
     message: String,
     confirmLabel: String,

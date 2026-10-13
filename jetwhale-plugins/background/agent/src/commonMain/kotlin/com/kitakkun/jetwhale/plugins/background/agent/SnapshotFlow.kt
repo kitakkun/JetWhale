@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
 internal fun observeSnapshots(sources: List<BackgroundWorkSource>): Flow<BackgroundWorkSnapshot> {
     // combine over no flows completes without emitting, leaving first() nothing to return.
     if (sources.isEmpty()) return flowOf(BackgroundWorkSnapshot(sources = emptyList(), items = emptyList()))
-    val perSource = sources.map { source ->
+    val sourceReadingFlows = sources.map { source ->
         flow { emitAll(source.observe()) }
             .map { items -> SourceReading(source.info, items) }
             .catch { failure ->
@@ -28,7 +28,7 @@ internal fun observeSnapshots(sources: List<BackgroundWorkSource>): Flow<Backgro
                 emit(SourceReading(source.info.copy(available = false, unavailableReason = reason), emptyList()))
             }
     }
-    return combine(perSource) { readings ->
+    return combine(sourceReadingFlows) { readings ->
         BackgroundWorkSnapshot(sources = readings.map(SourceReading::info), items = readings.flatMap(SourceReading::items))
     }.distinctUntilChanged()
 }

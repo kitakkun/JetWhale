@@ -38,14 +38,14 @@ import com.kitakkun.jetwhale.plugins.background.protocol.WorkState
 /** The list is the thing being scanned; the detail beside it reads one item at a time. */
 private const val LIST_FRACTION = 0.55f
 
-/** Fits "Filter by name, tag or id" without taking the row from the scope buttons. */
+/** Fits "Filter by name, tag or id" without taking the row from the state group buttons. */
 private val QueryFieldWidth = 280.dp
 
 /** The state groups the filter offers, from the states each one shows. */
 @VisibleForTesting
-internal enum class StateScope(val label: String, val states: Set<WorkState>) {
+internal enum class WorkStateGroup(val label: String, val states: Set<WorkState>) {
     All("All", emptySet()),
-    Pending("Pending", UNFINISHED_STATES),
+    Unfinished("Pending", UNFINISHED_STATES),
     Finished("Finished", FINISHED_STATES),
 }
 
@@ -71,18 +71,18 @@ internal fun BackgroundWorkScreen(
     selectedItem: BackgroundWorkItem?,
     history: Map<WorkKey, List<StateTransition>>,
     filter: WorkFilter,
-    status: WorkStatus?,
+    status: BackgroundWorkStatus?,
     actions: BackgroundWorkActions,
     modifier: Modifier = Modifier,
 ) {
-    var cancellingUnique by remember { mutableStateOf(false) }
-    val uniqueNameSources = snapshot?.sources.orEmpty().filter { it.available && it.supportsCancelByUniqueName }
+    var cancellingUniqueWork by remember { mutableStateOf(false) }
+    val cancelByUniqueNameSources = snapshot?.sources.orEmpty().filter { it.available && it.supportsCancelByUniqueName }
     Column(modifier.fillMaxSize()) {
         JwToolbar(
             title = "Background Work",
             actions = {
-                if (uniqueNameSources.isNotEmpty()) {
-                    JwButton(text = "Cancel unique work…", onClick = { cancellingUnique = true }, style = JwButtonStyle.Text)
+                if (cancelByUniqueNameSources.isNotEmpty()) {
+                    JwButton(text = "Cancel unique work…", onClick = { cancellingUniqueWork = true }, style = JwButtonStyle.Text)
                 }
                 JwButton(text = "Reload from app", onClick = actions::refresh, style = JwButtonStyle.Text)
             },
@@ -93,14 +93,14 @@ internal fun BackgroundWorkScreen(
         WorkContent(snapshot = snapshot, visibleItems = visibleItems, selectedItem = selectedItem, history = history, actions = actions)
     }
     // A later snapshot can take away the last source that cancels by unique name.
-    if (cancellingUnique && uniqueNameSources.isNotEmpty()) {
+    if (cancellingUniqueWork && cancelByUniqueNameSources.isNotEmpty()) {
         CancelUniqueWorkDialog(
-            sourceNames = uniqueNameSources.map(WorkSourceInfo::name),
+            sourceNames = cancelByUniqueNameSources.map(WorkSourceInfo::name),
             onCancel = { source, target ->
-                cancellingUnique = false
+                cancellingUniqueWork = false
                 actions.cancel(source, target)
             },
-            onDismiss = { cancellingUnique = false },
+            onDismiss = { cancellingUniqueWork = false },
         )
     }
 }
@@ -161,10 +161,10 @@ private fun FilterRow(filter: WorkFilter, onFilterChange: (WorkFilter) -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         JwSegmentedButtons(
-            options = StateScope.entries,
-            selected = StateScope.entries.firstOrNull { it.states == filter.states } ?: StateScope.All,
+            options = WorkStateGroup.entries,
+            selected = WorkStateGroup.entries.firstOrNull { it.states == filter.states } ?: WorkStateGroup.All,
             onSelect = { onFilterChange(filter.copy(states = it.states)) },
-            label = StateScope::label,
+            label = WorkStateGroup::label,
         )
         JwTextField(
             value = filter.query,

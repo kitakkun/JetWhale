@@ -36,10 +36,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 private val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
 
-private val DateTimeFormatterLong: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+private val FullDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
 
 /** A cancellation the user has asked for and not yet confirmed. */
-private data class PendingCancel(val target: CancelTarget, val description: String)
+private data class UnconfirmedCancellation(val target: CancelTarget, val description: String)
 
 @Composable
 internal fun WorkDetail(
@@ -49,14 +49,14 @@ internal fun WorkDetail(
     actions: BackgroundWorkActions,
     modifier: Modifier = Modifier,
 ) {
-    var pendingCancel by remember(item.key) { mutableStateOf<PendingCancel?>(null) }
+    var unconfirmedCancellation by remember(item.key) { mutableStateOf<UnconfirmedCancellation?>(null) }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large), verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
             JwText(text = shortName(item.name), style = JwTheme.textStyles.title, modifier = Modifier.weight(1f))
             JwButton(text = "Run now", onClick = { actions.runNow(item.key) }, enabled = item.canRunNow)
             JwButton(
                 text = "Cancel…",
-                onClick = { pendingCancel = PendingCancel(CancelTarget.ById(item.id), "this ${item.source} work") },
+                onClick = { unconfirmedCancellation = UnconfirmedCancellation(CancelTarget.ById(item.id), "this ${item.source} work") },
                 tone = JwTone.Error,
                 enabled = item.canCancel,
             )
@@ -67,7 +67,7 @@ internal fun WorkDetail(
         }
         workFactsOf(item).forEach { JwKeyValueRow(key = it.label, value = it.value, monospace = it.monospace, wrap = !it.monospace) }
         if (source?.supportsCancelByTag == true && item.tags.isNotEmpty()) {
-            TagActions(tags = item.tags, onCancelTag = { tag -> pendingCancel = PendingCancel(CancelTarget.ByTag(tag), "all ${item.source} work tagged $tag") })
+            CancelByTagSection(tags = item.tags, onCancelTag = { tag -> unconfirmedCancellation = UnconfirmedCancellation(CancelTarget.ByTag(tag), "all ${item.source} work tagged $tag") })
         }
         item.runNowHint?.let { hint ->
             JwSectionHeader(title = "Run it from outside the app")
@@ -78,16 +78,16 @@ internal fun WorkDetail(
         DataSection(title = "Details", data = item.details)
         HistorySection(history)
     }
-    pendingCancel?.let { cancel ->
-        ConfirmDialog(
-            title = "Cancel ${cancel.description}?",
+    unconfirmedCancellation?.let { cancellation ->
+        ConfirmCancelDialog(
+            title = "Cancel ${cancellation.description}?",
             message = "The app's scheduler drops it; work already running is stopped. This cannot be undone.",
             confirmLabel = "Cancel work",
             onConfirm = {
-                pendingCancel = null
-                actions.cancel(item.source, cancel.target)
+                unconfirmedCancellation = null
+                actions.cancel(item.source, cancellation.target)
             },
-            onDismiss = { pendingCancel = null },
+            onDismiss = { unconfirmedCancellation = null },
         )
     }
 }
@@ -103,7 +103,7 @@ internal fun workFactsOf(item: BackgroundWorkItem): List<WorkFact> = buildList {
     add(WorkFact("Id", item.id, monospace = true))
     item.uniqueName?.let { add(WorkFact("Unique name", it, monospace = false)) }
     item.runAttemptCount?.let { add(WorkFact("Run attempts", it.toString(), monospace = false)) }
-    item.nextRunEpochMillis?.let { add(WorkFact("Earliest run", DateTimeFormatterLong.format(Instant.ofEpochMilli(it)), monospace = false)) }
+    item.nextRunEpochMillis?.let { add(WorkFact("Earliest run", FullDateTimeFormatter.format(Instant.ofEpochMilli(it)), monospace = false)) }
     item.periodMillis?.let { period ->
         val flex = item.flexMillis?.let { " (flex ${it.milliseconds})" }.orEmpty()
         add(WorkFact("Repeats every", "${period.milliseconds}$flex", monospace = false))
@@ -114,7 +114,7 @@ internal fun workFactsOf(item: BackgroundWorkItem): List<WorkFact> = buildList {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TagActions(tags: List<String>, onCancelTag: (String) -> Unit) {
+private fun CancelByTagSection(tags: List<String>, onCancelTag: (String) -> Unit) {
     JwSectionHeader(title = "Cancel everything with a tag")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         tags.forEach { tag -> JwTag(text = tag, onClick = { onCancelTag(tag) }) }

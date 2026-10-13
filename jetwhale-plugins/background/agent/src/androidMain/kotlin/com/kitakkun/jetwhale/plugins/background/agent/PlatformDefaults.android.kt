@@ -105,11 +105,11 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
         val namespace = itemId.substringBeforeLast(NAMESPACE_SEPARATOR, missingDelimiterValue = "").ifEmpty { null }
         val jobId = itemId.substringAfterLast(NAMESPACE_SEPARATOR).toIntOrNull() ?: throw IllegalArgumentException("'$itemId' is not a job id")
         require(namespace == null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { "'$itemId' names a job namespace, which needs Android 14 (API 34)" }
-        val scoped = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
-        val job = scoped?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.getPendingJob(jobId) else it.allPendingJobs.firstOrNull { job -> job.id == jobId } }
+        val scopedScheduler = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
+        val job = scopedScheduler?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.getPendingJob(jobId) else it.allPendingJobs.firstOrNull { job -> job.id == jobId } }
             ?: throw IllegalArgumentException("no pending job has id $itemId")
         require(job.service.className != WORK_MANAGER_JOB_SERVICE) { "job $itemId belongs to WorkManager; cancel the WorkManager work instead" }
-        scoped.cancel(jobId)
+        scopedScheduler.cancel(jobId)
         return "Cancelled job $itemId."
     }
 
@@ -148,9 +148,9 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
     )
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
-        val next = alarmManager?.nextAlarmClock
+        val nextAlarmClock = alarmManager?.nextAlarmClock
         // nextAlarmClock is the next alarm clock of any app; only this app's is shown.
-        if (next == null || next.showIntent?.creatorPackage != context.packageName) {
+        if (nextAlarmClock == null || nextAlarmClock.showIntent?.creatorPackage != context.packageName) {
             emptyList()
         } else {
             listOf(
@@ -163,7 +163,7 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
                     uniqueName = null,
                     runAttemptCount = null,
                     constraints = emptyList(),
-                    nextRunEpochMillis = next.triggerTime,
+                    nextRunEpochMillis = nextAlarmClock.triggerTime,
                     periodMillis = null,
                     flexMillis = null,
                     progress = emptyMap(),
@@ -203,12 +203,12 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
     )
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
-        runningServices().map { service ->
-            val startedAt = bootEpochMillis + service.activeSince
+        runningServices().map { serviceInfo ->
+            val startedAtEpochMillis = bootEpochMillis + serviceInfo.activeSince
             BackgroundWorkItem(
                 source = info.name,
-                id = service.service.flattenToString(),
-                name = service.service.className,
+                id = serviceInfo.service.flattenToString(),
+                name = serviceInfo.service.className,
                 state = WorkState.Running,
                 tags = emptyList(),
                 uniqueName = null,
@@ -220,7 +220,7 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
                 progress = emptyMap(),
                 output = emptyMap(),
                 stopReason = null,
-                details = mapOf("Foreground" to service.foreground.toString(), "Running since (epoch ms)" to startedAt.toString()),
+                details = mapOf("Foreground" to serviceInfo.foreground.toString(), "Running since (epoch ms)" to startedAtEpochMillis.toString()),
                 canCancel = true,
                 canRunNow = false,
                 runNowHint = null,
@@ -234,9 +234,9 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
     private fun runningServices(): List<ActivityManager.RunningServiceInfo> = activityManager?.getRunningServices(Int.MAX_VALUE).orEmpty().filter { it.uid == Process.myUid() }
 
     override suspend fun cancel(target: CancelTarget): String {
-        val id = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("services are stopped by their id")
-        val component = ComponentName.unflattenFromString(id) ?: throw IllegalArgumentException("'$id' is not a service component")
-        require(component.packageName == context.packageName) { "'$id' belongs to another app; only this app's services can be stopped" }
+        val flattenedComponentName = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("services are stopped by their id")
+        val component = ComponentName.unflattenFromString(flattenedComponentName) ?: throw IllegalArgumentException("'$flattenedComponentName' is not a service component")
+        require(component.packageName == context.packageName) { "'$flattenedComponentName' belongs to another app; only this app's services can be stopped" }
         val stopped = context.stopService(Intent().setComponent(component))
         return if (stopped) "Stopped ${component.className}." else "${component.className} was not running."
     }

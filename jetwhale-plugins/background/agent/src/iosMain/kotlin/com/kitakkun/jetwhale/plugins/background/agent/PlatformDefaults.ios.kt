@@ -13,9 +13,9 @@ import platform.BackgroundTasks.BGTaskScheduler
 import platform.Foundation.timeIntervalSince1970
 import kotlin.coroutines.resume
 
-actual fun BackgroundWorkSource.Companion.platformDefaults(): List<BackgroundWorkSource> = listOf(BackgroundTaskSource)
+actual fun BackgroundWorkSource.Companion.platformDefaults(): List<BackgroundWorkSource> = listOf(BGTaskSchedulerSource)
 
-private object BackgroundTaskSource : BackgroundWorkSource {
+private object BGTaskSchedulerSource : BackgroundWorkSource {
     override val info = WorkSourceInfo(
         name = "BGTaskScheduler",
         available = true,

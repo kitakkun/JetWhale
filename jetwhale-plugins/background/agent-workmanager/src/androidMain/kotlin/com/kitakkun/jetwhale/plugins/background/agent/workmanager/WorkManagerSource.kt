@@ -45,10 +45,10 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
         supportsCancelByUniqueName = true,
     )
 
-    private val workerClassTags = ConcurrentHashMap<String, Boolean>()
+    private val isWorkerClassByTag = ConcurrentHashMap<String, Boolean>()
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = workManager.getWorkInfosFlow(WorkQuery.fromStates(WorkInfo.State.entries)).map { infos ->
-        workerClassTags.keys.retainAll(infos.flatMapTo(HashSet(), WorkInfo::tags))
+        isWorkerClassByTag.keys.retainAll(infos.flatMapTo(HashSet(), WorkInfo::tags))
         infos.map { workInfoToItem(it, ::isWorkerClass) }
     }
 
@@ -58,7 +58,7 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
      * Each tag's answer is kept while WorkManager holds work with that tag, since looking up a tag
      * that names no class throws.
      */
-    private fun isWorkerClass(candidateClassName: String): Boolean = workerClassTags.getOrPut(candidateClassName) {
+    private fun isWorkerClass(candidateClassName: String): Boolean = isWorkerClassByTag.getOrPut(candidateClassName) {
         try {
             ListenableWorker::class.java.isAssignableFrom(Class.forName(candidateClassName, false, ListenableWorker::class.java.classLoader))
         } catch (_: ClassNotFoundException) {
@@ -87,15 +87,15 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
      * empty input data.
      */
     override suspend fun runNow(id: String): String {
-        val info = workManager.getWorkInfoByIdFlow(parseWorkId(id)).first()
+        val workInfo = workManager.getWorkInfoByIdFlow(parseWorkId(id)).first()
             ?: throw IllegalArgumentException("no work has id $id")
-        val workerClassName = info.tags.singleOrNull(::isWorkerClass)
+        val workerClassName = workInfo.tags.singleOrNull(::isWorkerClass)
             ?: throw IllegalStateException("the worker class of $id cannot be told from its tags, so it cannot be copied")
 
         @Suppress("UNCHECKED_CAST") // isWorkerClass has checked that the class is a ListenableWorker.
         val workerClass = Class.forName(workerClassName, false, ListenableWorker::class.java.classLoader) as Class<out ListenableWorker>
         val copy = OneTimeWorkRequest.Builder(workerClass)
-            .apply { info.tags.filterNot { it == workerClassName }.forEach(::addTag) }
+            .apply { workInfo.tags.filterNot { it == workerClassName }.forEach(::addTag) }
             .addTag(RUN_NOW_TAG)
             .build()
         workManager.enqueue(copy).await()
@@ -120,14 +120,14 @@ private fun parseWorkId(id: String): UUID = try {
  */
 @VisibleForTesting
 internal fun workInfoToItem(info: WorkInfo, isWorkerClass: (String) -> Boolean): BackgroundWorkItem {
-    val workerClass = info.tags.singleOrNull(isWorkerClass)
+    val workerClassName = info.tags.singleOrNull(isWorkerClass)
     val periodicity = info.periodicityInfo
     return BackgroundWorkItem(
         source = SOURCE_NAME,
         id = info.id.toString(),
-        name = workerClass ?: info.id.toString(),
+        name = workerClassName ?: info.id.toString(),
         state = workStateOf(info.state),
-        tags = info.tags.filterNot { it == workerClass }.sortedWith(compareBy({ it == RUN_NOW_TAG }, { it })),
+        tags = info.tags.filterNot { it == workerClassName }.sortedWith(compareBy({ it == RUN_NOW_TAG }, { it })),
         // WorkInfo does not say which unique name, if any, the work was enqueued under.
         uniqueName = null,
         runAttemptCount = info.runAttemptCount,
@@ -144,7 +144,7 @@ internal fun workInfoToItem(info: WorkInfo, isWorkerClass: (String) -> Boolean):
             if (RUN_NOW_TAG in info.tags) put("Enqueued by", "JetWhale run now")
         },
         canCancel = !info.state.isFinished,
-        canRunNow = workerClass != null,
+        canRunNow = workerClassName != null,
         runNowHint = null,
     )
 }

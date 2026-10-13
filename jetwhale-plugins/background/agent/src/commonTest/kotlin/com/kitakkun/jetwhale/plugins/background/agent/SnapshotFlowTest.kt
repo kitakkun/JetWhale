@@ -30,16 +30,16 @@ class SnapshotFlowTest {
     @Test
     fun `a change in one source emits a new snapshot`() = runTest {
         val changing = MutableStateFlow(listOf(item("First", "a")))
-        val snapshots = mutableListOf<List<String>>()
-        val collection = launch {
-            observeSnapshots(listOf(FakeSource("First", changing))).take(2).toList().mapTo(snapshots) { it.items.map(BackgroundWorkItem::id) }
+        val snapshotItemIds = mutableListOf<List<String>>()
+        val collectionJob = launch {
+            observeSnapshots(listOf(FakeSource("First", changing))).take(2).toList().mapTo(snapshotItemIds) { it.items.map(BackgroundWorkItem::id) }
         }
         testScheduler.runCurrent()
 
         changing.value = listOf(item("First", "a"), item("First", "b"))
-        collection.join()
+        collectionJob.join()
 
-        assertEquals(listOf(listOf("a"), listOf("a", "b")), snapshots)
+        assertEquals(listOf(listOf("a"), listOf("a", "b")), snapshotItemIds)
     }
 
     @Test

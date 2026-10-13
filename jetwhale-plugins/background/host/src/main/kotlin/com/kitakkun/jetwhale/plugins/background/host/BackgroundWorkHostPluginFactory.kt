@@ -34,7 +34,7 @@ private class BackgroundWorkHostPlugin :
     private val browser by lazy { BackgroundWorkBrowser(client = this, scope = pluginScope) }
 
     override fun JetWhaleMessageHandlers.configure() {
-        onEvent { event: BackgroundWorkChanged -> browser.accept(event.snapshot, System.currentTimeMillis()) }
+        onEvent { event: BackgroundWorkChanged -> browser.updateSnapshot(event.snapshot, System.currentTimeMillis()) }
     }
 
     override suspend fun onPrepare() {

@@ -50,8 +50,8 @@ class JetWhaleBackgroundWorkAgentPlugin(
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: GetBackgroundWork -> reply(observeSnapshots(activeSources).first()) }
-        onRequest { request: CancelWork -> reply(operate(request.source) { it.cancel(request.target) }) }
-        onRequest { request: RunWorkNow -> reply(operate(request.source) { it.runNow(request.id) }) }
+        onRequest { request: CancelWork -> reply(runOnSource(request.source) { it.cancel(request.target) }) }
+        onRequest { request: RunWorkNow -> reply(runOnSource(request.source) { it.runNow(request.id) }) }
     }
 
     override fun onActivate() {
@@ -70,7 +70,7 @@ class JetWhaleBackgroundWorkAgentPlugin(
         observationScope = null
     }
 
-    private suspend fun operate(sourceName: String, action: suspend (BackgroundWorkSource) -> String): WorkOperationResult {
+    private suspend fun runOnSource(sourceName: String, action: suspend (BackgroundWorkSource) -> String): WorkOperationResult {
         val source = activeSources.firstOrNull { it.info.name == sourceName }
             ?: return WorkOperationResult(message = null, error = "no background work source is named '$sourceName'")
         return try {

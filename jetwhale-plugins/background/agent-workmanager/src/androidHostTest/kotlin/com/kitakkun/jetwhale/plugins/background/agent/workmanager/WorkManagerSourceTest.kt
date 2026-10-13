@@ -39,7 +39,7 @@ class WorkManagerSourceTest {
 
     // WorkManager's test driver never meets constraints on its own, so work that needs charging
     // stays enqueued.
-    private val needsCharging = Constraints.Builder().setRequiresCharging(true).build()
+    private val chargingConstraints = Constraints.Builder().setRequiresCharging(true).build()
 
     @Before
     fun setUp() {
@@ -51,7 +51,7 @@ class WorkManagerSourceTest {
 
     @Test
     fun `enqueued work is listed with its worker class tags and constraints`() {
-        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(needsCharging).addTag("sync").build()
+        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(chargingConstraints).addTag("sync").build()
         workManager.enqueue(request).result.get()
 
         val item = items().single { it.id == request.id.toString() }
@@ -66,7 +66,7 @@ class WorkManagerSourceTest {
 
     @Test
     fun `periodic work carries its interval`() {
-        val request = PeriodicWorkRequest.Builder(SucceedingWorker::class.java, 1, TimeUnit.HOURS).setConstraints(needsCharging).build()
+        val request = PeriodicWorkRequest.Builder(SucceedingWorker::class.java, 1, TimeUnit.HOURS).setConstraints(chargingConstraints).build()
         workManager.enqueue(request).result.get()
 
         assertEquals(TimeUnit.HOURS.toMillis(1), items().single { it.id == request.id.toString() }.periodMillis)
@@ -74,29 +74,29 @@ class WorkManagerSourceTest {
 
     @Test
     fun `cancelling by id cancels only that work`() {
-        val kept = enqueueWaiting("kept")
-        val cancelled = enqueueWaiting("cancelled")
+        val keptWorkId = enqueueWaitingWork("kept")
+        val cancelledWorkId = enqueueWaitingWork("cancelled")
 
-        runBlocking { source.cancel(CancelTarget.ById(cancelled.toString())) }
+        runBlocking { source.cancel(CancelTarget.ById(cancelledWorkId.toString())) }
 
-        assertEquals(WorkState.Cancelled, stateOf(cancelled))
-        assertEquals(WorkState.Enqueued, stateOf(kept))
+        assertEquals(WorkState.Cancelled, stateOf(cancelledWorkId))
+        assertEquals(WorkState.Enqueued, stateOf(keptWorkId))
     }
 
     @Test
     fun `cancelling by tag cancels every work with that tag`() {
-        val first = enqueueWaiting("batch")
-        val second = enqueueWaiting("batch")
-        val other = enqueueWaiting("other")
+        val firstWorkId = enqueueWaitingWork("batch")
+        val secondWorkId = enqueueWaitingWork("batch")
+        val otherWorkId = enqueueWaitingWork("other")
 
         runBlocking { source.cancel(CancelTarget.ByTag("batch")) }
 
-        assertEquals(listOf(WorkState.Cancelled, WorkState.Cancelled, WorkState.Enqueued), listOf(first, second, other).map(::stateOf))
+        assertEquals(listOf(WorkState.Cancelled, WorkState.Cancelled, WorkState.Enqueued), listOf(firstWorkId, secondWorkId, otherWorkId).map(::stateOf))
     }
 
     @Test
     fun `cancelling by unique name cancels that unique work`() {
-        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(needsCharging).build()
+        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(chargingConstraints).build()
         workManager.enqueueUniqueWork("nightly", ExistingWorkPolicy.REPLACE, request).result.get()
 
         runBlocking { source.cancel(CancelTarget.ByUniqueName("nightly")) }
@@ -106,20 +106,20 @@ class WorkManagerSourceTest {
 
     @Test
     fun `run now enqueues a copy that runs while the original keeps waiting`() {
-        val original = enqueueWaiting("sync")
+        val originalWorkId = enqueueWaitingWork("sync")
 
-        runBlocking { source.runNow(original.toString()) }
+        runBlocking { source.runNow(originalWorkId.toString()) }
 
-        val copy = items().single { it.id != original.toString() }
+        val copy = items().single { it.id != originalWorkId.toString() }
         assertEquals(WorkState.Succeeded, copy.state)
         assertEquals(SucceedingWorker::class.java.name, copy.name)
         assertTrue(RUN_NOW_TAG in copy.tags)
-        assertEquals(WorkState.Enqueued, stateOf(original))
+        assertEquals(WorkState.Enqueued, stateOf(originalWorkId))
     }
 
     @Test
     fun `run now copies work without running its worker class's static initializer`() {
-        val request = OneTimeWorkRequest.Builder(StaticInitFailingWorker::class.java).setConstraints(needsCharging).build()
+        val request = OneTimeWorkRequest.Builder(StaticInitFailingWorker::class.java).setConstraints(chargingConstraints).build()
         workManager.enqueue(request).result.get()
 
         val result = runBlocking { source.runNow(request.id.toString()) }
@@ -129,7 +129,7 @@ class WorkManagerSourceTest {
 
     @Test
     fun `work tagged with another worker's class name cannot be run now`() {
-        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(needsCharging).addTag(FailingWorker::class.java.name).build()
+        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(chargingConstraints).addTag(FailingWorker::class.java.name).build()
         workManager.enqueue(request).result.get()
 
         assertEquals(false, items().single { it.id == request.id.toString() }.canRunNow)
@@ -186,8 +186,8 @@ class WorkManagerSourceTest {
         assertEquals(null, item.nextRunEpochMillis)
     }
 
-    private fun enqueueWaiting(tag: String): UUID {
-        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(needsCharging).addTag(tag).build()
+    private fun enqueueWaitingWork(tag: String): UUID {
+        val request = OneTimeWorkRequest.Builder(SucceedingWorker::class.java).setConstraints(chargingConstraints).addTag(tag).build()
         workManager.enqueue(request).result.get()
         return request.id
     }

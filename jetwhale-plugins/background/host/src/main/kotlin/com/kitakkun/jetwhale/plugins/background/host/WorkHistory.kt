@@ -37,10 +37,10 @@ internal fun recordTransitions(
             updated[item.key] = (previous + StateTransition(item.state, nowEpochMillis)).takeLast(MAX_TRANSITIONS_PER_WORK)
         }
     }
-    val present = items.mapTo(mutableSetOf(), BackgroundWorkItem::key)
-    val departed = updated.keys.filterNot(present::contains)
-    departed.sortedBy { updated.getValue(it).last().atEpochMillis }
-        .take((departed.size - MAX_DEPARTED_WORK).coerceAtLeast(0))
+    val presentKeys = items.mapTo(mutableSetOf(), BackgroundWorkItem::key)
+    val departedKeys = updated.keys.filterNot(presentKeys::contains)
+    departedKeys.sortedBy { updated.getValue(it).last().atEpochMillis }
+        .take((departedKeys.size - MAX_DEPARTED_WORK).coerceAtLeast(0))
         .forEach(updated::remove)
     return updated
 }

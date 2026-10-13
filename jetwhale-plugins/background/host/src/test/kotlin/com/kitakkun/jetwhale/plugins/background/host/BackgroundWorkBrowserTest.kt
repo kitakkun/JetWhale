@@ -24,7 +24,7 @@ class BackgroundWorkBrowserTest {
     fun `the pending filter hides finished work`() {
         runBlocking { browser.load() }
 
-        browser.changeFilter(WorkFilter(states = StateScope.Pending.states, query = ""))
+        browser.changeFilter(WorkFilter(states = WorkStateGroup.Unfinished.states, query = ""))
 
         assertEquals(listOf("sync", "cleanup"), browser.visibleItems.map(BackgroundWorkItem::id))
     }

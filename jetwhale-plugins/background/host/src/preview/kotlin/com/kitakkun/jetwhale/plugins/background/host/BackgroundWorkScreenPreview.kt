@@ -35,7 +35,7 @@ private val previewSync = BackgroundWorkItem(
     runNowHint = null,
 )
 
-private val previewFailed = previewSync.copy(
+private val previewFailedUpload = previewSync.copy(
     id = "7f3e2d1c-0b9a-4e8d-8c7b-6a5f4e3d2c1b",
     name = "com.example.app.upload.UploadWorker",
     state = WorkState.Failed,
@@ -74,12 +74,12 @@ private object NoActions : BackgroundWorkActions {
 private fun BackgroundWorkScreenPreview() {
     JwTheme(darkTheme = false) {
         BackgroundWorkScreen(
-            snapshot = BackgroundWorkSnapshot(sources = previewSources, items = listOf(previewSync, previewFailed, previewJob)),
-            visibleItems = listOf(previewSync, previewFailed, previewJob),
+            snapshot = BackgroundWorkSnapshot(sources = previewSources, items = listOf(previewSync, previewFailedUpload, previewJob)),
+            visibleItems = listOf(previewSync, previewFailedUpload, previewJob),
             selectedItem = previewSync,
             history = mapOf(previewSync.key to listOf(StateTransition(WorkState.Running, 1_790_000_000_000), StateTransition(WorkState.Enqueued, 1_790_000_060_000))),
             filter = WorkFilter(states = emptySet(), query = ""),
-            status = WorkStatus(message = "Enqueued a one-time copy of SyncWorker.", isError = false),
+            status = BackgroundWorkStatus(message = "Enqueued a one-time copy of SyncWorker.", isError = false),
             actions = NoActions,
         )
     }
@@ -105,7 +105,7 @@ private fun BackgroundWorkScreenNoSourcesPreview() {
 @Composable
 private fun WorkTablePreview() {
     JwTheme(darkTheme = false) {
-        WorkTable(items = listOf(previewSync, previewFailed, previewJob), selectedKey = previewJob.key, onSelect = {})
+        WorkTable(items = listOf(previewSync, previewFailedUpload, previewJob), selectedKey = previewJob.key, onSelect = {})
     }
 }
 
@@ -127,9 +127,9 @@ private fun StateTagPreview() {
 
 @Preview
 @Composable
-private fun ConfirmDialogPreview() {
+private fun ConfirmCancelDialogPreview() {
     JwTheme(darkTheme = false) {
-        ConfirmDialog(title = "Cancel all WorkManager work tagged sync?", message = "It cannot be undone.", confirmLabel = "Cancel work", onConfirm = {}, onDismiss = {})
+        ConfirmCancelDialog(title = "Cancel all WorkManager work tagged sync?", message = "It cannot be undone.", confirmLabel = "Cancel work", onConfirm = {}, onDismiss = {})
     }
 }
 

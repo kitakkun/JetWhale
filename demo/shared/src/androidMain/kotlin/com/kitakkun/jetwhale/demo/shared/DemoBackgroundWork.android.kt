@@ -25,7 +25,7 @@ actual fun demoBackgroundWorkSources(): List<BackgroundWorkSource> = BackgroundW
  * upload that waits for an idle, unmetered device (so it stays enqueued), and a report that fails.
  * Unique names keep a relaunch from piling up copies.
  */
-fun startDemoBackgroundWork(context: Context) {
+fun enqueueDemoBackgroundWork(context: Context) {
     val workManager = WorkManager.getInstance(context)
     demoWorkManager = workManager
     workManager.enqueueUniquePeriodicWork(

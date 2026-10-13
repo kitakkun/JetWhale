@@ -46,11 +46,11 @@ class PlatformDefaultsTest {
             activeSince = SystemClock.elapsedRealtime()
         }
         shadowOf(context.getSystemService(ActivityManager::class.java)).setServices(listOf(upload))
-        val services = source("Services")
+        val servicesSource = source("Services")
 
-        val first = runBlocking { services.observe().first() }
+        val first = runBlocking { servicesSource.observe().first() }
         ShadowSystemClock.advanceBy(Duration.ofMillis(1_500))
-        val second = runBlocking { services.observe().first() }
+        val second = runBlocking { servicesSource.observe().first() }
 
         assertEquals(first, second)
     }
