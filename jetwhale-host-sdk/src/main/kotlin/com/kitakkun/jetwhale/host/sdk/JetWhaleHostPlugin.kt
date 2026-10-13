@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.serializer
+import java.util.WeakHashMap
 
 /**
  * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
@@ -85,8 +86,10 @@ public abstract class JetWhaleHostPlugin {
      * Migrates the persistent [storage] from [fromVersion] to the current [storageVersion].
      *
      * Called at most once per instance, before the first regular storage operation completes, so
-     * reads never observe pre-migration data. Use [storage] directly to reshape the stored values
-     * (rename keys, convert value shapes, drop obsolete entries).
+     * reads never observe pre-migration data. Instances of the plugin that share the store, such as
+     * one in the host session and one in an app session, take turns, so only the first of them
+     * migrates it. Use [storage] directly to reshape the stored values (rename keys, convert value
+     * shapes, drop obsolete entries).
      *
      * @param fromVersion The version the stored data was written with.
      */
@@ -145,7 +148,7 @@ public abstract class JetWhaleHostPlugin {
     private inner class MigratingPluginStorage(
         private val raw: JetWhalePluginStorage,
     ) : JetWhalePluginStorage {
-        private val migrationMutex = Mutex()
+        private val migrationMutex = synchronized(migrationMutexesByStore) { migrationMutexesByStore.getOrPut(raw, ::Mutex) }
 
         @Volatile
         private var migrated = false
@@ -223,6 +226,13 @@ public abstract class JetWhaleHostPlugin {
     private companion object {
         /** Reserved key holding the persisted [storageVersion]; never visible to plugin code. */
         const val VERSION_KEY: String = "__jetwhale_storage_version"
+
+        /**
+         * One migration gate per store, shared by every instance of the plugin over it: an instance
+         * in the host session and one in an app session can reach storage at the same moment, and
+         * only the first may run [onStorageMigrate]. The next one then reads the stamped version.
+         */
+        val migrationMutexesByStore: MutableMap<JetWhalePluginStorage, Mutex> = WeakHashMap()
     }
 }
 

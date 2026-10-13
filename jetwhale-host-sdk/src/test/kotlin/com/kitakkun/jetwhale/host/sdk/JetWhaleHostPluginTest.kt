@@ -1,5 +1,18 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicInteger
 import javax.tools.ToolProvider
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.readBytes
@@ -45,8 +58,64 @@ class JetWhaleHostPluginTest {
         assertEquals(false, isInHostSession)
     }
 
+    @Test
+    fun `instances that share a store run its migration once between them`() = runBlocking {
+        val store = InMemoryPluginStorage()
+        store.put("draft", "unversioned", String.serializer())
+        val migrationsStarted = AtomicInteger()
+        val migrationMayFinish = CompletableDeferred<Unit>()
+        val instances = List(2) {
+            MigratingPlugin(onMigrate = {
+                migrationsStarted.incrementAndGet()
+                migrationMayFinish.await()
+            }).apply { bindStorage(store) }
+        }
+
+        val reads = instances.map { async(start = CoroutineStart.UNDISPATCHED) { it.readDraft() } }
+        val migrationsStartedWhileTheFirstRuns = migrationsStarted.get()
+        migrationMayFinish.complete(Unit)
+
+        assertEquals(listOf<String?>("unversioned", "unversioned"), reads.awaitAll())
+        assertEquals(1, migrationsStartedWhileTheFirstRuns)
+        assertEquals(1, migrationsStarted.get())
+    }
+
     private class SessionKindProbePlugin : JetWhaleHostPlugin() {
         fun readIsInHostSession(): Boolean = isInHostSession
+    }
+
+    private class MigratingPlugin(private val onMigrate: suspend () -> Unit) : JetWhaleHostPlugin() {
+        override val storageVersion: Int = 2
+
+        override suspend fun onStorageMigrate(fromVersion: Int) {
+            onMigrate()
+        }
+
+        suspend fun readDraft(): String? = storage.get("draft", String.serializer())
+    }
+
+    private class InMemoryPluginStorage : JetWhalePluginStorage {
+        private val encodedValues = MutableStateFlow(emptyMap<String, String>())
+
+        override suspend fun <T> put(key: String, value: T, serializer: KSerializer<T>) {
+            encodedValues.update { it + (key to Json.encodeToString(serializer, value)) }
+        }
+
+        override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? = encodedValues.value[key]?.let { Json.decodeFromString(serializer, it) }
+
+        override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = encodedValues.map { values -> values[key]?.let { Json.decodeFromString(serializer, it) } }
+
+        override suspend fun contains(key: String): Boolean = key in encodedValues.value
+
+        override suspend fun remove(key: String) {
+            encodedValues.update { it - key }
+        }
+
+        override suspend fun clear() {
+            encodedValues.value = emptyMap()
+        }
+
+        override val keysFlow: Flow<Set<String>> = encodedValues.map { it.keys }
     }
 
     /**
