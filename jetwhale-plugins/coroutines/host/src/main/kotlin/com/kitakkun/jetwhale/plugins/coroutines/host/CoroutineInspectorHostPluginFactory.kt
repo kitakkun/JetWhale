@@ -43,7 +43,7 @@ private class CoroutineInspectorHostPlugin :
 
     override suspend fun trackedFlows(): TrackedFlowReport = messenger.request(GetTrackedFlows)
 
-    override suspend fun dump(): CoroutineDump = messenger.request(DumpCoroutines)
+    override suspend fun dumpCoroutines(): CoroutineDump = messenger.request(DumpCoroutines)
 
     override suspend fun coroutineDetail(id: String): CoroutineDetail = messenger.request(GetCoroutineDetail(id))
 

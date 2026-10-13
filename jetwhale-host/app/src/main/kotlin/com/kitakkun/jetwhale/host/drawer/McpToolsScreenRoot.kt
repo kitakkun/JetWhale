@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,7 @@ context(screenContext: McpToolsScreenContext)
 fun McpToolsScreenRoot(
     initialPluginId: String?,
     initialSessionId: String?,
+    initialTab: McpToolsTab,
 ) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
@@ -72,6 +74,7 @@ fun McpToolsScreenRoot(
                 runningPluginId = runningInvocation?.pluginId,
                 runningToolName = runningInvocation?.toolName,
             ),
+            initialTab = initialTab,
             onSelectPluginFilters = { selectedPluginIds = it.toPersistentSet() },
             onSelectSessionFilters = { selectedSessionIds = it.toPersistentSet() },
         )
@@ -151,6 +154,7 @@ private fun rememberMcpToolsUiState(
  * the connected ones and say so: listed like the rest, a session that went away reads as one that is
  * still there.
  */
+@VisibleForTesting
 internal fun sessionFilterOptions(sessions: List<DebugSession>, hostLabel: String, disconnectedLabel: String): ImmutableList<McpFilterOption> {
     val appOptions = sessions
         .sortedByDescending(DebugSession::isActive)

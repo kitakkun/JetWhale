@@ -13,7 +13,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,7 +74,7 @@ enum class CoroutineScenario(val title: String, val simulates: String, val lookI
 class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineName("demo"))
     private val trackedMain = inspector.track(Dispatchers.Main, name = "Main", longRunThreshold = 16.milliseconds)
-    private val uploads = inspector.track(Dispatchers.Default.limitedParallelism(2), name = "Uploads (2 threads)", longRunThreshold = 400.milliseconds)
+    private val uploadDispatcher = inspector.track(Dispatchers.Default.limitedParallelism(2), name = "Uploads (2 threads)", longRunThreshold = 400.milliseconds)
     private val ticker: Flow<Int> = inspector.track(
         flow {
             var tick = 0
@@ -86,12 +85,11 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
         },
         name = "ticker",
     )
-    private var pollers = 0
-
-    private val mutableRunning = MutableStateFlow(emptyMap<CoroutineScenario, Set<Job>>())
+    private var pollerCount = 0
 
     /** The coroutines each scenario started that have not finished yet. */
-    val running: StateFlow<Map<CoroutineScenario, Set<Job>>> = mutableRunning.asStateFlow()
+    val runningJobs: StateFlow<Map<CoroutineScenario, Set<Job>>>
+        field = MutableStateFlow(emptyMap<CoroutineScenario, Set<Job>>())
 
     fun registerScope() {
         inspector.register(scope, name = SCOPE_NAME)
@@ -99,13 +97,13 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
 
     fun start(scenario: CoroutineScenario) {
         when (scenario) {
-            CoroutineScenario.NeverReturningRequest -> launch(scenario, "awaiting-response", EmptyCoroutineContext) { CompletableDeferred<String>().await() }
+            CoroutineScenario.NeverReturningRequest -> launchScenarioCoroutine(scenario, "awaiting-response", EmptyCoroutineContext) { CompletableDeferred<String>().await() }
 
-            CoroutineScenario.LeakedPolling -> launch(scenario, "poller-${++pollers}", EmptyCoroutineContext) {
+            CoroutineScenario.LeakedPolling -> launchScenarioCoroutine(scenario, "poller-${++pollerCount}", EmptyCoroutineContext) {
                 while (true) delay(1.seconds)
             }
 
-            CoroutineScenario.MainThreadParsing -> launch(scenario, "parse-feed-loop", EmptyCoroutineContext) {
+            CoroutineScenario.MainThreadParsing -> launchScenarioCoroutine(scenario, "parse-feed-loop", EmptyCoroutineContext) {
                 while (true) {
                     withContext(trackedMain + CoroutineName("parse-feed")) { busyFor(300.milliseconds) }
                     delay(2.seconds)
@@ -113,14 +111,14 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
             }
 
             CoroutineScenario.QueuedUploads -> repeat(6) {
-                launch(scenario, "upload", uploads) { busyFor(500.milliseconds) }
+                launchScenarioCoroutine(scenario, "upload", uploadDispatcher) { busyFor(500.milliseconds) }
             }
 
-            CoroutineScenario.NestedSync -> launch(scenario, "sync", EmptyCoroutineContext) {
+            CoroutineScenario.NestedSync -> launchScenarioCoroutine(scenario, "sync", EmptyCoroutineContext) {
                 repeat(3) { index -> launch(CoroutineName("download-${index + 1}")) { awaitCancellation() } }
             }
 
-            CoroutineScenario.SlowCancellation -> launch(scenario, "cleanup-on-cancel", EmptyCoroutineContext) {
+            CoroutineScenario.SlowCancellation -> launchScenarioCoroutine(scenario, "cleanup-on-cancel", EmptyCoroutineContext) {
                 try {
                     awaitCancellation()
                 } finally {
@@ -129,23 +127,23 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
             }
 
             CoroutineScenario.DuplicateCollection -> repeat(2) { index ->
-                launch(scenario, "ticker-collector-${index + 1}", EmptyCoroutineContext) { ticker.collect {} }
+                launchScenarioCoroutine(scenario, "ticker-collector-${index + 1}", EmptyCoroutineContext) { ticker.collect {} }
             }
         }
     }
 
     fun stop(scenario: CoroutineScenario) {
-        mutableRunning.value[scenario].orEmpty().forEach(Job::cancel)
+        runningJobs.value[scenario].orEmpty().forEach(Job::cancel)
     }
 
     fun stopAll() {
-        mutableRunning.value.values.flatten().forEach(Job::cancel)
+        runningJobs.value.values.flatten().forEach(Job::cancel)
     }
 
-    private fun launch(scenario: CoroutineScenario, name: String, context: CoroutineContext, block: suspend CoroutineScope.() -> Unit) {
+    private fun launchScenarioCoroutine(scenario: CoroutineScenario, name: String, context: CoroutineContext, block: suspend CoroutineScope.() -> Unit) {
         val job = scope.launch(CoroutineName(name) + context, block = block)
-        mutableRunning.update { it + (scenario to it[scenario].orEmpty() + job) }
-        job.invokeOnCompletion { mutableRunning.update { it + (scenario to it[scenario].orEmpty() - job) } }
+        runningJobs.update { it + (scenario to it[scenario].orEmpty() + job) }
+        job.invokeOnCompletion { runningJobs.update { it + (scenario to it[scenario].orEmpty() - job) } }
     }
 
     companion object {

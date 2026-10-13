@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +66,7 @@ private const val SCREENSHOT_POLL_MILLIS = 250L
  * failures in a row. A failure that passes (adb restarting, a fold in progress) costs a few seconds;
  * one that lasts (no ffmpeg) costs one attempt a minute.
  */
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // A table of timings, kept with the mirror's other timing constants.
 private val SCREENSHOT_FALLBACK_MILLIS = listOf(5_000L, 15_000L, 60_000L)
 
 /** How long a stream waits for its view to be laid out; a first layout takes a frame or two. */
@@ -564,7 +566,8 @@ internal class DeviceMirror(
     }
 
     /** Starts recording each of [targets] at once; one that fails to start leaves the others recording. */
-    suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
+    @VisibleForTesting
+    internal suspend fun startRecordingsOf(targets: List<MirrorDevice>): List<RecordingResult> = coroutineScope {
         targets.map { device ->
             async {
                 try {
@@ -600,13 +603,13 @@ internal class DeviceMirror(
     }
 
     override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = coroutineScope {
-        (deviceIds ?: activeRecordings.keys.toList()).map { id ->
+        (deviceIds ?: synchronized(activeRecordings) { activeRecordings.keys.toList() }).map { id ->
             async { recordingLockOf(id).withLock { stopResultLocked(id) } }
         }.awaitAll()
     }
 
     private fun soleRecordingDeviceId(): String {
-        val running = activeRecordings.values.toList()
+        val running = synchronized(activeRecordings) { activeRecordings.values.toList() }
         return when (running.size) {
             0 -> throw deviceControlError("no recording is running")
             1 -> running.single().device.id
@@ -677,6 +680,8 @@ internal class DeviceMirror(
                 throw e
             } catch (e: DeviceControlException) {
                 notices.show(MirrorNotice.failure(e.message.orEmpty(), retry = null))
+            } catch (e: Exception) {
+                notices.show(MirrorNotice.failure("Unexpected error: $e", retry = null))
             }
         }
     }

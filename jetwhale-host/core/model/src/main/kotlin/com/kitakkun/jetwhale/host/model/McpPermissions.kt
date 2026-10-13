@@ -73,12 +73,6 @@ data class McpPermissions(
         is McpToolPermission.PluginTool -> permission.toolName !in deniedPluginTools
     }
 
-    /** The launch override, applied where the permissions are read so nothing sees a stale copy. */
-    fun allOverriddenBy(override: McpPermissionOverride): McpPermissions = when {
-        override.allowAll -> AllowAll
-        else -> this
-    }
-
     companion object {
         /**
          * Observation and navigation are on; managing plugins and touching servers are not.

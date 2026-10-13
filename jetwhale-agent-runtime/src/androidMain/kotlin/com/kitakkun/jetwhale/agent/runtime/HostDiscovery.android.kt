@@ -21,7 +21,7 @@ private const val NSD_SERVICE_TYPE = "$JETWHALE_SERVICE_TYPE."
  * because older API levels reject a resolve while another is in flight.
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
-    val context = currentApplicationContext()
+    val context = currentApplicationContextOrNull()
         ?: return DiscoveryResult.Unavailable("the application Context could not be obtained")
     val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
         ?: return DiscoveryResult.Unavailable("NsdManager is not present on this device")
@@ -99,7 +99,7 @@ private fun NsdServiceInfo.toDiscoveredService(): DiscoveredService? {
 }
 
 /** Obtains the current application [Context] reflectively so no Context has to be passed in. */
-private fun currentApplicationContext(): Context? = try {
+private fun currentApplicationContextOrNull(): Context? = try {
     Class.forName("android.app.ActivityThread")
         .getMethod("currentApplication")
         .invoke(null) as? Context

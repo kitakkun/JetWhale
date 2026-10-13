@@ -12,8 +12,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.coroutines"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.coroutines.agent"
 }
@@ -22,8 +21,8 @@ dependencies {
     commonMainApi(projects.jetwhalePlugins.coroutines.protocol)
     commonMainApi(projects.jetwhaleAgentSdk)
     commonMainApi(libs.kotlinxCoroutinesCore)
-    // The app adds kotlinx-coroutines-debug only if it wants stacks: the library brings ByteBuddy
-    // and a JVM agent along.
+    // The app adds kotlinx-coroutines-debug itself only if it wants stacks: the library brings
+    // ByteBuddy and a JVM agent along.
     "jvmMainCompileOnly"(libs.kotlinxCoroutinesDebug)
 
     commonTestImplementation(libs.kotlinTest)

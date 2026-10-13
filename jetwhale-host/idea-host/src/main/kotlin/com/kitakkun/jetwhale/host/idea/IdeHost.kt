@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.component.InitializingDialog
 import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
@@ -39,6 +40,7 @@ class IdeHost : AutoCloseable {
             serverPortOverrides = ServerPortOverrides(serverPort = null, wssPort = null, mcpServerPort = null),
             mcpPermissionOverride = McpPermissionOverride.None,
             additionalPluginDirectories = AdditionalPluginDirectories(emptyList()),
+            hostLaunch = HostLaunch.Standalone,
         )
 
     init {

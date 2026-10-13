@@ -20,6 +20,8 @@ dependencies {
     // is what lets one Gradle plugin serve every Kotlin version in the supported range.
     compileOnly(libs.kotlinGradlePlugin)
 
+    compileOnly(libs.androidxAnnotation)
+
     testImplementation(kotlin("test"))
 }
 

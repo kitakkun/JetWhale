@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -66,7 +67,7 @@ internal interface ActionsScreenActions {
     fun selectRun(runId: String)
 
     /** Opens the run's action on the Actions tab with its form filled from the run's arguments. */
-    fun runAgain(runId: String)
+    fun prefillFormFromRun(runId: String)
 }
 
 /**
@@ -91,7 +92,7 @@ internal class ActionsBrowser(
     var selectedRunId: String? by mutableStateOf(null)
         private set
 
-    /** Set by [runAgain]; dropped once the form is run or another action is selected. */
+    /** Set by [prefillFormFromRun]; dropped once the form is run or another action is selected. */
     var prefill: FormPrefill? by mutableStateOf(null)
         private set
 
@@ -158,7 +159,7 @@ internal class ActionsBrowser(
         selectedRunId = runId
     }
 
-    override fun runAgain(runId: String) {
+    override fun prefillFormFromRun(runId: String) {
         val record = runs.firstOrNull { it.runId == runId } ?: return
         select(record.actionId)
         prefill = FormPrefill(record.actionId, record.arguments)
@@ -201,8 +202,12 @@ internal class ActionsBrowser(
         scope.launch {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: JetWhaleMessagingException) {
                 status = ActionsStatus(message = "Failed to reach the app: ${e.message}", isError = true)
+            } catch (e: Exception) {
+                status = ActionsStatus(message = "Unexpected error: $e", isError = true)
             }
         }
     }

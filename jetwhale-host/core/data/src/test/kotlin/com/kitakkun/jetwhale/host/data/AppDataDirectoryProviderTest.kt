@@ -31,12 +31,11 @@ class AppDataDirectoryProviderTest {
 
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
+        val appData = File(home, ".jetwhale").toPath()
         assertEquals("~/.jetwhale", provider.getAppDataPath())
-        assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
-        assertTrue(provider.getTrustRegistryFile().path.startsWith("$home/.jetwhale"))
-        assertTrue(
-            provider.resolveDataStoreFilePath("prefs.preferences_pb").toString().startsWith("$home/.jetwhale"),
-        )
+        assertTrue(provider.getPluginDirectory().toPath().startsWith(appData))
+        assertTrue(provider.getTrustRegistryFile().toPath().startsWith(appData))
+        assertTrue(provider.resolveDataStoreFilePath("prefs.preferences_pb").toNioPath().startsWith(appData))
     }
 
     @Test
@@ -68,7 +67,7 @@ class AppDataDirectoryProviderTest {
         val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
         assertEquals("~/.jetwhale", provider.getAppDataPath())
-        assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
+        assertTrue(provider.getPluginDirectory().toPath().startsWith(File(home, ".jetwhale").toPath()))
     }
 
     @Test

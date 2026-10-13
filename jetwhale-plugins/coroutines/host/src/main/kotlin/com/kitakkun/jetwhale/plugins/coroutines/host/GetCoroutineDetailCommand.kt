@@ -22,14 +22,14 @@ internal class GetCoroutineDetailCommand(
     private val id by string("The coroutine's id, as getCoroutineTree gives it (for example c12).")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val requested = arguments[id]
-        val location = findCoroutine(client.coroutineTree().roots, requested)
+        val coroutineId = arguments[id]
+        val location = findCoroutine(client.coroutineTree().roots, coroutineId)
             ?: return buildJsonObject {
                 put("found", false)
-                put("note", "No coroutine has the id '$requested' now: it finished, its scope was dropped, or the id is from another session. Read getCoroutineTree again.")
+                put("note", "No coroutine has the id '$coroutineId' now: it finished, its scope was dropped, or the id is from another session. Read getCoroutineTree again.")
             }.toString()
         val node = location.node
-        val detail = client.coroutineDetail(requested)
+        val detail = client.coroutineDetail(coroutineId)
         return buildJsonObject {
             put("found", detail.found)
             put("id", node.id)
@@ -40,7 +40,7 @@ internal class GetCoroutineDetailCommand(
             put("description", node.description)
             putJsonArray("path") { location.ancestors.forEach { add(it.name ?: it.description) } }
             put("children", node.children.size)
-            putJsonObject("descendantsByState") { node.descendantStates().forEach { (state, count) -> put(state.name, count) } }
+            putJsonObject("descendantsByState") { node.countDescendantsByState().forEach { (state, count) -> put(state.name, count) } }
             put("debugState", detail.debugState)
             putJsonArray("suspensionStack") { detail.suspensionStack.forEach(::add) }
             putJsonArray("creationStack") { detail.creationStack.forEach(::add) }

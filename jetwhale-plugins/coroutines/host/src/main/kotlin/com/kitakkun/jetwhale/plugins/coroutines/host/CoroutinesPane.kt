@@ -32,7 +32,7 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 
 /** The state filters offered, each a set of states to show; the empty set shows everything. */
-private enum class StateFilter(val label: String, val states: Set<CoroutineState>) {
+private enum class CoroutineStateFilter(val label: String, val states: Set<CoroutineState>) {
     All("All", emptySet()),
     Active("Active", setOf(CoroutineState.Active)),
     New("Not started", setOf(CoroutineState.New)),
@@ -54,9 +54,9 @@ private const val TREE_FRACTION = 0.6f
 @Composable
 internal fun CoroutinesPane(
     tree: CoroutineTree?,
-    collapsed: Set<String>,
+    collapsedRowIds: Set<String>,
     filter: CoroutineFilter,
-    selectedId: String?,
+    selectedCoroutineId: String?,
     lastSeenSelection: CoroutineLocation?,
     detail: CoroutineDetail?,
     actions: CoroutineInspectorActions,
@@ -76,11 +76,11 @@ internal fun CoroutinesPane(
 
             else -> JwSplitPane(
                 state = rememberJwSplitPaneState(TREE_FRACTION),
-                first = { CoroutineTreeList(tree = tree, collapsed = collapsed, filter = filter, selectedId = selectedId, actions = actions) },
+                first = { CoroutineTreeList(tree = tree, collapsedRowIds = collapsedRowIds, filter = filter, selectedCoroutineId = selectedCoroutineId, actions = actions) },
                 second = {
                     CoroutineDetailPane(
-                        current = selectedId?.let { findCoroutine(tree.roots, it) },
-                        lastSeen = lastSeenSelection,
+                        currentSelection = selectedCoroutineId?.let { findCoroutine(tree.roots, it) },
+                        lastSeenSelection = lastSeenSelection,
                         detail = detail,
                         onReloadStack = actions::reloadDetail,
                     )
@@ -94,7 +94,7 @@ private const val REGISTER_SNIPPET = """inspector.register(applicationScope, nam
 inspector.register(viewModelScope, name = "HomeViewModel")"""
 
 @Composable
-private fun CoroutineTreeList(tree: CoroutineTree, collapsed: Set<String>, filter: CoroutineFilter, selectedId: String?, actions: CoroutineInspectorActions) {
+private fun CoroutineTreeList(tree: CoroutineTree, collapsedRowIds: Set<String>, filter: CoroutineFilter, selectedCoroutineId: String?, actions: CoroutineInspectorActions) {
     Column(Modifier.fillMaxSize()) {
         JwText(
             text = buildString {
@@ -110,14 +110,14 @@ private fun CoroutineTreeList(tree: CoroutineTree, collapsed: Set<String>, filte
             color = JwTheme.colors.textSecondary,
             modifier = Modifier.padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
         )
-        val rows = flattenCoroutineTree(filterCoroutineTree(tree.roots, filter), collapsed)
+        val rows = flattenCoroutineTree(filterCoroutineTree(tree.roots, filter), collapsedRowIds)
         LazyColumn(Modifier.fillMaxSize()) {
             items(rows, key = CoroutineRow::rowId) { row ->
                 CoroutineTreeRow(
                     row = row,
-                    selected = row.node.id == selectedId,
+                    selected = row.node.id == selectedCoroutineId,
                     onSelect = { actions.select(row.node.id) },
-                    onToggle = { actions.toggleCollapsed(row.rowId) },
+                    onToggleExpanded = { actions.toggleCollapsed(row.rowId) },
                 )
             }
         }
@@ -132,10 +132,10 @@ private fun FilterBar(filter: CoroutineFilter, onFilterChange: (CoroutineFilter)
         verticalAlignment = Alignment.CenterVertically,
     ) {
         JwSegmentedButtons(
-            options = StateFilter.entries,
-            selected = StateFilter.entries.firstOrNull { it.states == filter.states } ?: StateFilter.All,
+            options = CoroutineStateFilter.entries,
+            selected = CoroutineStateFilter.entries.firstOrNull { it.states == filter.states } ?: CoroutineStateFilter.All,
             onSelect = { onFilterChange(filter.copy(states = it.states)) },
-            label = StateFilter::label,
+            label = CoroutineStateFilter::label,
         )
         JwSegmentedButtons(
             options = AgeFilter.entries,
@@ -162,7 +162,7 @@ private fun FilterBar(filter: CoroutineFilter, onFilterChange: (CoroutineFilter)
 }
 
 @Composable
-private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () -> Unit, onToggle: () -> Unit) {
+private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () -> Unit, onToggleExpanded: () -> Unit) {
     val node = row.node
     JwTreeRow(
         text = node.name ?: node.description,
@@ -171,7 +171,7 @@ private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () 
         expanded = row.expanded,
         selected = selected,
         onClick = onSelect,
-        onToggleExpanded = onToggle,
+        onToggleExpanded = onToggleExpanded,
         muted = node.name == null,
         trailingContent = {
             JwTooltip(text = node.state.explanation) {

@@ -31,23 +31,23 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 
 /**
- * Everything the inspector knows about the selected coroutine. [current] is where it is in the
- * latest tree, or null once it has gone; [lastSeen] is where it was the last time a tree had it.
+ * Everything the inspector knows about the selected coroutine. [currentSelection] is where it is in the
+ * latest tree, or null once it has gone; [lastSeenSelection] is where it was the last time a tree had it.
  */
 @Composable
 internal fun CoroutineDetailPane(
-    current: CoroutineLocation?,
-    lastSeen: CoroutineLocation?,
+    currentSelection: CoroutineLocation?,
+    lastSeenSelection: CoroutineLocation?,
     detail: CoroutineDetail?,
     onReloadStack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val location = current ?: lastSeen
+    val location = currentSelection ?: lastSeenSelection
     Box(modifier.fillMaxSize()) {
         if (location == null) {
             JwEmptyState(title = "No coroutine selected", description = "Pick a coroutine in the tree to see its state, where it lives, what runs below it and — on the JVM — the stack it waits at.")
         } else {
-            DetailContent(location = location, gone = current == null, detail = detail, onReloadStack = onReloadStack)
+            DetailContent(location = location, gone = currentSelection == null, detail = detail, onReloadStack = onReloadStack)
         }
     }
 }
@@ -55,7 +55,7 @@ internal fun CoroutineDetailPane(
 @Composable
 private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: CoroutineDetail?, onReloadStack: () -> Unit) {
     val node = location.node
-    val stacks = detail?.takeIf { it.found && it.stackUnavailableReason == null }
+    val detailWithStacks = detail?.takeIf { it.found && it.stackUnavailableReason == null }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large), verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         if (gone) {
             JwBanner(
@@ -66,9 +66,9 @@ private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: Co
         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
             JwText(text = node.name ?: "Unnamed coroutine", style = JwTheme.textStyles.subtitle)
             JwTag(text = node.state.label, tone = node.state.tone)
-            stacks?.debugState?.let { JwTag(text = debugStateLabel(it), tone = JwTone.Neutral) }
+            detailWithStacks?.debugState?.let { JwTag(text = debugStateLabel(it), tone = JwTone.Neutral) }
         }
-        JwText(text = stacks?.debugState?.let(::debugStateExplanation) ?: node.state.explanation, color = JwTheme.colors.textSecondary)
+        JwText(text = detailWithStacks?.debugState?.let(::debugStateExplanation) ?: node.state.explanation, color = JwTheme.colors.textSecondary)
 
         JwSectionHeader(
             title = "Where it waits",
@@ -80,7 +80,7 @@ private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: Co
         JwKeyValueRow(key = "Path", value = (location.ancestors + node).joinToString(" › ") { it.name ?: it.id })
         JwKeyValueRow(key = "Dispatcher", value = node.dispatcher ?: "None — a plain Job rather than a coroutine", monospace = node.dispatcher != null)
         JwKeyValueRow(key = "Seen for", value = "${formatObserved(node.observedMillis)}, since the inspector first saw it")
-        JwKeyValueRow(key = "Below it", value = describeDescendants(node.children.size, node.descendantStates()))
+        JwKeyValueRow(key = "Below it", value = describeDescendants(node.children.size, node.countDescendantsByState()))
         JwKeyValueRow(key = "Job", value = node.description, monospace = true)
         JwKeyValueRow(key = "Id", value = node.id, monospace = true)
     }
@@ -99,10 +99,10 @@ private fun StackSection(detail: CoroutineDetail?) {
 
         else -> {
             firstAppFrame(detail.suspensionStack)?.let { JwKeyValueRow(key = "In app code", value = it, monospace = true) }
-            JwCodeBlock(text = frameText(detail.suspensionStack), wrap = true, copyLabel = "Copy stack")
+            JwCodeBlock(text = formatStackFrames(detail.suspensionStack), wrap = true, copyLabel = "Copy stack")
             if (detail.creationStack.isNotEmpty()) {
                 JwText(text = "Created at", style = JwTheme.textStyles.label)
-                JwCodeBlock(text = frameText(detail.creationStack), wrap = true, copyLabel = "Copy stack")
+                JwCodeBlock(text = formatStackFrames(detail.creationStack), wrap = true, copyLabel = "Copy stack")
             }
         }
     }
@@ -110,12 +110,12 @@ private fun StackSection(detail: CoroutineDetail?) {
 
 /** The frames one per line, the coroutines library's and the platform's dimmed so the app's own stand out. */
 @Composable
-private fun frameText(frames: List<String>): AnnotatedString {
-    val dimmed = JwTheme.colors.textSecondary
+private fun formatStackFrames(frames: List<String>): AnnotatedString {
+    val dimmedColor = JwTheme.colors.textSecondary
     return buildAnnotatedString {
         frames.forEachIndexed { index, frame ->
             if (index > 0) append("\n")
-            if (isLibraryFrame(frame)) withStyle(SpanStyle(color = dimmed)) { append(frame) } else append(frame)
+            if (isLibraryFrame(frame)) withStyle(SpanStyle(color = dimmedColor)) { append(frame) } else append(frame)
         }
     }
 }
@@ -128,10 +128,10 @@ internal fun isLibraryFrame(frame: String): Boolean = LibraryFramePrefixes.any(f
 /** The innermost frame of the app's own code: the line to open first. */
 internal fun firstAppFrame(frames: List<String>): String? = frames.firstOrNull { !isLibraryFrame(it) }
 
-private fun describeDescendants(children: Int, descendants: Map<CoroutineState, Int>): String {
-    if (children == 0) return "No coroutines run below it."
-    val total = descendants.values.sum()
-    return "$children direct ${if (children == 1) "child" else "children"}, $total in all: ${formatStateCounts(descendants, separator = ", ")}."
+private fun describeDescendants(childCount: Int, descendantStateCounts: Map<CoroutineState, Int>): String {
+    if (childCount == 0) return "No coroutines run below it."
+    val total = descendantStateCounts.values.sum()
+    return "$childCount direct ${if (childCount == 1) "child" else "children"}, $total in all: ${formatStateCounts(descendantStateCounts, separator = ", ")}."
 }
 
 private fun debugStateLabel(debugState: String): String = when (debugState) {

@@ -5,10 +5,11 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
+import com.kitakkun.jetwhale.host.model.HostMcpToolsTab
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostSession
-import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.HostSettingsPage
 import com.kitakkun.jetwhale.host.model.HostViewState
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -84,7 +85,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate reports the destination the host switched to`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.SERVER),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.DEBUG_SERVER),
         )
 
         val result = command
@@ -99,12 +100,115 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate does not confirm a settings section other than the one requested`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.GENERAL),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE),
         )
 
         val result = command
             .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("PLUGINS")))
             .decode()
+
+        assertFalse(result.applied)
+    }
+
+    @Test
+    fun `navigate opens every settings page by the name the settings menu gives it`() = runBlocking {
+        HostSettingsPage.entries.forEach { page ->
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = page))
+
+            val result = command
+                .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsPage" to JsonPrimitive(page.name)))
+                .decode()
+
+            assertTrue(result.applied, page.name)
+            assertEquals(page.name, result.settingsPage)
+            assertEquals(page.section.name, result.settingsSection)
+            verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Settings(page)) }
+        }
+    }
+
+    @Test
+    fun `navigate opens the first page of a section given only settingsSection`() = runBlocking {
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.MCP_SERVER))
+
+        command.execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("AI_AGENTS")))
+
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Settings(HostSettingsPage.MCP_SERVER)) }
+    }
+
+    @Test
+    fun `navigate does not take another page of the requested section as confirmation`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS),
+        )
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("AI_AGENTS")))
+            .decode()
+
+        assertFalse(result.applied)
+    }
+
+    @Test
+    fun `navigate accepts a settingsSection that holds the settingsPage`() = runBlocking {
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS))
+
+        command.execute(
+            arguments(
+                "destination" to JsonPrimitive("SETTINGS"),
+                "settingsSection" to JsonPrimitive("AI_AGENTS"),
+                "settingsPage" to JsonPrimitive("PERMISSIONS"),
+            ),
+        )
+
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Settings(HostSettingsPage.PERMISSIONS)) }
+    }
+
+    @Test
+    fun `navigate rejects a settingsPage outside the given settingsSection`(): Unit = runBlocking {
+        val error = assertFailsWithArgumentException {
+            command.execute(
+                arguments(
+                    "destination" to JsonPrimitive("SETTINGS"),
+                    "settingsSection" to JsonPrimitive("SERVER"),
+                    "settingsPage" to JsonPrimitive("PERMISSIONS"),
+                ),
+            )
+        }
+        assertContains(error, "PERMISSIONS is in AI_AGENTS")
+    }
+
+    @Test
+    fun `navigate opens each tab of the MCP tools browser`() = runBlocking {
+        HostMcpToolsTab.entries.forEach { tab ->
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = tab))
+
+            val result = command
+                .execute(arguments("destination" to JsonPrimitive("MCP_TOOLS"), "mcpToolsTab" to JsonPrimitive(tab.name)))
+                .decode()
+
+            assertTrue(result.applied, tab.name)
+            assertEquals("MCP_TOOLS", result.destination)
+            assertEquals(tab.name, result.mcpToolsTab)
+            verifySuspend { hostNavigationService.navigate(HostNavigationRequest.McpTools(tab)) }
+        }
+    }
+
+    @Test
+    fun `navigate opens the MCP tools browser on its Tools tab by default`() = runBlocking {
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.TOOLS))
+
+        command.execute(arguments("destination" to JsonPrimitive("MCP_TOOLS")))
+
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.McpTools(HostMcpToolsTab.TOOLS)) }
+    }
+
+    @Test
+    fun `navigate does not take a tools browser narrowed to one plugin as confirmation`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.MCP_TOOLS, pluginId = "com.example.agent", mcpToolsTab = HostMcpToolsTab.TOOLS),
+        )
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("MCP_TOOLS"))).decode()
 
         assertFalse(result.applied)
     }

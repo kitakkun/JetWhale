@@ -106,12 +106,12 @@ class FlowRecorderTest {
             override fun toString(): String {
                 val formattingStartedAt = nowEpochMillis()
                 while (nowEpochMillis() == formattingStartedAt) {}
-                recorder.onEmission("newer")
+                recorder.recordEmission("newer")
                 return "older"
             }
         }
 
-        recorder.onEmission(formattedWhileAnotherCollectorEmits)
+        recorder.recordEmission(formattedWhileAnotherCollectorEmits)
 
         assertEquals(listOf("newer", "older"), recorder.snapshot().recentValues.map(FlowValue::text))
     }

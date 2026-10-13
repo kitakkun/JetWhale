@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun CoroutineTestScreen() {
     val demo = DIModule.coroutineDemo
-    val running by demo.running.collectAsState()
+    val runningJobs by demo.runningJobs.collectAsState()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -43,7 +43,7 @@ internal fun CoroutineTestScreen() {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedButton(onClick = demo::stopAll, enabled = running.values.any(Set<*>::isNotEmpty)) { Text("Stop everything") }
+                OutlinedButton(onClick = demo::stopAll, enabled = runningJobs.values.any(Set<*>::isNotEmpty)) { Text("Stop everything") }
             }
         }
         // LazyColumn composes only the items in view; placed first, the panel's coroutines run
@@ -52,7 +52,7 @@ internal fun CoroutineTestScreen() {
         items(CoroutineScenario.entries) { scenario ->
             ScenarioCard(
                 scenario = scenario,
-                runningCount = running[scenario].orEmpty().size,
+                runningCount = runningJobs[scenario].orEmpty().size,
                 onStart = { demo.start(scenario) },
                 onStop = { demo.stop(scenario) },
             )

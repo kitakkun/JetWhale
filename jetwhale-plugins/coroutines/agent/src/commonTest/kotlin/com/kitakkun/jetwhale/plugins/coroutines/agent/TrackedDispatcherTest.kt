@@ -23,7 +23,7 @@ class TrackedDispatcherTest {
             pending += block
         }
 
-        fun runAll() {
+        fun runPendingTasks() {
             val tasks = pending.toList()
             pending.clear()
             tasks.forEach(Runnable::run)
@@ -40,7 +40,7 @@ class TrackedDispatcherTest {
         tracked.dispatch(EmptyCoroutineContext, Runnable {})
         assertEquals(2, recorder.snapshot().queued)
 
-        delegate.runAll()
+        delegate.runPendingTasks()
 
         val stats = recorder.snapshot()
         assertEquals(0, stats.queued)
@@ -90,7 +90,7 @@ class TrackedDispatcherTest {
         var runningInside = -1
         TrackedDispatcher(delegate, recorder).dispatch(EmptyCoroutineContext, Runnable { runningInside = recorder.snapshot().running })
 
-        delegate.runAll()
+        delegate.runPendingTasks()
 
         assertEquals(1, runningInside)
     }
@@ -101,7 +101,7 @@ class TrackedDispatcherTest {
         val recorder = DispatcherRecorder(name = "Main", longRunThreshold = Duration.ZERO)
 
         TrackedDispatcher(delegate, recorder).dispatch(CoroutineName("blocker"), Runnable {})
-        delegate.runAll()
+        delegate.runPendingTasks()
 
         assertEquals(listOf("blocker"), recorder.snapshot().longRuns.map(LongRun::coroutineName))
         assertEquals(1, recorder.clearLongRuns())

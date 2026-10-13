@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
@@ -42,6 +43,7 @@ internal fun noViewAttributesMessage(nodeId: Int): String = if (nodeId >= 0) {
 }
 
 /** The `@SerialName` of [value]'s variant — how a message names the shape a caller sent or owes. */
+@VisibleForTesting
 internal fun variantNameOf(value: ViewAttributeValue): String = value.type.wireName
 
 /** Names what the attribute takes and what arrived, so a caller can fix the call from the message alone. */

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -79,7 +80,8 @@ class ClickMcpTool(
  *
  * @return true if a clickable node was found and its action was invoked, false otherwise.
  */
-fun dispatchClick(scene: PluginComposeScene, x: Float, y: Float): Boolean {
+@VisibleForTesting
+internal fun dispatchClick(scene: PluginComposeScene, x: Float, y: Float): Boolean {
     val point = Offset(x, y)
     // Each Dialog or Popup is a layer with its own owner, appended as it opens, so the last owner is
     // drawn on top. Searching from there keeps a dialog's button ahead of whatever lies beneath it.

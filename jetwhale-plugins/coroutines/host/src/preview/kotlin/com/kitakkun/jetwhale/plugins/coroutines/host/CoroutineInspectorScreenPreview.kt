@@ -34,7 +34,7 @@ private val previewTree = CoroutineTree(
     capturedAtEpochMillis = 1_760_000_000_000,
 )
 
-private val previewDispatchers = DispatcherStatsReport(
+private val previewDispatcherStatsReport = DispatcherStatsReport(
     dispatchers = listOf(
         DispatcherStats(
             name = "Main",
@@ -56,7 +56,7 @@ private val previewDispatchers = DispatcherStatsReport(
     capturedAtEpochMillis = 1_760_000_000_000,
 )
 
-private val previewFlows = TrackedFlowReport(
+private val previewTrackedFlowReport = TrackedFlowReport(
     flows = listOf(
         TrackedFlowInfo(
             name = "prices",
@@ -87,7 +87,7 @@ private object NoActions : CoroutineInspectorActions {
 
     override fun toggleCollapsed(rowId: String) = Unit
 
-    override fun select(id: String?) = Unit
+    override fun select(coroutineId: String?) = Unit
 
     override fun reloadDetail() = Unit
 
@@ -103,12 +103,12 @@ private fun CoroutineInspectorScreenPreview() {
             autoRefresh = false,
             filter = CoroutineFilter.None,
             tree = previewTree,
-            collapsed = emptySet(),
-            selectedId = "c3",
+            collapsedRowIds = emptySet(),
+            selectedCoroutineId = "c3",
             lastSeenSelection = null,
             detail = previewDetail,
-            dispatchers = previewDispatchers,
-            flows = previewFlows,
+            dispatcherStatsReport = previewDispatcherStatsReport,
+            trackedFlowReport = previewTrackedFlowReport,
             dump = null,
             status = null,
             actions = NoActions,
@@ -125,9 +125,9 @@ private fun CoroutinesPanePreview() {
     JwTheme(darkTheme = true) {
         CoroutinesPane(
             tree = previewTree,
-            collapsed = setOf("c1/c2"),
+            collapsedRowIds = setOf("c1/c2"),
             filter = CoroutineFilter.None,
-            selectedId = null,
+            selectedCoroutineId = null,
             lastSeenSelection = null,
             detail = null,
             actions = NoActions,
@@ -140,7 +140,7 @@ private fun CoroutinesPanePreview() {
 @Composable
 private fun DispatchersPanePreview() {
     JwTheme(darkTheme = false) {
-        DispatchersPane(report = previewDispatchers, actions = NoActions)
+        DispatchersPane(report = previewDispatcherStatsReport, actions = NoActions)
     }
 }
 
@@ -148,7 +148,7 @@ private fun DispatchersPanePreview() {
 @Composable
 private fun FlowsPanePreview() {
     JwTheme(darkTheme = false) {
-        FlowsPane(report = previewFlows)
+        FlowsPane(report = previewTrackedFlowReport)
     }
 }
 
@@ -156,7 +156,7 @@ private fun FlowsPanePreview() {
 @Composable
 private fun CoroutineDetailPanePreview() {
     JwTheme(darkTheme = false) {
-        CoroutineDetailPane(current = findCoroutine(previewTree.roots, "c3"), lastSeen = null, detail = previewDetail, onReloadStack = {})
+        CoroutineDetailPane(currentSelection = findCoroutine(previewTree.roots, "c3"), lastSeenSelection = null, detail = previewDetail, onReloadStack = {})
     }
 }
 
@@ -165,8 +165,8 @@ private fun CoroutineDetailPanePreview() {
 private fun GoneCoroutineDetailPanePreview() {
     JwTheme(darkTheme = true) {
         CoroutineDetailPane(
-            current = null,
-            lastSeen = findCoroutine(previewTree.roots, "c4"),
+            currentSelection = null,
+            lastSeenSelection = findCoroutine(previewTree.roots, "c4"),
             detail = CoroutineDetail(id = "c4", found = false, debugState = null, suspensionStack = emptyList(), creationStack = emptyList(), stackUnavailableReason = null),
             onReloadStack = {},
         )

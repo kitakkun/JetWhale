@@ -18,7 +18,7 @@ internal interface CoroutineInspectorClient {
 
     suspend fun trackedFlows(): TrackedFlowReport
 
-    suspend fun dump(): CoroutineDump
+    suspend fun dumpCoroutines(): CoroutineDump
 
     suspend fun coroutineDetail(id: String): CoroutineDetail
 

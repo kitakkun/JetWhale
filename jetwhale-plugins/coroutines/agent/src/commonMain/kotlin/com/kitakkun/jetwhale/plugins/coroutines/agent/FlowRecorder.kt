@@ -14,7 +14,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /** Recent values kept per flow, and the longest text kept of each. */
 private const val MAX_RECENT_VALUES = 20
-private const val MAX_VALUE_TEXT = 200
+private const val MAX_VALUE_TEXT_LENGTH = 200
 
 /**
  * The window the emission rate is measured over, in one-second buckets: memory stays bounded however
@@ -23,18 +23,18 @@ private const val MAX_VALUE_TEXT = 200
 private const val RATE_WINDOW_SECONDS = 10
 
 internal fun <T> trackedFlow(upstream: Flow<T>, recorder: FlowRecorder): Flow<T> = flow {
-    recorder.onCollectionStarted()
+    recorder.recordCollectionStart()
     try {
         upstream.collect { value ->
-            recorder.onEmission(value)
+            recorder.recordEmission(value)
             emit(value)
         }
-        recorder.onCompleted()
+        recorder.recordCompletion()
     } catch (e: CancellationException) {
-        recorder.onCancelled()
+        recorder.recordCancellation()
         throw e
     } catch (e: Throwable) {
-        recorder.onFailed()
+        recorder.recordFailure()
         throw e
     }
 }
@@ -51,12 +51,12 @@ internal class FlowRecorder(val name: String) {
     private val recentValues = AtomicReference(emptyList<FlowValue>())
     private val rateBuckets = AtomicReference(emptyList<RateBucket>())
 
-    fun onCollectionStarted() {
+    fun recordCollectionStart() {
         activeCollectors.incrementAndFetch()
         collections.incrementAndFetch()
     }
 
-    fun onEmission(value: Any?) {
+    fun recordEmission(value: Any?) {
         val now = nowEpochMillis()
         emissions.incrementAndFetch()
         // A value's toString() is the app's code; one that throws costs the record its text,
@@ -67,23 +67,23 @@ internal class FlowRecorder(val name: String) {
         } catch (e: Exception) {
             "<toString() threw ${e::class.simpleName}>"
         }
-        val recent = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT))
+        val recent = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT_LENGTH))
         recentValues.updateAndGet { (listOf(recent) + it).take(MAX_RECENT_VALUES) }
-        val second = now / 1000
-        rateBuckets.updateAndGet { it.countingEmissionAt(second) }
+        val epochSecond = now / 1000
+        rateBuckets.updateAndGet { it.countingEmissionAt(epochSecond) }
     }
 
-    fun onCompleted() {
+    fun recordCompletion() {
         activeCollectors.decrementAndFetch()
         completions.incrementAndFetch()
     }
 
-    fun onCancelled() {
+    fun recordCancellation() {
         activeCollectors.decrementAndFetch()
         cancellations.incrementAndFetch()
     }
 
-    fun onFailed() {
+    fun recordFailure() {
         activeCollectors.decrementAndFetch()
         failures.incrementAndFetch()
     }
@@ -98,26 +98,26 @@ internal class FlowRecorder(val name: String) {
             cancellations = cancellations.load(),
             failures = failures.load(),
             emissions = emissions.load(),
-            emissionsPerSecond = rateBuckets.load().filter { it.second > now / 1000 - RATE_WINDOW_SECONDS }.sumOf(RateBucket::count).toDouble() / RATE_WINDOW_SECONDS,
+            emissionsPerSecond = rateBuckets.load().filter { it.epochSecond > now / 1000 - RATE_WINDOW_SECONDS }.sumOf(RateBucket::count).toDouble() / RATE_WINDOW_SECONDS,
             recentValues = recentValues.load().sortedByDescending(FlowValue::atEpochMillis),
         )
     }
 }
 
-internal data class RateBucket(val second: Long, val count: Long)
+internal data class RateBucket(val epochSecond: Long, val count: Long)
 
 /**
- * These buckets with one more emission in [second], and those older than the rate window, which
+ * These buckets with one more emission in [epochSecond], and those older than the rate window, which
  * ends at the newest second seen, dropped.
  * Collectors on different threads can commit out of order, so the bucket is found by its second
  * rather than assumed to be the last one; there is never more than one bucket per second.
  */
-internal fun List<RateBucket>.countingEmissionAt(second: Long): List<RateBucket> {
-    val counted = if (any { it.second == second }) {
-        map { if (it.second == second) it.copy(count = it.count + 1) else it }
+internal fun List<RateBucket>.countingEmissionAt(epochSecond: Long): List<RateBucket> {
+    val counted = if (any { it.epochSecond == epochSecond }) {
+        map { if (it.epochSecond == epochSecond) it.copy(count = it.count + 1) else it }
     } else {
-        this + RateBucket(second, 1)
+        this + RateBucket(epochSecond, 1)
     }
-    val newest = maxOf(second, maxOfOrNull(RateBucket::second) ?: second)
-    return counted.filter { it.second > newest - RATE_WINDOW_SECONDS }
+    val newest = maxOf(epochSecond, maxOfOrNull(RateBucket::epochSecond) ?: epochSecond)
+    return counted.filter { it.epochSecond > newest - RATE_WINDOW_SECONDS }
 }

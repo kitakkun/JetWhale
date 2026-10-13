@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -80,7 +81,8 @@ class GetAccessibilityTreeMcpTool(
  * otherwise it would hand an agent the values a plugin redacts from captures.
  */
 @OptIn(InternalComposeUiApi::class)
-fun captureAccessibilityTree(scene: PluginComposeScene): String {
+@VisibleForTesting
+internal fun captureAccessibilityTree(scene: PluginComposeScene): String {
     val viewport = McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
@@ -93,17 +95,17 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
 }
 
 private fun traverseSemanticsTree(node: SemanticsNode): List<NodeInfo> {
-    val info = nodeToInfo(node)
+    val info = node.toNodeInfo()
     val children = node.children.flatMap(::traverseSemanticsTree)
     return listOf(info.copy(children = children))
 }
 
-private fun nodeToInfo(node: SemanticsNode): NodeInfo {
-    val config = node.config
+/** This node as `jetwhale.getAccessibilityTree` reports it, with its children left empty. */
+internal fun SemanticsNode.toNodeInfo(): NodeInfo {
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
-    val bounds = node.boundsInRoot
+    val bounds = boundsInRoot
     return NodeInfo(
-        id = node.id,
+        id = id,
         role = config.getOrNull(SemanticsProperties.Role)?.toString(),
         text = config.getOrNull(SemanticsProperties.Text)
             ?.joinToString(separator = " ", transform = AnnotatedString::text)
@@ -127,12 +129,13 @@ private fun nodeToInfo(node: SemanticsNode): NodeInfo {
 }
 
 @Serializable
-data class AccessibilityTreeResult(
+@VisibleForTesting
+internal data class AccessibilityTreeResult(
     val nodes: List<NodeInfo>,
 )
 
 @Serializable
-data class NodeInfo(
+internal data class NodeInfo(
     val id: Int,
     val role: String? = null,
     val text: String? = null,
@@ -148,7 +151,7 @@ data class NodeInfo(
 )
 
 @Serializable
-data class BoundsInfo(
+internal data class BoundsInfo(
     val left: Float,
     val top: Float,
     val right: Float,

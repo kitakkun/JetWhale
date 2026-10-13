@@ -13,5 +13,5 @@ internal class DumpCoroutinesCommand(
     override val description =
         "Returns every coroutine in the app with the stack it is suspended at, which shows where a stuck coroutine waits. Only an app on the JVM that installed kotlinx-coroutines-debug's DebugProbes can produce one; otherwise unavailableReason says why."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(CoroutineDump.serializer(), client.dump())
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(CoroutineDump.serializer(), client.dumpCoroutines())
 }

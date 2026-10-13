@@ -16,20 +16,20 @@ import kotlin.time.TimeSource
  * Walks the coroutines below the registered jobs through `Job.children`. It remembers each job
  * it has seen so that ids stay stable and an observed age can be told; a job no walk finds any
  * more is forgotten. Between walks it holds the jobs weakly, so a tree the app has let go of can
- * be collected. Not thread-safe: callers walk one at a time. [registered] alone may be called from
+ * be collected. Not thread-safe: callers walk one at a time. [recordRegistration] alone may be called from
  * any thread.
  */
 @OptIn(ExperimentalAtomicApi::class)
 internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource: TimeSource) {
-    private var seen: List<Pair<WeakReference<Job>, Sighting>> = emptyList()
+    private var rememberedSightings: List<Pair<WeakReference<Job>, Sighting>> = emptyList()
     private var nextId = 1L
 
     private val registrations = AtomicReference(emptyList<Pair<WeakReference<Job>, TimeMark>>())
 
     /** Remembers that [job] was registered now, so its age counts from here. */
-    fun registered(job: Job) {
+    fun recordRegistration(job: Job) {
         val registeredAt = timeSource.markNow()
-        registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.isCompleted == false } + (WeakReference(job) to registeredAt) }
+        registrations.updateAndGet { current -> current.filter { (reference, _) -> reference.get()?.isCompleted == false } + (WeakReference(job) to registeredAt) }
     }
 
     fun walk(roots: Map<String, Job>, capturedAtEpochMillis: Long): CoroutineTree {
@@ -42,7 +42,7 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
             }
             nodes += walk.node(job, rootName = name)
         }
-        remember(walk.sightings)
+        rememberSightings(walk.sightings)
         return CoroutineTree(roots = nodes, coroutineCount = walk.count, truncated = walk.truncated, capturedAtEpochMillis = capturedAtEpochMillis)
     }
 
@@ -64,17 +64,17 @@ internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource:
                 pending.addLast(child)
             }
         }
-        remember(sightings)
+        rememberSightings(sightings)
     }
 
     /** The job the last walk gave [id], while it is still reachable. */
-    fun find(id: String): Job? = seen.firstNotNullOfOrNull { (reference, sighting) -> if (sighting.id == id) reference.get() else null }
+    fun findJob(id: String): Job? = rememberedSightings.firstNotNullOfOrNull { (reference, sighting) -> if (sighting.id == id) reference.get() else null }
 
-    private fun previousSightings(): Map<Job, Sighting> = seen.mapNotNull { (reference, sighting) -> reference.get()?.let { it to sighting } }.toMap()
+    private fun previousSightings(): Map<Job, Sighting> = rememberedSightings.mapNotNull { (reference, sighting) -> reference.get()?.let { it to sighting } }.toMap()
 
-    private fun remember(sightings: Map<Job, Sighting>) {
-        seen = sightings.map { (job, sighting) -> WeakReference(job) to sighting }
-        registrations.updateAndGet { pending -> pending.filter { (reference, _) -> reference.get()?.let { !it.isCompleted && it !in sightings } == true } }
+    private fun rememberSightings(sightings: Map<Job, Sighting>) {
+        rememberedSightings = sightings.map { (job, sighting) -> WeakReference(job) to sighting }
+        registrations.updateAndGet { current -> current.filter { (reference, _) -> reference.get()?.let { !it.isCompleted && it !in sightings } == true } }
     }
 
     private fun newSighting(job: Job): Sighting {

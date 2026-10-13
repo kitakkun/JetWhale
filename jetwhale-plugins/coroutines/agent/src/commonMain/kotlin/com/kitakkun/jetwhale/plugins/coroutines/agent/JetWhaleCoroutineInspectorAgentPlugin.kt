@@ -58,11 +58,11 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginVersion: String get() = "1.0.0"
 
     private val roots = AtomicReference(emptyMap<String, RegisteredRoot>())
-    private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
-    private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
+    private val dispatcherRecorders = AtomicReference(emptyList<DispatcherRecorder>())
+    private val flowRecorders = AtomicReference(emptyMap<String, FlowRecorder>())
     private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES, timeSource = TimeSource.Monotonic)
     private val walkLock = Mutex()
-    private var sighting: Job? = null
+    private var sightingLoopJob: Job? = null
 
     /**
      * Shows the coroutines of [scope] under [name]. A scope whose job completes is dropped by
@@ -79,7 +79,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
     /** Shows the coroutines below [job] under [name]; see the scope overload. */
     fun register(job: Job, name: String) {
-        walker.registered(job)
+        walker.recordRegistration(job)
         roots.updateAndGet { current ->
             val registrations = current[name]?.takeIf { it.job.get() === job }?.registrations ?: 0
             current + (name to RegisteredRoot(WeakReference(job), registrations + 1))
@@ -127,7 +127,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     fun track(dispatcher: CoroutineDispatcher, name: String, longRunThreshold: Duration): CoroutineDispatcher {
         require(dispatcher !== Dispatchers.Unconfined) { "Dispatchers.Unconfined runs tasks in place; there is no dispatch to time" }
         val recorder = DispatcherRecorder(name = name, longRunThreshold = longRunThreshold)
-        dispatchers.updateAndGet { current ->
+        dispatcherRecorders.updateAndGet { current ->
             require(current.none { it.name == name }) { "a dispatcher is already tracked as '$name'" }
             current + recorder
         }
@@ -142,14 +142,14 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
      * where it is collected rather than where it is exposed.
      */
     fun <T> track(flow: Flow<T>, name: String): Flow<T> {
-        val recorder = flows.updateAndGet { current ->
+        val recorder = flowRecorders.updateAndGet { current ->
             if (name in current) current else current + (name to FlowRecorder(name))
         }.getValue(name)
         return trackedFlow(flow, recorder)
     }
 
     override fun onActivate() {
-        sighting = CoroutineScope(Dispatchers.Default).launch {
+        sightingLoopJob = CoroutineScope(Dispatchers.Default).launch {
             while (true) {
                 walkLock.withLock { walker.sight(liveRoots().values) }
                 delay(SIGHTING_INTERVAL)
@@ -158,8 +158,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     override fun onDeactivate() {
-        sighting?.cancel()
-        sighting = null
+        sightingLoopJob?.cancel()
+        sightingLoopJob = null
     }
 
     internal suspend fun coroutineTree(): CoroutineTree = walkLock.withLock {
@@ -167,7 +167,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     internal fun dispatcherStats(): DispatcherStatsReport = DispatcherStatsReport(
-        dispatchers = dispatchers.load().map(DispatcherRecorder::snapshot),
+        dispatchers = dispatcherRecorders.load().map(DispatcherRecorder::snapshot),
         untracked = untrackedDispatchers(liveRoots().values, nodeLimit = MAX_TREE_NODES),
         capturedAtEpochMillis = nowEpochMillis(),
     )
@@ -178,7 +178,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
     /** What can be told about the coroutine the last tree gave [id]; see [GetCoroutineDetail]. */
     internal suspend fun coroutineDetail(id: String): CoroutineDetail {
-        val job = walkLock.withLock { walker.find(id) }
+        val job = walkLock.withLock { walker.findJob(id) }
             ?: return CoroutineDetail(id = id, found = false, debugState = null, suspensionStack = emptyList(), creationStack = emptyList(), stackUnavailableReason = null)
         return describeCoroutine(id, job)
     }
@@ -191,11 +191,11 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
             reply(dispatcherStats())
         }
         onRequest { _: GetTrackedFlows ->
-            reply(TrackedFlowReport(flows.load().values.map(FlowRecorder::snapshot).sortedBy(TrackedFlowInfo::name), capturedAtEpochMillis = nowEpochMillis()))
+            reply(TrackedFlowReport(flowRecorders.load().values.map(FlowRecorder::snapshot).sortedBy(TrackedFlowInfo::name), capturedAtEpochMillis = nowEpochMillis()))
         }
         onRequest { _: DumpCoroutines -> reply(dumpCoroutines()) }
         onRequest { request: GetCoroutineDetail -> reply(coroutineDetail(request.id)) }
-        onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatchers.load().sumOf(DispatcherRecorder::clearLongRuns))) }
+        onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatcherRecorders.load().sumOf(DispatcherRecorder::clearLongRuns))) }
     }
 
     private class RegisteredRoot(val job: WeakReference<Job>, val registrations: Int)

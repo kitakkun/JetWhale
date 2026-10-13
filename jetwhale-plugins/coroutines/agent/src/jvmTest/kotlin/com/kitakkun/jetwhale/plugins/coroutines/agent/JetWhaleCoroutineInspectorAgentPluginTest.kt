@@ -25,16 +25,16 @@ class JetWhaleCoroutineInspectorAgentPluginTest {
     @Test
     fun `a scope the app drops without cancelling it is not kept alive by the inspector`() {
         val inspector = JetWhaleCoroutineInspectorAgentPlugin()
-        val job = registerAbandonedScope(inspector)
+        val jobReference = registerAbandonedScope(inspector)
         assertEquals(listOf("abandoned"), runBlocking { inspector.coroutineTree() }.roots.map(CoroutineNode::name))
 
         val deadline = TimeSource.Monotonic.markNow() + 10.seconds
-        while (job.get() != null && deadline.hasNotPassedNow()) {
+        while (jobReference.get() != null && deadline.hasNotPassedNow()) {
             System.gc()
             ByteArray(1 shl 20)
         }
 
-        assertNull(job.get())
+        assertNull(jobReference.get())
         assertEquals(emptyList(), runBlocking { inspector.coroutineTree() }.roots)
     }
 
@@ -54,14 +54,14 @@ class JetWhaleCoroutineInspectorAgentPluginTest {
             runBlocking { started.await() }
             val root = runBlocking { inspector.coroutineTree() }.roots.single()
 
-            val child = runBlocking { inspector.coroutineDetail(root.children.single().id) }
-            val scopeJob = runBlocking { inspector.coroutineDetail(root.id) }
+            val childDetail = runBlocking { inspector.coroutineDetail(root.children.single().id) }
+            val scopeDetail = runBlocking { inspector.coroutineDetail(root.id) }
 
-            assertEquals(true, child.found)
-            assertEquals("SUSPENDED", child.debugState)
-            assertTrue(child.suspensionStack.any { "JetWhaleCoroutineInspectorAgentPluginTest" in it }, child.suspensionStack.joinToString("\n"))
-            assertNull(child.stackUnavailableReason)
-            assertTrue(scopeJob.stackUnavailableReason.orEmpty().contains("scope's Job"), scopeJob.stackUnavailableReason)
+            assertEquals(true, childDetail.found)
+            assertEquals("SUSPENDED", childDetail.debugState)
+            assertTrue(childDetail.suspensionStack.any { "JetWhaleCoroutineInspectorAgentPluginTest" in it }, childDetail.suspensionStack.joinToString("\n"))
+            assertNull(childDetail.stackUnavailableReason)
+            assertTrue(scopeDetail.stackUnavailableReason.orEmpty().contains("scope's Job"), scopeDetail.stackUnavailableReason)
         } finally {
             scope.cancel()
             DebugProbes.uninstall()

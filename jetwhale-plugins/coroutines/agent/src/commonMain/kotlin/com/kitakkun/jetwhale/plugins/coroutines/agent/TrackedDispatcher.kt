@@ -27,17 +27,17 @@ internal class TrackedDispatcher(
 ) : CoroutineDispatcher() {
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         val queuedAt = TimeSource.Monotonic.markNow()
-        recorder.onQueued()
+        recorder.recordQueuedTask()
         try {
             delegate.dispatch(
                 context,
                 Runnable {
-                    recorder.onStarted(queuedAt.elapsedNow())
+                    recorder.recordTaskStart(queuedAt.elapsedNow())
                     val startedAt = TimeSource.Monotonic.markNow()
                     try {
                         block.run()
                     } finally {
-                        recorder.onFinished(startedAt.elapsedNow(), context[CoroutineName]?.name)
+                        recorder.recordTaskCompletion(startedAt.elapsedNow(), context[CoroutineName]?.name)
                     }
                 },
             )
@@ -45,7 +45,7 @@ internal class TrackedDispatcher(
             // Only a delegate that throws refuses a task: when an executor-backed dispatcher's
             // executor rejects one, the coroutines library runs the wrapped task elsewhere, so it
             // is still counted as started.
-            recorder.onRejected()
+            recorder.recordRejectedTask()
             throw e
         }
     }
@@ -61,39 +61,39 @@ internal class DispatcherRecorder(
 ) {
     private val queued = AtomicInt(0)
     private val running = AtomicInt(0)
-    private val completed = AtomicLong(0)
-    private val started = AtomicLong(0)
+    private val completedTasks = AtomicLong(0)
+    private val startedTasks = AtomicLong(0)
     private val totalQueueMicros = AtomicLong(0)
     private val maxQueueMicros = AtomicLong(0)
     private val totalRunMicros = AtomicLong(0)
     private val maxRunMicros = AtomicLong(0)
     private val longRuns = AtomicReference(emptyList<LongRun>())
 
-    fun onQueued() {
+    fun recordQueuedTask() {
         queued.incrementAndFetch()
     }
 
-    fun onRejected() {
+    fun recordRejectedTask() {
         queued.decrementAndFetch()
     }
 
-    fun onStarted(waited: Duration) {
+    fun recordTaskStart(queueDuration: Duration) {
         queued.decrementAndFetch()
         running.incrementAndFetch()
-        started.incrementAndFetch()
-        val micros = waited.inWholeMicroseconds
+        startedTasks.incrementAndFetch()
+        val micros = queueDuration.inWholeMicroseconds
         totalQueueMicros.fetchAndAdd(micros)
         maxQueueMicros.raiseTo(micros)
     }
 
-    fun onFinished(ran: Duration, coroutineName: String?) {
+    fun recordTaskCompletion(runDuration: Duration, coroutineName: String?) {
         running.decrementAndFetch()
-        completed.incrementAndFetch()
-        val micros = ran.inWholeMicroseconds
+        completedTasks.incrementAndFetch()
+        val micros = runDuration.inWholeMicroseconds
         totalRunMicros.fetchAndAdd(micros)
         maxRunMicros.raiseTo(micros)
-        if (ran >= longRunThreshold) {
-            val run = LongRun(atEpochMillis = nowEpochMillis(), durationMillis = ran.toDouble(DurationUnit.MILLISECONDS), coroutineName = coroutineName)
+        if (runDuration >= longRunThreshold) {
+            val run = LongRun(atEpochMillis = nowEpochMillis(), durationMillis = runDuration.toDouble(DurationUnit.MILLISECONDS), coroutineName = coroutineName)
             longRuns.updateAndGet { (listOf(run) + it).take(MAX_LONG_RUNS) }
         }
     }
@@ -102,8 +102,8 @@ internal class DispatcherRecorder(
     fun clearLongRuns(): Int = longRuns.exchange(emptyList()).size
 
     fun snapshot(): DispatcherStats {
-        val startedCount = started.load()
-        val completedCount = completed.load()
+        val startedCount = startedTasks.load()
+        val completedCount = completedTasks.load()
         return DispatcherStats(
             name = name,
             queued = queued.load().coerceAtLeast(0),

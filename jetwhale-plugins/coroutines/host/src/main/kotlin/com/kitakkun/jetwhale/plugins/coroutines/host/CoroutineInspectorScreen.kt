@@ -63,12 +63,12 @@ internal fun CoroutineInspectorScreenRoot(state: CoroutineInspectorState, modifi
         autoRefresh = autoRefresh,
         filter = filter,
         tree = state.tree,
-        collapsed = state.collapsed,
-        selectedId = state.selectedId,
+        collapsedRowIds = state.collapsedRowIds,
+        selectedCoroutineId = state.selectedCoroutineId,
         lastSeenSelection = state.lastSeenSelection,
         detail = state.detail,
-        dispatchers = state.dispatchers,
-        flows = state.flows,
+        dispatcherStatsReport = state.dispatcherStatsReport,
+        trackedFlowReport = state.trackedFlowReport,
         dump = state.dump,
         status = state.status,
         actions = state,
@@ -85,12 +85,12 @@ internal fun CoroutineInspectorScreen(
     autoRefresh: Boolean,
     filter: CoroutineFilter,
     tree: CoroutineTree?,
-    collapsed: Set<String>,
-    selectedId: String?,
+    collapsedRowIds: Set<String>,
+    selectedCoroutineId: String?,
     lastSeenSelection: CoroutineLocation?,
     detail: CoroutineDetail?,
-    dispatchers: DispatcherStatsReport?,
-    flows: TrackedFlowReport?,
+    dispatcherStatsReport: DispatcherStatsReport?,
+    trackedFlowReport: TrackedFlowReport?,
     dump: CoroutineDump?,
     status: InspectorStatus?,
     actions: CoroutineInspectorActions,
@@ -101,8 +101,8 @@ internal fun CoroutineInspectorScreen(
 ) {
     val capturedAtEpochMillis = when (tab) {
         InspectorTab.Coroutines -> tree?.capturedAtEpochMillis
-        InspectorTab.Dispatchers -> dispatchers?.capturedAtEpochMillis
-        InspectorTab.Flows -> flows?.capturedAtEpochMillis
+        InspectorTab.Dispatchers -> dispatcherStatsReport?.capturedAtEpochMillis
+        InspectorTab.Flows -> trackedFlowReport?.capturedAtEpochMillis
         InspectorTab.Dump -> null
     }
     Column(modifier.fillMaxSize()) {
@@ -113,7 +113,7 @@ internal fun CoroutineInspectorScreen(
                     JwText(text = "A dump is taken only when you ask for one", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
                 } else {
                     JwText(
-                        text = refreshStatus(autoRefresh, capturedAtEpochMillis),
+                        text = describeRefreshStatus(autoRefresh, capturedAtEpochMillis),
                         style = JwTheme.textStyles.labelSmall,
                         color = if (autoRefresh) JwTheme.colors.textSecondary else JwTone.Warning.color,
                     )
@@ -136,18 +136,18 @@ internal fun CoroutineInspectorScreen(
         when (tab) {
             InspectorTab.Coroutines -> CoroutinesPane(
                 tree = tree,
-                collapsed = collapsed,
+                collapsedRowIds = collapsedRowIds,
                 filter = filter,
-                selectedId = selectedId,
+                selectedCoroutineId = selectedCoroutineId,
                 lastSeenSelection = lastSeenSelection,
                 detail = detail,
                 actions = actions,
                 onFilterChange = onFilterChange,
             )
 
-            InspectorTab.Dispatchers -> DispatchersPane(report = dispatchers, actions = actions)
+            InspectorTab.Dispatchers -> DispatchersPane(report = dispatcherStatsReport, actions = actions)
 
-            InspectorTab.Flows -> FlowsPane(report = flows)
+            InspectorTab.Flows -> FlowsPane(report = trackedFlowReport)
 
             InspectorTab.Dump -> DumpPane(dump = dump, onDump = { actions.refresh(InspectorTab.Dump) })
         }
@@ -156,7 +156,7 @@ internal fun CoroutineInspectorScreen(
 
 private val SnapshotTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
 
-private fun refreshStatus(autoRefresh: Boolean, capturedAtEpochMillis: Long?): String = when {
+private fun describeRefreshStatus(autoRefresh: Boolean, capturedAtEpochMillis: Long?): String = when {
     capturedAtEpochMillis == null -> "Reading from the app…"
     autoRefresh -> "Live — updated every second"
     else -> "Paused — showing the app as of ${SnapshotTimeFormatter.format(Instant.ofEpochMilli(capturedAtEpochMillis))}; the app keeps running"
