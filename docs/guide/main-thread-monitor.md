@@ -6,13 +6,14 @@ catches on the main thread, and janky frames. It needs no code in the app beyond
 and an AI agent can read everything over MCP — "find the disk writes on the main thread and move
 them off" becomes a task it can check its own work on.
 
+**Works with:** Android and desktop (JVM) apps.
+
 ## Setup
 
 ### Install the host plugin
 
-The Main Thread Monitor is in the host's **official catalog**: open **Settings → Plugins → Add
-Plugins → Official Plugins** and install it with one click. See
-[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+Install **Main Thread Monitor** from **Settings → Plugins → Add Plugins → Official Plugins**. To
+install it by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
 
@@ -36,7 +37,7 @@ whatever the app had in place when it is disabled. It keeps recording while the 
 disconnected, except for work Android runs between messages, which it watches only while a host is
 connected.
 
-## What each platform reports
+### What each platform reports
 
 | Platform | Long tasks | Stack samples | StrictMode | Frames |
 |----------|------------|---------------|------------|--------|
@@ -45,11 +46,13 @@ connected.
 | iOS, macOS | — | — | — | — |
 | Web | — | — | — | — |
 
-Apple and web targets report that they cannot watch their main thread yet rather than showing an
-empty timeline: a run-loop observer or the browser's Long Tasks API could time long work there, but
-neither says what the work was.
+### Labeling long tasks
 
-## What you get in the host
+An app can add its own state — the screen shown, say — to each long task's label by setting
+`JetWhaleMainThreadAgentPlugin.labelProvider`. It is asked as each task starts, before the task
+runs, so it cannot name the coroutine that task is about to resume.
+
+## Using it
 
 - **Hotspots.** While a main-thread task runs past the long-task threshold (100 ms by default), its
   stack is read every 20 ms. Samples are grouped by the innermost frames that belong to the app —
@@ -81,6 +84,9 @@ its violations as before.
 
 ## MCP tools
 
+With the [MCP server](/guide/mcp-server) running, an AI agent can read the same through these
+tools. Each takes the `sessionId` of the app's session.
+
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.mainthread.getHotspots` | Where the main thread was stuck, most blocking first, with stacks |
@@ -93,12 +99,12 @@ Every result carries what the platform can report and the thresholds in force, s
 "nothing blocked the main thread" from "nothing was watched". A typical agent loop is `resetStats`
 → drive the app → `getViolations` / `getHotspots` → fix → repeat.
 
-## Relation to the Coroutine Inspector
+## Limits
 
-This plugin sees the main thread from the platform's side: which message or event ran long and
-which frames it was in. A coroutine resumed on the main thread shows up here as the dispatcher's
-message, with the coroutine's own frames in the stack. Naming the coroutine itself — and measuring
-dispatcher queue latency — is the Coroutine Inspector's job; the two are meant to be used together.
-An app can also add its own state — the screen shown, say — to each long task's label by setting
-`JetWhaleMainThreadAgentPlugin.labelProvider`. It is asked as each task starts, before the task
-runs, so it cannot name the coroutine that task is about to resume.
+- **iOS, macOS and the web report that they cannot watch their main thread yet**, rather than showing an
+  empty timeline: a run-loop observer or the browser's Long Tasks API could time long work there, but
+  neither says what the work was.
+- **It sees the main thread from the platform's side**: which message or event ran long and
+  which frames it was in. A coroutine resumed on the main thread shows up here as the dispatcher's
+  message, with the coroutine's own frames in the stack. Naming the coroutine itself — and measuring
+  dispatcher queue latency — is the Coroutine Inspector's job; the two are meant to be used together.
