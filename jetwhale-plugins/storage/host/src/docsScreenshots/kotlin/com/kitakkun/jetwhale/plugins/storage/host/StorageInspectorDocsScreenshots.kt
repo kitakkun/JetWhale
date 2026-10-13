@@ -65,6 +65,7 @@ private fun SkikoComposeUiTest.setStorageInspectorContent(darkTheme: Boolean, ta
                 selectedStore = KEY_VALUE_STORES.first().name,
                 storeContent = KeyValueStoreContent(entries = PREFERENCES_ENTRIES, error = null),
                 status = null,
+                pendingUpload = null,
                 actions = NoStorageInspectorActions,
                 onSelectTab = {},
             )
@@ -84,6 +85,12 @@ private object NoStorageInspectorActions : StorageInspectorActions {
     override fun delete(location: FileLocation) = Unit
 
     override fun saveFile(location: FileLocation, target: File) = Unit
+
+    override fun requestUpload(target: FileLocation, source: File) = Unit
+
+    override fun confirmUpload() = Unit
+
+    override fun cancelUpload() = Unit
 
     override fun measureDirectory(location: FileLocation) = Unit
 
