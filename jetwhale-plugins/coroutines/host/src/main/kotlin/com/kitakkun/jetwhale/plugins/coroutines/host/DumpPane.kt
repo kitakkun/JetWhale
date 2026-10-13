@@ -54,13 +54,13 @@ internal fun DumpPane(dump: CoroutineDump?, onDump: () -> Unit, modifier: Modifi
 @Composable
 private fun DumpText(text: String, onDump: () -> Unit) {
     var query by remember { mutableStateOf("") }
-    val shown = filterDump(text, query)
+    val filteredText = filterDump(text, query)
     Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium), verticalAlignment = Alignment.CenterVertically) {
         JwButton(text = "Dump again", onClick = onDump)
         JwTextField(value = query, onValueChange = { query = it }, placeholder = "Only coroutines whose stack contains…", modifier = Modifier.width(DumpFilterWidth))
-        JwText(text = "${countDumpedCoroutines(shown)} of ${countDumpedCoroutines(text)} coroutines", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+        JwText(text = "${countDumpedCoroutines(filteredText)} of ${countDumpedCoroutines(text)} coroutines", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
     }
-    JwCodeBlock(text = shown, modifier = Modifier.fillMaxSize().padding(top = JwSpacing.medium).verticalScroll(rememberScrollState()), copyLabel = "Copy dump")
+    JwCodeBlock(text = filteredText, modifier = Modifier.fillMaxSize().padding(top = JwSpacing.medium).verticalScroll(rememberScrollState()), copyLabel = "Copy dump")
 }
 
 private val DumpFilterWidth = 320.dp
@@ -73,8 +73,8 @@ private val DumpFilterWidth = 320.dp
 internal fun filterDump(text: String, query: String): String {
     if (query.isBlank()) return text
     val blocks = text.split(DumpBlockSeparator)
-    val (header, coroutines) = blocks.partition { !it.startsWith(DUMP_COROUTINE_PREFIX) }
-    return (header + coroutines.filter { it.contains(query, ignoreCase = true) }).joinToString("\n\n")
+    val (headerBlocks, coroutineBlocks) = blocks.partition { !it.startsWith(DUMP_COROUTINE_PREFIX) }
+    return (headerBlocks + coroutineBlocks.filter { it.contains(query, ignoreCase = true) }).joinToString("\n\n")
 }
 
 internal fun countDumpedCoroutines(text: String): Int = text.split(DumpBlockSeparator).count { it.startsWith(DUMP_COROUTINE_PREFIX) }

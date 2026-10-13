@@ -35,7 +35,7 @@ class CoroutineMcpCommandsTest {
 
         override suspend fun trackedFlows(): TrackedFlowReport = TrackedFlowReport(flows = emptyList(), capturedAtEpochMillis = 0)
 
-        override suspend fun dump(): CoroutineDump = CoroutineDump(text = "", unavailableReason = "no probes")
+        override suspend fun dumpCoroutines(): CoroutineDump = CoroutineDump(text = "", unavailableReason = "no probes")
 
         override suspend fun clearLongRuns(): ClearedLongRuns = ClearedLongRuns(cleared = 0)
 
@@ -51,7 +51,7 @@ class CoroutineMcpCommandsTest {
 
     private val tree = CoroutineTree(
         roots = listOf(
-            node("root", "Application", CoroutineState.Active, observed = 100_000, node("stuck", "stuck", CoroutineState.Active, observed = 90_000), node("fresh", "fresh", CoroutineState.Active, observed = 100)),
+            node("root", "Application", CoroutineState.Active, observedMillis = 100_000, node("stuck", "stuck", CoroutineState.Active, observedMillis = 90_000), node("fresh", "fresh", CoroutineState.Active, observedMillis = 100)),
         ),
         coroutineCount = 3,
         truncated = false,
@@ -77,9 +77,9 @@ class CoroutineMcpCommandsTest {
 
     @Test
     fun `getCoroutineTree with named only counts the matches next to the total`() {
-        val unnamed = tree.copy(roots = listOf(tree.roots.single().copy(children = tree.roots.single().children + node("anon", null, CoroutineState.Active, observed = 0))), coroutineCount = 4)
+        val treeWithUnnamedCoroutine = tree.copy(roots = listOf(tree.roots.single().copy(children = tree.roots.single().children + node("anon", null, CoroutineState.Active, observedMillis = 0))), coroutineCount = 4)
 
-        val result = GetCoroutineTreeCommand(FakeClient(unnamed)).run(buildJsonObject { put("namedOnly", true) })
+        val result = GetCoroutineTreeCommand(FakeClient(treeWithUnnamedCoroutine)).run(buildJsonObject { put("namedOnly", true) })
 
         assertEquals(3, result.getValue("matchingCount").jsonPrimitive.int)
         assertEquals(4, result.getValue("coroutineCount").jsonPrimitive.int)

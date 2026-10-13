@@ -33,8 +33,8 @@ internal interface CoroutineInspectorActions {
     /** Collapses or expands the row with [rowId], a [CoroutineRow.rowId]. */
     fun toggleCollapsed(rowId: String)
 
-    /** Shows the coroutine with [id], a [CoroutineNode.id], in the detail pane, or nothing when null. */
-    fun select(id: String?)
+    /** Shows the coroutine with [coroutineId], a [CoroutineNode.id], in the detail pane, or nothing when null. */
+    fun select(coroutineId: String?)
 
     /** Reads the selected coroutine's stacks from the app again. */
     fun reloadDetail()
@@ -54,13 +54,13 @@ internal class CoroutineInspectorState(
     var tree: CoroutineTree? by mutableStateOf(null)
         private set
 
-    var collapsed: Set<String> by mutableStateOf(emptySet())
+    var collapsedRowIds: Set<String> by mutableStateOf(emptySet())
         private set
 
-    var dispatchers: DispatcherStatsReport? by mutableStateOf(null)
+    var dispatcherStatsReport: DispatcherStatsReport? by mutableStateOf(null)
         private set
 
-    var flows: TrackedFlowReport? by mutableStateOf(null)
+    var trackedFlowReport: TrackedFlowReport? by mutableStateOf(null)
         private set
 
     var dump: CoroutineDump? by mutableStateOf(null)
@@ -69,7 +69,7 @@ internal class CoroutineInspectorState(
     var status: InspectorStatus? by mutableStateOf(null)
         private set
 
-    var selectedId: String? by mutableStateOf(null)
+    var selectedCoroutineId: String? by mutableStateOf(null)
         private set
 
     /**
@@ -83,55 +83,55 @@ internal class CoroutineInspectorState(
     var detail: CoroutineDetail? by mutableStateOf(null)
         private set
 
-    private val refreshes = mutableMapOf<InspectorTab, Job>()
+    private val refreshJobs = mutableMapOf<InspectorTab, Job>()
 
     private var longRunClears = 0
 
     override fun refresh(tab: InspectorTab) {
-        if (refreshes[tab]?.isActive == true) return
-        refreshes[tab] = launchReporting { read(tab) }
+        if (refreshJobs[tab]?.isActive == true) return
+        refreshJobs[tab] = launchReporting { read(tab) }
     }
 
     private suspend fun read(tab: InspectorTab) {
         when (tab) {
             InspectorTab.Coroutines -> {
-                val read = client.coroutineTree()
-                tree = read
-                selectedId?.let { findCoroutine(read.roots, it) }?.let { lastSeenSelection = it }
+                val latestTree = client.coroutineTree()
+                tree = latestTree
+                selectedCoroutineId?.let { findCoroutine(latestTree.roots, it) }?.let { lastSeenSelection = it }
             }
 
             InspectorTab.Dispatchers -> {
                 val clearsBeforeRead = longRunClears
                 val report = client.dispatcherStats()
-                if (clearsBeforeRead == longRunClears) dispatchers = report
+                if (clearsBeforeRead == longRunClears) dispatcherStatsReport = report
             }
 
-            InspectorTab.Flows -> flows = client.trackedFlows()
+            InspectorTab.Flows -> trackedFlowReport = client.trackedFlows()
 
-            InspectorTab.Dump -> dump = client.dump()
+            InspectorTab.Dump -> dump = client.dumpCoroutines()
         }
         if (status?.isError == true) status = null
     }
 
     override fun toggleCollapsed(rowId: String) {
-        collapsed = if (rowId in collapsed) collapsed - rowId else collapsed + rowId
+        collapsedRowIds = if (rowId in collapsedRowIds) collapsedRowIds - rowId else collapsedRowIds + rowId
     }
 
-    override fun select(id: String?) {
-        selectedId = id
+    override fun select(coroutineId: String?) {
+        selectedCoroutineId = coroutineId
         detail = null
-        lastSeenSelection = id?.let { tree?.let { current -> findCoroutine(current.roots, it) } }
-        id?.let(::readDetail)
+        lastSeenSelection = coroutineId?.let { tree?.let { current -> findCoroutine(current.roots, it) } }
+        coroutineId?.let(::readDetail)
     }
 
     override fun reloadDetail() {
-        selectedId?.let(::readDetail)
+        selectedCoroutineId?.let(::readDetail)
     }
 
     private fun readDetail(id: String) {
         launchReporting {
-            val read = client.coroutineDetail(id)
-            if (selectedId == id) detail = read
+            val latestDetail = client.coroutineDetail(id)
+            if (selectedCoroutineId == id) detail = latestDetail
         }
     }
 
@@ -139,7 +139,7 @@ internal class CoroutineInspectorState(
         launchReporting {
             val cleared = client.clearLongRuns().cleared
             longRunClears++
-            dispatchers = client.dispatcherStats()
+            dispatcherStatsReport = client.dispatcherStats()
             status = InspectorStatus(message = "Cleared $cleared long runs.", isError = false)
         }
     }

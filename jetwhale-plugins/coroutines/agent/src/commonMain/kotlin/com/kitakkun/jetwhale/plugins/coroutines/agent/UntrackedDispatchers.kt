@@ -13,7 +13,7 @@ import kotlin.coroutines.ContinuationInterceptor
  */
 internal fun untrackedDispatchers(roots: Collection<Job>, nodeLimit: Int): List<UntrackedDispatcher> {
     val visited = mutableSetOf<Job>()
-    val statesByDispatcher = mutableMapOf<String, MutableList<CoroutineState>>()
+    val statesByDispatcherName = mutableMapOf<String, MutableList<CoroutineState>>()
     val pending = ArrayDeque(roots.take(nodeLimit))
     while (pending.isNotEmpty() && visited.size < nodeLimit) {
         val job = pending.removeFirst()
@@ -26,9 +26,9 @@ internal fun untrackedDispatchers(roots: Collection<Job>, nodeLimit: Int): List<
         // plain Job, such as a registered scope's, has none.
         val interceptor = (job as? CoroutineScope)?.coroutineContext?.get(ContinuationInterceptor) ?: continue
         if (interceptor is TrackedDispatcher) continue
-        statesByDispatcher.getOrPut(interceptor.toString(), ::mutableListOf) += job.coroutineState()
+        statesByDispatcherName.getOrPut(interceptor.toString(), ::mutableListOf) += job.coroutineState()
     }
-    return statesByDispatcher
+    return statesByDispatcherName
         .map { (name, states) -> UntrackedDispatcher(name = name, coroutinesByState = states.groupingBy { it }.eachCount()) }
         .sortedByDescending { it.coroutinesByState.values.sum() }
 }

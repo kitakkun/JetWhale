@@ -45,7 +45,7 @@ private val DispatcherTableMaxHeight = 200.dp
 private val DispatcherRowHeight = 32.dp
 
 /** A long run shown with the dispatcher it held, since the list merges every tracked dispatcher. */
-internal class DispatcherLongRun(val dispatcher: String, val run: LongRun)
+internal class DispatcherLongRun(val dispatcherName: String, val longRun: LongRun)
 
 @Composable
 internal fun DispatchersPane(report: DispatcherStatsReport?, actions: CoroutineInspectorActions, modifier: Modifier = Modifier) {
@@ -97,18 +97,18 @@ internal fun trackingSnippet(untracked: List<UntrackedDispatcher>): String {
     val known = untracked.mapNotNull { WellKnownDispatchers[it.name] }
     if (known.isEmpty()) return TRACK_DISPATCHER_SNIPPET
     return buildString {
-        known.forEach { appendLine("val ${it.variable} = inspector.track(${it.expression}, name = \"${it.trackedName}\", longRunThreshold = ${it.thresholdMillis}.milliseconds)") }
-        append("// Use ${known.joinToString(" and ", transform = WellKnownDispatcher::variable)} where the app used ${known.joinToString(" and ", transform = WellKnownDispatcher::expression)}.")
+        known.forEach { appendLine("val ${it.variableName} = inspector.track(${it.expression}, name = \"${it.trackedName}\", longRunThreshold = ${it.thresholdMillis}.milliseconds)") }
+        append("// Use ${known.joinToString(" and ", transform = WellKnownDispatcher::variableName)} where the app used ${known.joinToString(" and ", transform = WellKnownDispatcher::expression)}.")
     }
 }
 
-private class WellKnownDispatcher(val expression: String, val variable: String, val trackedName: String, val thresholdMillis: Int)
+private class WellKnownDispatcher(val expression: String, val variableName: String, val trackedName: String, val thresholdMillis: Int)
 
 /** Keyed by how each dispatcher prints itself, which is what the agent reports. */
 private val WellKnownDispatchers = listOf(
-    WellKnownDispatcher(expression = "Dispatchers.Main", variable = "main", trackedName = "Main", thresholdMillis = 16),
-    WellKnownDispatcher(expression = "Dispatchers.Default", variable = "default", trackedName = "Default", thresholdMillis = 100),
-    WellKnownDispatcher(expression = "Dispatchers.IO", variable = "io", trackedName = "IO", thresholdMillis = 500),
+    WellKnownDispatcher(expression = "Dispatchers.Main", variableName = "main", trackedName = "Main", thresholdMillis = 16),
+    WellKnownDispatcher(expression = "Dispatchers.Default", variableName = "default", trackedName = "Default", thresholdMillis = 100),
+    WellKnownDispatcher(expression = "Dispatchers.IO", variableName = "io", trackedName = "IO", thresholdMillis = 500),
 ).associateBy(WellKnownDispatcher::expression)
 
 /** How the long runs are listed: who held a thread, or every run in order. */
@@ -119,20 +119,20 @@ private enum class LongRunView(val label: String) {
 
 @Composable
 private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List<UntrackedDispatcher>, actions: CoroutineInspectorActions) {
-    val longRuns = dispatchers.flatMap { stats -> stats.longRuns.map { DispatcherLongRun(stats.name, it) } }.sortedByDescending { it.run.atEpochMillis }
+    val longRuns = dispatchers.flatMap { stats -> stats.longRuns.map { DispatcherLongRun(stats.name, it) } }.sortedByDescending { it.longRun.atEpochMillis }
     var view by remember { mutableStateOf(LongRunView.ByCoroutine) }
     Column(Modifier.fillMaxSize()) {
         JwTable(
             items = dispatchers,
             columns = listOf(
                 JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f)) { "${it.name} · long ≥ ${it.longRunThresholdMillis} ms" },
-                number("Waiting") { it.queued.toString() },
-                number("Running") { it.running.toString() },
-                number("Finished") { it.completedTasks.toString() },
-                number("Wait avg") { millis(it.averageQueueLatencyMillis) },
-                number("Wait max") { millis(it.maxQueueLatencyMillis) },
-                number("Run avg") { millis(it.averageRunMillis) },
-                number("Run max") { millis(it.maxRunMillis) },
+                numberColumn("Waiting") { it.queued.toString() },
+                numberColumn("Running") { it.running.toString() },
+                numberColumn("Finished") { it.completedTasks.toString() },
+                numberColumn("Wait avg") { formatMillis(it.averageQueueLatencyMillis) },
+                numberColumn("Wait max") { formatMillis(it.maxQueueLatencyMillis) },
+                numberColumn("Run avg") { formatMillis(it.averageRunMillis) },
+                numberColumn("Run max") { formatMillis(it.maxRunMillis) },
             ),
             key = DispatcherStats::name,
             modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (dispatchers.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
@@ -152,10 +152,10 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
                 items = summarizeLongRuns(longRuns),
                 columns = listOf(
                     JwTableColumn.text(header = "Coroutine", width = JwColumnWidth.Weight(2f)) { it.coroutineName ?: "(unnamed)" },
-                    JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = LongRunHolder::dispatcher),
-                    number("Times") { it.count.toString() },
-                    number("Longest") { millis(it.longestMillis) },
-                    number("In all") { millis(it.totalMillis) },
+                    JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = LongRunSummary::dispatcherName),
+                    numberColumn("Times") { it.count.toString() },
+                    numberColumn("Longest") { formatMillis(it.longestMillis) },
+                    numberColumn("In all") { formatMillis(it.totalMillis) },
                     JwTableColumn.text(header = "Last at", width = JwColumnWidth.Fixed(TimeColumnWidth)) { TimeFormatter.format(Instant.ofEpochMilli(it.lastAtEpochMillis)) },
                 ),
                 modifier = Modifier.fillMaxWidth().weight(1f),
@@ -165,10 +165,10 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
             LongRunView.EveryRun -> JwTable(
                 items = longRuns,
                 columns = listOf(
-                    JwTableColumn.text(header = "At", width = JwColumnWidth.Fixed(TimeColumnWidth)) { TimeFormatter.format(Instant.ofEpochMilli(it.run.atEpochMillis)) },
-                    number("Held") { millis(it.run.durationMillis) },
-                    JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = DispatcherLongRun::dispatcher),
-                    JwTableColumn.text(header = "Coroutine", width = JwColumnWidth.Weight(2f)) { it.run.coroutineName ?: "(unnamed)" },
+                    JwTableColumn.text(header = "At", width = JwColumnWidth.Fixed(TimeColumnWidth)) { TimeFormatter.format(Instant.ofEpochMilli(it.longRun.atEpochMillis)) },
+                    numberColumn("Held") { formatMillis(it.longRun.durationMillis) },
+                    JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = DispatcherLongRun::dispatcherName),
+                    JwTableColumn.text(header = "Coroutine", width = JwColumnWidth.Weight(2f)) { it.longRun.coroutineName ?: "(unnamed)" },
                 ),
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 emptyContent = emptyContent,
@@ -179,8 +179,8 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
 }
 
 /** Every long run one coroutine had on one dispatcher, as far back as the dispatcher remembers. */
-internal data class LongRunHolder(
-    val dispatcher: String,
+internal data class LongRunSummary(
+    val dispatcherName: String,
     val coroutineName: String?,
     val count: Int,
     val longestMillis: Double,
@@ -189,23 +189,23 @@ internal data class LongRunHolder(
 )
 
 /** [runs] grouped by who held the thread, the ones that held it longest in all first. */
-internal fun summarizeLongRuns(runs: List<DispatcherLongRun>): List<LongRunHolder> = runs
-    .groupBy { it.dispatcher to it.run.coroutineName }
+internal fun summarizeLongRuns(runs: List<DispatcherLongRun>): List<LongRunSummary> = runs
+    .groupBy { it.dispatcherName to it.longRun.coroutineName }
     .map { (key, group) ->
-        LongRunHolder(
-            dispatcher = key.first,
+        LongRunSummary(
+            dispatcherName = key.first,
             coroutineName = key.second,
             count = group.size,
-            longestMillis = group.maxOf { it.run.durationMillis },
-            totalMillis = group.sumOf { it.run.durationMillis },
-            lastAtEpochMillis = group.maxOf { it.run.atEpochMillis },
+            longestMillis = group.maxOf { it.longRun.durationMillis },
+            totalMillis = group.sumOf { it.longRun.durationMillis },
+            lastAtEpochMillis = group.maxOf { it.longRun.atEpochMillis },
         )
     }
-    .sortedByDescending(LongRunHolder::totalMillis)
+    .sortedByDescending(LongRunSummary::totalMillis)
 
-private fun <T> number(header: String, text: (T) -> String): JwTableColumn<T> = JwTableColumn.text(header = header, width = JwColumnWidth.Fixed(NumberColumnWidth), alignment = Alignment.End, text = text)
+private fun <T> numberColumn(header: String, text: (T) -> String): JwTableColumn<T> = JwTableColumn.text(header = header, width = JwColumnWidth.Fixed(NumberColumnWidth), alignment = Alignment.End, text = text)
 
-private fun millis(value: Double): String = if (value < 1_000) String.format(Locale.ROOT, "%.1f ms", value) else String.format(Locale.ROOT, "%.2f s", value / 1_000)
+private fun formatMillis(value: Double): String = if (value < 1_000) String.format(Locale.ROOT, "%.1f ms", value) else String.format(Locale.ROOT, "%.2f s", value / 1_000)
 
 private const val TRACK_DISPATCHER_SNIPPET = """val main = inspector.track(Dispatchers.Main, name = "Main", longRunThreshold = 16.milliseconds)
 val io = inspector.track(Dispatchers.IO, name = "IO", longRunThreshold = 500.milliseconds)"""

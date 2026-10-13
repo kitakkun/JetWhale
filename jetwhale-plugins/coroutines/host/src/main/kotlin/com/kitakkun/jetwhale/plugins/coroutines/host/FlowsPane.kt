@@ -36,7 +36,7 @@ private val CountColumnWidth = 84.dp
 
 @Composable
 internal fun FlowsPane(report: TrackedFlowReport?, modifier: Modifier = Modifier) {
-    var selectedName by remember { mutableStateOf<String?>(null) }
+    var selectedFlowName by remember { mutableStateOf<String?>(null) }
     Box(modifier.fillMaxSize()) {
         when {
             report == null -> JwEmptyState(title = "Reading flows…")
@@ -55,23 +55,23 @@ internal fun FlowsPane(report: TrackedFlowReport?, modifier: Modifier = Modifier
                             items = report.flows,
                             columns = listOf(
                                 JwTableColumn.text(header = "Flow", width = JwColumnWidth.Weight(1f), text = TrackedFlowInfo::name),
-                                count("Collectors") { it.activeCollectors.toString() },
-                                count("Emitted") { it.emissions.toString() },
-                                count("Per sec") { String.format(Locale.ROOT, "%.1f", it.emissionsPerSecond) },
-                                count("Done") { it.completions.toString() },
-                                count("Cancelled") { it.cancellations.toString() },
-                                count("Failed") { it.failures.toString() },
+                                countColumn("Collectors") { it.activeCollectors.toString() },
+                                countColumn("Emitted") { it.emissions.toString() },
+                                countColumn("Per sec") { String.format(Locale.ROOT, "%.1f", it.emissionsPerSecond) },
+                                countColumn("Done") { it.completions.toString() },
+                                countColumn("Cancelled") { it.cancellations.toString() },
+                                countColumn("Failed") { it.failures.toString() },
                             ),
                             key = TrackedFlowInfo::name,
-                            isSelected = { it.name == selectedName },
-                            onClick = { selectedName = it.name },
+                            isSelected = { it.name == selectedFlowName },
+                            onClick = { selectedFlowName = it.name },
                             modifier = Modifier.weight(1f),
                         )
                         MetricsLegend("Collectors: collections running now — each runs a cold flow anew, so every value shows up once per collector. Emitted and Per sec (over the last 10 s) count every collector's emissions. Done, Cancelled and Failed count how finished collections ended; a collector count that only grows is a leak.")
                     }
                 },
                 second = {
-                    val selected = report.flows.firstOrNull { it.name == selectedName }
+                    val selected = report.flows.firstOrNull { it.name == selectedFlowName }
                     if (selected == null) {
                         JwEmptyState(title = "No flow selected", description = "Pick a flow to see the values it emitted last, newest first.")
                     } else {
@@ -90,7 +90,7 @@ internal fun FlowsPane(report: TrackedFlowReport?, modifier: Modifier = Modifier
     }
 }
 
-private fun <T> count(header: String, text: (T) -> String): JwTableColumn<T> = JwTableColumn.text(header = header, width = JwColumnWidth.Fixed(CountColumnWidth), alignment = Alignment.End, text = text)
+private fun <T> countColumn(header: String, text: (T) -> String): JwTableColumn<T> = JwTableColumn.text(header = header, width = JwColumnWidth.Fixed(CountColumnWidth), alignment = Alignment.End, text = text)
 
 private const val TRACK_FLOW_SNIPPET = """val prices = inspector.track(repository.prices, name = "prices")
 prices.collect { render(it) }"""

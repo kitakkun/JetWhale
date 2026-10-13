@@ -64,20 +64,20 @@ internal data class CoroutineRow(
 )
 
 /**
- * The rows the tree shows: every root, and below each row whose id is not in [collapsed], its
+ * The rows the tree shows: every root, and below each row whose id is not in [collapsedRowIds], its
  * children. Rows start expanded, so a newly appearing coroutine is visible without a click.
  */
-internal fun flattenCoroutineTree(roots: List<CoroutineNode>, collapsed: Set<String>): List<CoroutineRow> = buildList {
-    fun add(node: CoroutineNode, rowId: String, depth: Int) {
-        val expanded = rowId !in collapsed
+internal fun flattenCoroutineTree(roots: List<CoroutineNode>, collapsedRowIds: Set<String>): List<CoroutineRow> = buildList {
+    fun addVisibleRows(node: CoroutineNode, rowId: String, depth: Int) {
+        val expanded = rowId !in collapsedRowIds
         add(CoroutineRow(node = node, rowId = rowId, depth = depth, expanded = expanded))
-        if (expanded) node.children.forEach { add(it, "$rowId/${it.id}", depth + 1) }
+        if (expanded) node.children.forEach { addVisibleRows(it, "$rowId/${it.id}", depth + 1) }
     }
     val rootOccurrences = mutableMapOf<String, Int>()
     roots.forEach { root ->
         val occurrence = rootOccurrences.getOrElse(root.id) { 0 }
         rootOccurrences[root.id] = occurrence + 1
-        add(root, rowId = if (occurrence == 0) root.id else "${root.id}#$occurrence", depth = 0)
+        addVisibleRows(root, rowId = if (occurrence == 0) root.id else "${root.id}#$occurrence", depth = 0)
     }
 }
 
@@ -106,12 +106,12 @@ internal fun findCoroutine(roots: List<CoroutineNode>, id: String): CoroutineLoc
 }
 
 /** How many coroutines below this one — children, theirs, and so on — are in each state. */
-internal fun CoroutineNode.descendantStates(): Map<CoroutineState, Int> = buildMap {
+internal fun CoroutineNode.countDescendantsByState(): Map<CoroutineState, Int> = buildMap {
     fun count(node: CoroutineNode) {
         node.children.forEach { child ->
             put(child.state, getOrElse(child.state) { 0 } + 1)
             count(child)
         }
     }
-    count(this@descendantStates)
+    count(this@countDescendantsByState)
 }

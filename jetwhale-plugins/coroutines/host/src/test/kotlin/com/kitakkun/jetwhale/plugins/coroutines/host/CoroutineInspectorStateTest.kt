@@ -38,7 +38,7 @@ class CoroutineInspectorStateTest {
             return TrackedFlowReport(flows = emptyList(), capturedAtEpochMillis = 0)
         }
 
-        override suspend fun dump(): CoroutineDump {
+        override suspend fun dumpCoroutines(): CoroutineDump {
             calls += "dump"
             return CoroutineDump(text = "dump", unavailableReason = null)
         }
@@ -62,7 +62,7 @@ class CoroutineInspectorStateTest {
         state.refresh(InspectorTab.Flows)
 
         assertEquals(listOf("flows"), client.calls)
-        assertNotNull(state.flows)
+        assertNotNull(state.trackedFlowReport)
         assertNull(state.tree)
     }
 
@@ -81,13 +81,13 @@ class CoroutineInspectorStateTest {
     @Test
     fun `a refresh while the same tab is still being read starts no second read`() {
         val gate = CompletableDeferred<Unit>()
-        val slow = object : CoroutineInspectorClient by client {
+        val slowClient = object : CoroutineInspectorClient by client {
             override suspend fun trackedFlows(): TrackedFlowReport {
                 gate.await()
                 return client.trackedFlows()
             }
         }
-        val slowState = CoroutineInspectorState(slow, CoroutineScope(Dispatchers.Unconfined))
+        val slowState = CoroutineInspectorState(slowClient, CoroutineScope(Dispatchers.Unconfined))
 
         slowState.refresh(InspectorTab.Flows)
         slowState.refresh(InspectorTab.Flows)
@@ -100,20 +100,20 @@ class CoroutineInspectorStateTest {
     fun `a dispatcher read started before clearing long runs does not undo the clear`() {
         val gate = CompletableDeferred<Unit>()
         var reads = 0
-        val slowFirstRead = object : CoroutineInspectorClient by client {
+        val slowFirstReadClient = object : CoroutineInspectorClient by client {
             override suspend fun dispatcherStats(): DispatcherStatsReport {
                 val read = ++reads
                 if (read == 1) gate.await()
                 return DispatcherStatsReport(dispatchers = emptyList(), untracked = emptyList(), capturedAtEpochMillis = read.toLong())
             }
         }
-        val clearingState = CoroutineInspectorState(slowFirstRead, CoroutineScope(Dispatchers.Unconfined))
+        val clearingState = CoroutineInspectorState(slowFirstReadClient, CoroutineScope(Dispatchers.Unconfined))
 
         clearingState.refresh(InspectorTab.Dispatchers)
         clearingState.clearLongRuns()
         gate.complete(Unit)
 
-        assertEquals(2, clearingState.dispatchers?.capturedAtEpochMillis)
+        assertEquals(2, clearingState.dispatcherStatsReport?.capturedAtEpochMillis)
     }
 
     @Test
@@ -136,20 +136,20 @@ class CoroutineInspectorStateTest {
         client.treeRoots = listOf(node("c1", "Application", CoroutineState.Active, 0))
         state.refresh(InspectorTab.Coroutines)
 
-        assertEquals("c2", state.selectedId)
+        assertEquals("c2", state.selectedCoroutineId)
         assertEquals("sync", state.lastSeenSelection?.node?.name)
     }
 
     @Test
     fun `a detail that arrives after another coroutine was selected is dropped`() {
         val gate = CompletableDeferred<Unit>()
-        val slowDetail = object : CoroutineInspectorClient by client {
+        val slowDetailClient = object : CoroutineInspectorClient by client {
             override suspend fun coroutineDetail(id: String): CoroutineDetail {
                 if (id == "c1") gate.await()
                 return client.coroutineDetail(id)
             }
         }
-        val selectingState = CoroutineInspectorState(slowDetail, CoroutineScope(Dispatchers.Unconfined))
+        val selectingState = CoroutineInspectorState(slowDetailClient, CoroutineScope(Dispatchers.Unconfined))
 
         selectingState.select("c1")
         selectingState.select("c2")
@@ -173,6 +173,6 @@ class CoroutineInspectorStateTest {
         state.toggleCollapsed("c1")
         state.toggleCollapsed("c1")
 
-        assertEquals(emptySet(), state.collapsed)
+        assertEquals(emptySet(), state.collapsedRowIds)
     }
 }

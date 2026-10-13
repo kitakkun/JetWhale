@@ -15,10 +15,10 @@ class CoroutineInspectorPanesTest {
             DispatcherLongRun("Main", LongRun(atEpochMillis = 3, durationMillis = 310.0, coroutineName = "main-blocker")),
         )
 
-        val holders = summarizeLongRuns(runs)
+        val longRunSummaries = summarizeLongRuns(runs)
 
-        assertEquals(listOf("main-blocker", "render"), holders.map(LongRunHolder::coroutineName))
-        assertEquals(LongRunHolder(dispatcher = "Main", coroutineName = "main-blocker", count = 2, longestMillis = 310.0, totalMillis = 610.0, lastAtEpochMillis = 3), holders.first())
+        assertEquals(listOf("main-blocker", "render"), longRunSummaries.map(LongRunSummary::coroutineName))
+        assertEquals(LongRunSummary(dispatcherName = "Main", coroutineName = "main-blocker", count = 2, longestMillis = 310.0, totalMillis = 610.0, lastAtEpochMillis = 3), longRunSummaries.first())
     }
 
     @Test
