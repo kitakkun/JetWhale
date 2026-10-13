@@ -77,12 +77,12 @@ internal abstract class ExtractWireSchemaWorkAction : WorkAction<ExtractWireSche
             try {
                 val reader = classLoader.loadClass(WireSchemaReader::class.java.name).getConstructor().newInstance()
                 reader.javaClass
-                    .getMethod("renderWireSchema", List::class.java, Int::class.javaPrimitiveType)
-                    .invoke(reader, moduleClassDirectories, parameters.protocolRevision.get()) as String
+                    .getMethod("renderWireSchema", List::class.java, List::class.java, Int::class.javaPrimitiveType)
+                    .invoke(reader, moduleClassDirectories, parameters.runtimeClasspath.files.toList(), parameters.protocolRevision.get()) as String
             } catch (e: InvocationTargetException) {
                 val failure = e.targetException
-                // The failure is an instance of the reader class loader's own WireSchemaRefusal,
-                // not this one, so `is WireSchemaRefusal` would never match.
+                // The failure is the reader class loader's own WireSchemaRefusal, not this one, so
+                // `is WireSchemaRefusal` would never match.
                 if (failure.javaClass.name == WireSchemaRefusal::class.java.name) throw GradleException(failure.message.orEmpty())
                 throw GradleException("Reading the wire schema failed:\n${failure.stackTraceToString()}")
             }

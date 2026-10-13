@@ -11,7 +11,7 @@ version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-
 
 dependencies {
     // Both come from the protocol module's build at run time: the Kotlin Gradle plugin it applies,
-    // and the kotlinx.serialization on its runtime classpath, which is what reads its descriptors.
+    // and the kotlinx.serialization on its runtime classpath, which reads its descriptors.
     compileOnly(libs.kotlinGradlePlugin)
     compileOnly(libs.kotlinxSerializationJson)
 
@@ -19,7 +19,7 @@ dependencies {
 }
 
 // The functional tests' fixtures apply these by id. TestKit puts them in the plugin under test's
-// class loader, which is where the protocol plugin looks up the Kotlin Gradle plugin's types.
+// class loader, which is where the protocol plugin finds the Kotlin Gradle plugin's types.
 val functionalTestKotlinGradlePlugins: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true

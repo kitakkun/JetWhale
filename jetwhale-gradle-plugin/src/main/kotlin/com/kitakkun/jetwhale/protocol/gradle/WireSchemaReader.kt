@@ -22,6 +22,7 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
+import java.util.zip.ZipFile
 
 /**
  * Reads the wire schema of a protocol module's compiled JVM classes from their serial descriptors.
@@ -35,9 +36,9 @@ internal class WireSchemaReader {
     private val eventMarker = loadMarker("com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent")
     private val requestMarker = loadMarker("com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest")
 
-    fun renderWireSchema(moduleClassDirectories: List<File>, revision: Int): String {
+    fun renderWireSchema(moduleClassDirectories: List<File>, runtimeClasspath: List<File>, revision: Int): String {
         val moduleClasses = moduleClassDirectories.flatMap(::classNamesIn).map { Class.forName(it, false, classLoader) }
-        return DescriptorWalk(neverEncodedElementNamesBySerialName(moduleClasses)).readSchema(moduleClasses, revision).render()
+        return DescriptorWalk(neverEncodedElementNamesBySerialName(moduleClasses), runtimeClasspath).readSchema(moduleClasses, revision).render()
     }
 
     private fun loadMarker(className: String): Class<*> = try {
@@ -54,16 +55,48 @@ internal class WireSchemaReader {
         .toList()
 
     /**
-     * The elements under `@EncodeDefault(NEVER)` of each class, by the class's serial name. The
-     * descriptor does not carry that annotation: the serialization plugin compiles it into the
-     * serializer. Kotlin keeps it on the property's synthetic `<getter>$annotations` method.
+     * The `@Serializable` classes on [runtimeClasspath], found by the annotation's name in their
+     * class files before any is loaded. Kotlin's and kotlinx.serialization's own classes are left
+     * out: none of them has a property under `@EncodeDefault`.
      */
-    private fun neverEncodedElementNamesBySerialName(moduleClasses: List<Class<*>>): Map<String, Set<String>> = moduleClasses
+    private fun serializableClassesOn(runtimeClasspath: List<File>): List<Class<*>> = runtimeClasspath
+        .flatMap { classpathEntry ->
+            when {
+                classpathEntry.isDirectory -> classNamesIn(classpathEntry).filter { className ->
+                    classpathEntry.resolve(className.replace('.', '/') + ".class").readBytes().mentionsSerializable()
+                }
+
+                classpathEntry.isFile && classpathEntry.extension == "jar" -> ZipFile(classpathEntry).use { jar ->
+                    jar.entries().asSequence()
+                        .filter { it.name.endsWith(".class") && !it.name.startsWith("META-INF/") && !it.name.endsWith("module-info.class") }
+                        .filter { jar.getInputStream(it).use { input -> input.readBytes() }.mentionsSerializable() }
+                        .map { it.name.removeSuffix(".class").replace('/', '.') }
+                        .toList()
+                }
+
+                else -> emptyList()
+            }
+        }
+        .filterNot { it.startsWith("kotlin.") || it.startsWith("kotlinx.serialization.") }
+        // A class that cannot load is one no descriptor can reach either.
+        .mapNotNull { runCatching { Class.forName(it, false, classLoader) }.getOrNull() }
+        .filter { it.isAnnotationPresent(Serializable::class.java) }
+
+    private fun ByteArray.mentionsSerializable(): Boolean = String(this, Charsets.ISO_8859_1).contains(SERIALIZABLE_TYPE_DESCRIPTOR)
+
+    /**
+     * The elements under `@EncodeDefault(NEVER)` of each `@Serializable` class, by the class's
+     * serial name. The descriptor does not carry that annotation: the serialization plugin compiles
+     * it into the serializer. Kotlin keeps it on the property's synthetic `<getter>$annotations`
+     * method.
+     */
+    private fun neverEncodedElementNamesBySerialName(classes: List<Class<*>>): Map<String, Set<String>> = classes
         .filter { it.isAnnotationPresent(Serializable::class.java) }
         .mapNotNull { serializableClass ->
+            // kotlinx.serialization's default serial name is the Kotlin qualified name, which joins
+            // a nested class with '.' as canonicalName does; Class.name uses '$'.
             val serialName = serializableClass.getAnnotation(SerialName::class.java)?.value ?: serializableClass.canonicalName ?: return@mapNotNull null
-            val neverEncodedElementNames = generateSequence(serializableClass) { it.superclass }.flatMap(::neverEncodedElementNamesDeclaredIn).toSet()
-            (serialName to neverEncodedElementNames).takeIf { neverEncodedElementNames.isNotEmpty() }
+            serialName to generateSequence(serializableClass) { it.superclass }.flatMap(::neverEncodedElementNamesDeclaredIn).toSet()
         }
         .toMap()
 
@@ -74,8 +107,8 @@ internal class WireSchemaReader {
             .filter { it.getAnnotation(EncodeDefault::class.java)?.mode == EncodeDefault.Mode.NEVER }
             .map { annotationsMethod ->
                 val getterName = annotationsMethod.name.removeSuffix(ANNOTATIONS_METHOD_SUFFIX)
-                // Kotlin mangles the getter of a property whose type is a value class, and so its
-                // $annotations method: the getter name, a '-' and a hash.
+                // Kotlin mangles the getter of a property whose type is a value class, and with it
+                // the $annotations method: the getter name, a '-' and a hash.
                 val propertyName = propertyNames.firstOrNull { kotlinGetterName(it) == getterName || getterName.startsWith(kotlinGetterName(it) + "-") }
                     ?: throw WireSchemaRefusal(
                         "${declaringClass.name}: cannot tell which property ${annotationsMethod.name} belongs to, so its @EncodeDefault(NEVER) cannot be recorded.",
@@ -89,7 +122,15 @@ internal class WireSchemaReader {
         return if (startsWithIsPrefix) propertyName else "get" + propertyName.replaceFirstChar { if (it in 'a'..'z') it.uppercaseChar() else it }
     }
 
-    private inner class DescriptorWalk(private val neverEncodedElementNamesBySerialName: Map<String, Set<String>>) {
+    private inner class DescriptorWalk(
+        private val moduleNeverEncodedElementNamesBySerialName: Map<String, Set<String>>,
+        private val runtimeClasspath: List<File>,
+    ) {
+        /** Scanned only when the walk reaches a class from outside the module, which is rare. */
+        private val dependencyNeverEncodedElementNamesBySerialName: Map<String, Set<String>> by lazy {
+            neverEncodedElementNamesBySerialName(serializableClassesOn(runtimeClasspath))
+        }
+
         private val shapes = mutableMapOf<String, WireShape>()
         private val descriptorsBySerialName = mutableMapOf<String, SerialDescriptor>()
 
@@ -163,8 +204,8 @@ internal class WireSchemaReader {
 
             is ParameterizedType -> SubstitutedParameterizedType(rawType, actualTypeArguments.map { it.substitutedBy(typeArgumentsByVariable) }, ownerType)
 
-            // Kotlin writes `List<R>` in a supertype as `List<? extends R>`, and serializer(Type)
-            // reads a wildcard as its first upper bound.
+            // Kotlin writes `List<R>` inside a supertype's type arguments as `List<? extends R>`,
+            // and serializer(Type) reads a wildcard as its first upper bound.
             is WildcardType -> upperBounds.first().substitutedBy(typeArgumentsByVariable)
 
             else -> this
@@ -191,7 +232,7 @@ internal class WireSchemaReader {
                 }
 
                 StructureKind.CLASS -> if (nonNullDescriptor.isInline) {
-                    typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), path).copy(isNullable = isNullable)
+                    typeRefRecordingShapesOf(nonNullDescriptor.getElementDescriptor(0), path).let { it.copy(isNullable = it.isNullable || isNullable) }
                 } else {
                     shapeTypeRefRecordingShapesOf(nonNullDescriptor, path, isNullable)
                 }
@@ -222,7 +263,8 @@ internal class WireSchemaReader {
         }
 
         private fun classShapeOf(descriptor: SerialDescriptor, path: String): ClassShape {
-            val neverEncodedElementNames = neverEncodedElementNamesBySerialName[descriptor.serialName].orEmpty()
+            val neverEncodedElementNames = moduleNeverEncodedElementNamesBySerialName[descriptor.serialName]
+                ?: dependencyNeverEncodedElementNamesBySerialName[descriptor.serialName].orEmpty()
             val fields = (0 until descriptor.elementsCount).associate { index ->
                 val elementName = descriptor.getElementName(index)
                 val isOptional = descriptor.isElementOptional(index)
@@ -270,6 +312,8 @@ internal class WireSchemaReader {
 
     private companion object {
         const val ANNOTATIONS_METHOD_SUFFIX = "\$annotations"
+
+        const val SERIALIZABLE_TYPE_DESCRIPTOR = "Lkotlinx/serialization/Serializable;"
 
         val MESSAGE_SERIAL_KINDS: Set<SerialKind> = setOf(StructureKind.CLASS, StructureKind.OBJECT, SerialKind.ENUM)
 
@@ -320,6 +364,8 @@ private class SubstitutedParameterizedType(
     override fun getActualTypeArguments(): Array<Type> = typeArguments.toTypedArray()
 
     override fun getOwnerType(): Type? = ownerType
+
+    override fun toString(): String = "${rawType.typeName}<${typeArguments.joinToString(", ") { it.typeName }}>"
 }
 
 /** A protocol module whose wire schema cannot be dumped, with what is wrong and where. */

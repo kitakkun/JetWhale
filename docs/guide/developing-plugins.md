@@ -310,6 +310,8 @@ plugins {
     id("com.kitakkun.jetwhale.protocol") version "<version>"
 }
 
+version = "1.0.0" // your plugin's release version, which the generated contract carries
+
 kotlin {
     jvm() // required: the wire schema is read from the JVM classes
     // ...and the targets your agent runs on

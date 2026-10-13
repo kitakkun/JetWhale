@@ -339,16 +339,21 @@ class JetWhaleProtocolPluginTest {
             """
             plugins {
                 id("org.jetbrains.kotlin.multiplatform")
+                id("org.jetbrains.kotlin.plugin.serialization")
             }
 
             kotlin {
                 jvm()
+                sourceSets.commonMain.dependencies {
+                    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion")
+                }
             }
 
             """.trimIndent(),
         )
         projectDirectory.resolve("core/src/commonMain/kotlin/com/kitakkun/jetwhale/protocol/messaging/Markers.kt").apply { parentFile.mkdirs() }.writeText(MARKERS_SOURCE)
         projectDirectory.resolve("core/src/commonMain/kotlin/com/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginContract.kt").apply { parentFile.mkdirs() }.writeText(CONTRACT_SOURCE)
+        projectDirectory.resolve("core/src/commonMain/kotlin/com/kitakkun/jetwhale/protocol/fixture/Stamp.kt").apply { parentFile.mkdirs() }.writeText(STAMP_SOURCE)
         projectDirectory.resolve("protocol/build.gradle.kts").apply { parentFile.mkdirs() }.writeText(
             """
             plugins {
@@ -420,6 +425,24 @@ class JetWhaleProtocolPluginTest {
 
         """.trimIndent()
 
+        /** A class the fixture's protocol reaches from a dependency, as a shared model library's would be. */
+        val STAMP_SOURCE = """
+            @file:OptIn(ExperimentalSerializationApi::class)
+
+            package com.kitakkun.jetwhale.protocol.fixture
+
+            import kotlinx.serialization.EncodeDefault
+            import kotlinx.serialization.ExperimentalSerializationApi
+            import kotlinx.serialization.Serializable
+
+            @Serializable
+            data class Stamp(
+                val at: Long,
+                @EncodeDefault(EncodeDefault.Mode.NEVER) val zone: String = "UTC",
+            )
+
+        """.trimIndent()
+
         val CONTRACT_SOURCE = """
             package com.kitakkun.jetwhale.protocol.negotiation
 
@@ -446,6 +469,7 @@ class JetWhaleProtocolPluginTest {
             import kotlinx.serialization.json.JsonClassDiscriminator
             import kotlinx.serialization.json.JsonElement
             import kotlinx.serialization.json.JsonNames
+            import com.kitakkun.jetwhale.protocol.fixture.Stamp
             import kotlin.jvm.JvmInline
 
             @SerialName("fixture/ping")
@@ -468,6 +492,8 @@ class JetWhaleProtocolPluginTest {
                 @EncodeDefault(EncodeDefault.Mode.NEVER) val isActive: Boolean = true,
                 @EncodeDefault(EncodeDefault.Mode.NEVER) val owner: ItemId = ItemId("nobody"),
                 val attributes: Map<String, Int> = emptyMap(),
+                val caption: MaybeText = MaybeText(null),
+                val stamp: Stamp? = null,
                 val colorCounts: Map<Color, Int> = emptyMap(),
                 val ownerNotes: Map<ItemId, String> = emptyMap(),
                 val payload: JsonElement? = null,
@@ -484,6 +510,10 @@ class JetWhaleProtocolPluginTest {
             @JvmInline
             @Serializable
             value class ItemId(val value: String)
+
+            @JvmInline
+            @Serializable
+            value class MaybeText(val value: String?)
 
             @Serializable
             enum class Color { RED, @SerialName("green") GREEN }
@@ -538,12 +568,17 @@ class JetWhaleProtocolPluginTest {
             sealed com.example.fixture.protocol.Shape by kind
               circle
 
+            class com.kitakkun.jetwhale.protocol.fixture.Stamp
+              at: long
+              zone: string = …, omitted at default
+
             object empty
 
             object fixture/ack
 
             class fixture/item_added
               attributes: map<string, int> = …
+              caption: string? = …
               colorCounts: map<com.example.fixture.protocol.Color, int> = …
               count: int = … | also read as legacyCount
               hidden_flag: boolean = …, omitted at default
@@ -554,6 +589,7 @@ class JetWhaleProtocolPluginTest {
               owner: string = …, omitted at default
               ownerNotes: map<string, string> = …
               payload: json? = …
+              stamp: com.kitakkun.jetwhale.protocol.fixture.Stamp? = …
               tag_list: list<string> = …
 
             object fixture/ping
