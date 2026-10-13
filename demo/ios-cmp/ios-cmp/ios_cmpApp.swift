@@ -21,7 +21,7 @@ struct ios_cmpApp: App {
                 CMPAppViewControllerWrapper()
             }
             .ignoresSafeArea(.all)
-            .onOpenURL { url in DemoDeepLinks.shared.handle(url: url.absoluteString) }
+            .onOpenURL { url in DemoDeepLinks.shared.storePendingUrl(url: url.absoluteString) }
         }
     }
 }

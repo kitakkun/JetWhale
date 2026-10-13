@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class DeepLinksMcpCommandsTest {
-    private val demoLink = DeclaredDeepLink(
+    private val demoDeclaration = DeclaredDeepLink(
         handler = "com.example.app.MainActivity",
         schemes = listOf("demo"),
         hosts = emptyList(),
@@ -27,7 +27,7 @@ class DeepLinksMcpCommandsTest {
         autoVerify = false,
     )
     private val client = FakeDeepLinkClient(
-        declared = listOf(demoLink),
+        declared = listOf(demoDeclaration),
         templates = listOf(DeepLinkTemplate(name = "Item", template = "demo://item/{id}", description = null)),
     )
 

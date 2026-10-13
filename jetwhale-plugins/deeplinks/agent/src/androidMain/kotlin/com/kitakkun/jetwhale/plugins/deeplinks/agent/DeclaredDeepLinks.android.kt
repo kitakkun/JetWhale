@@ -16,9 +16,9 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
     // the app's compiled manifest.
     val manifest = openBaseManifest(context.packageName) { cookie -> context.assets.openXmlResourceParser(cookie, "AndroidManifest.xml") }
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's own manifest was not among its loaded APKs, so its links could not be read."))
-    val verification = appLinkVerificationStates(context)
+    val verificationStates = appLinkVerificationStates(context)
     val links = manifest.use { parser ->
-        declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), apiLevel = Build.VERSION.SDK_INT, verificationOf = verification::get)
+        declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), apiLevel = Build.VERSION.SDK_INT, verificationOf = verificationStates::get)
     }
     val notes = buildList {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) add("App Links verification states are reported from Android 12.")
@@ -85,8 +85,8 @@ private fun attributesOf(parser: XmlResourceParser, context: Context): Map<Strin
 private fun appLinkVerificationStates(context: Context): Map<String, String> {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return emptyMap()
     val manager = context.getSystemService(DomainVerificationManager::class.java) ?: return emptyMap()
-    val state = runCatching { manager.getDomainVerificationUserState(context.packageName) }.getOrNull() ?: return emptyMap()
-    return state.hostToStateMap.mapValues { (_, value) ->
+    val userState = runCatching { manager.getDomainVerificationUserState(context.packageName) }.getOrNull() ?: return emptyMap()
+    return userState.hostToStateMap.mapValues { (_, value) ->
         when (value) {
             DomainVerificationUserState.DOMAIN_STATE_VERIFIED -> "verified"
             DomainVerificationUserState.DOMAIN_STATE_SELECTED -> "selected by the user"

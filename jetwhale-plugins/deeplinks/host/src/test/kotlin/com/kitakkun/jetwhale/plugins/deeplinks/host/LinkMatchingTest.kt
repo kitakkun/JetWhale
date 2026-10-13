@@ -12,18 +12,18 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LinkMatchingTest {
-    private val itemLink = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.Prefix, "/item/")))
+    private val itemDeclaration = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.Prefix, "/item/")))
     private val customScheme = declared(schemes = listOf("demo"), hosts = emptyList(), paths = emptyList())
 
     @Test
     fun `a link matches when its scheme host and path are all declared`() {
-        assertEquals(listOf(itemLink), declarationsMatching("https://example.com/item/42", listOf(itemLink, customScheme)))
+        assertEquals(listOf(itemDeclaration), declarationsMatching("https://example.com/item/42", listOf(itemDeclaration, customScheme)))
     }
 
     @Test
     fun `a link on another host or path matches nothing`() {
-        assertEquals(emptyList(), declarationsMatching("https://example.org/item/42", listOf(itemLink)))
-        assertEquals(emptyList(), declarationsMatching("https://example.com/cart", listOf(itemLink)))
+        assertEquals(emptyList(), declarationsMatching("https://example.org/item/42", listOf(itemDeclaration)))
+        assertEquals(emptyList(), declarationsMatching("https://example.com/cart", listOf(itemDeclaration)))
     }
 
     @Test
@@ -84,7 +84,7 @@ class LinkMatchingTest {
     fun `a host is compared case-insensitively`() {
         val wildcard = declared(schemes = listOf("https"), hosts = listOf("*.example.com"), paths = emptyList())
 
-        assertEquals(listOf(itemLink), declarationsMatching("https://Example.COM/item/42", listOf(itemLink)))
+        assertEquals(listOf(itemDeclaration), declarationsMatching("https://Example.COM/item/42", listOf(itemDeclaration)))
         assertEquals(listOf(wildcard), declarationsMatching("https://Shop.EXAMPLE.com/", listOf(wildcard)))
     }
 
@@ -92,7 +92,7 @@ class LinkMatchingTest {
     fun `a scheme is compared case-sensitively`() {
         val mixedCase = declared(schemes = listOf("MyApp"), hosts = emptyList(), paths = emptyList())
 
-        assertEquals(emptyList(), declarationsMatching("HTTPS://example.com/item/42", listOf(itemLink)))
+        assertEquals(emptyList(), declarationsMatching("HTTPS://example.com/item/42", listOf(itemDeclaration)))
         assertEquals(listOf(mixedCase), declarationsMatching("MyApp://item/42", listOf(mixedCase)))
         assertEquals(emptyList(), declarationsMatching("myapp://item/42", listOf(mixedCase)))
     }
@@ -107,7 +107,7 @@ class LinkMatchingTest {
     @Test
     fun `a link without an authority matches only declarations without hosts`() {
         assertEquals(listOf(customScheme), declarationsMatching("demo:item/42", listOf(customScheme)))
-        assertEquals(emptyList(), declarationsMatching("https:example.com/item/42", listOf(itemLink)))
+        assertEquals(emptyList(), declarationsMatching("https:example.com/item/42", listOf(itemDeclaration)))
     }
 
     @Test
@@ -115,7 +115,7 @@ class LinkMatchingTest {
         val nonAscii = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.Prefix, "/商品/")))
         val plus = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.Exact, "/a+b")))
 
-        assertEquals(listOf(itemLink), declarationsMatching("https://example.com/%69tem/42", listOf(itemLink)))
+        assertEquals(listOf(itemDeclaration), declarationsMatching("https://example.com/%69tem/42", listOf(itemDeclaration)))
         assertEquals(listOf(nonAscii), declarationsMatching("https://example.com/%E5%95%86%E5%93%81/1", listOf(nonAscii)))
         assertEquals(listOf(plus), declarationsMatching("https://example.com/a+b", listOf(plus)))
         assertEquals(listOf(plus), declarationsMatching("https://example.com/%61+b", listOf(plus)))
@@ -136,9 +136,9 @@ class LinkMatchingTest {
         )
         hosts.forEach { hostList ->
             paths.forEach { pathList ->
-                val link = declared(schemes = listOf("https"), hosts = hostList, paths = pathList)
-                val sample = assertNotNull(sampleUrlOf(link), "no sample for $link")
-                assertEquals(listOf(link), declarationsMatching(sample, listOf(link)), "sample $sample for $link")
+                val declaration = declared(schemes = listOf("https"), hosts = hostList, paths = pathList)
+                val sample = assertNotNull(sampleUrlOf(declaration), "no sample for $declaration")
+                assertEquals(listOf(declaration), declarationsMatching(sample, listOf(declaration)), "sample $sample for $declaration")
             }
         }
     }
@@ -239,12 +239,12 @@ class LinkMatchingTest {
 
     @Test
     fun `a link without a scheme is refused`() {
-        assertFailsWith<IllegalArgumentException> { declarationsMatching("example.com/item", listOf(itemLink)) }
+        assertFailsWith<IllegalArgumentException> { declarationsMatching("example.com/item", listOf(itemDeclaration)) }
     }
 
     @Test
     fun `a sample link starts from the first scheme host and path`() {
-        assertEquals("https://example.com/item/", sampleUrlOf(itemLink))
+        assertEquals("https://example.com/item/", sampleUrlOf(itemDeclaration))
         assertEquals("demo://example", sampleUrlOf(customScheme))
     }
 }

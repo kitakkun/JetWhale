@@ -32,14 +32,14 @@ internal data class LinkComposerState(
     val template: DeepLinkTemplate?,
     val draftUrl: String,
     val parameters: Map<String, String>,
-    val check: DraftCheck,
+    val draftCheck: DraftCheck,
 )
 
 @Composable
 internal fun LinkComposer(
     state: LinkComposerState,
-    history: List<OpenedLink>,
-    favorites: List<String>,
+    history: List<LinkOpenAttempt>,
+    favoriteUrls: List<String>,
     canOpen: Boolean,
     actions: DeepLinkActions,
     onToggleFavorite: (String) -> Unit,
@@ -49,7 +49,7 @@ internal fun LinkComposer(
         val template = state.template
         if (template == null) {
             JwFormField(label = "Link") {
-                JwTextField(value = state.draftUrl, onValueChange = actions::editUrl, placeholder = "myapp://item/42", modifier = Modifier.fillMaxWidth())
+                JwTextField(value = state.draftUrl, onValueChange = actions::editDraftUrl, placeholder = "myapp://item/42", modifier = Modifier.fillMaxWidth())
             }
         } else {
             JwText(text = template.name, style = JwTheme.textStyles.title)
@@ -60,12 +60,12 @@ internal fun LinkComposer(
                 }
             }
         }
-        DraftStatus(state.check)
+        DraftStatus(state.draftCheck)
         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-            val url = state.check.url
+            val url = state.draftCheck.url
             JwButton(text = "Open in app", onClick = { url?.let(actions::open) }, style = JwButtonStyle.Primary, enabled = url != null && canOpen)
             JwButton(
-                text = if (url != null && url in favorites) "Unstar" else "Star",
+                text = if (url != null && url in favoriteUrls) "Unstar" else "Star",
                 onClick = { url?.let(onToggleFavorite) },
                 enabled = url != null,
             )
@@ -82,18 +82,18 @@ internal fun LinkComposer(
 }
 
 @Composable
-private fun DraftStatus(check: DraftCheck) {
-    val problem = check.problem
-    val handlers = check.matches.joinToString { it.handler.substringAfterLast('.') }
+private fun DraftStatus(draftCheck: DraftCheck) {
+    val problem = draftCheck.problem
+    val handlers = draftCheck.matchingDeclarations.joinToString { it.handler.substringAfterLast('.') }
     when {
         problem != null -> JwText(text = problem, color = JwTheme.colors.textSecondary)
 
-        check.matches.isEmpty() -> JwText(
+        draftCheck.matchingDeclarations.isEmpty() -> JwText(
             text = "No declared link matches; the app may still route it, but the platform will not send it here from outside.",
             color = JwTone.Warning.color,
         )
 
-        check.matches.none(DeclaredDeepLink::browsable) -> JwText(
+        draftCheck.matchingDeclarations.none(DeclaredDeepLink::browsable) -> JwText(
             text = "Matches $handlers, but not as BROWSABLE: browsers and Open in app do not reach it.",
             color = JwTone.Warning.color,
         )
@@ -103,9 +103,9 @@ private fun DraftStatus(check: DraftCheck) {
 }
 
 @Composable
-private fun HistoryRow(entry: OpenedLink, actions: DeepLinkActions) {
+private fun HistoryRow(entry: LinkOpenAttempt, actions: DeepLinkActions) {
     val result = entry.result
-    JwListItem(selected = false, onClick = { actions.editUrl(entry.url) }) {
+    JwListItem(selected = false, onClick = { actions.editDraftUrl(entry.url) }) {
         JwTag(text = if (result.opened) "opened" else "failed", style = JwTagStyle.Tinted, tone = if (result.opened) JwTone.Success else JwTone.Error)
         Column(Modifier.weight(1f)) {
             JwText(text = entry.url, style = JwTheme.textStyles.code)

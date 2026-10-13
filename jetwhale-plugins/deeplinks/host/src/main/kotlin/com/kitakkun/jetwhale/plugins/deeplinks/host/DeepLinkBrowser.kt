@@ -15,26 +15,26 @@ import kotlinx.coroutines.launch
 /** How many opened links the history keeps; older ones fall off. */
 private const val HISTORY_LIMIT = 50
 
-/** One link opened from the host, with what the app said about it. */
-internal data class OpenedLink(val url: String, val result: DeepLinkOpenResult)
+/** One attempt to open a link from the host, with what the app said about it. */
+internal data class LinkOpenAttempt(val url: String, val result: DeepLinkOpenResult)
 
 /**
  * What the link being composed resolves to: the URL, or why there is none yet, and the declarations
  * it matches.
  */
-internal data class DraftCheck(val url: String?, val problem: String?, val matches: List<DeclaredDeepLink>)
+internal data class DraftCheck(val url: String?, val problem: String?, val matchingDeclarations: List<DeclaredDeepLink>)
 
 /** What the user does in the Deep Links UI. */
 internal interface DeepLinkActions {
     fun refresh()
 
-    /** Starts a draft from [link]'s scheme, host and path. */
-    fun startFrom(link: DeclaredDeepLink)
+    /** Starts a draft from [declaration]'s scheme, host and path. */
+    fun startDraftFrom(declaration: DeclaredDeepLink)
 
     /** Starts a draft from [template], whose placeholders become form fields. */
-    fun startFrom(template: DeepLinkTemplate)
+    fun startDraftFrom(template: DeepLinkTemplate)
 
-    fun editUrl(url: String)
+    fun editDraftUrl(url: String)
 
     fun editParameter(name: String, value: String)
 
@@ -63,25 +63,25 @@ internal class DeepLinkBrowser(
     var parameters: Map<String, String> by mutableStateOf(emptyMap())
         private set
 
-    var history: List<OpenedLink> by mutableStateOf(emptyList())
+    var history: List<LinkOpenAttempt> by mutableStateOf(emptyList())
         private set
 
     var error: String? by mutableStateOf(null)
         private set
 
-    val draft: DraftCheck
+    val draftCheck: DraftCheck
         get() {
             val url = template?.let { current ->
                 try {
                     fillTemplate(current.template, parameters)
                 } catch (e: IllegalArgumentException) {
-                    return DraftCheck(url = null, problem = e.message, matches = emptyList())
+                    return DraftCheck(url = null, problem = e.message, matchingDeclarations = emptyList())
                 }
-            } ?: draftUrl.trim().ifEmpty { return DraftCheck(url = null, problem = "Enter a link", matches = emptyList()) }
+            } ?: draftUrl.trim().ifEmpty { return DraftCheck(url = null, problem = "Enter a link", matchingDeclarations = emptyList()) }
             return try {
-                DraftCheck(url = url, problem = null, matches = declarationsMatching(url, catalog?.declared.orEmpty()))
+                DraftCheck(url = url, problem = null, matchingDeclarations = declarationsMatching(url, catalog?.declared.orEmpty()))
             } catch (e: IllegalArgumentException) {
-                DraftCheck(url = null, problem = e.message, matches = emptyList())
+                DraftCheck(url = null, problem = e.message, matchingDeclarations = emptyList())
             }
         }
 
@@ -93,17 +93,17 @@ internal class DeepLinkBrowser(
         scope.launch { load() }
     }
 
-    override fun startFrom(link: DeclaredDeepLink) {
+    override fun startDraftFrom(declaration: DeclaredDeepLink) {
         template = null
-        draftUrl = sampleUrlOf(link) ?: "${link.schemes.first()}://"
+        draftUrl = sampleUrlOf(declaration) ?: "${declaration.schemes.first()}://"
     }
 
-    override fun startFrom(template: DeepLinkTemplate) {
+    override fun startDraftFrom(template: DeepLinkTemplate) {
         this.template = template
         parameters = placeholdersOf(template.template).associateWith { parameters[it].orEmpty() }
     }
 
-    override fun editUrl(url: String) {
+    override fun editDraftUrl(url: String) {
         template = null
         draftUrl = url
     }
@@ -116,7 +116,7 @@ internal class DeepLinkBrowser(
         scope.launch {
             reportingFailure {
                 val result = client.open(url)
-                history = (listOf(OpenedLink(url, result)) + history).take(HISTORY_LIMIT)
+                history = (listOf(LinkOpenAttempt(url, result)) + history).take(HISTORY_LIMIT)
             }
         }
     }

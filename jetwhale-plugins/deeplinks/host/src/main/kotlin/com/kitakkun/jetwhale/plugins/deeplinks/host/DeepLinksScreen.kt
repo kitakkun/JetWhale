@@ -32,15 +32,15 @@ private const val CATALOG_FRACTION = 0.4f
 /** Binds the host-owned state — the browser and the persisted favorites — to [DeepLinksScreen]. */
 @Composable
 internal fun DeepLinksScreenRoot(browser: DeepLinkBrowser, modifier: Modifier = Modifier) {
-    var favorites by rememberPersistent("favorites", default = emptyList<String>())
+    var favoriteUrls by rememberPersistent("favorites", default = emptyList<String>())
     DeepLinksScreen(
         catalog = browser.catalog,
-        composer = LinkComposerState(template = browser.template, draftUrl = browser.draftUrl, parameters = browser.parameters, check = browser.draft),
+        linkComposerState = LinkComposerState(template = browser.template, draftUrl = browser.draftUrl, parameters = browser.parameters, draftCheck = browser.draftCheck),
         history = browser.history,
-        favorites = favorites,
+        favoriteUrls = favoriteUrls,
         error = browser.error,
         actions = browser,
-        onToggleFavorite = { url -> favorites = if (url in favorites) favorites - url else favorites + url },
+        onToggleFavorite = { url -> favoriteUrls = if (url in favoriteUrls) favoriteUrls - url else favoriteUrls + url },
         modifier = modifier,
     )
 }
@@ -48,9 +48,9 @@ internal fun DeepLinksScreenRoot(browser: DeepLinkBrowser, modifier: Modifier = 
 @Composable
 internal fun DeepLinksScreen(
     catalog: DeepLinkCatalog?,
-    composer: LinkComposerState,
-    history: List<OpenedLink>,
-    favorites: List<String>,
+    linkComposerState: LinkComposerState,
+    history: List<LinkOpenAttempt>,
+    favoriteUrls: List<String>,
     error: String?,
     actions: DeepLinkActions,
     onToggleFavorite: (String) -> Unit,
@@ -68,12 +68,12 @@ internal fun DeepLinksScreen(
         }
         JwSplitPane(
             state = rememberJwSplitPaneState(CATALOG_FRACTION),
-            first = { CatalogList(catalog = catalog, favorites = favorites, actions = actions) },
+            first = { CatalogList(catalog = catalog, favoriteUrls = favoriteUrls, actions = actions) },
             second = {
                 LinkComposer(
-                    state = composer,
+                    state = linkComposerState,
                     history = history,
-                    favorites = favorites,
+                    favoriteUrls = favoriteUrls,
                     canOpen = catalog?.canOpen == true,
                     actions = actions,
                     onToggleFavorite = onToggleFavorite,
@@ -84,12 +84,12 @@ internal fun DeepLinksScreen(
 }
 
 @Composable
-private fun CatalogList(catalog: DeepLinkCatalog?, favorites: List<String>, actions: DeepLinkActions) {
+private fun CatalogList(catalog: DeepLinkCatalog?, favoriteUrls: List<String>, actions: DeepLinkActions) {
     if (catalog == null) {
         JwEmptyState(title = "Loading", description = "Asking the app for the links it handles.")
         return
     }
-    if (catalog.declared.isEmpty() && catalog.templates.isEmpty() && favorites.isEmpty()) {
+    if (catalog.declared.isEmpty() && catalog.templates.isEmpty() && favoriteUrls.isEmpty()) {
         JwEmptyState(
             title = "No deep links",
             description = "The app declares no links the platform can list. Register templates with JetWhaleDeepLinkAgentPlugin to offer some.",
@@ -99,17 +99,17 @@ private fun CatalogList(catalog: DeepLinkCatalog?, favorites: List<String>, acti
     val groups = catalog.declared.groupBy(::groupTitleOf)
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize()) {
-            if (favorites.isNotEmpty()) {
-                item { JwSectionHeader(title = "Favorites", count = favorites.size) }
-                items(favorites) { url -> JwListItem(text = url, selected = false, onClick = { actions.editUrl(url) }) }
+            if (favoriteUrls.isNotEmpty()) {
+                item { JwSectionHeader(title = "Favorites", count = favoriteUrls.size) }
+                items(favoriteUrls) { url -> JwListItem(text = url, selected = false, onClick = { actions.editDraftUrl(url) }) }
             }
             if (catalog.templates.isNotEmpty()) {
                 item { JwSectionHeader(title = "Templates", count = catalog.templates.size) }
                 items(catalog.templates) { template -> TemplateRow(template, actions) }
             }
-            groups.forEach { (title, links) ->
-                item { JwSectionHeader(title = title, count = links.size) }
-                items(links) { link -> DeclarationRow(link, actions) }
+            groups.forEach { (title, declarations) ->
+                item { JwSectionHeader(title = title, count = declarations.size) }
+                items(declarations) { declaration -> DeclarationRow(declaration, actions) }
             }
         }
     }
@@ -121,34 +121,34 @@ private fun TemplateRow(template: DeepLinkTemplate, actions: DeepLinkActions) {
         text = template.name,
         supportingText = template.description?.let { "${template.template} — $it" } ?: template.template,
         selected = false,
-        onClick = { actions.startFrom(template) },
+        onClick = { actions.startDraftFrom(template) },
     )
 }
 
 @Composable
-private fun DeclarationRow(link: DeclaredDeepLink, actions: DeepLinkActions) {
-    val paths = link.paths.joinToString(transform = ::describe).ifEmpty { "any path" }
+private fun DeclarationRow(declaration: DeclaredDeepLink, actions: DeepLinkActions) {
+    val paths = declaration.paths.joinToString(transform = ::describePathMatcher).ifEmpty { "any path" }
     val flags = buildList {
-        if (!link.browsable) add("not browsable")
-        if (link.autoVerify) add("App Links")
-        link.hosts.mapNotNull { host -> host.verification?.let { "${host.host}: $it" } }.forEach(::add)
+        if (!declaration.browsable) add("not browsable")
+        if (declaration.autoVerify) add("App Links")
+        declaration.hosts.mapNotNull { host -> host.verification?.let { "${host.host}: $it" } }.forEach(::add)
     }
     JwListItem(
         text = paths,
-        supportingText = (listOf(link.handler.substringAfterLast('.')) + flags).joinToString(" · "),
+        supportingText = (listOf(declaration.handler.substringAfterLast('.')) + flags).joinToString(" · "),
         selected = false,
-        onClick = { actions.startFrom(link) },
+        onClick = { actions.startDraftFrom(declaration) },
     )
 }
 
 /** `scheme://host` for a declaration, listing every scheme and host it combines. */
-private fun groupTitleOf(link: DeclaredDeepLink): String {
-    val schemes = link.schemes.joinToString("|")
-    val hosts = link.hosts.joinToString("|") { it.host + (it.port?.let { port -> ":$port" } ?: "") }.ifEmpty { "*" }
+private fun groupTitleOf(declaration: DeclaredDeepLink): String {
+    val schemes = declaration.schemes.joinToString("|")
+    val hosts = declaration.hosts.joinToString("|") { it.host + (it.port?.let { port -> ":$port" } ?: "") }.ifEmpty { "*" }
     return "$schemes://$hosts"
 }
 
-private fun describe(matcher: PathMatcher): String = when (matcher.kind) {
+private fun describePathMatcher(matcher: PathMatcher): String = when (matcher.kind) {
     PathMatchKind.Exact -> matcher.value
     PathMatchKind.Prefix -> "${matcher.value}…"
     PathMatchKind.Suffix -> "…${matcher.value}"

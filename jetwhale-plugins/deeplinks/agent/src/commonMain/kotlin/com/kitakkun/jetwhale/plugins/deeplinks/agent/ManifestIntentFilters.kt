@@ -45,13 +45,13 @@ internal fun declaredDeepLinksOf(
 ): List<DeclaredDeepLink> {
     val pathAttributes = PATH_ATTRIBUTES.filter { it.sinceApiLevel <= apiLevel }
     val links = mutableListOf<DeclaredDeepLink>()
-    var component: String? = null
+    var componentClassName: String? = null
     var filter: FilterBuilder? = null
     for (event in events) {
         when (event) {
             is ManifestEvent.Start -> when (event.tag) {
-                "activity", "activity-alias" -> component = event.attributes["name"]?.let { componentName(packageName, it) }
-                "intent-filter" -> filter = component?.let { FilterBuilder(handler = it, autoVerify = event.attributes["autoVerify"] == "true", pathAttributes = pathAttributes) }
+                "activity", "activity-alias" -> componentClassName = event.attributes["name"]?.let { qualifiedClassName(packageName, it) }
+                "intent-filter" -> filter = componentClassName?.let { FilterBuilder(handler = it, autoVerify = event.attributes["autoVerify"] == "true", pathAttributes = pathAttributes) }
                 "action" -> event.attributes["name"]?.let { filter?.actions?.add(it) }
                 "category" -> event.attributes["name"]?.let { filter?.categories?.add(it) }
                 "uri-relative-filter-group" -> filter?.inRelativeFilterGroup = true
@@ -59,7 +59,7 @@ internal fun declaredDeepLinksOf(
             }
 
             is ManifestEvent.End -> when (event.tag) {
-                "activity", "activity-alias" -> component = null
+                "activity", "activity-alias" -> componentClassName = null
 
                 "intent-filter" -> {
                     filter?.takeIf(FilterBuilder::isDeepLink)?.let { links += it.build(verificationOf) }
@@ -74,7 +74,7 @@ internal fun declaredDeepLinksOf(
 }
 
 /** Android's shorthand: `.Main` and `Main` are both relative to the package. */
-private fun componentName(packageName: String, name: String): String = when {
+private fun qualifiedClassName(packageName: String, name: String): String = when {
     name.startsWith(".") -> packageName + name
     '.' !in name -> "$packageName.$name"
     else -> name

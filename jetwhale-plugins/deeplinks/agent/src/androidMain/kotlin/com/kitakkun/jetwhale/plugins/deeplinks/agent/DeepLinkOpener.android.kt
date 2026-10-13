@@ -29,8 +29,8 @@ private object AndroidDeepLinkOpener : DeepLinkOpener {
         if (candidates.isEmpty()) {
             return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "no browsable activity of this app handles $url")
         }
-        val routedTo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo
-        val handlers = if (routedTo != null && routedTo.packageName == context.packageName) listOf(routedTo.name) else candidates
+        val resolvedActivity = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo
+        val handlers = if (resolvedActivity != null && resolvedActivity.packageName == context.packageName) listOf(resolvedActivity.name) else candidates
         return try {
             context.startActivity(intent)
             DeepLinkOpenResult(opened = true, handledBy = handlers, error = null)

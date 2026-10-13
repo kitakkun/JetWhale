@@ -10,21 +10,21 @@ import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate
 
 /**
  * The demo's deep links: `demo://item/{id}`, `demo://settings/{section}`, and the same item page as
- * `https://demo.jetwhale.example/item/{id}`. The platform hands a link to [handle]; the app shows it
- * by pushing the matching screen onto its Navigation 3 back stack.
+ * `https://demo.jetwhale.example/item/{id}`. The platform hands a link to [storePendingUrl]; the
+ * app shows it by pushing the matching screen onto its Navigation 3 back stack.
  */
 object DemoDeepLinks {
     /** The link waiting to be shown, taken by the app's composition. */
-    var pending: String? by mutableStateOf(null)
+    var pendingUrl: String? by mutableStateOf(null)
         private set
 
-    fun handle(url: String) {
-        pending = url
+    fun storePendingUrl(url: String) {
+        pendingUrl = url
     }
 
-    fun consume(): String? {
-        val link = pending
-        pending = null
+    fun takePendingUrl(): String? {
+        val link = pendingUrl
+        pendingUrl = null
         return link
     }
 
@@ -42,7 +42,7 @@ fun navKeyForDeepLink(url: String): NavKey? {
     val route = if (scheme == "https") segments.drop(1) else segments
     return when (route.firstOrNull()) {
         "item" -> route.getOrNull(1)?.let { DemoDetailKey(itemId = it) }
-        "settings" -> route.getOrNull(1)?.let { name -> DemoSettingsSection.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } }?.let(::DemoSettingsKey)
+        "settings" -> route.getOrNull(1)?.let { sectionName -> DemoSettingsSection.entries.firstOrNull { it.name.equals(sectionName, ignoreCase = true) } }?.let(::DemoSettingsKey)
         else -> null
     }
 }
@@ -58,7 +58,7 @@ internal object DemoRouterDeepLinkOpener : DeepLinkOpener {
         if (navKeyForDeepLink(url) == null) {
             return DeepLinkOpenResult(opened = false, handledBy = emptyList(), error = "the demo has no screen for $url")
         }
-        DemoDeepLinks.handle(url)
+        DemoDeepLinks.storePendingUrl(url)
         return DeepLinkOpenResult(opened = true, handledBy = listOf("DemoDeepLinks"), error = null)
     }
 }

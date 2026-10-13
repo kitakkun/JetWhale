@@ -13,7 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class DeepLinkBrowserTest {
-    private val demoLink = DeclaredDeepLink(
+    private val demoDeclaration = DeclaredDeepLink(
         handler = "com.example.app.MainActivity",
         schemes = listOf("demo"),
         hosts = emptyList(),
@@ -22,7 +22,7 @@ class DeepLinkBrowserTest {
         autoVerify = false,
     )
     private val itemTemplate = DeepLinkTemplate(name = "Item", template = "demo://item/{id}", description = null)
-    private val client = FakeDeepLinkClient(declared = listOf(demoLink), templates = listOf(itemTemplate))
+    private val client = FakeDeepLinkClient(declared = listOf(demoDeclaration), templates = listOf(itemTemplate))
 
     // Unconfined runs a launched call in place until it first suspends, and the fake never
     // suspends, so each call has finished when launch returns.
@@ -31,24 +31,24 @@ class DeepLinkBrowserTest {
     @Test
     fun `a template draft becomes a link once its parameters are filled`() {
         runBlocking { browser.load() }
-        browser.startFrom(itemTemplate)
-        assertNull(browser.draft.url)
+        browser.startDraftFrom(itemTemplate)
+        assertNull(browser.draftCheck.url)
 
         browser.editParameter("id", "42")
 
-        assertEquals("demo://item/42", browser.draft.url)
-        assertEquals(listOf(demoLink), browser.draft.matches)
+        assertEquals("demo://item/42", browser.draftCheck.url)
+        assertEquals(listOf(demoDeclaration), browser.draftCheck.matchingDeclarations)
     }
 
     @Test
     fun `editing the link by hand leaves the template`() {
         runBlocking { browser.load() }
-        browser.startFrom(itemTemplate)
+        browser.startDraftFrom(itemTemplate)
 
-        browser.editUrl("demo://settings")
+        browser.editDraftUrl("demo://settings")
 
         assertNull(browser.template)
-        assertEquals("demo://settings", browser.draft.url)
+        assertEquals("demo://settings", browser.draftCheck.url)
     }
 
     @Test
@@ -63,12 +63,12 @@ class DeepLinkBrowserTest {
 
     @Test
     fun `a catalog the app does not send is reported as an error`() {
-        val unreachable = object : DeepLinkClient {
+        val unreachableClient = object : DeepLinkClient {
             override suspend fun catalog(): DeepLinkCatalog = throw JetWhaleRequestException("Request 'GetDeepLinkCatalog' timed out")
 
             override suspend fun open(url: String): DeepLinkOpenResult = throw JetWhaleRequestException("not opened in this test")
         }
-        val unreachableBrowser = DeepLinkBrowser(unreachable, CoroutineScope(Dispatchers.Unconfined))
+        val unreachableBrowser = DeepLinkBrowser(unreachableClient, CoroutineScope(Dispatchers.Unconfined))
 
         runBlocking { unreachableBrowser.load() }
 

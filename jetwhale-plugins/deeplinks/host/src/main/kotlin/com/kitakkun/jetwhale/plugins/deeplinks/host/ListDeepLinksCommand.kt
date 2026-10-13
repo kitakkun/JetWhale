@@ -28,9 +28,9 @@ internal class ListDeepLinksCommand(
         val catalog = client.catalog()
         return buildJsonObject {
             putJsonArray("declared") {
-                catalog.declared.forEach { link ->
-                    val fields = Json.encodeToJsonElement(DeclaredDeepLink.serializer(), link).jsonObject
-                    add(JsonObject(fields + ("sampleUrl" to JsonPrimitive(sampleUrlOf(link)))))
+                catalog.declared.forEach { declaration ->
+                    val fields = Json.encodeToJsonElement(DeclaredDeepLink.serializer(), declaration).jsonObject
+                    add(JsonObject(fields + ("sampleUrl" to JsonPrimitive(sampleUrlOf(declaration)))))
                 }
             }
             put("templates", Json.encodeToJsonElement(ListSerializer(DeepLinkTemplate.serializer()), catalog.templates))

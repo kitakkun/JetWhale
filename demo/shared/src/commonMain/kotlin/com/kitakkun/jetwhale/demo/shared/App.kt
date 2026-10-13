@@ -25,10 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 fun App() {
     var selectedTab by remember { mutableStateOf(0) }
     val nav3BackStack = rememberTrackedDemoNavBackStack()
-    val pendingDeepLink = DemoDeepLinks.pending
+    val pendingDeepLink = DemoDeepLinks.pendingUrl
     LaunchedEffect(pendingDeepLink) {
-        val key = DemoDeepLinks.consume()?.let(::navKeyForDeepLink) ?: return@LaunchedEffect
-        nav3BackStack.add(key)
+        val navKey = DemoDeepLinks.takePendingUrl()?.let(::navKeyForDeepLink) ?: return@LaunchedEffect
+        nav3BackStack.add(navKey)
         selectedTab = NAV3_TAB
     }
     MaterialTheme {

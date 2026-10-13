@@ -36,13 +36,13 @@ private class SplitLink(val scheme: String, val host: String?, val port: Int, va
         return declaration.paths.isEmpty() || declaration.paths.any { pathMatches(it, path) }
     }
 
-    private fun matchesHost(declared: DeepLinkHost, host: String): Boolean {
-        val nameMatches = if (declared.host.startsWith("*")) {
-            host.endsWith(declared.host.removePrefix("*"), ignoreCase = true)
+    private fun matchesHost(declaredHost: DeepLinkHost, host: String): Boolean {
+        val nameMatches = if (declaredHost.host.startsWith("*")) {
+            host.endsWith(declaredHost.host.removePrefix("*"), ignoreCase = true)
         } else {
-            host.equals(declared.host, ignoreCase = true)
+            host.equals(declaredHost.host, ignoreCase = true)
         }
-        val declaredPort = declared.port ?: return nameMatches
+        val declaredPort = declaredHost.port ?: return nameMatches
         return nameMatches && declaredPort.toIntOrNull() == port
     }
 }
@@ -187,7 +187,7 @@ private class AdvancedPatternParser(private val pattern: String) {
             val accepted = when (val c = pattern[ip]) {
                 '[' -> addSet()
 
-                '{' -> repeatLast(countedRepetition() ?: return null)
+                '{' -> repeatLast(readCountedRepetition() ?: return null)
 
                 '*' -> repeatLast(0..Int.MAX_VALUE)
 
@@ -216,10 +216,10 @@ private class AdvancedPatternParser(private val pattern: String) {
         ip += if (inverse) 2 else 1
         val ranges = mutableListOf<CharRange>()
         while (pattern.getOrNull(ip) != ']') {
-            val lower = setMember() ?: return false
+            val lower = readSetMember() ?: return false
             val isRange = ip + 2 < pattern.length && pattern[ip + 1] == '-' && pattern[ip + 2] != ']'
             if (isRange) ip += 2
-            val upper = if (isRange) setMember() ?: return false else lower
+            val upper = if (isRange) readSetMember() ?: return false else lower
             ranges += lower..upper
             ip++
         }
@@ -229,13 +229,13 @@ private class AdvancedPatternParser(private val pattern: String) {
     }
 
     /** The set member at [ip] with its `\` escape removed, leaving [ip] on its last character. */
-    private fun setMember(): Char? {
+    private fun readSetMember(): Char? {
         val c = pattern.getOrNull(ip) ?: return null
         return if (c == '\\') pattern.getOrNull(++ip) else c
     }
 
     /** The `{n}`, `{n,}` or `{n,m}` at [ip], leaving [ip] on its `}`. */
-    private fun countedRepetition(): IntRange? {
+    private fun readCountedRepetition(): IntRange? {
         val end = pattern.indexOf('}', ip + 1).takeIf { it >= 0 } ?: return null
         val bounds = pattern.substring(ip + 1, end)
         val comma = bounds.indexOf(',')
@@ -258,17 +258,17 @@ private class AdvancedPatternParser(private val pattern: String) {
 }
 
 /**
- * A link that [link] matches, to start editing from: its first scheme, a concrete host for its
- * first host, and a path for the first path matcher a sample can be built for. Null when no
+ * A link that [declaration] matches, to start editing from: its first scheme, a concrete host for
+ * its first host, and a path for the first path matcher a sample can be built for. Null when no
  * matching sample can be built, e.g. for an advanced pattern that starts with a character class.
  */
-internal fun sampleUrlOf(link: DeclaredDeepLink): String? {
-    val scheme = link.schemes.first()
-    val host = link.hosts.firstOrNull()?.let { it.concreteHost() + (it.port?.let { port -> ":$port" } ?: "") } ?: "example"
-    val paths = if (link.paths.isEmpty()) listOf("") else link.paths.mapNotNull(::samplePathOf)
+internal fun sampleUrlOf(declaration: DeclaredDeepLink): String? {
+    val scheme = declaration.schemes.first()
+    val host = declaration.hosts.firstOrNull()?.let { it.concreteHost() + (it.port?.let { port -> ":$port" } ?: "") } ?: "example"
+    val paths = if (declaration.paths.isEmpty()) listOf("") else declaration.paths.mapNotNull(::samplePathOf)
     return paths.map { "$scheme://$host$it" }.firstOrNull { candidate ->
         try {
-            link in declarationsMatching(candidate, listOf(link))
+            declaration in declarationsMatching(candidate, listOf(declaration))
         } catch (_: IllegalArgumentException) {
             false
         }

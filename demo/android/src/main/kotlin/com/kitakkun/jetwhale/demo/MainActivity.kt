@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         // A recreated activity gets its launch intent again.
-        if (savedInstanceState == null) intent?.data?.let { DemoDeepLinks.handle(it.toString()) }
+        if (savedInstanceState == null) intent?.data?.let { DemoDeepLinks.storePendingUrl(it.toString()) }
 
         val header = TextView(this).apply {
             id = R.id.demo_view_host_header
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
     // instance.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.data?.let { DemoDeepLinks.handle(it.toString()) }
+        intent.data?.let { DemoDeepLinks.storePendingUrl(it.toString()) }
     }
 }
 
