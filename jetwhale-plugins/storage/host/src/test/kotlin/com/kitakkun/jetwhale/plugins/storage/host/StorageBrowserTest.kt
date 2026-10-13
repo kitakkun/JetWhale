@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
+import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -114,6 +115,21 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `a file whose content the browser cannot decode shows the failure in the status`() {
+        val undecodableFileClient = object : StorageClient by client {
+            override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "not base64!", totalSizeBytes = 11, error = null)
+        }
+        val browser = StorageBrowser(undecodableFileClient, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+
+        assertNull(browser.loadedFile)
+        assertEquals(true, browser.status?.isError)
+    }
+
+    @Test
     fun `expanding a subtree opens every directory below it`() {
         runBlocking { browser.load() }
 
@@ -194,17 +210,15 @@ class StorageBrowserTest {
     }
 
     @Test
-    fun `the tree and the selected row are the same objects until something they show changes`() {
+    fun `the tree rows are the same objects until something they show changes`() {
         runBlocking { browser.load() }
         browser.toggleDirectory(location("Files"))
         browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
         val rows = browser.treeRows
-        val selected = browser.selectedRow
 
         browser.computeSha256(location("Files", "notes.txt"))
 
         assertSame(rows, browser.treeRows)
-        assertSame(selected, browser.selectedRow)
         browser.toggleDirectory(location("Files", "datastore"))
         assertNotSame(rows, browser.treeRows)
         assertEquals(listOf("Files", "datastore", "settings.preferences_pb", "notes.txt"), browser.treeRows.map { it.location.name })

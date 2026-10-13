@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -111,7 +112,8 @@ private val TILE_METRICS = TileMetrics(
 /**
  * Every device as a tile with a recent screenshot, sized so all of them fit the pane when they can.
  * Tiles are view-only: opening one shows it in the single view, where it can be driven. Only tiles
- * on screen capture, through [poll], which a tile runs for as long as it is shown.
+ * on screen capture, through [poll], which a tile runs for as long as it is shown. A tile says how
+ * long ago its screenshot was taken, measured against [clock].
  */
 @Composable
 internal fun DeviceGrid(
@@ -121,6 +123,7 @@ internal fun DeviceGrid(
     notices: MirrorNoticeActions,
     recording: GridRecordingState,
     recordingActions: GridRecordingActions,
+    clock: Clock,
     thumbnailOf: (String) -> DeviceThumbnail,
     poll: suspend (deviceId: String, heightPx: Int) -> Unit,
     livenessOf: (String) -> DeviceLiveness,
@@ -146,7 +149,7 @@ internal fun DeviceGrid(
             if (devices.isEmpty()) {
                 NoDevices()
             } else {
-                TileGroup(devices, selectedId, recording.recordingDeviceIds, thumbnailOf, poll, livenessOf, onOpen, onScreenshot)
+                TileGroup(devices, selectedId, recording.recordingDeviceIds, clock, thumbnailOf, poll, livenessOf, onOpen, onScreenshot)
             }
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
@@ -158,16 +161,17 @@ private fun TileGroup(
     devices: List<DeviceListing>,
     selectedId: String?,
     recordingDeviceIds: Set<String>,
+    clock: Clock,
     thumbnailOf: (String) -> DeviceThumbnail,
     poll: suspend (deviceId: String, heightPx: Int) -> Unit,
     livenessOf: (String) -> DeviceLiveness,
     onOpen: (String) -> Unit,
     onScreenshot: (String) -> Unit,
 ) {
-    val nowMillis by produceState(System.currentTimeMillis()) {
+    val nowMillis by produceState(clock.now().toEpochMilliseconds(), clock) {
         while (true) {
             delay(FRESHNESS_TICK_MILLIS)
-            value = System.currentTimeMillis()
+            value = clock.now().toEpochMilliseconds()
         }
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -344,6 +348,7 @@ private fun TileCaption(device: DeviceListing, thumbnail: DeviceThumbnail, liven
 }
 
 /** "Updated 3 s ago", or what the tile is waiting for. */
+@VisibleForTesting
 internal fun freshness(thumbnail: DeviceThumbnail, nowMillis: Long): String {
     val updated = thumbnail.updatedAtMillis ?: return "Capturing…"
     val seconds = ((nowMillis - updated) / 1_000).coerceAtLeast(0)
@@ -401,6 +406,7 @@ internal fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, 
             saveScreenshots(listOf(device), mirror, thumbnails, scope)
         },
         onScreenshotAll = { saveScreenshots(mirror.devices, mirror, thumbnails, scope) },
+        clock = Clock.System,
         recording = GridRecordingState(
             recordingDeviceIds = recordingDeviceIds,
             recordableDevices = recordAllTargets(devices, recordingDeviceIds).map(MirrorDevice::listing),

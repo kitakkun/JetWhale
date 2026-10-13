@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.jetwhalePlugin)
     alias(libs.plugins.jetwhaleHostLaunch)
     alias(libs.plugins.publish)
+    alias(libs.plugins.docsScreenshots)
 }
 
 kotlin {
@@ -33,6 +34,7 @@ dependencies {
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
+    compileOnly(libs.androidxAnnotation)
     api(projects.jetwhalePlugins.network.protocol)
     "previewImplementation"(projects.jetwhaleHostUi)
     "previewImplementation"(compose.desktop.currentOs)
@@ -41,6 +43,7 @@ dependencies {
     testImplementation(projects.jetwhaleHostUi)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
+    testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(libs.material3)

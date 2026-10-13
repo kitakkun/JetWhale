@@ -1,0 +1,15 @@
+/*
+ * Screenshots ship as a light and a dark variant of the same image, marked in Markdown with
+ * {.light-only} and {.dark-only}. The default theme only switches images it renders itself (the
+ * hero and the logo), so these rules hide the variant that does not match the appearance.
+ */
+html:not(.dark) img.dark-only,
+html.dark img.light-only {
+  display: none;
+}
+
+.vp-doc img.light-only,
+.vp-doc img.dark-only {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}

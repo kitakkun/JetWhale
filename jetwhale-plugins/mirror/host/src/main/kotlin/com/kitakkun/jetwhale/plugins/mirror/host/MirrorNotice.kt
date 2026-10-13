@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Long enough to read a file name and reach Open, short enough that the notice is gone before the next one. */
+@VisibleForTesting
 internal const val SUCCESS_NOTICE_MILLIS = 6_000L
 
 /** What a button on a notice does. */
@@ -19,6 +21,11 @@ internal sealed interface NoticeAction {
     /** Shows [capture] in the captures panel. */
     data class OpenCapture(val capture: Capture) : NoticeAction {
         override val label: String get() = "Open"
+    }
+
+    /** Puts [capture] on the clipboard. */
+    data class CopyCapture(val capture: Capture) : NoticeAction {
+        override val label: String get() = "Copy"
     }
 
     /** Shows the captures panel with every device's captures. */
@@ -59,7 +66,7 @@ internal class MirrorNotice(
 
         fun failure(message: String, retry: NoticeAction?): MirrorNotice = MirrorNotice(message, isError = true, actions = listOfNotNull(retry), details = emptyList())
 
-        fun saved(capture: Capture): MirrorNotice = MirrorNotice("Saved ${capture.file.name}", isError = false, actions = listOf(NoticeAction.OpenCapture(capture)), details = emptyList())
+        fun saved(capture: Capture): MirrorNotice = MirrorNotice("Saved ${capture.file.name}", isError = false, actions = listOf(NoticeAction.OpenCapture(capture), NoticeAction.CopyCapture(capture)), details = emptyList())
 
         /** How saving a screenshot of each device went; Retry takes the failed ones again. */
         fun screenshotsSaved(results: List<ScreenshotResult>): MirrorNotice {
@@ -120,7 +127,7 @@ internal interface MirrorNoticeActions {
     val notice: MirrorNotice?
 
     /** Dismisses the notice, then does what [action] says. */
-    fun perform(action: NoticeAction)
+    fun dismissAndRun(action: NoticeAction)
 
     fun dismiss()
 

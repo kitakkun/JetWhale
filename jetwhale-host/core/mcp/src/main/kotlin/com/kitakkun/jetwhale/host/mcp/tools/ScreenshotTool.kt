@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -100,6 +101,7 @@ class ScreenshotMcpTool(
  * on-screen plugin UI is unaffected and later captures do not inherit this one's size or density.
  */
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun renderScreenshot(
     scene: PluginComposeScene,
     viewport: McpViewport,
@@ -111,6 +113,7 @@ internal fun renderScreenshot(
     return imageBitmap
 }
 
+@VisibleForTesting
 internal fun ImageBitmap.encodeToPng(): ByteArray = SkiaImage.makeFromBitmap(asSkiaBitmap()).use { image ->
     image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes)
 } ?: error("Failed to encode screenshot to PNG")
@@ -121,6 +124,7 @@ internal fun ImageBitmap.encodeToPng(): ByteArray = SkiaImage.makeFromBitmap(asS
  * A JSON number too large for a Float parses to `Infinity`, and `NaN` parses to `NaN`; neither is
  * caught by a `<= 0` test (`NaN <= 0` is false), and both would reach Compose layout.
  */
+@VisibleForTesting
 internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
     requestedDensity == null -> null
     !requestedDensity.isFinite() -> "'density' must be a finite number."
@@ -129,6 +133,7 @@ internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
 }
 
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun resolveViewport(
     scene: PluginComposeScene,
     requestedWidth: Int?,

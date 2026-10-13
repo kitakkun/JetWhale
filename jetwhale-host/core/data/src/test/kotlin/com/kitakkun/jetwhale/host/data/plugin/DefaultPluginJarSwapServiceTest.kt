@@ -110,6 +110,7 @@ class DefaultPluginJarSwapServiceTest {
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
+        override fun startPluginInstancePreparation(pluginId: String, sessionId: String) = Unit
         override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit
     }

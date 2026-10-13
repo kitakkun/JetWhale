@@ -50,6 +50,10 @@ kotlin {
             implementation(libs.ktorClientDarwin)
         }
 
+        appleTest.dependencies {
+            implementation(libs.kotlinTest)
+        }
+
         mingwMain.dependencies {
             implementation(libs.ktorClientWinHttp)
         }

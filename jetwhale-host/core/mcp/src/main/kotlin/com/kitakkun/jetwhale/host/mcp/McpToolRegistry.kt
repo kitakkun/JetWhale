@@ -79,13 +79,18 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
      * That key is stripped before forwarding to the plugin.
      *
+     * A missing `sessionId`, or a session the tool is not offered in, is answered with an error result
+     * that names the sessions the tool is available in.
+     *
      * @return The command's result; an error result for a caller mistake or a command that threw;
      * or null when no plugin instance serves [toolName] in that session.
      */
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): CallToolResult? {
-        val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
         val entry = registrations[toolName] ?: return null
-        val pluginId = entry.sessionToPlugin[sessionId] ?: return null
+        val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content
+            ?: return errorResult("'sessionId' is required: the session to run '$toolName' in (available in: ${entry.availableSessions()}).")
+        val pluginId = entry.sessionToPlugin[sessionId]
+            ?: return errorResult("'$toolName' is not available in session '$sessionId' (available in: ${entry.availableSessions()}).")
         val plugin = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
@@ -108,6 +113,10 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Used to attribute an in-flight tool call to a plugin for the AI activity indicator.
      */
     fun pluginIdFor(toolName: String, sessionId: String): String? = registrations[toolName]?.sessionToPlugin?.get(sessionId)
+
+    // toSortedSet() copies the live view in one pass; sorted() on a single session reads the size,
+    // then the key, and throws if the session leaves in between.
+    private fun PluginToolEntry.availableSessions(): String = sessionToPlugin.keys.toSortedSet().joinToString().ifEmpty { "no session" }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() = synchronized(publishLock) {

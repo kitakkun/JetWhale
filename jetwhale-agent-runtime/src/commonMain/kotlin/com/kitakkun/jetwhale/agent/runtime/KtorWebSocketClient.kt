@@ -61,9 +61,9 @@ internal class KtorWebSocketClient(
             // client is being built, so the SSL setup cannot be applied to it afterwards.
             HttpClient(defaultKtorEngineFactory()) {
                 engine {
-                    configureSsl(resolvedConfiguration)
+                    pinTrustedCertificates(resolvedConfiguration)
                 }
-                configureWebSocketClient(json)
+                installWebSocketsAndLogging(json)
             }
         },
     )
@@ -100,7 +100,7 @@ internal class KtorWebSocketClient(
                 }
             }
             this.session = session
-            return session.configureSession()
+            return session.negotiateSession()
         } catch (e: Throwable) {
             releaseHttpClient()
             throw e
@@ -179,8 +179,8 @@ internal class KtorWebSocketClient(
     }
 
     @OptIn(InternalJetWhaleApi::class)
-    private suspend fun DefaultClientWebSocketSession.configureSession(): JetWhaleConnection {
-        JetWhaleLogger.v("Configuring WebSocket session")
+    private suspend fun DefaultClientWebSocketSession.negotiateSession(): JetWhaleConnection {
+        JetWhaleLogger.v("Negotiating WebSocket session")
 
         val negotiationResult = with(negotiationStrategy) { negotiate() }
 
@@ -217,7 +217,7 @@ internal class KtorWebSocketClient(
  * Installs what [KtorWebSocketClient] needs from a client. Applied while the client is being built,
  * so a connection costs exactly one client rather than one plus a `config { }` derivative.
  */
-internal fun HttpClientConfig<*>.configureWebSocketClient(json: Json) {
+internal fun HttpClientConfig<*>.installWebSocketsAndLogging(json: Json) {
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(json)
     }

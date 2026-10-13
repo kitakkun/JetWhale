@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class ActionsBrowserTest {
@@ -58,6 +59,20 @@ class ActionsBrowserTest {
     }
 
     @Test
+    fun `a reload that fails other than by not reaching the app shows the failure in the status`() {
+        val catalogFailingClient = object : ActionsClient by client {
+            override suspend fun listActions(): ActionCatalog = error("catalog unreadable")
+        }
+
+        val brokenBrowser = ActionsBrowser(catalogFailingClient, CoroutineScope(Dispatchers.Unconfined))
+
+        brokenBrowser.refresh()
+
+        assertEquals(true, brokenBrowser.status?.isError)
+        assertContains(brokenBrowser.status?.message.orEmpty(), "catalog unreadable")
+    }
+
+    @Test
     fun `a replaced catalog drops suggestions the new descriptor no longer offers`() {
         runBlocking { browser.load() }
 
@@ -79,7 +94,7 @@ class ActionsBrowserTest {
     }
 
     @Test
-    fun `run again opens the action on the actions tab with the run's arguments`() {
+    fun `prefilling the form from a run opens the action on the actions tab with the run's arguments`() {
         val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
         client.actions = listOf(signIn, reset)
         runBlocking {
@@ -89,7 +104,7 @@ class ActionsBrowserTest {
         browser.select(reset.id)
         browser.showTab(ActionsTab.HISTORY)
 
-        browser.runAgain(browser.history.single().runId)
+        browser.prefillFormFromRun(browser.history.single().runId)
 
         assertEquals(ActionsTab.ACTIONS, browser.tab)
         assertEquals(signIn.id, browser.selectedId)
@@ -98,14 +113,14 @@ class ActionsBrowserTest {
     }
 
     @Test
-    fun `selecting another action drops the run again arguments`() {
+    fun `selecting another action drops the prefilled arguments`() {
         val reset = action("Reset onboarding", destructive = false, parameters = emptyList())
         client.actions = listOf(signIn, reset)
         runBlocking {
             browser.load()
             browser.runNow(signIn.id, emailArguments("qa@example.com"), RunOrigin.USER, confirmedDestructive = false)
         }
-        browser.runAgain(browser.history.single().runId)
+        browser.prefillFormFromRun(browser.history.single().runId)
 
         browser.select(reset.id)
 

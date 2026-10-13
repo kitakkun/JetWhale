@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
@@ -263,6 +264,37 @@ class DefaultMcpServerServiceTest {
 
             awaitCapableFor(testSessionId) { testPluginId !in it }
             assertFalse("com.example.test.greet" in servedToolNames())
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
+    fun `disposing app-session instances withdraws only those sessions' tools`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 4)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
+        val appPlugin = "com.example.app"
+        val appSessions = listOf("app-session-1", "app-session-2")
+        appSessions.forEach { sessionId ->
+            every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns FakeMcpCapablePlugin(toolName = "com.example.app.greet")
+        }
+        val hostPlugin = "com.example.host"
+        every { pluginInstanceService.getPluginInstanceForSession(hostPlugin, HostSession.ID) } returns FakeMcpCapablePlugin(toolName = "com.example.host.greet")
+
+        service.start(host, port)
+        try {
+            appSessions.forEach { eventFlow.emit(PluginInstanceEvent.Ready(appPlugin, it)) }
+            eventFlow.emit(PluginInstanceEvent.Ready(hostPlugin, HostSession.ID))
+            awaitCapableFor(HostSession.ID) { hostPlugin in it }
+            appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { appPlugin in it } }
+
+            appSessions.forEach { sessionId ->
+                every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns null
+                eventFlow.emit(PluginInstanceEvent.Disposed(appPlugin, sessionId))
+            }
+
+            appSessions.forEach { sessionId -> awaitCapableFor(sessionId) { it.isEmpty() } }
+            assertEquals(listOf("com.example.host.greet"), servedToolNames().filter { it.startsWith("com.example.") })
         } finally {
             service.stop()
         }

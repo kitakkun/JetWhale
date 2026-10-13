@@ -8,7 +8,7 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
     sslVerify = false
 }
 
-internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
+internal actual fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
     check(this is WinHttpClientEngineConfig) { "Expected WinHttpClientEngineConfig but got ${this::class.simpleName}" }

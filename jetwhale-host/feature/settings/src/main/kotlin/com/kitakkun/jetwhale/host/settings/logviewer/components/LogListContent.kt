@@ -79,7 +79,7 @@ private fun LogList(
     ) {
         items(
             items = logs,
-            key = { "${it.timestamp}-${it.message.hashCode()}" },
+            key = LogEntry::id,
         ) { logEntry ->
             LogEntryRow(logEntry)
         }
@@ -92,8 +92,8 @@ private fun LogListContentPreview() {
     JwTheme(darkTheme = false) {
         LogListContent(
             logs = persistentListOf(
-                LogEntry(timestamp = Clock.System.now(), message = "Application started", level = LogLevel.INFO),
-                LogEntry(timestamp = Clock.System.now(), message = "Error connecting to server", level = LogLevel.ERROR),
+                LogEntry(id = 0, timestamp = Clock.System.now(), message = "Application started", level = LogLevel.INFO),
+                LogEntry(id = 1, timestamp = Clock.System.now(), message = "Error connecting to server", level = LogLevel.ERROR),
             ),
             autoScroll = true,
         )

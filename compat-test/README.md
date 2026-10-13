@@ -2,7 +2,7 @@
 
 A standalone Gradle build (not part of the root build) that compiles and runs a minimal consumer
 app against published JetWhale artifacts, to verify the **minimum consumer Kotlin version**
-documented in [Getting Started](../docs/guide/getting-started.md).
+documented in [Artifacts & Compatibility](../docs/reference/artifacts.md#kotlin-compatibility).
 
 ## Run the matrix
 

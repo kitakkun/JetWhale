@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -132,6 +133,27 @@ class McpToolRegistryTest {
         assertEquals("com.example.a", registry.pluginIdFor("a.greet", "session-1"))
         assertEquals(null, registry.pluginIdFor("a.greet", "session-2"))
         assertEquals(null, registry.pluginIdFor("nope", "session-1"))
+    }
+
+    @Test
+    fun `a plugin tool called without a sessionId answers with an error naming the sessions it runs in`() = runBlocking {
+        registry.register("com.example.a", "session-2", FakeTooledPlugin("a.greet"))
+        registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
+
+        val error = errorOf(checkNotNull(registry.dispatch("a.greet", emptyMap())))
+
+        assertContains(error, "'sessionId' is required")
+        assertContains(error, "session-1, session-2")
+    }
+
+    @Test
+    fun `a plugin tool called in a session it is not offered in answers with an error naming the sessions it runs in`() = runBlocking {
+        registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
+
+        val error = errorOf(checkNotNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-9")))))
+
+        assertContains(error, "'a.greet' is not available in session 'session-9'")
+        assertContains(error, "session-1")
     }
 }
 
