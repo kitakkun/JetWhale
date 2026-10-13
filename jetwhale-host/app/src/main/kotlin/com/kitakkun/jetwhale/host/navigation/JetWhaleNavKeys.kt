@@ -29,6 +29,8 @@ sealed interface OverlayPresentation {
         }
 }
 
+// Compose otherwise limits a dialog's content to a platform default width well short of the
+// window's.
 private val FULL_WIDTH_DIALOG = OverlayPresentation.Dialog(
     DialogProperties(usePlatformDefaultWidth = false),
 )
@@ -112,7 +114,6 @@ data class McpToolsNavKey(
     override val presentation: OverlayPresentation get() = PRESENTATION
 
     companion object {
-        // The browser sizes itself; the platform default width would squeeze it to a narrow column.
         val PRESENTATION: OverlayPresentation = FULL_WIDTH_DIALOG
     }
 }
