@@ -22,8 +22,8 @@ import kotlin.test.Test
 class PluginScreenFailureTest {
     @Test
     fun `a scene that fails after it is shown gives way to the error fallback and its Reload`() = runComposeUiTest {
-        // The screen keeps asking for frames to drive the plugin's animations, so the test clock
-        // never goes idle on its own; frames are stepped by hand instead.
+        // The screen keeps asking for frames, so the test clock never goes idle on its own; frames
+        // are stepped by hand.
         mainClock.autoAdvance = false
         val scene = pluginScene()
         setContent {

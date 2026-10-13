@@ -112,7 +112,6 @@ class DefaultPluginJarSwapService(
      */
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
-        // Leaving safe mode runs the reconciliation, which creates the instances then.
         if (safeModeService.safeModeFlow.value != null) return
 
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)

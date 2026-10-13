@@ -126,8 +126,8 @@ class DefaultCrashRecoveryServiceTest {
         withTimeout(TIMEOUT_MILLIS) { writeStarted.await() }
 
         val cleanShutdownThread = Thread(service::deleteRunMarker).apply { start() }
-        // Let the write finish only once the shutdown is committed: parked waiting for it, or past
-        // the delete it must not run ahead of.
+        // Release the write only once the shutdown is parked waiting for it, or has already deleted
+        // the marker without waiting.
         while (cleanShutdownThread.state !in setOf(Thread.State.WAITING, Thread.State.TIMED_WAITING) && runMarkerRepository.markers.size == 1) Thread.onSpinWait()
         releaseWrite.countDown()
         cleanShutdownThread.join(TIMEOUT_MILLIS)

@@ -53,11 +53,10 @@ compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
 }
 
-// The JVM writes a native crash report to the working directory unless told otherwise.
 val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
 val userHome = providers.systemProperty("user.home")
 tasks.withType<JavaExec>().matching { it.name == "run" || it.name == "runHeadless" }.configureEach {
-    // Locals, so the lambdas below capture providers rather than this script, which the
+    // A local, so the argument provider captures a provider rather than this script, which the
     // configuration cache cannot store.
     val dataDir = appDataDir
     val crashLogDir = dataDir.orElse(userHome.map { "$it/.jetwhale" }).map { "$it/logs" }
@@ -67,8 +66,8 @@ tasks.withType<JavaExec>().matching { it.name == "run" || it.name == "runHeadles
                 "-XX:ErrorFile=${crashLogDir.get()}/hs_err_pid%p.log"
         },
     )
-    // HotSpot does not create ErrorFile's parent directory; without it a crash before the host
-    // first writes its log would put the report in the working directory instead.
+    // HotSpot does not create ErrorFile's parent directory; without it the report falls back to the
+    // working directory.
     doFirst { File(crashLogDir.get()).mkdirs() }
 }
 

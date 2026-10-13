@@ -71,9 +71,9 @@ class DefaultCrashRecoveryService(
     // never does, so the shutdown hook below never outlives a plugin class loader.
     @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
     override fun reportUncleanExitAndWriteRunMarker() {
-        // A marker whose process is still running belongs to another host sharing this data
-        // directory; it is that host's to remove. A process that started after the marker was
-        // written only reuses the pid; the run that wrote the marker is gone.
+        // A marker of a still-running process belongs to another host sharing this data directory.
+        // A live process that started after the marker only reuses its pid; one whose start time
+        // the OS does not report is taken to be that host.
         val abandonedMarkers = runMarkerRepository.readAll().filterNot { marker ->
             ProcessHandle.of(marker.pid)
                 .filter(ProcessHandle::isAlive)
@@ -93,8 +93,8 @@ class DefaultCrashRecoveryService(
         )
         runMarker = marker
         runMarkerRepository.write(marker)
-        // Runs on every exit the JVM gets to finish — a closed window, Cmd+Q, SIGTERM — and on none
-        // of the ones this is here to notice: a native crash or a kill leaves the marker behind.
+        // Shutdown hooks run on a normal exit and on SIGTERM, but not on a native crash or SIGKILL,
+        // which leave the marker behind.
         Runtime.getRuntime().addShutdownHook(Thread(::deleteRunMarker, "jetwhale-run-marker"))
         startupGraceJob = scope.launch {
             delay(startupGrace.duration)
@@ -103,8 +103,8 @@ class DefaultCrashRecoveryService(
     }
 
     override fun deleteRunMarker() {
-        // A grace-period write already under way would otherwise land after the delete and bring
-        // the marker back; the write does not suspend, so cancelling alone cannot stop it.
+        // The grace-period write does not suspend, so cancelling alone cannot stop one already
+        // under way; joining keeps it from landing after the delete and bringing the marker back.
         startupGraceJob?.let { job -> runBlocking { job.cancelAndJoin() } }
         runMarker?.let { runMarkerRepository.delete(it.runId) }
         scope.cancel()
@@ -116,6 +116,8 @@ class DefaultCrashRecoveryService(
 
     private fun countStartupCrashAndReportUncleanExit(previousMarker: RunMarker) {
         consecutiveStartupCrashes = if (previousMarker.startupCompleted) 0 else previousMarker.consecutiveStartupCrashes + 1
+        // HotSpot's fallback temp directory is the per-user one java.io.tmpdir also defaults to on
+        // macOS, but /tmp on Linux whatever java.io.tmpdir says.
         val crashLogDirectories = listOfNotNull(
             appDataDirectoryProvider.getLogsDirectory(),
             previousMarker.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
@@ -137,8 +139,6 @@ class DefaultCrashRecoveryService(
             logsDirectory = appDataDirectoryProvider.getLogsDirectory().path,
         )
         if (crashLog == null) return
-        // Plugins load after this runs, so the crash is attributed once their packages are known,
-        // and again whenever the set changes: a plugin loaded later may share the suspect's package.
         scope.launch {
             pluginFactoryRepository.loadedPluginsFlow.collect { loadedPlugins ->
                 val suspectedPlugin = crashLog.findSuspectedPluginId(

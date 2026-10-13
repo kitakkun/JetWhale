@@ -42,8 +42,6 @@ class IdeHost : AutoCloseable {
             mcpPermissionOverride = McpPermissionOverride.None,
             additionalPluginDirectories = AdditionalPluginDirectories(emptyList()),
             hostLaunch = HostLaunch.Standalone,
-            // The IDE owns this process's lifetime, so the host keeps no run marker here and never
-            // learns of a crash that would put it in safe mode.
             safeModeRequest = SafeModeRequest(requested = false),
         )
 

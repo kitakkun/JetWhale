@@ -78,9 +78,10 @@ class DefaultPluginComposeSceneService(
             val failure = mutableStateOf<Throwable?>(null)
             val composeScene = CanvasLayersComposeScene(
                 density = hostDensity,
-                // Recomposition runs in this context rather than inside render(), so an exception the
-                // plugin throws while recomposing arrives here; without a handler it would reach the
-                // thread's uncaught-exception handler and leave the plugin UI silently frozen.
+                // Dispatchers.Unconfined is the scene's default context. An exception the plugin
+                // throws while recomposing or in an effect fails a coroutine here instead of
+                // leaving render(); without a handler it would reach the thread's
+                // uncaught-exception handler and leave the plugin UI frozen.
                 coroutineContext = Dispatchers.Unconfined + CoroutineExceptionHandler { _, throwable ->
                     if (!throwable.isComposeSceneClosedException()) failure.value = throwable
                 },

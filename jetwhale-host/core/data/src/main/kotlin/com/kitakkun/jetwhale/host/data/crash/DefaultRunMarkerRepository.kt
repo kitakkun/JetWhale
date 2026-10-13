@@ -46,8 +46,6 @@ class DefaultRunMarkerRepository(
             .forEach(File::delete)
         return files.filter { it.extension == MARKER_EXTENSION }.mapNotNull { file ->
             val marker = read(file)
-            // Only a write that bypassed the temporary file could leave a marker that does not
-            // parse; with no pid in it there is no run to report, and keeping it would only repeat this.
             if (marker == null) file.delete()
             marker
         }

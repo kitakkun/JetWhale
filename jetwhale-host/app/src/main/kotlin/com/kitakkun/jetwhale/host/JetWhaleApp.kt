@@ -293,7 +293,8 @@ private fun CrashRecoveryBanners() {
             } catch (e: IOException) {
                 e
             } catch (e: IllegalArgumentException) {
-                // Desktop.open rejects a file that no longer exists, such as a crash log deleted since startup.
+                // Desktop.open throws this for a file that no longer exists, such as a crash log
+                // deleted since startup.
                 e
             } catch (e: SecurityException) {
                 e

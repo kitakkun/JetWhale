@@ -140,8 +140,8 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Throwable) {
-                // Rethrowing would take the host window down with the plugin. render() has recorded
-                // the exception in the scene's failure, which ReportSceneFailureEffect reports.
+                // Rethrowing would take the host window down with the plugin; render() has already
+                // recorded the exception in failure, which ReportSceneFailureEffect reports.
             }
         }
     }
