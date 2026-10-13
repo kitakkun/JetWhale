@@ -48,6 +48,7 @@ published artifact gains a dependency.
   interface file defines the contract; helpers for implementing it go with the implementations, or
   on the type they produce (5). Implementations declared in the same file as their interface follow
   rule 2 as usual.
+- Behavior on a data type, in its companion or anywhere else. See `data-and-behavior.md`.
 
 ## Not worth a function
 

@@ -14,28 +14,60 @@ sealed interface HostNavigationRequest {
      */
     data class Plugin(val pluginId: String, val sessionId: String?, val followsAgent: Boolean) : HostNavigationRequest
 
-    data class Settings(val section: HostSettingsSection) : HostNavigationRequest
+    data class Settings(val page: HostSettingsPage) : HostNavigationRequest
 
     data object Info : HostNavigationRequest
     data object LogViewer : HostNavigationRequest
+
+    /** Opens the MCP tools browser on [tab], showing every plugin and session. */
+    data class McpTools(val tab: HostMcpToolsTab) : HostNavigationRequest
 }
 
-enum class HostSettingsSection { GENERAL, SERVER, AI_AGENTS, PLUGINS }
+enum class HostSettingsSection {
+    GENERAL,
+    SERVER,
+    AI_AGENTS,
+    PLUGINS,
+    ;
 
-/**
- * MCP_TOOLS is reported but cannot be requested: the tool browser exists so a person can watch what
- * an agent is doing, so an agent has no reason to send itself there.
- */
+    val firstPage: HostSettingsPage get() = HostSettingsPage.entries.first { it.section == this }
+}
+
+/** A page of Settings, named as the settings menu labels it and listed in the menu's order. */
+enum class HostSettingsPage(val section: HostSettingsSection) {
+    APPEARANCE(HostSettingsSection.GENERAL),
+    APPLICATION(HostSettingsSection.GENERAL),
+    DEBUG_SERVER(HostSettingsSection.SERVER),
+    SSL_CERTIFICATE(HostSettingsSection.SERVER),
+    ADB_SUPPORT(HostSettingsSection.SERVER),
+    MCP_SERVER(HostSettingsSection.AI_AGENTS),
+    PERMISSIONS(HostSettingsSection.AI_AGENTS),
+    ACTIVITY(HostSettingsSection.AI_AGENTS),
+    INSTALLED_PLUGINS(HostSettingsSection.PLUGINS),
+    ADD_PLUGINS(HostSettingsSection.PLUGINS),
+    SECURITY(HostSettingsSection.PLUGINS),
+}
+
+/** A tab of the MCP tools browser, named as the browser labels it. */
+enum class HostMcpToolsTab { TOOLS, HISTORY }
+
 enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, LICENSES, LOG_VIEWER, MCP_TOOLS }
 
 data class PoppedOutPlugin(val pluginId: String, val sessionId: String)
 
-/** What the main host window currently shows. Popped-out plugins live in their own windows and are listed separately. */
+/**
+ * What the main host window currently shows. Popped-out plugins live in their own windows and are
+ * listed separately.
+ *
+ * [settingsPage] and [mcpToolsTab] are where that screen was opened; a page or tab picked inside it
+ * afterwards is not tracked here.
+ */
 data class HostDestination(
     val kind: HostDestinationKind,
     val pluginId: String? = null,
     val sessionId: String? = null,
-    val settingsSection: HostSettingsSection? = null,
+    val settingsPage: HostSettingsPage? = null,
+    val mcpToolsTab: HostMcpToolsTab? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
 )
 

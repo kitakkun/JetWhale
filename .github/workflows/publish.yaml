@@ -13,32 +13,35 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
-      - name: Publish to MavenCentral
-        run: ./gradlew publishToMavenCentral --no-configuration-cache
+      # Each Gradle build stages its signed artifacts in build/maven-central-bundle, and the last step
+      # uploads that directory as one Central Portal deployment. publishToMavenCentral would upload a
+      # deployment per build, and each one counts against the namespace's monthly release limit.
+      - name: Stage the SDKs and official plugins
+        run: ./gradlew publishAllPublicationsToMavenCentralBundleRepository --no-configuration-cache
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
       # The Gradle plugin lives in the `jetwhale-gradle-plugin` included build, whose tasks are not
-      # part of the root build's publishToMavenCentral, so publish it explicitly.
-      - name: Publish Gradle plugin to MavenCentral
-        run: ./gradlew -p jetwhale-gradle-plugin publishToMavenCentral --no-configuration-cache
+      # part of the root build's task selection, so stage it explicitly.
+      - name: Stage the host Gradle plugin
+        run: ./gradlew -p jetwhale-gradle-plugin publishAllPublicationsToMavenCentralBundleRepository --no-configuration-cache
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-      # Same again for the agent-side plugins, which are a third included build. The Gradle plugin
-      # names the compiler plugin's coordinates in getPluginArtifact(), so publishing one without the
-      # other leaves consumers resolving an artifact that does not exist.
-      - name: Publish agent compiler + Gradle plugin to MavenCentral
-        run: ./gradlew -p jetwhale-agent-plugin publishToMavenCentral --no-configuration-cache
+      # Same again for the agent compiler plugin and its Gradle plugin, a third included build.
+      - name: Stage the agent compiler plugin and Gradle plugin
+        run: ./gradlew -p jetwhale-agent-plugin publishAllPublicationsToMavenCentralBundleRepository --no-configuration-cache
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+      - name: Upload to the Central Portal as one deployment
+        run: |
+          version="$(sed -n 's/^jetwhale = "\(.*\)"$/\1/p' gradle/libs.versions.toml)"
+          .github/scripts/upload-central-portal-bundle.sh build/maven-central-bundle "com.kitakkun.jetwhale-$version"
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          CENTRAL_PORTAL_URL: https://central.sonatype.com

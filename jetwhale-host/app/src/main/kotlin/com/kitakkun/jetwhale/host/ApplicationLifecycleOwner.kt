@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 @Inject
 @SingleIn(AppScope::class)
 class ApplicationLifecycleOwner(
-    private val server: DebugWebSocketServer,
+    private val debugWebSocketServer: DebugWebSocketServer,
     private val mcpServerService: McpServerService,
     private val pluginTrustService: PluginTrustService,
     private val pluginHotReloadService: PluginHotReloadService,
@@ -38,18 +38,18 @@ class ApplicationLifecycleOwner(
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
-    private val mutableApplicationStateFlow: MutableStateFlow<ApplicationState> = MutableStateFlow(ApplicationState.NONE)
-    val applicationStateFlow: StateFlow<ApplicationState> = mutableApplicationStateFlow
+    val applicationStateFlow: StateFlow<ApplicationState>
+        field = MutableStateFlow(ApplicationState.NONE)
 
     fun initialize() {
-        mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
+        applicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
             val wssPort = if (settingsRepository.readWssEnabled()) {
                 settingsRepository.readWssPort()
             } else {
                 null
             }
-            server.start(
+            debugWebSocketServer.start(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
                 wssPort = wssPort,
@@ -64,19 +64,19 @@ class ApplicationLifecycleOwner(
 
             pluginHotReloadService.start()
 
-            mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }
+            applicationStateFlow.update { ApplicationState.INITIALIZED }
         }
     }
 
     fun shutdown() {
-        mutableApplicationStateFlow.update { ApplicationState.STOPPING }
+        applicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
             pluginInstallJobService.cancelAll()
             pluginHotReloadService.stop()
             pluginDirectoryWatchService.stop()
             mcpServerService.stop()
-            server.stop()
-            mutableApplicationStateFlow.update { ApplicationState.STOPPED }
+            debugWebSocketServer.stop()
+            applicationStateFlow.update { ApplicationState.STOPPED }
         }
     }
 }

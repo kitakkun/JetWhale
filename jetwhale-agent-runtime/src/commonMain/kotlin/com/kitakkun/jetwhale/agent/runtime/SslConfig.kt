@@ -3,11 +3,11 @@ package com.kitakkun.jetwhale.agent.runtime
 import io.ktor.client.engine.HttpClientEngineConfig
 
 /**
- * Configures SSL settings for the HTTP client engine.
- *
- * @param sslConfiguration The SSL configuration containing trusted certificates.
+ * Makes the HTTP client engine trust only the certificates in [sslConfiguration]. Leaves the engine
+ * untouched when there are none, and keeps the system's trust with a warning when they cannot be
+ * loaded or the engine cannot pin a CA in code (WinHttp, browsers).
  */
-internal expect fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration)
+internal expect fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration)
 
 /**
  * Disables server-certificate verification for the HTTP client engine.
