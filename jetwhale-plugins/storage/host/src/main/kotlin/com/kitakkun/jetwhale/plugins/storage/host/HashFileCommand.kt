@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -18,13 +19,13 @@ internal class HashFileCommand(
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by string(PATH_ARGUMENT_DESCRIPTION)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val location = fileLocationOf(arguments[root], arguments[path])
         if (location.path.isEmpty()) throw JetWhaleMcpArgumentException("path must name a file below the root")
         val digest = client.sha256Of(location)
-        return buildJsonObject {
-            digest.sha256Hex?.let { put("sha256", it) }
-            digest.error?.let { put("error", it) }
-        }.toString()
+        return when (val sha256Hex = digest.sha256Hex) {
+            null -> JetWhaleMcpResult.error(digest.error ?: "the file could not be hashed")
+            else -> JetWhaleMcpResult.json(buildJsonObject { put("sha256", sha256Hex) })
+        }
     }
 }

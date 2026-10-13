@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -24,8 +25,8 @@ internal class PerformNodeActionCommand(
         "Invokes a semantics action on one node of the running app, addressed by the id findNodes or " +
             "getNodeTree reported. This runs the node's own action rather than synthesising a touch, so it " +
             "needs no coordinates and cannot land on something that moved in the meantime — prefer it over " +
-            "tapping coordinates. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
-            "performed=false with a message when the node does not expose the action or declined it. " +
+            "tapping coordinates. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}, and fails " +
+            "with the app's reason when the node does not expose the action or declined it. " +
             "BringIntoView scrolls whatever surrounds the node — Compose scrollables, Android Views and iOS scroll views alike — " +
             "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +
             "list, a RecyclerView or an iOS table/collection view to an item that may not exist yet. Both land on the next frame: " +
@@ -44,7 +45,7 @@ internal class PerformNodeActionCommand(
     private val scrollY by intOrNull("Vertical scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
     private val index by intOrNull("The item index for ScrollToIndex, counted from 0 over the container's items.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val nodeId = arguments[nodeId]
         val action = arguments[action]
         val result: NodeActionResult
@@ -63,16 +64,21 @@ internal class PerformNodeActionCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
 
-        return buildJsonObject {
-            put("performed", result.performed)
-            put("rootId", rootId)
-            put("nodeId", nodeId)
-            put("action", action.name)
-            result.message?.let { put("message", it) }
-        }.toString()
+        if (!result.performed) {
+            return JetWhaleMcpResult.error("${action.name} was not performed on node $nodeId in $rootId: ${result.message ?: "the app gave no reason"}")
+        }
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("performed", true)
+                put("rootId", rootId)
+                put("nodeId", nodeId)
+                put("action", action.name)
+                result.message?.let { put("message", it) }
+            },
+        )
     }
 
     /**

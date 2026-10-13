@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import kotlinx.serialization.json.JsonArray
@@ -38,8 +39,8 @@ internal class ListTransactionsCommand(
         "Only include transactions with this HTTP method (case-insensitive).",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val redactionRules = mcpRedactionRules() ?: return errorJson(MCP_REDACTION_RULES_UNREAD_ERROR)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val redactionRules = mcpRedactionRules() ?: return JetWhaleMcpResult.error(MCP_REDACTION_RULES_UNREAD_ERROR)
         val limit = arguments[this.limit]
         val afterTxId = arguments[this.afterTxId]
         val filtered = matchingTransactions(arguments, redactionRules)
@@ -50,10 +51,12 @@ internal class ListTransactionsCommand(
             else -> filtered.take(limit)
         }
         val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
-        return buildJsonObject {
-            put("transactions", JsonArray(page.map { redactionRules.redact(it).toSummaryJson() }))
-            nextCursor?.let { put("nextCursor", it) }
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("transactions", JsonArray(page.map { redactionRules.redact(it).toSummaryJson() }))
+                nextCursor?.let { put("nextCursor", it) }
+            },
+        )
     }
 
     /** The captured transactions past the cursor that match every filter the call gave, oldest first. */

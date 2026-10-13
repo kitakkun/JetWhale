@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class PressButtonCommand(
@@ -14,9 +15,9 @@ internal class PressButtonCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val button by enum("The button to press.", DeviceButton.entries)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         deviceOperation { device.controller.pressButton(arguments[button]) }
-        return okJson()
+        return okResult()
     }
 }

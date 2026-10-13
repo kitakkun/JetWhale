@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import kotlinx.serialization.builtins.ListSerializer
@@ -27,29 +28,31 @@ internal class ReadFileCommand(
     private val offset by longOrNull("Byte offset to start reading at. Defaults to 0.")
     private val maxBytes by intOrNull("How many bytes to read at most. Defaults to $DEFAULT_READ_BYTES; capped at $MAX_FILE_READ_BYTES.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val location = fileLocationOf(arguments[root], arguments[path])
         if (location.path.isEmpty()) throw JetWhaleMcpArgumentException("path must name a file below the root")
         val start = arguments[offset] ?: 0
         val content = client.readFile(location, offset = start, maxBytes = arguments[maxBytes] ?: DEFAULT_READ_BYTES)
-        content.error?.let { error -> return buildJsonObject { put("error", error) }.toString() }
+        content.error?.let { error -> return JetWhaleMcpResult.error(error) }
 
         val bytes = Base64.decode(content.contentBase64)
         val file = LoadedFile(location = location, bytes = bytes, totalSizeBytes = content.totalSizeBytes)
         val text = file.text
-        return buildJsonObject {
-            put("totalSizeBytes", content.totalSizeBytes)
-            put("offset", start)
-            put("bytesRead", bytes.size)
-            put("encoding", if (text != null) "utf-8" else "base64")
-            put("content", text ?: content.contentBase64)
-            if (start == 0L && PreviewFormat.Preferences in previewFormatsOf(file)) {
-                try {
-                    put("preferences", McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)))
-                } catch (e: IllegalArgumentException) {
-                    put("preferencesError", e.message)
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("totalSizeBytes", content.totalSizeBytes)
+                put("offset", start)
+                put("bytesRead", bytes.size)
+                put("encoding", if (text != null) "utf-8" else "base64")
+                put("content", text ?: content.contentBase64)
+                if (start == 0L && PreviewFormat.Preferences in previewFormatsOf(file)) {
+                    try {
+                        put("preferences", McpJson.encodeToJsonElement(ListSerializer(KeyValueEntry.serializer()), decodePreferencesDataStore(bytes)))
+                    } catch (e: IllegalArgumentException) {
+                        put("preferencesError", e.message)
+                    }
                 }
-            }
-        }.toString()
+            },
+        )
     }
 }

@@ -59,7 +59,7 @@ class HostNavigationCommand(
     )
     private val mcpToolsTab by enumOrNull("Only for MCP_TOOLS: the tab to open. Defaults to TOOLS.", HostMcpToolsTab.entries)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val request = arguments.toRequest()
         hostNavigationService.navigate(request)
 

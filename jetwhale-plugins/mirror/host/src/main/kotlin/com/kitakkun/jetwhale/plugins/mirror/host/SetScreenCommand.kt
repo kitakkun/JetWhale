@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -18,15 +19,17 @@ internal class SetScreenCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val on by boolean("true to turn the screen on, false to turn it off.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         val power = deviceOperation {
             if (arguments[on]) device.controller.wake() else device.controller.sleep()
             device.controller.screenPower()
         }
-        return buildJsonObject {
-            put("screenOn", power.awake)
-            put("locked", power.locked)
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("screenOn", power.awake)
+                put("locked", power.locked)
+            },
+        )
     }
 }
