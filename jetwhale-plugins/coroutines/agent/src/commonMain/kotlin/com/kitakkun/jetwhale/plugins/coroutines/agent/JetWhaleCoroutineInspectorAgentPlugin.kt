@@ -81,8 +81,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     fun register(job: Job, name: String) {
         walker.recordRegistration(job)
         roots.updateAndGet { current ->
-            val registrations = current[name]?.takeIf { it.job.get() === job }?.registrations ?: 0
-            current + (name to RegisteredRoot(WeakReference(job), registrations + 1))
+            val registrationCount = current[name]?.takeIf { it.jobReference.get() === job }?.registrationCount ?: 0
+            current + (name to RegisteredRoot(WeakReference(job), registrationCount + 1))
         }
         job.invokeOnCompletion { unregister(job, name) }
     }
@@ -100,8 +100,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         roots.updateAndGet { current ->
             val root = current[name]
             when {
-                root == null || root.job.get() !== job -> current
-                root.registrations > 1 -> current + (name to RegisteredRoot(root.job, root.registrations - 1))
+                root == null || root.jobReference.get() !== job -> current
+                root.registrationCount > 1 -> current + (name to RegisteredRoot(root.jobReference, root.registrationCount - 1))
                 else -> current - name
             }
         }
@@ -172,8 +172,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         capturedAtEpochMillis = nowEpochMillis(),
     )
 
-    private fun liveRoots(): Map<String, Job> = roots.updateAndGet { current -> current.filterValues { it.job.get() != null } }
-        .mapNotNull { (name, root) -> root.job.get()?.let { name to it } }
+    private fun liveRoots(): Map<String, Job> = roots.updateAndGet { current -> current.filterValues { it.jobReference.get() != null } }
+        .mapNotNull { (name, root) -> root.jobReference.get()?.let { name to it } }
         .toMap()
 
     /** What can be told about the coroutine the last tree gave [id]; see [GetCoroutineDetail]. */
@@ -198,7 +198,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatcherRecorders.load().sumOf(DispatcherRecorder::clearLongRuns))) }
     }
 
-    private class RegisteredRoot(val job: WeakReference<Job>, val registrations: Int)
+    private class RegisteredRoot(val jobReference: WeakReference<Job>, val registrationCount: Int)
 }
 
 /** Enough to show every coroutine of an ordinary app, few enough that a runaway leak cannot flood the connection. */

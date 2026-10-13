@@ -39,18 +39,18 @@ class TrackCompositionCoroutinesTest {
     @Test
     fun `coroutines a composition starts are listed under the registered name`() = runTest {
         composing({ ScreenWithCoroutines(tracked = true) }) {
-            val names = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::nameOrNull)
+            val coroutineNames = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::coroutineNameOrNull)
 
-            assertEquals(setOf("polling", "button-work"), names.toSet())
+            assertEquals(setOf("polling", "button-work"), coroutineNames.toSet())
         }
     }
 
     @Test
     fun `coroutines that state producers and subcompositions start are listed under the registered name`() = runTest {
         composing({ ScreenWithStateProducersAndSubcomposition() }) {
-            val names = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::nameOrNull)
+            val coroutineNames = inspector.registeredRoots()["Compose"]?.descendants().orEmpty().mapNotNull(Job::coroutineNameOrNull)
 
-            assertEquals(setOf("produced", "collected", "item-poll"), names.toSet())
+            assertEquals(setOf("produced", "collected", "item-poll"), coroutineNames.toSet())
         }
     }
 
@@ -68,7 +68,7 @@ class TrackCompositionCoroutinesTest {
         var tracked by mutableStateOf(true)
         composing({ ScreenWithCoroutines(tracked = tracked) }) {
             Snapshot.withMutableSnapshot { tracked = false }
-            it.settle()
+            it.advanceFrames()
 
             assertNull(inspector.registeredRoots()["Compose"])
         }
@@ -77,26 +77,26 @@ class TrackCompositionCoroutinesTest {
     @Test
     fun `leaving composition keeps a newer registration under the same name`() = runTest {
         var tracked by mutableStateOf(true)
-        val otherWindow = Job()
+        val otherWindowJob = Job()
         composing({ ScreenWithCoroutines(tracked = tracked) }) {
-            inspector.register(otherWindow, name = "Compose")
+            inspector.register(otherWindowJob, name = "Compose")
             Snapshot.withMutableSnapshot { tracked = false }
-            it.settle()
+            it.advanceFrames()
 
-            assertTrue(inspector.registeredRoots()["Compose"] === otherWindow)
+            assertTrue(inspector.registeredRoots()["Compose"] === otherWindowJob)
         }
-        otherWindow.cancel()
+        otherWindowJob.cancel()
     }
 
     @Test
     fun `leaving composition keeps the root while another composition of the same Recomposer tracks it`() = runTest {
-        var otherViewShown by mutableStateOf(true)
+        var otherCompositionShown by mutableStateOf(true)
         composing({
             inspector.TrackCompositionCoroutines(name = "Compose")
-            if (otherViewShown) Subcomposition { inspector.TrackCompositionCoroutines(name = "Compose") }
+            if (otherCompositionShown) Subcomposition { inspector.TrackCompositionCoroutines(name = "Compose") }
         }) {
-            Snapshot.withMutableSnapshot { otherViewShown = false }
-            it.settle()
+            Snapshot.withMutableSnapshot { otherCompositionShown = false }
+            it.advanceFrames()
 
             assertNotNull(inspector.registeredRoots()["Compose"])
         }
@@ -118,21 +118,21 @@ class TrackCompositionCoroutinesTest {
         Subcomposition { LaunchedEffect(Unit) { withContext(CoroutineName("item-poll")) { awaitCancellation() } } }
     }
 
-    private suspend fun TestScope.composing(content: @Composable () -> Unit, check: suspend (FrameDriver) -> Unit) {
+    private suspend fun TestScope.composing(content: @Composable () -> Unit, testBody: suspend (FrameDriver) -> Unit) {
         val clock = BroadcastFrameClock()
         withContext(clock) {
             val recomposer = Recomposer(coroutineContext)
-            val runner = launch(clock) { recomposer.runRecomposeAndApplyChanges() }
+            val recomposerJob = launch(clock) { recomposer.runRecomposeAndApplyChanges() }
             val composition = Composition(UnitApplier, recomposer)
             composition.setContent(content)
             val driver = FrameDriver(clock)
-            driver.settle()
+            driver.advanceFrames()
             try {
-                check(driver)
+                testBody(driver)
             } finally {
                 composition.dispose()
                 recomposer.cancel()
-                runner.join()
+                recomposerJob.join()
             }
         }
     }
@@ -150,7 +150,7 @@ private fun Subcomposition(content: @Composable () -> Unit) {
 }
 
 private class FrameDriver(private val clock: BroadcastFrameClock) {
-    suspend fun settle() {
+    suspend fun advanceFrames() {
         repeat(FRAMES_TO_SETTLE) {
             Snapshot.sendApplyNotifications()
             clock.sendFrame(0L)
@@ -162,7 +162,7 @@ private class FrameDriver(private val clock: BroadcastFrameClock) {
 private const val FRAMES_TO_SETTLE = 5
 
 /** A coroutine's job is also its scope, which carries the name; a plain `Job()` has none. */
-private fun Job.nameOrNull(): String? = (this as? CoroutineScope)?.coroutineContext?.get(CoroutineName)?.name
+private fun Job.coroutineNameOrNull(): String? = (this as? CoroutineScope)?.coroutineContext?.get(CoroutineName)?.name
 
 private fun Job.descendants(): List<Job> = children.flatMap { listOf(it) + it.descendants() }.toList()
 
@@ -178,7 +178,7 @@ private fun JetWhaleCoroutineInspectorAgentPlugin.registeredRoots(): Map<String,
     // load() is get().
     val map = roots.javaClass.getMethod("get").invoke(roots) as Map<*, *>
     return map.entries.associate { (name, root) ->
-        val reference = checkNotNull(root).javaClass.getDeclaredField("job").apply { isAccessible = true }.get(root)
+        val reference = checkNotNull(root).javaClass.getDeclaredField("jobReference").apply { isAccessible = true }.get(root)
         name as String to reference.javaClass.getMethod("get").invoke(reference) as Job?
     }
 }

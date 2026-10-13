@@ -61,29 +61,29 @@ internal fun ScreenWorkCard() {
 
 @Composable
 private fun PollingPanel() {
-    var polls by remember { mutableIntStateOf(0) }
-    var savingDrafts by remember { mutableIntStateOf(0) }
+    var pollCount by remember { mutableIntStateOf(0) }
+    var savingDraftCount by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(CoroutineName("panel-poll")) {
             while (true) {
                 delay(1.seconds)
-                polls++
+                pollCount++
             }
         }
     }
     Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Polled $polls times", style = MaterialTheme.typography.bodyMedium)
+        Text("Polled $pollCount times", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.weight(1f))
-        Text(if (savingDrafts == 0) "No draft saving" else "$savingDrafts saving", style = MaterialTheme.typography.labelLarge)
+        Text(if (savingDraftCount == 0) "No draft saving" else "$savingDraftCount saving", style = MaterialTheme.typography.labelLarge)
         OutlinedButton(
             onClick = {
                 scope.launch(CoroutineName("save-draft")) {
-                    savingDrafts++
+                    savingDraftCount++
                     try {
                         delay(SAVE_DURATION)
                     } finally {
-                        savingDrafts--
+                        savingDraftCount--
                     }
                 }
             },
