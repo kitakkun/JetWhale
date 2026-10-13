@@ -13,6 +13,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
+@Suppress("KOTRAIL_RESOURCE_NOT_CLOSED") // The fake parsers hold nothing; each test asserts whether openBaseManifest closed them itself.
 class OpenBaseManifestTest {
     @Test
     fun `the app's manifest is found past the START_DOCUMENT the platform's parser reports first`() {

@@ -22,7 +22,11 @@ object DemoDeepLinks {
         pending = url
     }
 
-    fun consume(): String? = pending.also { pending = null }
+    fun consume(): String? {
+        val link = pending
+        pending = null
+        return link
+    }
 
     val templates: List<DeepLinkTemplate> = listOf(
         DeepLinkTemplate(name = "Item", template = "demo://item/{id}", description = "Opens the item's detail screen"),
