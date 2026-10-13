@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.deeplinks",
+      "pluginName": "Deep Links",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.deeplinks.host.DeepLinkHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/deeplinks_filled.svg",
+        "inactivePath": "icons/deeplinks_outlined.svg"
+      }
+    }
+  ]
+}

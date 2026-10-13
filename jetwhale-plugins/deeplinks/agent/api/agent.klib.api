@@ -1,0 +1,31 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.deeplinks:agent>
+abstract interface com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener { // com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener|null[0]
+    abstract val canOpen // com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener.canOpen|{}canOpen[0]
+        abstract fun <get-canOpen>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener.canOpen.<get-canOpen>|<get-canOpen>(){}[0]
+
+    abstract suspend fun open(kotlin/String): com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkOpenResult // com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener.open|open(kotlin.String){}[0]
+
+    final object Companion // com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener.Companion|null[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.deeplinks.protocol/DeepLinkTemplate>, com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener) // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkTemplate>;com.kitakkun.jetwhale.plugins.deeplinks.agent.DeepLinkOpener){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.Companion|null[0]
+        final fun platformDefaults(): com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin // com.kitakkun.jetwhale.plugins.deeplinks.agent/JetWhaleDeepLinkAgentPlugin.Companion.platformDefaults|platformDefaults(){}[0]
+    }
+}
+
+final fun (com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener.Companion).com.kitakkun.jetwhale.plugins.deeplinks.agent/platformDefault(): com.kitakkun.jetwhale.plugins.deeplinks.agent/DeepLinkOpener // com.kitakkun.jetwhale.plugins.deeplinks.agent/platformDefault|platformDefault@com.kitakkun.jetwhale.plugins.deeplinks.agent.DeepLinkOpener.Companion(){}[0]
