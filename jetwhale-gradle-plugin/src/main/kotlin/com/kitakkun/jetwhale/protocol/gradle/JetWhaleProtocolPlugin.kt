@@ -21,7 +21,8 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
  *
  * Passing `-PjetwhaleWireSchemaBaselineDir=<dir>`, a directory laid out like the root project that
  * holds an earlier revision of each `wire/<project>.wire`, makes `checkWireSchema` also refuse a
- * committed dump that could not have followed the earlier one. A relative `<dir>` is resolved
+ * committed dump that could not have followed the earlier one, and, for a module the directory has
+ * no dump of, a first dump at another revision than 1. A relative `<dir>` is resolved
  * against the root project.
  */
 class JetWhaleProtocolPlugin : Plugin<Project> {

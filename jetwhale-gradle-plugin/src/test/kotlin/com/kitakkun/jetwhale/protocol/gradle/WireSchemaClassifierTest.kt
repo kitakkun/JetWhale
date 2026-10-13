@@ -53,6 +53,23 @@ class WireSchemaClassifierTest {
     }
 
     @Test
+    fun `putting an optional field under EncodeDefault NEVER is additive`() {
+        assertVerdicts(
+            BASE.replace("  body: string? = …\n", "  body: string? = …, omitted at default\n"),
+            additive("sample/request_sent.request.body"),
+        )
+    }
+
+    @Test
+    fun `taking an optional field out from under EncodeDefault NEVER is additive`() {
+        val schemaWithBodyOmittedAtDefault = WireSchema.parse(BASE.replace("  body: string? = …\n", "  body: string? = …, omitted at default\n"))
+
+        val changes = WireSchemaClassifier(schemaWithBodyOmittedAtDefault, WireSchema.parse(BASE)).classifyChanges()
+
+        assertEquals(listOf(additive("sample/request_sent.request.body")), changes.map { it.isBreaking to it.path })
+    }
+
+    @Test
     fun `making an optional field required is breaking`() {
         assertVerdicts(
             BASE.replace("  encoding: sample.Encoding = …\n", "  encoding: sample.Encoding\n"),
@@ -108,6 +125,24 @@ class WireSchemaClassifierTest {
             breaking("sample/request_sent.request.uri"),
             breaking("sample/request_sent.request.url"),
         )
+    }
+
+    @Test
+    fun `adding a JsonNames name to a field is additive`() {
+        assertVerdicts(
+            BASE.replace("  url: string\n", "  url: string | also read as uri\n"),
+            additive("sample/request_sent.request.url"),
+        )
+    }
+
+    @Test
+    fun `removing a JsonNames name from a field is additive`() {
+        val schemaWithTwoJsonNamesOnUrl = WireSchema.parse(BASE.replace("  url: string\n", "  url: string | also read as link, uri\n"))
+        val schemaWithOneJsonNameOnUrl = WireSchema.parse(BASE.replace("  url: string\n", "  url: string | also read as uri\n"))
+
+        val changes = WireSchemaClassifier(schemaWithTwoJsonNamesOnUrl, schemaWithOneJsonNameOnUrl).classifyChanges()
+
+        assertEquals(listOf(additive("sample/request_sent.request.url")), changes.map { it.isBreaking to it.path })
     }
 
     @Test

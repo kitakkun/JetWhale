@@ -15,7 +15,8 @@ import org.gradle.work.DisableCachingByDefault
  * Fails when `wire/<project>.wire` is not the wire schema of the compiled classes at the declared
  * protocol revision. Given the dump of a baseline, such as the base branch's, it also fails when the
  * committed dump could not have followed it under [ProtocolRevisionRule], which catches a dump edited
- * by hand.
+ * by hand. A baseline without a dump of this module makes the committed one its first, which the
+ * rule holds to revision 1.
  */
 @DisableCachingByDefault(because = "A verification with no output: comparing two small files costs less than a cache lookup.")
 internal abstract class CheckWireSchemaTask : DefaultTask() {
@@ -28,7 +29,10 @@ internal abstract class CheckWireSchemaTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val committedWireSchemaFile: ConfigurableFileCollection
 
-    /** The baseline's dump of this module, which may not exist when the module is new. */
+    /**
+     * Where the baseline keeps its dump of this module, or nothing without a baseline. The file does
+     * not exist when the module has no dump in the baseline.
+     */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val baselineWireSchemaFile: ConfigurableFileCollection
@@ -59,7 +63,13 @@ internal abstract class CheckWireSchemaTask : DefaultTask() {
             )
         }
 
-        val baselineFile = baselineWireSchemaFile.files.singleOrNull { it.isFile } ?: return
+        val baselineFile = baselineWireSchemaFile.files.singleOrNull() ?: return
+        if (!baselineFile.isFile) {
+            ProtocolRevisionRule.refusalOf(previous = null, next = committed)?.let { refusal ->
+                throw GradleException("${committedFile.name} is this module's first dump: the baseline has none at ${baselineFile.path}. $refusal")
+            }
+            return
+        }
         ProtocolRevisionRule.refusalOf(WireSchema.parse(baselineFile.readText()), committed)?.let { refusal ->
             throw GradleException("${committedFile.name} cannot follow the baseline's dump at ${baselineFile.path}. $refusal")
         }

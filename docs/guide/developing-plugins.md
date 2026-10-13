@@ -359,7 +359,7 @@ class reached with two different type arguments, which would give one name two s
 To catch a dump edited by hand as well, have CI pass `-PjetwhaleWireSchemaBaselineDir=<dir>` to
 `checkWireSchema`, with the base branch's `wire/*.wire` files laid out under `<dir>` as in your
 repository. The check then also refuses a committed dump that could not have followed the base
-branch's.
+branch's, and a module's first dump at another revision than 1.
 
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 

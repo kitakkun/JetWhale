@@ -122,6 +122,20 @@ class JetWhaleProtocolPluginTest {
     }
 
     @Test
+    fun `a first dump at another revision than 1 is refused once a baseline has no dump of the module`() {
+        writeFixture(withJvmOnlyModule = false)
+        projectDirectory.resolve("protocol/build.gradle.kts").apply { writeText(readText().replace("protocolRevision.set(1)", "protocolRevision.set(2)")) }
+        committedWireSchemaFile.apply { parentFile.mkdirs() }.writeText(EXPECTED_DUMP.replaceFirst("revision 1\n", "revision 2\n"))
+        val baselineDirectory = projectDirectory.resolve("baseline").apply { mkdirs() }
+
+        runBuild("checkWireSchema")
+        val failure = runFailingBuild("checkWireSchema", "-PjetwhaleWireSchemaBaselineDir=${baselineDirectory.absolutePath}")
+
+        assertContains(failure.output, "protocol.wire is this module's first dump: the baseline has none")
+        assertContains(failure.output, "The first wire schema dump is at protocol revision 1")
+    }
+
+    @Test
     fun `an open polymorphic property is refused with its path`() {
         writeFixture(withJvmOnlyModule = false)
         messagesFile.appendText(
@@ -309,6 +323,16 @@ class JetWhaleProtocolPluginTest {
         val failure = runFailingBuild(":protocol:generateJetWhalePluginContract")
 
         assertContains(failure.output, "jetwhaleProtocol.protocolRevision starts at 1, but it is 0.")
+    }
+
+    @Test
+    fun `a module with two JVM targets is refused`() {
+        writeFixture(withJvmOnlyModule = false)
+        projectDirectory.resolve("protocol/build.gradle.kts").apply { writeText(readText().replace("    jvm()\n", "    jvm()\n    jvm(\"desktop\")\n")) }
+
+        val failure = runFailingBuild(":protocol:help")
+
+        assertContains(failure.output, "reads the wire schema from the classes of one JVM target, but :protocol has 2")
     }
 
     @Test
