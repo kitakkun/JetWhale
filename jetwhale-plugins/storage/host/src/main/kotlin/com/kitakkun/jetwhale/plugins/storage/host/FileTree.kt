@@ -10,7 +10,8 @@ internal data class FileLocation(val rootName: String, val path: List<String>) {
     fun child(name: String): FileLocation = FileLocation(rootName, path + name)
 
     /** True when [other] is this location or lies below it. */
-    operator fun contains(other: FileLocation): Boolean = other.rootName == rootName && other.path.size >= path.size && other.path.subList(0, path.size) == path
+    operator fun contains(other: FileLocation): Boolean =
+        other.rootName == rootName && other.path.size >= path.size && other.path.subList(0, path.size) == path
 }
 
 /**

@@ -25,4 +25,7 @@ fun sampleHostReleaseMetadata() = HostReleaseMetadata(
     ),
 )
 
-fun HostReleaseMetadata.withMacJar(change: HostPlatformRelease.() -> HostPlatformRelease) = copy(platforms = platforms + ("macos-arm64" to platforms.getValue("macos-arm64").change()))
+fun HostReleaseMetadata.withMacJar(change: HostPlatformRelease.() -> HostPlatformRelease) = copy(
+    platforms =
+    platforms + ("macos-arm64" to platforms.getValue("macos-arm64").change()),
+)

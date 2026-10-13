@@ -172,7 +172,9 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     }
 
     /** Client whose interceptor captures at most [SMALL_BODY_CAP] chars, for truncation tests. */
-    private fun clientWithSmallBodyCap() = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxBodyChars = SMALL_BODY_CAP)).build()
+    private fun clientWithSmallBodyCap() = OkHttpClient.Builder().addInterceptor(
+        agent.okHttpInterceptor(maxBodyChars = SMALL_BODY_CAP),
+    ).build()
 
     @Test
     fun `records a WebSocket upgrade without corrupting the frame stream`() {
@@ -336,5 +338,7 @@ private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleOffline
         return true
     }
 
-    override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = error("The network agent plugin never requests the host in these tests.")
+    override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = error(
+        "The network agent plugin never requests the host in these tests.",
+    )
 }

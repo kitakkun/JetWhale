@@ -28,7 +28,15 @@ class DefaultLogCaptureServiceTest {
         service.stopCapture()
         System.setOut(outBefore)
         System.setErr(errBefore)
-        encodingsBefore.forEach { (property, value) -> if (value == null) System.clearProperty(property) else System.setProperty(property, value) }
+        encodingsBefore.forEach { (property, value) ->
+            if (value ==
+                null
+            ) {
+                System.clearProperty(property)
+            } else {
+                System.setProperty(property, value)
+            }
+        }
         Locale.setDefault(localeBefore)
     }
 
@@ -151,7 +159,9 @@ class DefaultLogCaptureServiceTest {
         System.setErr(PrintStream(ByteArrayOutputStream(), true))
         service.startCapture()
 
-        System.err.write("Oct 02, 2026 3:45:12 PM com.example.Service start\r\nINFO: the service is up\r\n".toByteArray(Charset.defaultCharset()))
+        System.err.write(
+            "Oct 02, 2026 3:45:12 PM com.example.Service start\r\nINFO: the service is up\r\n".toByteArray(Charset.defaultCharset()),
+        )
 
         val entry = service.logs.value.single()
         assertEquals(LogLevel.INFO, entry.level)
@@ -170,7 +180,13 @@ class DefaultLogCaptureServiceTest {
 
         val levelsByMessage = service.logs.value.associate { it.message.lines().last() to it.level }
         assertEquals(3, levelsByMessage.size)
-        assertEquals(LogLevel.INFO, levelsByMessage.entries.single { it.key.endsWith("after the switch") && !it.key.endsWith("failed after the switch") }.value)
+        assertEquals(
+            LogLevel.INFO,
+            levelsByMessage.entries.single {
+                it.key.endsWith("after the switch") &&
+                    !it.key.endsWith("failed after the switch")
+            }.value,
+        )
         assertEquals(LogLevel.ERROR, levelsByMessage.entries.single { it.key.endsWith("failed after the switch") }.value)
     }
 

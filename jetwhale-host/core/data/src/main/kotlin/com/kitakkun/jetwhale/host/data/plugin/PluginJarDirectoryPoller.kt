@@ -43,7 +43,9 @@ internal class PluginJarDirectoryPoller(private val directory: File) {
 
     /** The jars in [directory], or null when it cannot be listed. */
     private fun stamps(): Map<String, JarStamp>? = directory.listFiles { file -> file.isFile && file.extension == "jar" }
-        ?.associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified(), fileKey = fileKeyOf(it)) }
+        ?.associate {
+            it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified(), fileKey = fileKeyOf(it))
+        }
 
     /**
      * The file system's identity for [file] (an inode on POSIX), which changes when a file is replaced

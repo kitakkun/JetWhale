@@ -41,7 +41,9 @@ public fun rememberJwPopupPositionProvider(
     val density = LocalDensity.current
     val gapPx = with(density) { gap.roundToPx() }
     val edgeMarginPx = with(density) { JwSpacing.small.roundToPx() }
-    return remember(key1 = anchor, key2 = gapPx, key3 = edgeMarginPx) { JwPopupPositionProvider(anchor = anchor, gapPx = gapPx, edgeMarginPx = edgeMarginPx) }
+    return remember(key1 = anchor, key2 = gapPx, key3 = edgeMarginPx) {
+        JwPopupPositionProvider(anchor = anchor, gapPx = gapPx, edgeMarginPx = edgeMarginPx)
+    }
 }
 
 @VisibleForTesting
@@ -72,8 +74,16 @@ internal class JwPopupPositionProvider(
             return IntOffset(x, y)
         }
         val x = when (anchor) {
-            JwPopupAnchor.BelowStart -> if (layoutDirection == LayoutDirection.Ltr) anchorBounds.left else anchorBounds.right - popupContentSize.width
+            JwPopupAnchor.BelowStart -> if (layoutDirection ==
+                LayoutDirection.Ltr
+            ) {
+                anchorBounds.left
+            } else {
+                anchorBounds.right - popupContentSize.width
+            }
+
             JwPopupAnchor.BelowCenter -> anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
+
             JwPopupAnchor.EndCenter -> error("handled above")
         }.insideWindow(popupContentSize.width, windowSize.width)
         val below = anchorBounds.bottom + gapPx

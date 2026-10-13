@@ -48,7 +48,9 @@ class HostVersionsRepository(hostLaunch: HostLaunch) {
 
     /** An empty directory under `staging/`, which the launcher never reads, to download [version] into. */
     fun newStagingDirectory(version: HostVersion): Path {
-        val stagingDirectory = checkNotNull(hostDirectory) { "Only a host the launcher started downloads versions" }.stagingDirectory.resolve(version.name)
+        val stagingDirectory = checkNotNull(hostDirectory) {
+            "Only a host the launcher started downloads versions"
+        }.stagingDirectory.resolve(version.name)
         Files.createDirectories(stagingDirectory)
         return stagingDirectory
     }

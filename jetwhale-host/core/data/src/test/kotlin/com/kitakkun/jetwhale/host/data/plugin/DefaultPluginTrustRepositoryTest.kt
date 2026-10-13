@@ -65,7 +65,8 @@ class DefaultPluginTrustRepositoryTest {
             keyPresent = false
         }
 
-        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+        private fun digest(payload: String): String =
+            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     @Test
@@ -80,7 +81,10 @@ class DefaultPluginTrustRepositoryTest {
         assertEquals("hash-b", reloaded.trustedEntry("/plugins/b.jar")?.sha256)
     }
 
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(
+        AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
+        signer,
+    )
 
     @Test
     fun `revoke removes the entry and persists`() = runBlocking {

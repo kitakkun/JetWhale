@@ -28,7 +28,12 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class ActionsMcpCommandsTest {
-    private val loginAs = action("Account / Log in as", destructive = false, parameters = listOf(parameter("email", ParameterType.STRING, optional = false, nullable = false)))
+    private val loginAs =
+        action(
+            "Account / Log in as",
+            destructive = false,
+            parameters = listOf(parameter("email", ParameterType.STRING, optional = false, nullable = false)),
+        )
     private val wipe = action("Wipe local data", destructive = true, parameters = emptyList())
     private val client = FakeActionsClient(
         actions = listOf(loginAs, wipe),
@@ -45,16 +50,43 @@ class ActionsMcpCommandsTest {
         val listed = ListActionsCommand(browser).run().getValue("actions").jsonArray.map(JsonElement::jsonObject)
 
         val login = listed.first { it.getValue("id").jsonPrimitive.content == loginAs.id }
-        assertEquals("string", login.getValue("argumentsSchema").jsonObject.getValue("properties").jsonObject.getValue("email").jsonObject.getValue("type").jsonPrimitive.content)
-        assertEquals(listOf("email"), login.getValue("argumentsSchema").jsonObject.getValue("required").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(
+            "string",
+            login.getValue(
+                "argumentsSchema",
+            ).jsonObject.getValue("properties").jsonObject.getValue("email").jsonObject.getValue("type").jsonPrimitive.content,
+        )
+        assertEquals(
+            listOf("email"),
+            login.getValue("argumentsSchema").jsonObject.getValue("required").jsonArray.map {
+                it.jsonPrimitive.content
+            },
+        )
         assertEquals(false, login.getValue("argumentsSchema").jsonObject.getValue("additionalProperties").jsonPrimitive.boolean)
-        assertEquals("qa@example.com", login.getValue("suggestedValues").jsonObject.getValue("email").jsonArray.single().jsonPrimitive.content)
-        assertEquals(true, listed.first { it.getValue("id").jsonPrimitive.content == wipe.id }.getValue("destructive").jsonPrimitive.content.toBoolean())
+        assertEquals(
+            "qa@example.com",
+            login.getValue("suggestedValues").jsonObject.getValue("email").jsonArray.single().jsonPrimitive.content,
+        )
+        assertEquals(
+            true,
+            listed.first {
+                it.getValue("id").jsonPrimitive.content == wipe.id
+            }.getValue("destructive").jsonPrimitive.content.toBoolean(),
+        )
     }
 
     @Test
     fun `a nullable enum lists null among its allowed values`() {
-        val nullableTier = ActionParameter("tier", ParameterType.ENUM, optional = false, nullable = true, description = null, enumValues = listOf("FREE", "PRO"), hasOptions = false)
+        val nullableTier =
+            ActionParameter(
+                "tier",
+                ParameterType.ENUM,
+                optional = false,
+                nullable = true,
+                description = null,
+                enumValues = listOf("FREE", "PRO"),
+                hasOptions = false,
+            )
         client.actions = listOf(action("Set tier", destructive = false, parameters = listOf(nullableTier)))
 
         val tier = ListActionsCommand(browser).run().getValue("actions").jsonArray.single().jsonObject

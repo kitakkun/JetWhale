@@ -20,7 +20,13 @@ import kotlin.test.assertTrue
 
 private val alpha = attribute("alpha", ViewAttributeValue.FloatValue(1f))
 
-private fun attribute(id: String, value: ViewAttributeValue): ViewAttribute = ViewAttribute(id = id, label = id, group = "State", value = value, editable = true)
+private fun attribute(id: String, value: ViewAttributeValue): ViewAttribute = ViewAttribute(
+    id = id,
+    label = id,
+    group = "State",
+    value = value,
+    editable = true,
+)
 
 class ViewAttributeStoreTest {
     @Test

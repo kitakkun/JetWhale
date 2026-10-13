@@ -79,7 +79,14 @@ internal fun DeviceToolbar(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
+            DevicePicker(
+                pane.devices,
+                pane.device,
+                livenessOf,
+                onSelect = actions::select,
+                onShowAll = onShowGrid,
+                modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH),
+            )
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions)
             VolumeGroup(pane.device.kind, pane.capabilities, actions)
             ScreenPowerButton(pane.screenPower, actions)
@@ -90,7 +97,11 @@ internal fun DeviceToolbar(
             ) {
                 JwVerticalDivider(Modifier.height(CAPTURE_DIVIDER_HEIGHT).padding(end = JwSpacing.extraSmall))
                 CaptureActions(pane.capabilities, pane.recordingSinceMillis, actions)
-                JwIconButton(tooltip = if (showCaptures) "Hide captures" else "Captures", onClick = onToggleCaptures, selected = showCaptures) {
+                JwIconButton(
+                    tooltip = if (showCaptures) "Hide captures" else "Captures",
+                    onClick = onToggleCaptures,
+                    selected = showCaptures,
+                ) {
                     JwIcon(imageVector = CapturesIcon, contentDescription = null)
                 }
             }
@@ -134,8 +145,12 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
 @Composable
 private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
     when (screenPower?.awake) {
-        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = null) }
+        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) {
+            JwIcon(imageVector = ScreenOffIcon, contentDescription = null)
+        }
+
         false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = null) }
+
         null -> Unit
     }
 }

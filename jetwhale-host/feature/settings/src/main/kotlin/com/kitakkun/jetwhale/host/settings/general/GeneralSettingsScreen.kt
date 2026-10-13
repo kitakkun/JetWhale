@@ -425,7 +425,11 @@ private fun HostUpdateStatusView(
                     megabytes(status.totalBytes),
                 ),
             )
-            JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancelUpdateDownload, style = JwButtonStyle.Secondary)
+            JwButton(
+                text = stringResource(Res.string.cancel_download),
+                onClick = onClickCancelUpdateDownload,
+                style = JwButtonStyle.Secondary,
+            )
         }
 
         is HostUpdateStatus.Verifying -> Row(
@@ -434,7 +438,11 @@ private fun HostUpdateStatusView(
         ) {
             JwProgressIndicator()
             JwText(stringResource(Res.string.verifying_update, status.version.name))
-            JwButton(text = stringResource(Res.string.cancel_download), onClick = onClickCancelUpdateDownload, style = JwButtonStyle.Secondary)
+            JwButton(
+                text = stringResource(Res.string.cancel_download),
+                onClick = onClickCancelUpdateDownload,
+                style = JwButtonStyle.Secondary,
+            )
         }
 
         is HostUpdateStatus.ReadyToRestart -> UpdateNotice(
@@ -598,7 +606,9 @@ private class GeneralSettingsScreenPreviewStates : PreviewParameterProvider<Gene
         ),
         GeneralSettingsScreenPreviewState(
             SettingsScreenPage.Application,
-            uiState.copy(updates = uiState.updates.copy(status = HostUpdateStatus.ReadyToRestart(version = previewVersion("1.0.0-alpha14")))),
+            uiState.copy(
+                updates = uiState.updates.copy(status = HostUpdateStatus.ReadyToRestart(version = previewVersion("1.0.0-alpha14"))),
+            ),
         ),
     )
 

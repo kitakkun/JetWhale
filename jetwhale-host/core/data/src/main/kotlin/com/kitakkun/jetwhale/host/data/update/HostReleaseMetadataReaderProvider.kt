@@ -9,5 +9,7 @@ import dev.zacsweers.metro.Provides
 @ContributesTo(AppScope::class)
 interface HostReleaseMetadataReaderProvider {
     @Provides
-    fun provideHostReleaseMetadataReader(): HostReleaseMetadataReader = HostReleaseMetadataReader(ReleaseMetadataSignatureVerifier.JetWhaleReleases)
+    fun provideHostReleaseMetadataReader(): HostReleaseMetadataReader = HostReleaseMetadataReader(
+        ReleaseMetadataSignatureVerifier.JetWhaleReleases,
+    )
 }

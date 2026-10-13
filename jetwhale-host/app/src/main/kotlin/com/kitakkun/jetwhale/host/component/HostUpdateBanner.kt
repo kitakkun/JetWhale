@@ -34,14 +34,21 @@ fun HostUpdateBanner(
     modifier: Modifier = Modifier,
 ) {
     JwBanner(
-        text = stringResource(if (isInstalled) Res.string.host_update_banner_ready else Res.string.host_update_banner_available, versionName),
+        text = stringResource(
+            if (isInstalled) Res.string.host_update_banner_ready else Res.string.host_update_banner_available,
+            versionName,
+        ),
         modifier = modifier,
         tone = JwTone.Info,
         actions = {
             if (isInstalled) {
                 JwButton(text = stringResource(Res.string.host_update_banner_restart), onClick = onClickRestart, style = JwButtonStyle.Text)
             } else {
-                JwButton(text = stringResource(Res.string.host_update_banner_open_settings), onClick = onClickOpenSettings, style = JwButtonStyle.Text)
+                JwButton(
+                    text = stringResource(Res.string.host_update_banner_open_settings),
+                    onClick = onClickOpenSettings,
+                    style = JwButtonStyle.Text,
+                )
             }
         },
         onDismiss = onDismiss,

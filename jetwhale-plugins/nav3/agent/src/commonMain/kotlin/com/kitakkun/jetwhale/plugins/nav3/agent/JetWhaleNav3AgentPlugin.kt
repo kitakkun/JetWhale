@@ -137,7 +137,9 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
     private fun mutate(request: MutateBackStack): MutationResult {
         val registered = backStacks.value
         val backStack = registered[request.stackId] ?: return MutationResult(
-            error = "no back stack is registered as '${request.stackId}'; registered ids: ${registered.keys.joinToString().ifEmpty { "none" }}",
+            error = "no back stack is registered as '${request.stackId}'; registered ids: ${registered.keys.joinToString().ifEmpty {
+                "none"
+            }}",
             snapshot = null,
         )
         return try {

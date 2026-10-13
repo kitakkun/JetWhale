@@ -254,7 +254,8 @@ private fun CapturesPanelRecordingPreview() {
 @Composable
 private fun MirrorVideoPreview() {
     JwTheme(darkTheme = true) {
-        MirrorVideo(surface = rememberPreviewSurface(), deviceId = "emulator-5554", interactive = true, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
+        MirrorVideo(surface = rememberPreviewSurface(), deviceId = "emulator-5554", interactive = true, onTap = { _, _ ->
+        }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
     }
 }
 
@@ -293,7 +294,12 @@ private fun DeviceToolbarPreview() {
             DeviceToolbar(
                 pane = previewPane(
                     device = previewDevices[1],
-                    capabilities = DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home), recording = true, screenPower = false),
+                    capabilities = DeviceCapabilities(
+                        input = true,
+                        buttons = listOf(DeviceButton.Home),
+                        recording = true,
+                        screenPower = false,
+                    ),
                     recordingSinceMillis = null,
                 ),
                 actions = NoActions,

@@ -45,7 +45,9 @@ internal interface GridRecordingActions {
 internal fun RecordAllButton(state: GridRecordingState, actions: GridRecordingActions) {
     var confirming by remember { mutableStateOf(false) }
     if (state.recordingDeviceIds.isNotEmpty()) {
-        JwButton(text = "Stop all (${state.recordingDeviceIds.size})", onClick = actions::stopAll, tone = JwTone.Error, leadingIcon = { RecordingDot() })
+        JwButton(text = "Stop all (${state.recordingDeviceIds.size})", onClick = actions::stopAll, tone = JwTone.Error, leadingIcon = {
+            RecordingDot()
+        })
     } else {
         JwIconButton(
             tooltip = "Record every device",
@@ -90,6 +92,12 @@ internal fun recordAllLoadNote(kinds: List<DeviceKind>): String {
     val general = "Recording several devices at once is heavy on this machine and can make the live views drop frames."
     val light = "Android devices encode on the device, and physical iPhones save a copy of the video they already send."
     if (simulators == 0) return "$general $light"
-    val simulatorNote = if (simulators == 1) "The iOS simulator encodes its video on this Mac, which weighs the most." else "The $simulators iOS simulators encode their video on this Mac, which weighs the most."
+    val simulatorNote = if (simulators ==
+        1
+    ) {
+        "The iOS simulator encodes its video on this Mac, which weighs the most."
+    } else {
+        "The $simulators iOS simulators encode their video on this Mac, which weighs the most."
+    }
     return "$general $simulatorNote $light"
 }

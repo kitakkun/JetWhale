@@ -21,7 +21,9 @@ class HostNavigationMappingTest {
 
     @Test
     fun `the host's settings pages are the menu's pages in the menu's order`() {
-        val reportedSettingsPages = SettingsScreenPage.entries.map { listOf(SettingsNavKey(initialPage = it)).toHostDestination().settingsPage }
+        val reportedSettingsPages = SettingsScreenPage.entries.map {
+            listOf(SettingsNavKey(initialPage = it)).toHostDestination().settingsPage
+        }
 
         assertEquals(HostSettingsPage.entries, reportedSettingsPages)
     }

@@ -43,7 +43,10 @@ class JwThemeContextMenuTest {
     }
 
     @Test
-    fun `a text field's cut, copy and paste menu inside the theme is drawn on the theme's popup background`() = runDesktopComposeUiTest(width = 400, height = 300) {
+    fun `a text field's cut, copy and paste menu inside the theme is drawn on the theme's popup background`() = runDesktopComposeUiTest(
+        width = 400,
+        height = 300,
+    ) {
         setContent {
             JwTheme(colors = colors) {
                 BasicTextField(value = "some text", onValueChange = {}, modifier = Modifier.testTag("field"))

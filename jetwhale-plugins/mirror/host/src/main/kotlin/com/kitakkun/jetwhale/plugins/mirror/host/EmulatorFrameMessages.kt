@@ -71,14 +71,22 @@ internal class EmulatorImageReader(private val input: InputStream) {
             }
         }
         val sizeInRange = size.width in 1..MAX_FRAME_SIDE && size.height in 1..MAX_FRAME_SIDE
-        if (!sizeInRange || pixelBytes < size.width.toLong() * size.height * 4) throw deviceControlError("the emulator sent a frame of ${size.width}x${size.height} with $pixelBytes bytes of pixels")
+        if (!sizeInRange ||
+            pixelBytes < size.width.toLong() * size.height * 4
+        ) {
+            throw deviceControlError("the emulator sent a frame of ${size.width}x${size.height} with $pixelBytes bytes of pixels")
+        }
         return EmulatorImage(size.width, size.height)
     }
 
     /** Reads an `Image.image` field's pixels into [pixels]; returns how many bytes they took. */
     private fun readPixels(message: BoundedReader): Int {
         val length = message.readVarint()
-        if (length > message.remaining() || length > MAX_FRAME_BYTES) throw deviceControlError("the emulator sent a frame of $length bytes, more than the mirror accepts")
+        if (length > message.remaining() ||
+            length > MAX_FRAME_BYTES
+        ) {
+            throw deviceControlError("the emulator sent a frame of $length bytes, more than the mirror accepts")
+        }
         val bytes = length.toInt()
         if (pixels.size < bytes) pixels = ByteArray(bytes)
         message.readFully(pixels, bytes)

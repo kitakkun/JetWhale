@@ -63,7 +63,9 @@ class HostMcpCommandTest {
     }
 
     @Test
-    fun `an invalid argument is returned as an error result instead of failing the tool call`() = withHostCommand(EchoHostCommand()) { client ->
+    fun `an invalid argument is returned as an error result instead of failing the tool call`() = withHostCommand(
+        EchoHostCommand(),
+    ) { client ->
         val result = client.callTool("jetwhale.test.echo", emptyMap())
         assertEquals(true, result.isError)
         assertContains(result.firstText(), "missing required argument: text")

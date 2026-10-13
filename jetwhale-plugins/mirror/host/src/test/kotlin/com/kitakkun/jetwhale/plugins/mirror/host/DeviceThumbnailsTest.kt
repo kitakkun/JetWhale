@@ -31,7 +31,13 @@ private const val INTERVAL_MILLIS = 1_000L
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeviceThumbnailsTest {
     private val scheduler = TestCoroutineScheduler()
-    private val thumbnails = DeviceThumbnails(refreshIntervalMillis = INTERVAL_MILLIS, maxConcurrentCaptures = 2, decodeDispatcher = StandardTestDispatcher(scheduler), clock = FixedClock)
+    private val thumbnails =
+        DeviceThumbnails(
+            refreshIntervalMillis = INTERVAL_MILLIS,
+            maxConcurrentCaptures = 2,
+            decodeDispatcher = StandardTestDispatcher(scheduler),
+            clock = FixedClock,
+        )
 
     @AfterTest
     fun closeThumbnails() {
@@ -193,11 +199,18 @@ class DeviceThumbnailsTest {
     }
 
     @Test
-    fun `a capture that runs out of time reads as failed and frees its slot for another tile`() = runTest(StandardTestDispatcher(scheduler)) {
+    fun `a capture that runs out of time reads as failed and frees its slot for another tile`() = runTest(
+        StandardTestDispatcher(scheduler),
+    ) {
         assumeShellScriptsLaunch()
         val hungScreen = FirstCaptureHangingScreen(FakeScreen())
         val answeringScreen = FakeScreen()
-        DeviceThumbnails(refreshIntervalMillis = INTERVAL_MILLIS, maxConcurrentCaptures = 1, decodeDispatcher = StandardTestDispatcher(scheduler), clock = FixedClock).use { oneSlotThumbnails ->
+        DeviceThumbnails(
+            refreshIntervalMillis = INTERVAL_MILLIS,
+            maxConcurrentCaptures = 1,
+            decodeDispatcher = StandardTestDispatcher(scheduler),
+            clock = FixedClock,
+        ).use { oneSlotThumbnails ->
             val polls = listOf(
                 launch { oneSlotThumbnails.keepFresh(heightPx = 40) { device("hung", hungScreen) } },
                 launch { oneSlotThumbnails.keepFresh(heightPx = 40) { device("answering", answeringScreen) } },
@@ -236,7 +249,10 @@ class DeviceThumbnailsTest {
     }
 }
 
-private fun device(id: String, controller: DeviceController) = MirrorDevice(DeviceListing(id, id, DeviceKind.AndroidEmulator, osVersion = null), controller)
+private fun device(id: String, controller: DeviceController) = MirrorDevice(
+    DeviceListing(id, id, DeviceKind.AndroidEmulator, osVersion = null),
+    controller,
+)
 
 /** A 100x200 screen whose screenshots can be held back by [gate], counting what was asked of it. */
 private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : DeviceController {

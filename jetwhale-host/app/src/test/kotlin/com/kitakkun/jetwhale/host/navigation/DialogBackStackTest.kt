@@ -22,11 +22,15 @@ class DialogBackStackTest {
 
     @Test
     fun `opening the tools browser on another tab replaces the open browser`() {
-        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.Tools))
+        val backStack =
+            NavBackStack<NavKey>(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.Tools))
 
         backStack.openMcpTools(pluginId = null, sessionId = null, tab = McpToolsTab.History)
 
-        assertEquals(listOf(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.History)), backStack.toList())
+        assertEquals(
+            listOf(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.History)),
+            backStack.toList(),
+        )
     }
 
     @Test
@@ -44,7 +48,8 @@ class DialogBackStackTest {
 
     @Test
     fun `opening Settings closes an open tools browser`() {
-        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.Tools))
+        val backStack =
+            NavBackStack<NavKey>(EmptyPluginNavKey, McpToolsNavKey(pluginId = null, sessionId = null, initialTab = McpToolsTab.Tools))
 
         backStack.openSettings(SettingsScreenPage.McpServer)
 

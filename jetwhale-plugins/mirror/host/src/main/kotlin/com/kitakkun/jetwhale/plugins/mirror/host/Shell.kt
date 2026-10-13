@@ -164,7 +164,10 @@ internal class MirrorToolLocator(
     fun locateTools(): MirrorToolSearchResult {
         val directories = (directoriesOn(hostPathVariable) + wellKnownDirectories).distinct()
         val toolPaths = findToolPathsIn(directories)
-        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath).any { it == null }
+        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath).any {
+            it ==
+                null
+        }
         val loginShellPathVariable = if (isAnySearchedToolMissing) loginShellPathVariableResolver?.resolveLoginShellPathVariable() else null
         if (loginShellPathVariable == null) return MirrorToolSearchResult(toolPaths, directories)
         val directoriesWithLoginShell = (directories + directoriesOn(loginShellPathVariable)).distinct()
@@ -174,7 +177,8 @@ internal class MirrorToolLocator(
     private fun findToolPathsIn(directories: List<String>): MirrorToolPaths {
         val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
         return MirrorToolPaths(
-            adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, directories),
+            adbPath =
+            findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, directories),
             idbPath = findToolPath("idb", directories),
             idbCompanionPath = findToolPath("idb_companion", directories),
             xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
@@ -182,7 +186,9 @@ internal class MirrorToolLocator(
         )
     }
 
-    private fun directoriesOn(pathVariable: String?): List<String> = pathVariable?.split(File.pathSeparator).orEmpty().filter(String::isNotEmpty)
+    private fun directoriesOn(pathVariable: String?): List<String> = pathVariable?.split(
+        File.pathSeparator,
+    ).orEmpty().filter(String::isNotEmpty)
 }
 
 /** The path of the first executable file named [name] in [directories], or null. */

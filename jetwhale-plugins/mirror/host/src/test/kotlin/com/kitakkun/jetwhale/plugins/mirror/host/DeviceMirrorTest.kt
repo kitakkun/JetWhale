@@ -44,8 +44,22 @@ class DeviceMirrorTest {
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-        captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
+        discovery = DeviceDiscovery(
+            CompletableDeferred(
+                MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null),
+            ),
+            companions = CompletableDeferred(value = null),
+            emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
+        ),
+        captures = MirrorCaptures(
+            root,
+            storage = InMemoryPluginStorage(emptyMap()),
+            scope = scope,
+            zone = ZoneOffset.UTC,
+            notices = notices,
+            ffmpegPath = CompletableDeferred(value = null),
+            clipboard = CaptureClipboard(osascriptPath = null),
+        ),
         notices = notices,
         scope = scope,
     )
@@ -83,7 +97,9 @@ class DeviceMirrorTest {
     fun `stops sent at once finish the one recording once and refuse the rest`() = runBlocking {
         mirror.startRecording(device)
 
-        val outcomes = List(SIMULTANEOUS_CALLS) { async(Dispatchers.Default) { runCatching { mirror.stopRecording(deviceId = null) } } }.awaitAll()
+        val outcomes = List(SIMULTANEOUS_CALLS) {
+            async(Dispatchers.Default) { runCatching { mirror.stopRecording(deviceId = null) } }
+        }.awaitAll()
 
         assertEquals(1, outcomes.count { it.isSuccess })
         assertEquals(1, recorder.stopped.get())
@@ -107,8 +123,22 @@ class DeviceMirrorTest {
     fun `a stop clicked twice while the first is still saving stops once and starts nothing`() = runBlocking {
         val clicks = CoroutineScope(Job(scope.coroutineContext.job) + Dispatchers.Unconfined)
         val clicked = DeviceMirror(
-            discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null)), companions = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
-            captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = clicks, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
+            discovery = DeviceDiscovery(
+                CompletableDeferred(
+                    MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null),
+                ),
+                companions = CompletableDeferred(value = null),
+                emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
+            ),
+            captures = MirrorCaptures(
+                root,
+                storage = InMemoryPluginStorage(emptyMap()),
+                scope = clicks,
+                zone = ZoneOffset.UTC,
+                notices = notices,
+                ffmpegPath = CompletableDeferred(value = null),
+                clipboard = CaptureClipboard(osascriptPath = null),
+            ),
             notices = notices,
             scope = clicks,
         )
@@ -139,13 +169,20 @@ class DeviceMirrorTest {
         assertEquals(2, started.filterIsInstance<RecordingResult.Started>().size)
         assertEquals(1, recorder.started.get())
         assertEquals(1, otherRecorder.started.get())
-        assertEquals(setOf(device.id, other.id), saved.filterIsInstance<RecordingResult.Saved>().map(RecordingResult.Saved::deviceId).toSet())
+        assertEquals(
+            setOf(device.id, other.id),
+            saved.filterIsInstance<RecordingResult.Saved>().map(RecordingResult.Saved::deviceId).toSet(),
+        )
         assertEquals(2, mirror.listCaptures(deviceId = null, kind = CaptureKind.Recording, sinceEpochMillis = null).size)
     }
 
     @Test
     fun `a device that fails to start leaves the others recording`() = runBlocking {
-        val failing = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))
+        val failing =
+            MirrorDevice(
+                DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null),
+                EndingStream(power = null),
+            )
 
         val results = mirror.startRecordingsOf(listOf(device, failing))
 
@@ -204,7 +241,11 @@ class DeviceMirrorTest {
     @Test
     fun `Record all targets only the devices that can record and are not recording yet`() {
         val idle = MirrorDevice(DeviceListing("sim-1", "iPhone 16", DeviceKind.IosSimulator, osVersion = null), SlowRecorder())
-        val cannotRecord = MirrorDevice(DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null), EndingStream(power = null))
+        val cannotRecord =
+            MirrorDevice(
+                DeviceListing("emulator-5556", "Pixel 8", DeviceKind.AndroidEmulator, osVersion = null),
+                EndingStream(power = null),
+            )
 
         val targets = recordAllTargets(listOf(device, idle, cannotRecord), recordingDeviceIds = setOf(device.id))
 
@@ -217,7 +258,12 @@ class DeviceMirrorTest {
 
         mirror.dispose()
 
-        assertEquals(listOf(CaptureKind.Recording), mirror.listCaptures(deviceId = null, kind = null, sinceEpochMillis = null).map { it.info.kind })
+        assertEquals(
+            listOf(CaptureKind.Recording),
+            mirror.listCaptures(deviceId = null, kind = null, sinceEpochMillis = null).map {
+                it.info.kind
+            },
+        )
     }
 
     @Test
@@ -275,7 +321,9 @@ class DeviceMirrorTest {
     @Test
     fun `an emulator's own stream is shown as it arrives with no screenshot patching a still screen`() = runBlocking {
         val controller = StillEmulator()
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller))
+        }
 
         val screenshot = withTimeoutOrNull(STILL_SCREEN_PATCH_WINDOW_MILLIS) { controller.screenshotTaken.await() }
         session.cancel()
@@ -287,7 +335,9 @@ class DeviceMirrorTest {
     fun `a mirrored Android device whose screen is off says so until mirroring stops`() = runBlocking {
         val asleep = ScreenPower(awake = false, locked = true)
         val controller = EndingStream(power = asleep)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller))
+        }
 
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.readTwice.await() }
         val whileMirroring = mirror.screenPower
@@ -302,7 +352,11 @@ class DeviceMirrorTest {
     fun `a foldable that folds while mirrored is streamed again at its new screen size`() = runBlocking {
         val controller = FoldingEmulator(stateNow = { mirror.state })
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(
+                MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller),
+            )
+        }
 
         withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopened.await() }
         val deviceSize = mirror.surface.deviceSize
@@ -315,7 +369,11 @@ class DeviceMirrorTest {
     fun `a stream that ends is followed by the next without a connecting screen`() = runBlocking<Unit> {
         val controller = FoldingEmulator(stateNow = { mirror.state })
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(
+                MirrorDevice(DeviceListing("emulator-5556", "Pixel Fold", DeviceKind.AndroidEmulator, osVersion = null), controller),
+            )
+        }
 
         val stateWhenReopened = withTimeout(SCREEN_CHANGE_TIMEOUT_MILLIS) { controller.reopened.await() }
         session.cancel()
@@ -326,10 +384,14 @@ class DeviceMirrorTest {
     @Test
     fun `a screenshot of a screen turned since the stream opened opens a new stream instead of showing among its frames`() = runBlocking {
         assumeShellScriptsLaunch()
-        val turned = Surface.makeRasterN32Premul(20, 10).use { surface -> surface.makeImageSnapshot().use { checkNotNull(it.encodeToData(EncodedImageFormat.PNG)).bytes } }
+        val turned = Surface.makeRasterN32Premul(20, 10).use { surface ->
+            surface.makeImageSnapshot().use { checkNotNull(it.encodeToData(EncodedImageFormat.PNG)).bytes }
+        }
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = turned)
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller))
+        }
 
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
         val shown = mirror.surface.newestFramePng("device-1")
@@ -343,7 +405,9 @@ class DeviceMirrorTest {
         assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller))
+        }
 
         withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
         val state = mirror.state
@@ -357,7 +421,9 @@ class DeviceMirrorTest {
         assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller))
+        }
 
         withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
         val deviceSize = mirror.surface.deviceSize
@@ -370,7 +436,9 @@ class DeviceMirrorTest {
     fun `a device on screenshots tries its stream again without leaving them for a connecting screen`() = runBlocking<Unit> {
         val controller = FlakyStreamDevice(stateNow = { mirror.state })
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller))
+        }
 
         val stateWhenTriedAgain = withTimeout(STREAM_RETRY_TIMEOUT_MILLIS) { controller.triedAgain.await() }
         session.cancel()
@@ -383,7 +451,9 @@ class DeviceMirrorTest {
         assumeShellScriptsLaunch()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(4_096), screenshot = null)
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller))
+        }
 
         val polled = withTimeoutOrNull(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polled.await() }
         val state = mirror.state
@@ -399,7 +469,9 @@ class DeviceMirrorTest {
         val warning = "[Warning] Multiple displays were found, but no display id was specified!".encodeToByteArray()
         val controller = ScreenrecordDevice(fakeFfmpeg.path, sent = ByteArray(0), screenshot = warning)
         mirror.surface.viewSize = IntSize(540, 1200)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("device-1", "Pixel Fold", DeviceKind.AndroidDevice, osVersion = null), controller))
+        }
 
         withTimeout(SILENT_STREAM_TIMEOUT_MILLIS) { controller.polledAgain.await() }
         val state = mirror.state
@@ -413,7 +485,9 @@ class DeviceMirrorTest {
     @Test
     fun `a device without screen power is never asked for it`() = runBlocking {
         val controller = EndingStream(power = null)
-        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5558", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+        val session = scope.launch {
+            mirror.mirror(MirrorDevice(DeviceListing("emulator-5558", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller))
+        }
 
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
         session.cancel()
@@ -588,7 +662,17 @@ private class ClosingStream : DeviceController {
 
     override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = false)
 
-    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.RawBgra(ClosedUnderReadProcess(reading), frameSize = IntSize(1, 1), rowBytes = 64, fps = 30, onFellBehind = { false })
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.RawBgra(
+        ClosedUnderReadProcess(
+            reading,
+        ),
+        frameSize = IntSize(1, 1),
+        rowBytes = 64,
+        fps = 30,
+        onFellBehind = {
+            false
+        },
+    )
 
     override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
 
@@ -697,7 +781,11 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
  * ffmpeg at [ffmpegPath]. Its screenshots are [screenshot], or never finish when it is null, so the
  * mirror's state stays as it set it.
  */
-private class ScreenrecordDevice(private val ffmpegPath: String, private val sent: ByteArray, private val screenshot: ByteArray?) : DeviceController {
+private class ScreenrecordDevice(
+    private val ffmpegPath: String,
+    private val sent: ByteArray,
+    private val screenshot: ByteArray?,
+) : DeviceController {
     private val screenshots = AtomicInteger()
     private val opened = AtomicInteger()
 

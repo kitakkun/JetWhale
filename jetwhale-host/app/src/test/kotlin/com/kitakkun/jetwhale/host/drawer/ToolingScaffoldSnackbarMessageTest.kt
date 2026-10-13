@@ -26,6 +26,9 @@ class ToolingScaffoldSnackbarMessageTest {
         val anonymousError = object : Throwable() {}
 
         assertContains(ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(blankError).snackbarMessage(), "IOException")
-        assertContains(ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(anonymousError).snackbarMessage(), anonymousError.javaClass.name)
+        assertContains(
+            ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(anonymousError).snackbarMessage(),
+            anonymousError.javaClass.name,
+        )
     }
 }

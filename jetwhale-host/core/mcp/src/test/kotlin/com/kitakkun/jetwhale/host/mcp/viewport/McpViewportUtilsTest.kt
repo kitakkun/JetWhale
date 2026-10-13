@@ -56,7 +56,9 @@ class McpViewportUtilsTest {
         }
     }.apply { composeScene.size = IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT) }
 
-    private fun semanticsOf(scene: PluginComposeScene): List<Pair<Rect, String?>> = scene.semanticsOwners.flatMap { flatten(it.rootSemanticsNode) }
+    private fun semanticsOf(scene: PluginComposeScene): List<Pair<Rect, String?>> = scene.semanticsOwners.flatMap {
+        flatten(it.rootSemanticsNode)
+    }
 
     private fun flatten(node: SemanticsNode): List<Pair<Rect, String?>> {
         val label = node.config.getOrNull(SemanticsProperties.Text)?.joinToString(transform = AnnotatedString::text)

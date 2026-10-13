@@ -59,7 +59,13 @@ fun PluginJarArrivalBanner(
             val loadFailure = jar.loadFailure
             if (loadFailure != null) {
                 JwBanner(
-                    text = stringResource(Res.string.plugin_arrived_failed, jar.declaredPlugins.joinToString(transform = DeclaredPlugin::pluginName).ifEmpty { jar.fileName }, loadFailure),
+                    text = stringResource(
+                        Res.string.plugin_arrived_failed,
+                        jar.declaredPlugins.joinToString(transform = DeclaredPlugin::pluginName).ifEmpty {
+                            jar.fileName
+                        },
+                        loadFailure,
+                    ),
                     tone = JwTone.Error,
                     actions = {
                         JwButton(
@@ -76,7 +82,9 @@ fun PluginJarArrivalBanner(
                 tone = JwTone.Warning,
                 actions = {
                     JwButton(
-                        text = stringResource(if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action),
+                        text = stringResource(
+                            if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action,
+                        ),
                         onClick = { guarded { onLoad(jar) } },
                         style = JwButtonStyle.Text,
                     )
@@ -118,9 +126,19 @@ private fun ArrivedPluginJar.headline(): String {
             else -> stringResource(Res.string.plugin_arrived_unreadable_because, details, reason)
         }
 
-        replacedPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_new, declaredPlugins.joinToString { "${it.pluginName} ${it.version}" }, details)
+        replacedPlugins.isEmpty() -> stringResource(
+            Res.string.plugin_arrived_new,
+            declaredPlugins.joinToString {
+                "${it.pluginName} ${it.version}"
+            },
+            details,
+        )
 
-        else -> stringResource(Res.string.plugin_arrived_update, describeUpdate(replaced = replacedPlugins, declared = declaredPlugins), details)
+        else -> stringResource(
+            Res.string.plugin_arrived_update,
+            describeUpdate(replaced = replacedPlugins, declared = declaredPlugins),
+            details,
+        )
     }
 }
 
@@ -161,7 +179,9 @@ private fun PluginJarArrivalBannerPreview() {
                     sha256 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
                     declaredPlugins = listOf(network),
                     unreadableReason = null,
-                    replacedPlugins = listOf(DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0")),
+                    replacedPlugins = listOf(
+                        DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0"),
+                    ),
                     loadFailure = null,
                 ),
                 ArrivedPluginJar(

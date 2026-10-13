@@ -13,7 +13,12 @@ class Mp4DurationTest {
 
     @Test
     fun `the length comes from the movie header, after the media data`() {
-        val file = mp4(box("ftyp", ByteArray(8)), box("mdat", ByteArray(64)), box("moov", box("mvhd", timeHeaderV0(timescale = 1000, duration = 4190))))
+        val file =
+            mp4(
+                box("ftyp", ByteArray(8)),
+                box("mdat", ByteArray(64)),
+                box("moov", box("mvhd", timeHeaderV0(timescale = 1000, duration = 4190))),
+            )
 
         assertEquals(4190L, mp4DurationMillis(file))
     }
@@ -49,7 +54,9 @@ class Mp4DurationTest {
         assertNull(mp4DurationMillis(file))
     }
 
-    private fun mp4(vararg boxes: ByteArray): File = File(folder, "recording.mp4").apply { writeBytes(boxes.fold(ByteArray(0), ByteArray::plus)) }
+    private fun mp4(vararg boxes: ByteArray): File = File(folder, "recording.mp4").apply {
+        writeBytes(boxes.fold(ByteArray(0), ByteArray::plus))
+    }
 
     private fun box(type: String, content: ByteArray): ByteArray = bytes {
         writeInt(8 + content.size)
@@ -73,5 +80,7 @@ class Mp4DurationTest {
         writeLong(duration)
     }
 
-    private fun bytes(write: DataOutputStream.() -> Unit): ByteArray = ByteArrayOutputStream().also { DataOutputStream(it).use(write) }.toByteArray()
+    private fun bytes(write: DataOutputStream.() -> Unit): ByteArray = ByteArrayOutputStream().also {
+        DataOutputStream(it).use(write)
+    }.toByteArray()
 }

@@ -47,7 +47,8 @@ class DefaultClientSessionNegotiationStrategyTest {
             webSocket { acceptNegotiation(sessionId = "assigned-session") }
         }
         val client = createClient { installWebSocketsAndLogging(json) }
-        val strategy = DefaultClientSessionNegotiationStrategy(plugins = emptyList(), appMetadata = JetWhaleAppMetadata(deviceName = "test-device"))
+        val strategy =
+            DefaultClientSessionNegotiationStrategy(plugins = emptyList(), appMetadata = JetWhaleAppMetadata(deviceName = "test-device"))
 
         repeat(2) { client.webSocket("/") { with(strategy) { negotiate() } } }
 
@@ -65,7 +66,9 @@ class DefaultClientSessionNegotiationStrategyTest {
         receiveDeserialized<JetWhaleAgentNegotiationRequest.Capabilities>()
         sendSerialized(JetWhaleHostNegotiationResponse.CapabilitiesResponse(capabilities = emptyMap()))
         receiveDeserialized<JetWhaleAgentNegotiationRequest.AvailablePlugins>()
-        sendSerialized(JetWhaleHostNegotiationResponse.AvailablePluginsResponse(availablePlugins = emptyList(), incompatiblePlugins = emptyList()))
+        sendSerialized(
+            JetWhaleHostNegotiationResponse.AvailablePluginsResponse(availablePlugins = emptyList(), incompatiblePlugins = emptyList()),
+        )
     }
 
     private class RecordingLogWriter : LogWriter() {

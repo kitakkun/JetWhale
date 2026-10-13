@@ -51,7 +51,15 @@ private val PowerIcon: ImageVector = outlineIcon("Power") {
     moveTo(12f, 3f)
     lineTo(12f, 11f)
     moveTo(7f, 6f)
-    arcTo(horizontalEllipseRadius = 8f, verticalEllipseRadius = 8f, theta = 0f, isMoreThanHalf = true, isPositiveArc = false, x1 = 17f, y1 = 6f)
+    arcTo(
+        horizontalEllipseRadius = 8f,
+        verticalEllipseRadius = 8f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = false,
+        x1 = 17f,
+        y1 = 6f,
+    )
 }
 
 private val VolumeUpIcon: ImageVector = outlineIcon("VolumeUp") {
@@ -103,11 +111,43 @@ internal val CloseIcon: ImageVector = outlineIcon("Close") {
 /** A ring: start recording. */
 internal val RecordIcon: ImageVector = outlineIcon("Record") {
     moveTo(12f, 5f)
-    arcTo(horizontalEllipseRadius = 7f, verticalEllipseRadius = 7f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 19f)
-    arcTo(horizontalEllipseRadius = 7f, verticalEllipseRadius = 7f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 5f)
+    arcTo(
+        horizontalEllipseRadius = 7f,
+        verticalEllipseRadius = 7f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 19f,
+    )
+    arcTo(
+        horizontalEllipseRadius = 7f,
+        verticalEllipseRadius = 7f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 5f,
+    )
     moveTo(12f, 10f)
-    arcTo(horizontalEllipseRadius = 2f, verticalEllipseRadius = 2f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 14f)
-    arcTo(horizontalEllipseRadius = 2f, verticalEllipseRadius = 2f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 10f)
+    arcTo(
+        horizontalEllipseRadius = 2f,
+        verticalEllipseRadius = 2f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 14f,
+    )
+    arcTo(
+        horizontalEllipseRadius = 2f,
+        verticalEllipseRadius = 2f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 10f,
+    )
 }
 
 /** A camera: take a screenshot. */
@@ -122,8 +162,24 @@ internal val ScreenshotIcon: ImageVector = outlineIcon("Screenshot") {
     lineTo(4f, 19f)
     close()
     moveTo(12f, 10f)
-    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 16f)
-    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 10f)
+    arcTo(
+        horizontalEllipseRadius = 3f,
+        verticalEllipseRadius = 3f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 16f,
+    )
+    arcTo(
+        horizontalEllipseRadius = 3f,
+        verticalEllipseRadius = 3f,
+        theta = 0f,
+        isMoreThanHalf = true,
+        isPositiveArc = true,
+        x1 = 12f,
+        y1 = 10f,
+    )
 }
 
 /** A stack of pictures: the capture library. */

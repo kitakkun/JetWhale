@@ -21,7 +21,9 @@ import kotlin.test.assertSame
 class EmulatorScreensTest {
     @Test
     fun `a discovery file gives the console port the gRPC port and the token`() {
-        val (consolePort, endpoint) = assertNotNull(parseEmulatorDiscovery("avd.id=Pixel\nport.serial=5554\ngrpc.port=8554\ngrpc.token=secret\n"))
+        val (consolePort, endpoint) = assertNotNull(
+            parseEmulatorDiscovery("avd.id=Pixel\nport.serial=5554\ngrpc.port=8554\ngrpc.token=secret\n"),
+        )
 
         assertEquals(5554, consolePort)
         assertEquals(8554, endpoint.port)
@@ -88,7 +90,9 @@ class EmulatorScreensTest {
 
     @Test
     fun `a frame announcing absurd dimensions is refused`() {
-        assertFailsWith<DeviceControlException> { EmulatorImageReader(ByteArrayInputStream(imageMessage(Int.MAX_VALUE, Int.MAX_VALUE, ByteArray(8), seq = 1))).next() }
+        assertFailsWith<DeviceControlException> {
+            EmulatorImageReader(ByteArrayInputStream(imageMessage(Int.MAX_VALUE, Int.MAX_VALUE, ByteArray(8), seq = 1))).next()
+        }
     }
 
     @Test
@@ -131,7 +135,12 @@ class EmulatorScreensTest {
         MockWebServer().use { server ->
             server.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
             server.enqueue(MockResponse().setHeader("content-type", "application/grpc").setHeader("grpc-status", "7"))
-            server.enqueue(MockResponse().setHeader("content-type", "application/grpc").setBody(Buffer().write(imageMessage(2, 1, ByteArray(8), seq = 1))))
+            server.enqueue(
+                MockResponse().setHeader(
+                    "content-type",
+                    "application/grpc",
+                ).setBody(Buffer().write(imageMessage(2, 1, ByteArray(8), seq = 1))),
+            )
             server.start()
             val directory = Files.createTempDirectory("avd-running").toFile().apply { deleteOnExit() }
             File(directory, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\ngrpc.token=secret\n")

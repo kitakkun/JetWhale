@@ -95,7 +95,10 @@ class CaptureLibraryTest {
         save(iphone, CaptureKind.Screenshot, noon.plusSeconds(90))
 
         assertEquals(listOf(newer, older), library.list(deviceId = pixel.id, kind = CaptureKind.Screenshot, sinceEpochMillis = null))
-        assertEquals(listOf(newer), library.list(deviceId = pixel.id, kind = CaptureKind.Screenshot, sinceEpochMillis = noon.plusSeconds(1).toEpochMilli()))
+        assertEquals(
+            listOf(newer),
+            library.list(deviceId = pixel.id, kind = CaptureKind.Screenshot, sinceEpochMillis = noon.plusSeconds(1).toEpochMilli()),
+        )
         assertEquals(4, library.list(deviceId = null, kind = null, sinceEpochMillis = null).size)
     }
 

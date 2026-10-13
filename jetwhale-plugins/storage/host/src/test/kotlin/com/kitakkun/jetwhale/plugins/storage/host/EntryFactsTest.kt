@@ -49,7 +49,13 @@ class EntryFactsTest {
             row = FileTreeRow(location = location("Data", "cache"), depth = 1, entry = directoryEntry("cache"), expanded = false),
             root = root,
             loadedFile = null,
-            directoryMeasurement = DirectoryMeasurement(totalSizeBytes = 3_145_728, fileCount = 1, directoryCount = 2, truncated = true, error = null),
+            directoryMeasurement = DirectoryMeasurement(
+                totalSizeBytes = 3_145_728,
+                fileCount = 1,
+                directoryCount = 2,
+                truncated = true,
+                error = null,
+            ),
             fileSha256 = null,
         ).rows.toMap()
 

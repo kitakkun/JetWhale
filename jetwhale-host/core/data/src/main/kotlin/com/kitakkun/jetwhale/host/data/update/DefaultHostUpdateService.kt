@@ -146,7 +146,10 @@ class DefaultHostUpdateService(
         val newerRelease = releases
             .filterNot(GitHubRelease::draft)
             .mapNotNull { release -> HostVersion.parse(release.tagName)?.let { release to it } }
-            .filter { (release, releaseVersion) -> releaseVersion > newestKnownVersion && release.asset(HostReleaseMetadata.assetName(releaseVersion)) != null }
+            .filter { (release, releaseVersion) ->
+                releaseVersion > newestKnownVersion &&
+                    release.asset(HostReleaseMetadata.assetName(releaseVersion)) != null
+            }
             .maxByOrNull { it.second }
         if (newerRelease == null) {
             downloadableRelease = null
@@ -292,7 +295,11 @@ class DefaultHostUpdateService(
                     if (read < 0) break
                     downloaded += read
                     if (downloaded > downloadableRelease.platform.size) {
-                        logger.warn("Stopped the download of host {}: it ran past the {} bytes its metadata pins", version, downloadableRelease.platform.size)
+                        logger.warn(
+                            "Stopped the download of host {}: it ran past the {} bytes its metadata pins",
+                            version,
+                            downloadableRelease.platform.size,
+                        )
                         return@execute HostUpdateFailure.Corrupted
                     }
                     onLocalFiles { output.write(buffer, 0, read) }
@@ -381,7 +388,9 @@ class DefaultHostUpdateService(
     private fun versionAwaitingRestart(): HostVersion? {
         val runningVersion = runningVersion ?: return null
         val setAsideVersion = hostVersionsRepository.newestSetAsideVersion()?.version
-        return hostVersionsRepository.hostVersionDirectories().firstOrNull { it.version > runningVersion && it.version != setAsideVersion }?.version
+        return hostVersionsRepository.hostVersionDirectories().firstOrNull {
+            it.version > runningVersion && it.version != setAsideVersion
+        }?.version
     }
 
     private fun setStatus(status: HostUpdateStatus) {

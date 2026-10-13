@@ -14,7 +14,8 @@ import platform.UIKit.accessibilityTraits
 import platform.darwin.NSObject
 import platform.objc.objc_getProtocol
 
-internal fun NSObject.isEnabled(): Boolean = !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
+internal fun NSObject.isEnabled(): Boolean =
+    !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
 
 /**
  * A button, link or toggle by trait, or a `UIControl` with a target for its tap: a control that

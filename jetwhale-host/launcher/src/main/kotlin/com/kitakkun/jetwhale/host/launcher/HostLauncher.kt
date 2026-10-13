@@ -186,7 +186,12 @@ class HostLauncher(
 
     private fun discard(hostVersionDirectory: HostVersionDirectory, reason: String): ChosenHostJar? {
         log.write("Deleting ${hostVersionDirectory.version}: $reason")
-        if (!hostDirectory.delete(hostVersionDirectory)) log.write("Could not delete all of ${hostVersionDirectory.version}; a later start tries again")
+        if (!hostDirectory.delete(
+                hostVersionDirectory,
+            )
+        ) {
+            log.write("Could not delete all of ${hostVersionDirectory.version}; a later start tries again")
+        }
         return null
     }
 
@@ -203,7 +208,9 @@ class HostLauncher(
         hostDirectory.deleteInstanceJson()
         val state = hostDirectory.readLauncherState()
         hostDirectory.writeLauncherState(
-            state.copy(startedHostProcess = StartedHostProcess(chosenHostJar.version, processTable.currentPid, processTable.currentStartMillis)),
+            state.copy(
+                startedHostProcess = StartedHostProcess(chosenHostJar.version, processTable.currentPid, processTable.currentStartMillis),
+            ),
         )
         log.write("Starting ${chosenHostJar.version}${if (chosenHostJar.isBundled) " (bundled)" else ""}")
         val startOutcomeRecorder = HostStartOutcomeRecorder(

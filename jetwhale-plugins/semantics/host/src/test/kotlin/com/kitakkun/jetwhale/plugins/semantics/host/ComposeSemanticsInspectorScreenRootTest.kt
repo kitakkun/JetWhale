@@ -26,7 +26,13 @@ class ComposeSemanticsInspectorScreenRootTest {
     fun `with highlight on the device points at the hovered row and falls back to the selection`() = runComposeUiTest {
         val targets = mutableListOf<NodeKey?>()
         val storage = InMemoryPluginStorage(mapOf("highlight-on-device" to "true"))
-        val snapshot = snapshot(root("window", node = node(id = 1, text = "top", children = listOf(node(id = 2, text = "first"), node(id = 3, text = "second")))))
+        val snapshot =
+            snapshot(
+                root(
+                    "window",
+                    node = node(id = 1, text = "top", children = listOf(node(id = 2, text = "first"), node(id = 3, text = "second"))),
+                ),
+            )
         setContent {
             CompositionLocalProvider(LocalJetWhalePluginStorage provides storage) {
                 JwTheme(darkTheme = true) {
@@ -71,9 +77,13 @@ private class InMemoryPluginStorage(initial: Map<String, String>) : JetWhalePlug
         values.update { it + (key to Json.encodeToString(serializer, value)) }
     }
 
-    override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? = values.value[key]?.let { Json.decodeFromString(serializer, it) }
+    override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? = values.value[key]?.let {
+        Json.decodeFromString(serializer, it)
+    }
 
-    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = values.map { stored -> stored[key]?.let { Json.decodeFromString(serializer, it) } }
+    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = values.map { stored ->
+        stored[key]?.let { Json.decodeFromString(serializer, it) }
+    }
 
     override suspend fun contains(key: String): Boolean = key in values.value
 

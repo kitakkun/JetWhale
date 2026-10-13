@@ -240,4 +240,8 @@ class DefaultPluginTrustService(
     private suspend fun computeSha256(jarPath: String): String = withContext(Dispatchers.IO) { File(jarPath).sha256Hex() }
 }
 
-private fun JetWhaleHostPluginManifest.toDeclaredPlugin(): DeclaredPlugin = DeclaredPlugin(pluginId = pluginId, pluginName = pluginName, version = version)
+private fun JetWhaleHostPluginManifest.toDeclaredPlugin(): DeclaredPlugin = DeclaredPlugin(
+    pluginId = pluginId,
+    pluginName = pluginName,
+    version = version,
+)

@@ -83,7 +83,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
         val entry = registrations[toolName] ?: return null
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content
-            ?: return errorPayload("'sessionId' is required: the session to run '$toolName' in (available in: ${entry.availableSessions()}).")
+            ?: return errorPayload(
+                "'sessionId' is required: the session to run '$toolName' in (available in: ${entry.availableSessions()}).",
+            )
         val pluginId = entry.sessionToPlugin[sessionId]
             ?: return errorPayload("'$toolName' is not available in session '$sessionId' (available in: ${entry.availableSessions()}).")
         val plugin = pluginInstanceService.getPluginInstanceForSession(

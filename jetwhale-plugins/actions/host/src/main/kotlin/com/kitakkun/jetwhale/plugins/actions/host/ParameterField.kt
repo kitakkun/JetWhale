@@ -191,7 +191,13 @@ private class SuggestionMenuState {
     var highlightedIndex by mutableIntStateOf(-1)
         private set
 
-    fun shownSuggestions(suggestions: List<String>, value: String): List<String> = if (narrowing) suggestions.filter { it.contains(value, ignoreCase = true) } else suggestions
+    fun shownSuggestions(suggestions: List<String>, value: String): List<String> = if (narrowing) {
+        suggestions.filter {
+            it.contains(value, ignoreCase = true)
+        }
+    } else {
+        suggestions
+    }
 
     fun open(narrowing: Boolean) {
         expanded = true
@@ -262,7 +268,9 @@ private fun SuggestionMenu(
 @Composable
 private fun ChoiceMenu(text: String, choices: List<String>, onChoose: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    JwDropdownButton(text = text, expanded = expanded, onExpandedChange = { expanded = it }, modifier = Modifier.fillMaxWidth(fraction = 0.4f)) {
+    JwDropdownButton(text = text, expanded = expanded, onExpandedChange = {
+        expanded = it
+    }, modifier = Modifier.fillMaxWidth(fraction = 0.4f)) {
         choices.forEach { choice ->
             JwMenuItem(
                 text = choice.ifEmpty { "Default" },

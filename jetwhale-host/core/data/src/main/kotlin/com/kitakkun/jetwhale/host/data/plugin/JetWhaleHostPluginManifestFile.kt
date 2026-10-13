@@ -12,7 +12,9 @@ import java.util.jar.JarFile
 internal const val PLUGIN_MANIFEST_PATH = "META-INF/jetwhale/plugin-manifest.json"
 
 /** Parses a plugin manifest; keys this host version does not know are ignored. */
-internal fun decodeJetWhaleHostPluginManifestFile(manifestJson: String): JetWhaleHostPluginManifestFile = pluginManifestJson.decodeFromString(manifestJson)
+internal fun decodeJetWhaleHostPluginManifestFile(
+    manifestJson: String,
+): JetWhaleHostPluginManifestFile = pluginManifestJson.decodeFromString(manifestJson)
 
 /** Reads [jar]'s plugin manifest straight from the archive, without loading any of its classes. */
 internal fun readJetWhaleHostPluginManifestFile(jar: File): JetWhaleHostPluginManifestFile = JarFile(jar).use { archive ->

@@ -67,7 +67,18 @@ internal fun DevicePicker(
                     text = device.name,
                     selected = device.id == selected?.id,
                     leadingIcon = { LivenessDot(livenessOf(device.id)) },
-                    trailingIcon = { SecondaryText(listOfNotNull(device.kind.label, device.osVersion, "View only".takeIf { device.kind == DeviceKind.IosDevice }).joinToString(" · ")) },
+                    trailingIcon = {
+                        SecondaryText(
+                            listOfNotNull(
+                                device.kind.label,
+                                device.osVersion,
+                                "View only".takeIf {
+                                    device.kind ==
+                                        DeviceKind.IosDevice
+                                },
+                            ).joinToString(" · "),
+                        )
+                    },
                     onClick = {
                         expanded = false
                         onSelect(device.id)

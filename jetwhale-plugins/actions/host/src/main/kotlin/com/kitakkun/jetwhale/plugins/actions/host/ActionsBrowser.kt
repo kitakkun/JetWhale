@@ -170,12 +170,30 @@ internal class ActionsBrowser(
     suspend fun runNow(actionId: String, arguments: JsonObject, origin: RunOrigin, confirmedDestructive: Boolean): ActionResult {
         val runId = UUID.randomUUID().toString()
         val title = catalog?.actions?.firstOrNull { it.id == actionId }?.title ?: actionId
-        runs.add(0, RunRecord(runId = runId, actionId = actionId, title = title, arguments = arguments, origin = origin, startedAtMillis = System.currentTimeMillis(), result = null))
+        runs.add(
+            0,
+            RunRecord(
+                runId = runId,
+                actionId = actionId,
+                title = title,
+                arguments = arguments,
+                origin = origin,
+                startedAtMillis = System.currentTimeMillis(),
+                result = null,
+            ),
+        )
         if (runs.size > HISTORY_LIMIT) runs.removeRange(HISTORY_LIMIT, runs.size)
         val result = try {
             client.run(runId = runId, actionId = actionId, arguments = arguments, confirmedDestructive = confirmedDestructive)
         } catch (e: JetWhaleMessagingException) {
-            ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "failed to reach the app: ${e.message}", stackTrace = null, durationMillis = 0)
+            ActionResult(
+                ActionOutcome.FAILURE,
+                text = null,
+                json = null,
+                error = "failed to reach the app: ${e.message}",
+                stackTrace = null,
+                durationMillis = 0,
+            )
         }
         val index = runs.indexOfFirst { it.runId == runId }
         if (index >= 0) runs[index] = runs[index].copy(result = result)

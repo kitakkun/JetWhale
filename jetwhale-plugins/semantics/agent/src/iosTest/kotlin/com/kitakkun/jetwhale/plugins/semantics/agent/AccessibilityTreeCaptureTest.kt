@@ -42,7 +42,9 @@ class AccessibilityTreeCaptureTest {
     }
 
     private fun capture(): AppleNode = assertNotNull(
-        AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) { window.toAppleNode(NodeTreeCaptureOptions(includeInvisible = true), window, depth = 0) },
+        AppleNodeIds.runTreeCaptureReleasingUnseenObjects(window) {
+            window.toAppleNode(NodeTreeCaptureOptions(includeInvisible = true), window, depth = 0)
+        },
     )
 
     @Test

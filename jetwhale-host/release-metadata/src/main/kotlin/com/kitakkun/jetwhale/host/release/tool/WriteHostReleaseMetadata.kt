@@ -144,7 +144,9 @@ private class HostReleaseMetadataRequest(
             }
             require(jars.isNotEmpty()) { "Expected at least one --jar or --current-platform-jar" }
             val repeatedPlatforms = jars.groupingBy { it.first }.eachCount().filterValues { it > 1 }.keys
-            require(repeatedPlatforms.isEmpty()) { "Expected one jar per platform, but got several for ${repeatedPlatforms.joinToString()}" }
+            require(repeatedPlatforms.isEmpty()) {
+                "Expected one jar per platform, but got several for ${repeatedPlatforms.joinToString()}"
+            }
             return HostReleaseMetadataRequest(
                 output = Path.of(single("--output")),
                 versionName = single("--version"),

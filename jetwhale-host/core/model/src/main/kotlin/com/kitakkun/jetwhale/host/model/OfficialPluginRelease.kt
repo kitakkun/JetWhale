@@ -9,7 +9,9 @@ class OfficialPluginRelease(private val hostVersionInfo: HostVersionInfo) {
     val agentRuntimeCoordinates: String = "${OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID}:jetwhale-agent-runtime:${hostVersionInfo.version}"
 
     /** The Gradle coordinates of [plugin]'s agent library, or null for a host-only plugin. */
-    fun agentCoordinatesOf(plugin: OfficialPlugin): String? = plugin.agentArtifactId?.let { "${OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID}:$it:${hostVersionInfo.version}" }
+    fun agentCoordinatesOf(
+        plugin: OfficialPlugin,
+    ): String? = plugin.agentArtifactId?.let { "${OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID}:$it:${hostVersionInfo.version}" }
 
     /**
      * The coordinates to install [plugin] from, in the order to attempt them. A snapshot host

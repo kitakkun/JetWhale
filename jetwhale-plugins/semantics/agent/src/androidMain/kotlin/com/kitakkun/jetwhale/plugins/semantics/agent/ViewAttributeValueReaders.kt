@@ -39,9 +39,18 @@ internal fun ViewAttributeValue.asLayoutSize(attributeId: String): Int {
     val size = this as? ViewAttributeValue.LayoutSizeValue
         ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "layoutSize", this))
     return when (size.constant) {
-        null -> (size.px ?: throw IllegalArgumentException("$attributeId needs either a constant or a pixel length, but neither was sent")).roundToInt()
+        null -> (
+            size.px ?: throw IllegalArgumentException(
+                "$attributeId needs either a constant or a pixel length, but neither was sent",
+            )
+            ).roundToInt()
+
         "MATCH_PARENT" -> ViewGroup.LayoutParams.MATCH_PARENT
+
         "WRAP_CONTENT" -> ViewGroup.LayoutParams.WRAP_CONTENT
-        else -> throw IllegalArgumentException("unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)")
+
+        else -> throw IllegalArgumentException(
+            "unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)",
+        )
     }
 }

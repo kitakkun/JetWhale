@@ -36,7 +36,10 @@ class InstanceJsonPublicationWatcherTest {
 
         assertEquals(150, launchLockHeldAtPolls.size)
         assertTrue(launchLockHeldAtPolls.all { it })
-        assertTrue(bed.lockFiles.isHeld(bed.hostDirectory.launchLockFile), "launch.lock stays for the end of the startup time window to let go")
+        assertTrue(
+            bed.lockFiles.isHeld(bed.hostDirectory.launchLockFile),
+            "launch.lock stays for the end of the startup time window to let go",
+        )
     }
 
     private fun watcher(isInstanceJsonPublished: () -> Boolean) = InstanceJsonPublicationWatcher(

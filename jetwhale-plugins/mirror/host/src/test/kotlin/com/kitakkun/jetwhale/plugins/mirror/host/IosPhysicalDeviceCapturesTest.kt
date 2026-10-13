@@ -129,7 +129,10 @@ class IosPhysicalDeviceCapturesTest {
         }
         iphone.screenSize()
 
-        assertTrue(companionProcesses.last().stopped.await(COMPANION_STOP_WAIT_SECONDS, TimeUnit.SECONDS), "the companion was still held after the recording")
+        assertTrue(
+            companionProcesses.last().stopped.await(COMPANION_STOP_WAIT_SECONDS, TimeUnit.SECONDS),
+            "the companion was still held after the recording",
+        )
     }
 
     @Test
@@ -208,7 +211,11 @@ class IosPhysicalDeviceCapturesTest {
     }
 
     private fun installedFfmpegPath(): String {
-        val ffmpegPath = findToolPath("ffmpeg", System.getenv("PATH").orEmpty().split(File.pathSeparator) + WellKnownToolDirectories(File(System.getProperty("user.home"))).list())
+        val ffmpegPath = findToolPath(
+            "ffmpeg",
+            System.getenv("PATH").orEmpty().split(File.pathSeparator) +
+                WellKnownToolDirectories(File(System.getProperty("user.home"))).list(),
+        )
         assumeTrue("ffmpeg is not installed", ffmpegPath != null)
         return checkNotNull(ffmpegPath)
     }
@@ -299,7 +306,13 @@ private class PacedStreamProcess(private val output: InputStream) : Process() {
     private val tracked = object : InputStream() {
         override fun read(): Int = output.read().also { if (it == -1) drained.countDown() }
 
-        override fun read(buffer: ByteArray, offset: Int, length: Int): Int = output.read(buffer, offset, length).also { if (it == -1) drained.countDown() }
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int = output.read(buffer, offset, length).also {
+            if (it ==
+                -1
+            ) {
+                drained.countDown()
+            }
+        }
     }
 
     fun awaitDrained() {

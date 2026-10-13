@@ -31,7 +31,9 @@ class DestructiveRunTest {
 
     @Test
     fun `an unconfirmed run of a destructive action is refused by the agent itself`() = runTest {
-        val result = plugin.runAction(RunAction(runId = "1", actionId = "Wipe data", arguments = JsonObject(emptyMap()), confirmedDestructive = false))
+        val result = plugin.runAction(
+            RunAction(runId = "1", actionId = "Wipe data", arguments = JsonObject(emptyMap()), confirmedDestructive = false),
+        )
 
         assertEquals(ActionOutcome.FAILURE, result.outcome)
         assertEquals(false, wiped)
@@ -39,7 +41,9 @@ class DestructiveRunTest {
 
     @Test
     fun `a confirmed run of a destructive action runs`() = runTest {
-        val result = plugin.runAction(RunAction(runId = "1", actionId = "Wipe data", arguments = JsonObject(emptyMap()), confirmedDestructive = true))
+        val result = plugin.runAction(
+            RunAction(runId = "1", actionId = "Wipe data", arguments = JsonObject(emptyMap()), confirmedDestructive = true),
+        )
 
         assertEquals(ActionOutcome.SUCCESS, result.outcome)
         assertEquals(true, wiped)
@@ -47,7 +51,9 @@ class DestructiveRunTest {
 
     @Test
     fun `an id no longer registered fails instead of running something else`() = runTest {
-        val result = plugin.runAction(RunAction(runId = "1", actionId = "Fill form", arguments = JsonObject(emptyMap()), confirmedDestructive = true))
+        val result = plugin.runAction(
+            RunAction(runId = "1", actionId = "Fill form", arguments = JsonObject(emptyMap()), confirmedDestructive = true),
+        )
 
         assertEquals(ActionOutcome.FAILURE, result.outcome)
         assertEquals(false, wiped)

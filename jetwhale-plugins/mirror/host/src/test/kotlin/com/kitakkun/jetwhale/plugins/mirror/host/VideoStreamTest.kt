@@ -164,7 +164,15 @@ class VideoStreamTest {
         MirrorSurface().use { surface ->
             var frames = 0
 
-            readRawBgraInto(surface.startStream(), rawStream(ByteArrayInputStream(ByteArray(frameBytes + frameBytes / 2)), size, rowBytes = size.width * 4)) { frames++ }
+            readRawBgraInto(
+                surface.startStream(),
+                rawStream(
+                    ByteArrayInputStream(ByteArray(frameBytes + frameBytes / 2)),
+                    size,
+                    rowBytes =
+                    size.width * 4,
+                ),
+            ) { frames++ }
 
             assertEquals(1, frames)
         }
@@ -192,7 +200,11 @@ class VideoStreamTest {
 private const val SECOND = 1_000_000_000L
 
 /** A stream that keeps its pace, for reading frames out of [input]. */
-private fun rawStream(input: InputStream, size: IntSize, rowBytes: Int) = VideoStream.RawBgra(StreamProcess(input), size, rowBytes, fps = 30, onFellBehind = { false })
+private fun rawStream(
+    input: InputStream,
+    size: IntSize,
+    rowBytes: Int,
+) = VideoStream.RawBgra(StreamProcess(input), size, rowBytes, fps = 30, onFellBehind = { false })
 
 /** A process whose output is [input]. */
 private class StreamProcess(private val input: InputStream) : Process() {

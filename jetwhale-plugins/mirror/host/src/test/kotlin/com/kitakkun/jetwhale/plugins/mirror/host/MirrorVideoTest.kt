@@ -53,7 +53,8 @@ private class VideoScene : AutoCloseable {
         Box(Modifier.fillMaxSize().clip(RectangleShape)) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxWidth().height(SIBLING_HEIGHT.dp).drawBehind { siblingDraws++ })
-                MirrorVideo(surface, deviceId = "pixel", interactive = false, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
+                MirrorVideo(surface, deviceId = "pixel", interactive = false, onTap = { _, _ ->
+                }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
             }
         }
     }

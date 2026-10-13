@@ -51,7 +51,14 @@ private fun DeviceGridEmptyPreview() {
             devices = emptyList(),
             selectedId = null,
             missingTools = listOf("adb was not found; install the Android SDK platform tools to mirror Android devices."),
-            notices = PreviewNotices(notice = MirrorNotice("Saved 3 screenshots", isError = false, actions = listOf(NoticeAction.OpenCaptures), details = emptyList())),
+            notices = PreviewNotices(
+                notice = MirrorNotice(
+                    "Saved 3 screenshots",
+                    isError = false,
+                    actions = listOf(NoticeAction.OpenCaptures),
+                    details = emptyList(),
+                ),
+            ),
             recording = previewGridRecording,
             recordingActions = PreviewGridRecordingActions,
             thumbnailOf = { DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading) },
@@ -89,7 +96,8 @@ private fun LivenessDotPreview() {
     }
 }
 
-private val previewGridRecording = GridRecordingState(recordingDeviceIds = setOf("emulator-5554"), recordableDevices = emptyList(), warningSuppressed = false)
+private val previewGridRecording =
+    GridRecordingState(recordingDeviceIds = setOf("emulator-5554"), recordableDevices = emptyList(), warningSuppressed = false)
 
 private object PreviewGridRecordingActions : GridRecordingActions {
     override fun recordAll() = Unit
@@ -112,7 +120,10 @@ private fun RecordAllWarningDialogPreview() {
 private fun RecordAllButtonPreview() {
     JwTheme(darkTheme = true) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RecordAllButton(GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = gridDevices, warningSuppressed = false), PreviewGridRecordingActions)
+            RecordAllButton(
+                GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = gridDevices, warningSuppressed = false),
+                PreviewGridRecordingActions,
+            )
             RecordAllButton(previewGridRecording, PreviewGridRecordingActions)
             RecordingDot()
         }

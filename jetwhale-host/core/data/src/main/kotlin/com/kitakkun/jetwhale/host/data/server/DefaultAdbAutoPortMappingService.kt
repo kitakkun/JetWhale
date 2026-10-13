@@ -165,7 +165,10 @@ class DefaultAdbAutoPortMappingService(
 /** The adb executable itself could not be launched — no amount of retrying will bring it back. */
 private const val ADB_LAUNCH_FAILED = -1
 
-private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
+private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception(
+    "adb could not be launched from \"$adbPath\": ${cause.message}",
+    cause,
+)
 
 private sealed interface DeviceEvent {
     data class Connected(val serial: String) : DeviceEvent

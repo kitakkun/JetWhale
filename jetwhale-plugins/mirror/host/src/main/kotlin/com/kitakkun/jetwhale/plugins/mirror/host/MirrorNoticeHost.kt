@@ -99,7 +99,12 @@ private fun NoticeStrip(notice: MirrorNotice, actions: MirrorNoticeActions) {
             JwText(text = notice.message, style = JwTheme.textStyles.body, color = content, modifier = Modifier.weight(1f, fill = false))
             if (notice.details.isNotEmpty()) {
                 NoticeButton(color = content, onClick = { showDetails = !showDetails }) {
-                    JwText(text = if (showDetails) "Hide details" else "Details", style = JwTheme.textStyles.label, color = content, maxLines = 1)
+                    JwText(
+                        text = if (showDetails) "Hide details" else "Details",
+                        style = JwTheme.textStyles.label,
+                        color = content,
+                        maxLines = 1,
+                    )
                 }
             }
             notice.actions.forEach { action ->
@@ -113,7 +118,12 @@ private fun NoticeStrip(notice: MirrorNotice, actions: MirrorNoticeActions) {
         }
         if (showDetails) {
             notice.details.forEach { reason ->
-                JwText(text = reason, style = JwTheme.textStyles.bodySmall, color = content, modifier = Modifier.padding(top = JwSpacing.extraSmall))
+                JwText(
+                    text = reason,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = content,
+                    modifier = Modifier.padding(top = JwSpacing.extraSmall),
+                )
             }
         }
     }

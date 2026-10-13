@@ -68,7 +68,9 @@ class ClickToolTest {
     }
 
     @Test
-    fun `a click on a dialog button reaches the dialog rather than the clickable content beneath it`(): Unit = runBlocking(Dispatchers.Main) {
+    fun `a click on a dialog button reaches the dialog rather than the clickable content beneath it`(): Unit = runBlocking(
+        Dispatchers.Main,
+    ) {
         var clicked = "nothing"
         val scene = createTestScene {
             Box(Modifier.fillMaxSize().clickable { clicked = "content" })

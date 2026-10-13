@@ -256,7 +256,9 @@ private fun HostWindowContent(
             PluginJarArrivalBanner(
                 arrivedJars = arrivedJars,
                 onLoad = { jar -> coroutineScope.launch { trustPluginMutation.mutateAsync(TrustPluginRequest(jar.jarPath, jar.sha256)) } },
-                onPostpone = { jarPath -> coroutineScope.launch { postponeMutation.mutateAsync(PostponeArrivedPluginJarRequest(jarPath)) } },
+                onPostpone = { jarPath ->
+                    coroutineScope.launch { postponeMutation.mutateAsync(PostponeArrivedPluginJarRequest(jarPath)) }
+                },
                 onReviewInSettings = onClickReviewArrivedPlugins,
             )
         }

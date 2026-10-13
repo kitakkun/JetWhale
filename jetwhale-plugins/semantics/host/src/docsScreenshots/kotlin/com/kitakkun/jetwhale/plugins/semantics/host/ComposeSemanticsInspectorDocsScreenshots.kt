@@ -46,7 +46,13 @@ class ComposeSemanticsInspectorDocsScreenshots {
 
     @Test
     fun `the attributes of a selected View`() = recorder.record(
-        DocsScreenshot(page = PAGE, name = "view-attributes", surfaceSize = DpSize(860.dp, 560.dp), density = 1.6f, displayWidthCssPx = 688),
+        DocsScreenshot(
+            page = PAGE,
+            name = "view-attributes",
+            surfaceSize = DpSize(860.dp, 560.dp),
+            density = 1.6f,
+            displayWidthCssPx = 688,
+        ),
     ) { darkTheme ->
         setSemanticsInspectorContent(darkTheme)
         onNodeWithText("TextView · @id/promo_banner · Free shipping on orders over $30").mouseClickThenMovePointerAway()
@@ -237,13 +243,23 @@ private val PADDING_LEFT = ViewAttributeValue.DimensionValue(px = 44f, dp = 16f)
 /** What the agent reads from the promo banner: a `TextView`, so it has the Text group as well. */
 private val PROMO_BANNER_ATTRIBUTES = ViewAttributesUiState(
     attributes = listOf(
-        attribute("visibility", "State", ViewAttributeValue.EnumValue(value = "VISIBLE", options = listOf("VISIBLE", "INVISIBLE", "GONE")), editable = true),
+        attribute(
+            "visibility",
+            "State",
+            ViewAttributeValue.EnumValue(value = "VISIBLE", options = listOf("VISIBLE", "INVISIBLE", "GONE")),
+            editable = true,
+        ),
         attribute("enabled", "State", ViewAttributeValue.BooleanValue(true), editable = true),
         attribute("clickable", "State", ViewAttributeValue.BooleanValue(false), editable = true),
         attribute(
             "layout.width",
             "Layout",
-            ViewAttributeValue.LayoutSizeValue(constant = "MATCH_PARENT", px = null, dp = null, constants = listOf("MATCH_PARENT", "WRAP_CONTENT")),
+            ViewAttributeValue.LayoutSizeValue(
+                constant = "MATCH_PARENT",
+                px = null,
+                dp = null,
+                constants = listOf("MATCH_PARENT", "WRAP_CONTENT"),
+            ),
             editable = true,
         ),
         attribute("padding.left", "Layout", PADDING_LEFT, editable = true),
@@ -259,4 +275,10 @@ private val PROMO_BANNER_ATTRIBUTES = ViewAttributesUiState(
     writeFailed = false,
 )
 
-private fun attribute(id: String, group: String, value: ViewAttributeValue, editable: Boolean) = ViewAttribute(id = id, label = id, group = group, value = value, editable = editable)
+private fun attribute(id: String, group: String, value: ViewAttributeValue, editable: Boolean) = ViewAttribute(
+    id = id,
+    label = id,
+    group = group,
+    value = value,
+    editable = editable,
+)

@@ -28,7 +28,9 @@ class InMemoryPluginStorage(initial: Map<String, String>) : JetWhalePluginStorag
         return values.value[key]?.let { Json.decodeFromString(serializer, it) }
     }
 
-    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = values.map { stored -> stored[key]?.let { Json.decodeFromString(serializer, it) } }
+    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = values.map { stored ->
+        stored[key]?.let { Json.decodeFromString(serializer, it) }
+    }
 
     override suspend fun contains(key: String): Boolean = key in values.value
 

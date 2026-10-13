@@ -73,7 +73,12 @@ private fun RunHistorySplit(
                         JwText(text = run.startedAtText(), style = JwTheme.textStyles.code, color = JwTheme.colors.textSecondary)
                         Column(Modifier.weight(1f)) {
                             JwText(text = run.title, maxLines = 1)
-                            JwText(text = run.summary(), style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1)
+                            JwText(
+                                text = run.summary(),
+                                style = JwTheme.textStyles.labelSmall,
+                                color = JwTheme.colors.textSecondary,
+                                maxLines = 1,
+                            )
                         }
                         JwText(text = run.originLabel(), style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
                         run.StatusTag()
@@ -103,7 +108,11 @@ private fun RunDetail(run: RunRecord, onRunAgain: () -> Unit) {
             JwText(text = run.title, style = JwTheme.textStyles.title, modifier = Modifier.weight(1f, fill = false))
             run.StatusTag()
         }
-        JwText(text = "${run.startedAtText()} · ${run.originLabel()}", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+        JwText(
+            text = "${run.startedAtText()} · ${run.originLabel()}",
+            style = JwTheme.textStyles.labelSmall,
+            color = JwTheme.colors.textSecondary,
+        )
         JwButton(text = "Run again", style = JwButtonStyle.Primary, onClick = onRunAgain)
         JwSectionHeader(title = "Arguments", contentPadding = PaddingValues())
         JwCodeBlock(

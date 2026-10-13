@@ -136,7 +136,8 @@ class DefaultLogCaptureService : LogCaptureService {
             val name = line.substringBefore(": ", missingDelimiterValue = "")
             // JUL prints the level name localized for the default locale at the moment it formats
             // the record, and the App Language setting changes that locale while the host runs.
-            val level = JAVA_UTIL_LOGGING_LEVELS.firstOrNull { name.isNotEmpty() && (name == it.name || name == it.localizedName) } ?: return null
+            val level =
+                JAVA_UTIL_LOGGING_LEVELS.firstOrNull { name.isNotEmpty() && (name == it.name || name == it.localizedName) } ?: return null
             return if (level.intValue() >= Level.WARNING.intValue()) LogLevel.ERROR else LogLevel.INFO
         }
     }

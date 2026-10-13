@@ -29,13 +29,22 @@ class LoginShellPathVariableResolverTest {
         assumeShellScriptsLaunch()
         shellRuns("PATH='/opt/login/bin:/usr/bin:/bin'", "eval \"\$4\"")
 
-        assertEquals("/opt/login/bin:/usr/bin:/bin", LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable())
+        assertEquals(
+            "/opt/login/bin:/usr/bin:/bin",
+            LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable(),
+        )
     }
 
     @Test
     fun `what startup files print around the PATH is left out`() {
         assumeShellScriptsLaunch()
-        shellRuns("echo 'Last login: Tue Oct  6 on ttys001'", "printf 'a prompt without a line break'", "PATH='/opt/login/bin'", "eval \"\$4\"", "echo 'Saving session...'")
+        shellRuns(
+            "echo 'Last login: Tue Oct  6 on ttys001'",
+            "printf 'a prompt without a line break'",
+            "PATH='/opt/login/bin'",
+            "eval \"\$4\"",
+            "echo 'Saving session...'",
+        )
 
         assertEquals("/opt/login/bin", LoginShellPathVariableResolver(fakeShell.path, TIMEOUT).resolveLoginShellPathVariable())
     }
@@ -93,7 +102,10 @@ class LoginShellPathVariableResolverTest {
         assertNull(LoginShellPathVariableResolver(File(folder, "no-such-shell").path, TIMEOUT).resolveLoginShellPathVariable())
     }
 
-    private fun assumeShellScriptsLaunch() = assumeFalse("the shells stand in as /bin/sh scripts, which Windows cannot launch", HostOs.current == HostOs.WINDOWS)
+    private fun assumeShellScriptsLaunch() = assumeFalse(
+        "the shells stand in as /bin/sh scripts, which Windows cannot launch",
+        HostOs.current == HostOs.WINDOWS,
+    )
 
     /** Makes [fakeShell] a script that runs [lines]; the command the resolver passes is its fourth argument. */
     private fun shellRuns(vararg lines: String) {

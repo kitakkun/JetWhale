@@ -82,7 +82,9 @@ class FakeLockFiles {
     fun of(pid: Long): LockFiles = object : LockFiles {
         override fun lock(path: Path): HeldLock {
             val semaphore = semaphoreOf(path)
-            check(semaphore.tryAcquire(LOCK_WAIT_LIMIT_SECONDS, TimeUnit.SECONDS)) { "process $pid waited for ${path.fileName}, which nothing released" }
+            check(semaphore.tryAcquire(LOCK_WAIT_LIMIT_SECONDS, TimeUnit.SECONDS)) {
+                "process $pid waited for ${path.fileName}, which nothing released"
+            }
             return held(pid, semaphore)
         }
 
@@ -116,7 +118,8 @@ class FakeProcessTable(
 ) : ProcessTable {
     override val currentStartMillis: Long? = startMillisOf(currentPid)
 
-    override fun isRunning(pid: Long, startMillis: Long?): Boolean = pid in runningPids && (startMillis == null || startMillis == startMillisOf(pid))
+    override fun isRunning(pid: Long, startMillis: Long?): Boolean =
+        pid in runningPids && (startMillis == null || startMillis == startMillisOf(pid))
 
     override fun awaitExit(pid: Long) = onAwaitExit(pid)
 }
@@ -161,7 +164,10 @@ class LaunchTestBed {
 
     init {
         writeHostVersion(bundledDirectory, "1.0.0-alpha13") { it }
-        Files.move(bundledDirectory.resolve(hostJarName(hostVersion("1.0.0-alpha13"), PLATFORM)), bundledDirectory.resolve(BundledHostDirectory.JAR_FILE_NAME))
+        Files.move(
+            bundledDirectory.resolve(hostJarName(hostVersion("1.0.0-alpha13"), PLATFORM)),
+            bundledDirectory.resolve(BundledHostDirectory.JAR_FILE_NAME),
+        )
     }
 
     fun download(versionName: String) {
@@ -187,14 +193,20 @@ class LaunchTestBed {
             metadataReader = metadataReader,
             lockFiles = lockFiles,
             runningHostChannel = runningHostChannel,
-            processTable = FakeProcessTable(currentPid = pid, runningPids = runningPids, startMillisOf = { it * 1000 }, onAwaitExit = onAwaitExit),
+            processTable = FakeProcessTable(currentPid = pid, runningPids = runningPids, startMillisOf = {
+                it * 1000
+            }, onAwaitExit = onAwaitExit),
             log = { logLines += it },
             sleep = sleep,
         )
     }
 
     /** Launches as the process [pid]. */
-    fun launch(pid: Long, afterPid: Long? = null, retryVersion: HostVersion? = null): LaunchOutcome = launcher(pid).launch(afterPid, retryVersion)
+    fun launch(
+        pid: Long,
+        afterPid: Long? = null,
+        retryVersion: HostVersion? = null,
+    ): LaunchOutcome = launcher(pid).launch(afterPid, retryVersion)
 
     /**
      * The host of the process [pid] takes `instance.lock` and publishes `instance.json`, as a host coming

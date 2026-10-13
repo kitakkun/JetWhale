@@ -30,11 +30,14 @@ class DeviceToolbarTest {
         assertEquals(listOf(label), contentDescriptionOf(label))
     }
 
-    private fun SemanticsNodeInteractionsProvider.contentDescriptionOf(label: String): List<String>? = onNodeWithContentDescription(label).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
+    private fun SemanticsNodeInteractionsProvider.contentDescriptionOf(label: String): List<String>? = onNodeWithContentDescription(
+        label,
+    ).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
 
     private val emulator = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
 
-    private val simulator = DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
+    private val simulator =
+        DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
     private val androidCapabilities = DeviceCapabilities(input = true, buttons = DeviceButton.entries, recording = true, screenPower = true)
 

@@ -78,7 +78,8 @@ internal class DeviceThumbnails(
 
     private val thumbnails = mutableStateMapOf<String, DeviceThumbnail>()
 
-    fun thumbnailOf(deviceId: String): DeviceThumbnail = thumbnails[deviceId] ?: DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading)
+    fun thumbnailOf(deviceId: String): DeviceThumbnail =
+        thumbnails[deviceId] ?: DeviceThumbnail(image = null, updatedAtMillis = null, state = ThumbnailState.Loading)
 
     /**
      * Captures [device] every [refreshIntervalMillis] until cancelled or until [device] returns
@@ -100,7 +101,10 @@ internal class DeviceThumbnails(
      */
     // The device's lock is taken first, so a capture queued behind another of the same device holds
     // no global permit while it waits.
-    suspend fun <T> withCapturePermit(deviceId: String, capture: suspend () -> T): T = deviceLocks.getOrPut(deviceId, ::Mutex).withLock { permits.withPermit { capture() } }
+    suspend fun <T> withCapturePermit(
+        deviceId: String,
+        capture: suspend () -> T,
+    ): T = deviceLocks.getOrPut(deviceId, ::Mutex).withLock { permits.withPermit { capture() } }
 
     /** Drops the images of devices that are gone. */
     fun retainOnly(deviceIds: Set<String>) {
@@ -154,7 +158,8 @@ internal class DeviceThumbnails(
         val dropped = synchronized(lock) {
             if (!accepts(deviceId)) return closeImage(image)
             val shown = thumbnails[deviceId]?.image
-            thumbnails[deviceId] = DeviceThumbnail(image = image, updatedAtMillis = clock.now().toEpochMilliseconds(), state = ThumbnailState.Live)
+            thumbnails[deviceId] =
+                DeviceThumbnail(image = image, updatedAtMillis = clock.now().toEpochMilliseconds(), state = ThumbnailState.Live)
             if (shown != null) previous.put(deviceId, shown) else null
         }
         dropped?.let(::closeImage)

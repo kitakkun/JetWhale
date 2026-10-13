@@ -52,5 +52,7 @@ class RenderDiscardingPixelsTest {
 
     private fun textsOf(scene: PluginComposeScene): List<String> = scene.semanticsOwners.flatMap { textsOf(it.rootSemanticsNode) }
 
-    private fun textsOf(node: SemanticsNode): List<String> = listOfNotNull(node.config.getOrNull(SemanticsProperties.Text)?.joinToString(transform = AnnotatedString::text)) + node.children.flatMap(::textsOf)
+    private fun textsOf(node: SemanticsNode): List<String> =
+        listOfNotNull(node.config.getOrNull(SemanticsProperties.Text)?.joinToString(transform = AnnotatedString::text)) +
+            node.children.flatMap(::textsOf)
 }

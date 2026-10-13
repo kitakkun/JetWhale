@@ -92,7 +92,12 @@ private fun File.readTextOrNull(): String? = try {
 /** The console port and gRPC endpoint in the text of an emulator's discovery file, or null without a gRPC port. */
 @VisibleForTesting
 internal fun parseEmulatorDiscovery(text: String): Pair<Int, EmulatorEndpoint>? {
-    val values = text.lineSequence().mapNotNull { line -> line.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim() to it[1].trim() } }.toMap()
+    val values = text.lineSequence().mapNotNull { line ->
+        line.split('=', limit = 2).takeIf { it.size == 2 }?.let {
+            it[0].trim() to
+                it[1].trim()
+        }
+    }.toMap()
     val consolePort = values["port.serial"]?.toIntOrNull() ?: return null
     val grpcPort = values["grpc.port"]?.toIntOrNull() ?: return null
     return consolePort to EmulatorEndpoint(port = grpcPort, token = values["grpc.token"]?.takeIf(String::isNotEmpty))

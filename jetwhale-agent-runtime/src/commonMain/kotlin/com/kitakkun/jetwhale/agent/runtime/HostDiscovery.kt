@@ -106,7 +106,9 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
         val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
         return when (result) {
             is DiscoveryResult.Unavailable -> {
-                logUnlessRepeated("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
+                logUnlessRepeated(
+                    "mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection",
+                )
                 emptyList()
             }
 

@@ -47,7 +47,8 @@ internal fun ActionsScreenRoot(browser: ActionsBrowser, modifier: Modifier = Mod
     var pinned by rememberPersistent("pinned-actions", default = emptyList<String>())
     var lastArguments by rememberPersistent("last-arguments", default = emptyMap<String, String>())
     var query by remember { mutableStateOf("") }
-    val rememberedArguments = remember(lastArguments) { lastArguments.mapValues { (_, argumentsJson) -> Json.parseToJsonElement(argumentsJson).jsonObject } }
+    val rememberedArguments =
+        remember(lastArguments) { lastArguments.mapValues { (_, argumentsJson) -> Json.parseToJsonElement(argumentsJson).jsonObject } }
     ActionsScreen(
         catalog = browser.catalog,
         selectedAction = browser.selectedAction,
@@ -94,7 +95,8 @@ internal fun ActionsScreen(
     Column(
         modifier.fillMaxSize().onPreviewKeyEvent { event ->
             val searchShown = tab == ActionsTab.ACTIONS && !catalog?.actions.isNullOrEmpty()
-            val isPaletteShortcut = searchShown && event.type == KeyEventType.KeyDown && event.key == Key.K && (event.isMetaPressed || event.isCtrlPressed)
+            val isPaletteShortcut =
+                searchShown && event.type == KeyEventType.KeyDown && event.key == Key.K && (event.isMetaPressed || event.isCtrlPressed)
             if (isPaletteShortcut) searchFocus.requestFocus()
             isPaletteShortcut
         },
@@ -106,7 +108,9 @@ internal fun ActionsScreen(
         status?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
         JwTabRow {
             JwTab(selected = tab == ActionsTab.ACTIONS, text = "Actions", onClick = { actions.showTab(ActionsTab.ACTIONS) })
-            JwTab(selected = tab == ActionsTab.HISTORY, text = "History", count = history.size, onClick = { actions.showTab(ActionsTab.HISTORY) })
+            JwTab(selected = tab == ActionsTab.HISTORY, text = "History", count = history.size, onClick = {
+                actions.showTab(ActionsTab.HISTORY)
+            })
         }
         when (tab) {
             ActionsTab.ACTIONS -> ActionsTabContent(

@@ -22,7 +22,15 @@ internal class CaptureClipboard(private val osascriptPath: String?) {
             putContents(CaptureSelection.of(capture))
             return
         }
-        val process = ProcessBuilder(osascriptPath, "-l", "JavaScript", "-e", PASTEBOARD_SCRIPT, capture.file.absolutePath, capture.info.kind.name)
+        val process = ProcessBuilder(
+            osascriptPath,
+            "-l",
+            "JavaScript",
+            "-e",
+            PASTEBOARD_SCRIPT,
+            capture.file.absolutePath,
+            capture.info.kind.name,
+        )
             .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().use { it.readText() }

@@ -23,9 +23,33 @@ private val loginAs = ActionDescriptor(
     destructive = false,
     scoped = false,
     parameters = listOf(
-        ActionParameter("email", ParameterType.STRING, optional = false, nullable = false, description = "The test account", enumValues = emptyList(), hasOptions = true),
-        ActionParameter("remember", ParameterType.BOOLEAN, optional = true, nullable = false, description = null, enumValues = emptyList(), hasOptions = false),
-        ActionParameter("tier", ParameterType.ENUM, optional = false, nullable = false, description = null, enumValues = listOf("FREE", "PRO"), hasOptions = false),
+        ActionParameter(
+            "email",
+            ParameterType.STRING,
+            optional = false,
+            nullable = false,
+            description = "The test account",
+            enumValues = emptyList(),
+            hasOptions = true,
+        ),
+        ActionParameter(
+            "remember",
+            ParameterType.BOOLEAN,
+            optional = true,
+            nullable = false,
+            description = null,
+            enumValues = emptyList(),
+            hasOptions = false,
+        ),
+        ActionParameter(
+            "tier",
+            ParameterType.ENUM,
+            optional = false,
+            nullable = false,
+            description = null,
+            enumValues = listOf("FREE", "PRO"),
+            hasOptions = false,
+        ),
     ),
 )
 
@@ -56,7 +80,14 @@ private val finishedRun = RunRecord(
     arguments = JsonObject(mapOf("email" to JsonPrimitive("qa@example.com"))),
     origin = RunOrigin.AI_AGENT,
     startedAtMillis = 1_767_225_600_000,
-    result = ActionResult(ActionOutcome.SUCCESS, text = "Signed in as user 42", json = null, error = null, stackTrace = null, durationMillis = 180),
+    result = ActionResult(
+        ActionOutcome.SUCCESS,
+        text = "Signed in as user 42",
+        json = null,
+        error = null,
+        stackTrace = null,
+        durationMillis = 180,
+    ),
 )
 
 private val failedRun = RunRecord(
@@ -66,7 +97,14 @@ private val failedRun = RunRecord(
     arguments = JsonObject(emptyMap()),
     origin = RunOrigin.USER,
     startedAtMillis = 1_767_225_660_000,
-    result = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "IllegalStateException: the database is open", stackTrace = null, durationMillis = 12),
+    result = ActionResult(
+        ActionOutcome.FAILURE,
+        text = null,
+        json = null,
+        error = "IllegalStateException: the database is open",
+        stackTrace = null,
+        durationMillis = 12,
+    ),
 )
 
 private val runningRun = RunRecord(

@@ -106,6 +106,7 @@ interface JetWhaleAppGraph : ScreenContext {
 
     @Provides
     fun providesHostReleaseSource(): HostReleaseSource = HostReleaseSource(
-        BuildConfig.TEST_BUILD_RELEASE_SOURCE_VARIABLE?.let(System::getenv) ?: "https://api.github.com/repos/kitakkun/JetWhale/releases?per_page=30",
+        BuildConfig.TEST_BUILD_RELEASE_SOURCE_VARIABLE?.let(System::getenv)
+            ?: "https://api.github.com/repos/kitakkun/JetWhale/releases?per_page=30",
     )
 }

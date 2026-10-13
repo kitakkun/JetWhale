@@ -26,7 +26,8 @@ class NodeMcpTextTest {
         isClickable = true,
         bounds = NodeBounds(left = 10f, top = 20f, right = 110f, bottom = 60f),
     )
-    private val screen = snapshot(root("window", label = "MainActivity", node = node(id = 1, children = listOf(node(id = 2, text = "Hello"), send))))
+    private val screen =
+        snapshot(root("window", label = "MainActivity", node = node(id = 1, children = listOf(node(id = 2, text = "Hello"), send))))
 
     @Test
     fun `the outline writes each root on its own line and indents nodes by depth`() {
@@ -43,9 +44,13 @@ class NodeMcpTextTest {
 
     @Test
     fun `a node that cannot be reached says why in flags`() {
-        val covered = node(id = 7, isClickable = true, isEnabled = false, isHittable = false, obscuredBy = NodeRef(rootId = "dialog", nodeId = 3))
+        val covered =
+            node(id = 7, isClickable = true, isEnabled = false, isHittable = false, obscuredBy = NodeRef(rootId = "dialog", nodeId = 3))
 
-        assertEquals("- node #7 [clickable] [disabled] [inoperable] [unhittable] obscuredBy=dialog#3 tap=50,20", covered.toMcpTextLine(rootId = null))
+        assertEquals(
+            "- node #7 [clickable] [disabled] [inoperable] [unhittable] obscuredBy=dialog#3 tap=50,20",
+            covered.toMcpTextLine(rootId = null),
+        )
     }
 
     @Test
@@ -72,16 +77,23 @@ class NodeMcpTextTest {
 
     @Test
     fun `a node with no bounds on screen has no tap point`() {
-        assertEquals("- node #3", node(id = 3, bounds = NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)).toMcpTextLine(rootId = null))
+        assertEquals(
+            "- node #3",
+            node(id = 3, bounds = NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)).toMcpTextLine(rootId = null),
+        )
     }
 
     @Test
     fun `View and iOS nodes are named by class and an iOS root is in points`() {
         val view = viewNode(id = -4, viewClass = "android.widget.TextView", resourceId = "status", text = "Ready")
-        val apple = appleNode(id = -9, className = "UIButton", accessibilityIdentifier = "login", traits = listOf("button"), isClickable = true)
+        val apple =
+            appleNode(id = -9, className = "UIButton", accessibilityIdentifier = "login", traits = listOf("button"), isClickable = true)
 
         assertEquals("- TextView #-4 \"Ready\" resId=status tap=50,20", view.toMcpTextLine(rootId = null))
-        assertEquals("root ios-window \"Key window\" unit=pt density=2.0", snapshot(root("ios-window", label = "Key window", node = apple)).toMcpText().lineSequence().first())
+        assertEquals(
+            "root ios-window \"Key window\" unit=pt density=2.0",
+            snapshot(root("ios-window", label = "Key window", node = apple)).toMcpText().lineSequence().first(),
+        )
         assertEquals("- UIButton #-9 axId=login traits=button [clickable] tap=50,20", apple.toMcpTextLine(rootId = null))
     }
 

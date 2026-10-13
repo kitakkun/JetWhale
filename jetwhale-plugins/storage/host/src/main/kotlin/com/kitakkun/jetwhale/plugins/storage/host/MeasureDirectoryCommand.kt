@@ -16,5 +16,8 @@ internal class MeasureDirectoryCommand(
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by stringOrNull("$PATH_ARGUMENT_DESCRIPTION Omit for the root itself.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(DirectoryMeasurement.serializer(), client.measureDirectory(fileLocationOf(arguments[root], arguments[path])))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(
+        DirectoryMeasurement.serializer(),
+        client.measureDirectory(fileLocationOf(arguments[root], arguments[path])),
+    )
 }

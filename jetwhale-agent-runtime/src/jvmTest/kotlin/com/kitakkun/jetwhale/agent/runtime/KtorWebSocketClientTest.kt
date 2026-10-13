@@ -88,7 +88,11 @@ class KtorWebSocketClientTest {
                 payload = """{"quoted":"value ✓"}""",
             ),
         )
-        val converterText = (KotlinxWebsocketSerializationConverter(json).serialize(Charsets.UTF_8, typeInfo<JetWhaleDebuggeeEvent>(), event) as Frame.Text).readText()
+        val converterText = (
+            KotlinxWebsocketSerializationConverter(
+                json,
+            ).serialize(Charsets.UTF_8, typeInfo<JetWhaleDebuggeeEvent>(), event) as Frame.Text
+            ).readText()
 
         val webSocketClient = webSocketClient()
         webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))

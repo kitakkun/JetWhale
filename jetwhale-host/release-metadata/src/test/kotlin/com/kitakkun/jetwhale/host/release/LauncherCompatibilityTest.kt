@@ -49,7 +49,12 @@ class LauncherCompatibilityTest {
 
     @Test
     fun `a launcher runs a release that asks for any system property, and for other JVM arguments its JVM started with`() {
-        val metadata = sampleHostReleaseMetadata().withMacJar { copy(jvmArgs = jvmArgs + "--enable-native-access=ALL-UNNAMED" + "-Dnew.property=1") }
+        val metadata = sampleHostReleaseMetadata().withMacJar {
+            copy(
+                jvmArgs =
+                jvmArgs + "--enable-native-access=ALL-UNNAMED" + "-Dnew.property=1",
+            )
+        }
 
         assertNull(compatibility.refusalOf(metadata))
     }
@@ -63,7 +68,14 @@ class LauncherCompatibilityTest {
         assertNull(launcherCompatibility.refusalOf(metadata))
         assertEquals(
             HostReleaseRefusal.MissingModules(listOf("jdk.attach")),
-            launcherCompatibility.refusalOf(metadata.copy(runtime = metadata.runtime.copy(modules = metadata.runtime.modules + "java.sql" + "jdk.attach"))),
+            launcherCompatibility.refusalOf(
+                metadata.copy(
+                    runtime = metadata.runtime.copy(
+                        modules =
+                        metadata.runtime.modules + "java.sql" + "jdk.attach",
+                    ),
+                ),
+            ),
         )
     }
 

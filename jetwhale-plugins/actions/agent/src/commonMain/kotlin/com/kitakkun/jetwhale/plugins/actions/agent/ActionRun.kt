@@ -33,16 +33,57 @@ internal suspend fun <A> DebugActionDefinition<A>.runWith(arguments: JsonObject,
         }
         val elapsed = started.elapsedNow().inWholeMilliseconds
         when (value) {
-            null, Unit -> ActionResult(ActionOutcome.SUCCESS, text = null, json = null, error = null, stackTrace = null, durationMillis = elapsed)
-            is JsonElement -> ActionResult(ActionOutcome.SUCCESS, text = null, json = value, error = null, stackTrace = null, durationMillis = elapsed)
-            else -> ActionResult(ActionOutcome.SUCCESS, text = value.toString(), json = null, error = null, stackTrace = null, durationMillis = elapsed)
+            null, Unit -> ActionResult(
+                ActionOutcome.SUCCESS,
+                text = null,
+                json = null,
+                error = null,
+                stackTrace = null,
+                durationMillis = elapsed,
+            )
+
+            is JsonElement -> ActionResult(
+                ActionOutcome.SUCCESS,
+                text = null,
+                json = value,
+                error = null,
+                stackTrace = null,
+                durationMillis = elapsed,
+            )
+
+            else -> ActionResult(
+                ActionOutcome.SUCCESS,
+                text = value.toString(),
+                json = null,
+                error = null,
+                stackTrace = null,
+                durationMillis = elapsed,
+            )
         }
     } catch (_: TimeoutCancellationException) {
-        ActionResult(ActionOutcome.TIMEOUT, text = null, json = null, error = "the action did not finish within $timeout", stackTrace = null, durationMillis = started.elapsedNow().inWholeMilliseconds)
+        ActionResult(
+            ActionOutcome.TIMEOUT,
+            text = null,
+            json = null,
+            error = "the action did not finish within $timeout",
+            stackTrace = null,
+            durationMillis = started.elapsedNow().inWholeMilliseconds,
+        )
     } catch (e: Exception) {
         if (e is CancellationException) throw e
-        failedResult(e.message ?: e::class.simpleName ?: "the action failed", e.stackTraceToString(), started.elapsedNow().inWholeMilliseconds)
+        failedResult(
+            e.message ?: e::class.simpleName ?: "the action failed",
+            e.stackTraceToString(),
+            started.elapsedNow().inWholeMilliseconds,
+        )
     }
 }
 
-private fun failedResult(error: String, stackTrace: String?, durationMillis: Long): ActionResult = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = error, stackTrace = stackTrace, durationMillis = durationMillis)
+private fun failedResult(error: String, stackTrace: String?, durationMillis: Long): ActionResult = ActionResult(
+    ActionOutcome.FAILURE,
+    text = null,
+    json = null,
+    error = error,
+    stackTrace = stackTrace,
+    durationMillis = durationMillis,
+)

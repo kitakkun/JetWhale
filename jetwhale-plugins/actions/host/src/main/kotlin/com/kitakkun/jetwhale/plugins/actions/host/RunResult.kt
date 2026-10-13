@@ -29,7 +29,9 @@ internal fun RunResult(result: ActionResult) {
         }
         result.error?.let { JwText(text = it, color = JwTone.Error.color) }
         result.text?.let { JwCodeBlock(text = it, wrap = true, copyLabel = "Copy result", modifier = Modifier.fillMaxWidth()) }
-        result.json?.let { JwCodeBlock(text = PrettyJson.encodeToString(it), copyLabel = "Copy result", modifier = Modifier.fillMaxWidth()) }
+        result.json?.let {
+            JwCodeBlock(text = PrettyJson.encodeToString(it), copyLabel = "Copy result", modifier = Modifier.fillMaxWidth())
+        }
         result.stackTrace?.let { JwCodeBlock(text = it, maxLines = 12, copyLabel = "Copy stack trace", modifier = Modifier.fillMaxWidth()) }
     }
 }

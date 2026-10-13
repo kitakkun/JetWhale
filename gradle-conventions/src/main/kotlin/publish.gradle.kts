@@ -101,14 +101,26 @@ afterEvaluate {
  */
 private fun String.selects(artifactId: String): Boolean = when (this) {
     artifactId -> true
+
     "network" -> artifactId.startsWith("jetwhale-network-inspector")
+
     "nav3" -> artifactId.startsWith("jetwhale-nav3-")
+
     "semantics" -> artifactId.startsWith("jetwhale-compose-semantics-inspector")
+
     "storage" -> artifactId.startsWith("jetwhale-storage-inspector")
+
     "actions" -> artifactId.startsWith("jetwhale-debug-actions")
+
     "mirror" -> artifactId == "jetwhale-device-mirror"
+
     "gradle-plugin" -> artifactId == "jetwhale-host-gradle-plugin"
+
     "agent-plugin" -> artifactId == "jetwhale-agent-compiler-plugin" || artifactId == "jetwhale-agent-gradle-plugin"
-    "sdk" -> listOf("network", "nav3", "semantics", "storage", "actions", "mirror", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
+
+    "sdk" -> listOf("network", "nav3", "semantics", "storage", "actions", "mirror", "gradle-plugin", "agent-plugin").none {
+        it.selects(artifactId)
+    }
+
     else -> false
 }

@@ -276,10 +276,12 @@ class DefaultMcpServerServiceTest {
         val appPlugin = "com.example.app"
         val appSessions = listOf("app-session-1", "app-session-2")
         appSessions.forEach { sessionId ->
-            every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns FakeMcpCapablePlugin(toolName = "com.example.app.greet")
+            every { pluginInstanceService.getPluginInstanceForSession(appPlugin, sessionId) } returns
+                FakeMcpCapablePlugin(toolName = "com.example.app.greet")
         }
         val hostPlugin = "com.example.host"
-        every { pluginInstanceService.getPluginInstanceForSession(hostPlugin, HostSession.ID) } returns FakeMcpCapablePlugin(toolName = "com.example.host.greet")
+        every { pluginInstanceService.getPluginInstanceForSession(hostPlugin, HostSession.ID) } returns
+            FakeMcpCapablePlugin(toolName = "com.example.host.greet")
 
         service.start(host, port)
         try {
@@ -640,7 +642,12 @@ private class FakeMcpTool(
     private val onExecute: () -> Unit = {},
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
-        registrar.addTool(name = name, description = "Fake tool for testing", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
+        registrar.addTool(
+            name = name,
+            description = "Fake tool for testing",
+            inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
+        ) { _ ->
             onExecute()
             CallToolResult(content = listOf(TextContent(response)))
         }
@@ -650,7 +657,12 @@ private class FakeMcpTool(
 /** Returns a text block alongside a binary one, which history must name rather than inline. */
 private class MediaMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
-        registrar.addTool(name = name, description = "Returns text and an image", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
+        registrar.addTool(
+            name = name,
+            description = "Returns text and an image",
+            inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
+        ) { _ ->
             CallToolResult(
                 content = listOf(
                     TextContent("captured"),
@@ -664,7 +676,12 @@ private class MediaMcpTool(private val name: String) : JetWhaleMcpTool {
 /** Reports a tool-level failure the way the protocol prefers: a normal return flagged `isError`. */
 private class ErrorResultMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
-        registrar.addTool(name = name, description = "Always reports an error result", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
+        registrar.addTool(
+            name = name,
+            description = "Always reports an error result",
+            inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
+        ) { _ ->
             errorResult("no such element")
         }
     }
@@ -673,7 +690,12 @@ private class ErrorResultMcpTool(private val name: String) : JetWhaleMcpTool {
 /** Answers with both prose and a machine-readable payload, as a tool with an output schema does. */
 private class StructuredMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
-        registrar.addTool(name = name, description = "Returns structured content", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
+        registrar.addTool(
+            name = name,
+            description = "Returns structured content",
+            inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
+        ) { _ ->
             CallToolResult(
                 content = listOf(TextContent("measured")),
                 structuredContent = buildJsonObject {
@@ -687,7 +709,12 @@ private class StructuredMcpTool(private val name: String) : JetWhaleMcpTool {
 
 private class FailingMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
-        registrar.addTool(name = name, description = "Always throws", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
+        registrar.addTool(
+            name = name,
+            description = "Always throws",
+            inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
+        ) { _ ->
             error("boom")
         }
     }

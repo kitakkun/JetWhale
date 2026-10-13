@@ -21,7 +21,10 @@ internal class FakeActionsClient(
 
     override suspend fun listActions(): ActionCatalog = ActionCatalog(actions)
 
-    override suspend fun options(actionId: String, parameter: String): ActionOptions = ActionOptions(values = options[actionId to parameter].orEmpty(), error = null)
+    override suspend fun options(actionId: String, parameter: String): ActionOptions = ActionOptions(
+        values = options[actionId to parameter].orEmpty(),
+        error = null,
+    )
 
     override suspend fun run(runId: String, actionId: String, arguments: JsonObject, confirmedDestructive: Boolean): ActionResult {
         runs += actionId to arguments
@@ -42,6 +45,18 @@ internal fun action(id: String, destructive: Boolean, parameters: List<ActionPar
     parameters = parameters,
 )
 
-internal fun parameter(name: String, type: ParameterType, optional: Boolean, nullable: Boolean): ActionParameter = ActionParameter(name = name, type = type, optional = optional, nullable = nullable, description = null, enumValues = listOf("FREE", "PRO").takeIf { type == ParameterType.ENUM }.orEmpty(), hasOptions = false)
+internal fun parameter(name: String, type: ParameterType, optional: Boolean, nullable: Boolean): ActionParameter = ActionParameter(
+    name = name,
+    type = type,
+    optional = optional,
+    nullable = nullable,
+    description = null,
+    enumValues = listOf("FREE", "PRO").takeIf {
+        type ==
+            ParameterType.ENUM
+    }.orEmpty(),
+    hasOptions = false,
+)
 
-internal val succeeded: ActionResult = ActionResult(ActionOutcome.SUCCESS, text = "done", json = null, error = null, stackTrace = null, durationMillis = 5)
+internal val succeeded: ActionResult =
+    ActionResult(ActionOutcome.SUCCESS, text = "done", json = null, error = null, stackTrace = null, durationMillis = 5)
