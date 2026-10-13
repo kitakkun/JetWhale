@@ -57,11 +57,11 @@ class DefaultRunMarkerRepository(
         val properties = Properties().apply { file.inputStream().use(::load) }
         RunMarker(
             runId = file.nameWithoutExtension,
-            pid = properties.getProperty(PID)?.toLongOrNull() ?: return null,
-            startedAtMillis = properties.getProperty(STARTED_AT)?.toLongOrNull() ?: return null,
-            workingDirectory = properties.getProperty(WORKING_DIRECTORY).orEmpty(),
-            startupCompleted = properties.getProperty(STARTUP_COMPLETED).toBoolean(),
-            consecutiveStartupCrashes = properties.getProperty(CONSECUTIVE_STARTUP_CRASHES)?.toIntOrNull() ?: 0,
+            pid = properties.getProperty(PID_KEY)?.toLongOrNull() ?: return null,
+            startedAtMillis = properties.getProperty(STARTED_AT_MILLIS_KEY)?.toLongOrNull() ?: return null,
+            workingDirectory = properties.getProperty(WORKING_DIRECTORY_KEY).orEmpty(),
+            startupCompleted = properties.getProperty(STARTUP_COMPLETED_KEY).toBoolean(),
+            consecutiveStartupCrashes = properties.getProperty(CONSECUTIVE_STARTUP_CRASHES_KEY)?.toIntOrNull() ?: 0,
         )
     } catch (e: IOException) {
         logger.log(Level.WARNING, "Could not read the run marker at ${file.path}", e)
@@ -73,21 +73,21 @@ class DefaultRunMarkerRepository(
 
     override fun write(marker: RunMarker) {
         val file = markerFile(marker.runId)
-        val temporary = File(file.parentFile, "${marker.runId}.$TEMPORARY_EXTENSION")
+        val temporaryFile = File(file.parentFile, "${marker.runId}.$TEMPORARY_EXTENSION")
         val properties = Properties().apply {
-            setProperty(PID, marker.pid.toString())
-            setProperty(STARTED_AT, marker.startedAtMillis.toString())
-            setProperty(WORKING_DIRECTORY, marker.workingDirectory)
-            setProperty(STARTUP_COMPLETED, marker.startupCompleted.toString())
-            setProperty(CONSECUTIVE_STARTUP_CRASHES, marker.consecutiveStartupCrashes.toString())
+            setProperty(PID_KEY, marker.pid.toString())
+            setProperty(STARTED_AT_MILLIS_KEY, marker.startedAtMillis.toString())
+            setProperty(WORKING_DIRECTORY_KEY, marker.workingDirectory)
+            setProperty(STARTUP_COMPLETED_KEY, marker.startupCompleted.toString())
+            setProperty(CONSECUTIVE_STARTUP_CRASHES_KEY, marker.consecutiveStartupCrashes.toString())
         }
         try {
             file.parentFile.mkdirs()
-            temporary.outputStream().use { properties.store(it, "JetWhale run marker") }
+            temporaryFile.outputStream().use { properties.store(it, "JetWhale run marker") }
             try {
-                Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                Files.move(temporaryFile.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
             } catch (_: AtomicMoveNotSupportedException) {
-                Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                Files.move(temporaryFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
         } catch (e: IOException) {
             logger.log(Level.WARNING, "Could not write the run marker at ${file.path}", e)
@@ -103,8 +103,8 @@ class DefaultRunMarkerRepository(
     private fun markerFile(runId: String) = File(appDataDirectoryProvider.getRunMarkerDirectory(), "$runId.$MARKER_EXTENSION")
 }
 
-private const val PID = "pid"
-private const val STARTED_AT = "startedAtMillis"
-private const val WORKING_DIRECTORY = "workingDirectory"
-private const val STARTUP_COMPLETED = "startupCompleted"
-private const val CONSECUTIVE_STARTUP_CRASHES = "consecutiveStartupCrashes"
+private const val PID_KEY = "pid"
+private const val STARTED_AT_MILLIS_KEY = "startedAtMillis"
+private const val WORKING_DIRECTORY_KEY = "workingDirectory"
+private const val STARTUP_COMPLETED_KEY = "startupCompleted"
+private const val CONSECUTIVE_STARTUP_CRASHES_KEY = "consecutiveStartupCrashes"

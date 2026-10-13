@@ -285,7 +285,7 @@ private fun CrashRecoveryBanners() {
     val coroutineScope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     val canOpenFiles = remember { Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) }
-    val showFile: (path: String) -> Unit = { path ->
+    val openFileOrCopyPath: (path: String) -> Unit = { path ->
         if (canOpenFiles) {
             val failure = try {
                 Desktop.getDesktop().open(File(path))
@@ -314,8 +314,8 @@ private fun CrashRecoveryBanners() {
                 UncleanExitBanner(
                     report = report,
                     canOpenFiles = canOpenFiles,
-                    onClickCrashLog = showFile,
-                    onClickLogs = showFile,
+                    onClickCrashLog = openFileOrCopyPath,
+                    onClickLogs = openFileOrCopyPath,
                     onClickDisablePlugin = { pluginId ->
                         coroutineScope.launch {
                             setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(pluginId = pluginId, enabled = false))

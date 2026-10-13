@@ -52,7 +52,7 @@ data class PluginComposeScene(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            if (!e.isComposeSceneClosed()) failure.value = e
+            if (!e.isComposeSceneClosedException()) failure.value = e
             throw e
         }
     }
@@ -62,7 +62,7 @@ data class PluginComposeScene(
  * True for the benign "input/render after the scene was closed" race Compose throws when something
  * reaches a [ComposeScene] that has already been disposed (navigation, session switch, hot reload).
  */
-fun Throwable.isComposeSceneClosed(): Boolean = this is IllegalStateException && message?.contains("ComposeScene is closed") == true
+fun Throwable.isComposeSceneClosedException(): Boolean = this is IllegalStateException && message?.contains("ComposeScene is closed") == true
 
 interface WindowInfoUpdater {
     val currentIntSize: IntSize

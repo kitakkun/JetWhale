@@ -44,10 +44,10 @@ class DefaultPluginJarSwapServiceTest {
     private val pluginId = "com.example.plugin"
     private val sessionId = "session-1"
     private val jar: File = Files.createTempFile("plugin", ".jar").toFile()
-    private val instances = RecordingPluginInstanceService()
+    private val pluginInstanceService = RecordingPluginInstanceService()
 
     @AfterTest
-    fun cleanUp() {
+    fun deleteJar() {
         jar.delete()
     }
 
@@ -55,19 +55,19 @@ class DefaultPluginJarSwapServiceTest {
     fun `reloading a jar in safe mode creates no plugin instance`() = runBlocking {
         swapService(safeMode = SafeMode(SafeModeReason.RequestedOnCommandLine)).reload(jar.path, expectedSha256 = null)
 
-        assertEquals(emptyList(), instances.initialized)
+        assertEquals(emptyList(), pluginInstanceService.initialized)
     }
 
     @Test
     fun `reloading a jar outside safe mode recreates the plugin's instances`() = runBlocking {
         swapService(safeMode = null).reload(jar.path, expectedSha256 = null)
 
-        assertEquals(listOf(pluginId to setOf(sessionId)), instances.initialized)
+        assertEquals(listOf(pluginId to setOf(sessionId)), pluginInstanceService.initialized)
     }
 
     private fun swapService(safeMode: SafeMode?) = DefaultPluginJarSwapService(
         pluginFactoryRepository = ReloadingFactoryRepository(pluginId),
-        pluginInstanceService = instances,
+        pluginInstanceService = pluginInstanceService,
         pluginComposeSceneService = NoSceneService,
         debugSessionRepository = OneSessionRepository(
             DebugSession(
@@ -78,8 +78,8 @@ class DefaultPluginJarSwapServiceTest {
                 installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId, "1.0.0")),
             ),
         ),
-        enabledPluginsRepository = EnabledRepository(setOf(pluginId)),
-        reconciliationService = AllSessionsReconciliation,
+        enabledPluginsRepository = FixedEnabledPluginsRepository(setOf(pluginId)),
+        reconciliationService = AllSessionsReconciliationService,
         safeModeService = FixedSafeModeService(safeMode),
     )
 
@@ -141,14 +141,14 @@ class DefaultPluginJarSwapServiceTest {
         override fun markAllSessionsInactive() = Unit
     }
 
-    private class EnabledRepository(enabled: Set<String>) : EnabledPluginsRepository {
-        override val enabledPluginIdsFlow: MutableStateFlow<Set<String>> = MutableStateFlow(enabled)
+    private class FixedEnabledPluginsRepository(enabledPluginIds: Set<String>) : EnabledPluginsRepository {
+        override val enabledPluginIdsFlow: MutableStateFlow<Set<String>> = MutableStateFlow(enabledPluginIds)
         override val disabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow()
         override suspend fun setPluginEnabled(pluginId: String, enabled: Boolean) = Unit
         override suspend fun isPluginEnabled(pluginId: String): Boolean = pluginId in enabledPluginIdsFlow.value
     }
 
-    private object AllSessionsReconciliation : PluginSessionReconciliationService {
+    private object AllSessionsReconciliationService : PluginSessionReconciliationService {
         override fun requiresAgent(pluginId: String): Boolean = true
         override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = sessions.map(DebugSession::id).toSet()
         override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = emptyFlow()

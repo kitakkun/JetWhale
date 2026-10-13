@@ -70,18 +70,18 @@ class DefaultCrashRecoveryService(
     // Only the standalone host's main() calls this; the IntelliJ plugin, which bundles this class,
     // never does, so the shutdown hook below never outlives a plugin class loader.
     @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
-    override fun onStartup() {
+    override fun reportUncleanExitAndWriteRunMarker() {
         // A marker whose process is still running belongs to another host sharing this data
         // directory; it is that host's to remove. A process that started after the marker was
         // written only reuses the pid; the run that wrote the marker is gone.
-        val abandoned = runMarkerRepository.readAll().filterNot { marker ->
+        val abandonedMarkers = runMarkerRepository.readAll().filterNot { marker ->
             ProcessHandle.of(marker.pid)
                 .filter(ProcessHandle::isAlive)
                 .map { process -> process.info().startInstant().map { it.toEpochMilli() <= marker.startedAtMillis }.orElse(true) }
                 .orElse(false)
         }
-        abandoned.maxByOrNull(RunMarker::startedAtMillis)?.let(::reportUncleanExit)
-        abandoned.forEach { runMarkerRepository.delete(it.runId) }
+        abandonedMarkers.maxByOrNull(RunMarker::startedAtMillis)?.let(::countStartupCrashAndReportUncleanExit)
+        abandonedMarkers.forEach { runMarkerRepository.delete(it.runId) }
 
         val marker = RunMarker(
             runId = UUID.randomUUID().toString(),
@@ -95,14 +95,14 @@ class DefaultCrashRecoveryService(
         runMarkerRepository.write(marker)
         // Runs on every exit the JVM gets to finish — a closed window, Cmd+Q, SIGTERM — and on none
         // of the ones this is here to notice: a native crash or a kill leaves the marker behind.
-        Runtime.getRuntime().addShutdownHook(Thread(::onCleanShutdown, "jetwhale-run-marker"))
+        Runtime.getRuntime().addShutdownHook(Thread(::deleteRunMarker, "jetwhale-run-marker"))
         startupGraceJob = scope.launch {
             delay(startupGrace.duration)
             runMarkerRepository.write(marker.copy(startupCompleted = true, consecutiveStartupCrashes = 0))
         }
     }
 
-    override fun onCleanShutdown() {
+    override fun deleteRunMarker() {
         // A grace-period write already under way would otherwise land after the delete and bring
         // the marker back; the write does not suspend, so cancelling alone cannot stop it.
         startupGraceJob?.let { job -> runBlocking { job.cancelAndJoin() } }
@@ -114,15 +114,15 @@ class DefaultCrashRecoveryService(
         uncleanExitReportFlow.value = null
     }
 
-    private fun reportUncleanExit(previous: RunMarker) {
-        consecutiveStartupCrashes = if (previous.startupCompleted) 0 else previous.consecutiveStartupCrashes + 1
+    private fun countStartupCrashAndReportUncleanExit(previousMarker: RunMarker) {
+        consecutiveStartupCrashes = if (previousMarker.startupCompleted) 0 else previousMarker.consecutiveStartupCrashes + 1
         val crashLogDirectories = listOfNotNull(
             appDataDirectoryProvider.getLogsDirectory(),
-            previous.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
+            previousMarker.workingDirectory.takeIf(String::isNotEmpty)?.let(::File),
             System.getProperty("java.io.tmpdir")?.let(::File),
             File("/tmp"),
         )
-        val crashLog = findJvmCrashLog(previous.pid, previous.startedAtMillis, crashLogDirectories)?.let { file ->
+        val crashLog = findJvmCrashLog(previousMarker.pid, previousMarker.startedAtMillis, crashLogDirectories)?.let { file ->
             try {
                 parseJvmCrashLog(file.path, file.readText())
             } catch (e: IOException) {
@@ -130,7 +130,7 @@ class DefaultCrashRecoveryService(
                 null
             }
         }
-        logger.warning("The previous run (pid ${previous.pid}) did not shut down cleanly; crash log: ${crashLog?.path ?: "none found"}")
+        logger.warning("The previous run (pid ${previousMarker.pid}) did not shut down cleanly; crash log: ${crashLog?.path ?: "none found"}")
         uncleanExitReportFlow.value = UncleanExitReport(
             crashLog = crashLog,
             suspectedPlugin = null,
@@ -140,11 +140,11 @@ class DefaultCrashRecoveryService(
         // Plugins load after this runs, so the crash is attributed once their packages are known,
         // and again whenever the set changes: a plugin loaded later may share the suspect's package.
         scope.launch {
-            pluginFactoryRepository.loadedPluginsFlow.collect { plugins ->
-                val suspect = crashLog.suspectPlugin(
-                    plugins.mapValues { (_, plugin) -> plugin.manifest.factoryClass.substringBeforeLast('.', "") },
-                )?.let { pluginId -> SuspectedPlugin(pluginId = pluginId, pluginName = plugins.getValue(pluginId).manifest.pluginName) }
-                uncleanExitReportFlow.update { report -> report?.copy(suspectedPlugin = suspect) }
+            pluginFactoryRepository.loadedPluginsFlow.collect { loadedPlugins ->
+                val suspectedPlugin = crashLog.findSuspectedPluginId(
+                    loadedPlugins.mapValues { (_, plugin) -> plugin.manifest.factoryClass.substringBeforeLast('.', "") },
+                )?.let { pluginId -> SuspectedPlugin(pluginId = pluginId, pluginName = loadedPlugins.getValue(pluginId).manifest.pluginName) }
+                uncleanExitReportFlow.update { report -> report?.copy(suspectedPlugin = suspectedPlugin) }
             }
         }
     }

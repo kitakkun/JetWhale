@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class JvmCrashLogsTest {
-    private val skikoCrash = parseJvmCrashLog("hs_err_pid65669.log", fixture("crash/hs_err_skiko.log"))
+    private val skikoCrashLog = parseJvmCrashLog("hs_err_pid65669.log", readFixture("crash/hs_err_skiko.log"))
 
     @Test
     fun `java frames are read from compiled and interpreted lines innermost first`() {
@@ -19,42 +19,42 @@ class JvmCrashLogsTest {
                 "kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith",
                 "kotlinx.coroutines.DispatchedTask.run",
             ),
-            skikoCrash.javaFrames,
+            skikoCrashLog.javaFrames,
         )
     }
 
     @Test
     fun `the crash is blamed on the plugin whose package is on the stack`() {
-        val suspect = skikoCrash.suspectPlugin(
+        val suspectedPluginId = skikoCrashLog.findSuspectedPluginId(
             mapOf(
                 "com.kitakkun.jetwhale.network" to "com.kitakkun.jetwhale.plugins.network.host",
                 "com.kitakkun.jetwhale.mirror" to "com.kitakkun.jetwhale.plugins.mirror.host",
             ),
         )
 
-        assertEquals("com.kitakkun.jetwhale.mirror", suspect)
+        assertEquals("com.kitakkun.jetwhale.mirror", suspectedPluginId)
     }
 
     @Test
     fun `a crash with no plugin code on the stack blames no plugin`() {
-        assertNull(skikoCrash.suspectPlugin(mapOf("com.kitakkun.jetwhale.network" to "com.kitakkun.jetwhale.plugins.network.host")))
+        assertNull(skikoCrashLog.findSuspectedPluginId(mapOf("com.kitakkun.jetwhale.network" to "com.kitakkun.jetwhale.plugins.network.host")))
     }
 
     @Test
     fun `a package shared by several plugins blames none of them`() {
-        val suspect = skikoCrash.suspectPlugin(
+        val suspectedPluginId = skikoCrashLog.findSuspectedPluginId(
             mapOf(
                 "com.kitakkun.jetwhale.mirror" to "com.kitakkun.jetwhale.plugins.mirror.host",
                 "com.kitakkun.jetwhale.mirror.headless" to "com.kitakkun.jetwhale.plugins.mirror.host",
             ),
         )
 
-        assertNull(suspect)
+        assertNull(suspectedPluginId)
     }
 
     @Test
     fun `a package prefix that is not a whole segment does not match`() {
-        assertNull(skikoCrash.suspectPlugin(mapOf("com.example.mirr" to "com.kitakkun.jetwhale.plugins.mirr")))
+        assertNull(skikoCrashLog.findSuspectedPluginId(mapOf("com.example.mirr" to "com.kitakkun.jetwhale.plugins.mirr")))
     }
 
     @Test
@@ -79,16 +79,16 @@ class JvmCrashLogsTest {
 
     @Test
     fun `a crash log older than the run is one an earlier process with the same pid left`() {
-        val logs = Files.createTempDirectory("logs").toFile().apply { deleteOnExit() }
-        val leftOver = File(logs, "hs_err_pid42.log").apply {
+        val logsDirectory = Files.createTempDirectory("logs").toFile().apply { deleteOnExit() }
+        val leftOver = File(logsDirectory, "hs_err_pid42.log").apply {
             writeText("x")
             setLastModified(1_000_000)
             deleteOnExit()
         }
 
-        assertNull(findJvmCrashLog(42, startedAtMillis = 2_000_000, listOf(logs)))
-        assertEquals(leftOver, findJvmCrashLog(42, startedAtMillis = 1_000_000, listOf(logs)))
+        assertNull(findJvmCrashLog(42, startedAtMillis = 2_000_000, listOf(logsDirectory)))
+        assertEquals(leftOver, findJvmCrashLog(42, startedAtMillis = 1_000_000, listOf(logsDirectory)))
     }
 
-    private fun fixture(path: String): String = checkNotNull(javaClass.classLoader.getResource(path)).readText()
+    private fun readFixture(path: String): String = checkNotNull(javaClass.classLoader.getResource(path)).readText()
 }

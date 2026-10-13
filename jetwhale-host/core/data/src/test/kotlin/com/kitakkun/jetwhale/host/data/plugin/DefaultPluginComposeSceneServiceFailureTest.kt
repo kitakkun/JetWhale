@@ -75,7 +75,7 @@ class DefaultPluginComposeSceneServiceFailureTest {
     }
 
     @Test
-    fun `an effect that throws after the first frame marks the scene failed instead of freezing it`() = runBlocking {
+    fun `an effect that throws after the first frame marks the scene failedScene instead of freezing it`() = runBlocking {
         val armed = mutableStateOf(false)
         val scene = sceneFor(EffectThrowingUiPlugin(armed))
         render(scene)
@@ -91,28 +91,28 @@ class DefaultPluginComposeSceneServiceFailureTest {
     }
 
     @Test
-    fun `a failed scene is not rendered again and is replaced on the next request`() = runBlocking {
+    fun `a failedScene scene is not rendered again and is replaced on the next request`() = runBlocking {
         val armed = mutableStateOf(false)
         val plugin = ThrowingUiPlugin(armed, inDraw = true)
         val service = serviceFor(plugin)
-        val failed = service.getOrCreatePluginScene(pluginId, sessionId)
-        render(failed)
+        val failedScene = service.getOrCreatePluginScene(pluginId, sessionId)
+        render(failedScene)
         withContext(Dispatchers.Main) {
             armed.value = true
             Snapshot.sendApplyNotifications()
         }
-        runCatching { render(failed) }
-        assertNotNull(failed.failure.value)
+        runCatching { render(failedScene) }
+        assertNotNull(failedScene.failure.value)
         withContext(Dispatchers.Main) {
             armed.value = false
             Snapshot.sendApplyNotifications()
         }
 
-        assertEquals("draw boom", assertFailsWith<IllegalStateException> { render(failed) }.message)
-        val fresh = service.getOrCreatePluginScene(pluginId, sessionId)
+        assertEquals("draw boom", assertFailsWith<IllegalStateException> { render(failedScene) }.message)
+        val freshScene = service.getOrCreatePluginScene(pluginId, sessionId)
 
-        assertNotSame(failed, fresh)
-        assertNull(fresh.failure.value)
+        assertNotSame(failedScene, freshScene)
+        assertNull(freshScene.failure.value)
     }
 
     private suspend fun sceneFor(plugin: JetWhaleHostPlugin): PluginComposeScene = serviceFor(plugin).getOrCreatePluginScene(pluginId, sessionId)

@@ -70,7 +70,7 @@ fun main(args: Array<String>) = runBlocking {
     }
 
     cliOptions.logLevel?.let(::applyLogLevel)
-    logUncaughtExceptions()
+    installUncaughtExceptionLogger()
 
     val appGraph: JetWhaleAppGraph = createGraphFactory<JetWhaleAppGraph.Factory>()
         .create(
@@ -78,7 +78,7 @@ fun main(args: Array<String>) = runBlocking {
             mcpPermissionOverride = cliOptions.mcpPermissionOverride,
             additionalPluginDirectories = AdditionalPluginDirectories(cliOptions.pluginDirs),
             hostLaunch = hostLaunchOf(args),
-            safeModeRequest = cliOptions.safeMode,
+            safeModeRequest = cliOptions.safeModeRequest,
         )
 
     // Before anything logs: java.util.logging binds its console handler to System.err at the first
@@ -87,7 +87,7 @@ fun main(args: Array<String>) = runBlocking {
 
     // Before anything that could crash: the previous run's marker has to be read before this run
     // replaces it, and safe mode is decided from it before any plugin instance is created.
-    appGraph.crashRecoveryService.onStartup()
+    appGraph.crashRecoveryService.reportUncleanExitAndWriteRunMarker()
 
     appGraph.applicationLifecycleOwner.initialize()
 
@@ -300,7 +300,7 @@ private fun ApplicationLifecycleDialog(
  * Only main() installs it; the IntelliJ plugin, which bundles this file, never calls main().
  */
 @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
-private fun logUncaughtExceptions() {
+private fun installUncaughtExceptionLogger() {
     val previous = Thread.getDefaultUncaughtExceptionHandler()
     Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
         LoggerFactory.getLogger("com.kitakkun.jetwhale.host.Uncaught").error("Uncaught exception in thread \"${thread.name}\"", throwable)

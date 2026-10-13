@@ -166,7 +166,7 @@ class DefaultPluginInstanceService(
         val instanceScope = CoroutineScope(
             scope.coroutineContext +
                 SupervisorJob(scope.coroutineContext[Job]) +
-                CoroutineExceptionHandler { _, throwable -> recordFailure(pluginId, sessionId, live, throwable) },
+                CoroutineExceptionHandler { _, throwable -> publishPluginFailure(pluginId, sessionId, live, throwable) },
         )
         plugin.bindPluginScope(instanceScope)
 
@@ -273,14 +273,14 @@ class DefaultPluginInstanceService(
      * Keeps what a plugin's own coroutine let escape, so it is logged against the plugin and shown in
      * the drawer instead of vanishing into the thread's default handler.
      */
-    private fun recordFailure(pluginId: String, sessionId: String, instanceLive: AtomicBoolean, throwable: Throwable) {
+    private fun publishPluginFailure(pluginId: String, sessionId: String, instanceLive: AtomicBoolean, throwable: Throwable) {
         logger.log(Level.WARNING, "Plugin '$pluginId' in session '$sessionId' threw from one of its coroutines", throwable)
         val failure = PluginFailure(pluginId = pluginId, sessionId = sessionId, message = throwable.toString())
         synchronized(failuresLock) {
             if (!instanceLive.get()) return
             pluginFailuresFlow.update { failures ->
-                val session = failures.bySession[sessionId].orEmpty() + (pluginId to failure)
-                PluginFailures(failures.bySession + (sessionId to session))
+                val sessionFailures = failures.failuresBySession[sessionId].orEmpty() + (pluginId to failure)
+                PluginFailures(failures.failuresBySession + (sessionId to sessionFailures))
             }
         }
     }
@@ -290,8 +290,8 @@ class DefaultPluginInstanceService(
         synchronized(failuresLock) {
             removed.live.set(false)
             pluginFailuresFlow.update { failures ->
-                val session = failures.bySession[key.sessionId].orEmpty() - key.pluginId
-                PluginFailures(if (session.isEmpty()) failures.bySession - key.sessionId else failures.bySession + (key.sessionId to session))
+                val sessionFailures = failures.failuresBySession[key.sessionId].orEmpty() - key.pluginId
+                PluginFailures(if (sessionFailures.isEmpty()) failures.failuresBySession - key.sessionId else failures.failuresBySession + (key.sessionId to sessionFailures))
             }
         }
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its

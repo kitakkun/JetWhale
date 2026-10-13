@@ -23,7 +23,7 @@ class DefaultRunMarkerRepositoryTest {
     private val repository = DefaultRunMarkerRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
 
     @AfterTest
-    fun restore() {
+    fun restoreAppDataDirPropertyAndDeleteAppDataDir() {
         if (previousAppDataDir == null) System.clearProperty("jetwhale.appDataDir") else System.setProperty("jetwhale.appDataDir", previousAppDataDir)
         appDataDir.deleteRecursively()
     }
@@ -60,15 +60,15 @@ class DefaultRunMarkerRepositoryTest {
     @Test
     fun `a temporary file an interrupted write left long ago is removed and a fresh one is kept`() {
         markerDirectory.mkdirs()
-        val abandoned = File(markerDirectory, "run-a.tmp").apply {
+        val abandonedTemporaryFile = File(markerDirectory, "run-a.tmp").apply {
             writeText("pid=")
             setLastModified(System.currentTimeMillis() - ABANDONED_AGE_MILLIS)
         }
-        val inFlight = File(markerDirectory, "run-b.tmp").apply { writeText("pid=") }
+        val inFlightTemporaryFile = File(markerDirectory, "run-b.tmp").apply { writeText("pid=") }
 
         assertEquals(emptyList(), repository.readAll())
-        assertFalse(abandoned.exists())
-        assertTrue(inFlight.exists())
+        assertFalse(abandonedTemporaryFile.exists())
+        assertTrue(inFlightTemporaryFile.exists())
     }
 
     private fun marker(runId: String) = RunMarker(

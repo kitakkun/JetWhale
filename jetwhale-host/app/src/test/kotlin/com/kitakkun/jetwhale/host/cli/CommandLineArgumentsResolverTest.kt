@@ -30,8 +30,8 @@ class CommandLineArgumentsResolverTest {
 
     @Test
     fun `safe mode is requested only when the flag is passed`() {
-        assertTrue(CommandLineArgumentsParser().parse(arrayOf("--safe-mode")).safeMode.requested)
-        assertFalse(CommandLineArgumentsParser().parse(arrayOf()).safeMode.requested)
+        assertTrue(CommandLineArgumentsParser().parse(arrayOf("--safe-mode")).safeModeRequest.requested)
+        assertFalse(CommandLineArgumentsParser().parse(arrayOf()).safeModeRequest.requested)
     }
 
     @Test

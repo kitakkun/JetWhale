@@ -11,8 +11,8 @@ data class PluginFailure(
 
 /** The latest escaped exception of each plugin instance, keyed by session, then plugin. */
 @JvmInline
-value class PluginFailures(val bySession: Map<String, Map<String, PluginFailure>>) {
-    fun latestFor(sessionId: String?, pluginId: String): PluginFailure? = sessionId?.let { bySession[it]?.get(pluginId) }
+value class PluginFailures(val failuresBySession: Map<String, Map<String, PluginFailure>>) {
+    fun latestFor(sessionId: String?, pluginId: String): PluginFailure? = sessionId?.let { failuresBySession[it]?.get(pluginId) }
 
     companion object {
         val Empty: PluginFailures = PluginFailures(emptyMap())

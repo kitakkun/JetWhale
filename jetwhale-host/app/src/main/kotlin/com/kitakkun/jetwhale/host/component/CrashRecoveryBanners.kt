@@ -43,12 +43,12 @@ fun UncleanExitBanner(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val suspect = report.suspectedPlugin
+    val suspectedPlugin = report.suspectedPlugin
     JwBanner(
-        text = if (suspect == null) {
+        text = if (suspectedPlugin == null) {
             stringResource(Res.string.unclean_exit_banner_message)
         } else {
-            stringResource(Res.string.unclean_exit_banner_message_with_plugin, suspect.pluginName)
+            stringResource(Res.string.unclean_exit_banner_message_with_plugin, suspectedPlugin.pluginName)
         },
         modifier = modifier,
         tone = JwTone.Error,
@@ -65,10 +65,10 @@ fun UncleanExitBanner(
                 onClick = { onClickLogs(report.logsDirectory) },
                 style = JwButtonStyle.Text,
             )
-            suspect?.let {
+            suspectedPlugin?.let {
                 JwButton(
-                    text = stringResource(Res.string.unclean_exit_banner_disable_plugin, suspect.pluginName),
-                    onClick = { onClickDisablePlugin(suspect.pluginId) },
+                    text = stringResource(Res.string.unclean_exit_banner_disable_plugin, suspectedPlugin.pluginName),
+                    onClick = { onClickDisablePlugin(suspectedPlugin.pluginId) },
                     style = JwButtonStyle.Text,
                 )
             }

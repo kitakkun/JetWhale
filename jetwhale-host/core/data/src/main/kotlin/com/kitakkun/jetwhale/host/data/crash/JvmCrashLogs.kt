@@ -55,7 +55,7 @@ private fun javaMethodOf(line: String): String? {
  *
  * @param pluginPackages Plugin id to the package of that plugin's factory class.
  */
-internal fun JvmCrashLog.suspectPlugin(pluginPackages: Map<String, String>): String? {
+internal fun JvmCrashLog.findSuspectedPluginId(pluginPackages: Map<String, String>): String? {
     val matches = javaFrames.asSequence()
         .map { frame -> pluginPackages.entries.filter { (_, pluginPackage) -> pluginPackage.isNotEmpty() && frame.startsWith("$pluginPackage.") } }
         .firstOrNull { it.isNotEmpty() }

@@ -17,7 +17,7 @@ private const val STARTUP_CRASHES_BEFORE_SAFE_MODE = 2
 
 /**
  * Decides once per run whether plugins stay unloaded. It reads the crash count lazily, so
- * [CrashRecoveryService.onStartup] must have run before anything first asks — which main() does
+ * [CrashRecoveryService.reportUncleanExitAndWriteRunMarker] must have run before anything first asks — which main() does
  * before the rest of the host starts.
  */
 @Inject

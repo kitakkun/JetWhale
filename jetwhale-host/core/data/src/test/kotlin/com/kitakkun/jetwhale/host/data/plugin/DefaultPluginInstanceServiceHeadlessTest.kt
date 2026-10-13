@@ -134,7 +134,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     @Test
     fun `a failure recorded concurrently with disposal leaves no failure behind`() = runBlocking {
         val serviceLogger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
-        val level = serviceLogger.level
+        val previousLogLevel = serviceLogger.level
         serviceLogger.level = Level.OFF
         try {
             repeat(DISPOSAL_RACE_ITERATIONS) { iteration ->
@@ -149,7 +149,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
                 assertNull(service.pluginFailuresFlow.value.latestFor(sessionId, pluginId), "iteration $iteration")
             }
         } finally {
-            serviceLogger.level = level
+            serviceLogger.level = previousLogLevel
         }
     }
 

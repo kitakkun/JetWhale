@@ -20,7 +20,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
-import com.kitakkun.jetwhale.host.model.isComposeSceneClosed
+import com.kitakkun.jetwhale.host.model.isComposeSceneClosedException
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
@@ -82,7 +82,7 @@ class DefaultPluginComposeSceneService(
                 // plugin throws while recomposing arrives here; without a handler it would reach the
                 // thread's uncaught-exception handler and leave the plugin UI silently frozen.
                 coroutineContext = Dispatchers.Unconfined + CoroutineExceptionHandler { _, throwable ->
-                    if (!throwable.isComposeSceneClosed()) failure.value = throwable
+                    if (!throwable.isComposeSceneClosedException()) failure.value = throwable
                 },
                 platformContext = windowUpdatableContext,
             )

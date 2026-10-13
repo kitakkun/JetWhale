@@ -67,7 +67,7 @@ class PluginScreenFailureTest {
 @OptIn(InternalComposeUiApi::class)
 private fun pluginScene() = PluginComposeScene(
     composeScene = CanvasLayersComposeScene(platformContext = PlatformContext.Empty()),
-    windowInfoUpdater = NoWindow,
+    windowInfoUpdater = NoopWindowInfoUpdater,
     semanticsOwners = emptySet(),
     isMcpCapture = mutableStateOf(false),
     pointerIcon = mutableStateOf(PointerIcon.Default),
@@ -76,7 +76,7 @@ private fun pluginScene() = PluginComposeScene(
 
 private const val FRAMES = 3
 
-private object NoWindow : WindowInfoUpdater {
+private object NoopWindowInfoUpdater : WindowInfoUpdater {
     override val currentIntSize: IntSize = IntSize.Zero
     override val currentDpSize: DpSize = DpSize.Zero
 

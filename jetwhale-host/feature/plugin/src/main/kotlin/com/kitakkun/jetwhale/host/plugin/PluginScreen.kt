@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.DpSize
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.isComposeSceneClosed
+import com.kitakkun.jetwhale.host.model.isComposeSceneClosedException
 import kotlinx.coroutines.CancellationException
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
@@ -105,7 +105,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             // Caught ahead of IllegalStateException, which it extends on the JVM.
                             throw e
                         } catch (e: IllegalStateException) {
-                            if (!e.isComposeSceneClosed()) catchThrowHost[uuid()] = e
+                            if (!e.isComposeSceneClosedException()) catchThrowHost[uuid()] = e
                         } catch (e: Throwable) {
                             catchThrowHost[uuid()] = e
                         }
@@ -118,7 +118,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 try {
                     pluginComposeScene.composeScene.sendKeyEvent(it)
                 } catch (e: IllegalStateException) {
-                    if (!e.isComposeSceneClosed()) catchThrowHost[uuid()] = e
+                    if (!e.isComposeSceneClosedException()) catchThrowHost[uuid()] = e
                     false
                 } catch (e: Throwable) {
                     catchThrowHost[uuid()] = e
