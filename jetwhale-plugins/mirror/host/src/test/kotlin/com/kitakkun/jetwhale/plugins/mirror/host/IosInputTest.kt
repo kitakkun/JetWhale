@@ -134,7 +134,7 @@ class IosInputTest {
         assertEquals("screenshot", shown.first())
         assertEquals("runner-2", shown.last())
         assertTrue(shown.dropWhile { it == "screenshot" }.none { it == "screenshot" }, "a screenshot came after a frame of the runner: $shown")
-        assertEquals(listOf(30), runners.runner.screenStreamRates)
+        assertEquals(listOf(60), runners.runner.screenStreamRates)
     }
 
     @Test

@@ -8,6 +8,9 @@ import XCTest
 ///
 /// One screenshot is asked for at a time. A frame that is ready while the previous one is still being
 /// written is dropped, so a reader that falls behind gets the newest frame next rather than a queue.
+/// A frame byte for byte the same as the last one sent is not sent again until a second has passed
+/// since that one, so a still screen costs the reader a frame a second, and a reader waiting for a
+/// frame never waits longer.
 final class ScreenStream {
     enum Source {
         /// testmanagerd's JPEG of the display with this ID.
@@ -28,6 +31,9 @@ final class ScreenStream {
     /// testmanagerd failing this many screenshots in a row means it no longer takes them.
     private static let daemonFailuresBeforeFallback = 3
 
+    /// The longest the stream goes without sending a frame, unchanged or not.
+    private static let maxSilenceNanos: UInt64 = 1_000_000_000
+
     private static let activityLock = NSLock()
     private static var lastSentAt = Date.distantPast
 
@@ -45,6 +51,9 @@ final class ScreenStream {
     private var dueNanos: UInt64 = 0
     private var isSending = false
     private var isStopped = false
+    private var lastSentJpeg: Data?
+    /// When the last frame was handed to the connection, in uptime nanoseconds.
+    private var lastSentNanos: UInt64 = 0
 
     init(connection: NWConnection, source: Source, fps: Double) {
         self.connection = connection
@@ -111,7 +120,7 @@ final class ScreenStream {
         guard !isStopped else { return }
         if let jpeg {
             daemonFailuresInARow = 0
-            send(jpeg)
+            if jpeg != lastSentJpeg || isRepeatDue() { send(jpeg) }
         } else if case .daemon = source {
             daemonFailuresInARow += 1
             NSLog("JetWhale runner: testmanagerd took no screenshot: %@", String(describing: failure))
@@ -135,9 +144,17 @@ final class ScreenStream {
         }
     }
 
+    /// Whether an unchanged frame has to go now, since the next capture would come after the stream
+    /// has been silent for `maxSilenceNanos`.
+    private func isRepeatDue() -> Bool {
+        DispatchTime.now().uptimeNanoseconds + intervalNanos >= lastSentNanos + Self.maxSilenceNanos
+    }
+
     private func send(_ jpeg: Data) {
         guard !isSending else { return }
         isSending = true
+        lastSentJpeg = jpeg
+        lastSentNanos = DispatchTime.now().uptimeNanoseconds
         var part = Data("--\(Self.boundary)\r\nContent-Type: image/jpeg\r\nContent-Length: \(jpeg.count)\r\n\r\n".utf8)
         part.append(jpeg)
         part.append(Data("\r\n".utf8))

@@ -148,10 +148,12 @@ private val SIMCTL_SCREENSHOT_TIMEOUT = 10.seconds
 private val SIMCTL_IO_ENUMERATE_TIMEOUT = 10.seconds
 
 /**
- * The rate a simulator's runner is asked to stream at. testmanagerd takes a frame in about 22 ms, so
- * the runner keeps up with this, and Skia decodes a frame in a few milliseconds.
+ * The rate a simulator's runner is asked to stream at: the simulator draws at 60 Hz, and 60 is the
+ * most the runner sends. testmanagerd takes a frame in about 13 ms, so the runner keeps up, and Skia
+ * decodes one in a few milliseconds. The runner sends an unchanged frame only once a second, so a
+ * still screen costs the host next to nothing.
  */
-private const val RUNNER_STREAM_FPS = 30
+private const val RUNNER_STREAM_FPS = 60
 
 /** simctl takes a screenshot in about 150 ms, and a stand-in needs no more than a few a second. */
 private const val STAND_IN_SCREENSHOT_INTERVAL_MILLIS = 250L
