@@ -6,13 +6,14 @@ link were followed from outside. An AI agent can do the same over MCP.
 
 On Android and iOS it needs no configuration: the agent reads the app's own declarations.
 
+**Works with:** Android, iOS and macOS; the JVM and the web with an opener of the app's own.
+
 ## Setup
 
 ### Install the host plugin
 
-Deep Links is in the host's **official catalog**: open **Settings → Plugins → Add Plugins →
-Official Plugins** and install it with one click. See
-[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+Install **Deep Links** from **Settings → Plugins → Add Plugins → Official Plugins**. To install it
+by Maven coordinates or from a file, see [Host Settings → Plugins](/guide/host-settings#plugins).
 
 ### Add the agent to your app
 
@@ -31,7 +32,7 @@ startJetWhale {
 }
 ```
 
-## What each platform reports
+### What each platform reports
 
 | Platform | Declared links | Opening a link |
 |----------|----------------|----------------|
@@ -47,13 +48,7 @@ it, and resolves `@string/` references. It opens the base APK's manifest by its 
 (`AssetManager.openXmlResourceParser(cookie, "AndroidManifest.xml")`): opened by name alone, the
 manifest can come from a split APK, or from WebView once the app has shown one.
 
-What is not listed:
-
-- **iOS universal links.** Associated domains live in the app's code signature, which an app cannot
-  read about itself at runtime. Register them as templates.
-- **Links the app routes internally** without declaring them to the platform.
-
-## Templates
+### Templates
 
 Offer links the platform cannot list, or the ones testers use most, as templates. `{name}`
 placeholders become form fields in the host:
@@ -69,7 +64,7 @@ JetWhaleDeepLinkAgentPlugin(
 
 Values are percent-encoded, so a value with `/` or `?` stays one segment.
 
-## Apps without a platform opener
+### Apps without a platform opener
 
 On the JVM and the web there is no platform way to route a link into the running app, so pass an
 opener that hands the link to the app's own router:
@@ -84,7 +79,7 @@ val opener = object : DeepLinkOpener {
 }
 ```
 
-## What you get in the host
+## Using it
 
 - **The catalog,** grouped by `scheme://host`, each declaration with its path matchers, the handling
   activity, and flags such as *not browsable* or the App Links verification state. Selecting one starts
@@ -97,10 +92,19 @@ val opener = object : DeepLinkOpener {
 
 ## MCP tools
 
+With the [MCP server](/guide/mcp-server) running, an AI agent can do the same through these tools.
+Each takes the `sessionId` of the app's session.
+
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.deeplinks.listDeepLinks` | The declarations (each with a `sampleUrl` to start from), the templates, and notes on what the platform could not list |
 | `com.kitakkun.jetwhale.deeplinks.openDeepLink` | Opens a link and reports whether it opened, which activities handled it, and which declarations it matches |
 
 An agent can take a `sampleUrl` or fill a template, open it, and confirm the screen changed with the
-[Nav3 Navigator](./nav3-navigator) or the [Compose Semantics Inspector](./compose-semantics-inspector).
+[Nav3 Navigator](/guide/nav3-navigator) or the [Compose Semantics Inspector](/guide/compose-semantics-inspector).
+
+## Limits
+
+- **iOS universal links are not listed.** Associated domains live in the app's code signature, which
+  an app cannot read about itself at runtime. Register them as [templates](#templates).
+- **Links the app routes internally** without declaring them to the platform are not listed either.
