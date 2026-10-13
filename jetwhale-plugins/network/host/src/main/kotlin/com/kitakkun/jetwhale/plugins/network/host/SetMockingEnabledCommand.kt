@@ -21,7 +21,7 @@ internal class SetMockingEnabledCommand(
         val enabled = arguments[this.enabled]
         return when (val failure = syncMockingEnabled(enabled)) {
             null -> mockingEnabled.result(MockingEnabledResult(enabled = enabled))
-            else -> syncErrorResult(failure)
+            else -> changeNotAppliedResult(failure)
         }
     }
 }

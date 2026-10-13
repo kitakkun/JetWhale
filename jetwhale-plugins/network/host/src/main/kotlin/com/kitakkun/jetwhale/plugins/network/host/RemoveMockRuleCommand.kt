@@ -18,7 +18,7 @@ internal class RemoveMockRuleCommand(
 
     private val id by string("The rule id from getMockConfig or addMockRule.")
 
-    private val removed = serializableOutput<RemovedMockRuleResult>()
+    private val removedMockRule = serializableOutput<RemovedMockRuleResult>()
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val id = arguments[this.id]
@@ -26,8 +26,8 @@ internal class RemoveMockRuleCommand(
         val remaining = current.filterNot { it.id == id }
         if (remaining.size == current.size) throw JetWhaleMcpArgumentException("no mock rule with id: $id")
         return when (val failure = syncMockRules(remaining)) {
-            null -> removed.result(RemovedMockRuleResult(removedId = id))
-            else -> syncErrorResult(failure)
+            null -> removedMockRule.result(RemovedMockRuleResult(removedId = id))
+            else -> changeNotAppliedResult(failure)
         }
     }
 }

@@ -228,7 +228,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `startRecording with all while every device records already or none can is a failed call`() {
-        mirror.recordAllTargets = emptyList()
+        mirror.recordAllDeviceIds = emptyList()
 
         val result = StartRecordingCommand(mirror).answer(buildJsonObject { put("all", true) })
 
@@ -238,10 +238,10 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `an empty deviceIds is refused before any recording starts or stops`() {
-        val noDevices = buildJsonObject { put("deviceIds", buildJsonArray { }) }
+        val emptyDeviceIdsArguments = buildJsonObject { put("deviceIds", buildJsonArray { }) }
 
-        assertFailsWith<JetWhaleMcpArgumentException> { StartRecordingCommand(mirror).answer(noDevices) }
-        assertFailsWith<JetWhaleMcpArgumentException> { StopRecordingCommand(mirror).answer(noDevices) }
+        assertFailsWith<JetWhaleMcpArgumentException> { StartRecordingCommand(mirror).answer(emptyDeviceIdsArguments) }
+        assertFailsWith<JetWhaleMcpArgumentException> { StopRecordingCommand(mirror).answer(emptyDeviceIdsArguments) }
         assertEquals(emptyList(), mirror.recordingRequests)
     }
 
@@ -263,13 +263,13 @@ class MirrorMcpCommandsTest {
         }
         mirror.screenshot = recording.copy(file = png, info = recording.info.copy(kind = CaptureKind.Screenshot, durationMillis = null))
 
-        val pathOnly = CaptureScreenshotCommand(mirror).answer(buildJsonObject { })
-        val withImage = CaptureScreenshotCommand(mirror).answer(buildJsonObject { put("includeImage", true) })
+        val pathOnlyResult = CaptureScreenshotCommand(mirror).answer(buildJsonObject { })
+        val pathAndImageResult = CaptureScreenshotCommand(mirror).answer(buildJsonObject { put("includeImage", true) })
 
-        assertEquals(png.absolutePath, pathOnly.structuredContent?.getValue("path")?.jsonPrimitive?.content)
-        assertEquals(emptyList(), pathOnly.content.filterIsInstance<JetWhaleMcpContent.Image>())
-        assertEquals(pathOnly.structuredContent, withImage.structuredContent)
-        val image = withImage.content.filterIsInstance<JetWhaleMcpContent.Image>().single()
+        assertEquals(png.absolutePath, pathOnlyResult.structuredContent?.getValue("path")?.jsonPrimitive?.content)
+        assertEquals(emptyList(), pathOnlyResult.content.filterIsInstance<JetWhaleMcpContent.Image>())
+        assertEquals(pathOnlyResult.structuredContent, pathAndImageResult.structuredContent)
+        val image = pathAndImageResult.content.filterIsInstance<JetWhaleMcpContent.Image>().single()
         assertEquals("image/png", image.mimeType)
         assertEquals(png.readBytes().toList(), image.data.toList())
     }
@@ -362,11 +362,11 @@ private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : Mirro
 
     val recordingRequests = mutableListOf<List<String>?>()
 
-    var recordAllTargets: List<String> = devices.map(MirrorDevice::id)
+    var recordAllDeviceIds: List<String> = devices.map(MirrorDevice::id)
 
     override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> {
         recordingRequests += deviceIds
-        return (deviceIds ?: recordAllTargets).map { id ->
+        return (deviceIds ?: recordAllDeviceIds).map { id ->
             if (id == devices.first().id) RecordingResult.Started(deviceId = id, deviceName = "Pixel 9") else RecordingResult.Failed(deviceId = id, deviceName = id, reason = "cannot record")
         }
     }

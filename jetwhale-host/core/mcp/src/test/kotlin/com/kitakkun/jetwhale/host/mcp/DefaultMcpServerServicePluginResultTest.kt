@@ -99,7 +99,7 @@ class DefaultMcpServerServicePluginResultTest {
 
     @Test
     fun `a command that declares no output advertises none`() = runBlocking {
-        assertNull(describePluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL)).outputSchema)
+        assertNull(describePluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL_NAME)).outputSchema)
     }
 
     @Test
@@ -126,22 +126,22 @@ class DefaultMcpServerServicePluginResultTest {
 
     @Test
     fun `a plugin tool called without a sessionId is told the sessions it runs in`() = runBlocking {
-        val callResult = callPluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL), emptyMap())
+        val callResult = callPluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL_NAME), emptyMap())
 
         assertEquals(true, callResult.isError)
         assertContains(callResult.content.filterIsInstance<TextContent>().single().text, "'sessionId' is required")
-        assertContains(callResult.content.filterIsInstance<TextContent>().single().text, PLUGIN_SESSION)
+        assertContains(callResult.content.filterIsInstance<TextContent>().single().text, PLUGIN_SESSION_ID)
     }
 
     @Test
     fun `a plugin tool called for a session that does not have it names that session`() = runBlocking {
-        val callResult = callPluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL), mapOf("sessionId" to "session-gone"))
+        val callResult = callPluginTool(FakeMcpCapablePlugin(PLUGIN_TOOL_NAME), mapOf("sessionId" to "session-gone"))
 
         assertEquals(true, callResult.isError)
         assertContains(callResult.content.filterIsInstance<TextContent>().single().text, "session 'session-gone'")
     }
 
-    private val sessionArguments = mapOf("sessionId" to PLUGIN_SESSION)
+    private val sessionArguments = mapOf("sessionId" to PLUGIN_SESSION_ID)
 
     /** Starts the service with [plugin] loaded in one session, and reads its tool off the tool list. */
     private suspend fun describePluginTool(plugin: JetWhaleHostPlugin): Tool {
@@ -150,7 +150,7 @@ class DefaultMcpServerServicePluginResultTest {
         return try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
             try {
-                client.listTools().tools.single { it.name == PLUGIN_TOOL }
+                client.listTools().tools.single { it.name == PLUGIN_TOOL_NAME }
             } finally {
                 client.close()
             }
@@ -166,7 +166,7 @@ class DefaultMcpServerServicePluginResultTest {
         return try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
             try {
-                client.callTool(PLUGIN_TOOL, arguments)
+                client.callTool(PLUGIN_TOOL_NAME, arguments)
             } finally {
                 client.close()
             }
@@ -176,14 +176,14 @@ class DefaultMcpServerServicePluginResultTest {
     }
 
     private fun loadInOneSession(plugin: JetWhaleHostPlugin) {
-        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(LoadedPluginInstance(PLUGIN_ID, PLUGIN_SESSION, plugin))
-        every { pluginInstanceService.getPluginInstanceForSession(PLUGIN_ID, PLUGIN_SESSION) } returns plugin
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(LoadedPluginInstance(PLUGIN_ID, PLUGIN_SESSION_ID, plugin))
+        every { pluginInstanceService.getPluginInstanceForSession(PLUGIN_ID, PLUGIN_SESSION_ID) } returns plugin
     }
 }
 
 private const val PLUGIN_ID = "com.example.test"
-private const val PLUGIN_SESSION = "test-session-result"
-private const val PLUGIN_TOOL = "com.example.test.tool"
+private const val PLUGIN_SESSION_ID = "test-session-result"
+private const val PLUGIN_TOOL_NAME = "com.example.test.tool"
 
 private class FixedResultPlugin(private val result: JetWhaleMcpResult) :
     JetWhaleHostPlugin(),
@@ -191,7 +191,7 @@ private class FixedResultPlugin(private val result: JetWhaleMcpResult) :
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         object : JetWhaleMcpCommand() {
-            override val name = PLUGIN_TOOL
+            override val name = PLUGIN_TOOL_NAME
             override val description = "Answers with a fixed result"
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = result
@@ -205,7 +205,7 @@ private class RejectingPlugin :
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         object : JetWhaleMcpTextCommand() {
-            override val name = PLUGIN_TOOL
+            override val name = PLUGIN_TOOL_NAME
             override val description = "Always rejects the call"
 
             override suspend fun executeText(arguments: JetWhaleMcpArguments): String = throw JetWhaleMcpArgumentException("unknown widget id")
@@ -222,7 +222,7 @@ private class DeclaredOutputPlugin(private val answersThroughOutput: Boolean) :
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         object : JetWhaleMcpCommand() {
-            override val name = PLUGIN_TOOL
+            override val name = PLUGIN_TOOL_NAME
             override val description = "Measures the selected widget"
 
             private val measurement = serializableOutput<WidgetMeasurement>()

@@ -22,7 +22,7 @@ internal fun fileLocationOf(rootName: String, path: String?): FileLocation = Fil
 
 /** The app's [reply] as a tool result: its [error] fails the call, and the rest of it is the answer. */
 @OptIn(ExperimentalJetWhaleApi::class)
-internal fun <T> replyResult(reply: T, serializer: KSerializer<T>, error: String?): JetWhaleMcpResult = when (error) {
+internal fun <T> mcpResultOf(reply: T, serializer: KSerializer<T>, error: String?): JetWhaleMcpResult = when (error) {
     null -> JetWhaleMcpResult.json(JsonObject(McpJson.encodeToJsonElement(serializer, reply).jsonObject - "error"))
     else -> JetWhaleMcpResult.error(error)
 }

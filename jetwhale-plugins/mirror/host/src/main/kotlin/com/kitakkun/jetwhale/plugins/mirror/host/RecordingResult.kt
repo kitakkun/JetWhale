@@ -24,16 +24,16 @@ internal sealed interface RecordingResult {
 
 /**
  * Each device's result as the recording tools report it. The call fails only when no device
- * succeeded, which includes there being no device to act on, as [nothingToDo] says: after a partial
- * success, retrying the whole call would act again on the devices that did.
+ * succeeded, which includes there being no device to act on, as [nothingToDoMessage] says: after a
+ * partial success, retrying the whole call would act again on the devices that did.
  */
 @OptIn(ExperimentalJetWhaleApi::class)
-internal fun List<RecordingResult>.toMcpResult(nothingToDo: String): JetWhaleMcpResult {
-    if (isEmpty()) return JetWhaleMcpResult.error(nothingToDo)
+internal fun List<RecordingResult>.toMcpResult(nothingToDoMessage: String): JetWhaleMcpResult {
+    if (isEmpty()) return JetWhaleMcpResult.error(nothingToDoMessage)
     if (all { it is RecordingResult.Failed }) {
         val reasons = filterIsInstance<RecordingResult.Failed>().joinToString("\n") { failure ->
-            val device = if (failure.deviceName == failure.deviceId) failure.deviceId else "${failure.deviceName} (${failure.deviceId})"
-            "- $device: ${failure.reason}"
+            val deviceLabel = if (failure.deviceName == failure.deviceId) failure.deviceId else "${failure.deviceName} (${failure.deviceId})"
+            "- $deviceLabel: ${failure.reason}"
         }
         return JetWhaleMcpResult.error("Every device failed:\n$reasons")
     }

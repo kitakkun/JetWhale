@@ -83,8 +83,8 @@ class JetWhaleMcpCommandTest {
 
     @Test
     fun `the command's format names the output's properties`() {
-        val snakeCase = Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase }
-        val command = MeasureCommand(snakeCase)
+        val snakeCaseJson = Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase }
+        val command = MeasureCommand(snakeCaseJson)
 
         assertEquals(listOf("width_px", "height_px", "label"), (assertNotNull(command.toDescriptor().outputSchema).getValue("properties") as JsonObject).keys.toList())
         assertEquals(setOf("width_px", "height_px"), assertNotNull(runBlocking { command.run(noArguments) }.structuredContent).keys)
@@ -301,7 +301,7 @@ class JetWhaleMcpCommandTest {
     }
 
     private fun assertConforms(value: JsonElement, schema: JsonObject) {
-        val violations = violations(value, schema, path = "$")
+        val violations = findSchemaViolations(value, schema, path = "$")
         assertTrue(violations.isEmpty(), "$value does not conform to $schema: $violations")
     }
 
@@ -309,34 +309,34 @@ class JetWhaleMcpCommandTest {
      * Checks [value] against the part of JSON Schema the walker emits. A keyword outside that part
      * is reported rather than skipped, so a schema passes only when every constraint in it was checked.
      */
-    private fun violations(value: JsonElement, schema: JsonObject, path: String): List<String> {
+    private fun findSchemaViolations(value: JsonElement, schema: JsonObject, path: String): List<String> {
         val unknownKeywords = schema.keys - setOf("type", "properties", "required", "additionalProperties", "items", "enum", "const", "oneOf", "anyOf", "description")
         if (unknownKeywords.isNotEmpty()) return listOf("$path: unchecked keywords $unknownKeywords")
-        val problems = mutableListOf<String>()
+        val violations = mutableListOf<String>()
         schema["type"]?.let { type ->
             val allowed = (type as? JsonArray)?.map { it.jsonPrimitive.content } ?: listOf(type.jsonPrimitive.content)
-            if (allowed.none { value.hasJsonSchemaType(it) }) problems += "$path: $value is none of $allowed"
+            if (allowed.none { value.hasJsonSchemaType(it) }) violations += "$path: $value is none of $allowed"
         }
-        schema["enum"]?.let { if (value !in it.jsonArray) problems += "$path: $value is not in $it" }
-        schema["const"]?.let { if (value != it) problems += "$path: $value is not $it" }
+        schema["enum"]?.let { if (value !in it.jsonArray) violations += "$path: $value is not in $it" }
+        schema["const"]?.let { if (value != it) violations += "$path: $value is not $it" }
         schema["oneOf"]?.let { variants ->
-            val matching = variants.jsonArray.count { violations(value, it.jsonObject, path).isEmpty() }
-            if (matching != 1) problems += "$path: $value matches $matching oneOf variants instead of one"
+            val matching = variants.jsonArray.count { findSchemaViolations(value, it.jsonObject, path).isEmpty() }
+            if (matching != 1) violations += "$path: $value matches $matching oneOf variants instead of one"
         }
         schema["anyOf"]?.let { variants ->
-            if (variants.jsonArray.none { violations(value, it.jsonObject, path).isEmpty() }) problems += "$path: $value matches no anyOf variant"
+            if (variants.jsonArray.none { findSchemaViolations(value, it.jsonObject, path).isEmpty() }) violations += "$path: $value matches no anyOf variant"
         }
         if (value is JsonObject) {
-            schema["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.filterNot(value::containsKey)?.forEach { problems += "$path: $it is missing" }
-            for ((key, item) in value) {
-                val itemSchema = schema["properties"]?.jsonObject?.get(key) ?: schema["additionalProperties"] ?: continue
-                problems += violations(item, itemSchema.jsonObject, "$path.$key")
+            schema["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.filterNot(value::containsKey)?.forEach { violations += "$path: $it is missing" }
+            for ((key, propertyValue) in value) {
+                val propertySchema = schema["properties"]?.jsonObject?.get(key) ?: schema["additionalProperties"] ?: continue
+                violations += findSchemaViolations(propertyValue, propertySchema.jsonObject, "$path.$key")
             }
         }
         if (value is JsonArray) {
-            schema["items"]?.let { items -> value.forEachIndexed { index, item -> problems += violations(item, items.jsonObject, "$path[$index]") } }
+            schema["items"]?.let { items -> value.forEachIndexed { index, item -> violations += findSchemaViolations(item, items.jsonObject, "$path[$index]") } }
         }
-        return problems
+        return violations
     }
 
     private fun JsonElement.hasJsonSchemaType(type: String): Boolean = when (type) {
@@ -378,10 +378,10 @@ class JetWhaleMcpCommandTest {
     }
 
     private object ArrayAnswerSerializer : KSerializer<Answer> {
-        private val wire = ListSerializer(String.serializer())
+        private val stringListSerializer = ListSerializer(String.serializer())
         override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ArrayAnswer") { element<String>("detail") }
-        override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(wire, listOf(value.detail.orEmpty()))
-        override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(wire).single())
+        override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(stringListSerializer, listOf(value.detail.orEmpty()))
+        override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(stringListSerializer).single())
     }
 
     @Serializable

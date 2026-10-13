@@ -18,6 +18,6 @@ internal class ReadKeyValueStoreCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val content = client.readKeyValueStore(arguments[store])
-        return replyResult(content, KeyValueStoreContent.serializer(), content.error)
+        return mcpResultOf(content, KeyValueStoreContent.serializer(), content.error)
     }
 }

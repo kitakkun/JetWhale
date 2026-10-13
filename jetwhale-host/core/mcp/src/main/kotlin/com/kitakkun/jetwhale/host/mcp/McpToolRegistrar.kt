@@ -185,6 +185,6 @@ private fun CallToolResult.renderForHistory(): String {
             else -> "<${block.type.value}>"
         }
     }
-    val structured = structuredContent?.toString()?.takeUnless(renderedBlocks::contains)
-    return (renderedBlocks + listOfNotNull(structured)).joinToString(separator = "\n")
+    val renderedStructuredContent = structuredContent?.toString()?.takeUnless(renderedBlocks::contains)
+    return (renderedBlocks + listOfNotNull(renderedStructuredContent)).joinToString(separator = "\n")
 }

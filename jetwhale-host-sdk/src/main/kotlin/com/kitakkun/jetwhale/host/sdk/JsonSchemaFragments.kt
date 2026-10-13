@@ -9,9 +9,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-internal fun JsonObject.withoutProperty(name: String): JsonObject {
-    val properties = (this["properties"] as? JsonObject).orEmpty() - name
-    val required = (this["required"] as? JsonArray).orEmpty().filterNot { (it as JsonPrimitive).content == name }
+internal fun JsonObject.withoutProperty(propertyName: String): JsonObject {
+    val properties = (this["properties"] as? JsonObject).orEmpty() - propertyName
+    val required = (this["required"] as? JsonArray).orEmpty().filterNot { (it as JsonPrimitive).content == propertyName }
     return buildJsonObject {
         for ((key, value) in this@withoutProperty) {
             when (key) {
@@ -58,10 +58,10 @@ internal fun JsonObject.allowingNull(): JsonObject {
             },
         )
 
-        variantsKeyword != null -> JsonObject(this + (variantsKeyword to JsonArray(getValue(variantsKeyword) as JsonArray + typeOnly("null"))))
+        variantsKeyword != null -> JsonObject(this + (variantsKeyword to JsonArray(getValue(variantsKeyword) as JsonArray + typeOnlySchema("null"))))
 
         else -> this
     }
 }
 
-internal fun typeOnly(type: String): JsonObject = buildJsonObject { put("type", type) }
+internal fun typeOnlySchema(type: String): JsonObject = buildJsonObject { put("type", type) }

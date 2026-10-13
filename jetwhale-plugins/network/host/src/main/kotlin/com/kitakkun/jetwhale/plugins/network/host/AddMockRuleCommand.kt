@@ -59,7 +59,7 @@ internal class AddMockRuleCommand(
         )
         return when (val failure = syncMockRules(mockRules() + rule)) {
             null -> createdRule.result(rule)
-            else -> syncErrorResult(failure)
+            else -> changeNotAppliedResult(failure)
         }
     }
 

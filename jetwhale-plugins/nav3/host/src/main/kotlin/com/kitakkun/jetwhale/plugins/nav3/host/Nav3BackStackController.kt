@@ -74,14 +74,14 @@ internal fun NavBackStackSnapshot.toMcpJson(): JsonObject = buildJsonObject {
  */
 @OptIn(ExperimentalJetWhaleApi::class)
 internal fun MutationResult.toMcpResult(): JetWhaleMcpResult {
-    val stack = snapshot?.toMcpJson()
+    val stackJson = snapshot?.toMcpJson()
     val refusal = error ?: return JetWhaleMcpResult.json(
         buildJsonObject {
             put("applied", true)
-            stack?.let { put("stack", it) }
+            stackJson?.let { put("stack", it) }
         },
     )
-    return JetWhaleMcpResult.error(if (stack == null) refusal else "$refusal The back stack is now: $stack")
+    return JetWhaleMcpResult.error(if (stackJson == null) refusal else "$refusal The back stack is now: $stackJson")
 }
 
 /** Short, human-facing label used for the status line after a UI-triggered operation. */

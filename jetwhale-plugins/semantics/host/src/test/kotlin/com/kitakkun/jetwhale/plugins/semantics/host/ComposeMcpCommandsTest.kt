@@ -17,37 +17,37 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class ComposeMcpCommandsTest {
-    private val unanswered: suspend (NodeTreeCaptureOptions) -> NodeTreeSnapshot = { throw JetWhaleRequestException("timed out") }
+    private val unansweredCapture: suspend (NodeTreeCaptureOptions) -> NodeTreeSnapshot = { throw JetWhaleRequestException("timed out") }
 
     @Test
     fun `a tool the app does not answer is a failed call`() {
-        val commands = listOf(
-            GetNodeTreeCommand(capture = unanswered) to buildJsonObject { },
-            FindNodesCommand(capture = unanswered) to buildJsonObject { },
-            NodeAtCommand(capture = unanswered) to buildJsonObject {
+        val commandsWithArguments = listOf(
+            GetNodeTreeCommand(capture = unansweredCapture) to buildJsonObject { },
+            FindNodesCommand(capture = unansweredCapture) to buildJsonObject { },
+            NodeAtCommand(capture = unansweredCapture) to buildJsonObject {
                 put("x", 1)
                 put("y", 1)
             },
-            PerformNodeActionCommand(lastSnapshot = { null }, capture = unanswered, perform = { error("never reached") }) to buildJsonObject {
+            PerformNodeActionCommand(lastSnapshot = { null }, capture = unansweredCapture, perform = { error("never reached") }) to buildJsonObject {
                 put("nodeId", 1)
                 put("action", "Click")
             },
         )
 
-        val failures = commands.map { (command, arguments) -> command.failureOf(arguments) }
+        val failureMessages = commandsWithArguments.map { (command, arguments) -> command.failureMessageOf(arguments) }
 
-        assertEquals(List(commands.size) { "the app did not answer: timed out" }, failures)
+        assertEquals(List(commandsWithArguments.size) { "the app did not answer: timed out" }, failureMessages)
     }
 
     @Test
     fun `an action the app does not perform is a failed call with its reason`() {
         val command = PerformNodeActionCommand(
             lastSnapshot = { null },
-            capture = unanswered,
+            capture = unansweredCapture,
             perform = { NodeActionResult(performed = false, message = "node 7 is disabled") },
         )
 
-        val failure = command.failureOf(
+        val failureMessage = command.failureMessageOf(
             buildJsonObject {
                 put("nodeId", 7)
                 put("action", "Click")
@@ -55,12 +55,12 @@ class ComposeMcpCommandsTest {
             },
         )
 
-        assertEquals("Click was not performed on node 7 in window-1: node 7 is disabled", failure)
+        assertEquals("Click was not performed on node 7 in window-1: node 7 is disabled", failureMessage)
     }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.failureOf(arguments: JsonObject): String? = runBlocking {
+private fun JetWhaleMcpCommand.failureMessageOf(arguments: JsonObject): String? = runBlocking {
     val result = run(JetWhaleMcpArguments(arguments))
     (result.content.single() as JetWhaleMcpContent.Text).text.takeIf { result.isError }
 }

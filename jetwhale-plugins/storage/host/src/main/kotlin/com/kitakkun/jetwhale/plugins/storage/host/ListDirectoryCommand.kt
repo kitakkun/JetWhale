@@ -19,6 +19,6 @@ internal class ListDirectoryCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val listing = client.listDirectory(fileLocationOf(arguments[root], arguments[path]))
-        return replyResult(listing, DirectoryListing.serializer(), listing.error)
+        return mcpResultOf(listing, DirectoryListing.serializer(), listing.error)
     }
 }

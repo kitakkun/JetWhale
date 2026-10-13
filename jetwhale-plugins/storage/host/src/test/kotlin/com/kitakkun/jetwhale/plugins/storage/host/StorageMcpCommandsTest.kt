@@ -139,9 +139,9 @@ class StorageMcpCommandsTest {
     fun `a reply the app marks as failed is a failed call`() {
         val listing = ListDirectoryCommand(client).answer(file("notes.txt"))
         val read = ReadFileCommand(client).answer(file("missing.txt"))
-        val store = ReadKeyValueStoreCommand(client).answer(buildJsonObject { put("store", "missing") })
+        val storeRead = ReadKeyValueStoreCommand(client).answer(buildJsonObject { put("store", "missing") })
 
-        assertEquals(listOf(true, true, true), listOf(listing.isError, read.isError, store.isError))
+        assertEquals(listOf(true, true, true), listOf(listing.isError, read.isError, storeRead.isError))
         assertEquals("'notes.txt' is not a directory", listing.text())
     }
 

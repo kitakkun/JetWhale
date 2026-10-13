@@ -19,6 +19,6 @@ internal class MeasureDirectoryCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val measurement = client.measureDirectory(fileLocationOf(arguments[root], arguments[path]))
-        return replyResult(measurement, DirectoryMeasurement.serializer(), measurement.error)
+        return mcpResultOf(measurement, DirectoryMeasurement.serializer(), measurement.error)
     }
 }

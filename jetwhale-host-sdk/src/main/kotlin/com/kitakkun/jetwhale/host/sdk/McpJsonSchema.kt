@@ -99,16 +99,16 @@ private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes:
 private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     // A value class is transparent on the wire: it encodes as its single underlying element.
     if (isInline) return getElementDescriptor(0).buildSchema(context, enclosingTypes)
-    if (serialName in UNCONSTRAINED_JSON_ELEMENTS) return ANY_VALUE
+    if (serialName in UNCONSTRAINED_JSON_ELEMENT_SERIAL_NAMES) return ANY_VALUE_SCHEMA
 
     val schema = when (kind) {
-        is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> typeOnly("string")
+        is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> typeOnlySchema("string")
 
-        is PrimitiveKind.BYTE, is PrimitiveKind.SHORT, is PrimitiveKind.INT, is PrimitiveKind.LONG -> typeOnly("integer")
+        is PrimitiveKind.BYTE, is PrimitiveKind.SHORT, is PrimitiveKind.INT, is PrimitiveKind.LONG -> typeOnlySchema("integer")
 
-        is PrimitiveKind.FLOAT, is PrimitiveKind.DOUBLE -> typeOnly("number")
+        is PrimitiveKind.FLOAT, is PrimitiveKind.DOUBLE -> typeOnlySchema("number")
 
-        is PrimitiveKind.BOOLEAN -> typeOnly("boolean")
+        is PrimitiveKind.BOOLEAN -> typeOnlySchema("boolean")
 
         is SerialKind.ENUM -> buildJsonObject {
             put("type", "string")
@@ -126,9 +126,9 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
             // and Json asks the same way, so it cannot read or write such a map at all.
             val keyKind = runCatching { getElementDescriptor(0).carrierDescriptor(context.serializersModule).kind }.getOrNull()
             when {
-                keyKind == null -> ANY_VALUE
+                keyKind == null -> ANY_VALUE_SCHEMA
 
-                keyKind !is PrimitiveKind && keyKind != SerialKind.ENUM -> typeOnly("array")
+                keyKind !is PrimitiveKind && keyKind != SerialKind.ENUM -> typeOnlySchema("array")
 
                 else -> buildJsonObject {
                     put("type", "object")
@@ -144,9 +144,9 @@ private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingType
 
         is PolymorphicKind.SEALED -> guarded(enclosingTypes) { sealedSchema(context, enclosingTypes) }
 
-        is PolymorphicKind.OPEN -> typeOnly(if (context.writesPolymorphismAsArrays) "array" else "object")
+        is PolymorphicKind.OPEN -> typeOnlySchema(if (context.writesPolymorphismAsArrays) "array" else "object")
 
-        is SerialKind.CONTEXTUAL -> context.serializersModule.plainContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE
+        is SerialKind.CONTEXTUAL -> context.serializersModule.plainContextualDescriptor(this)?.buildSchema(context, enclosingTypes) ?: ANY_VALUE_SCHEMA
     }
 
     val classDescription = annotations.mcpDescription() ?: return schema
@@ -164,17 +164,17 @@ private fun SerialDescriptor.carrierDescriptor(module: SerializersModule): Seria
 }
 
 /**
- * The descriptor of the serializer this module registers as is for [contextual]'s class. A class
+ * The descriptor of the serializer this module registers as is for [contextualDescriptor]'s class. A class
  * registered through a provider is left unresolved: the provider needs the serializers of the type
  * arguments, which a contextual descriptor does not carry.
  */
-private fun SerializersModule.plainContextualDescriptor(contextual: SerialDescriptor): SerialDescriptor? {
-    val contextualClass = contextual.capturedKClass ?: return null
-    var registered: SerialDescriptor? = null
+private fun SerializersModule.plainContextualDescriptor(contextualDescriptor: SerialDescriptor): SerialDescriptor? {
+    val contextualClass = contextualDescriptor.capturedKClass ?: return null
+    var registeredDescriptor: SerialDescriptor? = null
     dumpTo(
         object : SerializersModuleCollector {
             override fun <T : Any> contextual(kClass: KClass<T>, serializer: KSerializer<T>) {
-                if (kClass == contextualClass) registered = serializer.descriptor
+                if (kClass == contextualClass) registeredDescriptor = serializer.descriptor
             }
 
             override fun <T : Any> contextual(kClass: KClass<T>, provider: (typeArgumentsSerializers: List<KSerializer<*>>) -> KSerializer<*>) = Unit
@@ -186,11 +186,11 @@ private fun SerializersModule.plainContextualDescriptor(contextual: SerialDescri
             override fun <Base : Any> polymorphicDefaultDeserializer(baseClass: KClass<Base>, defaultDeserializerProvider: (className: String?) -> DeserializationStrategy<Base>?) = Unit
         },
     )
-    return registered
+    return registeredDescriptor
 }
 
 private inline fun SerialDescriptor.guarded(enclosingTypes: MutableSet<String>, build: () -> JsonObject): JsonObject {
-    if (!enclosingTypes.add(serialName)) return typeOnly("object")
+    if (!enclosingTypes.add(serialName)) return typeOnlySchema("object")
     try {
         return build()
     } finally {
@@ -227,8 +227,8 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * that serializer writes the subclass' own form even under array polymorphism.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    if (elementsCount != 2 || getElementDescriptor(1).kind != SerialKind.CONTEXTUAL) return ANY_VALUE
-    if (context.writesPolymorphismAsArrays) return typeOnly("array")
+    if (elementsCount != 2 || getElementDescriptor(1).kind != SerialKind.CONTEXTUAL) return ANY_VALUE_SCHEMA
+    if (context.writesPolymorphismAsArrays) return typeOnlySchema("array")
     val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {
@@ -272,9 +272,9 @@ private fun SchemaContext.jsonNameOf(descriptor: SerialDescriptor, index: Int): 
 
 private fun List<Annotation>.mcpDescription(): String? = filterIsInstance<McpDescription>().firstOrNull()?.value
 
-private val ANY_VALUE = JsonObject(emptyMap())
+private val ANY_VALUE_SCHEMA = JsonObject(emptyMap())
 
-private val UNCONSTRAINED_JSON_ELEMENTS = setOf(
+private val UNCONSTRAINED_JSON_ELEMENT_SERIAL_NAMES = setOf(
     JsonElement.serializer().descriptor.serialName,
     JsonPrimitive.serializer().descriptor.serialName,
     JsonNull.serializer().descriptor.serialName,

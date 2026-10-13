@@ -100,8 +100,8 @@ class McpJsonSchemaTest {
     @Test
     fun `a nullable class in an output pins the discriminator to the class's own serial name`() {
         val json = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
-        val holder = outputSchemaOf<NullableHolder>(json).property("optionality")
-        assertEquals(serializer<Optionality>().descriptor.serialName, holder.property("type").string("const"))
+        val optionality = outputSchemaOf<NullableHolder>(json).property("optionality")
+        assertEquals(serializer<Optionality>().descriptor.serialName, optionality.property("type").string("const"))
     }
 
     @Test

@@ -12,7 +12,7 @@ internal class ClearTransactionsCommand(
     override val name = "$TOOL_PREFIX.clearTransactions"
     override val description = "Clears the captured HTTP transaction list."
 
-    private val cleared = serializableOutput<ClearedTransactionsResult>()
+    private val clearedTransactions = serializableOutput<ClearedTransactionsResult>()
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = cleared.result(ClearedTransactionsResult(clearedCount = clearTransactions()))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = clearedTransactions.result(ClearedTransactionsResult(clearedCount = clearTransactions()))
 }

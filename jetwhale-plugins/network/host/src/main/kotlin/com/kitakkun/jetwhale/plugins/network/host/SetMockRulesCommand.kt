@@ -24,7 +24,7 @@ internal class SetMockRulesCommand(
         val newRules = arguments[rules]
         return when (val failure = syncMockRules(newRules)) {
             null -> appliedRules.result(MockRulesResult(rules = newRules))
-            else -> syncErrorResult(failure)
+            else -> changeNotAppliedResult(failure)
         }
     }
 }

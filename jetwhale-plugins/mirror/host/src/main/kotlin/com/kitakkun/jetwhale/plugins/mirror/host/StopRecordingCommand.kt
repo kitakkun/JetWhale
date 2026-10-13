@@ -39,6 +39,6 @@ internal class StopRecordingCommand(
             )
         }
         val results = mirror.stopRecordings(several)
-        return results.toMcpResult(nothingToDo = "there is no recording to stop")
+        return results.toMcpResult(nothingToDoMessage = "there is no recording to stop")
     }
 }

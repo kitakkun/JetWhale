@@ -390,13 +390,13 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             mcpPermissionsRepository = FakeMcpPermissionsRepository(),
-            builtInTools = setOf(MirroredStructuredMcpTool("fake.mirrored")),
+            builtInTools = setOf(TextRepeatingStructuredMcpTool("fake.mirrored")),
             statusHolder = McpServerStatusHolder(),
         )
-        val mirroredPort = ServerSocket(0).use(ServerSocket::getLocalPort)
-        serviceWithTool.start(host, mirroredPort)
+        val textRepeatingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
+        serviceWithTool.start(host, textRepeatingPort)
         val record = try {
-            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$mirroredPort/sse")
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$textRepeatingPort/sse")
             try {
                 client.callTool("fake.mirrored", emptyMap())
             } finally {
@@ -546,7 +546,7 @@ private class StructuredMcpTool(private val name: String) : JetWhaleMcpTool {
 }
 
 /** Repeats its structured payload as text, as [JetWhaleMcpResult.json] does for clients that read only text. */
-private class MirroredStructuredMcpTool(private val name: String) : JetWhaleMcpTool {
+private class TextRepeatingStructuredMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         val payload = buildJsonObject { put("width", 120) }
         registrar.addTool(name = name, description = "Repeats its payload as text", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->

@@ -99,12 +99,12 @@ class ActionsMcpCommandsTest {
 
     @Test
     fun `a run that does not succeed is a failed call that keeps its error and stack trace`() {
-        val failing = FakeActionsClient(
+        val failingClient = FakeActionsClient(
             actions = listOf(loginAs),
             options = emptyMap(),
             result = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "no such user", stackTrace = "at LoginAs.run", durationMillis = 3),
         )
-        val command = RunActionCommand(ActionsBrowser(failing, CoroutineScope(Dispatchers.Unconfined)))
+        val command = RunActionCommand(ActionsBrowser(failingClient, CoroutineScope(Dispatchers.Unconfined)))
 
         val result = runBlocking {
             command.run(
