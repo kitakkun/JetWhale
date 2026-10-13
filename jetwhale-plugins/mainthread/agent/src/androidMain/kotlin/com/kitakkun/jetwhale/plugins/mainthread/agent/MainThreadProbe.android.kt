@@ -169,6 +169,20 @@ private class AndroidMainThreadProbe(
 }
 
 /**
+ * The policy ActivityThread installs for every app since Android 3.0, which makes network access on
+ * the main thread throw. Policies are compared as strings, since a policy has no equals and its mask
+ * is hidden.
+ */
+private val deathOnNetworkPolicyText: String by lazy {
+    StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString()
+}
+
+/** The thread policies an app has when it sets none: LAX, or [deathOnNetworkPolicyText]. */
+private val platformDefaultPolicyTexts: Set<String> by lazy {
+    setOf(StrictMode.ThreadPolicy.LAX.toString(), deathOnNetworkPolicyText)
+}
+
+/**
  * Frame timing for one activation: its own listener thread, lifecycle callbacks and listeners. A
  * session only ever cleans up what it created, so closing one whose cleanup is still queued cannot
  * touch the session that replaced it.
@@ -178,8 +192,8 @@ private class FrameTimingSession(
     private val recorder: MainThreadRecorder,
     private val mainHandler: Handler,
 ) {
-    private val thread = HandlerThread("jetwhale-frame-metrics").apply { start() }
-    private val handler = Handler(thread.looper)
+    private val thread = HandlerThread("jetwhale-frame-metrics")
+    private val handler by lazy { Handler(thread.looper) }
 
     // Touched only on the main thread, where Android delivers activity lifecycle callbacks.
     private val windows = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
@@ -202,6 +216,7 @@ private class FrameTimingSession(
     }
 
     init {
+        thread.start()
         application.registerActivityLifecycleCallbacks(callbacks)
         mainHandler.post { resumedActivitiesOrEmpty().forEach(::attach) }
     }
@@ -239,20 +254,6 @@ private class FrameTimingSession(
         val window = activity.window ?: return
         windows.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
     }
-}
-
-/**
- * The policy ActivityThread installs for every app since Android 3.0, which makes network access on
- * the main thread throw. Policies are compared as strings, since a policy has no equals and its mask
- * is hidden.
- */
-private val deathOnNetworkPolicyText: String by lazy {
-    StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString()
-}
-
-/** The thread policies an app has when it sets none: LAX, or [deathOnNetworkPolicyText]. */
-private val platformDefaultPolicyTexts: Set<String> by lazy {
-    setOf(StrictMode.ThreadPolicy.LAX.toString(), deathOnNetworkPolicyText)
 }
 
 /**

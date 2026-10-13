@@ -13,7 +13,7 @@ internal actual fun monitorLock(): MonitorLock = object : MonitorLock {
     private val held = AtomicInt(0)
 
     override fun lock() {
-        @Suppress("ControlFlowWithEmptyBody")
+        @Suppress("ControlFlowWithEmptyBody") // A spin lock: taking the lock is the loop condition, so the body has nothing to do.
         while (!held.compareAndSet(0, 1)) {
         }
     }
