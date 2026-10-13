@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -50,6 +51,13 @@ class DeviceMirrorStreamingTest {
     private val tools: File = Files.createTempDirectory("mirror-tools").toFile()
     private val fakeFfmpeg = File(tools, "ffmpeg").apply {
         writeText("#!/bin/sh\ncat > /dev/null\n")
+        setExecutable(true)
+    }
+
+    /** An xcrun whose simctl takes a 20x40 screenshot of any simulator and lists no screens. */
+    private val fakeXcrun = File(tools, "xcrun").apply {
+        val screenshot = File(tools, "screenshot.png").apply { writeBytes(Surface.makeRasterN32Premul(20, 40).use { surface -> surface.makeImageSnapshot().use { checkNotNull(it.encodeToData(EncodedImageFormat.PNG)).bytes } }) }
+        writeText("#!/bin/sh\n[ \"${'$'}1 ${'$'}2 ${'$'}4\" = 'simctl io screenshot' ] || exit 64\ncp '${screenshot.path}' \"${'$'}5\"\n")
         setExecutable(true)
     }
 
@@ -253,6 +261,52 @@ class DeviceMirrorStreamingTest {
         assertTrue(running)
     }
 
+    // The mirror's state is snapshot state written off the UI thread, which nothing hears change
+    // outside a composition, so the test watches it.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
+    @Test
+    fun `a simulator whose runner cannot start is shown through screenshots without input until Retry tries its runner again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val reason = "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again"
+        val runners = FakeXcTestRunners().apply { startFailure = reason }
+        val runnerStreamed = CompletableDeferred<Unit>()
+        runners.runner.screenFrames = flow {
+            runnerStreamed.complete(Unit)
+            awaitCancellation()
+        }
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("SIM-1", "iPhone 17", DeviceKind.IosSimulator, osVersion = "iOS 26.2"), simulator)) }
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (mirror.state != MirrorState.Polling(reason)) delay(MIRROR_STATE_POLL_MILLIS) }
+        assertEquals(reason, simulator.capabilities.inputRefusal)
+        runners.startFailure = null
+
+        mirror.retryLiveVideo()
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { runnerStreamed.await() }
+        session.cancel()
+
+        assertNull(simulator.capabilities.inputRefusal)
+    }
+
+    // The mirror's state is snapshot state written off the UI thread, which nothing hears change
+    // outside a composition, so the test watches it.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
+    @Test
+    fun `a simulator's runner is tried again once its mirror closes`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val reason = "the XCTest runner did not start: error: iOS 26.2 Platform Not Installed."
+        val runners = FakeXcTestRunners().apply { startFailure = reason }
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+        mirror.surface.viewSize = IntSize(540, 1200)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("SIM-1", "iPhone 17", DeviceKind.IosSimulator, osVersion = "iOS 26.2"), simulator)) }
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (mirror.state != MirrorState.Polling(reason)) delay(MIRROR_STATE_POLL_MILLIS) }
+        assertEquals(reason, simulator.capabilities.inputRefusal)
+
+        session.cancelAndJoin()
+
+        assertNull(simulator.capabilities.inputRefusal)
+    }
+
     @Test
     fun `a device without screen power is never asked for it`() = runBlocking {
         val controller = EndingStream(power = null)
@@ -267,6 +321,8 @@ class DeviceMirrorStreamingTest {
 }
 
 private const val STREAM_END_TIMEOUT_MILLIS = 5_000L
+
+private const val MIRROR_STATE_POLL_MILLIS = 20L
 
 /** Longer than the mirror takes to read a mirrored Android device's screen size again. */
 private const val SCREEN_CHANGE_TIMEOUT_MILLIS = 5_000L

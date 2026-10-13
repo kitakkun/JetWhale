@@ -10,14 +10,19 @@ import kotlinx.coroutines.withTimeoutOrNull
  * silent.
  */
 internal class FirstFrameWatchdog(private val timeoutMillis: Long) {
-    private val firstFrame = CompletableDeferred<Unit>()
+    private val firstFrameOrFailure = CompletableDeferred<Unit>()
 
     fun frameArrived() {
-        firstFrame.complete(Unit)
+        firstFrameOrFailure.complete(Unit)
     }
 
-    /** True once a frame has arrived; false when [timeoutMillis] pass without one. */
-    suspend fun awaitFirstFrame(): Boolean = withTimeoutOrNull(timeoutMillis) { firstFrame.await() } != null
+    /** Ends the wait for a first frame, for a stream that failed before one and has its own reason to give. */
+    fun endFirstFrameWait() {
+        firstFrameOrFailure.complete(Unit)
+    }
+
+    /** True once a frame has arrived or [endFirstFrameWait] has ended the wait; false when [timeoutMillis] pass without either. */
+    suspend fun awaitFirstFrame(): Boolean = withTimeoutOrNull(timeoutMillis) { firstFrameOrFailure.await() } != null
 }
 
 /** What to check when a [kind] of device streams nothing, in the order worth trying. */

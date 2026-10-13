@@ -16,7 +16,7 @@ import kotlin.concurrent.thread
 import kotlin.time.Duration
 
 /** A device-control operation failed or is not supported; [message] is shown to the user as is. */
-internal class DeviceControlException(message: String, cause: Throwable?) : Exception(message, cause)
+internal open class DeviceControlException(message: String, cause: Throwable?) : Exception(message, cause)
 
 internal fun deviceControlError(message: String): DeviceControlException = DeviceControlException(message, null)
 

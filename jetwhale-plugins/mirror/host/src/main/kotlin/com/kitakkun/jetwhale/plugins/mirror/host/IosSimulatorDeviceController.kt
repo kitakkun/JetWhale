@@ -27,6 +27,10 @@ import kotlin.time.Duration.Companion.seconds
  * ([runnerInput]); screenshots and recordings go through `simctl`, which needs no runner, and its
  * screenshots stand in for the video while the runner starts.
  *
+ * A simulator whose runner cannot run is shown view only: [openVideoStream] and every input fail with
+ * the reason, which the mirror shows beside the screenshots it takes instead. A runner that fails to
+ * build or start while the stream starts it is not tried again until [forgetRunnerStartFailure].
+ *
  * Frames, screenshots, taps and swipes are all in the screen's pixels as the interface turns it: a
  * simulator turned to landscape is mirrored, and tapped, in landscape.
  */
@@ -40,14 +44,22 @@ internal class IosSimulatorDeviceController(
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     /** Why the simulator has no live video and takes no input, when that is known without starting a runner. */
-    private val runnerRefusal = if (runnerInput == null) "a simulator's live video and input need Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
+    private val runnerRefusal = if (runnerInput == null) "a simulator's live video and input need Xcode, which was not found: install it from the App Store" else runnerInput.refusalFor(runnerTarget)
 
-    override val capabilities = DeviceCapabilities(
-        inputRefusal = runnerRefusal,
-        buttons = if (runnerRefusal == null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
-        recording = true,
-        screenPower = false,
-    )
+    /** Why the runner could not be built or started when the stream last tried it. */
+    @Volatile
+    private var runnerStartFailure: String? = null
+
+    override val capabilities: DeviceCapabilities
+        get() {
+            val refusal = runnerRefusal ?: runnerStartFailure
+            return DeviceCapabilities(
+                inputRefusal = refusal,
+                buttons = if (refusal == null) listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power) else emptyList(),
+                recording = true,
+                screenPower = false,
+            )
+        }
 
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
@@ -87,10 +99,16 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.EncodedImages(streamRunnerFramesWithStandInScreenshots(requireRunnerInput()))
 
+    /** Lets the next [openVideoStream] try the runner again after it failed to build or start. */
+    fun forgetRunnerStartFailure() {
+        runnerStartFailure = null
+    }
+
     /**
      * The runner's frames, with screenshots standing in until the first one comes: a runner takes
      * about three seconds to start, and the first build for an Xcode about ten more. A newer frame
-     * replaces one the reader has not taken yet.
+     * replaces one the reader has not taken yet. A runner that cannot be built or started ends the
+     * stream with [RunnerStartException], and the simulator is view only from then on.
      */
     private fun streamRunnerFramesWithStandInScreenshots(input: XcTestRunnerInput): Flow<ByteArray> = channelFlow {
         val screenshots = launch {
@@ -105,9 +123,14 @@ internal class IosSimulatorDeviceController(
                 delay(STAND_IN_SCREENSHOT_INTERVAL_MILLIS)
             }
         }
-        input.streamScreenAsJpeg(runnerTarget, RUNNER_STREAM_FPS).collect { frame ->
-            if (screenshots.isActive) screenshots.cancelAndJoin()
-            send(frame)
+        try {
+            input.streamScreenAsJpeg(runnerTarget, RUNNER_STREAM_FPS).collect { frame ->
+                if (screenshots.isActive) screenshots.cancelAndJoin()
+                send(frame)
+            }
+        } catch (e: RunnerStartException) {
+            runnerStartFailure = e.message.orEmpty()
+            throw e
         }
     }.conflate()
 
@@ -130,7 +153,7 @@ internal class IosSimulatorDeviceController(
     override suspend fun release() = Unit
 
     private fun requireRunnerInput(): XcTestRunnerInput {
-        runnerRefusal?.let { throw deviceControlError(it) }
+        (runnerRefusal ?: runnerStartFailure)?.let { throw deviceControlError(it) }
         return checkNotNull(runnerInput)
     }
 }

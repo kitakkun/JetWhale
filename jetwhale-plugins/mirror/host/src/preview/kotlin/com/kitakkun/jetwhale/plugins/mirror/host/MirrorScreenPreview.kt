@@ -99,6 +99,8 @@ private object NoActions : MirrorActions {
 
     override fun sleep() = Unit
 
+    override fun retryLiveVideo() = Unit
+
     override val developmentTeam: String? get() = null
 
     override fun updateDevelopmentTeam(team: String?) = Unit
