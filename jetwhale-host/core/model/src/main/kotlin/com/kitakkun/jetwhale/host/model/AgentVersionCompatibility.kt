@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest.AgentVersionRan
  * the host session, which has no agent and is served by the newest of all. Negotiation reports with
  * this rule and the instance service binds with it.
  */
+@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER") // A null agentVersion is the host session, a real state: it has no agent, and every version accepts it.
 class AgentVersionCompatibility(private val agentVersion: String?) {
     /** The newest of [loadedVersions] that serves the agent, or null when none does. */
     fun newestCompatibleOf(loadedVersions: List<LoadedHostPlugin>): LoadedHostPlugin? = loadedVersions

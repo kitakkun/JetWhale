@@ -224,20 +224,19 @@ private fun drawerPluginItems(
     boundPluginVersions: BoundPluginVersions,
     activeInvocation: McpToolInvocation?,
 ): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.map { metaData ->
+    val pluginAvailability = when {
+        metaData.requiresAgent && selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } != true -> PluginAvailability.Unavailable
+        metaData.id in enabledPluginIds -> PluginAvailability.Enabled
+        else -> PluginAvailability.Disabled
+    }
     val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-    val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-    val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
 
     DrawerPluginItemUiState(
         id = metaData.id,
         name = metaData.name,
         activeIconResource = metaData.activeIconResource,
         inactiveIconResource = metaData.inactiveIconResource,
-        pluginAvailability = when {
-            metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-            isEnabledInSettings -> PluginAvailability.Enabled
-            else -> PluginAvailability.Disabled
-        },
+        pluginAvailability = pluginAvailability,
         underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
         exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
         isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),

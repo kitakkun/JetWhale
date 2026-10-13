@@ -195,15 +195,15 @@ class DefaultPluginInstanceServiceVersionTest {
     )
 
     private class FakePluginFactoryRepository : PluginFactoryRepository {
-        private val mutableLoadedPluginVersionsFlow = MutableStateFlow<Map<String, List<LoadedHostPlugin>>>(emptyMap())
-        override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = mutableLoadedPluginVersionsFlow
-        override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> get() = mutableLoadedPluginVersionsFlow.value
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutableLoadedPluginVersionsFlow.value.mapValues { (_, loaded) -> loaded.first() }
+        override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>>
+            field = MutableStateFlow<Map<String, List<LoadedHostPlugin>>>(emptyMap())
+        override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> get() = loadedPluginVersionsFlow.value
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginVersionsFlow.value.mapValues { (_, loaded) -> loaded.first() }
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         fun replaceLoadedPluginVersions(vararg plugins: LoadedHostPlugin) {
-            mutableLoadedPluginVersionsFlow.value = plugins.groupBy { it.manifest.pluginId }
+            loadedPluginVersionsFlow.value = plugins.groupBy { it.manifest.pluginId }
                 .mapValues { (_, loaded) -> loaded.sortedWith(compareByDescending(PluginVersionOrder) { it.manifest.version }) }
         }
 

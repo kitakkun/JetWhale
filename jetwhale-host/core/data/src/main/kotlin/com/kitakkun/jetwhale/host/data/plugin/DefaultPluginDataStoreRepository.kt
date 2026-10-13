@@ -70,10 +70,10 @@ class DefaultPluginDataStoreRepository(
             null -> appDataDirectoryProvider.resolvePluginDataDir(pluginId) / STORE_FILE_NAME
             else -> appDataDirectoryProvider.resolvePluginVersionDataDir(pluginId, version) / STORE_FILE_NAME
         }
-        val text = FileSystem.SYSTEM.read(storePath) { readUtf8() }
-        if (text.isBlank()) return emptyMap()
+        val json = FileSystem.SYSTEM.read(storePath) { readUtf8() }
+        if (json.isBlank()) return emptyMap()
         return try {
-            Json.decodeFromString(JsonObject.serializer(), text)
+            Json.decodeFromString(JsonObject.serializer(), json)
         } catch (e: SerializationException) {
             logger.warning("Stored data of plugin '$pluginId' ${version ?: "(unversioned)"} is malformed and is not carried over: ${e.message}")
             emptyMap()
