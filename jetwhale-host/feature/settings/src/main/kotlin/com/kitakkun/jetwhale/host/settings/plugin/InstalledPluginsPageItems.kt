@@ -46,7 +46,7 @@ internal fun LazyListScope.installedPluginsPageItems(
         items = plugins,
         key = { plugin -> "installed:${plugin.id}" },
     ) { plugin ->
-        InstalledPluginRow(plugin = plugin, onRemoveVersion = { version -> onRemoveVersion(plugin, version) })
+        InstalledPluginRow(plugin = plugin, onRemoveVersion = { installedVersion -> onRemoveVersion(plugin, installedVersion) })
     }
     if (plugins.isEmpty()) {
         item(key = "no_plugins") {
