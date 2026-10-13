@@ -53,8 +53,6 @@ class SemanticsOwnerNodeSource(
                 windowOffsetY = offset.y,
                 rootOffset = Offset.Zero,
                 depth = 0,
-                // This source reads a composition through its owner alone, which carries no route to
-                // any foreign UI embedded in it; the Android window source is the one that has one.
                 interopChildren = { _, _ -> emptyList() },
             ),
         )
@@ -68,8 +66,6 @@ class SemanticsOwnerNodeSource(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left the composition; capture the tree again)",
             )
-        // An owner is the whole of what this source can see, so there is nothing around the
-        // composition for BringIntoView to scroll.
         node.performSemanticsAction(request, revealInHost = { false })
     }
 }
@@ -79,9 +75,8 @@ class SemanticsOwnerNodeSource(
  * present in the unmerged one — so a lookup that missed in the merged tree still has somewhere to
  * look. The merged tree comes first because its config carries the actions a caller saw advertised.
  */
-private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? =
-    getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
-        ?: getAllSemanticsNodes(mergingEnabled = false, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? = getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+    ?: getAllSemanticsNodes(mergingEnabled = false, skipDeactivatedNodes = true).firstOrNull { it.id == id }
 
 /**
  * Registers a [SemanticsOwner] the caller already holds and keeps alive itself.

@@ -109,8 +109,6 @@ fun ComposeNodeTestScreen() {
             }
         }
         item {
-            // A node whose only label is a contentDescription: it has nothing to read on screen,
-            // but an agent can still find and describe it.
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

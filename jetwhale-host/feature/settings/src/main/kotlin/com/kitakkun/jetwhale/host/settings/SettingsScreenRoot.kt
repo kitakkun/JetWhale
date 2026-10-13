@@ -19,9 +19,6 @@ fun SettingsScreenRoot(
         modifier = modifier,
         initialPage = initialPage,
     ) { page ->
-        // Pages are routed to whichever Root already subscribes to their data, which is not always
-        // the section they are filed under: the menu groups settings by what they are about, while a
-        // Root groups them by what they need to read.
         when (page.owner) {
             SettingsScreenPageOwner.General -> GeneralSettingsScreenRoot(
                 page = page,

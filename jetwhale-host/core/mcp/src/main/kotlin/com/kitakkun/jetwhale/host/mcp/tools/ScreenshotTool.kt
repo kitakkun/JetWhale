@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
-import androidx.compose.runtime.snapshots.Snapshot
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -30,6 +30,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
+import org.jetbrains.skia.Data
 import org.jetbrains.skia.EncodedImageFormat
 import java.util.Base64
 import org.jetbrains.skia.Image as SkiaImage
@@ -81,58 +82,41 @@ class ScreenshotMcpTool(
             invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            val pngBytes = withContext(Dispatchers.Main) {
-                val viewport = resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity)
-                captureScreenshot(scene, viewport)
+            val frame = withContext(Dispatchers.Main) {
+                renderScreenshot(scene, resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity))
             }
-            val base64 = Base64.getEncoder().encodeToString(pngBytes)
+            // Encoding takes about a hundred times as long as the render; on the UI thread it would
+            // freeze every host window for that long.
+            val base64 = Base64.getEncoder().encodeToString(frame.encodeToPng())
             CallToolResult(content = listOf(ImageContent(data = base64, mimeType = "image/png")))
         }
     }
 }
 
 /**
- * Renders the plugin's ComposeScene to an in-memory PNG image.
+ * Renders the plugin's ComposeScene into a new bitmap of [viewport]'s size.
  *
  * Must be called on the UI thread (Dispatchers.Main), as it mutates the ComposeScene. [viewport] is
  * scoped to the capture: the scene is put back on the viewport it had before returning, so the
  * on-screen plugin UI is unaffected and later captures do not inherit this one's size or density.
- *
- * @param scene  The plugin ComposeScene to render.
- * @param viewport Output viewport (size + density) to render with.
- * @return PNG-encoded bytes.
  */
 @OptIn(InternalComposeUiApi::class)
-fun captureScreenshot(
+@VisibleForTesting
+internal fun renderScreenshot(
     scene: PluginComposeScene,
     viewport: McpViewport,
-): ByteArray {
+): ImageBitmap {
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
-    val composeCanvas = Canvas(imageBitmap)
     withScopedViewport(scene, viewport) {
-        // Raised only for this off-screen render; being on the UI thread, no interactive frame can
-        // observe the raised state.
-        scene.isMcpCapture.value = true
-        try {
-            // render() only flushes snapshot apply notifications at its end (before draw), so a write
-            // made right before it is not yet observed by the scene's recomposer and the frame would be
-            // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
-            // within this render pass.
-            Snapshot.sendApplyNotifications()
-            scene.render(composeCanvas)
-        } finally {
-            scene.isMcpCapture.value = false
-            // Flush the restore so the next interactive render observes capture=false immediately rather
-            // than lagging a frame behind.
-            Snapshot.sendApplyNotifications()
-        }
+        scene.whileCapturingForMcp { scene.render(Canvas(imageBitmap)) }
     }
-
-    return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap())
-        .encodeToData(EncodedImageFormat.PNG)
-        ?.bytes
-        ?: error("Failed to encode screenshot to PNG")
+    return imageBitmap
 }
+
+@VisibleForTesting
+internal fun ImageBitmap.encodeToPng(): ByteArray = SkiaImage.makeFromBitmap(asSkiaBitmap()).use { image ->
+    image.encodeToData(EncodedImageFormat.PNG)?.use(Data::bytes)
+} ?: error("Failed to encode screenshot to PNG")
 
 /**
  * Why a caller-supplied density is rejected, or null when it is usable.
@@ -140,6 +124,7 @@ fun captureScreenshot(
  * A JSON number too large for a Float parses to `Infinity`, and `NaN` parses to `NaN`; neither is
  * caught by a `<= 0` test (`NaN <= 0` is false), and both would reach Compose layout.
  */
+@VisibleForTesting
 internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
     requestedDensity == null -> null
     !requestedDensity.isFinite() -> "'density' must be a finite number."
@@ -148,6 +133,7 @@ internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
 }
 
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun resolveViewport(
     scene: PluginComposeScene,
     requestedWidth: Int?,
@@ -155,8 +141,6 @@ internal fun resolveViewport(
     requestedDensity: Float?,
 ): McpViewport {
     val sceneDensity = scene.composeScene.density
-    // Override the density scalar only: fontScale is a separate, user-facing setting that the
-    // caller is not asking about, so carry the scene's through.
     val density = requestedDensity
         ?.let { Density(density = it, fontScale = sceneDensity.fontScale) }
         ?: sceneDensity

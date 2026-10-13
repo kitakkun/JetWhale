@@ -35,8 +35,6 @@ abstract class AbstractBuildMachineBoxTest : AbstractFirBlackBoxCodegenTestBase(
         with(builder) {
             defaultDirectives {
                 +CodegenTestDirectives.DUMP_IR
-                // The default box pipeline runs D8/R8, which is not on this classpath and has
-                // nothing to say about a plugin that does not target Android specifically.
                 +CodegenTestDirectives.IGNORE_DEXING
                 +JvmEnvironmentConfigurationDirectives.FULL_JDK
             }

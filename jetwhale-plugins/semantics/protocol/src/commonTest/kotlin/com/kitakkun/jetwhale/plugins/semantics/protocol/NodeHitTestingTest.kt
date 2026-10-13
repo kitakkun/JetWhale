@@ -124,15 +124,7 @@ class NodeHitTestingTest {
     @Test
     fun `a node clipped out of its scroll container has no area to tap`() {
         val roots = NodeHitTesting.resolve(
-            listOf(
-                root(
-                    button(
-                        id = 1,
-                        at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
-                        inScreen = rect(left = 0f, top = 0f, right = 0f, bottom = 0f),
-                    ),
-                ),
-            ),
+            listOf(root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f), inScreen = rect(left = 0f, top = 0f, right = 0f, bottom = 0f)))),
         )
 
         assertEquals(false, roots.node(1).isHittable)
@@ -164,11 +156,7 @@ class NodeHitTestingTest {
         val roots = NodeHitTesting.resolve(
             listOf(
                 root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f))),
-                root(
-                    button(id = 2, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)),
-                    rootId = "popup",
-                    bounds = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
-                ),
+                root(button(id = 2, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)), rootId = "popup", bounds = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)),
             ),
         )
 
@@ -193,11 +181,7 @@ class NodeHitTestingTest {
     fun `nodeAt reports the topmost accepting node`() {
         val roots = listOf(
             root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f))),
-            root(
-                button(id = 2, at = rect(left = 0f, top = 0f, right = 40f, bottom = 20f)),
-                rootId = "popup",
-                bounds = rect(left = 0f, top = 0f, right = 40f, bottom = 20f),
-            ),
+            root(button(id = 2, at = rect(left = 0f, top = 0f, right = 40f, bottom = 20f)), rootId = "popup", bounds = rect(left = 0f, top = 0f, right = 40f, bottom = 20f)),
         )
 
         assertEquals(NodeRef("popup", 2), NodeHitTesting.nodeAt(roots, 10f, 10f))
@@ -222,8 +206,6 @@ class NodeHitTestingTest {
 
     @Test
     fun `a point inside a window that nothing accepts is nobody's rather than the window's`() {
-        // Every window is touch-modal, the activity's included; a tap landing in it that no node
-        // takes is not the window swallowing anything — the app takes no touch at all.
         val roots = listOf(root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)), isTouchModal = true))
 
         assertEquals(NodeHitTesting.TouchTarget.Nothing, NodeHitTesting.targetAt(roots, 500f, 500f))
@@ -254,8 +236,7 @@ class NodeHitTestingTest {
 
 private const val ROOT_ID = "window"
 
-private fun List<ComposeRoot>.node(id: Int): UiNode =
-    requireNotNull(first { it.rootId == ROOT_ID }.requiredNode.find(id)) { "no node with id $id in the captured tree" }
+private fun List<ComposeRoot>.node(id: Int): UiNode = requireNotNull(first { it.rootId == ROOT_ID }.requiredNode.find(id)) { "no node with id $id in the captured tree" }
 
 private val ComposeRoot.requiredNode: UiNode get() = requireNotNull(node) { "root $rootId was captured without a node" }
 

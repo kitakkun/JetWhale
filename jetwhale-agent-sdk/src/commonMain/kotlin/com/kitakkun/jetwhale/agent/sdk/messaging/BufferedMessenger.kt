@@ -10,7 +10,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -54,41 +53,31 @@ public class BufferedMessenger(
     /** The live transport, or null while disconnected. Sole writer is [bind]/[unbind]. */
     private val live = MutableStateFlow<JetWhaleTransportMessenger?>(null)
 
-    /** Whether buffered events may flush. Opened by [startFlush] (after init), reset by [unbind]. */
-    private val flushOpen = MutableStateFlow(false)
+    /**
+     * Where buffered events flush to: the live transport once [startFlush] has opened the gate, null
+     * while it is closed. Reset by [unbind].
+     */
+    private val flushTarget = MutableStateFlow<JetWhaleTransportMessenger?>(null)
 
     /** The offline buffer: a single bounded queue, drop-oldest. Null when buffering is disabled. */
     private val offlineBuffer: Channel<BufferedEvent>? =
         if (bufferCapacity > 0) Channel(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.DROP_OLDEST) else null
 
     init {
-        // Single consumer: forward each queued event to the live transport, but only once one is bound
-        // and flushing has been opened. While disconnected (or before init opens the gate) this loop
-        // parks, so the buffer fills (drop-oldest) and drains in FIFO order once flushing opens.
         offlineBuffer?.let { buffer ->
             scope.launch {
                 for (event in buffer) {
-                    val transport = awaitFlushableTransport()
-                    transport.sendRaw(event.messageType, event.payload)
+                    flushTarget.filterNotNull().first().sendRaw(event.messageType, event.payload)
                 }
             }
         }
     }
 
-    /** Suspends until a transport is bound and flushing has been opened, then returns that transport. */
-    private suspend fun awaitFlushableTransport(): JetWhaleTransportMessenger =
-        combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
-            .filterNotNull()
-            .first()
-
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
         val transport = live.value
         return when (policy) {
-            // Queue always goes through the buffer so queued events keep one FIFO order, whether or
-            // not a transport is currently bound (the consumer forwards them as soon as one is).
             OfflineSendPolicy.QUEUE -> {
                 if (offlineBuffer == null) {
-                    // No capacity: degrade to a best-effort live send.
                     if (transport != null) transport.sendRaw(messageType, payload) else false
                 } else {
                     offlineBuffer.trySend(BufferedEvent(messageType, payload)) // drop-oldest never fails while open
@@ -111,7 +100,6 @@ public class BufferedMessenger(
     }
 
     override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String {
-        // Requests are never buffered: a reply has nowhere to go while offline.
         val transport = live.value ?: throw JetWhaleConnectionClosedException()
         return transport.requestRaw(messageType, payload, timeout)
     }
@@ -122,25 +110,25 @@ public class BufferedMessenger(
      */
     public fun bind(transport: JetWhaleTransportMessenger) {
         live.value = transport
+        if (flushTarget.value != null) flushTarget.value = transport
     }
 
     /** Opens flushing of buffered events. Call after connection-time initialization has finished. */
     public fun startFlush() {
-        // Only meaningful while bound; a late call after unbind (e.g. init cancelled) is ignored.
-        if (live.value != null) flushOpen.value = true
+        flushTarget.value = live.value
     }
 
     /** Detaches the live transport and re-closes the flush gate; QUEUE sends buffer again. */
     public fun unbind() {
         live.value = null
-        flushOpen.value = false
+        flushTarget.value = null
     }
 
     /** Permanently stops this messenger. Call when the owning plugin is disposed. */
     public fun close() {
         offlineBuffer?.close()
         live.value = null
-        flushOpen.value = false
+        flushTarget.value = null
         scope.cancel()
     }
 }

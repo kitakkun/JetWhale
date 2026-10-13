@@ -8,6 +8,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ConnectionEndpointTest {
+    // Pins the deprecated host and port for as long as they remain in the API.
     @Suppress("DEPRECATION")
     @Test
     fun `the deprecated host and port stand in for undeclared endpoints`() {
@@ -58,8 +59,6 @@ class ConnectionEndpointTest {
 
     @Test
     fun `the scheme is per candidate, so one configuration can mix them`() {
-        // The whole point of stating it per candidate: the targets a single configuration serves do
-        // not agree on whether wss is possible.
         val resolved = literalAddresses {
             endpoints {
                 wss("192.168.3.26", 5443)
@@ -78,7 +77,6 @@ class ConnectionEndpointTest {
 
     @Test
     fun `a candidate's scheme owes nothing to the ssl block`() {
-        // ssl { } says what to trust; the candidate says whether TLS is spoken at all.
         val resolved = literalAddresses {
             endpoints { ws("localhost", 5080) }
             ssl { trustServerCertificate() }
@@ -110,7 +108,6 @@ class ConnectionEndpointTest {
             }
         }
 
-        // Both allowlists accumulate, so neither call silently drops the one before it.
         assertEquals(
             EndpointCandidate.Dynamic(
                 hostNames = listOf("build-machine", "spare-machine"),
@@ -134,8 +131,6 @@ class ConnectionEndpointTest {
 
     @Test
     fun `a discovery block that states nothing accepts nothing`() {
-        // Discovery reaches every JetWhale host on the network, which on a shared one is other
-        // people's. Saying nothing must not amount to taking all of them.
         val silent = assertIs<EndpointCandidate.Dynamic>(
             candidates { endpoints { discoverWss { } } }.single(),
         )
@@ -152,9 +147,6 @@ class ConnectionEndpointTest {
 
     @Test
     fun `an unrewritten buildMachineWss contributes no candidate`() {
-        // Without the agent Gradle plugin the call reaches its own body, which only explains itself.
-        // Contributing a candidate here would be worse than contributing none: there is no address
-        // to contribute, so anything it added would be invented.
         val declared = candidates {
             endpoints {
                 @OptIn(ExperimentalJetWhaleApi::class)
@@ -167,8 +159,6 @@ class ConnectionEndpointTest {
 
     @Test
     fun `an unrewritten buildMachineWss does not disturb the order of its neighbours`() {
-        // It drops out of the list rather than leaving a gap, so whatever was declared after it is
-        // still reached — and still in the order it was written.
         val declared = candidates {
             endpoints {
                 ws("localhost", 5080)
@@ -188,7 +178,7 @@ class ConnectionEndpointTest {
     }
 
     @Test
-    fun `the same address declared twice is dialled once`() {
+    fun `the same address declared twice is dialed once`() {
         val resolved = literalAddresses {
             endpoints {
                 ws("localhost", 5080)

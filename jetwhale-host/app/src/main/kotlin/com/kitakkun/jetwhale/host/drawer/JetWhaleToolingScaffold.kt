@@ -80,8 +80,6 @@ fun ToolingScaffold(
             onSetPluginEnabled = onSetPluginEnabled,
         )
         JwVerticalDivider()
-        // The snackbar is overlaid on the content area only: messages stay clear of the sidebar
-        // and of any popped-out plugin window.
         Box(modifier = Modifier.fillMaxSize()) {
             content()
             JwSnackbarHost(

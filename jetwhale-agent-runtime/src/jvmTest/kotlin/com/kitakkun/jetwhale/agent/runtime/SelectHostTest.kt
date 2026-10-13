@@ -29,9 +29,6 @@ class SelectHostTest {
 
     @Test
     fun `a host advertising no wss port is skipped`() {
-        // Its ws port serves loopback only, so the discovered address would refuse the connection.
-        // Dialling wss at that port would fail the handshake just as surely, hence not a candidate at
-        // all rather than a candidate reached on the wrong port.
         assertEquals(emptyList(), selectHosts(listOf(plainOnly), anyHost))
     }
 
@@ -46,8 +43,6 @@ class SelectHostTest {
 
     @Test
     fun `every usable host is offered, in browse order`() {
-        // Answering mDNS is not the same as accepting a connection, so the caller gets them all and
-        // works down the list rather than being handed one and stranded if it refuses.
         val selected = selectHosts(listOf(secureHost, spareHost), anyHost)
 
         assertEquals(listOf("192.168.3.27", "192.168.3.28"), selected.map { it.service.address })
@@ -55,15 +50,11 @@ class SelectHostTest {
 
     @Test
     fun `stating no policy at all selects nothing`() {
-        // Discovery reaches every JetWhale host on the network, which on a shared one belongs to
-        // someone else. An empty `discoverWss { }` therefore takes nobody rather than everybody.
         assertEquals(emptyList(), selectHosts(listOf(secureHost, spareHost), discovery()))
     }
 
     @Test
     fun `an allowlist still applies when allowAll is stated alongside it`() {
-        // Two answers to one question, which the resolver warns about. The narrower is kept: widening
-        // a stated allowlist by accident is the failure that costs something.
         val contradictory = discovery(hostNames = listOf("secure-host"), acceptsAnyHost = true)
 
         assertEquals(listOf("192.168.3.27"), selectHosts(listOf(secureHost, spareHost), contradictory).map { it.service.address })
@@ -100,16 +91,10 @@ class SelectHostTest {
 
     @Test
     fun `hostName and address must both match when both are set`() {
-        assertEquals(
-            emptyList(),
-            selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("10.0.0.1"))),
-        )
+        assertEquals(emptyList(), selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("10.0.0.1"))))
         assertEquals(
             "192.168.3.27",
-            selectHosts(
-                listOf(secureHost),
-                discovery(hostNames = listOf("secure-host"), addresses = listOf("192.168.3.27")),
-            ).firstOrNull()?.service?.address,
+            selectHosts(listOf(secureHost), discovery(hostNames = listOf("secure-host"), addresses = listOf("192.168.3.27"))).firstOrNull()?.service?.address,
         )
     }
 
@@ -123,10 +108,7 @@ class SelectHostTest {
             wssPort = 5443,
         )
 
-        assertEquals(
-            "192.168.3.29",
-            selectHosts(listOf(unnamed), discovery(hostNames = listOf("fallback-name"))).firstOrNull()?.service?.address,
-        )
+        assertEquals("192.168.3.29", selectHosts(listOf(unnamed), discovery(hostNames = listOf("fallback-name"))).firstOrNull()?.service?.address)
     }
 }
 

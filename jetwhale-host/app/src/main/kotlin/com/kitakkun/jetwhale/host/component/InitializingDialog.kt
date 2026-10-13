@@ -31,8 +31,6 @@ fun InitializingDialog(verifyingTrustRegistry: Boolean) {
                 color = JwTheme.colors.onTooltip,
             )
             JwProgressIndicator(color = JwTheme.colors.onTooltip, size = JwProgressIndicatorDefaults.largeSize)
-            // Shown only while the signed trust registry is being verified against the OS credential
-            // store, so the (blocking) Keychain prompt appears with in-app context explaining it.
             if (verifyingTrustRegistry) {
                 JwText(
                     text = stringResource(Res.string.unlocking_trust_registry),

@@ -72,8 +72,6 @@ internal fun Nav3NavigatorScreenRoot(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The draft survives plugin reloads and host restarts, so a half-written key is not lost to a
-    // hot reload in the middle of composing one.
     var draft by rememberPersistent("push-draft", default = "")
 
     Nav3NavigatorScreen(

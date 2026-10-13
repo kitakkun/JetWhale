@@ -47,7 +47,6 @@ class PreferencesProtoTest {
 
     @Test
     fun `a length too large for the file is rejected rather than read out of bounds`() {
-        // Field 1 is read and field 9 is skipped: both paths must bound the length.
         listOf(1, 9).forEach { field ->
             val file = ProtoWriter().apply {
                 tag(field, 2)

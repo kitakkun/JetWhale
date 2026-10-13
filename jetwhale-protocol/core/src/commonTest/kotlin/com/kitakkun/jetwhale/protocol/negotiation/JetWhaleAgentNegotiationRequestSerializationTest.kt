@@ -40,9 +40,7 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
         val encoded = json.encodeToString(request)
 
         assertEquals(
-            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName",""" +
-                """"appMetadata":{"type":"model/app_metadata","appName":"Sample App","deviceId":"device-1",""" +
-                """"deviceName":"Pixel 8","appIconPngBase64":"aWNvbg=="}}""",
+            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName","appMetadata":{"type":"model/app_metadata","appName":"Sample App","deviceId":"device-1","deviceName":"Pixel 8","appIconPngBase64":"aWNvbg=="}}""",
             actual = encoded,
         )
     }
@@ -57,8 +55,7 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
         val encoded = json.encodeToString(request)
 
         assertEquals(
-            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName",""" +
-                """"appMetadata":{"type":"model/app_metadata","appName":null,"deviceId":null,"deviceName":null,"appIconPngBase64":null}}""",
+            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName","appMetadata":{"type":"model/app_metadata","appName":null,"deviceId":null,"deviceName":null,"appIconPngBase64":null}}""",
             actual = encoded,
         )
     }
@@ -111,8 +108,7 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
         val encoded = json.encodeToString(request)
 
         assertEquals(
-            expected = """{"type":"negotiation/agent/available_plugins","plugins":[""" +
-                """{"type":"model/plugin_info","pluginId":"example-plugin","pluginVersion":"1.0.0"}]}""",
+            expected = """{"type":"negotiation/agent/available_plugins","plugins":[{"type":"model/plugin_info","pluginId":"example-plugin","pluginVersion":"1.0.0"}]}""",
             actual = encoded,
         )
     }

@@ -17,8 +17,6 @@ internal object SwingComposeUiThread : ComposeUiThread {
         if (EventQueue.isDispatchThread()) return block()
         return suspendCancellableCoroutine { continuation ->
             EventQueue.invokeLater {
-                // The caller may have been cancelled while the event sat in the queue; running the
-                // block then would touch the UI for a request nobody is waiting on any more.
                 if (!continuation.isActive) return@invokeLater
                 continuation.resumeWith(runCatching(block))
             }

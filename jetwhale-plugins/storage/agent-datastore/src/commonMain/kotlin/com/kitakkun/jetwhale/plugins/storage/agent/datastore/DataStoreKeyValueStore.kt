@@ -22,8 +22,7 @@ import kotlinx.coroutines.flow.first
  * )
  * ```
  */
-fun KeyValueStore.Companion.dataStore(name: String, dataStore: DataStore<Preferences>): KeyValueStore =
-    DataStoreKeyValueStore(name, dataStore)
+fun KeyValueStore.Companion.dataStore(name: String, dataStore: DataStore<Preferences>): KeyValueStore = DataStoreKeyValueStore(name, dataStore)
 
 private class DataStoreKeyValueStore(
     override val name: String,

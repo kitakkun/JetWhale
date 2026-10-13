@@ -50,9 +50,8 @@ internal fun View.toViewNode(
 
     val bounds = boundsInWindow()
     val visibleBounds = visibleBoundsInWindow()
-    // Decided on the clipped bounds, as the Compose side is: `isShown` says the view and its
-    // ancestors are VISIBLE, not that any of it is on screen, so a row scrolled out of a container
-    // would otherwise report itself visible while occupying no pixels a finger could reach.
+    // `isShown` only means the view and its ancestors are VISIBLE, not that any of it is on screen,
+    // so a row scrolled out of its container would otherwise count as visible.
     val visible = visibility == View.VISIBLE && isShown && !visibleBounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
@@ -148,8 +147,7 @@ private fun View.viewActionNames(): List<String> = NodeAction.entries.mapNotNull
  * A view scrolls when it has somewhere to scroll to in any direction. Asking the view itself covers
  * every scrolling container — `ScrollView`, `RecyclerView`, a custom one — without naming any.
  */
-internal fun View.isScrollable(): Boolean =
-    canScrollVertically(1) || canScrollVertically(-1) || canScrollHorizontally(1) || canScrollHorizontally(-1)
+internal fun View.isScrollable(): Boolean = canScrollVertically(1) || canScrollVertically(-1) || canScrollHorizontally(1) || canScrollHorizontally(-1)
 
 /**
  * The entry name of the view's `android:id` (`submit` for `@id/submit`), or `null` when it has none.

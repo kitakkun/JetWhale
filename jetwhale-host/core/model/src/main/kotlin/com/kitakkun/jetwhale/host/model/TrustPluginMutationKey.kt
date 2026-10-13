@@ -3,11 +3,11 @@ package com.kitakkun.jetwhale.host.model
 import soil.query.MutationKey
 
 /**
- * The absolute jar path to approve. A distinct type (rather than a bare `String`) so this mutation
- * key does not collide with [PluginInstallMutationKey] in dependency injection.
+ * The absolute jar path to approve, and the hash of the content the user was shown when they approved
+ * it, or null to approve the jar's current content. A distinct type (rather than a bare `String`) so
+ * this mutation key does not collide with [PluginInstallMutationKey] in dependency injection.
  */
-@JvmInline
-value class TrustPluginRequest(val jarPath: String)
+data class TrustPluginRequest(val jarPath: String, val approvedSha256: String?)
 
 /** Approves a surfaced untrusted jar: pins its content hash and loads it. */
 typealias TrustPluginMutationKey = MutationKey<Unit, TrustPluginRequest>

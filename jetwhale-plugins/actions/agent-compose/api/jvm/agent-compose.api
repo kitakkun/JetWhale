@@ -1,0 +1,4 @@
+public final class com/kitakkun/jetwhale/plugins/actions/agent/compose/DebugActionsKt {
+	public static final fun DebugActions (Lcom/kitakkun/jetwhale/plugins/actions/agent/JetWhaleDebugActionsAgentPlugin;[Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
+}
+

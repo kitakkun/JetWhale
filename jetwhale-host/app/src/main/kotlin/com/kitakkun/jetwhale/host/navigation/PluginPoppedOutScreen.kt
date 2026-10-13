@@ -17,7 +17,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginPoppedOutScreen(
-    onBringbackToMainWindow: () -> Unit,
+    onBringBackToMainWindow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwEmptyState(
@@ -27,7 +27,7 @@ fun PluginPoppedOutScreen(
         action = {
             JwButton(
                 text = stringResource(Res.string.bring_back_to_main_window),
-                onClick = onBringbackToMainWindow,
+                onClick = onBringBackToMainWindow,
                 style = JwButtonStyle.Primary,
             )
         },
@@ -39,7 +39,7 @@ fun PluginPoppedOutScreen(
 private fun PluginPoppedOutScreenPreview() {
     JwTheme(darkTheme = false) {
         PluginPoppedOutScreen(
-            onBringbackToMainWindow = {},
+            onBringBackToMainWindow = {},
         )
     }
 }

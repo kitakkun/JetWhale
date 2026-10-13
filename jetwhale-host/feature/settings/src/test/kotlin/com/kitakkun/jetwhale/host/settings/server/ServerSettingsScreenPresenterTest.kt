@@ -8,12 +8,17 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.CancelHostUpdateDownloadMutationKey
+import com.kitakkun.jetwhale.host.model.CancelPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.CheckForHostUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.DownloadHostUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
@@ -26,8 +31,11 @@ import com.kitakkun.jetwhale.host.model.McpPluginInteractPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
+import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
+import com.kitakkun.jetwhale.host.release.HostVersion
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -204,7 +212,6 @@ private fun runPresenter(
     val scope = PresenterScope(
         state = { uiState },
         send = {
-            // Actions normally arrive from Root, which holds a ScreenContext.
             with(TestScreenContext) { channel.send(it) }
             waitForIdle()
         },
@@ -254,36 +261,38 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
         MutationKey<Unit, McpPluginPermissionParams> by noop("mcp_plugin_interact") {},
     mcpPluginToolPermissionMutationKey = noop("mcp_plugin_tool"),
     pluginInstallMutationKey = noop("plugin_install"),
-    pluginInstallFromMavenMutationKey = noop("plugin_install_maven"),
+    startPluginInstallMutationKey = unexercised("start_plugin_install"),
+    cancelPluginInstallMutationKey = object : CancelPluginInstallMutationKey, MutationKey<Unit, String> by noop("cancel_plugin_install") {},
+    dismissPluginInstallMutationKey = object : DismissPluginInstallMutationKey, MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
     trustPluginMutationKey = noop("trust_plugin"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},
-    officialPluginInstallMutationKey = noop("official_plugin_install"),
-    updateCheckMutationKey = noopReturning("update_check"),
-    updateInstallMutationKey = noop("update_install"),
-    checkForUpdatesOnStartupMutationKey = object :
-        CheckForUpdatesOnStartupMutationKey,
-        MutationKey<Unit, Boolean> by noop("check_for_updates_on_startup") {},
     followAiOperationMutationKey = object :
         FollowAiOperationMutationKey,
         MutationKey<Unit, Boolean> by noop("follow_ai_operation") {},
+    checkForUpdatesOnStartupMutationKey = object : CheckForUpdatesOnStartupMutationKey, MutationKey<Unit, Boolean> by noop("startup_check") {},
+    checkForHostUpdateMutationKey = object : CheckForHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("check_for_host_update") {},
+    downloadHostUpdateMutationKey = object : DownloadHostUpdateMutationKey, MutationKey<Unit, Unit> by noop("download_host_update") {},
+    cancelHostUpdateDownloadMutationKey = object : CancelHostUpdateDownloadMutationKey, MutationKey<Unit, Unit> by noop("cancel_download") {},
+    restartToUpdateMutationKey = object : RestartToUpdateMutationKey, MutationKey<Unit, Unit> by noop("restart_to_update") {},
+    tryHostVersionAgainMutationKey = object : TryHostVersionAgainMutationKey, MutationKey<Unit, HostVersion> by noop("try_again") {},
     hostVersionInfo = HostVersionInfo("0.0.0-test"),
     generateSslCertificateMutationKey = object :
         GenerateSslCertificateMutationKey,
-        MutationKey<SslCertificateEntry, String?> by noopReturning("generate_ssl_certificate") {},
+        MutationKey<SslCertificateEntry, String?> by unexercised("generate_ssl_certificate") {},
     activateSslCertificateMutationKey = object :
         ActivateSslCertificateMutationKey,
-        MutationKey<Boolean, String> by noopReturning("activate_ssl_certificate") {},
+        MutationKey<Boolean, String> by unexercised("activate_ssl_certificate") {},
     deleteSslCertificateMutationKey = object :
         DeleteSslCertificateMutationKey,
-        MutationKey<Boolean, String> by noopReturning("delete_ssl_certificate") {},
+        MutationKey<Boolean, String> by unexercised("delete_ssl_certificate") {},
     logCaptureService = NoopLogCaptureService,
 )
 
 private fun <V> noop(id: String): MutationKey<Unit, V> = buildMutationKey(id = MutationId(id), mutate = { })
 
-private fun <T, V> noopReturning(id: String): MutationKey<T, V> = buildMutationKey(
+private fun <T, V> unexercised(id: String): MutationKey<T, V> = buildMutationKey(
     id = MutationId(id),
     mutate = { error("$id is not exercised by these tests") },
 )

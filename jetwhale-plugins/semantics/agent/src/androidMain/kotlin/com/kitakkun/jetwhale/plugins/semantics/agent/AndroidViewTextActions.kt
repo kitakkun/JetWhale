@@ -47,8 +47,8 @@ internal object AndroidViewTextActions {
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
             val field = view as? TextView ?: return NodeActionResult.notSupported("the view is not a TextView")
-            // A field that declares no IME action still submits on Done, which is what the platform
-            // shows for it — so that is what the fallback sends.
+            // The platform shows Done for a field that declares no IME action, so the fallback
+            // sends Done.
             val imeAction = (field.imeOptions and EditorInfo.IME_MASK_ACTION)
                 .takeIf { it != EditorInfo.IME_ACTION_UNSPECIFIED && it != EditorInfo.IME_ACTION_NONE }
                 ?: EditorInfo.IME_ACTION_DONE

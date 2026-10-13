@@ -40,18 +40,13 @@ class DefaultPluginSessionReconciliationService(
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
-        // Enable/session reconciliation: whenever the enabled set or the active sessions change,
-        // (re)initialize instances for the sessions each enabled plugin should target. Instances are
-        // also (re)initialized as sessions come and go because this reacts to the session flow too.
         launch {
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
                 sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter(DebugSession::isActive) },
-                // Loading a plugin is a reconciliation trigger in its own right. The enabled set only
-                // ever grows (nothing removes an id when a jar is deleted or its trust revoked), so
-                // installing a jar whose pluginId is already enabled changes neither of the flows
-                // above — without this the freshly loaded plugin would never get an instance, and
-                // opening it would fail until the next enable toggle, session, or app restart.
+                // Loading a plugin is a trigger of its own: the enabled set only grows, so
+                // installing a jar whose pluginId is already enabled changes neither flow above,
+                // and the plugin would never get an instance.
                 pluginFactoryRepository.loadedPluginsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
@@ -60,9 +55,6 @@ class DefaultPluginSessionReconciliationService(
                             pluginId = pluginId,
                             sessionIds = targetSessionIds(pluginId, activeSessions),
                         )
-                        // Only newly-initialized sessions are notified (some may already have the
-                        // instance from an earlier reconciliation), and only for agent-backed plugins
-                        // (host-only plugins have no agent to activate).
                         if (requiresAgent(pluginId) && activatedSessionIds.isNotEmpty()) {
                             send(PluginReconciliationEvent.Activated(pluginId, activatedSessionIds))
                         }
@@ -70,7 +62,6 @@ class DefaultPluginSessionReconciliationService(
                 }
         }
 
-        // Disable reconciliation: unload the plugin's instances everywhere and tell the agents.
         launch {
             enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
                 if (requiresAgent(pluginId)) {

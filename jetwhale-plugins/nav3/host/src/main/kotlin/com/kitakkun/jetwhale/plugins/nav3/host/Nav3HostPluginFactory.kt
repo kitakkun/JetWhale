@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -52,8 +53,6 @@ private class Nav3HostPlugin :
         }
     }
 
-    // The events above only carry changes, and the key catalog travels nowhere else, so the whole
-    // state is fetched once per connection before any handler runs.
     override suspend fun onPrepare() {
         val state = messenger.request(GetNavState)
         stacks.apply {
@@ -70,28 +69,17 @@ private class Nav3HostPlugin :
         if (selectedStackId == null) selectedStackId = snapshot.stackId
     }
 
-    // -------------------------------------------------------------------------
-    // Nav3BackStackController — the state and the one mutating call the UI and the MCP
-    // commands both work through.
-    // -------------------------------------------------------------------------
-
     override fun stacks(): List<NavBackStackSnapshot> = stacks.toList()
 
     override fun keyTypes(): List<NavKeyTypeDescriptor> = navKeyTypes
 
     override suspend fun mutate(stackId: String, operations: List<NavBackStackOperation>): MutationResult = try {
         val result = messenger.request(MutateBackStack(stackId = stackId, operations = operations))
-        // The agent also broadcasts the change, but adopting the reply keeps the UI in step even if
-        // the event is still in flight.
         result.snapshot?.let(::applySnapshot)
         result
     } catch (e: JetWhaleMessagingException) {
         MutationResult(error = "failed to reach the debuggee: ${e.message}", snapshot = null)
     }
-
-    // -------------------------------------------------------------------------
-    // JetWhaleHostPluginUi
-    // -------------------------------------------------------------------------
 
     @Composable
     override fun Content() {
@@ -113,8 +101,12 @@ private class Nav3HostPlugin :
                         navKeyTypes = state.keyTypes
                         if (stacks.none { it.stackId == selectedStackId }) selectedStackId = stacks.firstOrNull()?.stackId
                         Nav3Status(message = "Reloaded from the app.", isError = false)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: JetWhaleMessagingException) {
                         Nav3Status(message = "Failed to reach the debuggee: ${e.message}", isError = true)
+                    } catch (e: Exception) {
+                        Nav3Status(message = "Unexpected error: $e", isError = true)
                     }
                 }
             },
@@ -123,17 +115,18 @@ private class Nav3HostPlugin :
 
     private fun applyFromUi(stackId: String, operation: NavBackStackOperation) {
         pluginScope.launch {
-            val result = mutate(stackId, listOf(operation))
-            status = when (val error = result.error) {
-                null -> Nav3Status(message = "${operation.describe()} applied.", isError = false)
-                else -> Nav3Status(message = error, isError = true)
+            status = try {
+                when (val error = mutate(stackId, listOf(operation)).error) {
+                    null -> Nav3Status(message = "${operation.describe()} applied.", isError = false)
+                    else -> Nav3Status(message = error, isError = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Nav3Status(message = "Unexpected error: $e", isError = true)
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // JetWhaleMcpCapablePlugin
-    // -------------------------------------------------------------------------
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         GetBackStackCommand(this),

@@ -89,7 +89,6 @@ class DefaultPluginSessionReconciliationServiceTest {
 
         val collectJob = launch { service.reconciliationEvents().collect { } }
 
-        // The enabled id is reconciled from the start, but nothing is loaded yet, so no instance.
         assertEquals(emptySet(), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
 
         factoryRepository.load(loadedPlugin)
@@ -166,19 +165,19 @@ class DefaultPluginSessionReconciliationServiceTest {
     }
 
     private class FakePluginFactoryRepository : PluginFactoryRepository {
-        private val plugins: MutableStateFlow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
-        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = plugins
-        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = plugins.value
+        override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
+            field = MutableStateFlow<Map<String, LoadedHostPlugin>>(emptyMap())
+        override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginsFlow.value
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         fun load(plugin: LoadedHostPlugin) {
-            plugins.value = plugins.value + (plugin.manifest.pluginId to plugin)
+            loadedPluginsFlow.value = loadedPluginsFlow.value + (plugin.manifest.pluginId to plugin)
         }
 
-        override suspend fun loadPlugin(pluginJarPath: String) = Unit
-        override suspend fun unloadPlugin(pluginId: String) = Unit
+        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
+        override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
-        override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
+        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
 
@@ -195,7 +194,6 @@ class DefaultPluginSessionReconciliationServiceTest {
         override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
 
         override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-            // Mirrors the real service: an id with no loaded plugin yields no instance.
             val newSessionIds = if (factoryRepository.loadedPlugins[pluginId] == null) {
                 emptySet()
             } else {
@@ -206,6 +204,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             return newSessionIds
         }
 
+        override fun startPluginInstancePreparation(pluginId: String, sessionId: String) = Unit
         override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null

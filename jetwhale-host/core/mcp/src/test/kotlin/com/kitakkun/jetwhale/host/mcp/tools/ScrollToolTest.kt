@@ -125,12 +125,9 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(
-            FakePluginComposeSceneService(scene),
-        ).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
-        // Only deltaY is provided; deltaX is omitted and must default to 0.
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.scroll",
@@ -161,12 +158,9 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(
-            FakePluginComposeSceneService(scene),
-        ).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
+        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
-        // deltaX is present but non-numeric; it must be rejected instead of silently treated as 0.
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.scroll",
@@ -197,7 +191,6 @@ class ScrollToolTest {
         override fun disposeAppSessionPluginScenes() = Unit
     }
 
-    // The scroll handler never touches the connection, so a proxy that rejects every call is enough.
     private fun noOpClientConnection(): ClientConnection = Proxy.newProxyInstance(
         ClientConnection::class.java.classLoader,
         arrayOf(ClientConnection::class.java),

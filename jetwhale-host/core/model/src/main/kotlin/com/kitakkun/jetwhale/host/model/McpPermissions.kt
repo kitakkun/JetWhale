@@ -67,23 +67,10 @@ data class McpPermissions(
 ) {
     fun allows(permission: McpToolPermission, pluginId: String?): Boolean = when (permission) {
         is McpToolPermission.Unrestricted -> true
-
         is McpToolPermission.HostGroup -> permission.group in allowedHostGroups
-
-        // An unattributable call is denied: letting a tool through because its target could not be
-        // resolved would make an unknown plugin id the way around the setting.
         is McpToolPermission.PluginInspect -> pluginId != null && pluginId !in pluginsDeniedInspect
-
         is McpToolPermission.PluginInteract -> pluginId != null && pluginId !in pluginsDeniedInteract
-
-        // Keyed by the tool's own name, so this one needs no plugin attribution to decide.
         is McpToolPermission.PluginTool -> permission.toolName !in deniedPluginTools
-    }
-
-    /** The launch override, applied where the permissions are read so nothing sees a stale copy. */
-    fun allOverriddenBy(override: McpPermissionOverride): McpPermissions = when {
-        override.allowAll -> AllowAll
-        else -> this
     }
 
     companion object {

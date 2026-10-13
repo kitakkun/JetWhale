@@ -18,29 +18,22 @@ internal class FindNodesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.findNodes"
     override val description =
-        "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) " +
-            "and returns the nodes matching the given criteria as a flat " +
+        "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) and returns the nodes matching the given criteria as a flat " +
             "list: {\"nodes\": [...], \"totalMatches\", \"truncated\"}. Each entry carries its \"rootId\" and " +
-            "\"id\", which together address the node in performNodeAction, " +
-            "\"actions\" with the action names performNodeAction accepts for it " +
+            "\"id\", which together address the node in performNodeAction, \"actions\" with the action names performNodeAction accepts for it " +
             "(BringIntoView works on any node and is not listed), plus screen \"bounds\" in the node's \"unit\" (px, or pt on iOS) and a " +
             "\"tap\" point. Criteria are combined with AND; matching is case-insensitive and by substring " +
             "unless exact is set. Omit every criterion to list all interactive nodes on screen."
 
     private val text by stringOrNull("Match the node's text (or a text field's current content).")
     private val contentDescription by stringOrNull("Match the node's contentDescription.")
-    private val testTag by stringOrNull(
-        "Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches " +
-            "accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.",
-    )
+    private val testTag by stringOrNull("Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.")
     private val resourceId by stringOrNull(
-        "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. " +
-            "Compared whole, not by substring.",
+        "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. Compared whole, not by substring.",
     )
     private val role by stringOrNull("Match the node's semantics role, e.g. Button, Checkbox, Tab, Image.")
     private val interactiveOnly by booleanOrNull(
-        "Keep only nodes that expose an action, are editable, or scroll. " +
-            "Defaults to true when no other criterion is given, false otherwise.",
+        "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
     )
     private val operableOnly by booleanOrNull(
         "Keep only nodes the user could operate right now: interactive, enabled, and reached by a gesture they accept — " +
@@ -51,6 +44,11 @@ internal class FindNodesCommand(
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
     private val includeInvisible by booleanOrNull("Include nodes that are not laid out or fully clipped away. Defaults to false.")
     private val limit by intOrNull("Maximum number of nodes to return, in tree order. Returns all matches if omitted.")
+    private val format by serializableOrNull<NodeOutputFormat>(
+        "\"json\" (default) returns the JSON described above. \"text\" returns one line per node for reading rather than parsing — " +
+            "`- <role or class> #<id> root=<rootId> \"<text>\" key=value… [flags] actions=… tap=x,y`, without bounds — " +
+            "followed by a `… N more matches` line when limit cut the list short.",
+    )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val limit = arguments[limit]
@@ -65,8 +63,6 @@ internal class FindNodesCommand(
             operableOnly = arguments[operableOnly] ?: false,
             exact = arguments[exact] ?: false,
         )
-        // With no criterion at all, "every node on screen" is never the useful answer; the caller is
-        // asking what there is to operate. An explicit interactiveOnly still wins.
         val query = criteria.copy(interactiveOnly = arguments[interactiveOnly] ?: criteria.isEmpty)
 
         val snapshot = try {
@@ -86,6 +82,15 @@ internal class FindNodesCommand(
             nodes.filter { it.matches(query) }.map { root.rootId to it }.toList()
         }
         val page = if (limit == null) matches else matches.take(limit)
+
+        if (arguments[format] == NodeOutputFormat.Text) {
+            return buildList {
+                snapshot.warnings.forEach { add("! $it") }
+                if (matches.isEmpty()) add("no matches")
+                page.forEach { (rootId, node) -> add(node.toMcpTextLine(rootId = rootId)) }
+                if (page.size < matches.size) add("… ${matches.size - page.size} more matches")
+            }.joinToString("\n")
+        }
 
         return buildJsonObject {
             put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))

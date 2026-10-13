@@ -11,8 +11,6 @@ internal fun <T : Function<Boolean>> SemanticsConfiguration.invokeAction(
     key: SemanticsPropertyKey<AccessibilityAction<T>>,
     invoke: (T) -> Boolean,
 ): NodeActionResult {
-    // An AccessibilityAction may advertise a label with no handler behind it (a node that says it
-    // is clickable but delegates the click elsewhere), so the handler is what decides.
     val handler = getOrNull(key)?.action
         ?: return NodeActionResult(performed = false, message = "the node does not expose ${key.name}")
     val performed = invoke(handler)

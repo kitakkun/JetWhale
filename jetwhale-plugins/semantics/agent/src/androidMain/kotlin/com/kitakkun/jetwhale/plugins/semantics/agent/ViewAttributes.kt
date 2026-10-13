@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
-import android.content.res.Resources
 import android.graphics.drawable.ColorDrawable
 import android.util.TypedValue
 import android.view.View
@@ -12,10 +11,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import kotlin.math.roundToInt
 
-// The attributes of an Android `View` that this plugin reads, and the subset it writes. Everything
-// here must run on the main thread. The list is an explicit allowlist rather than reflection over
-// the view's getters: reflection is what makes the equivalent in other layout inspectors fragile,
-// and Android's non-SDK interface restrictions block most of what it would reach anyway.
+// Everything here must run on the main thread. The attributes are an explicit allowlist rather than
+// reflection over getters: Android's non-SDK interface restrictions block most of what reflection
+// would reach.
 
 /**
  * One attribute: how to read it off a view, and how to write it back when it can be written.
@@ -57,12 +55,10 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
     val write = descriptor.write
         ?: return ViewAttributeResult(applied = false, message = "${descriptor.id} is read-only")
 
-    // The write calls the app's own View setter, which may reject the value by throwing anything; the reply carries why.
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+    // The write calls the app's own View setter, which may reject the value by throwing anything;
+    // the reply carries why.
     return try {
         write(this, value)
-        // An app may reject a layoutParams change from its own onLayout, so the value is read back
-        // after the pass that would apply it is requested rather than before.
         if (descriptor.relayouts) requestLayout() else invalidate()
         ViewAttributeResult(applied = true, attribute = descriptor.toAttribute(this))
     } catch (e: Throwable) {
@@ -74,18 +70,15 @@ private fun ViewAttributeDescriptor.toAttribute(view: View): ViewAttribute? = re
     ViewAttribute(id = id, label = label, group = group, value = value, editable = write != null)
 }
 
-// -- The allowlist ------------------------------------------------------------
-
 private const val GROUP_STATE = "State"
 private const val GROUP_LAYOUT = "Layout"
 private const val GROUP_APPEARANCE = "Appearance"
 private const val GROUP_TEXT = "Text"
 private const val GROUP_INFO = "Info"
 
-private val VISIBILITY_OPTIONS = listOf("VISIBLE", "INVISIBLE", "GONE")
+internal val VISIBILITY_OPTIONS = listOf("VISIBLE", "INVISIBLE", "GONE")
 
 private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
-    // State ------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "visibility",
@@ -101,11 +94,8 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
     addFlag(id = "activated", group = GROUP_STATE, read = View::isActivated, write = { view, on -> view.isActivated = on })
     addFlag(id = "clickable", group = GROUP_STATE, read = View::isClickable, write = { view, on -> view.isClickable = on })
     addFlag(id = "focusable", group = GROUP_STATE, read = View::isFocusable, write = { view, on -> view.isFocusable = on })
-    // Read-only: taking focus is an action with side effects of its own — a keyboard, a scroll —
-    // so it belongs to performNodeAction's RequestFocus rather than to a property editor.
     addFlag(id = "focused", group = GROUP_STATE, read = View::isFocused, write = null)
 
-    // Layout -----------------------------------------------------------------
     addLayoutSize(id = "layout.width", read = { it.width }, write = { params, size -> params.width = size })
     addLayoutSize(id = "layout.height", read = { it.height }, write = { params, size -> params.height = size })
     addDimension(
@@ -167,7 +157,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 
-    // Appearance -------------------------------------------------------------
     addFloat(
         id = "alpha",
         group = GROUP_APPEARANCE,
@@ -181,8 +170,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             id = "backgroundColor",
             label = "backgroundColor",
             group = GROUP_APPEARANCE,
-            // Only a flat color background has a color to report; anything else is described by the
-            // read-only `background` attribute below.
             read = { view -> (view.background as? ColorDrawable)?.let { ViewAttributeValue.ColorValue(it.color) } },
             write = { view, value -> view.setBackgroundColor(value.asColor("backgroundColor")) },
         ),
@@ -200,32 +187,13 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             write = null,
         ),
     )
-    addDimension(
-        id = "elevation",
-        group = GROUP_APPEARANCE,
-        read = View::getElevation,
-        write = { view, px -> view.elevation = px },
-        relayouts = false,
-    )
-    addDimension(
-        id = "translationX",
-        group = GROUP_APPEARANCE,
-        read = View::getTranslationX,
-        write = { view, px -> view.translationX = px },
-        relayouts = false,
-    )
-    addDimension(
-        id = "translationY",
-        group = GROUP_APPEARANCE,
-        read = View::getTranslationY,
-        write = { view, px -> view.translationY = px },
-        relayouts = false,
-    )
+    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = View::getElevation, write = { view, px -> view.elevation = px }, relayouts = false)
+    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = View::getTranslationX, write = { view, px -> view.translationX = px }, relayouts = false)
+    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = View::getTranslationY, write = { view, px -> view.translationY = px }, relayouts = false)
     addFloat(id = "rotation", group = GROUP_APPEARANCE, read = View::getRotation, write = { view, value -> view.rotation = value })
     addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = View::getScaleX, write = { view, value -> view.scaleX = value })
     addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = View::getScaleY, write = { view, value -> view.scaleY = value })
 
-    // Text -------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "text",
@@ -251,17 +219,7 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             id = "textSize",
             label = "textSize",
             group = GROUP_TEXT,
-            // The px figure is what the platform stores; the second figure is the sp the app would
-            // have written, which is the number a reader recognises.
-            read = { view ->
-                (view as? TextView)?.let {
-                    ViewAttributeValue.DimensionValue(
-                        px = it.textSize,
-                        dp =
-                        it.textSize / view.scaledTextDensity(),
-                    )
-                }
-            },
+            read = { view -> (view as? TextView)?.let { ViewAttributeValue.DimensionValue(px = it.textSize, dp = it.textSize / view.scaledTextDensity()) } },
             write = { view, value -> (view as TextView).setTextSize(TypedValue.COMPLEX_UNIT_PX, value.asDimensionPx("textSize")) },
             relayouts = true,
         ),
@@ -286,7 +244,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 
-    // Info -------------------------------------------------------------------
     add(
         ViewAttributeDescriptor(
             id = "id",
@@ -306,8 +263,6 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
         ),
     )
 }
-
-// -- Descriptor builders ------------------------------------------------------
 
 private fun MutableList<ViewAttributeDescriptor>.addFlag(
     id: String,
@@ -421,92 +376,4 @@ private fun MutableList<ViewAttributeDescriptor>.addLayoutSize(
             relayouts = true,
         ),
     )
-}
-
-// -- Value conversion ---------------------------------------------------------
-
-private fun View.density(): Float = resources.displayMetrics.density
-
-// A TextView's size is written in sp, which scales with the user's font-size setting on top of the
-// display density — so the sp figure needs that scale, not the plain one.
-@Suppress("DEPRECATION")
-private fun View.scaledTextDensity(): Float = resources.displayMetrics.scaledDensity
-
-private fun View.dimension(px: Float): ViewAttributeValue.DimensionValue = ViewAttributeValue.DimensionValue(px = px, dp = px / density())
-
-private fun View.marginParams(): ViewGroup.MarginLayoutParams? = layoutParams as? ViewGroup.MarginLayoutParams
-
-private fun View.visibilityName(): String = when (visibility) {
-    View.VISIBLE -> "VISIBLE"
-    View.INVISIBLE -> "INVISIBLE"
-    else -> "GONE"
-}
-
-private fun layoutSizeConstantName(raw: Int): String? = when (raw) {
-    ViewGroup.LayoutParams.MATCH_PARENT -> "MATCH_PARENT"
-    ViewGroup.LayoutParams.WRAP_CONTENT -> "WRAP_CONTENT"
-    else -> null
-}
-
-/**
- * The entry name of the view's `android:id`, or `null` when it has none. A generated id has no entry
- * to look up, so the lookup is allowed to fail rather than being guarded by a check on the packing.
- */
-private fun View.resourceEntryNameOrNull(): String? {
-    if (id == View.NO_ID) return null
-    return try {
-        resources?.getResourceEntryName(id)
-    } catch (_: Resources.NotFoundException) {
-        null
-    }
-}
-
-private fun ViewAttributeValue.asBoolean(attributeId: String): Boolean = (this as? ViewAttributeValue.BooleanValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "bool", this))
-
-private fun ViewAttributeValue.asInt(attributeId: String): Int = (this as? ViewAttributeValue.IntValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "int", this))
-
-private fun ViewAttributeValue.asFloat(attributeId: String): Float = (this as? ViewAttributeValue.FloatValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "float", this))
-
-private fun ViewAttributeValue.asText(attributeId: String): String = (this as? ViewAttributeValue.TextValue)?.value
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "text", this))
-
-private fun ViewAttributeValue.asColor(attributeId: String): Int = (this as? ViewAttributeValue.ColorValue)?.argb
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "color", this))
-
-private fun ViewAttributeValue.asDimensionPx(attributeId: String): Float = (this as? ViewAttributeValue.DimensionValue)?.px
-    ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "dimension", this))
-
-private fun ViewAttributeValue.asVisibility(attributeId: String): Int {
-    val name = (this as? ViewAttributeValue.EnumValue)?.value
-        ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "enum", this))
-    return when (name) {
-        "VISIBLE" -> View.VISIBLE
-        "INVISIBLE" -> View.INVISIBLE
-        "GONE" -> View.GONE
-        else -> throw IllegalArgumentException("unknown $attributeId: $name (expected one of ${VISIBILITY_OPTIONS.joinToString(", ")})")
-    }
-}
-
-/** Either of the two constants or a pixel length, exactly as the attribute reads back. */
-private fun ViewAttributeValue.asLayoutSize(attributeId: String): Int {
-    val size = this as? ViewAttributeValue.LayoutSizeValue
-        ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "layoutSize", this))
-    return when (size.constant) {
-        null -> (
-            size.px ?: throw IllegalArgumentException(
-                "$attributeId needs either a constant or a pixel length, but neither was sent",
-            )
-            ).roundToInt()
-
-        "MATCH_PARENT" -> ViewGroup.LayoutParams.MATCH_PARENT
-
-        "WRAP_CONTENT" -> ViewGroup.LayoutParams.WRAP_CONTENT
-
-        else -> throw IllegalArgumentException(
-            "unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)",
-        )
-    }
 }

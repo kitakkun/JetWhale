@@ -14,7 +14,7 @@ class CapabilitiesNegotiationStrategy : NegotiationStrategy<JetWhaleHostNegotiat
     override suspend fun DefaultWebSocketServerSession.negotiate(): JetWhaleHostNegotiationResponse.CapabilitiesResponse {
         receiveDeserialized<JetWhaleAgentNegotiationRequest.Capabilities>()
         val response = JetWhaleHostNegotiationResponse.CapabilitiesResponse(
-            capabilities = mapOf(), // TODO: Provide actual capabilities
+            capabilities = mapOf(), // Nothing is negotiated yet, but agents send this request and wait for the response before plugin negotiation; the round trip is kept for future capabilities.
         )
         sendSerialized(response)
         return response

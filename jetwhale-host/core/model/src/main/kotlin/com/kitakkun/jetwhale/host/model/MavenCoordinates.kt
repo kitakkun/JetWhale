@@ -74,8 +74,7 @@ data class MavenCoordinates(
             )
         }
 
-        private fun extractXmlTagValue(text: String, tag: String): String? =
-            Regex("<$tag>\\s*([^<]+?)\\s*</$tag>").find(text)?.groupValues?.get(1)
+        private fun extractXmlTagValue(text: String, tag: String): String? = Regex("<$tag>\\s*([^<]+?)\\s*</$tag>").find(text)?.groupValues?.get(1)
     }
 
     /**

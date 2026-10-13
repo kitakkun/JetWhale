@@ -64,7 +64,6 @@ class DefaultHostDiscoveryAdvertiserTest {
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Stopped
         assertEquals(RegistrarCall.Unregister, registrar.nextCall())
 
-        // stop() must fully close the mDNS stack (not just unregister) so it does not leak.
         advertiser.stop()
         assertEquals(RegistrarCall.Close, registrar.nextCall())
     }
@@ -80,9 +79,6 @@ class DefaultHostDiscoveryAdvertiserTest {
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, null)
         assertNull(assertIs<RegistrarCall.Register>(registrar.nextCall()).wssPort)
 
-        // An equivalent Started must not re-register; a wss port appearing (e.g. certificate loaded)
-        // must. The advertiser observes the two in order, so the next registration it makes is the
-        // one carrying the wss port — a redundant one would arrive here instead.
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, null)
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, 8443)
         assertEquals(8443, assertIs<RegistrarCall.Register>(registrar.nextCall()).wssPort)

@@ -16,12 +16,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.plugins.actions.agent.compose.DebugActions
+import kotlinx.serialization.Serializable
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun ExampleTestScreen() {
     val plugin = DIModule.exampleAgentPlugin
     val eventLogs by plugin.eventLogsFlow.collectAsState()
     var counter by remember { mutableIntStateOf(0) }
+
+    DIModule.debugActionsAgentPlugin.DebugActions {
+        action<SetCounter>("Set counter") {
+            description = "Sets the Example tab's click counter and returns the previous value."
+            perform { args ->
+                val previous = counter
+                counter = args.value
+                previous
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -29,7 +44,7 @@ internal fun ExampleTestScreen() {
     ) {
         item {
             Button(
-                onClick = { plugin.reportButtonClicked(++counter) },
+                onClick = { plugin.sendButtonClicked(++counter) },
             ) {
                 Text("Send ButtonClicked(${counter + 1})")
             }
@@ -47,3 +62,6 @@ private fun ExampleTestScreenPreview() {
         ExampleTestScreen()
     }
 }
+
+@Serializable
+private data class SetCounter(val value: Int)

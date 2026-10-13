@@ -1,8 +1,5 @@
 import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 
-// A minimal consumer of the public agent API. Compiling this file proves the artifacts'
-// Kotlin metadata is readable; running it smoke-tests the runtime (no host needs to be up —
-// the agent just fails to connect and keeps retrying in the background).
 fun main() {
     startJetWhale {
         connection {
@@ -10,6 +7,9 @@ fun main() {
             port = 5080
         }
     }
+    // startJetWhale returns at once and keeps retrying a host that is not there in the background;
+    // the wait lets that code run a few rounds, so a runtime failure shows before the success
+    // marker is printed.
     Thread.sleep(3000)
     println("RUNTIME_OK")
 }

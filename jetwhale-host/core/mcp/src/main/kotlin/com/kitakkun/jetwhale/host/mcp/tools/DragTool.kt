@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -66,16 +67,15 @@ class DragMcpTool(
             val steps = request.arguments?.get("steps")?.jsonFloat?.toInt() ?: 10
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            withContext(Dispatchers.Main) {
-                dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps)
-            }
+            withContext(Dispatchers.Main) { dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps) }
             successResult()
         }
     }
 }
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-suspend fun dispatchDrag(
+@VisibleForTesting
+internal suspend fun dispatchDrag(
     scene: PluginComposeScene,
     startX: Float,
     startY: Float,

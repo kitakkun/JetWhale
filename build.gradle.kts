@@ -1,4 +1,5 @@
 import com.kitakkun.kotrail.gradle.KotrailExtension
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
@@ -34,9 +35,6 @@ val ktlintDisabledRules = mapOf(
 spotless {
     kotlin {
         target("**/*.kt")
-        // Compiler-plugin fixtures are compiled by the test framework and compared against IR dumps
-        // that record source offsets, so reformatting them would invalidate the golden files rather
-        // than tidy anything. Their shape is part of what they assert.
         targetExclude("**/build/**", "**/testData/**")
         ktlint().editorConfigOverride(ktlintDisabledRules)
     }
@@ -49,13 +47,24 @@ spotless {
 
 allprojects {
     group = "com.kitakkun.jetwhale"
-    // Pass -PjetwhaleSnapshot to publish a SNAPSHOT of the current version (overwritable, goes to the
-    // Central snapshots repo) instead of a release.
     version = rootProject.libs.versions.jetwhale.get() +
         if (rootProject.hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 }
 
+// Each browser test task starts its own Karma, webpack and ChromeHeadless, 1–2 GB together. Several
+// at once, beside the Gradle and Kotlin daemons, run the 16 GB CI runner out of memory and it shuts
+// down mid-build.
+abstract class BrowserTestSlot : BuildService<BuildServiceParameters.None>
+
+val browserTestSlot = gradle.sharedServices.registerIfAbsent("browserTestSlot", BrowserTestSlot::class) {
+    maxParallelUsages = 1
+}
+
 subprojects {
+    tasks.withType<KotlinJsTest>().named { it.endsWith("BrowserTest") }.configureEach {
+        usesService(browserTestSlot)
+    }
+
     val kotlinPluginIds = listOf("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.multiplatform")
     kotlinPluginIds.forEach { kotlinPluginId ->
         pluginManager.withPlugin(kotlinPluginId) {
@@ -67,6 +76,18 @@ subprojects {
                 annotations = false
             }
         }
+    }
+
+    pluginManager.withPlugin("docs-screenshots") {
+        configure<KotrailExtension> {
+            compilation("docsScreenshots") { configFile = rootProject.layout.projectDirectory.file("kotrail-docs-screenshots.yaml") }
+        }
+    }
+
+    // On macOS a test JVM that starts AWT becomes a regular app with a Dock icon and takes keyboard
+    // focus; as a background-only app, AWT still works.
+    tasks.withType<Test>().configureEach {
+        systemProperty("apple.awt.UIElement", "true")
     }
 
     // The agent compiler plugin warns on purpose whenever it bakes the build machine's address into

@@ -14,15 +14,12 @@ kotlin {
     jvmToolchain(17)
     explicitApi()
 
-    abiValidation {
-    }
+    abiValidation()
 }
 
 dependencies {
     implementation(libs.jetbrainsComposeRuntime)
-    // Exposed in public API: the MCP parameter DSL takes KSerializer and hands back JsonObject.
     api(libs.kotlinxSerializationJson)
-    // Exposed in public API: JetWhalePluginStorage returns Flow and rememberPersistent uses coroutines.
     api(libs.kotlinxCoroutinesCore)
     api(projects.jetwhaleProtocol.core)
     testImplementation(libs.kotlinTest)

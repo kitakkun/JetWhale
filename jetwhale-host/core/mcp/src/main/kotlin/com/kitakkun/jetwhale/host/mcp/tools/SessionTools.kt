@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
@@ -31,7 +32,8 @@ private const val HOST_SESSION_NAME = "Host"
  * Returns a JSON string listing [HostSession], which holds the plugins that need no app and is
  * always there, followed by every known app session.
  */
-suspend fun listSessions(
+@VisibleForTesting
+internal suspend fun listSessions(
     debugSessionRepository: DebugSessionRepository,
     pluginFactoryRepository: PluginFactoryRepository,
 ): String {
@@ -50,7 +52,8 @@ suspend fun listSessions(
  * loaded plugins that need no app; for an app, the plugins its agent advertised.
  * Each entry includes whether the plugin implements [JetWhaleMcpCapablePlugin].
  */
-suspend fun listPlugins(
+@VisibleForTesting
+internal suspend fun listPlugins(
     sessionId: String,
     debugSessionRepository: DebugSessionRepository,
     pluginFactoryRepository: PluginFactoryRepository,
@@ -104,8 +107,8 @@ class ListSessionsMcpTool(
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.listSessions",
-            description = "Lists the debug sessions: first \"${HostSession.ID}\", which is always present " +
-                "and holds the tools that need no app (pass it as sessionId to reach them), then every app connected to JetWhale.",
+            description = "Lists the debug sessions: first \"${HostSession.ID}\", which is always present and holds the tools that need no app " +
+                "(pass it as sessionId to reach them), then every app connected to JetWhale.",
             inputSchema = ToolSchema(),
             permission = McpToolPermission.Unrestricted,
         ) { _ ->
@@ -125,8 +128,7 @@ class ListPluginsMcpTool(
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.listPlugins",
-            description = "Lists plugins installed in the specified debug session, " +
-                "including whether each plugin supports additional MCP tools.",
+            description = "Lists plugins installed in the specified debug session, including whether each plugin supports additional MCP tools.",
             inputSchema = ToolSchema(
                 properties = JsonObject(
                     mapOf(

@@ -16,3 +16,6 @@ gradle/gradle-daemon-jvm.properties
 
 # IntelliJ Platform Gradle Plugin sandbox and caches
 .intellijPlatform/
+
+# JVM crash logs
+hs_err_pid*.log

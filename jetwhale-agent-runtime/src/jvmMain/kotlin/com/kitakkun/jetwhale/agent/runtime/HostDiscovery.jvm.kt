@@ -19,16 +19,12 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 
     var jmdns: JmDNS? = null
     // jmDNS fails in undocumented, unchecked ways on some interfaces; every failure is an unavailable browse the caller retries.
-    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     try {
         jmdns = JmDNS.create(address)
-        // Blocking browse: returns the services resolved within the timeout window.
         DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull(ServiceInfo::toDiscoveredService))
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        // The detail goes to debug; the caller reports the failure itself, deduplicated across the
-        // retries that would otherwise repeat it forever.
         JetWhaleLogger.d("jmDNS browse failed", e)
         DiscoveryResult.Unavailable("the jmDNS browse failed (${e.message})")
     } finally {

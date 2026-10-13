@@ -9,14 +9,10 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-// Shared by the Nav3 plugin's MCP command classes (one class per file in this package).
-
-// The tool names are namespaced by the pluginId, so they follow it rather than restating it.
 internal const val TOOL_PREFIX = NAV3_PLUGIN_ID
 
 /** What the MCP commands are allowed to see and do; the host plugin is the only implementation. */
@@ -77,37 +73,6 @@ internal fun MutationResult.toMcpJson(): String = buildJsonObject {
     error?.let { put("error", it) }
     snapshot?.let { put("stack", it.toMcpJson()) }
 }.toString()
-
-internal fun List<NavKeyTypeDescriptor>.toMcpJson(): JsonObject = buildJsonObject {
-    putJsonArray("keyTypes") {
-        forEach { type ->
-            addJsonObject {
-                put("serialName", type.serialName)
-                put("template", type.template)
-                put(
-                    "fields",
-                    buildJsonArray {
-                        type.fields.forEach { field ->
-                            addJsonObject {
-                                put("name", field.name)
-                                put("type", field.type)
-                                put("optional", field.optional)
-                                put("nullable", field.nullable)
-                            }
-                        }
-                    },
-                )
-            }
-        }
-    }
-    if (isEmpty()) {
-        put(
-            "note",
-            "The app exposed no constructible key types. Keys can " +
-                "still be pushed by copying the `key` object of an existing entry from getBackStack.",
-        )
-    }
-}
 
 /** Short, human-facing label used for the status line after a UI-triggered operation. */
 internal fun NavBackStackOperation.describe(): String = when (this) {

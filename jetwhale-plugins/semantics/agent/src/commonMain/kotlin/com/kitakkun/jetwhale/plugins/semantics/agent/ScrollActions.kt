@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
@@ -21,8 +22,7 @@ internal object ScrollActions {
     object ScrollBy : SemanticsActionHandler {
         override val runsOnDisabledNode = true
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
-            node.config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
     }
 
     object ScrollToIndex : SemanticsActionHandler {
@@ -58,8 +58,6 @@ internal object ScrollActions {
         override val runsOnDisabledNode = true
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
-            // A node that is not placed has no position to compute a scroll from — a capture taken with
-            // includeInvisible, or a node that left the layout since.
             if (!node.layoutInfo.isPlaced) {
                 return NodeActionResult(performed = false, message = "the node is not laid out, so there is nothing to scroll to")
             }
@@ -89,16 +87,14 @@ internal object ScrollActions {
 
                 containersScrolled > 0 || hostScrolled -> NodeActionResult(
                     performed = true,
-                    message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); " +
-                        "the scroll lands on the next frame, so capture the tree again to see the new bounds",
+                    message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); the scroll lands on the next frame, so capture the tree again to see the new bounds",
                 )
 
                 node.isWhollyUnclipped -> NodeActionResult(performed = true, message = "the node is already in view")
 
                 else -> NodeActionResult(
                     performed = false,
-                    message = "the node is clipped by something on its path that cannot scroll " +
-                        "— a non-scrollable clip, or the edge of the composition",
+                    message = "the node is clipped by something on its path that cannot scroll — a non-scrollable clip, or the edge of the composition",
                 )
             }
         }
@@ -125,6 +121,7 @@ internal object ScrollActions {
          * smaller of the two moves that would align either edge, and nothing on an axis where the
          * target already fits or overhangs the viewport on both sides.
          */
+        @VisibleForTesting
         internal fun scrollDeltaToReveal(target: Rect, viewport: Rect): Offset = Offset(
             x = leastAligningDelta(target.left - viewport.left, target.right - viewport.right),
             y = leastAligningDelta(target.top - viewport.top, target.bottom - viewport.bottom),

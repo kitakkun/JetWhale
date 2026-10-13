@@ -60,49 +60,6 @@ class DefaultAppAppearanceRepository(
         }
     }
 
-    override suspend fun saveCustomTheme(id: JetWhaleColorSchemeId, theme: JetWhaleColorScheme.Static.Custom) {
-        dataStore.edit { prefs ->
-            val customThemeDefinition = CustomThemeDefinition(
-                id = id,
-                colors = theme.colors.mapKeys { entry -> entry.key.name },
-            )
-
-            val currentThemeDefinitions = prefs[customThemesPreferencesKey]?.let { serialized ->
-                json.decodeFromString<CustomThemes>(serialized)
-            } ?: CustomThemes(emptyList())
-
-            prefs[customThemesPreferencesKey] = json.encodeToString(
-                currentThemeDefinitions.copy(
-                    colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition,
-                ),
-            )
-        }
-    }
-
-    override suspend fun saveDynamicTheme(
-        id: JetWhaleColorSchemeId,
-        lightThemeId: JetWhaleColorSchemeId,
-        darkThemeId: JetWhaleColorSchemeId,
-    ) {
-        dataStore.edit { prefs ->
-            val dynamicThemeDefinition = DynamicThemeDefinition(
-                id = id,
-                lightThemeKey = lightThemeId,
-                darkThemeKey = darkThemeId,
-            )
-
-            val currentDynamicThemes = prefs[dynamicThemesPreferencesKey]?.let { serialized ->
-                json.decodeFromString<DynamicThemes>(serialized)
-            } ?: DynamicThemes(emptyList())
-
-            prefs[dynamicThemesPreferencesKey] = json.encodeToString(
-                currentDynamicThemes.copy(
-                    colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition,
-                ),
-            )
-        }
-    }
-
     override suspend fun updateAppLanguage(language: AppLanguage) {
         dataStore.edit { prefs ->
             prefs[appLanguagePreferencesKey] = language.code
@@ -135,24 +92,6 @@ class DefaultAppAppearanceRepository(
                 )
             } ?: JetWhaleColorScheme.Dynamic.BuiltIn
         }
-    }
-
-    // TODO: Expose as public API if needed
-    private suspend fun saveCustomColorScheme(id: String, colorScheme: JetWhaleColorScheme.Static.Custom) {
-        saveCustomTheme(JetWhaleColorSchemeId.custom(id), colorScheme)
-    }
-
-    // TODO: Expose as public API if needed
-    private suspend fun saveDynamicColorScheme(id: String, lightColorSchemeId: String, darkColorSchemeId: String) {
-        saveDynamicTheme(
-            id = JetWhaleColorSchemeId.custom(id),
-            lightThemeId = JetWhaleColorSchemeId.BuiltIns.firstOrNull {
-                it.id == lightColorSchemeId
-            } ?: JetWhaleColorSchemeId.custom(lightColorSchemeId),
-            darkThemeId = JetWhaleColorSchemeId.BuiltIns.firstOrNull {
-                it.id == darkColorSchemeId
-            } ?: JetWhaleColorSchemeId.custom(darkColorSchemeId),
-        )
     }
 
     companion object Companion {

@@ -9,13 +9,12 @@ plugins {
     alias(libs.plugins.publish)
 }
 
-// Distinct group so these plugin modules don't share coordinates with the `example` plugin
-// modules (which also have leaf names protocol/agent/host) and get substituted during resolution.
+// Distinct group so these plugin modules don't share coordinates with the other plugins' modules
+// (which also have leaf names protocol/agent/host) and get substituted during resolution.
 group = "com.kitakkun.jetwhale.plugins.network"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.network.agent"
 }

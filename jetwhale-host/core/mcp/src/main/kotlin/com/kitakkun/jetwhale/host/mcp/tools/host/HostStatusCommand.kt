@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
+import com.kitakkun.jetwhale.host.model.AppAppearanceRepository
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
@@ -42,17 +43,18 @@ class HostStatusCommand(
     private val pluginTrustService: PluginTrustService,
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
     private val settingsRepository: DebuggerSettingsRepository,
+    private val appAppearanceRepository: AppAppearanceRepository,
     private val mcpPermissionsRepository: McpPermissionsRepository,
     private val hostNavigationService: HostNavigationService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.getStatus"
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
-        "Host-wide: one snapshot of the debug tool — its version, both servers, how many sessions and plugins are live, " +
-            "and the current settings. Call this first to orient yourself before any other jetwhale tool."
+        "Host-wide: one snapshot of the debug tool — its version, both servers, how many sessions and plugins are live, and the current settings. Call this first to orient yourself before any other jetwhale tool."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty()
+        val colorSchemeId = appAppearanceRepository.preferredColorSchemeIdFlow.first()
 
         return Json.encodeToString(
             HostStatusResult(
@@ -80,8 +82,8 @@ class HostStatusCommand(
                     wssEnabled = settingsRepository.wssEnabledFlow.value,
                     mcpServerPort = settingsRepository.mcpServerPortFlow.value,
                     adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
-                    checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
                     persistData = settingsRepository.persistDataFlow.value,
+                    theme = BuiltInTheme.entries.firstOrNull { it.colorSchemeId == colorSchemeId }?.name ?: colorSchemeId.id,
                 ),
                 permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
                 ui = hostNavigationService.currentView.value?.toJson(),
@@ -102,7 +104,9 @@ private fun HostViewState.toJson() = UiStateJson(
     destination = destination.kind.name,
     pluginId = destination.pluginId,
     sessionId = destination.sessionId,
-    settingsSection = destination.settingsSection?.name,
+    settingsSection = destination.settingsPage?.section?.name,
+    settingsPage = destination.settingsPage?.name,
+    mcpToolsTab = destination.mcpToolsTab?.name,
     poppedOutPlugins = destination.poppedOutPlugins.map { PoppedOutPluginJson(it.pluginId, it.sessionId) },
     selectedSessionId = selectedSessionId,
     selectedPluginId = selectedPluginId,
@@ -163,6 +167,8 @@ data class UiStateJson(
     val pluginId: String? = null,
     val sessionId: String? = null,
     val settingsSection: String? = null,
+    val settingsPage: String? = null,
+    val mcpToolsTab: String? = null,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
     val selectedSessionId: String? = null,
     val selectedPluginId: String? = null,
@@ -205,6 +211,9 @@ data class PluginCountsJson(
     val installInProgress: Boolean,
 )
 
+/**
+ * @property theme A [BuiltInTheme] name, or the stored id of a color scheme that is not built in.
+ */
 @Serializable
 data class SettingsJson(
     val serverPort: Int,
@@ -212,6 +221,6 @@ data class SettingsJson(
     val wssEnabled: Boolean,
     val mcpServerPort: Int,
     val adbAutoPortMappingEnabled: Boolean,
-    val checkForUpdatesOnStartup: Boolean,
     val persistData: Boolean,
+    val theme: String,
 )

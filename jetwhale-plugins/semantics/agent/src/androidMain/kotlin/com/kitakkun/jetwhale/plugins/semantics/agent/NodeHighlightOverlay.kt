@@ -38,13 +38,9 @@ import kotlin.time.Duration
 internal class NodeHighlightOverlay {
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // The root view is held weakly: an overlay that is up keeps nothing alive, so a screen that goes
-    // away between the show and the TTL costs nothing. A collected root has no overlay left to clear.
     private var attachedRootRef: WeakReference<View>? = null
     private var drawable: NodeHighlightDrawable? = null
 
-    // Re-read rather than remembered, so a node that moves is followed instead of frozen where it
-    // was when the host asked for it.
     private var resolveBounds: (() -> Rect?)? = null
 
     private val expire = Runnable(::clear)
@@ -68,8 +64,6 @@ internal class NodeHighlightOverlay {
         true
     }
 
-    // A window that goes away while a highlight is up would otherwise keep the drawable registered on
-    // a detached root, and the next show would find state that no longer matches the screen.
     private val detachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(view: View) = Unit
         override fun onViewDetachedFromWindow(view: View) = clear()
@@ -114,8 +108,8 @@ internal class NodeHighlightOverlay {
         if (rootView != null && current != null) {
             rootView.overlay.remove(current)
             rootView.removeOnAttachStateChangeListener(detachListener)
-            // A dead observer belongs to a window that is gone; there is nothing left to unregister
-            // from, and asking it to remove would throw.
+            // ViewTreeObserver throws when a dead observer is asked to remove a listener; its
+            // window is already gone.
             rootView.viewTreeObserver.takeIf(ViewTreeObserver::isAlive)?.removeOnPreDrawListener(preDrawListener)
             rootView.invalidate()
         }
@@ -132,9 +126,8 @@ internal class NodeHighlightOverlay {
         val rootView = attachedRootRef?.get() ?: return
         val current = drawable ?: return
 
-        // Runs from a posted callback with nothing above it to catch: a composition disposed between
-        // frames can make the lookup throw, and an exception here would take the app down. A node
-        // that cannot be resolved is a node that is gone.
+        // Runs from a posted callback with nothing above it to catch: a composition disposed
+        // between frames can make the lookup throw, which would crash the app.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val bounds = try {
             resolveBounds?.invoke()
@@ -187,8 +180,8 @@ private class NodeHighlightDrawable(private val strokeWidthPx: Float) : Drawable
     override fun draw(canvas: Canvas) {
         val box = bounds
         canvas.drawRect(box, fillPaint)
-        // A stroke straddles the line it is drawn on, so it is inset by half its width to sit inside
-        // the node's bounds instead of spilling a pixel over the neighbours.
+        // A stroke is centered on its line, so it is inset by half its width to stay inside the
+        // node's bounds.
         val inset = strokeWidthPx / 2f
         canvas.drawRect(box.left + inset, box.top + inset, box.right - inset, box.bottom - inset, borderPaint)
     }

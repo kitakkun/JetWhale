@@ -91,8 +91,6 @@ public fun JwTab(
     }
     Column(
         modifier = modifier
-            // Sized by the label, not by the row: the indicator below is fillMaxWidth and would
-            // otherwise claim the whole strip for the first tab.
             .width(IntrinsicSize.Max)
             .fillMaxHeight()
             .jwFocusRing(interactionSource, JwShapes.small)

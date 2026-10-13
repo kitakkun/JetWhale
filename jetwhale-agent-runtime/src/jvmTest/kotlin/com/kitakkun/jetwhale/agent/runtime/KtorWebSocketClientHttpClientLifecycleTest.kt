@@ -45,7 +45,6 @@ class KtorWebSocketClientHttpClientLifecycleTest {
 
     @Test
     fun `a failed connection attempt releases the client it allocated`() = testApplication {
-        // No server is configured, so the attempt fails before there is a session to close later.
         val provider = recordingProvider()
         val webSocketClient = webSocketClient(provider)
 
@@ -58,8 +57,6 @@ class KtorWebSocketClientHttpClientLifecycleTest {
 
     @Test
     fun `a connection that ended on its own is released before the next one opens`() = testApplication {
-        // The server hangs up straight away, so the connection ends without closeConnection ever
-        // being called. That is the reconnect path, and the one that can strand a client unnoticed.
         configureTestServer(hangUpImmediately = true)
         val provider = recordingProvider()
         val webSocketClient = webSocketClient(provider)

@@ -5,9 +5,6 @@ import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsPro
 import platform.UIKit.UIViewController
 
 fun cmpAppViewController(): UIViewController {
-    // The plugin module is not exported from the framework, so Swift cannot install the probe
-    // itself; this is the first Kotlin the app calls on the main thread. Idempotent, so a second
-    // controller costs nothing.
     installJetWhaleSemanticsProbe()
     return ComposeUIViewController {
         App()

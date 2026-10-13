@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -12,6 +13,7 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.CancellationException
 import java.io.File
 
 @SingleIn(AppScope::class)
@@ -55,6 +57,9 @@ class MavenArtifactResolver(
         } catch (e: MavenArtifactDownloadException) {
             destinationFile.delete()
             throw e
+        } catch (e: CancellationException) {
+            destinationFile.delete()
+            throw e
         } catch (e: Exception) {
             destinationFile.delete()
             throw MavenArtifactDownloadException(
@@ -70,6 +75,7 @@ class MavenArtifactResolver(
      * through the version directory's `maven-metadata.xml`. Falls back to the literal `-SNAPSHOT`
      * file name when the metadata is missing or incomplete (some repositories serve it directly).
      */
+    @VisibleForTesting
     internal suspend fun resolveJarUrl(coordinates: MavenCoordinates): String {
         if (!coordinates.isSnapshot) return coordinates.toJarUrl()
 
@@ -83,8 +89,7 @@ class MavenArtifactResolver(
         return coordinates.toSnapshotJarUrl(timestampedVersion)
     }
 
-    private fun extractXmlTagValue(text: String, tag: String): String? =
-        Regex("<$tag>\\s*([^<]+?)\\s*</$tag>").find(text)?.groupValues?.get(1)
+    private fun extractXmlTagValue(text: String, tag: String): String? = Regex("<$tag>\\s*([^<]+?)\\s*</$tag>").find(text)?.groupValues?.get(1)
 }
 
 class MavenArtifactDownloadException(

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -41,12 +42,8 @@ class ScrollMcpTool(
                         "sessionId" to stringProperty("The session ID."),
                         "x" to numberProperty("X coordinate in pixels from the left edge of the plugin UI."),
                         "y" to numberProperty("Y coordinate in pixels from the top edge of the plugin UI."),
-                        "deltaX" to
-                            numberProperty(
-                                "Horizontal scroll delta in pixels. Positive scrolls right, negative scrolls left. Defaults to 0.",
-                            ),
-                        "deltaY" to
-                            numberProperty("Vertical scroll delta in pixels. Positive scrolls down, negative scrolls up. Defaults to 0."),
+                        "deltaX" to numberProperty("Horizontal scroll delta in pixels. Positive scrolls right, negative scrolls left. Defaults to 0."),
+                        "deltaY" to numberProperty("Vertical scroll delta in pixels. Positive scrolls down, negative scrolls up. Defaults to 0."),
                     ),
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y"),
@@ -76,7 +73,8 @@ class ScrollMcpTool(
 }
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
-suspend fun dispatchScroll(scene: PluginComposeScene, x: Float, y: Float, deltaX: Float, deltaY: Float) {
+@VisibleForTesting
+internal suspend fun dispatchScroll(scene: PluginComposeScene, x: Float, y: Float, deltaX: Float, deltaY: Float) {
     scene.composeScene.sendPointerEvent(
         eventType = PointerEventType.Scroll,
         position = Offset(x, y),

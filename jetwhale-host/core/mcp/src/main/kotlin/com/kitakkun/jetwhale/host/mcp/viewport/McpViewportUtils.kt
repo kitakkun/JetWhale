@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.viewport
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
@@ -37,15 +38,23 @@ internal fun sceneViewportSize(scene: PluginComposeScene): IntSize {
  */
 @OptIn(InternalComposeUiApi::class)
 internal fun ensureSceneRendered(scene: PluginComposeScene) {
-    val size = sceneViewportSize(scene)
-    val viewport = McpViewport(size = size, density = scene.composeScene.density)
-    applyViewport(scene, viewport)
-    scene.render(Canvas(ImageBitmap(size.width, size.height)))
+    applyViewport(scene, McpViewport(size = sceneViewportSize(scene), density = scene.composeScene.density))
+    scene.renderDiscardingPixels()
+}
+
+/**
+ * Runs a frame whose pixels nobody reads, so that recomposition, layout and semantics are current.
+ * Layout follows the scene's size, not the canvas, so a 1×1 canvas gives the same tree without
+ * rasterizing the whole viewport.
+ */
+@OptIn(InternalComposeUiApi::class)
+internal fun PluginComposeScene.renderDiscardingPixels() {
+    render(Canvas(ImageBitmap(1, 1)))
 }
 
 @OptIn(InternalComposeUiApi::class)
+@VisibleForTesting
 internal fun applyViewport(scene: PluginComposeScene, viewport: McpViewport) {
-    // Keep ComposeScene and WindowInfo in sync; pointer/semantics coordinates depend on both.
     try {
         scene.composeScene.density = viewport.density
         scene.composeScene.size = viewport.size
@@ -114,11 +123,9 @@ private fun restoreSceneViewportState(scene: PluginComposeScene, state: SceneVie
         scene.composeScene.density = state.density
         scene.composeScene.size = state.composeSceneSize
     } catch (_: IllegalStateException) {
-        // May happen during dispose/close; ignore to avoid crashing MCP calls.
     }
     scene.windowInfoUpdater.updateWindowSize(intSize = state.windowIntSize, dpSize = state.windowDpSize)
-    // The scene density and the window info override are snapshot state. Flush the restore so the
-    // next interactive render observes the original viewport immediately rather than lagging a
-    // frame behind on the capture's one.
+    // The scene density and the window info override are snapshot state; flush so the next
+    // interactive render sees the restored viewport.
     Snapshot.sendApplyNotifications()
 }

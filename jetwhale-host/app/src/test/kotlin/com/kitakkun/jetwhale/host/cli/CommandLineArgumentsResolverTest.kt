@@ -114,7 +114,6 @@ class CommandLineArgumentsResolverTest {
 
     @Test
     fun `the allow-all flag takes no value and lifts every MCP permission for the launch`() {
-        // Automated QA has to reach tools a human would otherwise have to tick a checkbox for.
         val options = CommandLineArgumentsParser().parse(arrayOf("--mcp-allow-all-permissions"))
 
         assertEquals(McpPermissionOverride(allowAll = true), options.mcpPermissionOverride)
@@ -164,8 +163,6 @@ class CommandLineArgumentsResolverTest {
 
     @Test
     fun `an absent log level leaves the configured one alone`() {
-        // Null rather than WARN: logback.xml sets the root at trace, so defaulting here would quietly
-        // reduce what every launch logs, and what the log viewer can show.
         assertNull(CommandLineArgumentsParser().parse(arrayOf()).logLevel)
     }
 

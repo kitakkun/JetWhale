@@ -68,8 +68,6 @@ fun SettingsScreenScaffold(
                     .width(MenuPaneWidth)
                     .fillMaxHeight()
                     .background(JwTheme.colors.sidebarBackground)
-                    // The list grows downward as sections are added, which is the point of it — so it
-                    // has to scroll, or the newest entries are the ones a short window cuts off.
                     .verticalScroll(rememberScrollState())
                     .padding(JwSpacing.extraSmall),
             ) {
@@ -94,8 +92,6 @@ fun SettingsScreenScaffold(
                 }
             }
             JwVerticalDivider()
-            // Only the selected page is composed. The pager this replaced kept every section alive,
-            // so each one's subscriptions ran whether or not it was on screen.
             Column(modifier = Modifier.fillMaxSize()) {
                 content(uiState.selectedPage)
             }

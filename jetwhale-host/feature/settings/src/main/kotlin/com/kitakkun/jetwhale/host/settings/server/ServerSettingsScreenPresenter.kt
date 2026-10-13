@@ -53,10 +53,6 @@ fun serverSettingsScreenPresenter(
         }
     }
 
-    // A Started status carries a null wss port both when the connector is switched off and when it
-    // was asked for but could not bind, so reading the switch back off the status would silently
-    // turn wss off in the second case and the next Apply would persist that. The store is the whole
-    // truth here; launch overrides reach these values through the repository too.
     LaunchedEffect(debugServerSettings.wssEnabled, debugServerSettings.wssPort) {
         editing.wssEnabled = debugServerSettings.wssEnabled
         editing.wssPortText = debugServerSettings.wssPort.toString()
@@ -121,8 +117,6 @@ private class ServerSettingsEditingState(
 
     private val parsedDebugPort: Int? get() = debugPortText.toIntOrNull()?.takeIf(BINDABLE_PORTS::contains)
 
-    // Validated even while the connector is switched off: the port is stored either way, and a
-    // rejected value would otherwise only surface on the restart that switches wss back on.
     private val parsedWssPort: Int? get() = wssPortText.toIntOrNull()?.takeIf(BINDABLE_PORTS::contains)
 
     private val parsedMcpPort: Int? get() = mcpPortText.toIntOrNull()
@@ -145,8 +139,6 @@ private class ServerSettingsEditingState(
             return DebugServerSettings(serverPort = serverPort, wssPort = wssPort, wssEnabled = wssEnabled)
         }
 
-    // A failed start leaves the port setting untouched, so gating Apply on dirtiness alone would
-    // make retrying the same port impossible without editing it away and back again.
     private val isDebugStartFailed: Boolean get() = serverStatus is DebugWebSocketServerStatus.Error
 
     private val isMcpStartFailed: Boolean get() = mcpServerStatus is McpServerStatus.Error
@@ -163,9 +155,6 @@ private class ServerSettingsEditingState(
                 val settings = editedDebugServerSettings ?: return
                 when {
                     isDebugDirty -> showDebugApplyConfirmDialog = true
-
-                    // Nothing is listening after a failed start, so there are no connected clients
-                    // a restart could disrupt — retry without asking.
                     isDebugStartFailed -> mutations.debugServerSettings.mutateAsync(settings)
                 }
             }
@@ -210,8 +199,6 @@ private class ServerSettingsEditingState(
                 mutations.pluginToolPermission.mutateAsync(McpPluginToolPermissionParams(action.toolName, action.allowed))
 
             is ServerSettingsScreenAction.AddCertificate -> {
-                // A newly generated certificate becomes the active one; the running TLS server
-                // hot-swaps to it automatically.
                 mutations.generateCertificate.mutateAsync(null)
             }
 
@@ -232,8 +219,6 @@ private class ServerSettingsEditingState(
     }
 
     fun toUiState(mcpPermissionsSnapshot: McpPermissionsSnapshot): ServerSettingsScreenUiState {
-        // The snippets must describe the endpoint an agent can actually reach right now, so they
-        // follow the running server rather than the (possibly unapplied) port text field.
         val mcpClientSetup = McpClientSetup.of(mcpServerStatus, fallbackPort = savedMcpServerPort)
         return ServerSettingsScreenUiState(
             debugServerState = serverStatus.toServerState(),
@@ -241,8 +226,6 @@ private class ServerSettingsEditingState(
             editingDebugPortText = debugPortText,
             editingWssPortText = wssPortText,
             editingWssEnabled = wssEnabled,
-            // Reporting an error against values the user has not touched yet would flag a stored
-            // configuration they cannot be in the middle of mistyping.
             debugServerSettingsError = debugServerSettingsError.takeIf { isDebugDirty },
             editingMcpPortText = mcpPortText,
             mcpClaudeCodeCommand = mcpClientSetup.claudeCodeCommand,

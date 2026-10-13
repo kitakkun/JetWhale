@@ -12,10 +12,7 @@ typealias McpHostGroupPermissionMutationKey = MutationKey<Unit, McpHostGroupPerm
 
 typealias McpPluginToolPermissionMutationKey = MutationKey<Unit, McpPluginToolPermissionParams>
 
-/**
- * Separate interfaces rather than two typealiases: both carry [McpPluginPermissionParams], and to Metro a
- * typealias is the type it aliases.
- */
+/** Separate interfaces rather than two typealiases: both carry [McpPluginPermissionParams], and to Metro a typealias is the type it aliases. */
 interface McpPluginInspectPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>
 
 interface McpPluginInteractPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>

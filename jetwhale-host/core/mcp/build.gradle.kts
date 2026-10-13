@@ -10,8 +10,6 @@ plugins {
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
-        // The MCP server is the consumer of the experimental plugin-facing MCP API, and host tools
-        // are written with its parameter DSL, so every file in this module opts in.
         freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi")
     }
 }
@@ -32,7 +30,9 @@ dependencies {
     implementation(libs.kotlinxSerializationJson)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.logbackClassic)
+    compileOnly(libs.androidxAnnotation)
 
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(libs.ktorClientCio)
 }

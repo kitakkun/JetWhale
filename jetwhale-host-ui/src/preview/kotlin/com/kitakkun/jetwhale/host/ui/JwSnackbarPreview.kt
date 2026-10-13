@@ -15,6 +15,7 @@ private fun JwSnackbarHostPreview() {
                 message = "The session disconnected",
                 actionLabel = "Reconnect",
                 duration = JwSnackbarDuration.Indefinite,
+                dismissLabel = "Dismiss",
             )
         }
         JwSnackbarHost(hostState = hostState)

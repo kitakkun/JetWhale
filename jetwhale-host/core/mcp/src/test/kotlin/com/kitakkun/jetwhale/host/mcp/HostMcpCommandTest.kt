@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.mokkery.answering.returns
@@ -31,6 +32,7 @@ class HostMcpCommandTest {
         every { getLoadedPluginInstances() } returns emptyList()
         every { pluginInstanceEventFlow } returns MutableSharedFlow()
     }
+    private val mcpActivityRepository = FakeMcpActivityRepository()
 
     @Test
     fun `a host command's declared parameters appear in its input schema`() = withHostCommand(EchoHostCommand()) { client ->
@@ -55,12 +57,17 @@ class HostMcpCommandTest {
     }
 
     @Test
-    fun `an invalid argument is returned as an error result instead of failing the tool call`() =
-        withHostCommand(EchoHostCommand()) { client ->
-            val result = client.callTool("jetwhale.test.echo", emptyMap())
-            assertEquals(true, result.isError)
-            assertContains(result.firstText(), "missing required argument: text")
-        }
+    fun `a host command's call is recorded under its host group`() = withHostCommand(EchoHostCommand()) { client ->
+        client.callTool("jetwhale.test.echo", mapOf("text" to "hi"))
+        assertEquals(McpToolPermission.HostGroup(McpHostToolGroup.OBSERVE), mcpActivityRepository.recordedInvocations.single().permission)
+    }
+
+    @Test
+    fun `an invalid argument is returned as an error result instead of failing the tool call`() = withHostCommand(EchoHostCommand()) { client ->
+        val result = client.callTool("jetwhale.test.echo", emptyMap())
+        assertEquals(true, result.isError)
+        assertContains(result.firstText(), "missing required argument: text")
+    }
 
     @Test
     fun `an exception thrown by execute becomes an error result`() = withHostCommand(ExplodingHostCommand()) { client ->
@@ -96,7 +103,7 @@ class HostMcpCommandTest {
     private fun withServer(command: HostMcpCommand, block: suspend (port: Int) -> Unit) = runBlocking {
         val service = DefaultMcpServerService(
             pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = FakeMcpActivityRepository(),
+            mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(command),
             mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             statusHolder = McpServerStatusHolder(),

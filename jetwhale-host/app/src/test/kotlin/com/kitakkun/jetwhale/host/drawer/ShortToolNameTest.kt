@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,10 +9,7 @@ import kotlin.test.assertEquals
 class ShortToolNameTest {
     @Test
     fun `a plugin tool keeps the last segment of its plugin id`() {
-        assertEquals(
-            "mirror.tap",
-            invocation("com.kitakkun.jetwhale.mirror.tap", pluginId = "com.kitakkun.jetwhale.mirror").shortToolName(),
-        )
+        assertEquals("mirror.tap", invocation("com.kitakkun.jetwhale.mirror.tap", pluginId = "com.kitakkun.jetwhale.mirror").shortToolName())
     }
 
     @Test
@@ -23,6 +21,7 @@ class ShortToolNameTest {
     private fun invocation(toolName: String, pluginId: String?) = McpToolInvocation(
         id = 1,
         toolName = toolName,
+        permission = McpToolPermission.PluginInteract,
         pluginId = pluginId,
         sessionId = null,
         arguments = persistentListOf(),

@@ -93,8 +93,8 @@ class DragToolTest {
 
         assertTrue(dragEnded, "Drag should have ended cleanly via onDragEnd")
 
-        // The last move is at fraction=1.0 (same position as release); Compose may coalesce it,
-        // so we accept either `steps` or `steps - 1` drag events.
+        // The last move lands where the release does and Compose may coalesce it, so one drag event
+        // can be missing.
         assertTrue(
             dragPositions.size >= steps - 1,
             "Expected at least ${steps - 1} drag events, got ${dragPositions.size}",
@@ -105,18 +105,8 @@ class DragToolTest {
             assertTrue(dragPositions[i].y >= dragPositions[i - 1].y, "Drag Y should be non-decreasing at step $i")
         }
 
-        assertEquals(
-            expected = 400f,
-            actual = dragPositions.last().x,
-            absoluteTolerance = 0.01f,
-            message = "Last drag position X should be at endX",
-        )
-        assertEquals(
-            expected = 400f,
-            actual = dragPositions.last().y,
-            absoluteTolerance = 0.01f,
-            message = "Last drag position Y should be at endY",
-        )
+        assertEquals(expected = 400f, actual = dragPositions.last().x, absoluteTolerance = 0.01f, message = "Last drag position X should be at endX")
+        assertEquals(expected = 400f, actual = dragPositions.last().y, absoluteTolerance = 0.01f, message = "Last drag position Y should be at endY")
     }
 
     /** Drags across a box that records every press, move and release it receives. */

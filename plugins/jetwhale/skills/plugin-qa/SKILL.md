@@ -10,9 +10,12 @@ pass". The JetWhale debug tool exposes an MCP server whose tools operate on a pl
 scene, so an agent can drive the actual UI and look at the result.
 
 The key property: the host creates a plugin's scene **on demand**, independent of what its window is
-displaying. Driving a plugin never needs the window, and never steals it from whoever is using it —
-`jetwhale.navigate` exists for the times you *want* the window moved, and is the only tool that
-touches it.
+displaying. Driving a plugin never needs the window.
+
+The window does move by default, though. **Follow the AI**, a switch in the drawer's AI activity card
+that is on unless someone turned it off, brings the plugin each tool call operates into view, unless
+it is already on screen or popped out. Turn it off when a person is using the window and you should
+not take it from them. `jetwhale.navigate` moves the window explicitly, whatever that switch says.
 
 **Assumed setup.** Your plugin module applies the `com.kitakkun.jetwhale.host` Gradle plugin and
 sets `jetwhalePlugin.hostVersion`, which is what gives you the `runJetWhale` and
@@ -23,7 +26,9 @@ sets `jetwhalePlugin.hostVersion`, which is what gives you the `runJetWhale` and
 Can:
 
 - layout and rendering (screenshot), at a chosen viewport
-- gestures: click, drag, scroll, typing, and the state changes they cause
+- gestures: click, right-click, drag, scroll, typing, and the state changes they cause
+- context menus: open one with `jetwhale.secondaryClick`, read its items from the result, the
+  accessibility tree or a screenshot, and pick one with `jetwhale.click`
 - the Compose semantics tree (`getAccessibilityTree`) for locating elements
 - persisted plugin state, and whether it survives a host restart
 - the plugin's own contributed MCP tools
@@ -310,6 +315,7 @@ HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it
 | `jetwhale.listSessions` / `jetwhale.listPlugins` | discovery (read-only) |
 | `jetwhale.screenshot` | render the plugin scene to PNG |
 | `jetwhale.click` / `jetwhale.drag` / `jetwhale.scroll` | pointer input |
+| `jetwhale.secondaryClick` | right-click; lists the items of the context menu it opens |
 | `jetwhale.type` | text and special keys |
 | `jetwhale.getAccessibilityTree` | semantics tree; use it to find coordinates |
 | `<pluginId>.*` | tools the plugin itself contributes |
@@ -343,9 +349,9 @@ List the tools before planning around one, and do not read a refusal as a bug in
 | `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled, plus the official catalog under `availableOfficial` |
 | `jetwhale.installOfficialPlugin` | install a plugin from that catalog — catalog entries only, and `setPluginEnabled` still has to follow |
 | `jetwhale.setPluginEnabled` | enable the plugin under test; reports which sessions got an instance |
-| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER`) |
+| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER` / `MCP_TOOLS`) |
 | `jetwhale.getLogs` / `jetwhale.clearLogs` | the **host's** own log — clear, reproduce, read |
-| `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports and server lifecycle |
+| `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports, theme and server lifecycle |
 
 `getLogs` reads the host's log, not the debuggee's — it is how a plugin jar that failed to load
 explains itself.
@@ -361,8 +367,8 @@ Always `Read` the screenshot afterwards. A screenshot you never open verifies no
 
 ## 5. Coordinates and density — the expensive gotcha
 
-- `click` / `drag` / `scroll` coordinates are in the **same pixel space as the screenshot**, so
-  read positions off the image you just captured.
+- `click` / `secondaryClick` / `drag` / `scroll` coordinates are in the **same pixel space as the
+  screenshot**, so read positions off the image you just captured.
 - `width` / `height` on `screenshot` are **pixels**, and the scene renders at the host window's
   density — 2.0 on a Retina Mac, so a 240dp minimum width measures 480px. That holds even for a
   scene the tool created on demand and the window never displayed: it is seeded with the window's

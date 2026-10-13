@@ -102,8 +102,6 @@ internal val ENDPOINT_SCOPE_FQ_NAME: FqName = FqName("com.kitakkun.jetwhale.agen
 internal const val BUILD_MACHINE_WSS_NAME: String = "buildMachineWss"
 private const val WSS_NAME = "wss"
 
-// Slot layout, by IrParameterKind. Both functions are interface members, so slot 0 is the dispatch
-// receiver on either side; the rest are Regular.
 private const val BUILD_MACHINE_RECEIVER = 0
 private const val BUILD_MACHINE_PORT = 1
 private const val WSS_HOST = 1

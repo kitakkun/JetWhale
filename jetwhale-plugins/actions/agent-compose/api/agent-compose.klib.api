@@ -1,0 +1,9 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.actions:agent-compose>
+final fun (com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin).com.kitakkun.jetwhale.plugins.actions.agent.compose/DebugActions(kotlin/Array<out kotlin/Any?>..., kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder, kotlin/Unit>, androidx.compose.runtime/Composer?, kotlin/Int) // com.kitakkun.jetwhale.plugins.actions.agent.compose/DebugActions|DebugActions@com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin(kotlin.Array<out|kotlin.Any?>...;kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder,kotlin.Unit>;androidx.compose.runtime.Composer?;kotlin.Int){}[0]

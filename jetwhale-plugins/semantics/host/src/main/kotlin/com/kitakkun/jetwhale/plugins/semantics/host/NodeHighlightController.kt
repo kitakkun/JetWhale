@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,11 +36,11 @@ internal class NodeHighlightController(
     private var rootShowingBox: String? = null
 
     /** Keeps the current target alive; a new target replaces it. */
-    private var holding: Job? = null
+    private var highlightRenewalJob: Job? = null
 
     /**
      * One [show] at a time, in the order the targets were set — the bookkeeping included, not just
-     * the request. Cancelling [holding] stops it only at its next suspension, so without this a
+     * the request. Cancelling [highlightRenewalJob] stops it only at its next suspension, so without this a
      * replaced target could still enqueue its request after the replacement's and be the one the app
      * paints last; and a call resuming after its answer arrived could write [rootShowingBox] over
      * what a newer, already-finished one recorded, since `pluginScope` runs on more than one thread.
@@ -59,9 +60,8 @@ internal class NodeHighlightController(
      * long as it stands — neither is something a composition should be holding open.
      */
     fun setTarget(target: NodeKey?) {
-        holding?.cancel()
-        holding = scope.launch {
-            // Only a target waits: taking the box down is an answer the user already committed to.
+        highlightRenewalJob?.cancel()
+        highlightRenewalJob = scope.launch {
             if (target != null) delay(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
             var result = show(target)
             while (result.shown || result.retryLater) {
@@ -97,13 +97,8 @@ internal class NodeHighlightController(
             try {
                 send(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
             } catch (e: JetWhaleMessagingException) {
-                // The window that was showing the box is unreachable, which is also how it stops
-                // showing one: the overlay went away with it, and the agent's own TTL covers the rest.
                 statusMessage = "Clearing the highlight failed: ${e.message}"
             }
-            // Forgotten only once the clear has been sent, never before. A call cancelled while it
-            // was still waiting its turn leaves the root recorded, so the target that replaced it
-            // clears that box rather than reading "nothing to clear" and stranding it until the TTL.
             rootShowingBox = null
         }
         if (target == null) {
@@ -117,8 +112,6 @@ internal class NodeHighlightController(
         val result = try {
             send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
-            // rootShowingBox stays: a timeout is a failure too, and the app may have drawn the box
-            // before the reply was lost. An extra clear costs nothing; a box left up costs the user.
             val failure = "Highlight failed: ${e.message}"
             statusMessage = failure
             return HighlightResult(shown = false, message = failure)
@@ -138,7 +131,7 @@ internal class NodeHighlightController(
      * that is caught where the send is.
      */
     fun clearAsync() {
-        holding?.cancel()
+        highlightRenewalJob?.cancel()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             withContext(NonCancellable) { show(null) }
         }
@@ -151,9 +144,11 @@ internal class NodeHighlightController(
  * Long enough that a user reading a row is never left without the box, short enough that a host that
  * crashed does not leave one in the app for the rest of the session.
  */
+@VisibleForTesting
 internal const val HIGHLIGHT_TTL_MILLIS: Long = 30_000
 
 /** Renewed well inside the TTL so a slow round trip cannot let it lapse while the row is still selected. */
+@VisibleForTesting
 internal const val HIGHLIGHT_RENEWAL_MILLIS: Long = HIGHLIGHT_TTL_MILLIS / 3
 
 /**
@@ -162,4 +157,5 @@ internal const val HIGHLIGHT_RENEWAL_MILLIS: Long = HIGHLIGHT_TTL_MILLIS / 3
  * Without it, running the pointer down the tree would send a request per row it crossed, each one a
  * hop to the app's main thread.
  */
+@VisibleForTesting
 internal const val HIGHLIGHT_HOVER_DEBOUNCE_MILLIS: Long = 80

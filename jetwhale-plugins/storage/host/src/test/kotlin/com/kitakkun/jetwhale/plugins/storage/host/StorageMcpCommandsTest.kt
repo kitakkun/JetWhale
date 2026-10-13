@@ -44,10 +44,7 @@ class StorageMcpCommandsTest {
             },
         )
 
-        assertEquals(
-            listOf("empty.preferences_pb"),
-            result.getValue("entries").jsonArray.map { it.jsonObject.getValue("name").jsonPrimitive.content },
-        )
+        assertEquals(listOf("empty.preferences_pb"), result.getValue("entries").jsonArray.map { it.jsonObject.getValue("name").jsonPrimitive.content })
     }
 
     @Test

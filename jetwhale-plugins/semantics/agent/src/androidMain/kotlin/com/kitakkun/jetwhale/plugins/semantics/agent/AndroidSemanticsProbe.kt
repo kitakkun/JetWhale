@@ -72,8 +72,6 @@ private object AndroidSemanticsProbe {
         if (this.installation === installation) this.installation = null
     }
 
-    // One tracker per Compose root, however often that root is discovered: the created-callback and
-    // the activity scan both see the same root, and each must not add its own attach-state listener.
     private val trackedViews = WeakHashMap<View, WindowTracker>()
 
     fun track(root: ViewRootForTest) = synchronized(lock) {
@@ -115,8 +113,6 @@ private object AndroidSemanticsProbe {
         }
 
         override fun close() {
-            // Only restore when ours is still the installed one: something installed afterwards
-            // owns the slot now, and overwriting it would silently disable that.
             if (ViewRootForTest.onViewCreatedCallback === viewCreatedCallback) {
                 ViewRootForTest.onViewCreatedCallback = previousCallback
             }
@@ -153,8 +149,6 @@ private fun scanForComposeRoots(view: View) {
  * of them goes.
  */
 private class WindowTracker(view: View) : View.OnAttachStateChangeListener {
-    // Weak so a tracker left on a view cannot keep it alive; held only so teardown can detach the
-    // listener from the very view it was added to.
     private val viewRef = WeakReference(view)
 
     @Volatile
@@ -162,9 +156,8 @@ private class WindowTracker(view: View) : View.OnAttachStateChangeListener {
 
     init {
         view.addOnAttachStateChangeListener(this)
-        // A root discovered by scanning, or one already composed when the probe was called, is
-        // normally attached already, so its listener would never fire; register it here instead of
-        // waiting for a re-attach that never comes.
+        // A view that is already attached, as a scanned or already-composed root normally is, never
+        // fires onViewAttachedToWindow for the listener just added; register it now.
         if (view.isAttachedToWindow) onViewAttachedToWindow(view)
     }
 
@@ -180,8 +173,6 @@ private class WindowTracker(view: View) : View.OnAttachStateChangeListener {
     fun dispose() {
         registration?.close()
         registration = null
-        // Detaching matters as much as closing the registration: a listener left behind would
-        // re-register the root on the next attach, after the probe was uninstalled.
         viewRef.get()?.removeOnAttachStateChangeListener(this)
     }
 }

@@ -38,3 +38,9 @@ internal fun snapshot(stackId: String, vararg typeNames: String): NavBackStackSn
         NavKeySnapshot(typeName = typeName, display = "$typeName()", key = navKey(typeName))
     },
 )
+
+internal fun keyType(serialName: String): NavKeyTypeDescriptor = NavKeyTypeDescriptor(
+    serialName = serialName,
+    fields = emptyList(),
+    template = navKey(serialName),
+)

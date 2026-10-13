@@ -29,7 +29,6 @@ class DefaultDebuggerSettingsRepositoryTest {
         assertEmits(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).adbAutoPortMappingEnabledFlow)
     }
 
-    // Each repository gets its own store file, so stored ports never leak between tests.
     private fun newDataStore(): DataStore<Preferences> {
         val directory = Files.createTempDirectory("jetwhale-debugger-settings-test")
         return PreferenceDataStoreFactory.createWithPath(scope = CoroutineScope(Dispatchers.IO)) {
@@ -47,7 +46,6 @@ class DefaultDebuggerSettingsRepositoryTest {
         val dataStore = newDataStore()
         DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateAdbAutoPortMappingEnabled(false)
 
-        // A fresh repository has not read the store yet, which is exactly when the server asks.
         assertEquals(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).readAdbAutoPortMappingEnabled())
     }
 
@@ -56,7 +54,6 @@ class DefaultDebuggerSettingsRepositoryTest {
         val dataStore = newDataStore()
         DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateWssEnabled(false)
 
-        // A fresh repository has not read the store yet, which is exactly when startup asks.
         assertEquals(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).readWssEnabled())
     }
 
@@ -159,7 +156,6 @@ class DefaultDebuggerSettingsRepositoryTest {
         assertEquals(5445, repository.readWssPort())
         assertEmits(5082, repository.serverPortFlow)
         assertEmits(5445, repository.wssPortFlow)
-        // The MCP port was not part of this change, so its override still stands.
         assertEquals(7081, repository.readMcpServerPort())
     }
 }

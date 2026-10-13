@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,7 +25,7 @@ import kotlin.test.assertTrue
 class AccessibilityTreeToolTest {
 
     @Test
-    fun `captureAccessibilityTree on empty scene returns no meaningful nodes`() {
+    fun `captureAccessibilityTree on empty scene returns no meaningful nodes`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
 
         val result = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
@@ -33,7 +35,7 @@ class AccessibilityTreeToolTest {
     }
 
     @Test
-    fun `captureAccessibilityTree reflects clickable node properties`() {
+    fun `captureAccessibilityTree reflects clickable node properties`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Box(
                 modifier = Modifier
@@ -53,7 +55,7 @@ class AccessibilityTreeToolTest {
     }
 
     @Test
-    fun `captureAccessibilityTree includes correct bounds for elements`() {
+    fun `captureAccessibilityTree includes correct bounds for elements`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Box(modifier = Modifier.size(200.dp).semantics { contentDescription = "bounded" })
         }
@@ -71,20 +73,18 @@ class AccessibilityTreeToolTest {
     }
 
     @Test
-    fun `captureAccessibilityTree leaves the window info it had`() {
+    fun `captureAccessibilityTree leaves the window info it had`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene()
         scene.composeScene.size = IntSize(320, 240)
 
         captureAccessibilityTree(scene)
 
-        // The tree is captured at the scene's own size, but the window info is a separate piece of
-        // state that the tool must not repoint at it.
         assertEquals(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT), scene.windowInfoUpdater.currentIntSize)
         assertEquals(DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp), scene.windowInfoUpdater.currentDpSize)
     }
 
     @Test
-    fun `bounds are unchanged by a screenshot taken at another density`() {
+    fun `bounds are unchanged by a screenshot taken at another density`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = createTestScene {
             Box(modifier = Modifier.size(100.dp).semantics { contentDescription = "bounded" })
         }
@@ -92,7 +92,7 @@ class AccessibilityTreeToolTest {
         renderTestScene(scene)
         val before = boundsOf(scene, "bounded")
 
-        captureScreenshot(scene, McpViewport(size = IntSize(400, 300), density = Density(2f)))
+        renderScreenshot(scene, McpViewport(size = IntSize(400, 300), density = Density(2f)))
 
         assertEquals(before, boundsOf(scene, "bounded"), "A screenshot's density must not move later bounds")
     }

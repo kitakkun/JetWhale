@@ -90,7 +90,6 @@ fun ShrunkToolingDrawerView(
                 JwIcon(painter = painterResource(Res.drawable.sidebar_unfold), contentDescription = null)
             }
         }
-        // The rail's form of the header's AI card, always there so the rail below never moves.
         AiActivityIndicator(
             uiState = aiActivity,
             onFollowChange = onFollowAiOperationChange,
@@ -117,7 +116,6 @@ fun ShrunkToolingDrawerView(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             items(
-                // The tools that need no app first, as in the expanded sidebar.
                 items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
                 key = DrawerPluginItemUiState::id,
             ) {
@@ -141,8 +139,6 @@ fun ShrunkToolingDrawerView(
                             contentDescription = null,
                         )
                     }
-                    // No room for the "MCP" tag in the rail, so the plugin's MCP status collapses to
-                    // a dot: filled while an agent is operating it, a ring when it merely exposes tools.
                     if (it.underAiControl || it.exposesMcpTools) {
                         RailBadge(
                             tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
@@ -159,8 +155,6 @@ fun ShrunkToolingDrawerView(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
-            // Opens the browser unscoped, so the tools an agent can reach are visible without first
-            // finding a plugin that happens to publish some.
             JwIconButton(onClick = onOpenAllMcpTools, tooltip = stringResource(Res.string.mcp_tools_open_all)) {
                 JwIcon(imageVector = Icons.Default.Build, contentDescription = null)
             }

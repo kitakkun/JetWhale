@@ -21,14 +21,12 @@ private const val NSD_SERVICE_TYPE = "$JETWHALE_SERVICE_TYPE."
  * because older API levels reject a resolve while another is in flight.
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
-    val context = currentApplicationContext()
+    val context = currentApplicationContextOrNull()
         ?: return DiscoveryResult.Unavailable("the application Context could not be obtained")
     val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
         ?: return DiscoveryResult.Unavailable("NsdManager is not present on this device")
 
     val results = Collections.synchronizedList(mutableListOf<DiscoveredService>())
-    // A single-slot serialized resolve queue: NsdManager rejects concurrent resolveService calls on
-    // older API levels.
     val pending = ArrayDeque<NsdServiceInfo>()
     var resolving = false
 
@@ -39,6 +37,8 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
                     if (resolving) return
                     val next = pending.removeFirstOrNull() ?: return
                     resolving = true
+                    // Its replacement, registerServiceInfoCallback, needs API 34, and the agent
+                    // runs from API 23.
                     @Suppress("DEPRECATION")
                     nsdManager.resolveService(next, listener)
                 }
@@ -72,9 +72,6 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
                 }
             }
 
-            // NsdManager requires the DNS-SD service type WITH a trailing dot ("_jetwhale._tcp.");
-            // without it discovery finds nothing. (Per-platform format differs: jmDNS/JVM wants the
-            // fully-qualified "_jetwhale._tcp.local.", Apple's NSNetServiceBrowser wants "_jetwhale._tcp.".)
             nsdManager.discoverServices(NSD_SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
 
             continuation.invokeOnCancellation {
@@ -102,7 +99,7 @@ private fun NsdServiceInfo.toDiscoveredService(): DiscoveredService? {
 }
 
 /** Obtains the current application [Context] reflectively so no Context has to be passed in. */
-private fun currentApplicationContext(): Context? = try {
+private fun currentApplicationContextOrNull(): Context? = try {
     Class.forName("android.app.ActivityThread")
         .getMethod("currentApplication")
         .invoke(null) as? Context
@@ -124,6 +121,7 @@ private fun currentApplicationContext(): Context? = try {
 private fun NsdServiceInfo.resolvedHostAddress(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
     hostAddresses.firstOrNull()?.hostAddress
 } else {
+    // Below API 34, the only branch that reaches here, `host` is the only address there is.
     @Suppress("DEPRECATION")
     host?.hostAddress
 }

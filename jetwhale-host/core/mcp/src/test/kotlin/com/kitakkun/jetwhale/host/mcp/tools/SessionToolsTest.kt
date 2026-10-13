@@ -56,8 +56,7 @@ class SessionToolsTest {
 
         every { pluginFactoryRepository.loadedPlugins } returns emptyMap()
 
-        val expected = """[$EMPTY_HOST_SESSION,{"sessionId":"session-id-123","sessionName":"TestDevice",""" +
-            """"isActive":true,"installedPlugins":["com.example.plugin"]}]"""
+        val expected = """[$EMPTY_HOST_SESSION,{"sessionId":"session-id-123","sessionName":"TestDevice","isActive":true,"installedPlugins":["com.example.plugin"]}]"""
         assertEquals(expected, listSessions(repo, pluginFactoryRepository))
     }
 
@@ -76,8 +75,7 @@ class SessionToolsTest {
 
         every { pluginFactoryRepository.loadedPlugins } returns emptyMap()
 
-        val expected = """[$EMPTY_HOST_SESSION,{"sessionId":"session-id-456","sessionName":"InactiveDevice",""" +
-            """"isActive":false,"installedPlugins":[]}]"""
+        val expected = """[$EMPTY_HOST_SESSION,{"sessionId":"session-id-456","sessionName":"InactiveDevice","isActive":false,"installedPlugins":[]}]"""
         assertEquals(expected, listSessions(repo, pluginFactoryRepository))
     }
 
@@ -118,10 +116,7 @@ class SessionToolsTest {
         every { pluginInstanceService.getPluginInstanceForSession("com.example.device", HostSession.ID) } returns null
 
         val result = listPlugins(HostSession.ID, repo, pluginFactoryRepository, pluginInstanceService)
-        assertEquals(
-            """[{"pluginId":"com.example.device","pluginName":"com.example.device","version":"1.0.0","mcpCapable":false}]""",
-            result,
-        )
+        assertEquals("""[{"pluginId":"com.example.device","pluginName":"com.example.device","version":"1.0.0","mcpCapable":false}]""", result)
     }
 }
 

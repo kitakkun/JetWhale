@@ -62,11 +62,9 @@ internal fun <K> applyNavOperations(
         }
     }
 
-    // NavDisplay renders the last entry, so an empty stack crashes the app being debugged. Refusing
-    // is the friendlier failure: the caller gets a message, the app keeps running.
     require(working.isNotEmpty()) { "the operations would leave the back stack empty, which Navigation 3 cannot render" }
 
-    writeBack(stack, working)
+    replaceChangedTail(stack, working)
 }
 
 private fun <K> decode(element: JsonElement, decodeKey: (JsonElement) -> K): K = try {
@@ -78,7 +76,7 @@ private fun <K> decode(element: JsonElement, decodeKey: (JsonElement) -> K): K =
 private fun rangeOf(stack: List<*>): String = if (stack.isEmpty()) "the stack is empty" else "0..${stack.lastIndex}"
 
 /** Replaces the tail that actually changed, keeping the untouched entries below it identical. */
-private fun <K> writeBack(stack: MutableList<K>, working: List<K>) {
+private fun <K> replaceChangedTail(stack: MutableList<K>, working: List<K>) {
     var unchanged = 0
     while (unchanged < stack.size && unchanged < working.size && stack[unchanged] == working[unchanged]) {
         unchanged++

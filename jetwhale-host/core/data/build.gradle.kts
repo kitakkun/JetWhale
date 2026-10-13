@@ -18,6 +18,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleProtocol.core)
+    implementation(projects.jetwhaleHost.releaseMetadata)
 
     implementation(compose.desktop.currentOs)
 
@@ -26,24 +27,19 @@ dependencies {
     implementation(libs.kotlinxDatetime)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.androidxDatastorePreferences)
-    // Typed DataStore over okio for per-plugin JSON persistence (PluginDataStoreRepository).
     implementation(libs.androidxDatastoreCoreOkio)
 
     implementation(libs.kotlinxSerializationJson)
-    // Stores the HMAC key protecting the plugin trust registry in the OS credential store
-    // (macOS Keychain / Windows Credential Manager / Linux Secret Service).
     implementation(libs.javaKeyring)
-    // Used in dev hot-reload to obtain a JVM Instrumentation handle (self-attach) for in-place class
-    // redefinition. Dormant in production: only touched when the dev plugins directory is configured.
     implementation(libs.byteBuddyAgent)
     implementation(libs.bundles.ktorServer)
     implementation(libs.ktorClientCore)
     implementation(libs.ktorClientCio)
-    implementation(libs.conveyorControl)
     implementation(libs.logbackClassic)
     implementation(libs.bouncyCastleBcprov)
     implementation(libs.bouncyCastleBcpkix)
     implementation(libs.jmdns)
-    implementation(libs.kotlinTest)
+    compileOnly(libs.androidxAnnotation)
+    testImplementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
 }
