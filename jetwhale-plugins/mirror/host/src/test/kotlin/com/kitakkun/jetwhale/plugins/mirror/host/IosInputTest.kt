@@ -249,6 +249,16 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
+    @Test
+    fun `an iPhone whose runner cannot start says why it has no screen size`() = runBlocking {
+        helpersFailWith = IphoneCaptureExit.PermissionDenied
+        runners.startFailure = "Developer Mode is off on the iPhone"
+
+        val failure = assertFailsWith<DeviceControlException> { iphone(ffmpegPath = null).screenSize() }
+
+        assertEquals("Developer Mode is off on the iPhone", failure.message)
+    }
+
     private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
 
     @Test

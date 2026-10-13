@@ -1,46 +1,19 @@
-// Split into smaller files in a follow-up, tracked in #450.
-@file:Suppress("KOTRAIL_FILE_TOO_FLAT", "KOTRAIL_TOO_MANY_TOP_LEVEL_DECLARATIONS")
-
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
-import androidx.annotation.VisibleForTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 import kotlinx.cinterop.BetaInteropApi
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.useContents
-import platform.CoreGraphics.CGRect
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSStringFromClass
 import platform.Foundation.valueForKey
-import platform.UIKit.UIAccessibilityTraitAdjustable
-import platform.UIKit.UIAccessibilityTraitAllowsDirectInteraction
-import platform.UIKit.UIAccessibilityTraitButton
-import platform.UIKit.UIAccessibilityTraitCausesPageTurn
-import platform.UIKit.UIAccessibilityTraitHeader
-import platform.UIKit.UIAccessibilityTraitImage
-import platform.UIKit.UIAccessibilityTraitKeyboardKey
-import platform.UIKit.UIAccessibilityTraitLink
-import platform.UIKit.UIAccessibilityTraitNotEnabled
-import platform.UIKit.UIAccessibilityTraitPlaysSound
-import platform.UIKit.UIAccessibilityTraitSearchField
 import platform.UIKit.UIAccessibilityTraitSelected
-import platform.UIKit.UIAccessibilityTraitStartsMediaSession
-import platform.UIKit.UIAccessibilityTraitStaticText
-import platform.UIKit.UIAccessibilityTraitSummaryElement
-import platform.UIKit.UIAccessibilityTraitSupportsZoom
-import platform.UIKit.UIAccessibilityTraitTabBar
 import platform.UIKit.UIAccessibilityTraitToggleButton
-import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIControl
-import platform.UIKit.UIControlEventTouchUpInside
-import platform.UIKit.UIFocusItemScrollableContainerProtocol
-import platform.UIKit.UIScrollView
 import platform.UIKit.UISwitch
 import platform.UIKit.UITextField
 import platform.UIKit.UITextView
@@ -56,7 +29,6 @@ import platform.UIKit.accessibilityValue
 import platform.UIKit.accessibilityViewIsModal
 import platform.UIKit.isAccessibilityElement
 import platform.darwin.NSObject
-import platform.objc.objc_getProtocol
 
 /**
  * Converts one iOS window into the transport model by walking the `NSObject` accessibility protocol.
@@ -186,23 +158,6 @@ private fun NSObject.accessibilityIdentifierOrNull(): String? {
     return valueForKey("accessibilityIdentifier") as? String
 }
 
-internal fun NSObject.isEnabled(): Boolean = !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
-
-/**
- * A button, link or toggle by trait, or a `UIControl` with a target for its tap: a control that
- * declares none of those traits (a custom one, a `UITextField`) only has a click to offer when
- * something is registered for `touchUpInside`, which is where the click fallback sends it.
- */
-internal fun NSObject.isClickable(): Boolean {
-    val traits = accessibilityTraits
-    return traits has UIAccessibilityTraitButton || traits has UIAccessibilityTraitLink || traits has UIAccessibilityTraitToggleButton ||
-        (this is UIControl && listensForTouchUp())
-}
-
-internal fun UIControl.listensForTouchUp(): Boolean = allTargets.any { target ->
-    !actionsForTarget(target, forControlEvent = UIControlEventTouchUpInside).isNullOrEmpty()
-}
-
 /**
  * The text-field views, plus the trait the system puts on a text field, which SwiftUI and Compose
  * both set on theirs. That trait has no public constant; it is the one bit both toolkits' fields
@@ -211,46 +166,6 @@ internal fun UIControl.listensForTouchUp(): Boolean = allTargets.any { target ->
 private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTraits): Boolean = this is UITextField || (this is UITextView && editable) || traits has TEXT_ENTRY_TRAIT
 
 private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
-
-/**
- * Something with somewhere to scroll to: a `UIScrollView` whose content plus insets exceed its
- * viewport, or a focus-scrolling container (see [scrollableContainer]) whose content exceeds its
- * visible size — the same ranges `ScrollBy` moves within.
- */
-@OptIn(ExperimentalForeignApi::class)
-internal fun NSObject.isScrollable(): Boolean {
-    if (this is UIScrollView) {
-        val (contentWidth, contentHeight) = contentSize.useContents { width to height }
-        val (paddedWidth, paddedHeight) = adjustedContentInset.useContents {
-            contentWidth + left + right to contentHeight + top + bottom
-        }
-        val (width, height) = bounds.useContents { size.width to size.height }
-        return paddedWidth > width || paddedHeight > height
-    }
-    val container = scrollableContainer() ?: return false
-    val (contentWidth, contentHeight) = container.contentSize.useContents { width to height }
-    val (width, height) = container.visibleSize.useContents { width to height }
-    return contentWidth > width || contentHeight > height
-}
-
-/**
- * The object as the `UIFocusItemScrollableContainer` it declares itself to be, or `null`.
- *
- * The protocol is UIKit's own description of a scrolling region for focus movement — offset,
- * content size, visible size, and a setter for the offset — and Compose Multiplatform's
- * accessibility element answers `conformsToProtocol` for it per instance, exactly when its node
- * scrolls. So this is the one side-effect-free way to tell a Compose scrollable from any other
- * element, and the way to move it by a distance rather than a page.
- */
-@OptIn(ExperimentalForeignApi::class)
-internal fun NSObject.scrollableContainer(): UIFocusItemScrollableContainerProtocol? {
-    val protocol = SCROLLABLE_CONTAINER_PROTOCOL ?: return null
-    if (!conformsToProtocol(protocol)) return null
-    return this as? UIFocusItemScrollableContainerProtocol
-}
-
-@OptIn(ExperimentalForeignApi::class)
-private val SCROLLABLE_CONTAINER_PROTOCOL = objc_getProtocol("UIFocusItemScrollableContainer")
 
 /**
  * A field's `accessibilityValue` is its placeholder while it is empty, so the view's own `text` is
@@ -275,65 +190,6 @@ private fun NSObject.toggleableState(traits: UIAccessibilityTraits): String? {
         "1" -> "On"
         "0" -> "Off"
         else -> if (traits has UIAccessibilityTraitSelected) "On" else "Off"
-    }
-}
-
-private infix fun UIAccessibilityTraits.has(trait: UIAccessibilityTraits): Boolean = this and trait != 0uL
-
-/** The public trait names for the bits set, with any bit outside the public set kept as its number. */
-@VisibleForTesting
-internal fun UIAccessibilityTraits.names(): List<String> {
-    if (this == 0uL) return emptyList()
-    val named = NAMED_TRAITS.filter { (trait, _) -> this has trait }.map { (_, name) -> name }
-    val namedBits = NAMED_TRAITS.fold(0uL) { acc, (trait, _) -> acc or trait }
-    val unnamed = (0 until ULong.SIZE_BITS)
-        .map { 1uL shl it }
-        .filter { bit -> this has bit && bit and namedBits == 0uL }
-        .map { bit -> "bit${bit.countTrailingZeroBits()}" }
-    return named + unnamed
-}
-
-private val NAMED_TRAITS: List<Pair<UIAccessibilityTraits, String>> = listOf(
-    UIAccessibilityTraitButton to "Button",
-    UIAccessibilityTraitLink to "Link",
-    UIAccessibilityTraitHeader to "Header",
-    UIAccessibilityTraitSearchField to "SearchField",
-    UIAccessibilityTraitImage to "Image",
-    UIAccessibilityTraitSelected to "Selected",
-    UIAccessibilityTraitPlaysSound to "PlaysSound",
-    UIAccessibilityTraitKeyboardKey to "KeyboardKey",
-    UIAccessibilityTraitStaticText to "StaticText",
-    UIAccessibilityTraitSummaryElement to "SummaryElement",
-    UIAccessibilityTraitNotEnabled to "NotEnabled",
-    UIAccessibilityTraitUpdatesFrequently to "UpdatesFrequently",
-    UIAccessibilityTraitStartsMediaSession to "StartsMediaSession",
-    UIAccessibilityTraitAdjustable to "Adjustable",
-    UIAccessibilityTraitAllowsDirectInteraction to "AllowsDirectInteraction",
-    UIAccessibilityTraitCausesPageTurn to "CausesPageTurn",
-    UIAccessibilityTraitTabBar to "TabBar",
-    UIAccessibilityTraitToggleButton to "ToggleButton",
-    UIAccessibilityTraitSupportsZoom to "SupportsZoom",
-)
-
-@OptIn(ExperimentalForeignApi::class)
-internal fun CValue<CGRect>.toNodeBounds(): NodeBounds = useContents {
-    NodeBounds(
-        left = origin.x.toFloat(),
-        top = origin.y.toFloat(),
-        right = (origin.x + size.width).toFloat(),
-        bottom = (origin.y + size.height).toFloat(),
-    )
-}
-
-internal fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
-    val left = maxOf(left, other.left)
-    val top = maxOf(top, other.top)
-    val right = minOf(right, other.right)
-    val bottom = minOf(bottom, other.bottom)
-    return if (right <= left || bottom <= top) {
-        NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
-    } else {
-        NodeBounds(left = left, top = top, right = right, bottom = bottom)
     }
 }
 
