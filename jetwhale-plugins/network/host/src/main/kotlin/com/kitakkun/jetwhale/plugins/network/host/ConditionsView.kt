@@ -122,6 +122,17 @@ private fun ConditionRuleRow(
     }
 }
 
+private fun NetworkCondition.summary(): String = if (offline) {
+    "offline"
+} else {
+    listOfNotNull(
+        "+${latencyMs}ms".takeIf { latencyMs > 0 || jitterMs > 0 }?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
+        downloadBytesPerSecond?.let { "↓ ${formatRate(it)}" },
+        uploadBytesPerSecond?.let { "↑ ${formatRate(it)}" },
+        "${(failureRate * PERCENT).toInt()}% $failure".takeIf { failureRate > 0.0 },
+    ).joinToString(" • ").ifEmpty { "no change" }
+}
+
 @Composable
 private fun ConditionRuleDialog(
     initial: NetworkConditionRule,
@@ -223,17 +234,6 @@ private fun <T> ChoiceTags(options: List<T>, selected: T, label: (T) -> String, 
             )
         }
     }
-}
-
-private fun NetworkCondition.summary(): String = if (offline) {
-    "offline"
-} else {
-    listOfNotNull(
-        "+${latencyMs}ms".takeIf { latencyMs > 0 || jitterMs > 0 }?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
-        downloadBytesPerSecond?.let { "↓ ${formatRate(it)}" },
-        uploadBytesPerSecond?.let { "↑ ${formatRate(it)}" },
-        "${(failureRate * PERCENT).toInt()}% $failure".takeIf { failureRate > 0.0 },
-    ).joinToString(" • ").ifEmpty { "no change" }
 }
 
 /** What a condition did to one transaction, as the traffic view shows it. */

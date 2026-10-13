@@ -237,8 +237,3 @@ internal fun StatusBadge(tx: HttpTransaction) {
 internal fun MockChip() {
     JwTag(text = "MOCK", tone = JwTone.Accent, style = JwTagStyle.Tinted)
 }
-
-@Composable
-internal fun NetworkConditionChip() {
-    JwTag(text = "NET", tone = JwTone.Warning, style = JwTagStyle.Tinted)
-}
