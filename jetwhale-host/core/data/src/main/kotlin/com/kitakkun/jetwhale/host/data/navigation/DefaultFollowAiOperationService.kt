@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -33,6 +34,7 @@ class DefaultFollowAiOperationService(
 
     private suspend fun follow(invocation: McpToolInvocation) {
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
+        if (invocation.permission is McpToolPermission.HostGroup) return
         val pluginId = invocation.pluginId ?: return
 
         val currentView = hostNavigationService.currentView.value

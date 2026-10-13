@@ -27,6 +27,7 @@ public val JetWhaleJson: Json = Json {
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
+@Suppress("KOTRAIL_STRING_NAME_HIDES_KIND") // Renaming `value` breaks callers that pass it by name; a rename of published API gets a PR of its own.
 public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? = try {
     decodeFromString<T>(value)
 } catch (_: IllegalArgumentException) {
@@ -38,6 +39,7 @@ public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? = t
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
+@Suppress("KOTRAIL_STRING_NAME_HIDES_KIND") // Renaming `value` breaks callers that pass it by name; a rename of published API gets a PR of its own.
 public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? = try {
     decodeFromString(deserializer, value)
 } catch (_: IllegalArgumentException) {

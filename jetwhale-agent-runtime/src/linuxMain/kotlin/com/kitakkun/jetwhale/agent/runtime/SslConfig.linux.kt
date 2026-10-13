@@ -23,7 +23,7 @@ internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
+internal actual fun HttpClientEngineConfig.pinTrustedCertificates(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
     check(this is CurlClientEngineConfig) { "Expected CurlClientEngineConfig but got ${this::class.simpleName}" }

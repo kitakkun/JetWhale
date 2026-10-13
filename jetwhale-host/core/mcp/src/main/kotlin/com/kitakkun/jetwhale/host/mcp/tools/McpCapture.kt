@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeScene
  *
  * Must be called on the UI thread: no interactive frame can observe the raised flag there.
  */
+@Suppress("KOTRAIL_MUTATED_OUTSIDE_OWNER") // The scene holds the flag for the MCP tools to raise, and this is the one place that does.
 internal inline fun <T> PluginComposeScene.whileCapturingForMcp(block: () -> T): T {
     isMcpCapture.value = true
     try {

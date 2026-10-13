@@ -23,8 +23,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import java.io.File
+import java.lang.management.ManagementFactory
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -258,6 +262,36 @@ class DefaultPluginInstallJobServiceTest {
 
         assertEquals(PluginInstallStatus.Succeeded, statusOf(job.id))
         assertTrue(installedJar().isFile)
+    }
+
+    @Test
+    fun `shutdown waits for a cancelled install that is still cleaning up`() = runBlocking {
+        val job = service.enqueue(request)
+        awaitStatus(job.id) { it == PluginInstallStatus.Running(PluginInstallProgress.DownloadingPlugin) }
+        // A cancelled install cleans up under the service's monitor, so holding it keeps that
+        // cleanup under way.
+        val serviceHeld = CountDownLatch(1)
+        val releaseService = CountDownLatch(1)
+        thread(isDaemon = true) {
+            synchronized(service) {
+                serviceHeld.countDown()
+                releaseService.await()
+            }
+        }
+        serviceHeld.await()
+
+        val shutdown = try {
+            service.cancel(job.id)
+            withTimeout(TIMEOUT_MILLIS) {
+                while (ManagementFactory.getThreadMXBean().dumpAllThreads(false, false).none { it.threadState == Thread.State.BLOCKED && it.lockInfo?.identityHashCode == System.identityHashCode(service) }) yield()
+            }
+            launch(start = CoroutineStart.UNDISPATCHED) { service.cancelAll() }.also { assertFalse(it.isCompleted) }
+        } finally {
+            releaseService.countDown()
+        }
+        withTimeout(TIMEOUT_MILLIS) { shutdown.join() }
+
+        assertEquals(emptyList(), service.jobsFlow.value.filter { it.id == job.id })
     }
 
     private fun openAllGates() {

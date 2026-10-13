@@ -107,7 +107,7 @@ private fun MavenCoordinatesForm(
         ) {
             JwTextField(
                 value = form.pastedNotation,
-                onValueChange = form::onPastedNotationChange,
+                onValueChange = form::updatePastedNotationAndCoordinates,
                 placeholder = "com.example:my-plugin:1.0.0",
                 textStyle = JwTheme.textStyles.code,
             )
@@ -117,29 +117,29 @@ private fun MavenCoordinatesForm(
             label = stringResource(Res.string.maven_install_group_id_label),
             value = form.groupId,
             placeholder = "com.example",
-            onValueChange = form::onGroupIdChange,
+            onValueChange = form::updateGroupId,
         )
 
         CoordinateField(
             label = stringResource(Res.string.maven_install_artifact_id_label),
             value = form.artifactId,
             placeholder = "my-plugin",
-            onValueChange = form::onArtifactIdChange,
+            onValueChange = form::updateArtifactId,
         )
 
         CoordinateField(
             label = stringResource(Res.string.maven_install_version_label),
             value = form.version,
             placeholder = "1.0.0",
-            onValueChange = form::onVersionChange,
+            onValueChange = form::updateVersion,
         )
 
         RepositoryField(
             selected = form.selectedWellKnownRepository,
             expanded = form.repositoryMenuExpanded,
             onExpandedChange = { form.repositoryMenuExpanded = it },
-            onSelectRepository = form::onWellKnownRepositorySelected,
-            onSelectCustom = form::onCustomRepositorySelected,
+            onSelectRepository = form::selectWellKnownRepository,
+            onSelectCustom = form::selectCustomRepository,
         )
 
         if (form.selectedWellKnownRepository == null) {
@@ -147,7 +147,7 @@ private fun MavenCoordinatesForm(
                 label = stringResource(Res.string.maven_install_repository_url_label),
                 value = form.repositoryUrl,
                 placeholder = MavenCoordinates.MAVEN_CENTRAL_URL,
-                onValueChange = form::onRepositoryUrlChange,
+                onValueChange = form::updateRepositoryUrl,
             )
         }
 
@@ -256,7 +256,7 @@ private class MavenCoordinatesFormState {
     val selectedWellKnownRepository: WellKnownMavenRepository?
         get() = WellKnownMavenRepositories.matching(repositoryUrl).takeUnless { useCustomRepository }
 
-    fun onPastedNotationChange(input: String) {
+    fun updatePastedNotationAndCoordinates(input: String) {
         pastedNotation = input
         MavenCoordinates.parseLenient(input)?.let { parsed ->
             groupId = parsed.groupId
@@ -268,34 +268,34 @@ private class MavenCoordinatesFormState {
         errorMessage = null
     }
 
-    fun onGroupIdChange(input: String) {
+    fun updateGroupId(input: String) {
         groupId = input
         errorMessage = null
     }
 
-    fun onArtifactIdChange(input: String) {
+    fun updateArtifactId(input: String) {
         artifactId = input
         errorMessage = null
     }
 
-    fun onVersionChange(input: String) {
+    fun updateVersion(input: String) {
         version = input
         errorMessage = null
     }
 
-    fun onRepositoryUrlChange(input: String) {
+    fun updateRepositoryUrl(input: String) {
         repositoryUrl = input
         errorMessage = null
     }
 
-    fun onWellKnownRepositorySelected(repository: WellKnownMavenRepository) {
+    fun selectWellKnownRepository(repository: WellKnownMavenRepository) {
         repositoryUrl = repository.url
         useCustomRepository = false
         repositoryMenuExpanded = false
         errorMessage = null
     }
 
-    fun onCustomRepositorySelected() {
+    fun selectCustomRepository() {
         useCustomRepository = true
         repositoryMenuExpanded = false
         errorMessage = null

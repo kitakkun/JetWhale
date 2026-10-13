@@ -60,49 +60,6 @@ class DefaultAppAppearanceRepository(
         }
     }
 
-    override suspend fun saveCustomTheme(id: JetWhaleColorSchemeId, theme: JetWhaleColorScheme.Static.Custom) {
-        dataStore.edit { prefs ->
-            val customThemeDefinition = CustomThemeDefinition(
-                id = id,
-                colors = theme.colors.mapKeys { entry -> entry.key.name },
-            )
-
-            val currentThemeDefinitions = prefs[customThemesPreferencesKey]?.let { serialized ->
-                json.decodeFromString<CustomThemes>(serialized)
-            } ?: CustomThemes(emptyList())
-
-            prefs[customThemesPreferencesKey] = json.encodeToString(
-                currentThemeDefinitions.copy(
-                    colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition,
-                ),
-            )
-        }
-    }
-
-    override suspend fun saveDynamicTheme(
-        id: JetWhaleColorSchemeId,
-        lightThemeId: JetWhaleColorSchemeId,
-        darkThemeId: JetWhaleColorSchemeId,
-    ) {
-        dataStore.edit { prefs ->
-            val dynamicThemeDefinition = DynamicThemeDefinition(
-                id = id,
-                lightThemeKey = lightThemeId,
-                darkThemeKey = darkThemeId,
-            )
-
-            val currentDynamicThemes = prefs[dynamicThemesPreferencesKey]?.let { serialized ->
-                json.decodeFromString<DynamicThemes>(serialized)
-            } ?: DynamicThemes(emptyList())
-
-            prefs[dynamicThemesPreferencesKey] = json.encodeToString(
-                currentDynamicThemes.copy(
-                    colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition,
-                ),
-            )
-        }
-    }
-
     override suspend fun updateAppLanguage(language: AppLanguage) {
         dataStore.edit { prefs ->
             prefs[appLanguagePreferencesKey] = language.code
