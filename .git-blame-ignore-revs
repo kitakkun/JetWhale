@@ -1,2 +1,4 @@
 # style: wrap Kotlin at 140 columns
-bcf367506a5630177558f995367dd1fb0b73d875
+f6cc735cca321c87be00f2eab55d1d9afa413290
+# style: wrap by hand the lines ktlint cannot wrap
+125d5bc0dc9401d2506e707edc465199b8a778f6
