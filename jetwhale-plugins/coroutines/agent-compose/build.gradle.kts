@@ -12,8 +12,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.coroutines"
 
 kotlin {
-    abiValidation {
-    }
+    abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.coroutines.agent.compose"
 }

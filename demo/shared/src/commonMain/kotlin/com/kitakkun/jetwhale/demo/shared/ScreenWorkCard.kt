@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Work a Composable starts, as opposed to the scenarios above, which run in a registered scope:
+ * Work a Composable starts, as opposed to the scenario cards, which run in a registered scope:
  * a panel that polls while it is shown and saves a draft from a button. Compose cancels both when
  * the panel leaves the screen, which the inspector's "Compose" root makes visible.
  */
