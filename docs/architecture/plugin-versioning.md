@@ -174,8 +174,8 @@ compiled classes produce, or records another revision than the build script. Bot
 Given `-PjetwhaleWireSchemaBaselineDir=<dir>`, a directory that holds an earlier dump of each module
 laid out as in the repository, `checkWireSchema` also fails when the committed dump could not have
 followed the earlier one, under the rule `dumpWireSchema` applies (below). That catches a dump edited
-by hand (`CheckWireSchemaTask.kt:62-65`). A relative `<dir>` is resolved against the root
-project, and a module with no earlier dump is checked against nothing.
+by hand (`CheckWireSchemaTask.kt:66-76`). A relative `<dir>` is resolved against the root
+project, and a module with no earlier dump has its committed dump held to revision 1, as its first.
 
 **How the schema is read.** Reading serializers initializes the module's classes, so
 `extractWireSchema` reads them in a process-isolated Gradle worker. That worker's class loader
@@ -288,7 +288,8 @@ and fields taken in sorted order (`WireSchemaClassifier.kt:62-63`). If a change 
 `protocolRevision` still equals the dump's `revision`, the task fails, lists each breaking change with
 its path, and names the revision to set. A raised revision lets any change through; a lowered one
 fails. The first dump must be at revision 1, which the rule below relies on: `dumpWireSchema` refuses
-to write one at another revision (`ProtocolRevisionRule.kt:15-23`).
+to write one at another revision (`ProtocolRevisionRule.kt:15-23`), and the baseline comparison
+refuses one.
 
 ### What counts as breaking
 
