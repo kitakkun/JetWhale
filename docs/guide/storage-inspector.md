@@ -115,6 +115,13 @@ The preview shows a file's first 256 KB as:
 **Save** downloads the whole file, however large. **Delete** removes a file, or a directory with
 everything in it; a root itself cannot be deleted.
 
+**Download as ZIP…** on a directory, roots included, saves the directory and everything below it in
+one ZIP, under a folder of the directory's name — `databases/` with its `-wal` and `-shm` files,
+say, or a whole root for a bug report. Symbolic links are left out rather than followed. A
+directory over 100 MB or 10,000 files asks first, since every byte is read from the app over the
+debug connection. A file the app cannot read stops the download and names the file, and the
+partial ZIP is removed.
+
 **Upload…** on a directory sends a file from your machine into it, and **Replace…** on a file
 overwrites it with one of yours, asking first when a file is already there. The file is sent in 1 MB
 chunks and swapped in only once all of it has arrived, so the app never sees it half-written.

@@ -66,6 +66,7 @@ private fun SkikoComposeUiTest.setStorageInspectorContent(darkTheme: Boolean, ta
                 storeContent = KeyValueStoreContent(entries = PREFERENCES_ENTRIES, error = null),
                 status = null,
                 pendingUpload = null,
+                pendingZipDownload = null,
                 actions = NoStorageInspectorActions,
                 onSelectTab = {},
             )
@@ -93,6 +94,12 @@ private object NoStorageInspectorActions : StorageInspectorActions {
     override fun cancelPendingUpload() = Unit
 
     override fun measureDirectory(location: FileLocation) = Unit
+
+    override fun requestZipDownload(location: FileLocation, target: File) = Unit
+
+    override fun confirmZipDownload() = Unit
+
+    override fun cancelPendingZipDownload() = Unit
 
     override fun computeSha256(location: FileLocation) = Unit
 
