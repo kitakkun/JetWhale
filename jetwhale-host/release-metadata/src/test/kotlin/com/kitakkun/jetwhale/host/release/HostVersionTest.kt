@@ -9,8 +9,18 @@ import kotlin.test.assertTrue
 class HostVersionTest {
     @Test
     fun `orders numbers then stage then stage number`() {
-        val chain = listOf("1.0.0-alpha1", "1.0.0-alpha9", "1.0.0-alpha10", "1.0.0-beta1", "1.0.0-rc1", "1.0.0-rc199", "1.0.0", "1.0.1-alpha1", "1.1.0", "2.0.0-alpha1")
-            .map { assertNotNull(HostVersion.parse(it), it) }
+        val chain = listOf(
+            "1.0.0-alpha1",
+            "1.0.0-alpha9",
+            "1.0.0-alpha10",
+            "1.0.0-beta1",
+            "1.0.0-rc1",
+            "1.0.0-rc199",
+            "1.0.0",
+            "1.0.1-alpha1",
+            "1.1.0",
+            "2.0.0-alpha1",
+        ).map { assertNotNull(HostVersion.parse(it), it) }
 
         chain.zipWithNext().forEach { (lower, higher) -> assertTrue(lower < higher, "$lower < $higher") }
         assertEquals(chain, chain.shuffled().sorted())

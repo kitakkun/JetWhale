@@ -83,7 +83,10 @@ class DefaultHostUpdateServiceTest {
         val service = service()
         service.check()
 
-        assertEquals(HostUpdateStatus.Available(hostVersion("1.0.0-alpha15"), jarBytes("1.0.0-alpha15").size.toLong()), service.stateFlow.value.status)
+        assertEquals(
+            HostUpdateStatus.Available(hostVersion("1.0.0-alpha15"), jarBytes("1.0.0-alpha15").size.toLong()),
+            service.stateFlow.value.status,
+        )
     }
 
     @Test
@@ -110,14 +113,20 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `offers a set-aside version as a retry, never as a download`() = runBlocking {
         install("1.0.0-alpha14")
-        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(
+            LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))),
+        )
         serveReleases(release("1.0.0-alpha14"))
 
         val service = service()
         service.check()
 
         assertEquals(
-            HostUpdateState(HostUpdateStatus.UpToDate, SetAsideHostVersion(hostVersion("1.0.0-alpha14"), hostDirectory.hostLogFile(hostVersion("1.0.0-alpha14"))), restartFailed = false),
+            HostUpdateState(
+                HostUpdateStatus.UpToDate,
+                SetAsideHostVersion(hostVersion("1.0.0-alpha14"), hostDirectory.hostLogFile(hostVersion("1.0.0-alpha14"))),
+                restartFailed = false,
+            ),
             service.stateFlow.value,
         )
     }
@@ -327,7 +336,10 @@ class DefaultHostUpdateServiceTest {
         serveReleases(release("1.0.0-alpha14"))
         Files.createDirectories(hostDirectoryPath)
         val host = hostDirectoryPath.toFile()
-        Assume.assumeTrue("the file system cannot take write permission away", host.setWritable(false) && !Files.isWritable(hostDirectoryPath))
+        Assume.assumeTrue(
+            "the file system cannot take write permission away",
+            host.setWritable(false) && !Files.isWritable(hostDirectoryPath),
+        )
         try {
             val outcome = checkAndDownload(service())
 
@@ -343,7 +355,10 @@ class DefaultHostUpdateServiceTest {
         val leftover = hostDirectory.stagingDirectory.resolve("1.0.0-alpha13")
         Files.createDirectories(leftover)
         Files.writeString(leftover.resolve("part.jar"), "part")
-        Assume.assumeTrue("the file system cannot take write permission away", leftover.toFile().setWritable(false) && !Files.isWritable(leftover))
+        Assume.assumeTrue(
+            "the file system cannot take write permission away",
+            leftover.toFile().setWritable(false) && !Files.isWritable(leftover),
+        )
         try {
             val outcome = checkAndDownload(service())
 
@@ -376,7 +391,12 @@ class DefaultHostUpdateServiceTest {
     fun `deletes every other downloaded version before a download`() = runBlocking {
         install("1.0.0-alpha13")
         install("1.0.0-alpha14")
-        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = setOf(hostVersion("1.0.0-alpha13")), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(
+            LauncherState.EMPTY.copy(
+                completedStartVersions = setOf(hostVersion("1.0.0-alpha13")),
+                setAsideVersions = setOf(hostVersion("1.0.0-alpha14")),
+            ),
+        )
         serveReleases(release("1.0.0-alpha15"))
 
         val outcome = checkAndDownload(service())
@@ -388,7 +408,9 @@ class DefaultHostUpdateServiceTest {
     @Test
     fun `stops offering a set-aside version once a download has deleted it, even when the download fails`() = runBlocking {
         install("1.0.0-alpha14")
-        hostDirectory.writeLauncherState(LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))))
+        hostDirectory.writeLauncherState(
+            LauncherState.EMPTY.copy(completedStartVersions = emptySet(), setAsideVersions = setOf(hostVersion("1.0.0-alpha14"))),
+        )
         serveReleases(release("1.0.0-alpha15"))
         responses[jarUrl("1.0.0-alpha15")] = { respondError(HttpStatusCode.InternalServerError) }
         val service = service()
@@ -521,8 +543,18 @@ class DefaultHostUpdateServiceTest {
 
         assertEquals(
             listOf(
-                "/usr/bin/open", "-n", "--env", "JAVA_TOOL_OPTIONS=-Djetwhale.appDataDir=/tmp/jetwhale data", "/Applications/JetWhale Debugger.app",
-                "--args", "--after", pid, "--retry", "1.0.0-alpha15", "--server-port", "5103",
+                "/usr/bin/open",
+                "-n",
+                "--env",
+                "JAVA_TOOL_OPTIONS=-Djetwhale.appDataDir=/tmp/jetwhale data",
+                "/Applications/JetWhale Debugger.app",
+                "--args",
+                "--after",
+                pid,
+                "--retry",
+                "1.0.0-alpha15",
+                "--server-port",
+                "5103",
             ),
             service(hostLaunch = launch).launcherCommand(retryVersion = hostVersion("1.0.0-alpha15")),
         )
@@ -567,7 +599,11 @@ class DefaultHostUpdateServiceTest {
             javaToolOptions = null,
         )
         val movedApp = launch.copy(launcherExecutable = hostDirectoryPath.resolve("Moved.app/Contents/MacOS/Moved").toString())
-        val launches = listOfNotNull(launch, launch.copy(launcherExecutable = null), movedApp.takeIf { System.getProperty("os.name").startsWith("Mac") })
+        val launches = listOfNotNull(
+            launch,
+            launch.copy(launcherExecutable = null),
+            movedApp.takeIf { System.getProperty("os.name").startsWith("Mac") },
+        )
 
         launches.forEach {
             val service = service(hostLaunch = it)
@@ -593,7 +629,10 @@ class DefaultHostUpdateServiceTest {
     }
 
     private fun assertStagingEmpty() {
-        assertFalse(hostDirectory.stagingDirectory.exists() && hostDirectory.stagingDirectory.listDirectoryEntries().isNotEmpty(), "staging/ still holds a download")
+        assertFalse(
+            hostDirectory.stagingDirectory.exists() && hostDirectory.stagingDirectory.listDirectoryEntries().isNotEmpty(),
+            "staging/ still holds a download",
+        )
     }
 
     private suspend fun checkAndDownload(service: DefaultHostUpdateService): HostUpdateStatus {
@@ -602,7 +641,9 @@ class DefaultHostUpdateServiceTest {
         service.download()
         return withTimeout(10.seconds) {
             service.stateFlow.first {
-                it.status !is HostUpdateStatus.Available && it.status !is HostUpdateStatus.Downloading && it.status !is HostUpdateStatus.Verifying
+                it.status !is HostUpdateStatus.Available &&
+                    it.status !is HostUpdateStatus.Downloading &&
+                    it.status !is HostUpdateStatus.Verifying
             }.status
         }
     }

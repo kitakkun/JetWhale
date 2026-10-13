@@ -76,7 +76,14 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
     LaunchedEffect(mirror.captures) { mirror.captures.restoreFolder() }
     var showGrid by rememberPersistent("showGrid", default = false)
     var showCaptures by rememberPersistent("showCaptures", default = false)
-    val thumbnails = remember { DeviceThumbnails(refreshIntervalMillis = THUMBNAIL_REFRESH_MILLIS, maxConcurrentCaptures = MAX_CONCURRENT_THUMBNAIL_CAPTURES, decodeDispatcher = Dispatchers.IO, clock = Clock.System) }
+    val thumbnails = remember {
+        DeviceThumbnails(
+            refreshIntervalMillis = THUMBNAIL_REFRESH_MILLIS,
+            maxConcurrentCaptures = MAX_CONCURRENT_THUMBNAIL_CAPTURES,
+            decodeDispatcher = Dispatchers.IO,
+            clock = Clock.System,
+        )
+    }
     DisposableEffect(thumbnails) { onDispose(thumbnails::close) }
     val devices = mirror.devices
     LaunchedEffect(devices) { thumbnails.retainOnly(devices.map(MirrorDevice::id).toSet()) }
@@ -101,7 +108,12 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
                     showCaptures = true
                 }
 
-                is NoticeAction.RetryScreenshots -> saveScreenshots(mirror.devices.filter { it.id in action.deviceIds }, mirror, thumbnails, scope)
+                is NoticeAction.RetryScreenshots -> saveScreenshots(
+                    mirror.devices.filter { it.id in action.deviceIds },
+                    mirror,
+                    thumbnails,
+                    scope,
+                )
 
                 is NoticeAction.RetryRecording -> mirror.retryRecording(action.deviceId)
 
@@ -117,7 +129,14 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
         if (showGrid) {
             DeviceGridRoot(mirror, thumbnails, notices, onShowSingle = { showGrid = false })
         } else {
-            SingleMirrorRoot(mirror, thumbnails, notices, showCaptures, onToggleCaptures = { showCaptures = !showCaptures }, onShowGrid = { showGrid = true })
+            SingleMirrorRoot(
+                mirror,
+                thumbnails,
+                notices,
+                showCaptures,
+                onToggleCaptures = { showCaptures = !showCaptures },
+                onShowGrid = { showGrid = true },
+            )
         }
     }
 }
@@ -133,10 +152,14 @@ private fun openCapture(capture: Capture, mirror: DeviceMirror, showPanel: () ->
 
         CaptureDestination.Folder -> {
             mirror.captures.reveal(capture)
-            mirror.notices.show(MirrorNotice.info("${capture.info.deviceName} is not connected, so ${capture.file.name} is shown in its folder instead"))
+            mirror.notices.show(
+                MirrorNotice.info("${capture.info.deviceName} is not connected, so ${capture.file.name} is shown in its folder instead"),
+            )
         }
 
-        CaptureDestination.Missing -> mirror.notices.show(MirrorNotice.failure("${capture.file.name} is no longer in the captures folder", retry = null))
+        CaptureDestination.Missing -> mirror.notices.show(
+            MirrorNotice.failure("${capture.file.name} is no longer in the captures folder", retry = null),
+        )
     }
 }
 
@@ -187,7 +210,12 @@ private fun SingleMirrorRoot(
  * and every device's while the grid is shown, from the grid's last look at it, which is nothing
  * until the grid has been shown.
  */
-internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, selectedIsStreaming: Boolean): DeviceLiveness {
+internal fun livenessOf(
+    deviceId: String,
+    mirror: DeviceMirror,
+    thumbnails: DeviceThumbnails,
+    selectedIsStreaming: Boolean,
+): DeviceLiveness {
     if (!selectedIsStreaming || deviceId != mirror.selectedId) {
         return when (thumbnails.thumbnailOf(deviceId).state) {
             is ThumbnailState.Live -> DeviceLiveness.Live
@@ -197,8 +225,11 @@ internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: Devi
         }
     }
     return when (mirror.state) {
-        is MirrorState.Streaming, is MirrorState.Polling -> if (mirror.screenPower?.awake == false) DeviceLiveness.ScreenOff else DeviceLiveness.Live
+        is MirrorState.Streaming, is MirrorState.Polling ->
+            if (mirror.screenPower?.awake == false) DeviceLiveness.ScreenOff else DeviceLiveness.Live
+
         is MirrorState.Failed, is MirrorState.NoFrames -> DeviceLiveness.Unavailable
+
         is MirrorState.Idle, is MirrorState.Connecting -> DeviceLiveness.Unknown
     }
 }
@@ -228,7 +259,8 @@ internal fun MirrorScreen(
         if (device == null || capabilities == null) {
             JwEmptyState(
                 title = "No device",
-                description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
+                description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. " +
+                    "It appears here within a few seconds.",
             )
         } else {
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
@@ -283,7 +315,14 @@ private fun DevicePane(
 private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, notices: MirrorNoticeActions) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
+            MirrorVideo(
+                surface = surface,
+                deviceId = pane.device.id,
+                interactive = pane.capabilities.input,
+                onTap = actions::tap,
+                onSwipe = actions::swipe,
+                modifier = Modifier.fillMaxSize(),
+            )
             val switching = surface.deviceId != pane.device.id
             when {
                 surface.showingKeptFrame || (switching && surface.hasKeptFrame(pane.device.id)) -> ReconnectingScrim()
@@ -293,7 +332,9 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
-        (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
+        (pane.state as? MirrorState.Polling)?.let {
+            JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning)
+        }
         if (pane.capabilities.input) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }
@@ -318,7 +359,10 @@ private fun StateOverlay(device: DeviceListing, state: MirrorState) {
 
 @Composable
 private fun ReconnectingScrim() {
-    Box(Modifier.fillMaxSize().background(JwTheme.colors.panelBackground.copy(alpha = RECONNECTING_SCRIM_ALPHA)), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier.fillMaxSize().background(JwTheme.colors.panelBackground.copy(alpha = RECONNECTING_SCRIM_ALPHA)),
+        contentAlignment = Alignment.Center,
+    ) {
         JwTag(text = "Reconnecting…")
     }
 }
@@ -386,6 +430,8 @@ private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
 
 private fun statsText(sourceLabel: String, stats: MirrorStats): String {
     if (stats.receivedFps == 0) return "$sourceLabel · the screen is not changing, so the device sends no frames"
-    return "$sourceLabel · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
-        "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"
+    return "$sourceLabel · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · " +
+        "longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
+        "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · " +
+        "draw ${"%.1f".format(stats.drawMillis)} ms"
 }

@@ -11,12 +11,14 @@ internal object PointerActions {
     object Click : SemanticsActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.OnClick) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.OnClick) { it() }
     }
 
     object LongClick : SemanticsActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.OnLongClick) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.OnLongClick) { it() }
     }
 }

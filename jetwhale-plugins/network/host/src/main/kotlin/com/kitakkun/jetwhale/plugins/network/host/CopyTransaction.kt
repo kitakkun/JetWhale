@@ -31,7 +31,8 @@ private val UNCAPTURED_BODY_MARKER = Regex(
 private const val MEDIA_TYPE_TOKEN = "[!#\$%&'*+.^_`|~0-9A-Za-z-]+"
 
 /** [body] as text to copy, or null when it is absent, a binary (Base64) capture or an uncaptured-body marker. */
-internal fun copyableBody(body: String?, encoding: BodyEncoding): String? = body?.takeUnless { encoding == BodyEncoding.BASE64 || it.matches(UNCAPTURED_BODY_MARKER) }
+internal fun copyableBody(body: String?, encoding: BodyEncoding): String? =
+    body?.takeUnless { encoding == BodyEncoding.BASE64 || it.matches(UNCAPTURED_BODY_MARKER) }
 
 /**
  * Rebuilds the captured request as a shell-pasteable `curl` command.
@@ -63,9 +64,13 @@ internal fun buildCurlCommand(request: CapturedHttpRequest): String {
     }
     val command = lines.joinToString(" \\\n  ")
     val note = when {
-        binary -> "# NOTE: request body was captured as binary (${request.headers.mediaType() ?: "unknown media type"}); the command omits it\n"
+        binary ->
+            "# NOTE: request body was captured as binary (${request.headers.mediaType() ?: "unknown media type"}); the command omits it\n"
+
         body == null && request.body != null -> "# NOTE: request body was not captured (${request.body}); the command omits it\n"
+
         request.bodyTruncated -> "# NOTE: request body was truncated at capture time\n"
+
         else -> ""
     }
     return note + command

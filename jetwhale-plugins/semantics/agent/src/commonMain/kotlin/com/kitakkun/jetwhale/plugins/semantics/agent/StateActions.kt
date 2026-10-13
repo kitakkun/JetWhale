@@ -11,24 +11,28 @@ internal object StateActions {
     object RequestFocus : SemanticsActionHandler {
         override val runsOnDisabledNode = true
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.RequestFocus) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.RequestFocus) { it() }
     }
 
     object Dismiss : SemanticsActionHandler {
         override val runsOnDisabledNode = true
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.Dismiss) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.Dismiss) { it() }
     }
 
     object Expand : SemanticsActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.Expand) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.Expand) { it() }
     }
 
     object Collapse : SemanticsActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.Collapse) { it() }
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult =
+            node.config.invokeAction(SemanticsActions.Collapse) { it() }
     }
 }

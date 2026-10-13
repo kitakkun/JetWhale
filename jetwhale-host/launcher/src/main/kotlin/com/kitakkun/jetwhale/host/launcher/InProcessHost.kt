@@ -22,7 +22,9 @@ import java.nio.file.Files
  * @param writesOutputToLog Whether the host's standard output and error go to its version's log
  * file; a `--headless` host keeps the launcher's.
  */
-@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER") // A null launcherExecutable reaches the host as an unset property: it cannot restart through the launcher.
+// A null launcherExecutable reaches the host as an unset property: it cannot restart through the
+// launcher.
+@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER")
 class InProcessHost(
     private val hostDirectory: HostDirectory,
     private val platformKey: String,
@@ -36,7 +38,9 @@ class InProcessHost(
      * @param setAsideVersion A version this launch set aside, which the host tells the user about.
      */
     fun run(chosenHostJar: ChosenHostJar, setAsideVersion: HostVersion?, arguments: List<String>) {
-        chosenHostJar.metadata.jvmArgsFor(platformKey).mapNotNull(::systemPropertyOf).forEach { (key, value) -> System.setProperty(key, value) }
+        chosenHostJar.metadata.jvmArgsFor(platformKey)
+            .mapNotNull(::systemPropertyOf)
+            .forEach { (key, value) -> System.setProperty(key, value) }
         System.setProperty(LauncherContract.CONTRACT_PROPERTY, LauncherContract.VERSION.toString())
         launcherExecutable?.let { System.setProperty(LauncherContract.EXECUTABLE_PROPERTY, it) }
         System.setProperty(LauncherContract.HOST_DIRECTORY_PROPERTY, hostDirectory.root.toString())
@@ -56,7 +60,11 @@ class InProcessHost(
             System.setErr(output)
         }
 
-        val classLoader = URLClassLoader("jetwhale-host-${chosenHostJar.version.name}", arrayOf(chosenHostJar.path.toUri().toURL()), ClassLoader.getPlatformClassLoader())
+        val classLoader = URLClassLoader(
+            "jetwhale-host-${chosenHostJar.version.name}",
+            arrayOf(chosenHostJar.path.toUri().toURL()),
+            ClassLoader.getPlatformClassLoader(),
+        )
         Thread.currentThread().contextClassLoader = classLoader
         val main = classLoader.loadClass(chosenHostJar.metadata.mainClass).getMethod("main", Array<String>::class.java)
         try {

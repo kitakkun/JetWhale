@@ -162,6 +162,7 @@ private val CALLS = persistentListOf(
         succeeded = true,
         finishedAtEpochMillis = FIRST_CALL_AT + 4_000,
         arguments = persistentListOf(McpCallArgument(name = "limit", value = "20")),
-        response = """{"transactions":[{"txId":"tx-2","method":"GET","url":"https://example.com/api/items?page=1&size=20","statusCode":200}]}""",
+        response = """{"transactions":[{"txId":"tx-2","method":"GET",""" +
+            """"url":"https://example.com/api/items?page=1&size=20","statusCode":200}]}""",
     ),
 )

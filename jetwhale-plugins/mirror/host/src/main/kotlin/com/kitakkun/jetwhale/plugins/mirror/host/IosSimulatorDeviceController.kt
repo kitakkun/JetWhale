@@ -48,14 +48,33 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun tap(x: Int, y: Int) {
         val scale = pixelsPerPoint()
-        runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+        runCommandChecked(
+            IDB_COMMAND_TIMEOUT,
+            requireIdbPath(),
+            "ui",
+            "tap",
+            "--udid",
+            udid,
+            "${(x / scale).toInt()}",
+            "${(y / scale).toInt()}",
+        )
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
         val scale = pixelsPerPoint()
         runCommandChecked(
-            IDB_COMMAND_TIMEOUT + durationMillis.milliseconds, requireIdbPath(), "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
-            "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
+            IDB_COMMAND_TIMEOUT + durationMillis.milliseconds,
+            requireIdbPath(),
+            "ui",
+            "swipe",
+            "--udid",
+            udid,
+            "--duration",
+            "${durationMillis / 1000.0}",
+            "${(fromX / scale).toInt()}",
+            "${(fromY / scale).toInt()}",
+            "${(toX / scale).toInt()}",
+            "${(toY / scale).toInt()}",
         )
     }
 
@@ -82,7 +101,18 @@ internal class IosSimulatorDeviceController(
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
                 // idb names its raw format rbga; the bytes it writes are BGRA.
-                listOf(requireIdbPath(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
+                listOf(
+                    requireIdbPath(),
+                    "video-stream",
+                    "--udid",
+                    udid,
+                    "--format",
+                    "rbga",
+                    "--fps",
+                    "${layout.fps}",
+                    "--scale-factor",
+                    "${layout.scale}",
+                ),
             )
         }
         return VideoStream.RawBgra(process, layout.frameSize, layout.rowBytes, layout.fps) { arrivedFps ->
@@ -95,7 +125,9 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         val process = withContext(Dispatchers.IO) {
-            SystemProcessLauncher.start(listOf(xcrunPath, "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", outputFile.absolutePath))
+            SystemProcessLauncher.start(
+                listOf(xcrunPath, "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", outputFile.absolutePath),
+            )
         }
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
@@ -103,7 +135,9 @@ internal class IosSimulatorDeviceController(
                 // which leaves it unplayable.
                 runCommand(5.seconds, "kill", "-INT", "${process.pid()}")
                 if (!process.waitFor(15, TimeUnit.SECONDS)) process.destroyForcibly()
-                if (!outputFile.exists() || outputFile.length() == 0L) throw deviceControlError("recording failed: ${outputFile.absolutePath} was not written")
+                if (!outputFile.exists() || outputFile.length() == 0L) {
+                    throw deviceControlError("recording failed: ${outputFile.absolutePath} was not written")
+                }
                 outputFile
             }
         }

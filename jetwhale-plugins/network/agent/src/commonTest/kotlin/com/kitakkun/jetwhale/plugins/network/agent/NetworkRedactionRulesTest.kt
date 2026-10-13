@@ -257,7 +257,11 @@ class NetworkRedactionRulesTest {
     @Test
     fun `a failure message quoting the request URL has its redacted query values hidden`() {
         val rules = NetworkRedactionRules { urlQueryParam("token") }
-        val failure = HttpRequestFailure(txId = "tx-1", message = "Request timeout has expired [url=https://api.example.com/a?token=abc&page=2, request_timeout=1000 ms]", durationMs = 1000L)
+        val failure = HttpRequestFailure(
+            txId = "tx-1",
+            message = "Request timeout has expired [url=https://api.example.com/a?token=abc&page=2, request_timeout=1000 ms]",
+            durationMs = 1000L,
+        )
         val redacted = rules.redactAtCapture(failure)
         assertFalse("abc" in redacted.message, redacted.message)
         assertTrue("page=2" in redacted.message, redacted.message)
@@ -295,7 +299,8 @@ class NetworkRedactionRulesTest {
     @Test
     fun `a failure message hides a redacted query value whose name the client percent-encoded`() {
         val rules = NetworkRedactionRules { urlQueryParam("user[api_key]") }
-        val message = "Request timeout has expired [url=https://api.example.com/a?user%5Bapi_key%5D=secret-value&page=2, request_timeout=1000 ms]"
+        val message =
+            "Request timeout has expired [url=https://api.example.com/a?user%5Bapi_key%5D=secret-value&page=2, request_timeout=1000 ms]"
         val redacted = rules.redactAtCapture(HttpRequestFailure(txId = "tx-1", message = message, durationMs = 1000L))
         assertFalse("secret-value" in redacted.message, redacted.message)
         assertTrue("page=2" in redacted.message, redacted.message)

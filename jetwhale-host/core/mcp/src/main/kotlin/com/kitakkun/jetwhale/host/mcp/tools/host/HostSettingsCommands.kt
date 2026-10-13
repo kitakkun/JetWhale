@@ -27,7 +27,8 @@ internal enum class BuiltInTheme(val colorSchemeId: JetWhaleColorSchemeId) {
     DYNAMIC(JetWhaleColorSchemeId.BuiltInDynamic),
 }
 
-private const val SERVER_RESTART_NOTE = "Every agent session was dropped; call jetwhale.listSessions again before using any sessionId you were holding."
+private const val SERVER_RESTART_NOTE =
+    "Every agent session was dropped; call jetwhale.listSessions again before using any sessionId you were holding."
 
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
@@ -45,9 +46,13 @@ class UpdateSettingsCommand(
     private val wssPort by intOrNull("Port the secure (wss) connector listens on.")
     private val wssEnabled by booleanOrNull("Whether the secure (wss) connector is exposed at all.")
     private val mcpServerPort by intOrNull("Port this MCP server listens on. Persisted only — see the note in the result.")
-    private val adbAutoPortMappingEnabled by booleanOrNull("Whether the host runs `adb reverse` automatically for connected Android devices.")
+    private val adbAutoPortMappingEnabled by booleanOrNull(
+        "Whether the host runs `adb reverse` automatically for connected Android devices.",
+    )
     private val persistData by booleanOrNull("Whether captured debug data survives a host restart.")
-    private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
+    private val restartDebugServer by booleanOrNull(
+        "Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.",
+    )
     private val theme by enumOrNull(
         "The window's color theme, as on Settings → General → Appearance. DYNAMIC follows the OS light or dark appearance. Applies at once; on macOS the title bar keeps following the OS appearance.",
         BuiltInTheme.entries,
@@ -77,7 +82,8 @@ class UpdateSettingsCommand(
         newMcpServerPort?.let { port ->
             settingsRepository.updateMcpServerPort(port)
             applied["mcpServerPort"] = port.toString()
-            notes += "mcpServerPort was saved but this MCP server is still listening on its old port; the change takes effect the next time the host starts."
+            notes += "mcpServerPort was saved but this MCP server is still listening on its old port; " +
+                "the change takes effect the next time the host starts."
         }
         arguments[adbAutoPortMappingEnabled]?.let { enabled ->
             settingsRepository.updateAdbAutoPortMappingEnabled(enabled)
@@ -102,7 +108,8 @@ class UpdateSettingsCommand(
             restartDebugServer(settingsRepository, debugWebSocketServer)
             notes += SERVER_RESTART_NOTE
         } else if (debugServerAffected) {
-            notes += "The debug server is still running with its previous configuration; restart it with jetwhale.restartDebugServer to apply the change."
+            notes += "The debug server is still running with its previous configuration; " +
+                "restart it with jetwhale.restartDebugServer to apply the change."
         }
 
         return Json.encodeToString(

@@ -174,10 +174,15 @@ class DefaultDebugWebSocketServerTest {
 
     private class AcceptingNegotiationStrategy : ServerSessionNegotiationStrategy {
         context(logger: Logger)
-        override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult = ServerSessionNegotiationResult.Success(
-            session = SessionNegotiationResult(sessionId = UUID.randomUUID().toString(), sessionName = "test", appMetadata = JetWhaleAppMetadata()),
-            plugin = PluginNegotiationResult(listOf(JetWhalePluginInfo(PLUGIN_ID, "1.0.0"))),
-        )
+        override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult =
+            ServerSessionNegotiationResult.Success(
+                session = SessionNegotiationResult(
+                    sessionId = UUID.randomUUID().toString(),
+                    sessionName = "test",
+                    appMetadata = JetWhaleAppMetadata(),
+                ),
+                plugin = PluginNegotiationResult(listOf(JetWhalePluginInfo(PLUGIN_ID, "1.0.0"))),
+            )
     }
 
     private class FakeAdbAutoPortMappingService : AdbAutoPortMappingService {

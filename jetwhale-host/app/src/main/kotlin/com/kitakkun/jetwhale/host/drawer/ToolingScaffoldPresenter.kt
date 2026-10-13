@@ -103,7 +103,8 @@ internal fun newlyConnectedSessions(
 }
 
 @Composable
-@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT") // A flat sealed dispatch; Kotrail scores each row as a branch, tracked in #450.
+// A flat sealed dispatch; Kotrail scores each row as a branch, tracked in #450.
+@Suppress("KOTRAIL_COMPOSABLE_TOO_COMPLEX", "KOTRAIL_COMPOSABLE_COMPLEXITY_HOTSPOT")
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
@@ -204,7 +205,9 @@ fun toolingScaffoldPresenter(
             operatingToolName = activeInvocation?.toolName,
             operatingToolShortName = activeInvocation?.shortToolName(),
             operatingPluginName = activeInvocation?.pluginId?.let { pluginId -> loadedPlugins.find { it.id == pluginId }?.name },
-            operatingAppName = activeInvocation?.sessionId?.let { sessionId -> debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName },
+            operatingAppName = activeInvocation?.sessionId?.let { sessionId ->
+                debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName
+            },
             isFollowModeOn = followAiOperationEnabled,
             mcpServer = mcpServerStatus.toAvailability(),
         ),

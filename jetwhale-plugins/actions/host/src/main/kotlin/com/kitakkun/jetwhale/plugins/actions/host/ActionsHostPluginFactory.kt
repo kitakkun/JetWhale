@@ -46,9 +46,11 @@ private class ActionsHostPlugin :
 
     override suspend fun listActions(): ActionCatalog = messenger.request(ListActions)
 
-    override suspend fun options(actionId: String, parameter: String): ActionOptions = messenger.request(GetActionOptions(actionId = actionId, parameter = parameter))
+    override suspend fun options(actionId: String, parameter: String): ActionOptions =
+        messenger.request(GetActionOptions(actionId = actionId, parameter = parameter))
 
-    override suspend fun run(runId: String, actionId: String, arguments: JsonObject, confirmedDestructive: Boolean): ActionResult = messenger.request(RunAction(runId = runId, actionId = actionId, arguments = arguments, confirmedDestructive = confirmedDestructive))
+    override suspend fun run(runId: String, actionId: String, arguments: JsonObject, confirmedDestructive: Boolean): ActionResult =
+        messenger.request(RunAction(runId = runId, actionId = actionId, arguments = arguments, confirmedDestructive = confirmedDestructive))
 
     override suspend fun cancel(runId: String): CancelResult = messenger.request(CancelActionRun(runId))
 

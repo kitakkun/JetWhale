@@ -19,7 +19,9 @@ internal class GetNodeTreeCommand(
         "Captures the running app's UI node tree right now — Compose semantics, plus Android Views on Android, " +
             "and on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose) — and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
-            "Each node carries id, text, contentDescription, \"actions\" — the action names performNodeAction accepts for it (BringIntoView works on any node and is not listed) — screen \"bounds\" in the node's \"unit\" " +
+            "Each node carries id, text, contentDescription, " +
+            "\"actions\" — the action names performNodeAction accepts for it (BringIntoView works on any node and is not listed) — " +
+            "screen \"bounds\" in the node's \"unit\" " +
             "(px, or pt on iOS), a \"tap\" point (the centre of the bounds), and per kind a role and testTag (Compose), " +
             "a viewClass and resourceId (Android View), or a className and accessibilityIdentifier (iOS). " +
             "A root is a window: on Android a dialog or popup is a window of its own, on iOS it stays inside the app's. " +
@@ -38,7 +40,8 @@ internal class GetNodeTreeCommand(
         "Keep only nodes that expose an action, are editable, or scroll — plus their ancestors, so the structure is preserved. Defaults to false.",
     )
     private val format by serializableOrNull<NodeOutputFormat>(
-        "\"json\" (default) returns the JSON described above. \"text\" returns the same nodes as a compact outline for reading rather than parsing — " +
+        "\"json\" (default) returns the JSON described above. " +
+            "\"text\" returns the same nodes as a compact outline for reading rather than parsing — " +
             "one line per node, indented by depth: `- <role or class> #<id> \"<text>\" key=value… [flags] actions=… tap=x,y`, " +
             "with each root on a `root <rootId> \"<label>\" unit=… density=…` line. It leaves out the bounds and takes a fraction of the tokens.",
     )

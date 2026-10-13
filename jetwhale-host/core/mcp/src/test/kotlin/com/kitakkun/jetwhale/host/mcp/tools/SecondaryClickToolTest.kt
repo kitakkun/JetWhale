@@ -140,7 +140,9 @@ class SecondaryClickToolTest {
     @Test
     fun `clicking a menu item runs its action and closes the menu`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = contextMenuScene()
-        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes).single { it.text == "Copy URL" }.bounds
+        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes)
+            .single { it.text == "Copy URL" }
+            .bounds
 
         ensureSceneRendered(scene)
         val clicked = dispatchClick(scene, copyUrlBounds.centerX, copyUrlBounds.centerY)
@@ -157,13 +159,18 @@ class SecondaryClickToolTest {
 
         val outcome = dispatchSecondaryClick(scene, 600f, 400f)
 
-        assertEquals(SecondaryClickOutcome(consumed = false, openedPopup = false, closedPopup = false, popupClickableNodes = emptyList()), outcome)
+        assertEquals(
+            SecondaryClickOutcome(consumed = false, openedPopup = false, closedPopup = false, popupClickableNodes = emptyList()),
+            outcome,
+        )
     }
 
     @Test
     fun `a secondary click inside an open menu lists the items of the menu still open`(): Unit = runBlocking(Dispatchers.Main) {
         val scene = contextMenuScene()
-        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes).single { it.text == "Copy URL" }.bounds
+        val copyUrlBounds = checkNotNull(dispatchSecondaryClick(scene, 100f, 100f).popupClickableNodes)
+            .single { it.text == "Copy URL" }
+            .bounds
 
         val outcome = dispatchSecondaryClick(scene, copyUrlBounds.centerX, copyUrlBounds.centerY)
 
@@ -229,7 +236,9 @@ class SecondaryClickToolTest {
     }
 
     @Test
-    fun `secondaryClick reads a popup's nodes as the plugin redacts them for capture and leaves the live popup unredacted`(): Unit = runBlocking(Dispatchers.Main) {
+    fun `secondaryClick reads a popup's nodes as the plugin redacts them for capture and leaves the live popup unredacted`(): Unit = runBlocking(
+        Dispatchers.Main,
+    ) {
         val scene = createTestScene {
             var isPopupOpen by remember { mutableStateOf(false) }
             Box(Modifier.size(200.dp).onPointerEvent(PointerEventType.Press) { isPopupOpen = true })
@@ -272,7 +281,9 @@ class SecondaryClickToolTest {
     /** A rendered scene whose top-left 200×200 black box is clickable, like a table row, and opens a two-item context menu. */
     private fun contextMenuScene(): PluginComposeScene {
         val scene = createTestScene {
-            ContextMenuArea(items = { listOf(ContextMenuItem("Copy URL") { copyUrlActionRan = true }, ContextMenuItem("Copy as cURL") {}) }) {
+            ContextMenuArea(
+                items = { listOf(ContextMenuItem("Copy URL") { copyUrlActionRan = true }, ContextMenuItem("Copy as cURL") {}) },
+            ) {
                 Box(Modifier.size(200.dp).background(Color.Black).clickable {})
             }
         }
@@ -289,7 +300,9 @@ class SecondaryClickToolTest {
             everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
         }
         val permissionsRepository = FakeMcpPermissionsRepository(permissions)
-        SecondaryClickMcpTool(sceneService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
+        SecondaryClickMcpTool(sceneService, permissionsRepository).register(
+            McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository),
+        )
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.secondaryClick",
@@ -307,7 +320,8 @@ class SecondaryClickToolTest {
 
 private fun selfAndDescendants(node: NodeInfo): List<NodeInfo> = listOf(node) + node.children.flatMap(::selfAndDescendants)
 
-private fun semanticsTextsInSubtree(node: SemanticsNode): List<String> = node.config.getOrNull(SemanticsProperties.Text).orEmpty().map(AnnotatedString::text) + node.children.flatMap(::semanticsTextsInSubtree)
+private fun semanticsTextsInSubtree(node: SemanticsNode): List<String> =
+    node.config.getOrNull(SemanticsProperties.Text).orEmpty().map(AnnotatedString::text) + node.children.flatMap(::semanticsTextsInSubtree)
 
 private const val SECRET_LABEL = "SECRET-LABEL"
 private const val REDACTED_LABEL = "<redacted>"

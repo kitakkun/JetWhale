@@ -21,7 +21,8 @@ import kotlin.time.Duration.Companion.seconds
  * that is on. Without one, screencap writes a warning ahead of its PNG, and screenrecord frames the
  * picture at another panel's size.
  */
-@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER") // Without ffmpeg the device is still driven; only the stream is refused, with how to install it.
+// Without ffmpeg the device is still driven; only the stream is refused, with how to install it.
+@Suppress("KOTRAIL_NULL_STORED_FROM_PARAMETER")
 internal class AndroidDeviceController(
     private val adbPath: String,
     private val serial: String,
@@ -30,7 +31,14 @@ internal class AndroidDeviceController(
 ) : DeviceController {
     override val capabilities = DeviceCapabilities(
         input = true,
-        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
+        buttons = listOf(
+            DeviceButton.Home,
+            DeviceButton.Back,
+            DeviceButton.Recents,
+            DeviceButton.Power,
+            DeviceButton.VolumeUp,
+            DeviceButton.VolumeDown,
+        ),
         recording = true,
         screenPower = true,
     )
@@ -39,7 +47,17 @@ internal class AndroidDeviceController(
     private var displayReading: DisplayReading? = null
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
-    override suspend fun captureScreenshot(): ByteArray = runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "exec-out", "screencap", "-p", *panelArguments(option = "-d", display = display())).stdout
+    override suspend fun captureScreenshot(): ByteArray =
+        runCommandChecked(
+            ADB_COMMAND_TIMEOUT,
+            adbPath,
+            "-s",
+            serial,
+            "exec-out",
+            "screencap",
+            "-p",
+            *panelArguments(option = "-d", display = display()),
+        ).stdout
 
     // Reads the display afresh, since the mirror polls the size to notice a fold or a rotation. `wm
     // size` reports the upright size, which taps on a turned screen do not use, so it is only a
@@ -47,7 +65,18 @@ internal class AndroidDeviceController(
     override suspend fun screenSize(): IntSize {
         val reading = readDisplay()
         return reading.size
-            ?: parseWmSize(runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "wm", "size", *displayArguments(reading.display)).stdoutText)
+            ?: parseWmSize(
+                runCommandChecked(
+                    ADB_COMMAND_TIMEOUT,
+                    adbPath,
+                    "-s",
+                    serial,
+                    "shell",
+                    "wm",
+                    "size",
+                    *displayArguments(reading.display),
+                ).stdoutText,
+            )
             ?: throw deviceControlError("'adb shell wm size' reported no screen size")
     }
 
@@ -56,22 +85,65 @@ internal class AndroidDeviceController(
     }
 
     override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) {
-        runCommandChecked(ADB_COMMAND_TIMEOUT + durationMillis.milliseconds, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "swipe", "$fromX", "$fromY", "$toX", "$toY", "$durationMillis")
+        runCommandChecked(
+            ADB_COMMAND_TIMEOUT + durationMillis.milliseconds,
+            adbPath,
+            "-s",
+            serial,
+            "shell",
+            "input",
+            *displayArguments(display()),
+            "swipe",
+            "$fromX",
+            "$fromY",
+            "$toX",
+            "$toY",
+            "$durationMillis",
+        )
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        runCommandChecked(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "keyevent", androidKeycodeOf(button))
+        runCommandChecked(
+            ADB_COMMAND_TIMEOUT,
+            adbPath,
+            "-s",
+            serial,
+            "shell",
+            "input",
+            *displayArguments(display()),
+            "keyevent",
+            androidKeycodeOf(button),
+        )
     }
 
     override suspend fun inputText(text: String) {
-        runCommandChecked(ADB_TEXT_INPUT_TIMEOUT, adbPath, "-s", serial, "shell", "input", *displayArguments(display()), "text", escapeForAdbInputText(text))
+        runCommandChecked(
+            ADB_TEXT_INPUT_TIMEOUT,
+            adbPath,
+            "-s",
+            serial,
+            "shell",
+            "input",
+            *displayArguments(display()),
+            "text",
+            escapeForAdbInputText(text),
+        )
     }
 
     override suspend fun screenPower(): ScreenPower {
         // A grep that matches nothing exits non-zero, so the exit code is not checked.
-        val result = runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
+        val result = runCommand(
+            ADB_COMMAND_TIMEOUT,
+            adbPath,
+            "-s",
+            serial,
+            "shell",
+            "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=",
+        )
         return parseScreenPower(result.stdoutText)
-            ?: throw deviceControlError("could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}")
+            ?: throw deviceControlError(
+                "could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}",
+            )
     }
 
     override suspend fun wake() {
@@ -90,12 +162,39 @@ internal class AndroidDeviceController(
         // (`adb emu fold`). `cmd device_state state` moves the display to the other panel without
         // it, and the stream would stretch that panel's picture to the framebuffer's shape.
         val emulatorStream = emulatorScreens?.takeUnless {
-            display() != null && isPostureOverridden(runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys device_state | grep -e mBaseState= -e mCommittedState=").stdoutText)
+            display() != null &&
+                isPostureOverridden(
+                    runCommand(
+                        ADB_COMMAND_TIMEOUT,
+                        adbPath,
+                        "-s",
+                        serial,
+                        "shell",
+                        "dumpsys device_state | grep -e mBaseState= -e mCommittedState=",
+                    ).stdoutText,
+                )
         }?.open(serial, wanted)
         emulatorStream ?: run {
-            val ffmpegPath = ffmpegPath ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
+            val ffmpegPath = ffmpegPath
+                ?: throw deviceControlError("ffmpeg was not found, so the screen is shown through screenshots. $FFMPEG_INSTALL")
             val panel = panelArguments(option = "--display-id", display = display())
-            VideoStream.H264(SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", "-")), ffmpegPath)
+            VideoStream.H264(
+                SystemProcessLauncher.start(
+                    listOf(
+                        adbPath,
+                        "-s",
+                        serial,
+                        "exec-out",
+                        "screenrecord",
+                        "--output-format=h264",
+                        *panel,
+                        "--time-limit",
+                        "$SCREENRECORD_TIME_LIMIT_SECONDS",
+                        "-",
+                    ),
+                ),
+                ffmpegPath,
+            )
         }
     }
 
@@ -103,7 +202,19 @@ internal class AndroidDeviceController(
         val remotePath = "/sdcard/${outputFile.name}"
         val panel = panelArguments(option = "--display-id", display = display())
         val process = withContext(Dispatchers.IO) {
-            SystemProcessLauncher.start(listOf(adbPath, "-s", serial, "shell", "screenrecord", *panel, "--time-limit", "$SCREENRECORD_TIME_LIMIT_SECONDS", remotePath))
+            SystemProcessLauncher.start(
+                listOf(
+                    adbPath,
+                    "-s",
+                    serial,
+                    "shell",
+                    "screenrecord",
+                    *panel,
+                    "--time-limit",
+                    "$SCREENRECORD_TIME_LIMIT_SECONDS",
+                    remotePath,
+                ),
+            )
         }
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
@@ -134,16 +245,29 @@ internal class AndroidDeviceController(
 
     private suspend fun readDisplay(): DisplayReading {
         // grep exits non-zero when nothing matches, which reads as a device with one panel.
-        val output = runCommand(ADB_COMMAND_TIMEOUT, adbPath, "-s", serial, "shell", "dumpsys display | grep -F -e DisplayDeviceInfo -e mOverrideDisplayInfo").stdoutText
+        val output = runCommand(
+            ADB_COMMAND_TIMEOUT,
+            adbPath,
+            "-s",
+            serial,
+            "shell",
+            "dumpsys display | grep -F -e DisplayDeviceInfo -e mOverrideDisplayInfo",
+        ).stdoutText
         val display = parseActiveAndroidDisplay(output)
-        return DisplayReading(display, parseDisplaySize(output, displayId = display?.logicalId ?: DEFAULT_DISPLAY_ID), System.nanoTime()).also { displayReading = it }
+        return DisplayReading(
+            display,
+            parseDisplaySize(output, displayId = display?.logicalId ?: DEFAULT_DISPLAY_ID),
+            System.nanoTime(),
+        ).also { displayReading = it }
     }
 
     /** `-d` and the logical id `input` and `wm` take, or nothing on a device with one panel. */
-    private fun displayArguments(display: AndroidDisplay?): Array<String> = display?.let { arrayOf("-d", "${it.logicalId}") } ?: emptyArray()
+    private fun displayArguments(display: AndroidDisplay?): Array<String> =
+        display?.let { arrayOf("-d", "${it.logicalId}") } ?: emptyArray()
 
     /** [option] and the panel id screencap and screenrecord take, or nothing on a device with one panel. */
-    private fun panelArguments(option: String, display: AndroidDisplay?): Array<String> = display?.let { arrayOf(option, it.physicalId) } ?: emptyArray()
+    private fun panelArguments(option: String, display: AndroidDisplay?): Array<String> =
+        display?.let { arrayOf(option, it.physicalId) } ?: emptyArray()
 
     private class DisplayReading(val display: AndroidDisplay?, val size: IntSize?, val readAtNanos: Long)
 }
@@ -209,7 +333,9 @@ private const val DEFAULT_DISPLAY_ID = 0
  * `screencap` writes.
  */
 internal fun parseDisplaySize(dumpsysDisplay: String, displayId: Int): IntSize? {
-    val line = dumpsysDisplay.lines().firstOrNull { "mOverrideDisplayInfo=DisplayInfo{" in it && LOGICAL_DISPLAY_ID.find(it)?.groupValues?.get(1)?.toInt() == displayId } ?: return null
+    val line = dumpsysDisplay.lines().firstOrNull {
+        "mOverrideDisplayInfo=DisplayInfo{" in it && LOGICAL_DISPLAY_ID.find(it)?.groupValues?.get(1)?.toInt() == displayId
+    } ?: return null
     val (width, height) = DISPLAY_REAL_SIZE.find(line)?.destructured ?: return null
     return IntSize(width.toInt(), height.toInt())
 }
@@ -247,7 +373,11 @@ private val DEVICE_STATE = Regex("""(mBaseState|mCommittedState)=Optional\[Devic
  */
 @VisibleForTesting
 internal fun escapeForAdbInputText(text: String): String {
-    if (text.any(Char::isISOControl)) throw deviceControlError("text with a line break, tab or other control character cannot be typed on an Android device; type each line separately")
+    if (text.any(Char::isISOControl)) {
+        throw deviceControlError(
+            "text with a line break, tab or other control character cannot be typed on an Android device; type each line separately",
+        )
+    }
     return text
         .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
         .replace("%", "\\%")

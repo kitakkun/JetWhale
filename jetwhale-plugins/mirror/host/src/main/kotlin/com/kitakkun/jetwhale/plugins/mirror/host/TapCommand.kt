@@ -10,7 +10,8 @@ internal class TapCommand(
     private val mirror: MirrorDevices,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.tap"
-    override val description = "Taps the device screen at a point in the pixels of $TOOL_PREFIX.captureScreenshot. Not available for a physical iOS device."
+    override val description =
+        "Taps the device screen at a point in the pixels of $TOOL_PREFIX.captureScreenshot. Not available for a physical iOS device."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val x by int("Horizontal position in screenshot pixels.")

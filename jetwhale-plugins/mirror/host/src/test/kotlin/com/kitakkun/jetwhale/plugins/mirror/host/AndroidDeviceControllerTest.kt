@@ -36,7 +36,12 @@ class AndroidDeviceControllerTest {
         setExecutable(true)
     }
 
-    private val controller = AndroidDeviceController(adbPath = fakeAdb.path, serial = "device-1", emulatorScreens = null, ffmpegPath = "ffmpeg")
+    private val controller = AndroidDeviceController(
+        adbPath = fakeAdb.path,
+        serial = "device-1",
+        emulatorScreens = null,
+        ffmpegPath = "ffmpeg",
+    )
 
     @AfterTest
     fun cleanUp() {
@@ -149,7 +154,10 @@ class AndroidDeviceControllerTest {
             assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).process.waitFor()
 
             assertEquals(0, server.requestCount)
-            assertEquals("-s emulator-5554 exec-out screenrecord --output-format=h264 --display-id $COVER_PANEL --time-limit 180 -", commands.readLines().last())
+            assertEquals(
+                "-s emulator-5554 exec-out screenrecord --output-format=h264 --display-id $COVER_PANEL --time-limit 180 -",
+                commands.readLines().last(),
+            )
         }
     }
 
@@ -184,7 +192,15 @@ class AndroidDeviceControllerTest {
             server.start()
             val running = File(folder, "running").apply { mkdirs() }
             File(running, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\n")
-            check(AndroidDeviceController(adbPath = fakeAdb.path, serial = "emulator-5554", emulatorScreens = EmulatorScreens(listOf(running)), ffmpegPath = "ffmpeg"), server)
+            check(
+                AndroidDeviceController(
+                    adbPath = fakeAdb.path,
+                    serial = "emulator-5554",
+                    emulatorScreens = EmulatorScreens(listOf(running)),
+                    ffmpegPath = "ffmpeg",
+                ),
+                server,
+            )
         }
     }
 
@@ -199,7 +215,10 @@ class AndroidDeviceControllerTest {
         controller.captureScreenshot()
 
         val screenshots = commands.readLines().filter { "screencap" in it }
-        assertEquals(listOf("-s device-1 exec-out screencap -p -d $INNER_PANEL", "-s device-1 exec-out screencap -p -d $COVER_PANEL"), screenshots)
+        assertEquals(
+            listOf("-s device-1 exec-out screencap -p -d $INNER_PANEL", "-s device-1 exec-out screencap -p -d $COVER_PANEL"),
+            screenshots,
+        )
         assertEquals(2, commands.readLines().count { "dumpsys" in it })
     }
 }
@@ -209,10 +228,12 @@ private const val INNER_PANEL = "4619827259835644672"
 private const val COVER_PANEL = "4619827551948147201"
 
 /** What `dumpsys display`, filtered as the controller asks, printed on a foldable emulator in [state]. */
-private fun dumpsysDisplayOf(state: String): String = checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-display/$state.txt")).readText()
+private fun dumpsysDisplayOf(state: String): String =
+    checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-display/$state.txt")).readText()
 
 /** What `dumpsys device_state`, filtered as the controller asks, printed on a foldable emulator in [state]. */
-private fun dumpsysDeviceStateOf(state: String): String = checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-device-state/$state.txt")).readText()
+private fun dumpsysDeviceStateOf(state: String): String =
+    checkNotNull(AndroidDeviceControllerTest::class.java.getResource("/dumpsys-device-state/$state.txt")).readText()
 
 private val FOLDED = dumpsysDisplayOf("folded")
 
@@ -221,7 +242,14 @@ private val UNFOLDED = dumpsysDisplayOf("unfolded")
 private val ONE_PANEL = listOf(panel(INNER_PANEL, state = "ON"), logicalDisplay(0, INNER_PANEL)).joinToString("\n")
 
 /** A physical panel's line in `dumpsys display`, cut down to the fields around the ones read. */
-private fun panel(id: String, state: String) = """  DisplayDeviceInfo{"Built-in Screen": uniqueId="local:$id", 1080 x 2364, modeId 2, density 390, 390.0 x 390.0 dpi, touch INTERNAL, rotation 0, type INTERNAL, address StablePhysical{id=$id, port=1}, state $state, committedState $state, frameRateOverride , FLAG_ALLOWED_TO_BE_DEFAULT_DISPLAY, FLAG_ROTATES_WITH_CONTENT, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED}"""
+private fun panel(id: String, state: String) =
+    """  DisplayDeviceInfo{"Built-in Screen": uniqueId="local:$id", 1080 x 2364, modeId 2, density 390, 390.0 x 390.0 dpi, """ +
+        """touch INTERNAL, rotation 0, type INTERNAL, address StablePhysical{id=$id, port=1}, state $state, committedState $state, """ +
+        """frameRateOverride , FLAG_ALLOWED_TO_BE_DEFAULT_DISPLAY, FLAG_ROTATES_WITH_CONTENT, FLAG_SECURE, """ +
+        """FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED}"""
 
 /** A logical display's line in `dumpsys display`, showing the panel with [panelId], cut down likewise. */
-private fun logicalDisplay(displayId: Int, panelId: String) = """    mOverrideDisplayInfo=DisplayInfo{"Built-in Screen", displayId $displayId, displayGroupId 0, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED, real 1080 x 2364, rotation 0, state ON, committedState ON, type INTERNAL, uniqueId "local:$panelId", app 1080 x 2364, density 390 (390.0 x 390.0) dpi, layerStack 0}"""
+private fun logicalDisplay(displayId: Int, panelId: String) =
+    """    mOverrideDisplayInfo=DisplayInfo{"Built-in Screen", displayId $displayId, displayGroupId 0, FLAG_SECURE, """ +
+        """FLAG_SUPPORTS_PROTECTED_BUFFERS, FLAG_TRUSTED, real 1080 x 2364, rotation 0, state ON, committedState ON, type INTERNAL, """ +
+        """uniqueId "local:$panelId", app 1080 x 2364, density 390 (390.0 x 390.0) dpi, layerStack 0}"""

@@ -14,13 +14,19 @@ internal class StartRecordingCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.startRecording"
     override val description =
-        "Starts recording a device screen to a video file; finish with $TOOL_PREFIX.stopRecording. Each device records on its own, so several can record at once: " +
-            "pass all=true for every device that can record, or deviceIds for several, and each device's result comes back. Android stops on its own after 180 seconds. " +
+        "Starts recording a device screen to a video file; finish with $TOOL_PREFIX.stopRecording. " +
+            "Each device records on its own, so several can record at once: " +
+            "pass all=true for every device that can record, or deviceIds for several, and each device's result comes back. " +
+            "Android stops on its own after 180 seconds. " +
             "A physical iOS device needs ffmpeg."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
-    private val all by booleanOrNull("Start recording every device that can record and is not recording yet. Not combined with deviceId or deviceIds.")
-    private val deviceIds by stringListOrNull("Device ids from $TOOL_PREFIX.listDevices to start recording at once. Not combined with deviceId or all.")
+    private val all by booleanOrNull(
+        "Start recording every device that can record and is not recording yet. Not combined with deviceId or deviceIds.",
+    )
+    private val deviceIds by stringListOrNull(
+        "Device ids from $TOOL_PREFIX.listDevices to start recording at once. Not combined with deviceId or all.",
+    )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val single = arguments[deviceId]
