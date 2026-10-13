@@ -57,7 +57,7 @@ internal interface StorageInspectorActions {
 
     fun confirmUpload()
 
-    fun cancelUpload()
+    fun cancelPendingUpload()
 
     /** Adds up the size of the directory at [location] and everything below it. */
     fun measureDirectory(location: FileLocation)
@@ -244,12 +244,12 @@ internal class StorageBrowser(
     }
 
     override fun confirmUpload() {
-        val upload = pendingUpload ?: return
+        val confirmedUpload = pendingUpload ?: return
         pendingUpload = null
-        launchReporting { upload(upload.target, upload.source) }
+        launchReporting { upload(confirmedUpload.target, confirmedUpload.source) }
     }
 
-    override fun cancelUpload() {
+    override fun cancelPendingUpload() {
         pendingUpload = null
     }
 

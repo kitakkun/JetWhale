@@ -199,11 +199,11 @@ class PlatformFileSystemTest {
         val target = File(directory, "settings.bin").apply { writeText("old") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
 
-        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
-        receiveUploadChunk(staging.path, target.path, offset = 3, bytes = byteArrayOf(4, 5), isLast = false)
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        writeUploadChunk(staging.path, target.path, offset = 3, bytes = byteArrayOf(4, 5), isLast = false)
         assertEquals("old", target.readText())
 
-        receiveUploadChunk(staging.path, target.path, offset = 5, bytes = byteArrayOf(6), isLast = true)
+        writeUploadChunk(staging.path, target.path, offset = 5, bytes = byteArrayOf(6), isLast = true)
 
         assertContentEquals(byteArrayOf(1, 2, 3, 4, 5, 6), target.readBytes())
         assertFalse(staging.exists())
@@ -211,15 +211,15 @@ class PlatformFileSystemTest {
 
     @Test
     fun `a symbolic link planted at the staging path is refused and its target kept`() {
-        val other = File(directory, "other.bin").apply { writeText("keep") }
+        val linkTarget = File(directory, "other.bin").apply { writeText("keep") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
-        Files.createSymbolicLink(staging.toPath(), other.toPath())
+        Files.createSymbolicLink(staging.toPath(), linkTarget.toPath())
 
         assertFailsWith<IllegalArgumentException> {
-            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
         }
 
-        assertEquals("keep", other.readText())
+        assertEquals("keep", linkTarget.readText())
     }
 
     @Test
@@ -229,7 +229,7 @@ class PlatformFileSystemTest {
         Files.createSymbolicLink(staging.toPath(), outside.toPath())
 
         assertFailsWith<IllegalArgumentException> {
-            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
         }
 
         assertFalse(outside.exists())
@@ -241,7 +241,7 @@ class PlatformFileSystemTest {
         File(staging, "keep.txt").writeText("keep")
 
         assertFailsWith<IllegalArgumentException> {
-            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true)
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true)
         }
 
         assertEquals("keep", File(staging, "keep.txt").readText())
@@ -256,7 +256,7 @@ class PlatformFileSystemTest {
         // Opening a FIFO for writing blocks until a reader appears; the timeout turns a
         // regression's hang into a failure.
         val outcome = CompletableFuture.supplyAsync {
-            runCatching { receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true) }
+            runCatching { writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true) }
         }.get(10, TimeUnit.SECONDS)
 
         assertIs<IllegalArgumentException>(outcome.exceptionOrNull())
@@ -267,10 +267,10 @@ class PlatformFileSystemTest {
     fun `a chunk at the wrong offset discards the upload and keeps the target`() {
         val target = File(directory, "settings.bin").apply { writeText("old") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
-        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
 
         assertFailsWith<IllegalArgumentException> {
-            receiveUploadChunk(staging.path, target.path, offset = 7, bytes = byteArrayOf(4), isLast = true)
+            writeUploadChunk(staging.path, target.path, offset = 7, bytes = byteArrayOf(4), isLast = true)
         }
 
         assertEquals("old", target.readText())
@@ -281,10 +281,10 @@ class PlatformFileSystemTest {
     fun `a chunk over the size bound discards the upload and keeps the target`() {
         val target = File(directory, "settings.bin").apply { writeText("old") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
-        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = ByteArray(MAX_FILE_READ_BYTES), isLast = false)
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = ByteArray(MAX_FILE_READ_BYTES), isLast = false)
 
         assertFailsWith<IllegalArgumentException> {
-            receiveUploadChunk(staging.path, target.path, offset = MAX_FILE_READ_BYTES.toLong(), bytes = ByteArray(MAX_FILE_READ_BYTES + 1), isLast = true)
+            writeUploadChunk(staging.path, target.path, offset = MAX_FILE_READ_BYTES.toLong(), bytes = ByteArray(MAX_FILE_READ_BYTES + 1), isLast = true)
         }
 
         assertEquals("old", target.readText())
@@ -296,7 +296,7 @@ class PlatformFileSystemTest {
         val missing = File(directory, "missing")
 
         assertFailsWith<IOException> {
-            receiveUploadChunk("${missing.path}/.a.jetwhale-upload-1", "${missing.path}/a", offset = 0, bytes = byteArrayOf(1), isLast = true)
+            writeUploadChunk("${missing.path}/.a.jetwhale-upload-1", "${missing.path}/a", offset = 0, bytes = byteArrayOf(1), isLast = true)
         }
         assertFalse(missing.exists())
     }
@@ -306,7 +306,7 @@ class PlatformFileSystemTest {
         File(directory, "cache").mkdir()
 
         assertFailsWith<IOException> {
-            receiveUploadChunk("${directory.path}/.cache.jetwhale-upload-1", "${directory.path}/cache", offset = 0, bytes = byteArrayOf(1), isLast = true)
+            writeUploadChunk("${directory.path}/.cache.jetwhale-upload-1", "${directory.path}/cache", offset = 0, bytes = byteArrayOf(1), isLast = true)
         }
         assertEquals(true, File(directory, "cache").isDirectory)
     }

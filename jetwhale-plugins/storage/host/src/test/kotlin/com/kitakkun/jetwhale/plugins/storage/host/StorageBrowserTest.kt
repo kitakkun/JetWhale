@@ -268,7 +268,7 @@ class StorageBrowserTest {
         browser.requestUpload(location("Files", "large.bin"), source)
 
         assertEquals(listOf(0L to MAX_FILE_READ_BYTES, MAX_FILE_READ_BYTES.toLong() to MAX_FILE_READ_BYTES, 2L * MAX_FILE_READ_BYTES to 7), client.chunkWrites)
-        assertContentEquals(large, runBlocking { client.wholeFile(location("Files", "large.bin")) })
+        assertContentEquals(large, runBlocking { client.readWholeFileBytes(location("Files", "large.bin")) })
         assertEquals(false, browser.status?.isError)
     }
 
@@ -288,7 +288,7 @@ class StorageBrowserTest {
         browser.confirmUpload()
 
         assertNull(browser.pendingUpload)
-        assertEquals("replaced", runBlocking { client.wholeFile(location("Files", "notes.txt")) }.decodeToString())
+        assertEquals("replaced", runBlocking { client.readWholeFileBytes(location("Files", "notes.txt")) }.decodeToString())
     }
 
     @Test
@@ -308,7 +308,7 @@ class StorageBrowserTest {
         runBlocking { browser.load() }
         browser.requestUpload(location("Files", "notes.txt"), source)
 
-        browser.cancelUpload()
+        browser.cancelPendingUpload()
 
         assertNull(browser.pendingUpload)
         assertTrue(client.chunkWrites.isEmpty())
@@ -319,7 +319,7 @@ class StorageBrowserTest {
         val source = File.createTempFile("storage-upload", ".bin").apply { deleteOnExit() }
         runBlocking { browser.load() }
 
-        browser.requestUpload(location("Files", client.unwritableName), source)
+        browser.requestUpload(location("Files", client.unwritableFileName), source)
 
         assertEquals(true, browser.status?.isError)
     }

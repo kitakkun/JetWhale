@@ -64,8 +64,8 @@ internal actual fun moveReplacing(source: String, target: String) {
     val targetFile = File(target)
     if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
     if (File(source).renameTo(targetFile)) return
-    // File.renameTo fails on Windows when the target exists, so there the target is moved
-    // aside first.
+    // File.renameTo fails on Windows when the target exists, so there the target is moved aside
+    // first.
     val backup = File("$source.replaced")
     if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
     if (!File(source).renameTo(targetFile)) {

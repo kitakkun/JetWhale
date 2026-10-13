@@ -106,7 +106,7 @@ class JetWhaleStorageAgentPlugin(
     // The app's file system can fail in any way; the failure goes back in the reply.
     private fun writeFileChunk(request: WriteFileChunk): StorageOperationResult = try {
         val paths = fileRoot(request.rootName).uploadPaths(request.path, request.uploadId)
-        receiveUploadChunk(
+        writeUploadChunk(
             stagingPath = paths.staging,
             targetPath = paths.target,
             offset = request.offset,

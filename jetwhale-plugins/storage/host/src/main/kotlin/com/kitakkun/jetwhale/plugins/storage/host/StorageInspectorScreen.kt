@@ -106,7 +106,7 @@ internal fun StorageInspectorScreen(
             message = "The file in the app is replaced with ${upload.source.name}. This cannot be undone.",
             confirmLabel = "Replace",
             onConfirm = actions::confirmUpload,
-            onDismiss = actions::cancelUpload,
+            onDismiss = actions::cancelPendingUpload,
         )
     }
 }
