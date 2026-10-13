@@ -23,13 +23,13 @@ class DefaultPluginScreenStateSubscriptionKeyFactory(
         id = SubscriptionId("PluginScreenState:$pluginId:$sessionId"),
         subscribe = { pluginInstanceService.pluginScreenStateFlow(pluginId, sessionId) },
     ) {
-        // soil keeps a subscription's source running for the keep-alive time after its last screen
-        // closes but drops what it emits meanwhile, so a screen reopened within that time would
-        // show the earlier state, possibly a disposed scene.
+        // soil keeps the source running for the keep-alive time after the last screen closes but
+        // drops what it emits meanwhile, so a screen reopened within that time would show the
+        // earlier state, possibly a closed scene.
         override fun onConfigureOptions(): SubscriptionOptionsOverride = { it.copy(keepAliveTime = Duration.ZERO) }
 
         // soil shows a cached state to the next screen before its subscription delivers, and that
-        // state may hold a disposed scene.
+        // state may hold a closed scene.
         override val contentCacheable: SubscriptionContentCacheable<PluginScreenState>
             get() = { false }
     }

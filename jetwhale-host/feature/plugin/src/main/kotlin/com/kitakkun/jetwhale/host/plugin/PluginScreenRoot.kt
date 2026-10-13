@@ -60,9 +60,8 @@ fun PluginScreenRoot() {
             when (state) {
                 is PluginScreenState.Starting -> PluginStartingScreen()
 
-                // soil's ErrorBoundary keeps an error that PluginScreen hands it from the plugin's
-                // input until the boundary is recreated, so each scene and each Reload get a fresh
-                // boundary.
+                // soil's ErrorBoundary keeps a caught error until it is recreated, so each scene
+                // and each Reload get a fresh boundary.
                 is PluginScreenState.Ready -> key(state.scene, crashReloadCount) {
                     ErrorBoundary(
                         fallback = {

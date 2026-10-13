@@ -182,8 +182,6 @@ class DefaultPluginInstanceService(
             val replacedSlot = instance.sceneSlot ?: return@mapNotNull null
             val newSlot = createSceneSlot(instance.plugin) ?: return@mapNotNull null
             instance.sceneSlot = newSlot
-            // If the instance was disposed meanwhile, its disposal closed only the slot it saw, not
-            // this new one.
             if (loadedPlugins[key] !== instance) closeOnMainThread(newSlot)
             replacedSlot
         }

@@ -74,8 +74,6 @@ class DefaultPluginJarSwapService(
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
-            // A failed reload leaves the previous code loaded, so the instances disposed above are
-            // restored.
             previousPluginIds.forEach {
                 reinitializeInstances(it)
                 pluginReloadedFlow.emit(it)
