@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -49,6 +50,7 @@ class DefaultPluginInstanceServiceEventTest {
         ),
         frameSender = mock<HostPluginFrameSender>(),
         pluginDataStoreRepository = dataStoreRepository,
+        pluginComposeSceneFactory = mock<PluginComposeSceneFactory>(),
     )
 
     @Test

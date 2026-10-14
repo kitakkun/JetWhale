@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.SharedFlow
  */
 interface PluginJarSwapService {
     /**
-     * Emits the `pluginId` of a plugin whose code was just swapped. The plugin screen observes this
-     * to re-create its compose scene from the new code.
+     * Emits the `pluginId` of a plugin whose code was just swapped, after its instances and scenes
+     * have followed. The plugin screen observes this to say the plugin was reloaded.
      */
     val pluginReloadedFlow: SharedFlow<String>
 

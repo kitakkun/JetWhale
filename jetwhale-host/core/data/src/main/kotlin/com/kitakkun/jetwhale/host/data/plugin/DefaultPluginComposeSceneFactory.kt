@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -15,116 +16,61 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
-import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
-import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @OptIn(InternalComposeUiApi::class, InternalJetWhaleHostApi::class)
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 @Inject
-class DefaultPluginComposeSceneService(
+class DefaultPluginComposeSceneFactory(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
-    private val pluginInstanceService: PluginInstanceService,
-) : PluginComposeSceneService {
-    /** A scene together with the plugin instance it composes, so a replaced instance invalidates it. */
-    private class CachedScene(
-        val pluginInstance: JetWhaleHostPlugin,
-        val scene: PluginComposeScene,
-    )
-
-    private data class SceneKey(val pluginId: String, val sessionId: String)
-
-    private val pluginScenes = mutableMapOf<SceneKey, CachedScene>()
-
+) : PluginComposeSceneFactory {
     private var hostDensity: Density = Density(1f)
 
     override fun updateHostDensity(density: Density) {
         hostDensity = density
     }
 
-    override suspend fun getOrCreatePluginScene(
-        pluginId: String,
-        sessionId: String,
-    ): PluginComposeScene {
-        val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
-            pluginId = pluginId,
-            sessionId = sessionId,
-        ) ?: run {
-            error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
-        }
-        return withContext(Dispatchers.Main) {
-            val sceneKey = SceneKey(pluginId, sessionId)
-            val cached = pluginScenes[sceneKey]
-            if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
-            cached?.scene?.composeScene?.close()
+    override fun createScene(plugin: JetWhaleHostPlugin, content: @Composable () -> Unit): PluginComposeScene {
+        val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+        val composeScene = CanvasLayersComposeScene(
+            density = hostDensity,
+            platformContext = windowUpdatableContext,
+        )
+        val isMcpCapture = mutableStateOf(false)
 
-            val windowUpdatableContext = DynamicWindowInfoPlatformContext()
-            val composeScene = CanvasLayersComposeScene(
-                density = hostDensity,
-                platformContext = windowUpdatableContext,
-            )
-            val isMcpCapture = mutableStateOf(false)
-
+        var composed = false
+        try {
             composeScene.setContent {
                 CompositionLocalProvider(
-                    LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
+                    LocalJetWhalePluginStorage provides plugin.boundStorageForRuntime(),
                     LocalIsMcpCapture provides isMcpCapture.value,
                 ) {
-                    pluginBridgeProvider.PluginEntryPoint {
-                        val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
-                        ui.Content()
-                    }
+                    pluginBridgeProvider.PluginEntryPoint(content)
                 }
             }
-
-            val scene = PluginComposeScene(
-                composeScene = composeScene,
-                windowInfoUpdater = windowUpdatableContext,
-                semanticsOwners = windowUpdatableContext.semanticsOwners,
-                isMcpCapture = isMcpCapture,
-                pointerIcon = windowUpdatableContext.pointerIcon,
-            )
-            pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
-            scene
+            composed = true
+        } finally {
+            if (!composed) composeScene.close()
         }
-    }
 
-    override fun disposePluginSceneForSession(sessionId: String) {
-        val keysToRemove = pluginScenes.keys.filter { it.sessionId == sessionId }
-        for (key in keysToRemove) {
-            pluginScenes[key]?.scene?.composeScene?.close()
-            pluginScenes.remove(key)
-        }
-    }
-
-    override fun disposePluginScenesForPlugin(pluginId: String) {
-        val keysToRemove = pluginScenes.keys.filter { it.pluginId == pluginId }
-        for (key in keysToRemove) {
-            pluginScenes[key]?.scene?.composeScene?.close()
-            pluginScenes.remove(key)
-        }
-    }
-
-    override fun disposeAppSessionPluginScenes() {
-        val keysToRemove = pluginScenes.keys.filterNot { HostSession.isHost(it.sessionId) }
-        for (key in keysToRemove) {
-            pluginScenes[key]?.scene?.composeScene?.close()
-            pluginScenes.remove(key)
-        }
+        return PluginComposeScene(
+            composeScene = composeScene,
+            windowInfoUpdater = windowUpdatableContext,
+            semanticsOwners = windowUpdatableContext.semanticsOwners,
+            isMcpCapture = isMcpCapture,
+            pointerIcon = windowUpdatableContext.pointerIcon,
+        )
     }
 }
 
