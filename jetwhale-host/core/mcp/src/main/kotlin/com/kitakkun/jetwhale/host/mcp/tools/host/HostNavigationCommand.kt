@@ -45,7 +45,7 @@ class HostNavigationCommand(
     override val name: String = "jetwhale.navigate"
     override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
-        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show. The other screens, such as a Settings page or the MCP tools browser, are for the person at the window: jetwhale.screenshot captures plugins only."
+        "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show. LOG_VIEWER opens the log viewer in a window of its own: the result's destination stays the main window's screen, and logViewerOpen reports the log viewer. The other screens, such as a Settings page or the MCP tools browser, are for the person at the window: jetwhale.screenshot captures plugins only."
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
@@ -83,6 +83,7 @@ class HostNavigationCommand(
                 settingsPage = applied.settingsPage?.name,
                 mcpToolsTab = applied.mcpToolsTab?.name,
                 poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+                logViewerOpen = applied.logViewerOpen,
             ),
         )
     }
@@ -144,7 +145,7 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
 
     is HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
-    is HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
+    is HostNavigationRequest.LogViewer -> destination.logViewerOpen
 
     is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsPage == page
 
@@ -170,5 +171,6 @@ data class NavigateResult(
     val settingsPage: String? = null,
     val mcpToolsTab: String? = null,
     val poppedOut: Boolean = false,
+    val logViewerOpen: Boolean = false,
     val reason: String? = null,
 )

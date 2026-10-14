@@ -108,6 +108,7 @@ private fun HostViewState.toJson() = UiStateJson(
     settingsPage = destination.settingsPage?.name,
     mcpToolsTab = destination.mcpToolsTab?.name,
     poppedOutPlugins = destination.poppedOutPlugins.map { PoppedOutPluginJson(it.pluginId, it.sessionId) },
+    logViewerOpen = destination.logViewerOpen,
     selectedSessionId = selectedSessionId,
     selectedPluginId = selectedPluginId,
 )
@@ -170,6 +171,7 @@ data class UiStateJson(
     val settingsPage: String? = null,
     val mcpToolsTab: String? = null,
     val poppedOutPlugins: List<PoppedOutPluginJson> = emptyList(),
+    val logViewerOpen: Boolean,
     val selectedSessionId: String? = null,
     val selectedPluginId: String? = null,
 )

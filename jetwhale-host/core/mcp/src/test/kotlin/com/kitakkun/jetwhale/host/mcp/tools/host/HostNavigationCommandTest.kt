@@ -85,7 +85,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate reports the destination the host switched to`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.DEBUG_SERVER),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.DEBUG_SERVER, logViewerOpen = false),
         )
 
         val result = command
@@ -98,9 +98,22 @@ class HostNavigationCommandTest {
     }
 
     @Test
+    fun `opening the log viewer is confirmed by its window being open whatever the main window shows`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE, logViewerOpen = true),
+        )
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("LOG_VIEWER"))).decode()
+
+        assertTrue(result.applied)
+        assertTrue(result.logViewerOpen)
+        assertEquals("SETTINGS", result.destination)
+    }
+
+    @Test
     fun `navigate does not confirm a settings section other than the one requested`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE, logViewerOpen = false),
         )
 
         val result = command
@@ -113,7 +126,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens every settings page by the name the settings menu gives it`() = runBlocking {
         HostSettingsPage.entries.forEach { page ->
-            currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = page))
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = page, logViewerOpen = false))
 
             val result = command
                 .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsPage" to JsonPrimitive(page.name)))
@@ -128,7 +141,7 @@ class HostNavigationCommandTest {
 
     @Test
     fun `navigate opens the first page of a section given only settingsSection`() = runBlocking {
-        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.MCP_SERVER))
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.MCP_SERVER, logViewerOpen = false))
 
         command.execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("AI_AGENTS")))
 
@@ -138,7 +151,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate does not take another page of the requested section as confirmation`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS),
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS, logViewerOpen = false),
         )
 
         val result = command
@@ -150,7 +163,7 @@ class HostNavigationCommandTest {
 
     @Test
     fun `navigate accepts a settingsSection that holds the settingsPage`() = runBlocking {
-        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS))
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS, logViewerOpen = false))
 
         command.execute(
             arguments(
@@ -180,7 +193,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens each tab of the MCP tools browser`() = runBlocking {
         HostMcpToolsTab.entries.forEach { tab ->
-            currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = tab))
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = tab, logViewerOpen = false))
 
             val result = command
                 .execute(arguments("destination" to JsonPrimitive("MCP_TOOLS"), "mcpToolsTab" to JsonPrimitive(tab.name)))
@@ -195,7 +208,7 @@ class HostNavigationCommandTest {
 
     @Test
     fun `navigate opens the MCP tools browser on its Tools tab by default`() = runBlocking {
-        currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.TOOLS))
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.TOOLS, logViewerOpen = false))
 
         command.execute(arguments("destination" to JsonPrimitive("MCP_TOOLS")))
 
@@ -205,7 +218,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate does not take a tools browser narrowed to one plugin as confirmation`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.MCP_TOOLS, pluginId = "com.example.agent", mcpToolsTab = HostMcpToolsTab.TOOLS),
+            HostDestination(kind = HostDestinationKind.MCP_TOOLS, pluginId = "com.example.agent", mcpToolsTab = HostMcpToolsTab.TOOLS, logViewerOpen = false),
         )
 
         val result = command.execute(arguments("destination" to JsonPrimitive("MCP_TOOLS"))).decode()
@@ -229,6 +242,7 @@ class HostNavigationCommandTest {
                 pluginId = "com.example.agent",
                 sessionId = "session-1",
                 poppedOutPlugins = listOf(PoppedOutPlugin("com.example.agent", "session-1")),
+                logViewerOpen = false,
             ),
         )
 
@@ -309,7 +323,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate opens a plugin that needs no app in the host session whatever session was named`() = runBlocking {
         currentView.value = viewState(
-            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID),
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.hostonly", sessionId = HostSession.ID, logViewerOpen = false),
         )
 
         val result = command
