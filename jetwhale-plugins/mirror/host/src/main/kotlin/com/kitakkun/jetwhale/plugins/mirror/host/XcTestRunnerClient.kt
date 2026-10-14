@@ -16,12 +16,12 @@ import java.time.Instant
 import kotlin.time.Duration
 
 /**
- * Taps, swipes, text and buttons sent to iOS simulators and devices through their XCTest runners,
- * and their screens streamed from them, in the pixels of the device's screen that the mirror works
- * in. A command the runner refuses throws [DeviceControlException] with the reason, and one whose
- * runner cannot be built or started throws [RunnerStartException].
+ * The mirror's side of the XCTest runners that drive iOS simulators and devices: input, screen sizes,
+ * leases and the screen streams, in the pixels of the device's screen that the mirror works in. A
+ * command the runner refuses throws [DeviceControlException] with the reason, and one whose runner
+ * cannot be built or started throws [RunnerStartException].
  */
-internal class XcTestRunnerInput(private val runners: XcTestRunners) {
+internal class XcTestRunnerClient(private val runners: XcTestRunners) {
     /** Why [target] takes no input, when that is known without starting a runner. */
     fun refusalFor(target: XcTestRunnerTarget): String? = runners.refusalFor(target)
 

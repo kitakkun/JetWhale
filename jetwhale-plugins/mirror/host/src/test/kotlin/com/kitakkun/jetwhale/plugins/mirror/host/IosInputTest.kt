@@ -105,7 +105,7 @@ class IosInputTest {
 
     @Test
     fun `a simulator without Xcode's runners has no input and no live video and says why`() = runTest {
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", runnerInput = null)
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", xcTestRunnerClient = null)
 
         assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", simulator.capabilities.inputRefusal)
         assertEquals(emptyList(), simulator.capabilities.buttons)
@@ -159,7 +159,7 @@ class IosInputTest {
         )
         for (reason in reasons) {
             val failingRunners = FakeXcTestRunners().apply { startFailure = reason }
-            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(failingRunners))
+            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(failingRunners))
             val stream = simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages
 
             val streamFailure = assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { stream.collectUntilClosed {} } }
@@ -254,7 +254,7 @@ class IosInputTest {
 
     @Test
     fun `an iPhone that takes input reads its screen size from its runner without idb`() = runTest {
-        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
 
         assertEquals(IntSize(1206, 2622), iphone.screenSize())
         assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
@@ -263,7 +263,7 @@ class IosInputTest {
     @Test
     fun `an iPhone that takes no input and has no idb says where its screen size would come from`() = runTest {
         runners.refusal = "driving an iPhone needs your Apple development team"
-        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
 
         val failure = assertFailsWith<DeviceControlException> { iphone.screenSize() }
 
@@ -332,7 +332,7 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+    private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(runners))
 
     /** An iPhone whose idb describes a screen of [width] by [height] pixels, as `idb describe` does a device's. */
     private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int) = iphoneWithIdbScript("""echo '{"screen_dimensions":{"width":$width,"height":$height,"density":3}}'""")
@@ -352,7 +352,7 @@ class IosInputTest {
             idleTimeout = 3.minutes,
             scope = backgroundScope,
         )
-        return IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = companions, ffmpegPath = null, runnerInput = XcTestRunnerInput(runners))
+        return IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = companions, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
     }
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
@@ -368,7 +368,7 @@ class IosInputTest {
             scope = backgroundScope,
         ),
         ffmpegPath = null,
-        runnerInput = XcTestRunnerInput(runners),
+        xcTestRunnerClient = XcTestRunnerClient(runners),
     )
 }
 

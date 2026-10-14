@@ -50,7 +50,7 @@ internal class DeviceDiscovery(
 
     suspend fun discover(): Discovery = looking.withLock {
         val locatedToolPaths = toolPaths.await()
-        val runnerInput = xcTestRunners.await()?.let(::XcTestRunnerInput)
+        val xcTestRunnerClient = xcTestRunners.await()?.let(::XcTestRunnerClient)
         val looks = listOf(
             listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
             listSimulators(locatedToolPaths) to setOf(DeviceKind.IosSimulator),
@@ -61,13 +61,13 @@ internal class DeviceDiscovery(
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
         val isIphoneListedOrKnown = (listings.map(DeviceListing::kind) + known.values.map(MirrorDevice::kind)).contains(DeviceKind.IosDevice)
         val sharedCompanions = if (isIphoneListedOrKnown) companions.await() else null
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, runnerInput)) }
+        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, xcTestRunnerClient)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { sharedCompanions?.stopCompanionEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         val isIphoneListed = devices.any { it.kind == DeviceKind.IosDevice }
-        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, runnerInput, isIphoneListed))
+        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, xcTestRunnerClient, isIphoneListed))
     }
 
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
@@ -97,7 +97,7 @@ internal class DeviceDiscovery(
         }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, runnerInput: XcTestRunnerInput?): DeviceController = when (listing.kind) {
+    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, xcTestRunnerClient: XcTestRunnerClient?): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
@@ -106,7 +106,7 @@ internal class DeviceDiscovery(
             udid = listing.id,
             iosMajorVersion = majorVersionOf(listing.osVersion),
             xcrunPath = checkNotNull(locatedToolPaths.xcrunPath),
-            runnerInput = runnerInput,
+            xcTestRunnerClient = xcTestRunnerClient,
         )
 
         DeviceKind.IosDevice -> IosPhysicalDeviceController(
@@ -114,15 +114,15 @@ internal class DeviceDiscovery(
             iosMajorVersion = majorVersionOf(listing.osVersion),
             companions = sharedCompanions,
             ffmpegPath = locatedToolPaths.ffmpegPath,
-            runnerInput = runnerInput,
+            xcTestRunnerClient = xcTestRunnerClient,
         )
     }
 
-    private fun missingTools(locatedToolPaths: MirrorToolPaths, runnerInput: XcTestRunnerInput?, isIphoneListed: Boolean): List<String> = buildList {
+    private fun missingTools(locatedToolPaths: MirrorToolPaths, xcTestRunnerClient: XcTestRunnerClient?, isIphoneListed: Boolean): List<String> = buildList {
         if (locatedToolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
         if (isIphoneListed && locatedToolPaths.idbPath == null) add("idb was not found, so iPhones and iPads are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
         if (isIphoneListed && locatedToolPaths.idbPath != null && locatedToolPaths.idbCompanionPath == null) add("idb_companion was not found, so iPhones and iPads are shown without live video, screenshots or recordings. $IDB_INSTALL_INSTRUCTIONS")
-        if (isIphoneListed && runnerInput != null && locatedToolPaths.iproxyPath == null) add("iproxy was not found, so iPhones and iPads are shown without input: $IPROXY_INSTALL")
+        if (isIphoneListed && xcTestRunnerClient != null && locatedToolPaths.iproxyPath == null) add("iproxy was not found, so iPhones and iPads are shown without input: $IPROXY_INSTALL")
         if (locatedToolPaths.ffmpegPath == null && (locatedToolPaths.adbPath != null || isIphoneListed)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 

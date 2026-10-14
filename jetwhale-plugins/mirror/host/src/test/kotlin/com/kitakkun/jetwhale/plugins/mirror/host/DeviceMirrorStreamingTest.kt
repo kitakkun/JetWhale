@@ -274,7 +274,7 @@ class DeviceMirrorStreamingTest {
             runnerStreamed.complete(Unit)
             awaitCancellation()
         }
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(runners))
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("SIM-1", "iPhone 17", DeviceKind.IosSimulator, osVersion = "iOS 26.2"), simulator)) }
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (mirror.state != MirrorState.Polling(reason)) delay(MIRROR_STATE_POLL_MILLIS) }
@@ -296,7 +296,7 @@ class DeviceMirrorStreamingTest {
         assumeShellScriptsLaunch()
         val reason = "the XCTest runner did not start: error: iOS 26.2 Platform Not Installed."
         val runners = FakeXcTestRunners().apply { startFailure = reason }
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(runners))
         mirror.surface.viewSize = IntSize(540, 1200)
         val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("SIM-1", "iPhone 17", DeviceKind.IosSimulator, osVersion = "iOS 26.2"), simulator)) }
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (mirror.state != MirrorState.Polling(reason)) delay(MIRROR_STATE_POLL_MILLIS) }
