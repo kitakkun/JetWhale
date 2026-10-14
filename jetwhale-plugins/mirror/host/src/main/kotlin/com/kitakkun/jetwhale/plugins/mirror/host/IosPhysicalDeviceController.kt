@@ -29,7 +29,7 @@ internal class IosPhysicalDeviceController(
     private val idbPath: String,
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
-    private val runnerInput: XcTestRunnerInput?,
+    private val xcTestRunnerClient: XcTestRunnerClient?,
 ) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
@@ -73,7 +73,7 @@ internal class IosPhysicalDeviceController(
         screen?.let { return it }
         inputRefusal()?.let { throw deviceControlError("the size of an iPhone's screen comes from its XCTest runner, and $it") }
         val size = try {
-            checkNotNull(runnerInput).screenSize(runnerTarget)
+            checkNotNull(xcTestRunnerClient).screenSize(runnerTarget)
         } catch (e: XcTestRunnerStartException) {
             throw DeviceControlException(e.message.orEmpty(), e)
         }
@@ -102,18 +102,18 @@ internal class IosPhysicalDeviceController(
     override suspend fun keepRunnerAlive(duration: Duration): Instant {
         inputRefusal()?.let { throw deviceControlError(it) }
         return try {
-            checkNotNull(runnerInput).keepRunnerAlive(runnerTarget, duration)
+            checkNotNull(xcTestRunnerClient).keepRunnerAlive(runnerTarget, duration)
         } catch (e: XcTestRunnerStartException) {
             throw DeviceControlException(e.message.orEmpty(), e)
         }
     }
 
-    override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
+    override fun runnerKeptAliveUntil(): Instant? = xcTestRunnerClient?.runnerKeptAliveUntil(runnerTarget)
 
-    private suspend fun sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> Unit) {
+    private suspend fun sendInput(command: suspend (XcTestRunnerClient, XcTestRunnerTarget) -> Unit) {
         inputRefusal()?.let { throw deviceControlError(it) }
         try {
-            command(checkNotNull(runnerInput), runnerTarget)
+            command(checkNotNull(xcTestRunnerClient), runnerTarget)
         } catch (e: XcTestRunnerStartException) {
             throw DeviceControlException(e.message.orEmpty(), e)
         }
@@ -121,10 +121,10 @@ internal class IosPhysicalDeviceController(
 
     /** Starts the runner ahead of the first input, once the iPhone can take input; until then, does nothing. */
     fun startRunnerInBackground() {
-        if (inputRefusal() == null) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+        if (inputRefusal() == null) checkNotNull(xcTestRunnerClient).startRunnerInBackground(runnerTarget)
     }
 
-    private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
+    private fun inputRefusal(): String? = if (xcTestRunnerClient == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else xcTestRunnerClient.refusalFor(runnerTarget)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 

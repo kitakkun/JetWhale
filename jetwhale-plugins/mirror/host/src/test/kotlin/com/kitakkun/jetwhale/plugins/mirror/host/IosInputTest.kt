@@ -119,7 +119,7 @@ class IosInputTest {
     fun `a simulator offers Recent apps through its runner alone, and refuses it when neither the runner nor idb can press it`() = runTest {
         assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
 
-        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, runnerInput = null)
+        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, xcTestRunnerClient = null)
         assertEquals(emptyList(), simulatorWithoutInput.capabilities.buttons)
         assertEquals("input to a simulator needs Xcode's xcodebuild, or an idb that can send input", simulatorWithoutInput.capabilities.inputRefusal)
         assertEquals(
@@ -242,7 +242,7 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, runnerInput = XcTestRunnerInput(runners))
+    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, xcTestRunnerClient = XcTestRunnerClient(runners))
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
         udid = "00008110",
@@ -258,7 +258,7 @@ class IosInputTest {
             scope = backgroundScope,
         ),
         ffmpegPath = null,
-        runnerInput = XcTestRunnerInput(runners),
+        xcTestRunnerClient = XcTestRunnerClient(runners),
     )
 }
 

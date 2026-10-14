@@ -44,7 +44,7 @@ internal class DeviceDiscovery(
     suspend fun discover(): Discovery = looking.withLock {
         val locatedToolPaths = toolPaths.await()
         val sharedCompanions = companions.await()
-        val runnerInput = xcTestRunners.await()?.let(::XcTestRunnerInput)
+        val xcTestRunnerClient = xcTestRunners.await()?.let(::XcTestRunnerClient)
         val idbCanSendSimulatorInput = idbCanSendSimulatorInput.await()
         val looks = listOf(
             listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
@@ -54,12 +54,12 @@ internal class DeviceDiscovery(
         // A tool that fails to list (adb's server starting, say) keeps the devices it listed before,
         // so a passing failure neither drops the selected device nor forgets an iPhone's companion.
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, runnerInput, idbCanSendSimulatorInput)) }
+        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, xcTestRunnerClient, idbCanSendSimulatorInput)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { sharedCompanions?.stopCompanionEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
-        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, runnerInput))
+        Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, xcTestRunnerClient))
     }
 
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
@@ -83,7 +83,7 @@ internal class DeviceDiscovery(
             ?: tryList { parseIdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, idbPath, "list-targets").stdoutText) }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, runnerInput: XcTestRunnerInput?, idbCanSendSimulatorInput: Boolean): DeviceController = when (listing.kind) {
+    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, sharedCompanions: IdbCompanions?, xcTestRunnerClient: XcTestRunnerClient?, idbCanSendSimulatorInput: Boolean): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
@@ -94,7 +94,7 @@ internal class DeviceDiscovery(
             xcrunPath = checkNotNull(locatedToolPaths.xcrunPath),
             idbPath = locatedToolPaths.idbPath,
             idbCanSendSimulatorInput = idbCanSendSimulatorInput,
-            runnerInput = runnerInput,
+            xcTestRunnerClient = xcTestRunnerClient,
         )
 
         DeviceKind.IosDevice -> IosPhysicalDeviceController(
@@ -103,15 +103,15 @@ internal class DeviceDiscovery(
             idbPath = checkNotNull(locatedToolPaths.idbPath),
             companions = checkNotNull(sharedCompanions),
             ffmpegPath = locatedToolPaths.ffmpegPath,
-            runnerInput = runnerInput,
+            xcTestRunnerClient = xcTestRunnerClient,
         )
     }
 
-    private fun missingTools(locatedToolPaths: MirrorToolPaths, runnerInput: XcTestRunnerInput?): List<String> = buildList {
+    private fun missingTools(locatedToolPaths: MirrorToolPaths, xcTestRunnerClient: XcTestRunnerClient?): List<String> = buildList {
         if (locatedToolPaths.adbPath == null) add("adb was not found, so Android devices are not listed. Install the Android SDK platform tools.")
         if (locatedToolPaths.xcrunPath != null && locatedToolPaths.idbPath == null) add("idb was not found, so iOS simulators are shown without live video, and iOS devices are not listed. $IDB_MISSING")
         if (locatedToolPaths.idbPath != null && locatedToolPaths.idbCompanionPath == null) add("idb_companion was not found, so iOS devices are not listed: $IDB_INSTALL")
-        if (runnerInput != null && locatedToolPaths.iproxyPath == null && locatedToolPaths.idbCompanionPath != null) add("iproxy was not found, so iOS devices are shown without input: $IPROXY_INSTALL")
+        if (xcTestRunnerClient != null && locatedToolPaths.iproxyPath == null && locatedToolPaths.idbCompanionPath != null) add("iproxy was not found, so iOS devices are shown without input: $IPROXY_INSTALL")
         if (locatedToolPaths.ffmpegPath == null && (locatedToolPaths.adbPath != null || locatedToolPaths.idbCompanionPath != null)) add("ffmpeg was not found, so Android devices, and emulators without their own screen stream, are shown through screenshots at a few frames a second, and iOS devices cannot be mirrored. $FFMPEG_INSTALL")
     }
 
