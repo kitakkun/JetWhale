@@ -1,14 +1,18 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.JsonObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -53,6 +57,57 @@ internal class FakeRunnerConnection(var answering: Boolean, var protocolVersion:
     }
 
     val paths: List<String> get() = sent.map { it.first }
+
+    /** The screen streams this runner opens, in order; opening one more than these fails as unreachable. */
+    val screenStreams = ArrayDeque<FakeScreenStream>()
+
+    override suspend fun openScreenStream(maxFps: Int): RunnerScreenStream {
+        if (unreachable) throw RunnerUnreachableException("connection refused", null)
+        return screenStreams.removeFirstOrNull() ?: throw RunnerUnreachableException("no screen stream to open", null)
+    }
+}
+
+/** A screen stream that hands out the frames a test offers, waiting for each as the runner's does. */
+internal class FakeScreenStream : RunnerScreenStream {
+    private val readOutcomes = LinkedBlockingQueue<ReadOutcome>()
+
+    private sealed interface ReadOutcome {
+        class Frame(val bytes: ByteArray) : ReadOutcome
+
+        data object End : ReadOutcome
+
+        data object Closed : ReadOutcome
+    }
+
+    /** Reads begun so far, including one waiting for a frame. */
+    val readsBegun = MutableStateFlow(0)
+
+    @Volatile
+    var closed = false
+        private set
+
+    fun offer(frame: String) {
+        readOutcomes.put(ReadOutcome.Frame(frame.encodeToByteArray()))
+    }
+
+    /** Ends the stream after the frames offered so far, as one whose runner went away does. */
+    fun end() {
+        readOutcomes.put(ReadOutcome.End)
+    }
+
+    override fun readJpegFrame(): ByteArray? {
+        readsBegun.update { it + 1 }
+        return when (val readOutcome = readOutcomes.take()) {
+            is ReadOutcome.Frame -> readOutcome.bytes
+            is ReadOutcome.End -> null
+            is ReadOutcome.Closed -> throw IOException("Socket closed")
+        }
+    }
+
+    override fun close() {
+        closed = true
+        readOutcomes.put(ReadOutcome.Closed)
+    }
 }
 
 /**
@@ -113,18 +168,21 @@ internal class FakeToolProcess(val command: List<String>, private val pid: Long,
 }
 
 /**
- * An `xcrun xcodebuild` stand-in for builds: it reports Xcode [buildVersion], and a build writes an
- * `.xctestrun` where xcodebuild would, or fails with [buildFailure] when that is set.
+ * An `xcrun xcodebuild` stand-in for builds: it reports Xcode [buildVersion], or fails with
+ * [versionFailure] when that is set, and a build writes an `.xctestrun` where xcodebuild would, or
+ * fails with [buildFailure] when that is set.
  */
 internal class FakeXcodebuildCommands(var buildVersion: String = "27A266a", var buildFailure: String? = null) : CommandOutputRunner {
     val commands = mutableListOf<List<String>>()
+
+    var versionFailure: String? = null
 
     val buildCommands: List<List<String>> get() = commands.filter { "build-for-testing" in it }
 
     override suspend fun run(command: List<String>): CommandOutput {
         commands += command
         return when {
-            "-version" in command -> CommandOutput(exitCode = 0, text = "Xcode 27.0\nBuild version $buildVersion\n")
+            "-version" in command -> versionFailure?.let { CommandOutput(exitCode = 69, text = it) } ?: CommandOutput(exitCode = 0, text = "Xcode 27.0\nBuild version $buildVersion\n")
 
             "build-for-testing" in command -> buildFailure?.let { CommandOutput(exitCode = 65, text = it) } ?: run {
                 val products = File(command[command.indexOf("-derivedDataPath") + 1], "Build/Products").apply { mkdirs() }

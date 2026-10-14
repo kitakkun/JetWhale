@@ -11,35 +11,39 @@ import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerScreen
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class IosInputTest {
     private val folder: File = Files.createTempDirectory("ios-input").toFile()
     private val runners = FakeXcTestRunners()
-    private val idbCalls = File(folder, "idb-calls")
 
-    /** An idb stand-in for a 402x874-point simulator at 3x that notes each call. */
-    private val fakeIdb = File(folder, "idb").apply {
+    /** An xcrun whose simctl writes a screenshot that reads `screenshot`. */
+    private val fakeXcrun = File(folder, "xcrun").apply {
         writeText(
             """
             #!/bin/sh
-            echo "${'$'}*" >> '${idbCalls.path}'
-            case "${'$'}1" in
-              describe) echo '{"screen_dimensions":{"width":1206,"height":2622,"density":3}}' ;;
-            esac
+            [ "${'$'}1 ${'$'}2 ${'$'}3 ${'$'}4" = 'simctl io SIM-1 screenshot' ] || exit 64
+            printf screenshot > "${'$'}5"
             """.trimIndent() + "\n",
         )
         setExecutable(true)
@@ -51,8 +55,9 @@ class IosInputTest {
     }
 
     @Test
-    fun `a simulator's input goes through its XCTest runner, in points, and not idb`() = runTest {
-        val simulator = simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true)
+    fun `a simulator's input goes through its XCTest runner in the points of its screenshots`() = runTest {
+        val simulator = simulator()
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator.capabilities.buttons)
 
         simulator.tap(x = 603, y = 1311)
         simulator.swipe(fromX = 300, fromY = 2400, toX = 300, toY = 1200, durationMillis = 250)
@@ -61,120 +66,149 @@ class IosInputTest {
         simulator.pressButton(DeviceButton.Recents)
         simulator.pressButton(DeviceButton.Power)
 
-        assertEquals(listOf("tap 201.0,437.0", "swipe 100.0,800.0 -> 100.0,400.0 in 250", "type hello", "press Home", "open app switcher", "press Lock"), runners.runner.calls)
+        assertEquals(
+            listOf("tap 201.0,437.0 in interface points", "swipe 100.0,800.0 -> 100.0,400.0 in 250 in interface points", "type hello", "press Home", "open app switcher", "press Lock"),
+            runners.runner.calls,
+        )
         assertEquals(setOf("SIM-1"), runners.askedFor.map(XcTestRunnerTarget::udid).toSet())
-        assertFalse(idbCalls.exists())
     }
 
     @Test
-    fun `a simulator falls back to idb when its runner cannot start`() = runTest {
-        assumeShellScriptsLaunch()
+    fun `a simulator whose runner cannot start says why`() = runTest {
         runners.startFailure = "the XCTest runner did not start: error: something broke"
 
-        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).tap(x = 603, y = 1311)
-
-        assertEquals(listOf("describe --udid SIM-1 --json", "ui tap --udid SIM-1 201 437"), idbCalls.readLines())
-    }
-
-    @Test
-    fun `without idb, a runner that cannot start is the reason the input failed`() = runTest {
-        runners.startFailure = "the XCTest runner did not start: error: something broke"
-
-        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = null, idbCanSendSimulatorInput = false).inputText("hello") }
+        val failure = assertFailsWith<DeviceControlException> { simulator().inputText("hello") }
 
         assertEquals("the XCTest runner did not start: error: something broke", failure.message)
     }
 
     @Test
-    fun `a command the runner refuses fails with the runner's reason and does not fall back to idb`() = runTest {
+    fun `a command the runner refuses fails with the runner's reason`() = runTest {
         runners.runner.refusal = "the XCTest runner failed to typeText: this Xcode's XCTest has no text-input events"
 
-        val failure = assertFailsWith<DeviceControlException> { simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).inputText("hello") }
+        val failure = assertFailsWith<DeviceControlException> { simulator().inputText("hello") }
 
         assertEquals("the XCTest runner failed to typeText: this Xcode's XCTest has no text-input events", failure.message)
-        assertFalse(idbCalls.exists())
     }
 
     @Test
-    fun `Recent apps on a simulator presses home twice through idb when the runner cannot start`() = runTest {
-        assumeShellScriptsLaunch()
-        runners.startFailure = "the XCTest runner did not start: error: something broke"
-
-        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).pressButton(DeviceButton.Recents)
-
-        assertEquals(listOf("ui button --udid SIM-1 HOME", "ui button --udid SIM-1 HOME"), idbCalls.readLines())
-    }
-
-    @Test
-    fun `an idb that cannot send input is not fallen back on`() = runTest {
-        runners.startFailure = "the XCTest runner did not start: error: something broke"
-        val simulator = simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = false)
-
-        assertEquals("the XCTest runner did not start: error: something broke", assertFailsWith<DeviceControlException> { simulator.pressButton(DeviceButton.Recents) }.message)
-        assertEquals("the XCTest runner did not start: error: something broke", assertFailsWith<DeviceControlException> { simulator.tap(x = 1, y = 1) }.message)
-        assertFalse(idbCalls.exists())
-    }
-
-    @Test
-    fun `a simulator offers Recent apps through its runner alone, and refuses it when neither the runner nor idb can press it`() = runTest {
-        assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator(idbPath = null, idbCanSendSimulatorInput = false).capabilities.buttons)
-
-        val simulatorWithoutInput = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = fakeIdb.path, idbCanSendSimulatorInput = false, xcTestRunnerClient = null)
-        assertEquals(emptyList(), simulatorWithoutInput.capabilities.buttons)
-        assertEquals("input to a simulator needs Xcode's xcodebuild, or an idb that can send input", simulatorWithoutInput.capabilities.inputRefusal)
-        assertEquals(
-            "input to a simulator goes through idb, which cannot send input with this Xcode: idb_companion does not find SimulatorKit where this Xcode keeps it",
-            assertFailsWith<DeviceControlException> { simulatorWithoutInput.pressButton(DeviceButton.Recents) }.message,
-        )
-    }
-
-    @Test
-    fun `a simulator whose iOS the runner refuses takes input through idb, or is refused with the runner's reason`() = runTest {
-        assumeShellScriptsLaunch()
+    fun `a simulator whose iOS the runner refuses has no input and no live video and says why`() = runTest {
         runners.refusal = "the XCTest runner needs iOS 17 or later, and this one runs iOS 16"
+        val simulator = simulator()
 
-        simulator(idbPath = fakeIdb.path, idbCanSendSimulatorInput = true).tap(x = 603, y = 1311)
-
-        assertEquals(listOf("describe --udid SIM-1 --json", "ui tap --udid SIM-1 201 437"), idbCalls.readLines())
-        val simulatorWithoutIdb = simulator(idbPath = null, idbCanSendSimulatorInput = false)
-        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", simulatorWithoutIdb.capabilities.inputRefusal)
-        assertEquals(emptyList(), simulatorWithoutIdb.capabilities.buttons)
-    }
-
-    @Test
-    fun `idb sends input only where it finds SimulatorKit`() {
-        val developerDirectory = File(folder, "Developer")
-        assertFalse(isSimulatorKitInPrivateFrameworks(developerDirectory))
-
-        File(developerDirectory, "Library/PrivateFrameworks/SimulatorKit.framework").mkdirs()
-
-        assertTrue(isSimulatorKitInPrivateFrameworks(developerDirectory))
-    }
-
-    @Test
-    fun `showing a simulator starts its runner in the background, before any input`() = runTest {
-        assertFailsWith<DeviceControlException> { simulator(idbPath = null, idbCanSendSimulatorInput = false).openVideoStream(wanted = null) }
-
-        assertEquals(listOf("SIM-1"), runners.startedInBackground.map(XcTestRunnerTarget::udid))
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", simulator.capabilities.inputRefusal)
+        assertEquals(emptyList(), simulator.capabilities.buttons)
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", assertFailsWith<DeviceControlException> { simulator.pressButton(DeviceButton.Recents) }.message)
+        assertEquals("the XCTest runner needs iOS 17 or later, and this one runs iOS 16", assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
         assertTrue(runners.askedFor.isEmpty())
     }
 
     @Test
-    fun `screenshot pixels go to the runner as interface points, sized as the interface shows the screen`() = runTest {
-        val simulator = simulator(idbPath = null, idbCanSendSimulatorInput = false)
-        runners.runner.interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.LandscapeRight, widthPixels = 2622, heightPixels = 1206)
-        val input = ScreenshotPixelInput(simulator)
+    fun `a simulator without Xcode's runners has no input and no live video and says why`() = runTest {
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", xcTestRunnerClient = null)
 
-        assertEquals(IntSize(2622, 1206), input.screenshotSize())
-        input.tap(x = 1311, y = 174)
-        input.swipe(fromX = 300, fromY = 600, toX = 900, toY = 600, durationMillis = 300)
+        assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", simulator.capabilities.inputRefusal)
+        assertEquals(emptyList(), simulator.capabilities.buttons)
+        assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
+    }
 
-        assertEquals(listOf("tap 437.0,58.0 in interface points", "swipe 100.0,200.0 -> 300.0,200.0 in 300 in interface points"), runners.runner.calls)
+    @Test
+    fun `a simulator shows screenshots until its runner streams and then only the runner's frames`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val firstScreenshotShown = CompletableDeferred<Unit>()
+        runners.runner.screenFrames = flow {
+            firstScreenshotShown.await()
+            emit("runner-1".encodeToByteArray())
+            emit("runner-2".encodeToByteArray())
+        }
+        val stream = simulator().openVideoStream(wanted = null) as VideoStream.EncodedImages
+        val shown = mutableListOf<String>()
+
+        withTimeout(10.seconds) {
+            stream.collectUntilClosed { image ->
+                shown += image.decodeToString()
+                firstScreenshotShown.complete(Unit)
+            }
+        }
+
+        assertEquals("screenshot", shown.first())
+        assertEquals("runner-2", shown.last())
+        assertTrue(shown.dropWhile { it == "screenshot" }.none { it == "screenshot" }, "a screenshot came after a frame of the runner: $shown")
+        assertEquals(listOf(60), runners.runner.screenStreamRates)
+    }
+
+    @Test
+    fun `a simulator's runner stream that fails ends the video with the runner's reason`() = runBlocking {
+        assumeShellScriptsLaunch()
+        runners.startFailure = "the XCTest runner did not start: error: something broke"
+        val stream = simulator().openVideoStream(wanted = null) as VideoStream.EncodedImages
+
+        val failure = assertFailsWith<DeviceControlException> { withTimeout(10.seconds) { stream.collectUntilClosed {} } }
+
+        assertEquals("the XCTest runner did not start: error: something broke", failure.message)
+    }
+
+    @Test
+    fun `a simulator whose runner cannot be built or started is view only with the reason, and its runner is not tried again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val reasons = listOf(
+            "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again",
+            "the XCTest runner needs Xcode, and xcodebuild cannot run: install Xcode from the App Store, or choose it with 'sudo xcode-select -s /Applications/Xcode.app', then try again",
+            "the XCTest runner did not start: error: iOS 26.2 Platform Not Installed.",
+            "the XCTest runner did not answer within 3m",
+        )
+        for (reason in reasons) {
+            val failingRunners = FakeXcTestRunners().apply { startFailure = reason }
+            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(failingRunners))
+            val stream = simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages
+
+            val streamFailure = assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { stream.collectUntilClosed {} } }
+
+            assertEquals(reason, streamFailure.message)
+            assertEquals(reason, simulator.capabilities.inputRefusal)
+            assertEquals(emptyList(), simulator.capabilities.buttons)
+            assertEquals(reason, assertFailsWith<DeviceControlException> { simulator.openVideoStream(wanted = null) }.message)
+            assertEquals(reason, assertFailsWith<DeviceControlException> { simulator.tap(x = 10, y = 10) }.message)
+            assertEquals(1, failingRunners.askedFor.size)
+        }
+    }
+
+    @Test
+    fun `a simulator whose runner failure is forgotten streams from its runner and takes input again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        runners.startFailure = "Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again"
+        val simulator = simulator()
+        assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed {} } }
+        runners.startFailure = null
+        runners.runner.screenFrames = flow { emit("runner-1".encodeToByteArray()) }
+
+        simulator.forgetRunnerStartFailure()
+        val shown = mutableListOf<String>()
+        withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed { shown += it.decodeToString() } }
+        simulator.tap(x = 30, y = 60)
+
+        assertNull(simulator.capabilities.inputRefusal)
+        assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator.capabilities.buttons)
+        assertEquals("runner-1", shown.last())
+        assertEquals(listOf("tap 10.0,20.0 in interface points"), runners.runner.calls)
+    }
+
+    @Test
+    fun `a simulator whose runner's stream breaks still takes input and tries its runner again`() = runBlocking {
+        assumeShellScriptsLaunch()
+        runners.runner.screenFrames = flow { throw XcTestRunnerException("the XCTest runner's screen stream ended before its first frame", null) }
+        val simulator = simulator()
+
+        val failures = List(2) { assertFailsWith<DeviceControlException> { withTimeout(STREAM_END_TIMEOUT) { (simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages).collectUntilClosed {} } } }
+
+        assertEquals(List(2) { "the XCTest runner's screen stream ended before its first frame" }, failures.map(DeviceControlException::message))
+        assertNull(simulator.capabilities.inputRefusal)
+        assertEquals(2, runners.askedFor.size)
     }
 
     @Test
     fun `a lease on a device's runner is taken through the runner and read back from the runners`() = runTest {
-        val simulator = simulator(idbPath = null, idbCanSendSimulatorInput = false)
+        val simulator = simulator()
         runners.keptAliveUntil = LEASE_END
 
         assertEquals(LEASE_END, simulator.keepRunnerAlive(30.minutes))
@@ -219,18 +253,74 @@ class IosInputTest {
     }
 
     @Test
+    fun `an iPhone that takes input reads its screen size from its runner without idb`() = runTest {
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
+
+        assertEquals(IntSize(1206, 2622), iphone.screenSize())
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
+    fun `an iPhone that takes no input and has no idb says where its screen size would come from`() = runTest {
+        runners.refusal = "driving an iPhone needs your Apple development team"
+        val iphone = IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = null, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
+
+        val failure = assertFailsWith<DeviceControlException> { iphone.screenSize() }
+
+        assertEquals(
+            "the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: idb is not installed, and driving an iPhone needs your Apple development team",
+            failure.message,
+        )
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
+    fun `an iPhone whose idb reports its screen size asks no runner for it`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbDescribing(width = 1170, height = 2532).screenSize()
+
+        assertEquals(IntSize(1170, 2532), size)
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
+    fun `an iPhone whose idb reports no screen size takes it from its runner`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbDescribing(width = 0, height = 0).screenSize()
+
+        assertEquals(IntSize(1206, 2622), size)
+        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
+    }
+
+    @Test
+    fun `an iPhone whose idb fails to describe it takes its screen size from its runner`() = runTest {
+        assumeShellScriptsLaunch()
+
+        val size = iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize()
+
+        assertEquals(IntSize(1206, 2622), size)
+    }
+
+    @Test
+    fun `an iPhone whose idb fails to describe it and that takes no input reports idb's failure`() = runTest {
+        assumeShellScriptsLaunch()
+        runners.refusal = "driving an iPhone needs your Apple development team"
+
+        val failure = assertFailsWith<DeviceControlException> { iphoneWithIdbScript("echo 'no companion for the device' >&2; exit 1").screenSize() }
+
+        assertContains(failure.message.orEmpty(), "no companion for the device")
+        assertTrue(runners.askedFor.isEmpty())
+    }
+
+    @Test
     fun `an iPhone whose runner cannot start says why`() = runTest {
         runners.startFailure = "Developer Mode is off on the iPhone"
 
         val failure = assertFailsWith<DeviceControlException> { iphone().inputText("hi") }
 
         assertEquals("Developer Mode is off on the iPhone", failure.message)
-    }
-
-    @Test
-    fun `an iPhone that takes input has the screen size its runner reports`() = runTest {
-        assertEquals(IntSize(1206, 2622), iphone().screenSize())
-        assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
     }
 
     @Test
@@ -242,12 +332,32 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator(idbPath: String?, idbCanSendSimulatorInput: Boolean) = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", idbPath = idbPath, idbCanSendSimulatorInput = idbCanSendSimulatorInput, xcTestRunnerClient = XcTestRunnerClient(runners))
+    private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(runners))
+
+    /** An iPhone whose idb describes a screen of [width] by [height] pixels, as `idb describe` does a device's. */
+    private fun TestScope.iphoneWithIdbDescribing(width: Int, height: Int) = iphoneWithIdbScript("""echo '{"screen_dimensions":{"width":$width,"height":$height,"density":3}}'""")
+
+    /** An iPhone with idb, whose commands run [script]. */
+    private fun TestScope.iphoneWithIdbScript(script: String): IosPhysicalDeviceController {
+        val fakeIdb = File(folder, "idb").apply {
+            writeText("#!/bin/sh\n$script\n")
+            setExecutable(true)
+        }
+        val companions = IdbCompanions(
+            idbCompanionPath = "idb_companion",
+            idbPath = fakeIdb.path,
+            launcher = { ReadyCompanionProcess() },
+            commands = { },
+            ports = { 10_000 },
+            idleTimeout = 3.minutes,
+            scope = backgroundScope,
+        )
+        return IosPhysicalDeviceController(udid = "00008110", iosMajorVersion = 26, companions = companions, ffmpegPath = null, xcTestRunnerClient = XcTestRunnerClient(runners))
+    }
 
     private fun TestScope.iphone() = IosPhysicalDeviceController(
         udid = "00008110",
         iosMajorVersion = 26,
-        idbPath = "idb",
         companions = IdbCompanions(
             idbCompanionPath = "idb_companion",
             idbPath = "idb",
@@ -263,7 +373,7 @@ class IosInputTest {
 }
 
 /** Runners that hand out [runner] for every target, or refuse as told. */
-private class FakeXcTestRunners : XcTestRunners {
+internal class FakeXcTestRunners : XcTestRunners {
     val runner = FakeXcTestRunner()
     val askedFor = mutableListOf<XcTestRunnerTarget>()
     val startedInBackground = mutableListOf<XcTestRunnerTarget>()
@@ -287,10 +397,16 @@ private class FakeXcTestRunners : XcTestRunners {
 }
 
 /** A runner on a 1206x2622-pixel screen at 3x that notes what it is told, or refuses with [refusal]. */
-private class FakeXcTestRunner : XcTestRunner {
+internal class FakeXcTestRunner : XcTestRunner {
     val calls = mutableListOf<String>()
     var refusal: String? = null
     var interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.Portrait, widthPixels = 1206, heightPixels = 2622)
+
+    /** What [streamScreenAsJpeg] sends, whatever rate it is asked for. */
+    var screenFrames: Flow<ByteArray> = emptyFlow()
+
+    /** The rates the screen was asked to stream at. */
+    val screenStreamRates = mutableListOf<Int>()
 
     override val screen = XcTestRunnerScreen(widthPixels = 1206, heightPixels = 2622, scale = 3.0)
 
@@ -310,6 +426,11 @@ private class FakeXcTestRunner : XcTestRunner {
 
     override suspend fun activateApp(bundleId: String) = note("activate $bundleId")
 
+    override fun streamScreenAsJpeg(maxFps: Int): Flow<ByteArray> {
+        screenStreamRates += maxFps
+        return screenFrames
+    }
+
     override suspend fun keepAlive(duration: Duration): Instant {
         note("keep alive for $duration")
         return LEASE_END
@@ -324,3 +445,5 @@ private class FakeXcTestRunner : XcTestRunner {
 }
 
 private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")
+
+private val STREAM_END_TIMEOUT = 10.seconds

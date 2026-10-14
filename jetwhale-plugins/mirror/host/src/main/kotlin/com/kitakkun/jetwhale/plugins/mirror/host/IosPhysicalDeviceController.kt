@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
-import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,12 +11,13 @@ import java.io.InputStream
 import java.time.Instant
 import kotlin.concurrent.thread
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
- * A physical iOS device over USB. idb streams its screen through the device's companion, but sends
- * touches, buttons and text to simulators only; input goes through the XCTest runner instead, signed
- * with the user's development team and reached through `iproxy`. Driving a device that way is
- * experimental: it follows Apple's and Appium's documentation and has not been tried on one.
+ * A physical iOS device over USB. idb streams its screen through the device's [companions], null when
+ * idb or its companion is missing; input goes through the XCTest runner, signed with the user's
+ * development team and reached through `iproxy`. Driving a device that way is experimental: it
+ * follows Apple's and Appium's documentation and has not been tried on one.
  *
  * Its screenshots and recordings come from that H.264 stream through ffmpeg: `idb screenshot` does
  * not reach a device running iOS 17 or later. The companion outlives each use by
@@ -26,8 +26,7 @@ import kotlin.time.Duration
 internal class IosPhysicalDeviceController(
     private val udid: String,
     iosMajorVersion: Int?,
-    private val idbPath: String,
-    private val companions: IdbCompanions,
+    private val companions: IdbCompanions?,
     private val ffmpegPath: String?,
     private val xcTestRunnerClient: XcTestRunnerClient?,
 ) : XcTestRunnerDeviceController {
@@ -39,7 +38,7 @@ internal class IosPhysicalDeviceController(
             return DeviceCapabilities(
                 inputRefusal = refusal,
                 buttons = if (refusal == null) listOf(DeviceButton.Home, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown) else emptyList(),
-                recording = ffmpegPath != null,
+                recording = ffmpegPath != null && companions != null,
                 screenPower = false,
             )
         }
@@ -50,10 +49,11 @@ internal class IosPhysicalDeviceController(
     private var screen: IntSize? = null
 
     override suspend fun captureScreenshot(): ByteArray {
+        val companions = requireCompanions("a screenshot of a physical iOS device")
         val ffmpegPath = requireFfmpegPath("a screenshot of a physical iOS device")
         companions.acquire(udid)
         try {
-            val stream = startVideoStream()
+            val stream = startVideoStream(companions.idbPath)
             try {
                 return withContext(Dispatchers.IO) { firstH264FrameAsPng(stream.inputStream, ffmpegPath, STILL_FRAME_TIMEOUT_MILLIS) }
             } finally {
@@ -64,20 +64,35 @@ internal class IosPhysicalDeviceController(
         }
     }
 
-    /**
-     * The size the XCTest runner reports, in the device's own pixels: those of the frames idb
-     * streams. `idb describe` reports a physical device's sides as 0, so an iPhone that takes no
-     * input has no size to give.
-     */
     override suspend fun screenSize(): IntSize {
         screen?.let { return it }
-        inputRefusal()?.let { throw deviceControlError("the size of an iPhone's screen comes from its XCTest runner, and $it") }
-        val size = try {
-            checkNotNull(xcTestRunnerClient).screenSize(runnerTarget)
-        } catch (e: XcTestRunnerStartException) {
-            throw DeviceControlException(e.message.orEmpty(), e)
+        val idbScreenSize = try {
+            companions?.let { readIdbScreenSize(it) }
+        } catch (e: DeviceControlException) {
+            if (inputRefusal() != null) throw e
+            null
         }
+        val size = idbScreenSize ?: readRunnerScreenSize()
         return size.also { screen = it }
+    }
+
+    /** The size `idb describe` reports for the device, or null when it reports none. */
+    private suspend fun readIdbScreenSize(companions: IdbCompanions): IntSize? {
+        companions.acquire(udid)
+        val description = try {
+            runCommandChecked(IDB_COMMAND_TIMEOUT, companions.idbPath, "describe", "--udid", udid, "--json").stdoutText
+        } finally {
+            companions.release(udid)
+        }
+        return parseIdbScreenSize(description)
+    }
+
+    private suspend fun readRunnerScreenSize(): IntSize {
+        inputRefusal()?.let { refusal ->
+            val idbNoSizeReason = if (companions == null) "idb is not installed" else "'idb describe' reported no size"
+            throw deviceControlError("the size of a physical iOS device's screen comes from idb, or from its XCTest runner once it takes input: $idbNoSizeReason, and $refusal")
+        }
+        return checkNotNull(xcTestRunnerClient).screenSize(runnerTarget)
     }
 
     override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y, XcTestRunnerPointSpace.Fixed) }
@@ -101,22 +116,14 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun keepRunnerAlive(duration: Duration): Instant {
         inputRefusal()?.let { throw deviceControlError(it) }
-        return try {
-            checkNotNull(xcTestRunnerClient).keepRunnerAlive(runnerTarget, duration)
-        } catch (e: XcTestRunnerStartException) {
-            throw DeviceControlException(e.message.orEmpty(), e)
-        }
+        return checkNotNull(xcTestRunnerClient).keepRunnerAlive(runnerTarget, duration)
     }
 
     override fun runnerKeptAliveUntil(): Instant? = xcTestRunnerClient?.runnerKeptAliveUntil(runnerTarget)
 
     private suspend fun sendInput(command: suspend (XcTestRunnerClient, XcTestRunnerTarget) -> Unit) {
         inputRefusal()?.let { throw deviceControlError(it) }
-        try {
-            command(checkNotNull(xcTestRunnerClient), runnerTarget)
-        } catch (e: XcTestRunnerStartException) {
-            throw DeviceControlException(e.message.orEmpty(), e)
-        }
+        command(checkNotNull(xcTestRunnerClient), runnerTarget)
     }
 
     /** Starts the runner ahead of the first input, once the iPhone can take input; until then, does nothing. */
@@ -133,10 +140,11 @@ internal class IosPhysicalDeviceController(
     override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
+        val companions = requireCompanions("recording a physical iOS device")
         val ffmpegPath = requireFfmpegPath("recording a physical iOS device")
         companions.acquire(udid)
         val recorder = try {
-            val stream = startVideoStream()
+            val stream = startVideoStream(companions.idbPath)
             try {
                 withContext(Dispatchers.IO) { H264FileRecorder(stream, ffmpegPath, outputFile) }
             } catch (e: DeviceControlException) {
@@ -159,37 +167,48 @@ internal class IosPhysicalDeviceController(
     // --fps is ignored for a device, which streams at about 60; the mirror drops what it cannot show.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         startRunnerInBackground()
+        val companions = requireCompanions("mirroring a physical iOS device")
         val ffmpegPath = requireFfmpegPath("mirroring a physical iOS device")
-        holdCompanion()
-        return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand()), ffmpegPath) }
+        if (!holdsStreamCompanion) {
+            companions.acquire(udid)
+            holdsStreamCompanion = true
+        }
+        return withContext(Dispatchers.IO) { VideoStream.H264(SystemProcessLauncher.start(videoStreamCommand(companions.idbPath)), ffmpegPath) }
     }
 
-    private fun videoStreamCommand(): List<String> = listOf(
+    private fun videoStreamCommand(idbPath: String): List<String> = listOf(
         idbPath, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30",
         "--compression-quality", "$DEVICE_STREAM_COMPRESSION_QUALITY",
     )
 
     /** An idb stream of the device's screen as H.264 on stdout, its log drained so it never stalls on a full pipe. */
-    private suspend fun startVideoStream(): Process = withContext(Dispatchers.IO) {
-        SystemProcessLauncher.start(videoStreamCommand()).also { stream ->
+    private suspend fun startVideoStream(idbPath: String): Process = withContext(Dispatchers.IO) {
+        SystemProcessLauncher.start(videoStreamCommand(idbPath)).also { stream ->
             thread(isDaemon = true, name = "mirror-idb-stream-log") { stream.errorStream.use(InputStream::readAllBytes) }
         }
     }
 
-    private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
+    private fun requireCompanions(use: String): IdbCompanions = companions ?: throw deviceControlError("$use needs idb, which streams the device's screen. $IDB_INSTALL_INSTRUCTIONS")
 
-    private suspend fun holdCompanion() {
-        if (holdsStreamCompanion) return
-        companions.acquire(udid)
-        holdsStreamCompanion = true
-    }
+    private fun requireFfmpegPath(use: String): String = ffmpegPath ?: throw deviceControlError("$use needs ffmpeg to decode its video. $FFMPEG_INSTALL")
 
     override suspend fun release() {
         if (!holdsStreamCompanion) return
         holdsStreamCompanion = false
-        companions.release(udid)
+        checkNotNull(companions).release(udid)
     }
 }
+
+/**
+ * How long an idb command may take. idb's Python client takes seconds to start, so a slow command
+ * still finishes well within this.
+ */
+internal val IDB_COMMAND_TIMEOUT = 30.seconds
+
+// The formula installs the idb client and idb_companion together, at matching versions.
+internal const val IDB_INSTALL_COMMAND = "brew install facebook/fb/idb"
+
+internal const val IDB_INSTALL_INSTRUCTIONS = "Install idb (https://fbidb.io) with its companion: $IDB_INSTALL_COMMAND"
 
 /**
  * The VideoToolbox quality idb asks the device's H.264 encoder for. idb's own default of 0.2 leaves

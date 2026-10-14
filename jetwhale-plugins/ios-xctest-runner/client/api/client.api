@@ -6,6 +6,7 @@ public abstract interface class com/kitakkun/jetwhale/plugins/xctestrunner/XcTes
 	public abstract fun longPress (DDILcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun openAppSwitcher (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun pressButton (Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerButton;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun streamScreenAsJpeg (I)Lkotlinx/coroutines/flow/Flow;
 	public abstract fun swipe (DDDDILcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun tap (DDLcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun typeText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

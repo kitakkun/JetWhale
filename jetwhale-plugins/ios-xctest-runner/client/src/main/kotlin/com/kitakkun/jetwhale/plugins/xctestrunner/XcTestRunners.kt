@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.xctestrunner
 
+import kotlinx.coroutines.flow.Flow
 import java.io.File
 import java.time.Instant
 import kotlin.time.Duration
@@ -29,8 +30,8 @@ public interface XcTestRunnerSettings {
 /**
  * The XCTest runners on this machine: one per simulator or device, shared by every plugin that
  * drives iOS. A plugin asks for the runner of a target and gets the one already running, whoever
- * started it, or a new one. A runner ends itself after a while without commands, unless a lease holds
- * it.
+ * started it, or a new one. A runner ends itself after a while without commands or streamed frames,
+ * unless a lease holds it.
  */
 public interface XcTestRunners {
     /**
@@ -106,6 +107,21 @@ public interface XcTestRunner {
     public suspend fun activateApp(bundleId: String)
 
     /**
+     * The device's screen as JPEG frames, at most [maxFps] a second, from 1 to 60, for as long as the
+     * flow is collected; a collector slower than that gets the newest frame next, and the ones in
+     * between are dropped rather than queued. A frame shows the screen as the interface does, as a
+     * screenshot would: turned to landscape, its pixels stay portrait and its EXIF orientation turns
+     * them, which decoders that read EXIF, Skia among them, apply. While a stream is open the runner
+     * does not stop when idle.
+     *
+     * A runner that goes away while streaming is replaced, as for a command, and the stream goes on
+     * from the new one. The flow fails with [XcTestRunnerStartException] when no runner can be
+     * started in its place, and with [XcTestRunnerException] when the stream breaks again before
+     * its first frame.
+     */
+    public fun streamScreenAsJpeg(maxFps: Int): Flow<ByteArray>
+
+    /**
      * Keeps the runner from stopping when idle for [duration] from now, at most two hours, and
      * records the lease where every client sees it; [Duration.ZERO] ends a lease, and a negative
      * [duration] is refused. A lease nobody renews ends, so a forgotten one cannot keep a runner
@@ -118,13 +134,13 @@ public interface XcTestRunner {
 public enum class XcTestRunnerPointSpace(internal val wireName: String) {
     /**
      * Points in the screen's fixed coordinate space, portrait-up whatever the interface orientation,
-     * as `UIScreen.fixedCoordinateSpace`: the space of a simulator's stream and of event synthesis.
+     * as `UIScreen.fixedCoordinateSpace`: the space XCTest synthesizes touches in.
      */
     Fixed("fixed"),
 
     /**
-     * Points in the interface orientation, as `UIScreen.coordinateSpace`: the space of screenshots
-     * and of XCTest's element frames.
+     * Points in the interface orientation, as `UIScreen.coordinateSpace`: the space of screenshots,
+     * of [XcTestRunner.streamScreenAsJpeg]'s frames and of XCTest's element frames.
      */
     Interface("interface"),
 }

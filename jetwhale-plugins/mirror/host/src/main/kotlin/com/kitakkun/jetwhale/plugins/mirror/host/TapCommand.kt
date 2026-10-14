@@ -22,12 +22,11 @@ internal class TapCommand(
         if (x < 0 || y < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got x=$x, y=$y)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-        val input = ScreenshotPixelInput(device.controller)
-        val screen = deviceOperation(input::screenshotSize)
+        val screen = deviceOperation(device.controller::screenSize)
         if (x >= screen.width || y >= screen.height) {
             throw JetWhaleMcpArgumentException("the tap is off the ${screen.width}x${screen.height} screen (got x=$x, y=$y)")
         }
-        deviceOperation { input.tap(x, y) }
+        deviceOperation { device.controller.tap(x, y) }
         return okJson()
     }
 }

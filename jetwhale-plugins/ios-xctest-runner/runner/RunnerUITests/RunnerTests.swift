@@ -13,12 +13,13 @@ final class RunnerTests: XCTestCase {
             return
         }
         let commands = Commands()
-        let server = try CommandServer(port: port, token: token) { path, body in commands.run(path, body) }
+        let screenSource: ScreenStream.Source = ScreenCapture.isAvailable() ? .daemon(screenID: ScreenCapture.mainScreenID()) : .publicScreenshot
+        let server = try CommandServer(port: port, token: token, screenSource: screenSource) { path, body in commands.run(path, body) }
         server.start()
         NSLog("JetWhale runner serving on 127.0.0.1:%d", Int(port))
-        // A runner nobody talks to, and nobody holds a lease on, ends its test, so it never outlives
-        // the hosts that started it.
-        while !commands.isShutdownRequested && (Date().timeIntervalSince(commands.lastCommandAt) < idleSeconds || Date() < commands.leaseEnd) {
+        // A runner nobody talks to or watches, and nobody holds a lease on, ends its test, so it never
+        // outlives the hosts that started it.
+        while !commands.isShutdownRequested && (Date().timeIntervalSince(max(commands.lastCommandAt, ScreenStream.lastFrameSentAt)) < idleSeconds || Date() < commands.leaseEnd) {
             RunLoop.main.run(mode: .default, before: Date(timeIntervalSinceNow: 0.5))
         }
         server.stop()

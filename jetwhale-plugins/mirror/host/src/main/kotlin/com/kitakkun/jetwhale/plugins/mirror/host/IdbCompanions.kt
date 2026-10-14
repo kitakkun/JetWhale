@@ -27,10 +27,12 @@ private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
  * by the first user. When the last one releases it, it is kept for [idleTimeout] before it stops:
  * starting one and connecting idb takes seconds, and switching away from a device and back is the
  * common case. A device that disappears has its companion stopped at once.
+ *
+ * @property idbPath the idb client the companions are connected to, which then reaches the devices.
  */
 internal class IdbCompanions(
     private val idbCompanionPath: String,
-    private val idbPath: String,
+    val idbPath: String,
     private val launcher: ProcessLauncher,
     private val commands: CommandRunner,
     private val ports: PortSource,
