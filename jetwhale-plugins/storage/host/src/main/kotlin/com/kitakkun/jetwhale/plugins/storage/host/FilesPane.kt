@@ -56,9 +56,6 @@ private const val TREE_FRACTION = 0.35f
 /** A hex dump of more than this many bytes is too long to scroll through usefully. */
 private const val HEX_PREVIEW_BYTES = 16 * 1024
 
-/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
-private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
-
 @Composable
 internal fun FilesPane(
     treeRows: List<FileTreeRow>,
@@ -106,20 +103,26 @@ private fun FileTreeSplit(
         first = {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(treeRows, key = FileTreeRow::location) { row ->
-                    var altPressed by remember { mutableStateOf(false) }
+                    var pressedWithAlt by remember { mutableStateOf(false) }
                     JwTreeRow(
                         text = row.location.name,
                         depth = row.depth,
                         expandable = row.isDirectory,
                         expanded = row.expanded,
                         selected = row.location == selectedRow?.location,
-                        onClick = { if (altPressed && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
-                        onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
-                        // The row's click callbacks carry no keyboard modifiers, so whether Alt is
-                        // held is read from the press that starts the click.
-                        modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
-                            altPressed = it.keyboardModifiers.isAltPressed
-                        },
+                        onClick = { if (pressedWithAlt && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
+                        onToggleExpanded = { if (pressedWithAlt) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
+                        // The row's click callbacks carry no keyboard modifiers, so Alt is read
+                        // from the press that starts the click and cleared once its release has run
+                        // the click: the arrow keys and Enter run the same callbacks with no press
+                        // behind them.
+                        modifier = Modifier
+                            .onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
+                                pressedWithAlt = it.keyboardModifiers.isAltPressed
+                            }
+                            .onPointerEvent(PointerEventType.Release, PointerEventPass.Final) {
+                                pressedWithAlt = false
+                            },
                         trailingContent = row.entry?.takeUnless(FileEntry::isDirectory)?.let { entry ->
                             {
                                 JwText(
@@ -152,6 +155,9 @@ private fun FileTreeSplit(
         },
     )
 }
+
+/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
+private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
 
 @Composable
 private fun EntryDetail(

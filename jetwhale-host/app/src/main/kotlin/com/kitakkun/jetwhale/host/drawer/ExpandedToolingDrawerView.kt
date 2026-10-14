@@ -547,7 +547,6 @@ private fun InactivePluginsFoldRow(
 ) {
     JwListItem(
         text = label,
-        selected = false,
         muted = true,
         onClick = onToggle,
         leadingContent = {
