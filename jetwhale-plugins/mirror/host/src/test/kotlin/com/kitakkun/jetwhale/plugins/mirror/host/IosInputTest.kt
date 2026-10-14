@@ -67,7 +67,7 @@ class IosInputTest {
         simulator.pressButton(DeviceButton.Power)
 
         assertEquals(
-            listOf("tap 201.0,437.0 on screen", "swipe 100.0,800.0 -> 100.0,400.0 in 250 on screen", "type hello", "press Home", "open app switcher", "press Lock"),
+            listOf("tap 201.0,437.0 in interface points", "swipe 100.0,800.0 -> 100.0,400.0 in 250 in interface points", "type hello", "press Home", "open app switcher", "press Lock"),
             runners.runner.calls,
         )
         assertEquals(setOf("SIM-1"), runners.askedFor.map(XcTestRunnerTarget::udid).toSet())
@@ -190,7 +190,7 @@ class IosInputTest {
         assertNull(simulator.capabilities.inputRefusal)
         assertEquals(listOf(DeviceButton.Home, DeviceButton.Recents, DeviceButton.Power), simulator.capabilities.buttons)
         assertEquals("runner-1", shown.last())
-        assertEquals(listOf("tap 10.0,20.0 on screen"), runners.runner.calls)
+        assertEquals(listOf("tap 10.0,20.0 in interface points"), runners.runner.calls)
     }
 
     @Test
@@ -441,7 +441,7 @@ internal class FakeXcTestRunner : XcTestRunner {
         calls += call
     }
 
-    private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Screen) " on screen" else ""
+    private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Interface) " in interface points" else ""
 }
 
 private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")
