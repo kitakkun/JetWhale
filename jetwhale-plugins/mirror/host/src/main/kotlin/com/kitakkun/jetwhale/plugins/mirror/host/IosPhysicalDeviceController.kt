@@ -30,8 +30,7 @@ internal class IosPhysicalDeviceController(
     private val companions: IdbCompanions,
     private val ffmpegPath: String?,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController,
-    XcTestRunnerDriven {
+) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
     override val capabilities: DeviceCapabilities

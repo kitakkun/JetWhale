@@ -32,9 +32,8 @@ internal class IosSimulatorDeviceController(
     private val idbPath: String?,
     idbCanSendSimulatorInput: Boolean,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController,
-    ScreenshotSpaceInput,
-    XcTestRunnerDriven {
+) : XcTestRunnerDeviceController,
+    ScreenshotSpaceInput {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     private val idbInputPath = idbPath?.takeIf { idbCanSendSimulatorInput }
@@ -79,7 +78,7 @@ internal class IosSimulatorDeviceController(
         return try {
             runnerInput.screenshotSize(runnerTarget)
         } catch (_: XcTestRunnerStartException) {
-            // idb, which takes over, knows only the portrait screen.
+            // idb, which takes the input over, knows only the portrait screen.
             screenSize()
         }
     }
