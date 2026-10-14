@@ -22,7 +22,7 @@ internal class XcTestRunnerClient(private val runners: XcTestRunners) {
     /** Why [target] takes no input, when that is known without starting a runner. */
     fun refusalFor(target: XcTestRunnerTarget): String? = runners.refusalFor(target)
 
-    /** Taps at [x], [y] in pixels of [space]: device-native ones, or a screenshot's. */
+    /** Taps at [x], [y] in pixels of [space]: the portrait-up fixed space's, or a screenshot's. */
     suspend fun tap(target: XcTestRunnerTarget, x: Int, y: Int, space: XcTestRunnerPointSpace) = withRunner(target) { it.tap(x / it.screen.scale, y / it.screen.scale, space) }
 
     suspend fun swipe(target: XcTestRunnerTarget, fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int, space: XcTestRunnerPointSpace) = withRunner(target) {

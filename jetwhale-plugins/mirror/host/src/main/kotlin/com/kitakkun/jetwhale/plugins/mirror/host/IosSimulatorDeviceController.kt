@@ -65,13 +65,13 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun tap(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Device, x, y)
+    override suspend fun tap(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Fixed, x, y)
 
-    override suspend fun tapScreenshotPixel(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Screen, x, y)
+    override suspend fun tapScreenshotPixel(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Interface, x, y)
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Device, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Fixed, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
 
-    override suspend fun swipeScreenshotPixels(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Screen, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+    override suspend fun swipeScreenshotPixels(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Interface, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
 
     override suspend fun screenshotSize(): IntSize {
         if (xcTestRunnerClient == null) return screenSize()

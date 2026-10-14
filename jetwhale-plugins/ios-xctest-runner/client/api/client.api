@@ -43,8 +43,8 @@ public final class com/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerOrient
 }
 
 public final class com/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace : java/lang/Enum {
-	public static final field Device Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;
-	public static final field Screen Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;
+	public static final field Fixed Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;
+	public static final field Interface Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;
 	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/xctestrunner/XcTestRunnerPointSpace;

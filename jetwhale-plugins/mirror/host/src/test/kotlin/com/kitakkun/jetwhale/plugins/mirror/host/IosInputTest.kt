@@ -160,7 +160,7 @@ class IosInputTest {
     }
 
     @Test
-    fun `screenshot pixels go to the runner as screen points, sized as the interface shows the screen`() = runTest {
+    fun `screenshot pixels go to the runner as interface points, sized as the interface shows the screen`() = runTest {
         val simulator = simulator(idbPath = null, idbCanSendSimulatorInput = false)
         runners.runner.interfaceScreen = XcTestRunnerInterfaceScreen(XcTestRunnerOrientation.LandscapeRight, widthPixels = 2622, heightPixels = 1206)
         val input = ScreenshotPixelInput(simulator)
@@ -169,7 +169,7 @@ class IosInputTest {
         input.tap(x = 1311, y = 174)
         input.swipe(fromX = 300, fromY = 600, toX = 900, toY = 600, durationMillis = 300)
 
-        assertEquals(listOf("tap 437.0,58.0 on screen", "swipe 100.0,200.0 -> 300.0,200.0 in 300 on screen"), runners.runner.calls)
+        assertEquals(listOf("tap 437.0,58.0 in interface points", "swipe 100.0,200.0 -> 300.0,200.0 in 300 in interface points"), runners.runner.calls)
     }
 
     @Test
@@ -320,7 +320,7 @@ private class FakeXcTestRunner : XcTestRunner {
         calls += call
     }
 
-    private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Screen) " on screen" else ""
+    private fun spaceSuffix(space: XcTestRunnerPointSpace) = if (space == XcTestRunnerPointSpace.Interface) " in interface points" else ""
 }
 
 private val LEASE_END: Instant = Instant.parse("2026-10-09T02:00:00Z")
