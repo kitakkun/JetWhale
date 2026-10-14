@@ -14,11 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.InstalledPluginVersion
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
 import com.kitakkun.jetwhale.host.settings.installed_plugins
 import com.kitakkun.jetwhale.host.settings.no_plugins_installed
+import com.kitakkun.jetwhale.host.settings.remove_plugin_version
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwIcon
@@ -31,6 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun LazyListScope.installedPluginsPageItems(
     plugins: ImmutableList<PluginInfoUiState>,
     failedJarCount: Int,
+    onRemoveVersion: (PluginInfoUiState, InstalledPluginVersion) -> Unit,
     onClickFailedJars: () -> Unit,
 ) {
     item(key = "installed_header") {
@@ -43,7 +46,7 @@ internal fun LazyListScope.installedPluginsPageItems(
         items = plugins,
         key = { plugin -> "installed:${plugin.id}" },
     ) { plugin ->
-        InstalledPluginRow(plugin = plugin)
+        InstalledPluginRow(plugin = plugin, onRemoveVersion = { installedVersion -> onRemoveVersion(plugin, installedVersion) })
     }
     if (plugins.isEmpty()) {
         item(key = "no_plugins") {
@@ -67,9 +70,11 @@ internal fun LazyListScope.installedPluginsPageItems(
     }
 }
 
+/** One plugin with each of its installed versions. */
 @Composable
 private fun InstalledPluginRow(
     plugin: PluginInfoUiState,
+    onRemoveVersion: (InstalledPluginVersion) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     JwPanel(
@@ -99,12 +104,28 @@ private fun InstalledPluginRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            JwText(
-                text = "v${plugin.version}",
-                style = JwTheme.textStyles.label,
-                color = JwTheme.colors.textSecondary,
-                maxLines = 1,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                plugin.installedVersions.forEach { installedVersion ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        JwText(
+                            text = "v${installedVersion.version}",
+                            style = JwTheme.textStyles.label,
+                            color = JwTheme.colors.textSecondary,
+                            maxLines = 1,
+                        )
+                        if (installedVersion.removable) {
+                            JwButton(
+                                text = stringResource(Res.string.remove_plugin_version),
+                                onClick = { onRemoveVersion(installedVersion) },
+                                style = JwButtonStyle.Text,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -16,6 +16,6 @@ class DefaultTrustPluginMutationKey(
 ) : TrustPluginMutationKey by buildMutationKey(
     id = MutationId("trust_plugin"),
     mutate = { request: TrustPluginRequest ->
-        pluginTrustService.trustAndLoad(request.jarPath, request.approvedSha256)
+        pluginTrustService.trustAndLoad(request.jarPath, request.approvedSha256, request.replaceOtherVersions)
     },
 )

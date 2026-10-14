@@ -321,6 +321,7 @@ private fun drawerPlugin(name: String, id: String, iconName: String, availabilit
     exposesMcpTools = availability == PluginAvailability.Enabled,
     isHeadless = false,
     needsApp = needsApp,
+    versionBadge = null,
 )
 
 private fun pluginIcon(path: String) = PluginIconResource(checkNotNull(HostWindowDocsScreenshots::class.java.classLoader.getResource(path)) { "$path is not on the classpath" })
