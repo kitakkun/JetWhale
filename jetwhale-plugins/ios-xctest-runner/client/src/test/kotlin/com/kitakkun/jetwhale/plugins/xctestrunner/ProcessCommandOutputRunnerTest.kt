@@ -1,0 +1,152 @@
+package com.kitakkun.jetwhale.plugins.xctestrunner
+
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+
+class ProcessCommandOutputRunnerTest {
+    @Test
+    fun `a command that exits hands back what it printed and how it exited`() = runTest {
+        val process = FakeToolProcess(listOf("xcodebuild"), pid = 1, output = "Build version 27A266a\n", exitsAtOnce = true)
+
+        val commandOutput = ProcessCommandOutputRunner(processLauncher = { process }, timeout = 1.minutes).run(listOf("xcrun", "xcodebuild", "-version"))
+
+        assertEquals(0, commandOutput.exitCode)
+        assertTrue("Build version 27A266a" in commandOutput.text)
+    }
+
+    @Test
+    fun `a command still running after the timeout is ended, and its start fails`() = runTest {
+        val process = FakeToolProcess(listOf("xcodebuild"), pid = 1, output = "Building\n", exitsAtOnce = false)
+
+        assertFailsWith<XcTestRunnerStartException> {
+            ProcessCommandOutputRunner(processLauncher = { process }, timeout = 100.milliseconds).run(listOf("xcrun", "xcodebuild", "build-for-testing"))
+        }
+
+        assertTrue(process.destroyed)
+    }
+
+    @Test
+    fun `a command whose output a child keeps open still fails at its timeout`() = runTest {
+        val process = ProcessWithOutputKeptOpen()
+
+        assertFailsWith<XcTestRunnerStartException> {
+            ProcessCommandOutputRunner(processLauncher = { process }, timeout = 100.milliseconds).run(listOf("xcrun", "xcodebuild", "build-for-testing"))
+        }
+
+        assertTrue(process.destroyed)
+    }
+
+    @Test
+    fun `a command that ignores the request to exit is killed`() = runTest {
+        val process = ProcessIgnoringExitRequest()
+
+        assertFailsWith<XcTestRunnerStartException> {
+            ProcessCommandOutputRunner(processLauncher = { process }, timeout = 100.milliseconds).run(listOf("xcrun", "xcodebuild", "build-for-testing"))
+        }
+
+        assertTrue(process.killed)
+    }
+
+    @Test
+    fun `a command whose caller is cancelled is ended`() = runTest {
+        val process = FakeToolProcess(listOf("xcodebuild"), pid = 1, output = "Building\n", exitsAtOnce = false)
+        val launched = CompletableDeferred<Unit>()
+        val commandOutputRunner = ProcessCommandOutputRunner(
+            processLauncher = {
+                launched.complete(Unit)
+                process
+            },
+            timeout = 1.minutes,
+        )
+
+        val running = launch { commandOutputRunner.run(listOf("xcrun", "xcodebuild", "build-for-testing")) }
+        launched.await()
+        running.cancelAndJoin()
+
+        assertTrue(process.destroyed)
+    }
+}
+
+/**
+ * A process whose output pipe stays open after it is ended, as when a child process it started
+ * inherited the pipe and is still running.
+ */
+private class ProcessWithOutputKeptOpen : Process() {
+    private val exitFuture = CompletableFuture<Process>()
+
+    private val stdout = PipedInputStream(PipedOutputStream())
+
+    var destroyed = false
+        private set
+
+    override fun pid(): Long = 1
+
+    override fun onExit(): CompletableFuture<Process> = exitFuture
+
+    override fun isAlive(): Boolean = !destroyed
+
+    override fun getInputStream(): InputStream = stdout
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun waitFor(): Int = error("waits on onExit instead")
+
+    override fun exitValue(): Int = if (destroyed) 137 else throw IllegalThreadStateException("still running")
+
+    override fun destroy() {
+        destroyed = true
+        exitFuture.complete(this)
+    }
+
+    override fun destroyForcibly(): Process = apply { destroy() }
+}
+
+/** A process that ignores the request to exit, as one that traps SIGTERM does, and ends only when killed. */
+private class ProcessIgnoringExitRequest : Process() {
+    private val exitFuture = CompletableFuture<Process>()
+
+    var killed = false
+        private set
+
+    override fun pid(): Long = 1
+
+    override fun onExit(): CompletableFuture<Process> = exitFuture
+
+    override fun isAlive(): Boolean = !killed
+
+    override fun getInputStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getErrorStream(): InputStream = ByteArrayInputStream(ByteArray(0))
+
+    override fun getOutputStream(): OutputStream = OutputStream.nullOutputStream()
+
+    override fun waitFor(): Int = error("waits on onExit instead")
+
+    override fun waitFor(timeout: Long, unit: TimeUnit): Boolean = !isAlive
+
+    override fun exitValue(): Int = if (killed) 137 else throw IllegalThreadStateException("still running")
+
+    override fun destroy() = Unit
+
+    override fun destroyForcibly(): Process = apply {
+        killed = true
+        exitFuture.complete(this)
+    }
+}

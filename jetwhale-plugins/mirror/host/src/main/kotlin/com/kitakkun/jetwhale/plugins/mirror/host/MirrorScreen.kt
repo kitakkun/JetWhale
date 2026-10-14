@@ -283,7 +283,7 @@ private fun DevicePane(
 private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, notices: MirrorNoticeActions) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
+            MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.inputRefusal == null, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
             val switching = surface.deviceId != pane.device.id
             when {
                 surface.showingKeptFrame || (switching && surface.hasKeptFrame(pane.device.id)) -> ReconnectingScrim()
@@ -294,7 +294,8 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
         (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
-        if (pane.capabilities.input) TextInput(onSend = actions::inputText)
+        if (pane.device.kind == DeviceKind.IosDevice) IphoneInputBanner(pane.capabilities.inputRefusal, actions.developmentTeam, actions::updateDevelopmentTeam)
+        if (pane.capabilities.inputRefusal == null) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }
 }

@@ -22,14 +22,16 @@ internal enum class DeviceButton(val label: String) {
 }
 
 /**
- * What can be done to a device besides watching it. A physical iOS device is watch-only: idb
- * streams its screen but drives input only on simulators.
+ * What can be done to a device besides watching it.
  *
+ * @property inputRefusal why the device takes no taps, swipes, buttons or text right now, or null
+ *   when it takes them. A physical iPhone takes them only once a development team is set to sign
+ *   the XCTest runner, and `iproxy` can reach it.
  * @property screenPower whether the screen's power can be read and switched. Android only: a
- *   simulator's screen never turns off, and idb cannot wake a physical iOS device.
+ *   simulator's screen never turns off, and nothing here can wake a physical iOS device.
  */
 internal data class DeviceCapabilities(
-    val input: Boolean,
+    val inputRefusal: String?,
     val buttons: List<DeviceButton>,
     val recording: Boolean,
     val screenPower: Boolean,
