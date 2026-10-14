@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * A booted iOS simulator, which needs only Xcode. Live video and input go through its XCTest runner
- * ([runnerInput]); screenshots and recordings go through `simctl`, which needs no runner, and its
+ * ([xcTestRunnerClient]); screenshots and recordings go through `simctl`, which needs no runner, and its
  * screenshots stand in for the video while the runner starts.
  *
  * A simulator whose runner cannot run is shown view only: [openVideoStream] and every input fail with
@@ -38,12 +38,12 @@ internal class IosSimulatorDeviceController(
     private val udid: String,
     iosMajorVersion: Int?,
     private val xcrunPath: String,
-    private val runnerInput: XcTestRunnerInput?,
+    private val xcTestRunnerClient: XcTestRunnerClient?,
 ) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     /** Why the simulator has no live video and takes no input, when that is known without starting a runner. */
-    private val runnerRefusal = if (runnerInput == null) "a simulator's live video and input need Xcode, which was not found: install it from the App Store" else runnerInput.refusalFor(runnerTarget)
+    private val runnerRefusal = if (xcTestRunnerClient == null) "a simulator's live video and input need Xcode, which was not found: install it from the App Store" else xcTestRunnerClient.refusalFor(runnerTarget)
 
     /** Why the runner could not be built or started when the stream last tried it. */
     @Volatile
@@ -70,25 +70,25 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun screenSize(): IntSize = parseSimulatorScreen(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
+    override suspend fun screenSize(): IntSize = parseSimulatorScreenSize(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
         ?: throw deviceControlError("'simctl io enumerate' reported no screen for the simulator")
 
-    override suspend fun tap(x: Int, y: Int) = requireRunnerInput().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Screen)
+    override suspend fun tap(x: Int, y: Int) = requireXcTestRunnerClient().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Screen)
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = requireRunnerInput().swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = XcTestRunnerPointSpace.Screen)
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = requireXcTestRunnerClient().swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = XcTestRunnerPointSpace.Screen)
 
     override suspend fun pressButton(button: DeviceButton) = when (button) {
-        DeviceButton.Home -> requireRunnerInput().pressButton(runnerTarget, XcTestRunnerButton.Home)
-        DeviceButton.Power -> requireRunnerInput().pressButton(runnerTarget, XcTestRunnerButton.Lock)
-        DeviceButton.Recents -> requireRunnerInput().openAppSwitcher(runnerTarget)
+        DeviceButton.Home -> requireXcTestRunnerClient().pressButton(runnerTarget, XcTestRunnerButton.Home)
+        DeviceButton.Power -> requireXcTestRunnerClient().pressButton(runnerTarget, XcTestRunnerButton.Lock)
+        DeviceButton.Recents -> requireXcTestRunnerClient().openAppSwitcher(runnerTarget)
         DeviceButton.Back, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> throw deviceControlError("the iOS simulator has no ${button.label} button")
     }
 
-    override suspend fun inputText(text: String) = requireRunnerInput().typeText(runnerTarget, text)
+    override suspend fun inputText(text: String) = requireXcTestRunnerClient().typeText(runnerTarget, text)
 
-    override suspend fun keepRunnerAlive(duration: Duration): Instant = requireRunnerInput().keepRunnerAlive(runnerTarget, duration)
+    override suspend fun keepRunnerAlive(duration: Duration): Instant = requireXcTestRunnerClient().keepRunnerAlive(runnerTarget, duration)
 
-    override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
+    override fun runnerKeptAliveUntil(): Instant? = xcTestRunnerClient?.runnerKeptAliveUntil(runnerTarget)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 
@@ -96,7 +96,7 @@ internal class IosSimulatorDeviceController(
 
     override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
-    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.EncodedImages(streamRunnerFramesWithStandInScreenshots(requireRunnerInput()))
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = VideoStream.EncodedImages(streamRunnerFramesWithStandInScreenshots(requireXcTestRunnerClient()))
 
     /** Lets the next [openVideoStream] try the runner again after it failed to build or start. */
     fun forgetRunnerStartFailure() {
@@ -109,7 +109,7 @@ internal class IosSimulatorDeviceController(
      * replaces one the reader has not taken yet. A runner that cannot be built or started ends the
      * stream with [RunnerStartException], and the simulator is view only from then on.
      */
-    private fun streamRunnerFramesWithStandInScreenshots(input: XcTestRunnerInput): Flow<ByteArray> = channelFlow {
+    private fun streamRunnerFramesWithStandInScreenshots(input: XcTestRunnerClient): Flow<ByteArray> = channelFlow {
         val screenshots = launch {
             while (true) {
                 try {
@@ -147,9 +147,9 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    private fun requireRunnerInput(): XcTestRunnerInput {
+    private fun requireXcTestRunnerClient(): XcTestRunnerClient {
         (runnerRefusal ?: runnerStartFailure)?.let { throw deviceControlError(it) }
-        return checkNotNull(runnerInput)
+        return checkNotNull(xcTestRunnerClient)
     }
 }
 

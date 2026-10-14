@@ -164,7 +164,7 @@ class IosPhysicalDeviceCapturesTest {
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),
         ),
         ffmpegPath = ffmpegPath,
-        runnerInput = null,
+        xcTestRunnerClient = null,
     )
 
     private fun iosDevice(ffmpegPath: String?) = iosDevice(ffmpegPath, idleTimeout = 1.minutes) {}

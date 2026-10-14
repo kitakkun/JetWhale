@@ -122,7 +122,7 @@ class IosInputTest {
 
     @Test
     fun `a simulator without Xcode's runners has no input and no live video and says why`() = runTest {
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", runnerInput = null)
+        val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = "xcrun", xcTestRunnerClient = null)
 
         assertEquals("a simulator's live video and input need Xcode, which was not found: install it from the App Store", simulator.capabilities.inputRefusal)
         assertEquals(emptyList(), simulator.capabilities.buttons)
@@ -176,7 +176,7 @@ class IosInputTest {
         )
         for (reason in reasons) {
             val failingRunners = FakeXcTestRunners().apply { startFailure = reason }
-            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(failingRunners))
+            val simulator = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(failingRunners))
             val stream = simulator.openVideoStream(wanted = null) as VideoStream.EncodedImages
 
             val streamFailure = assertFailsWith<RunnerStartException> { withTimeout(STREAM_END_TIMEOUT) { stream.collectUntilClosed {} } }
@@ -317,7 +317,7 @@ class IosInputTest {
         assertEquals("Developer Mode is off on the iPhone", failure.message)
     }
 
-    private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, runnerInput = XcTestRunnerInput(runners))
+    private fun simulator() = IosSimulatorDeviceController(udid = "SIM-1", iosMajorVersion = 26, xcrunPath = fakeXcrun.path, xcTestRunnerClient = XcTestRunnerClient(runners))
 
     @Test
     fun `an iPhone's input waits for its screen to be captured before it reaches the runner`() = runBlocking {
@@ -376,7 +376,7 @@ class IosInputTest {
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),
         ),
         ffmpegPath = ffmpegPath,
-        runnerInput = XcTestRunnerInput(runners),
+        xcTestRunnerClient = XcTestRunnerClient(runners),
     )
 }
 

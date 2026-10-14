@@ -84,9 +84,9 @@ class DeviceListingsTest {
 
     @Test
     fun `a simulator's screen is its pixel size turned the way simctl says its interface is`() {
-        assertEquals(IntSize(1206, 2622), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/portrait.txt")))
-        assertEquals(IntSize(2622, 1206), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/landscape-left.txt")))
-        assertNull(parseSimulatorScreen("Invalid device: SIM-1"))
+        assertEquals(IntSize(1206, 2622), parseSimulatorScreenSize(readResourceText("/simctl-io-enumerate/portrait.txt")))
+        assertEquals(IntSize(2622, 1206), parseSimulatorScreenSize(readResourceText("/simctl-io-enumerate/landscape-left.txt")))
+        assertNull(parseSimulatorScreenSize("Invalid device: SIM-1"))
     }
 
     @Test

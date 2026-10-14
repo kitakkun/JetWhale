@@ -32,7 +32,7 @@ internal class IosPhysicalDeviceController(
     iosMajorVersion: Int?,
     private val iphoneScreenCaptures: IphoneScreenCaptures,
     private val ffmpegPath: String?,
-    private val runnerInput: XcTestRunnerInput?,
+    private val xcTestRunnerClient: XcTestRunnerClient?,
 ) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Device(udid, iosMajorVersion)
 
@@ -65,7 +65,7 @@ internal class IosPhysicalDeviceController(
         withStartedScreenCapture(::awaitFrameSize)
     } catch (e: DeviceControlException) {
         if (inputRefusal() != null) throw e
-        checkNotNull(runnerInput).screenSize(runnerTarget)
+        checkNotNull(xcTestRunnerClient).screenSize(runnerTarget)
     }
 
     override suspend fun tap(x: Int, y: Int) = sendInput { input, target -> input.tap(target, x, y, XcTestRunnerPointSpace.Device) }
@@ -89,9 +89,9 @@ internal class IosPhysicalDeviceController(
 
     override suspend fun keepRunnerAlive(duration: Duration): Instant = sendInput { input, target -> input.keepRunnerAlive(target, duration) }
 
-    override fun runnerKeptAliveUntil(): Instant? = runnerInput?.runnerKeptAliveUntil(runnerTarget)
+    override fun runnerKeptAliveUntil(): Instant? = xcTestRunnerClient?.runnerKeptAliveUntil(runnerTarget)
 
-    private suspend fun <T> sendInput(command: suspend (XcTestRunnerInput, XcTestRunnerTarget) -> T): T {
+    private suspend fun <T> sendInput(command: suspend (XcTestRunnerClient, XcTestRunnerTarget) -> T): T {
         inputRefusal()?.let { throw deviceControlError(it) }
         // Starting the capture drops iproxy's connection to the runner, so it comes before the
         // input; a capture that cannot start leaves input to the runner alone.
@@ -99,7 +99,7 @@ internal class IosPhysicalDeviceController(
             withStartedScreenCapture(::awaitFrameSize)
         } catch (_: DeviceControlException) {
         }
-        return command(checkNotNull(runnerInput), runnerTarget)
+        return command(checkNotNull(xcTestRunnerClient), runnerTarget)
     }
 
     /**
@@ -107,10 +107,10 @@ internal class IosPhysicalDeviceController(
      * being captured; until then, does nothing.
      */
     fun startRunnerInBackground() {
-        if (inputRefusal() == null && iphoneScreenCaptures.isCapturing(udid)) checkNotNull(runnerInput).startRunnerInBackground(runnerTarget)
+        if (inputRefusal() == null && iphoneScreenCaptures.isCapturing(udid)) checkNotNull(xcTestRunnerClient).startRunnerInBackground(runnerTarget)
     }
 
-    private fun inputRefusal(): String? = if (runnerInput == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else runnerInput.refusalFor(runnerTarget)
+    private fun inputRefusal(): String? = if (xcTestRunnerClient == null) "driving an iPhone needs Xcode's xcodebuild, which was not found" else xcTestRunnerClient.refusalFor(runnerTarget)
 
     override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
 
