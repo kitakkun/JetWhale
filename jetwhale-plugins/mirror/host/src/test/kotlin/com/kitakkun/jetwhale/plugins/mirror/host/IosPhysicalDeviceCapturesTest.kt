@@ -120,9 +120,9 @@ class IosPhysicalDeviceCapturesTest {
         )
         val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
 
-        // Record, stop, then ask the size, as a recording started from the grid does. The stand-in
-        // stream can stop before ffmpeg reads any of it, which fails the file; the companion must
-        // be released either way.
+        // Record, stop, then read the size, as stopping a recording does. The stand-in stream can
+        // end before ffmpeg reads any of it, which fails the recording; the companion must be
+        // released either way.
         try {
             iphone.startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {
