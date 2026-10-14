@@ -84,9 +84,9 @@ class DeviceListingsTest {
 
     @Test
     fun `a simulator's screen is its pixel size turned the way simctl says its interface is`() {
-        assertEquals(IntSize(1206, 2622), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/portrait.txt")))
-        assertEquals(IntSize(2622, 1206), parseSimulatorScreen(readResourceText("/simctl-io-enumerate/landscape-left.txt")))
-        assertNull(parseSimulatorScreen("Invalid device: SIM-1"))
+        assertEquals(IntSize(1206, 2622), parseSimulatorScreenSize(readResourceText("/simctl-io-enumerate/portrait.txt")))
+        assertEquals(IntSize(2622, 1206), parseSimulatorScreenSize(readResourceText("/simctl-io-enumerate/landscape-left.txt")))
+        assertNull(parseSimulatorScreenSize("Invalid device: SIM-1"))
     }
 
     @Test
@@ -100,14 +100,14 @@ class DeviceListingsTest {
     fun `idb describe gives the screen in pixels`() {
         val json = """{"screen_dimensions": {"width": 1206, "height": 2622, "density": 3.0, "width_points": 402, "height_points": 874}}"""
 
-        assertEquals(IntSize(1206, 2622), parseIdbScreen(json))
+        assertEquals(IntSize(1206, 2622), parseIdbScreenSize(json))
     }
 
     @Test
     fun `a screen idb describes as zero by zero is no screen size at all`() {
         val json = """{"screen_dimensions": {"width": 0, "height": 0, "density": 3.0, "width_points": 0, "height_points": 0}}"""
 
-        assertNull(parseIdbScreen(json))
+        assertNull(parseIdbScreenSize(json))
     }
 
     @Test

@@ -84,7 +84,7 @@ internal class IosPhysicalDeviceController(
         } finally {
             companions.release(udid)
         }
-        return parseIdbScreen(description)
+        return parseIdbScreenSize(description)
     }
 
     private suspend fun readRunnerScreenSize(): IntSize {

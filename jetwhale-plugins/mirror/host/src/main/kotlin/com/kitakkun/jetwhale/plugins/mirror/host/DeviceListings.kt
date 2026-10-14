@@ -91,7 +91,7 @@ private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)
  * enumerate`: the integrated screen's pixel size, its sides swapped while its UI orientation is a
  * landscape one. Null when the output lists no integrated screen.
  */
-internal fun parseSimulatorScreen(output: String): IntSize? {
+internal fun parseSimulatorScreenSize(output: String): IntSize? {
     val screen = output.split(Regex("""\n\s*\(\d+\) """)).drop(1).firstOrNull { "Screen Type: Integrated" in it } ?: return null
     val (width, height) = Regex("""Pixel Size: \{(\d+), (\d+)\}""").find(screen)?.destructured ?: return null
     val size = IntSize(width.toInt(), height.toInt())
@@ -111,7 +111,7 @@ internal fun parseWmSize(output: String): IntSize? {
 }
 
 /** The screen's size in pixels that `idb describe --json` reports, or null when it gives none: a physical device reports its sides as 0. */
-internal fun parseIdbScreen(json: String): IntSize? {
+internal fun parseIdbScreenSize(json: String): IntSize? {
     val screen = try {
         (Json.parseToJsonElement(json) as? JsonObject)?.get("screen_dimensions") as? JsonObject
     } catch (_: IllegalArgumentException) {

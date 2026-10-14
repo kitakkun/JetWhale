@@ -70,7 +70,7 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun screenSize(): IntSize = parseSimulatorScreen(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
+    override suspend fun screenSize(): IntSize = parseSimulatorScreenSize(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
         ?: throw deviceControlError("'simctl io enumerate' reported no screen for the simulator")
 
     override suspend fun tap(x: Int, y: Int) = requireXcTestRunnerClient().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Screen)
