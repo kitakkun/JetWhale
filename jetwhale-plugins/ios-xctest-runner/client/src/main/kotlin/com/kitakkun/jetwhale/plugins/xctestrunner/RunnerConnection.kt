@@ -18,7 +18,7 @@ import java.io.IOException
 import java.net.ConnectException
 
 /** The commands this client sends; `/status` reports the runner's, and an older runner is replaced. */
-internal const val PROTOCOL_VERSION = 2
+internal const val PROTOCOL_VERSION = 1
 
 internal const val RUNNER_TOKEN_HEADER = "X-JetWhale-Runner-Token"
 
