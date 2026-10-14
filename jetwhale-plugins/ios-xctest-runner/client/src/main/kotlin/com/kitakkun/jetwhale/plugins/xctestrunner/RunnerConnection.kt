@@ -22,7 +22,7 @@ import java.net.ConnectException
 import java.util.concurrent.TimeUnit
 
 /** The commands this client sends; `/status` reports the runner's, and an older runner is replaced. */
-internal const val PROTOCOL_VERSION = 3
+internal const val PROTOCOL_VERSION = 1
 
 /**
  * How long a screen stream may send nothing before it counts as stalled. The runner sends a frame at
