@@ -112,8 +112,6 @@ internal class IosSimulatorDeviceController(
     private fun streamRunnerFramesWithStandInScreenshots(input: XcTestRunnerInput): Flow<ByteArray> = channelFlow {
         val screenshots = launch {
             while (true) {
-                // A failed stand-in is skipped: the runner's frames soon replace the screenshots,
-                // or its failure ends the stream.
                 try {
                     send(captureScreenshot())
                 } catch (_: DeviceControlException) {

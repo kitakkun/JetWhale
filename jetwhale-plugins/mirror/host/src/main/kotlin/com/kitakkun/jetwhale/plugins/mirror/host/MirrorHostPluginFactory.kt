@@ -98,8 +98,6 @@ private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
  */
 private val HELPER_BUILD_COMMAND_TIMEOUT = 5.minutes
 
-// A host-only plugin gets an instance per debug session, but an iPhone has one screen: the
-// instances share the captures, so two of them watching one iPhone start one helper.
 private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
     val builds = IphoneCaptureHelperBuilds(

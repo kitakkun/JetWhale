@@ -79,8 +79,8 @@ compose.desktop {
             macOS {
                 bundleID = "com.kitakkun.jetwhale.host"
                 iconFile.set(rootProject.file("jetwhale-host/app/src/main/resources/icon.icns"))
-                // Device Mirror's iPhone capture helper asks for the Camera on this app's behalf,
-                // and macOS stops it when this app declares no usage description.
+                // The iPhone capture helper asks for the Camera on this app's behalf, and macOS
+                // stops it when this app declares no Camera usage description.
                 infoPlist {
                     extraKeysRawXml = """
                         <key>NSCameraUsageDescription</key>

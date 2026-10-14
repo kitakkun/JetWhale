@@ -430,8 +430,8 @@ internal class DeviceMirror(
         surface.deviceSize = null
         val frames = surface.startStream()
         val pollMillis = if (device.kind == DeviceKind.IosSimulator) SIMULATOR_SCREENSHOT_POLL_MILLIS else SCREENSHOT_POLL_MILLIS
-        // Drops a Retry pressed again while the stream was being retried, which would otherwise end
-        // this poll at once.
+        // Drops a Retry pressed while the stream was being retried, which would otherwise end these
+        // screenshots at once.
         liveVideoRetryRequests.tryReceive()
         withTimeoutOrNull(forMillis) {
             coroutineScope {

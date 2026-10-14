@@ -180,8 +180,8 @@ class IosPhysicalDeviceCapturesTest {
         val file = File(folder, "sample.h264")
         val encode = ProcessBuilder(
             ffmpegPath, "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=${SAMPLE_WIDTH}x$SAMPLE_HEIGHT:rate=30",
-            // Raw H.264 from ffmpeg has no access unit delimiters unless this filter inserts them,
-            // and the capture's reader splits frames at them.
+            // ffmpeg writes raw H.264 without access unit delimiters unless this filter inserts
+            // them, and the capture's reader splits frames at them.
             "-frames:v", "$SAMPLE_FRAMES", "-pix_fmt", "yuv420p", "-bsf:v", "h264_metadata=aud=insert", "-f", "h264", "-y", file.path,
         ).redirectErrorStream(true).start()
         val log = encode.inputStream.use(InputStream::readAllBytes).decodeToString()
