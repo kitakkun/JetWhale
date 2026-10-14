@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
+import com.kitakkun.jetwhale.host.model.SafeModeRequest
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -41,6 +42,7 @@ class IdeHost : AutoCloseable {
             mcpPermissionOverride = McpPermissionOverride.None,
             additionalPluginDirectories = AdditionalPluginDirectories(emptyList()),
             hostLaunch = HostLaunch.Standalone,
+            safeModeRequest = SafeModeRequest(requested = false),
         )
 
     init {

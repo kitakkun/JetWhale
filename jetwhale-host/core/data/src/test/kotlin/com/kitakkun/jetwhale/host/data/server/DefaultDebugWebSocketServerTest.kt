@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDiscoveryAdvertiser
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
+import com.kitakkun.jetwhale.host.model.SafeModeService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -95,6 +96,9 @@ class DefaultDebugWebSocketServerTest {
             enabledPluginsRepository = enabledPluginsRepository,
             pluginFactoryRepository = pluginFactoryRepository,
             pluginInstanceService = pluginInstanceService,
+            safeModeService = mock<SafeModeService> {
+                every { safeModeFlow } returns MutableStateFlow(null)
+            },
         ),
         ktorWebSocketServer = ktorWebSocketServer,
         hostDiscoveryAdvertiser = mock<HostDiscoveryAdvertiser> {
