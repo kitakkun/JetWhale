@@ -1,0 +1,49 @@
+name: Wire Schema Check
+
+# `check` already fails when a committed wire/<project>.wire is not the schema of the compiled
+# classes. A dump edited by hand to match a breaking change still passes that, so this compares each
+# committed dump with the base branch's, under the same rule as dumpWireSchema.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - 'jetwhale-plugins/*/protocol/**'
+      - 'jetwhale-protocol/core/**'
+      - 'jetwhale-gradle-plugin/**'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/wire-schema-check.yml'
+      - '.github/actions/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-wire-schema:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      # Laid out as in the repository, which is what -PjetwhaleWireSchemaBaselineDir expects. A
+      # module the base branch has no dump for is checked against nothing.
+      - name: Copy the base branch's wire schema dumps
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          baseline_dir="$RUNNER_TEMP/wire-schema-baseline"
+          mkdir -p "$baseline_dir"
+          dumps="$(git ls-tree -r --name-only FETCH_HEAD | grep -E '(^|/)wire/[^/]+\.wire$' || true)"
+          for path in $dumps; do
+            mkdir -p "$baseline_dir/$(dirname "$path")"
+            git show "FETCH_HEAD:$path" > "$baseline_dir/$path"
+          done
+          echo "WIRE_SCHEMA_BASELINE_DIR=$baseline_dir" >> "$GITHUB_ENV"
+
+      - name: Check the wire schemas against the base branch
+        run: ./gradlew checkWireSchema -PjetwhaleWireSchemaBaselineDir="$WIRE_SCHEMA_BASELINE_DIR"

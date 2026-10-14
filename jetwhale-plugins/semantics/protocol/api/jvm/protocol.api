@@ -536,6 +536,10 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeA
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/SemanticsPluginContractKt {
+	public static final fun getSemanticsPluginContract ()Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginContract;
+}
+
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/SetViewAttribute : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/SetViewAttribute$Companion;
 	public fun <init> (Ljava/lang/String;ILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue;)V

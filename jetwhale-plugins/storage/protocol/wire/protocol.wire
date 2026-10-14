@@ -1,0 +1,86 @@
+revision 1
+
+request storage/delete_file_entry -> storage/operation_result
+request storage/get_locations -> storage/locations
+request storage/list_directory -> storage/directory_listing
+request storage/measure_directory -> storage/directory_measurement
+request storage/read_file -> storage/file_content
+request storage/read_key_value_store -> storage/key_value_store_content
+request storage/remove_key_value -> storage/operation_result
+
+class com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
+  createdEpochMillis: long?
+  isDirectory: boolean
+  isSymbolicLink: boolean
+  lastModifiedEpochMillis: long?
+  linkTarget: string?
+  name: string
+  readable: boolean
+  sizeBytes: long
+  writable: boolean
+
+class com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
+  absolutePath: string
+  name: string
+
+class com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
+  key: string
+  type: string
+  value: string
+
+class com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
+  name: string
+
+class storage/delete_file_entry
+  path: list<string>
+  rootName: string
+
+class storage/directory_listing
+  entries: list<com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry>
+  error: string?
+
+class storage/directory_measurement
+  directoryCount: int
+  error: string?
+  fileCount: int
+  totalSizeBytes: long
+  truncated: boolean
+
+class storage/file_content
+  contentBase64: string
+  error: string?
+  totalSizeBytes: long
+
+object storage/get_locations
+
+class storage/key_value_store_content
+  entries: list<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry>
+  error: string?
+
+class storage/list_directory
+  path: list<string>
+  rootName: string
+
+class storage/locations
+  fileRoots: list<com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo>
+  keyValueStores: list<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo>
+
+class storage/measure_directory
+  path: list<string>
+  rootName: string
+
+class storage/operation_result
+  error: string?
+
+class storage/read_file
+  maxBytes: int
+  offset: long
+  path: list<string>
+  rootName: string
+
+class storage/read_key_value_store
+  storeName: string
+
+class storage/remove_key_value
+  key: string
+  storeName: string
