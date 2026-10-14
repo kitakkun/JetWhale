@@ -28,9 +28,9 @@ internal class KeepRunnerAliveCommand(
         val leaseMinutes = arguments[minutes]
         if (leaseMinutes !in 0..MAX_KEEP_ALIVE_MINUTES) throw JetWhaleMcpArgumentException("minutes must be from 0 to $MAX_KEEP_ALIVE_MINUTES (got $leaseMinutes)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        val runnerDriven = device.controller as? XcTestRunnerDriven ?: throw JetWhaleMcpArgumentException("${device.name} is not driven through an XCTest runner; only iOS simulators and devices are")
-        device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-        val until = deviceOperation { runnerDriven.keepRunnerAlive(leaseMinutes.minutes) }
+        val xcTestRunnerDeviceController = device.controller as? XcTestRunnerDeviceController ?: throw JetWhaleMcpArgumentException("${device.name} is not driven through an XCTest runner; only iOS simulators and devices are")
+        xcTestRunnerDeviceController.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
+        val until = deviceOperation { xcTestRunnerDeviceController.keepRunnerAlive(leaseMinutes.minutes) }
         return buildJsonObject { put("runnerKeptAliveUntil", until.toString()) }.toString()
     }
 }

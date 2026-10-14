@@ -39,8 +39,7 @@ internal class IosSimulatorDeviceController(
     iosMajorVersion: Int?,
     private val xcrunPath: String,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController,
-    XcTestRunnerDriven {
+) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     /** Why the simulator has no live video and takes no input, when that is known without starting a runner. */
