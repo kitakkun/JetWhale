@@ -13,13 +13,16 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
 	public final fun bindPluginScope (Lkotlinx/coroutines/CoroutineScope;)V
+	public final fun bindSessionKind (Z)V
 	public final fun bindStorage (Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;)V
 	public final fun boundStorageForRuntime ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;
 	public final fun dispatchCreate ()V
 	public final fun dispatchDispose ()V
+	public final fun getBoundIsInHostSession ()Ljava/lang/Boolean;
 	protected final fun getPluginScope ()Lkotlinx/coroutines/CoroutineScope;
 	protected final fun getStorage ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;
 	protected fun getStorageVersion ()I
+	protected final fun isInHostSession ()Z
 	protected fun onCreate ()V
 	public fun onDispose ()V
 	protected fun onStorageMigrate (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -32,8 +35,8 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAgentVersionRange ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public final fun getFactoryClass ()Ljava/lang/String;
@@ -41,6 +44,7 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public final fun getPluginId ()Ljava/lang/String;
 	public final fun getPluginName ()Ljava/lang/String;
 	public final fun getRequiresAgent ()Z
+	public final fun getRunsInHostSession ()Z
 	public final fun getVersion ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;

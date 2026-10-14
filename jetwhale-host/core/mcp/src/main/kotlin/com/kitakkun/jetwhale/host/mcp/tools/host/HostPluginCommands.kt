@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
@@ -13,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.model.targetsHostSession
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.zacsweers.metro.AppScope
@@ -42,7 +44,7 @@ class ListInstalledPluginsCommand(
     override val name: String = "jetwhale.listInstalledPlugins"
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
-        "Host-wide: lists every plugin installed into the debug tool and whether it is enabled, plus the official plugins that could still be installed and any jar that failed to load or is awaiting trust. Use jetwhale.listPlugins instead to see what a particular debug session advertises."
+        "Host-wide: lists every plugin installed into the debug tool, whether it is enabled and which sessions it runs in (requiresAgent: in the apps that include it; runsInHostSession: in the session \"${HostSession.ID}\"), plus the official plugins that could still be installed and any jar that failed to load or is awaiting trust. Use jetwhale.listPlugins instead to see what a particular debug session advertises."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val loaded = pluginFactoryRepository.loadedPlugins
@@ -54,6 +56,7 @@ class ListInstalledPluginsCommand(
                 name = plugin.manifest.pluginName,
                 version = plugin.manifest.version,
                 requiresAgent = plugin.manifest.requiresAgent,
+                runsInHostSession = plugin.manifest.targetsHostSession,
                 enabled = plugin.manifest.pluginId in enabledPluginIds,
             )
         }.sortedBy(InstalledPluginJson::pluginId)
@@ -102,7 +105,7 @@ class SetPluginEnabledCommand(
         }
         val shouldEnable = arguments[enabled]
 
-        val hasTargetSession = !pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.requiresAgent ||
+        val hasTargetSession = pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.targetsHostSession ||
             debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
@@ -204,6 +207,7 @@ data class InstalledPluginJson(
     val name: String,
     val version: String,
     val requiresAgent: Boolean,
+    val runsInHostSession: Boolean,
     val enabled: Boolean,
 )
 

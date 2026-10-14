@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
@@ -167,7 +168,6 @@ private fun SkikoComposeUiTest.setHostWindowContent(
 @Composable
 private fun ExpandedToolingDrawer(uiState: ToolingScaffoldUiState) {
     ExpandedToolingDrawerView(
-        selectedPluginId = uiState.selectedPluginId,
         plugins = uiState.plugins,
         hasFailedJars = false,
         selectedSession = uiState.selectedSession,
@@ -302,25 +302,26 @@ private val SESSION = DebugSession(
  * the app has no Storage Inspector agent.
  */
 private val DRAWER_PLUGINS = persistentListOf(
-    drawerPlugin(name = "Device Mirror", id = "com.kitakkun.jetwhale.mirror", iconName = "mirror", availability = PluginAvailability.Enabled, needsApp = false),
-    drawerPlugin(name = "Network Inspector", id = NETWORK_PLUGIN_ID, iconName = "network", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Compose Semantics Inspector", id = "com.kitakkun.jetwhale.semantics", iconName = "node_tree", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Nav3 Navigator", id = "com.kitakkun.jetwhale.nav3", iconName = "nav3", availability = PluginAvailability.Enabled, needsApp = true),
-    drawerPlugin(name = "Debug Actions", id = "com.kitakkun.jetwhale.actions", iconName = "actions", availability = PluginAvailability.Disabled, needsApp = true),
-    drawerPlugin(name = "Storage Inspector", id = "com.kitakkun.jetwhale.storage", iconName = "storage", availability = PluginAvailability.Unavailable, needsApp = true),
+    drawerPlugin(name = "Device Mirror", id = "com.kitakkun.jetwhale.mirror", iconName = "mirror", availability = PluginAvailability.Enabled, sessionId = HostSession.ID),
+    drawerPlugin(name = "Network Inspector", id = NETWORK_PLUGIN_ID, iconName = "network", availability = PluginAvailability.Enabled, sessionId = SESSION.id),
+    drawerPlugin(name = "Compose Semantics Inspector", id = "com.kitakkun.jetwhale.semantics", iconName = "node_tree", availability = PluginAvailability.Enabled, sessionId = SESSION.id),
+    drawerPlugin(name = "Nav3 Navigator", id = "com.kitakkun.jetwhale.nav3", iconName = "nav3", availability = PluginAvailability.Enabled, sessionId = SESSION.id),
+    drawerPlugin(name = "Debug Actions", id = "com.kitakkun.jetwhale.actions", iconName = "actions", availability = PluginAvailability.Disabled, sessionId = SESSION.id),
+    drawerPlugin(name = "Storage Inspector", id = "com.kitakkun.jetwhale.storage", iconName = "storage", availability = PluginAvailability.Unavailable, sessionId = SESSION.id),
 )
 
 /** An official plugin's row, with the icons its jar declares in its manifest. */
-private fun drawerPlugin(name: String, id: String, iconName: String, availability: PluginAvailability, needsApp: Boolean) = DrawerPluginItemUiState(
+private fun drawerPlugin(name: String, id: String, iconName: String, availability: PluginAvailability, sessionId: String) = DrawerPluginItemUiState(
     name = name,
     id = id,
+    sessionId = sessionId,
     activeIconResource = pluginIcon("icons/${iconName}_filled.svg"),
     inactiveIconResource = pluginIcon("icons/${iconName}_outlined.svg"),
     pluginAvailability = availability,
+    isSelected = id == NETWORK_PLUGIN_ID,
     underAiControl = false,
     exposesMcpTools = availability == PluginAvailability.Enabled,
     isHeadless = false,
-    needsApp = needsApp,
 )
 
 private fun pluginIcon(path: String) = PluginIconResource(checkNotNull(HostWindowDocsScreenshots::class.java.classLoader.getResource(path)) { "$path is not on the classpath" })

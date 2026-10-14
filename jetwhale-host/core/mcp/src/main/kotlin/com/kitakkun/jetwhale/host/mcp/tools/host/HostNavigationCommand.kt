@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.model.targetsHostSession
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.zacsweers.metro.AppScope
@@ -50,7 +51,7 @@ class HostNavigationCommand(
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
     private val sessionId by stringOrNull(
-        "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in \"${HostSession.ID}\".",
+        "Only for PLUGIN. A plugin that needs no app always opens in \"${HostSession.ID}\". A plugin that runs in \"${HostSession.ID}\" as well as in apps takes \"${HostSession.ID}\" or an app's session; without one it opens in the app selected in the drawer when that app includes it, and in \"${HostSession.ID}\" otherwise. Any other plugin defaults to the app selected in the drawer.",
     )
     private val settingsSection by enumOrNull("Only for SETTINGS: opens the first page of that section. Defaults to GENERAL.", HostSettingsSection.entries)
     private val settingsPage by enumOrNull(
@@ -109,9 +110,24 @@ class HostNavigationCommand(
             val targetPluginId = this[pluginId]
                 ?: throw JetWhaleMcpArgumentException("missing required argument: pluginId is required when destination is PLUGIN")
             validatePlugin(targetPluginId, this[sessionId])
-            val targetSessionId = if (reconciliationService.requiresAgent(targetPluginId)) this[sessionId] else HostSession.ID
-            HostNavigationRequest.Plugin(targetPluginId, targetSessionId, followsAgent = false)
+            HostNavigationRequest.Plugin(targetPluginId, resolveTargetSessionId(targetPluginId, this[sessionId]), followsAgent = false)
         }
+    }
+
+    /**
+     * The session [targetPluginId] opens in. Null leaves it to the drawer's selected app. A plugin
+     * that runs in the host session as well is resolved here rather than in the window, so that the
+     * confirmation waits for the session it lands in, not for whichever one is already on screen.
+     */
+    private suspend fun resolveTargetSessionId(targetPluginId: String, requestedSessionId: String?): String? {
+        if (!reconciliationService.requiresAgent(targetPluginId)) return HostSession.ID
+        if (requestedSessionId != null) return requestedSessionId
+        if (!pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.targetsHostSession) return null
+        val selectedSessionId = hostNavigationService.currentView.value?.selectedSessionId
+        val selectedAppIncludesPlugin = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any { session ->
+            session.id == selectedSessionId && session.isActive && session.installedPlugins.any { it.pluginId == targetPluginId }
+        }
+        return if (selectedAppIncludesPlugin) selectedSessionId else HostSession.ID
     }
 
     /** Turns the ways a plugin screen can silently fail to open into distinct errors. */
@@ -126,6 +142,7 @@ class HostNavigationCommand(
 
         if (!reconciliationService.requiresAgent(targetPluginId)) return
         if (HostSession.isHost(targetSessionId)) {
+            if (pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.targetsHostSession) return
             throw JetWhaleMcpArgumentException("invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.")
         }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
