@@ -43,8 +43,8 @@ internal class RunnerUnreachableException(message: String, cause: Throwable?) : 
 internal interface RunnerConnection {
     suspend fun status(): RunnerStatus
 
-    /** Sends the command at [path]; the runner's error becomes an [XcTestRunnerException]. */
-    suspend fun send(path: String, body: JsonObject)
+    /** Sends the command at [path] and returns the runner's answer; its error becomes an [XcTestRunnerException]. */
+    suspend fun send(path: String, body: JsonObject): JsonObject
 }
 
 /** Opens the connection to the runner listening on [port] of this machine's loopback, which checks [token]. */
@@ -71,9 +71,7 @@ internal class HttpRunnerConnection(
         throw XcTestRunnerException("the XCTest runner's status could not be read: ${e.message}", e)
     }
 
-    override suspend fun send(path: String, body: JsonObject) {
-        post(path, body, isSafeToRepeat = false)
-    }
+    override suspend fun send(path: String, body: JsonObject): JsonObject = post(path, body, isSafeToRepeat = false)
 
     /**
      * Posts [body] to [path] and returns the runner's answer. A request that gets no answer is

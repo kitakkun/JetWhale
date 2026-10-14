@@ -17,6 +17,8 @@ import kotlin.time.Duration
  * @property port where it answers on this machine's loopback; for a device, the forward to it.
  * @property token what each request must carry.
  * @property developmentTeam the team a device's runner is signed for; null for a simulator.
+ * @property keptAliveUntilEpochMillis when the lease that keeps the runner from stopping when idle
+ *   ends; null when none runs. Records written before leases existed lack it.
  */
 @Serializable
 internal data class RunnerState(
@@ -25,6 +27,7 @@ internal data class RunnerState(
     val port: Int,
     val token: String,
     val developmentTeam: String?,
+    val keptAliveUntilEpochMillis: Long? = null,
 )
 
 private val StateJson = Json { ignoreUnknownKeys = true }

@@ -104,9 +104,10 @@ What did not work, or needed care:
   `simctl io screenshot` follows the same orientation (2622×1206 in landscape).
 - SpringBoard's own frame stays portrait (402×874), yet a coordinate anchored at it took
   interface-orientation points and hit the button in both landscape orientations.
-- The private event record takes **device-native portrait points**, whatever orientation it is
-  given; landscape points missed. `XCUICoordinate.screenPoint` converts an interface point to that
-  space (74 ms), and a private tap at the converted point hit in both landscape orientations.
+- The private event record takes **portrait-up points in the screen's fixed coordinate space**,
+  whatever orientation it is given; landscape points missed. `XCUICoordinate.screenPoint` converts
+  an interface point to that space (74 ms), and a private tap at the converted point hit in both
+  landscape orientations.
 - Pixels to points is the screen scale: 3 on this iPhone (1206 px / 402 pt).
 
 ## Design
@@ -180,12 +181,13 @@ HTTP/1.1 `POST` with a JSON body, one request per command, the connection kept a
 
 Points come in one of two spaces, which a command names with `space`:
 
-- **`device`**, the default: device-native portrait points, whatever the interface orientation.
-  This is what the private event record takes, and the space of the mirror's screen size.
-- **`screen`**: points in the interface orientation, the space of screenshots and of the frames
-  `/tree` returns. The runner converts them with `XCUICoordinate.screenPoint` before synthesizing,
-  at about 74 ms a point. A caller that read a frame from `/tree` taps its center in `screen` and
-  needs no conversion of its own.
+- **`fixed`**, the default: points in the screen's fixed coordinate space, portrait-up whatever the
+  interface orientation, as `UIScreen.fixedCoordinateSpace`. This is what the private event record
+  takes, and the space of the mirror's screen size.
+- **`interface`**: points in the interface orientation, as `UIScreen.coordinateSpace`, the space of
+  screenshots and of the frames `/tree` returns. The runner converts them with
+  `XCUICoordinate.screenPoint` before synthesizing, at about 74 ms a point. A caller that read a
+  frame from `/tree` taps its center in `interface` and needs no conversion of its own.
 
 | Command | Body | Phase |
 |---|---|---|
@@ -253,7 +255,7 @@ An XCTest node source for the host session, through the same client: one root pe
 `elementType` as the class, `identifier` as `accessibilityIdentifier`, `label` as `text`, `value` as
 `accessibilityValue`, the frame as bounds in points, plus `enabled`, `selected` and `hasFocus`. It
 has no action list and no traits, so actions become coordinate gestures: `Click` taps the center,
-`ScrollBy` drags, all in `screen` points. `SetText` replaces the field's content, as the action
+`ScrollBy` drags, all in `interface` points. `SetText` replaces the field's content, as the action
 requires: it taps the field at its trailing edge so the caret is at the end, deletes one character
 for each character of the value XCTest reports, and types the new text, so an empty text clears
 the field. A secure field reports no value to delete, so `SetText` on one is refused. The in-process agent stays the richer source when the
@@ -314,8 +316,8 @@ runs WebDriverAgent the same way:
 - **Other UI tests on the same device.** Two runners ran side by side here, but a developer's own UI
   tests on the device the mirror drives would still compete with it for the screen. The idle stop
   ends the runner when nothing uses it.
-- **Landscape.** A landscape screenshot's coordinates are in `screen` points and cost a conversion
-  per point; Semantics and the MCP tools that take screenshot pixels send them that way.
+- **Landscape.** A landscape screenshot's coordinates are in `interface` points and cost a
+  conversion per point; Semantics and the MCP tools that take screenshot pixels send them that way.
 - **Loopback is shared.** Any local process can reach a loopback port; the per-run token keeps them
   from driving the device.
 - **Devices are unverified**: signing, Developer Mode, UI Automation, a locked device and `iproxy`

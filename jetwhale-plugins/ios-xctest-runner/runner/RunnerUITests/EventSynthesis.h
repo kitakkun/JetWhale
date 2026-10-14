@@ -4,8 +4,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /// Touches, text and the lock button through XCTest's private event synthesis, as WebDriverAgent
-/// sends them. Unlike XCUICoordinate it does not wait for the app to idle, and it takes
-/// device-native portrait points.
+/// sends them. Unlike XCUICoordinate it does not wait for the app to idle, and it takes points in
+/// the portrait-up fixed space.
 @interface EventSynthesis : NSObject
 + (BOOL)isAvailable;
 + (nullable NSError *)pressAtPoint:(CGPoint)point duration:(double)duration;

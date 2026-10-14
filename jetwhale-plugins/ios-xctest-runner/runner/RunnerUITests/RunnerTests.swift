@@ -16,8 +16,9 @@ final class RunnerTests: XCTestCase {
         let server = try CommandServer(port: port, token: token) { path, body in commands.run(path, body) }
         server.start()
         NSLog("JetWhale runner serving on 127.0.0.1:%d", Int(port))
-        // A runner nobody talks to ends its test, so it never outlives the hosts that started it.
-        while !commands.isShutdownRequested && Date().timeIntervalSince(commands.lastCommandAt) < idleSeconds {
+        // A runner nobody talks to, and nobody holds a lease on, ends its test, so it never outlives
+        // the hosts that started it.
+        while !commands.isShutdownRequested && (Date().timeIntervalSince(commands.lastCommandAt) < idleSeconds || Date() < commands.leaseEnd) {
             RunLoop.main.run(mode: .default, before: Date(timeIntervalSinceNow: 0.5))
         }
         server.stop()

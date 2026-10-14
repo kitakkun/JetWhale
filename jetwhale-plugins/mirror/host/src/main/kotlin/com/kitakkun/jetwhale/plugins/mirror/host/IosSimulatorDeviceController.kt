@@ -3,22 +3,25 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerButton
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
  * A booted iOS simulator. Screenshots and recordings go through `simctl` and the live stream through
  * idb, since simctl can neither stream nor send touches. Input goes through the XCTest runner
- * ([runnerInput]), and through idb when the runner cannot start. idb sends input only when
+ * ([xcTestRunnerClient]), and through idb when the runner cannot start. idb sends input only when
  * [idbCanSendSimulatorInput]: it streams with every Xcode, but cannot send input with one that moved
  * SimulatorKit.
  */
@@ -28,13 +31,14 @@ internal class IosSimulatorDeviceController(
     private val xcrunPath: String,
     private val idbPath: String?,
     idbCanSendSimulatorInput: Boolean,
-    private val runnerInput: XcTestRunnerInput?,
-) : DeviceController {
+    private val xcTestRunnerClient: XcTestRunnerClient?,
+) : XcTestRunnerDeviceController,
+    ScreenshotSpaceInput {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     private val idbInputPath = idbPath?.takeIf { idbCanSendSimulatorInput }
 
-    private val runnerRefusal = if (runnerInput == null) "input to a simulator needs Xcode's xcodebuild, or an idb that can send input" else runnerInput.refusalFor(runnerTarget)
+    private val runnerRefusal = if (xcTestRunnerClient == null) "input to a simulator needs Xcode's xcodebuild, or an idb that can send input" else xcTestRunnerClient.refusalFor(runnerTarget)
 
     override val capabilities = DeviceCapabilities(
         inputRefusal = runnerRefusal.takeIf { idbInputPath == null },
@@ -61,16 +65,45 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun tap(x: Int, y: Int) = sendInput(
-        throughRunner = { it.tap(runnerTarget, x, y) },
+    override suspend fun tap(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Fixed, x, y)
+
+    override suspend fun tapScreenshotPixel(x: Int, y: Int) = tapIn(XcTestRunnerPointSpace.Interface, x, y)
+
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Fixed, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+
+    override suspend fun swipeScreenshotPixels(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = swipeIn(XcTestRunnerPointSpace.Interface, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)
+
+    override suspend fun screenshotSize(): IntSize {
+        if (xcTestRunnerClient == null) return screenSize()
+        return try {
+            xcTestRunnerClient.screenshotSize(runnerTarget)
+        } catch (_: XcTestRunnerStartException) {
+            // idb, which takes the input over, knows only the portrait screen.
+            screenSize()
+        }
+    }
+
+    override suspend fun keepRunnerAlive(duration: Duration): Instant {
+        val input = xcTestRunnerClient ?: throw deviceControlError("this simulator has no XCTest runner to keep alive: Xcode's xcodebuild was not found")
+        return try {
+            input.keepRunnerAlive(runnerTarget, duration)
+        } catch (e: XcTestRunnerStartException) {
+            throw DeviceControlException(e.message.orEmpty(), e)
+        }
+    }
+
+    override fun runnerKeptAliveUntil(): Instant? = xcTestRunnerClient?.runnerKeptAliveUntil(runnerTarget)
+
+    private suspend fun tapIn(space: XcTestRunnerPointSpace, x: Int, y: Int) = sendInput(
+        throughRunner = { it.tap(runnerTarget, x, y, space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
             runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
         },
     )
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput(
-        throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis) },
+    private suspend fun swipeIn(space: XcTestRunnerPointSpace, fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendInput(
+        throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
             runCommandChecked(
@@ -100,8 +133,8 @@ internal class IosSimulatorDeviceController(
     )
 
     /** Sends input through the runner, or through idb when the runner cannot start. */
-    private suspend fun sendInput(throughRunner: suspend (XcTestRunnerInput) -> Unit, throughIdb: suspend (idbPath: String) -> Unit) {
-        val runnerFailure = runnerInput?.let { input ->
+    private suspend fun sendInput(throughRunner: suspend (XcTestRunnerClient) -> Unit, throughIdb: suspend (idbPath: String) -> Unit) {
+        val runnerFailure = xcTestRunnerClient?.let { input ->
             try {
                 throughRunner(input)
                 return
@@ -136,7 +169,7 @@ internal class IosSimulatorDeviceController(
     // current CoreSimulator does so rarely that the picture freezes for seconds. Its raw stream is
     // paced by --fps and scaled by the simulator instead, so there is nothing to decode.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        runnerInput?.startRunnerInBackground(runnerTarget)
+        xcTestRunnerClient?.startRunnerInBackground(runnerTarget)
         val idbPath = requireIdbPath()
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
         val process = withContext(Dispatchers.IO) {
@@ -174,9 +207,9 @@ internal class IosSimulatorDeviceController(
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
 
     override suspend fun screenSize(): IntSize {
-        if (idbPath != null || runnerInput == null) return readSimulatorScreenFromIdb().size
+        if (idbPath != null || xcTestRunnerClient == null) return readSimulatorScreenFromIdb().size
         return try {
-            runnerInput.screenSize(runnerTarget)
+            xcTestRunnerClient.screenSize(runnerTarget)
         } catch (e: XcTestRunnerStartException) {
             throw DeviceControlException(e.message.orEmpty(), e)
         }
