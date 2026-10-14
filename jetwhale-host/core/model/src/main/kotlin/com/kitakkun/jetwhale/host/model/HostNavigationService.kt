@@ -61,6 +61,8 @@ data class PoppedOutPlugin(val pluginId: String, val sessionId: String)
  *
  * [settingsPage] and [mcpToolsTab] are where that screen was opened; a page or tab picked inside it
  * afterwards is not tracked here.
+ *
+ * @property content What the main window shows as its content, under whatever dialog is open over it.
  */
 data class HostDestination(
     val kind: HostDestinationKind,
@@ -69,6 +71,14 @@ data class HostDestination(
     val settingsPage: HostSettingsPage? = null,
     val mcpToolsTab: HostMcpToolsTab? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
+    val content: HostContent,
+)
+
+/** The main window's content — a plugin, or the empty home — as distinct from a dialog over it. */
+data class HostContent(
+    val kind: HostDestinationKind,
+    val pluginId: String? = null,
+    val sessionId: String? = null,
 )
 
 data class HostViewState(

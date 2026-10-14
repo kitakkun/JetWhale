@@ -1,9 +1,39 @@
 package com.kitakkun.jetwhale.host.navigation
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.drawer.McpToolsTab
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import kotlinx.serialization.Serializable
+
+/**
+ * A key whose entry is drawn over the main window's content — a dialog or a window of its own —
+ * rather than as that content. [presentation] is the one statement of how: the entry in NavEntries
+ * takes its scene metadata from it, and [showBelowOverlays] leaves every such key where it is when
+ * the content underneath changes.
+ */
+sealed interface OverlayNavKey : NavKey {
+    val presentation: OverlayPresentation
+}
+
+sealed interface OverlayPresentation {
+    data class Dialog(val properties: DialogProperties) : OverlayPresentation
+
+    data class Window(val properties: WindowProperties) : OverlayPresentation
+
+    val metadata: Map<String, Any>
+        get() = when (this) {
+            is Dialog -> StableDialogSceneStrategy.dialog(properties)
+            is Window -> WindowSceneStrategy.window(properties)
+        }
+}
+
+// Compose otherwise limits a dialog's content to a platform default width well short of the
+// window's.
+private val FULL_WIDTH_DIALOG = OverlayPresentation.Dialog(
+    DialogProperties(usePlatformDefaultWidth = false),
+)
 
 @Serializable
 data object EmptyPluginNavKey : NavKey
@@ -11,13 +41,23 @@ data object EmptyPluginNavKey : NavKey
 @Serializable
 data class SettingsNavKey(
     val initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
-) : NavKey
+) : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = PRESENTATION
+
+    companion object {
+        val PRESENTATION: OverlayPresentation = FULL_WIDTH_DIALOG
+    }
+}
 
 @Serializable
-data object LicensesNavKey : NavKey
+data object LicensesNavKey : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = FULL_WIDTH_DIALOG
+}
 
 @Serializable
-data object InfoNavKey : NavKey
+data object InfoNavKey : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = OverlayPresentation.Dialog(DialogProperties())
+}
 
 @Serializable
 data class PluginNavKey(
@@ -30,7 +70,15 @@ data class PluginPopoutNavKey(
     val pluginId: String,
     val sessionId: String,
     val pluginName: String,
-) : NavKey
+) : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = PRESENTATION
+
+    companion object {
+        val PRESENTATION: OverlayPresentation = OverlayPresentation.Window(
+            WindowProperties(width = 800.dp, height = 600.dp),
+        )
+    }
+}
 
 /**
  * A plugin the drawer lists greyed out, opened to say why it can't run: switched off, with a way to
@@ -46,7 +94,11 @@ data class DisabledPluginNavKey(
 ) : NavKey
 
 @Serializable
-data object LogViewerNavKey : NavKey
+data object LogViewerNavKey : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = OverlayPresentation.Window(
+        WindowProperties(width = 1000.dp, height = 700.dp),
+    )
+}
 
 /**
  * The MCP tools browser. [pluginId] and [sessionId] seed the screen's filters — null means
@@ -58,4 +110,10 @@ data class McpToolsNavKey(
     val pluginId: String?,
     val sessionId: String?,
     val initialTab: McpToolsTab,
-) : NavKey
+) : OverlayNavKey {
+    override val presentation: OverlayPresentation get() = PRESENTATION
+
+    companion object {
+        val PRESENTATION: OverlayPresentation = FULL_WIDTH_DIALOG
+    }
+}

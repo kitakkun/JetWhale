@@ -73,7 +73,16 @@ class HostNavigationCommand(
                 ),
             )
 
-        return Json.encodeToString(
+        val result = if (request.isForContent) {
+            NavigateResult(
+                applied = true,
+                destination = applied.content.kind.name,
+                pluginId = applied.content.pluginId,
+                sessionId = applied.content.sessionId,
+                poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.content.pluginId && it.sessionId == applied.content.sessionId },
+                overlay = applied.kind.name.takeIf { it != applied.content.kind.name },
+            )
+        } else {
             NavigateResult(
                 applied = true,
                 destination = applied.kind.name,
@@ -82,9 +91,9 @@ class HostNavigationCommand(
                 settingsSection = applied.settingsPage?.section?.name,
                 settingsPage = applied.settingsPage?.name,
                 mcpToolsTab = applied.mcpToolsTab?.name,
-                poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
-            ),
-        )
+            )
+        }
+        return Json.encodeToString(result)
     }
 
     private suspend fun JetWhaleMcpArguments.toRequest(): HostNavigationRequest = when (this[destination]) {
@@ -139,8 +148,16 @@ class HostNavigationCommand(
     }
 }
 
+/** Home and a plugin are the window's content; the rest open over it. */
+private val HostNavigationRequest.isForContent: Boolean
+    get() = this is HostNavigationRequest.Home || this is HostNavigationRequest.Plugin
+
+/**
+ * Whether the window shows what was asked for. Content is judged under whatever dialog the user has
+ * open: navigating to it leaves the dialog up, and the request still did what it said.
+ */
 private fun HostNavigationRequest.matches(destination: HostDestination): Boolean = when (this) {
-    is HostNavigationRequest.Home -> destination.kind == HostDestinationKind.HOME
+    is HostNavigationRequest.Home -> destination.content.kind == HostDestinationKind.HOME
 
     is HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
@@ -155,11 +172,14 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
             destination.sessionId == null
 
     is HostNavigationRequest.Plugin ->
-        destination.kind == HostDestinationKind.PLUGIN &&
-            destination.pluginId == pluginId &&
-            (sessionId == null || destination.sessionId == sessionId)
+        destination.content.kind == HostDestinationKind.PLUGIN &&
+            destination.content.pluginId == pluginId &&
+            (sessionId == null || destination.content.sessionId == sessionId)
 }
 
+/**
+ * @property overlay The dialog still open over the content a HOME or PLUGIN request was applied under, if any.
+ */
 @Serializable
 data class NavigateResult(
     val applied: Boolean,
@@ -170,5 +190,6 @@ data class NavigateResult(
     val settingsPage: String? = null,
     val mcpToolsTab: String? = null,
     val poppedOut: Boolean = false,
+    val overlay: String? = null,
     val reason: String? = null,
 )
