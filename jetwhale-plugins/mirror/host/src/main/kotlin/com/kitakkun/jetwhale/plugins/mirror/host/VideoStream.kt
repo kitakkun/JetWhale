@@ -58,7 +58,7 @@ internal sealed interface VideoStream {
 internal suspend fun readEncodedImagesInto(target: MirrorSurface.FrameStream, stream: VideoStream.EncodedImages, onFrame: () -> Unit) {
     stream.collectUntilClosed { encoded ->
         val started = System.nanoTime()
-        // Skia throws IllegalArgumentException for bytes that are not an image, and a
+        // Skia throws IllegalArgumentException for bytes that are not an image, and another
         // RuntimeException for a damaged one.
         val decoded = try {
             Image.makeFromEncoded(encoded).use(Bitmap::makeFromImage)

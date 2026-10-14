@@ -482,6 +482,7 @@ private class AttachedXcTestRunner(
     private suspend fun ProducerScope<ByteArray>.sendScreenFrames(attachment: Attachment, maxFps: Int): Int {
         val stream = attachment.connection.openScreenStream(maxFps)
         return coroutineScope {
+            // A read waits on the socket and ignores cancellation; only closing the stream ends it.
             val reading = async(Dispatchers.IO) {
                 var sentFrameCount = 0
                 while (true) {
@@ -495,7 +496,6 @@ private class AttachedXcTestRunner(
                 }
                 sentFrameCount
             }
-            // A read waits on the socket and ignores cancellation; only closing the stream ends it.
             try {
                 reading.await()
             } finally {

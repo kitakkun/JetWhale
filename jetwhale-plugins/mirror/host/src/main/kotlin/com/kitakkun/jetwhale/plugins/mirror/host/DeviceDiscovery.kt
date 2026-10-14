@@ -81,7 +81,8 @@ internal class DeviceDiscovery(
         val xcrunPath = locatedToolPaths.xcrunPath ?: return emptyList()
         return tryList {
             withContext(Dispatchers.IO) {
-                // devicectl writes JSON only to a file; what it prints is for people and may change.
+                // devicectl writes JSON only to a file; what it prints is for people and may
+                // change.
                 val jsonFile = createTempFile(prefix = "jetwhale-devicectl-", suffix = ".json")
                 try {
                     runCommandChecked(DEVICE_LISTING_TIMEOUT, xcrunPath, "devicectl", "list", "devices", "--json-output", jsonFile.toString())

@@ -39,8 +39,7 @@ internal class IosSimulatorDeviceController(
     iosMajorVersion: Int?,
     private val xcrunPath: String,
     private val runnerInput: XcTestRunnerInput?,
-) : DeviceController,
-    XcTestRunnerDriven {
+) : XcTestRunnerDeviceController {
     private val runnerTarget = XcTestRunnerTarget.Simulator(udid, iosMajorVersion)
 
     /** Why the simulator has no live video and takes no input, when that is known without starting a runner. */
@@ -113,11 +112,11 @@ internal class IosSimulatorDeviceController(
     private fun streamRunnerFramesWithStandInScreenshots(input: XcTestRunnerInput): Flow<ByteArray> = channelFlow {
         val screenshots = launch {
             while (true) {
+                // A failed stand-in is skipped: the runner's frames soon replace the screenshots,
+                // or its failure ends the stream.
                 try {
                     send(captureScreenshot())
                 } catch (_: DeviceControlException) {
-                    // A failed stand-in is skipped: the runner's frames replace screenshots soon,
-                    // or its failure ends the stream.
                 } catch (_: IOException) {
                 }
                 delay(STAND_IN_SCREENSHOT_INTERVAL_MILLIS)
