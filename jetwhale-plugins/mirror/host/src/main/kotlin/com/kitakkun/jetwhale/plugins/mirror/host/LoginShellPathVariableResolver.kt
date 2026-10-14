@@ -7,8 +7,8 @@ import kotlin.time.Duration
 
 /**
  * Reads the PATH that the user's login shell sets up. An app started from Finder, the Dock or a
- * desktop entry does not inherit it, so it misses the directories that Homebrew, pyenv, asdf, pipx and
- * the like add in the shell's startup files.
+ * desktop entry does not inherit it, so it misses the directories that Homebrew, asdf and the like add
+ * in the shell's startup files.
  *
  * The shell runs as an interactive login shell, as a terminal starts it, so that a PATH set only in
  * `.zshrc` or `.bashrc` counts too. It gets no input, so a startup file that asks for some reads the
