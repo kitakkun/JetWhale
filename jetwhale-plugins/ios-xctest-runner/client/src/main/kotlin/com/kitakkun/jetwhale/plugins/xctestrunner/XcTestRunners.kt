@@ -130,13 +130,19 @@ public interface XcTestRunner {
     public suspend fun keepAlive(duration: Duration): Instant
 }
 
-/** The space a point is given in. */
+/** The space a point is given in, after UIKit's coordinate spaces. */
 public enum class XcTestRunnerPointSpace(internal val wireName: String) {
-    /** Device-native portrait points, whatever the interface orientation: the space XCTest synthesizes touches in. */
-    Device("device"),
+    /**
+     * Points in the screen's fixed coordinate space, portrait-up whatever the interface orientation,
+     * as `UIScreen.fixedCoordinateSpace`: the space XCTest synthesizes touches in.
+     */
+    Fixed("fixed"),
 
-    /** Points in the interface orientation: the space of screenshots, of [XcTestRunner.streamScreenAsJpeg]'s frames and of XCTest's element frames. */
-    Screen("screen"),
+    /**
+     * Points in the interface orientation, as `UIScreen.coordinateSpace`: the space of screenshots,
+     * of [XcTestRunner.streamScreenAsJpeg]'s frames and of XCTest's element frames.
+     */
+    Interface("interface"),
 }
 
 /** How the interface is turned, by UIKit's names: `LandscapeRight` has the home side on the right. */

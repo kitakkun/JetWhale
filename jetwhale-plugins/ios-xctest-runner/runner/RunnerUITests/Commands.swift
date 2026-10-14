@@ -6,15 +6,16 @@ struct RunnerError: Error, CustomStringConvertible {
 
 /// The version of the commands below, which `/status` reports. A client restarts a runner older
 /// than itself; commands are only added, so a newer runner serves an older client.
-let protocolVersion = 3
+let protocolVersion = 1
 
 /// The longest one `/lease` keeps the runner from stopping when idle. A client that wants longer
 /// renews it, so a lease nobody renews ends within this.
 let maxLeaseSeconds: TimeInterval = 2 * 60 * 60
 
-/// The commands the host sends. Points are device-native unless a command's `space` is `screen`:
-/// device-native points are portrait whatever the interface orientation, the space XCTest's event
-/// synthesis takes; screen points follow the interface orientation, the space of screenshots.
+/// The commands the host sends. Points are in the fixed space unless a command's `space` is
+/// `interface`: fixed points are portrait-up whatever the interface orientation, as
+/// `UIScreen.fixedCoordinateSpace`, the space XCTest's event synthesis takes; interface points follow
+/// the interface orientation, as `UIScreen.coordinateSpace`, the space of screenshots.
 @MainActor
 final class Commands {
     static var recordedIssue: String?
@@ -110,10 +111,10 @@ final class Commands {
 
     // XCUICoordinate waits for the app to idle around every gesture, about two seconds after a
     // scroll, and takes interface-orientation points; it is only the fallback. It gets the points as
-    // given, which for device-native ones is right in portrait only.
+    // given, which for fixed-space ones is right in portrait only.
     private func press(at point: CGPoint, in space: PointSpace, forSeconds duration: Double) throws {
         if EventSynthesis.isAvailable() {
-            try check(EventSynthesis.press(at: devicePoint(point, in: space), duration: max(duration, 0.05)))
+            try check(EventSynthesis.press(at: fixedPoint(point, in: space), duration: max(duration, 0.05)))
         } else if duration > 0 {
             coordinate(point).press(forDuration: duration)
         } else {
@@ -123,7 +124,7 @@ final class Commands {
 
     private func swipe(from start: CGPoint, to end: CGPoint, in space: PointSpace, forSeconds duration: Double) throws {
         if EventSynthesis.isAvailable() {
-            try check(EventSynthesis.drag(from: devicePoint(start, in: space), to: devicePoint(end, in: space), duration: max(duration, 0.05)))
+            try check(EventSynthesis.drag(from: fixedPoint(start, in: space), to: fixedPoint(end, in: space), duration: max(duration, 0.05)))
         } else {
             let velocity = hypot(end.x - start.x, end.y - start.y) / max(duration, 0.05)
             coordinate(start).press(forDuration: 0.05, thenDragTo: coordinate(end), withVelocity: XCUIGestureVelocity(velocity), thenHoldForDuration: 0)
@@ -152,29 +153,29 @@ final class Commands {
     }
 
     private enum PointSpace {
-        case device
-        case screen
+        case fixed
+        case interface
     }
 
-    /// The space `body` gives its points in: device-native unless its `space` is `screen`.
+    /// The space `body` gives its points in: the fixed space unless its `space` is `interface`.
     private func space(_ body: [String: Any]) throws -> PointSpace {
-        switch body["space"] as? String ?? "device" {
-        case "device":
-            return .device
-        case "screen":
-            return .screen
+        switch body["space"] as? String ?? "fixed" {
+        case "fixed":
+            return .fixed
+        case "interface":
+            return .interface
         default:
-            throw RunnerError(description: "space must be device or screen")
+            throw RunnerError(description: "space must be fixed or interface")
         }
     }
 
-    /// `point` in device-native points, the space event synthesis takes.
-    private func devicePoint(_ point: CGPoint, in space: PointSpace) -> CGPoint {
-        space == .screen ? coordinate(point).screenPoint : point
+    /// `point` in the portrait-up fixed space, the space event synthesis takes.
+    private func fixedPoint(_ point: CGPoint, in space: PointSpace) -> CGPoint {
+        space == .interface ? coordinate(point).screenPoint : point
     }
 
     /// The screen as the interface shows it: its orientation, and its size in pixels that way round.
-    /// Where the interface's origin lands in device-native points says how it is turned.
+    /// Where the interface's origin lands in the portrait-up fixed space says how it is turned.
     private func interfaceScreen() throws -> [String: Any] {
         guard let width = screen["screenWidthPixels"] as? Int, let height = screen["screenHeightPixels"] as? Int, let scale = screen["scale"] as? Double else {
             throw RunnerError(description: "the screen's size is unknown")

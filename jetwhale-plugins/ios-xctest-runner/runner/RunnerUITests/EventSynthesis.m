@@ -80,8 +80,8 @@ static const NSTimeInterval SynthesisTimeout = 60;
     return YES;
 }
 
-// The record's orientation does not change how its points are read: they are device-native
-// portrait points in every orientation.
+// The record's orientation does not change how its points are read: they are portrait-up
+// fixed-space points in every orientation.
 + (nullable NSError *)synthesize:(id)path name:(NSString *)name {
     id<JWSynthesizedEventRecord> record = [(id<JWSynthesizedEventRecord>)[NSClassFromString(@"XCSynthesizedEventRecord") alloc]
         initWithName:name interfaceOrientation:UIInterfaceOrientationPortrait];

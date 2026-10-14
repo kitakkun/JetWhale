@@ -86,7 +86,7 @@ class LocalXcTestRunnersTest {
     fun `another plugin uses the recorded runner rather than starting a second one`() = runTest {
         runners().runnerFor(simulator)
 
-        runners().runnerFor(simulator).tap(x = 201.0, y = 437.0, space = XcTestRunnerPointSpace.Device)
+        runners().runnerFor(simulator).tap(x = 201.0, y = 437.0, space = XcTestRunnerPointSpace.Fixed)
 
         assertEquals(1, xcodebuildProcesses.size)
         assertEquals(listOf("/tap"), connections.getValue(20_000).paths)
@@ -142,7 +142,7 @@ class LocalXcTestRunnersTest {
         xcodebuildProcesses.single().exit()
         connections.getValue(20_000).unreachable = true
 
-        runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device)
+        runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Fixed)
 
         assertEquals(2, xcodebuildProcesses.size)
         val (path, body) = connections.getValue(20_001).sent.single()
@@ -154,10 +154,10 @@ class LocalXcTestRunnersTest {
     fun `a point is sent with the space it is in`() = runTest {
         val runner = runners().runnerFor(simulator)
 
-        runner.tap(x = 300.0, y = 100.0, space = XcTestRunnerPointSpace.Screen)
-        runner.swipe(fromX = 1.0, fromY = 2.0, toX = 3.0, toY = 4.0, durationMillis = 250, space = XcTestRunnerPointSpace.Device)
+        runner.tap(x = 300.0, y = 100.0, space = XcTestRunnerPointSpace.Interface)
+        runner.swipe(fromX = 1.0, fromY = 2.0, toX = 3.0, toY = 4.0, durationMillis = 250, space = XcTestRunnerPointSpace.Fixed)
 
-        assertEquals(listOf("screen", "device"), connections.getValue(20_000).sent.map { (_, body) -> body.getValue("space").jsonPrimitive.content })
+        assertEquals(listOf("interface", "fixed"), connections.getValue(20_000).sent.map { (_, body) -> body.getValue("space").jsonPrimitive.content })
     }
 
     @Test
@@ -220,7 +220,7 @@ class LocalXcTestRunnersTest {
         val runner = runners().runnerFor(simulator)
         connections.getValue(20_000).stopsAnsweringMidCommand = true
 
-        assertFailsWith<XcTestRunnerException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device) }
+        assertFailsWith<XcTestRunnerException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Fixed) }
 
         assertEquals(1, xcodebuildProcesses.size)
         assertEquals(listOf("/tap"), connections.getValue(20_000).paths)
@@ -353,7 +353,7 @@ class LocalXcTestRunnersTest {
         runners.destroyStartedRunnerProcesses()
         connections.getValue(20_000).unreachable = true
 
-        val failure = assertFailsWith<XcTestRunnerStartException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Device) }
+        val failure = assertFailsWith<XcTestRunnerStartException> { runner.tap(x = 1.0, y = 2.0, space = XcTestRunnerPointSpace.Fixed) }
 
         assertEquals("this process is exiting, so it starts no XCTest runner", failure.message)
         assertEquals(1, xcodebuildProcesses.size)

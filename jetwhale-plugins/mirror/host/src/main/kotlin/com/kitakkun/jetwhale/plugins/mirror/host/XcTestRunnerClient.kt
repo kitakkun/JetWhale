@@ -45,7 +45,7 @@ internal class XcTestRunnerClient(private val runners: XcTestRunners) {
 
     suspend fun openAppSwitcher(target: XcTestRunnerTarget) = withRunner(target, XcTestRunner::openAppSwitcher)
 
-    /** The size of [target]'s screen in device-native pixels, as its runner reports it. */
+    /** The size of [target]'s screen in pixels of the portrait-up fixed space, as its runner reports it. */
     suspend fun screenSize(target: XcTestRunnerTarget): IntSize = withRunner(target) { IntSize(it.screen.widthPixels, it.screen.heightPixels) }
 
     /**

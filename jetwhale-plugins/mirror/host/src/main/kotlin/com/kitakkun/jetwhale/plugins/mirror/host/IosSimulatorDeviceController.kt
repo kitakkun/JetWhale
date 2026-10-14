@@ -73,9 +73,9 @@ internal class IosSimulatorDeviceController(
     override suspend fun screenSize(): IntSize = parseSimulatorScreenSize(runCommandChecked(SIMCTL_IO_ENUMERATE_TIMEOUT, xcrunPath, "simctl", "io", udid, "enumerate").stdoutText)
         ?: throw deviceControlError("'simctl io enumerate' reported no screen for the simulator")
 
-    override suspend fun tap(x: Int, y: Int) = requireXcTestRunnerClient().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Screen)
+    override suspend fun tap(x: Int, y: Int) = requireXcTestRunnerClient().tap(runnerTarget, x, y, XcTestRunnerPointSpace.Interface)
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = requireXcTestRunnerClient().swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = XcTestRunnerPointSpace.Screen)
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = requireXcTestRunnerClient().swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = XcTestRunnerPointSpace.Interface)
 
     override suspend fun pressButton(button: DeviceButton) = when (button) {
         DeviceButton.Home -> requireXcTestRunnerClient().pressButton(runnerTarget, XcTestRunnerButton.Home)
