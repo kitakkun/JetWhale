@@ -1,0 +1,61 @@
+# Two servers in one flow: create a record through a backend's MCP server, then open that record in
+# the app through JetWhale and check the app shows the id the backend generated.
+#
+# `accounts` is mcp-workflow's own demo server, started over stdio; in a real project it would be
+# the backend's MCP server. `jetwhale` comes from the .mcp.json passed with --mcp-config.
+version: 1
+name: Account created on the backend opens in the app
+description: Creates an account on the accounts server and opens its detail screen in the app.
+servers:
+  accounts:
+    command: tools/mcp-workflow/build/install/mcp-workflow/bin/mcp-workflow
+    args: [demo-server]
+inputs:
+  email:
+    default: qa@example.com
+defaults:
+  expect:
+    - path: $.error
+      exists: false
+steps:
+  - id: create
+    server: accounts
+    call: createAccount
+    args: { email: "${email}", name: QA }
+    save:
+      accountId: $.id
+
+  - id: session
+    server: jetwhale
+    call: jetwhale.listSessions
+    save:
+      sessionId: "$[?(@.isActive == true)].first().sessionId"
+
+  - id: open
+    server: jetwhale
+    call: com.kitakkun.jetwhale.nav3.pushNavKey
+    args:
+      sessionId: "${sessionId}"
+      key: { type: Detail, itemId: "${accountId}" }
+    expect:
+      - path: $.applied
+        equals: true
+      - path: $.stack.entries[-1].key.itemId
+        equals: "${accountId}"
+
+  - id: back
+    always: true
+    server: jetwhale
+    call: com.kitakkun.jetwhale.nav3.popBackStack
+    args: { sessionId: "${sessionId}", count: 1 }
+
+  - id: cleanup
+    always: true
+    server: accounts
+    call: deleteAccount
+    args: { id: "${accountId}" }
+    expect:
+      - path: $.deleted
+        equals: true
+outputs:
+  accountId: "${accountId}"

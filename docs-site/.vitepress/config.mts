@@ -96,6 +96,7 @@ export default defineConfig({
           { text: 'The Host Window', link: '/guide/host-window' },
           { text: 'Host Settings', link: '/guide/host-settings' },
           { text: 'MCP Server', link: '/guide/mcp-server' },
+          { text: 'MCP Workflows', link: '/guide/mcp-workflow' },
         ],
       },
       {

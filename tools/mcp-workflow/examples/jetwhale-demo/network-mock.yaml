@@ -1,0 +1,95 @@
+# A mocked response reaches the app: mock GET /todos/1, press the demo's button for it, and check
+# the captured transaction is the mock. Runs offline, since the mock answers instead of the server.
+version: 1
+name: Mocked todo response reaches the app
+description: Mocks GET /todos/1, triggers it from the Network tab, and checks the Network Inspector saw the mocked response.
+inputs:
+  title:
+    description: Title the mocked todo carries
+    default: Mocked by mcp-workflow
+defaults:
+  # JetWhale answers a mistaken call with {"error": ...} instead of a tool error.
+  expect:
+    - path: $.error
+      exists: false
+steps:
+  - id: session
+    call: jetwhale.listSessions
+    save:
+      sessionId: "$[?(@.isActive == true)].first().sessionId"
+
+  - id: clear
+    call: com.kitakkun.jetwhale.network.clearTransactions
+    args: { sessionId: "${sessionId}" }
+
+  - id: enable-mocking
+    call: com.kitakkun.jetwhale.network.setMockingEnabled
+    args: { sessionId: "${sessionId}", enabled: true }
+
+  - id: mock
+    call: com.kitakkun.jetwhale.network.addMockRule
+    args:
+      sessionId: "${sessionId}"
+      name: mcp-workflow todo
+      urlPattern: /todos/1
+      method: GET
+      statusCode: 200
+      contentType: application/json
+      body: '{"id": 1, "title": "${title}", "completed": true}'
+    save:
+      ruleId: $.id
+
+  - id: open-tab
+    call: com.kitakkun.jetwhale.semantics.findNodes
+    args: { sessionId: "${sessionId}", text: Network plugin, exact: true }
+    save:
+      tab: $.nodes[0]
+  - call: com.kitakkun.jetwhale.semantics.performNodeAction
+    args: { sessionId: "${sessionId}", rootId: "${tab.rootId}", nodeId: "${tab.id}", action: Click }
+    expect:
+      - path: $.performed
+        equals: true
+
+  - id: find-button
+    call: com.kitakkun.jetwhale.semantics.findNodes
+    args: { sessionId: "${sessionId}", text: GET /todos/1, exact: true }
+    # The tab switches on the next frame, so the button is polled for instead of assumed.
+    wait: { timeout: 5s, interval: 250ms }
+    expect:
+      - path: $.nodes
+        length: 1
+    save:
+      button: $.nodes[0]
+  - call: com.kitakkun.jetwhale.semantics.performNodeAction
+    args: { sessionId: "${sessionId}", rootId: "${button.rootId}", nodeId: "${button.id}", action: Click }
+    expect:
+      - path: $.performed
+        equals: true
+
+  - id: captured
+    call: com.kitakkun.jetwhale.network.listTransactions
+    args: { sessionId: "${sessionId}", urlContains: /todos/1 }
+    wait: { timeout: 10s, interval: 500ms }
+    expect:
+      - path: $.transactions
+        length: 1
+      - path: $.transactions[0].statusCode
+        equals: 200
+      - path: $.transactions[0].fromMock
+        equals: true
+    save:
+      txId: $.transactions[0].txId
+
+  - id: body
+    call: com.kitakkun.jetwhale.network.getTransaction
+    args: { sessionId: "${sessionId}", txId: "${txId}" }
+    expect:
+      - path: $.response.body
+        contains: "${title}"
+
+  - id: cleanup
+    always: true
+    call: com.kitakkun.jetwhale.network.removeMockRule
+    args: { sessionId: "${sessionId}", id: "${ruleId}" }
+outputs:
+  transaction: "${txId}"
