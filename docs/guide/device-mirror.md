@@ -42,7 +42,8 @@ stream, need no ffmpeg; an emulator without that stream is decoded like a device
 foldable emulator folded through `adb shell cmd device_state state`.
 
 idb is needed only for an iPhone's video, screenshots and recordings, and the device list asks for
-it only once an iPhone is connected.
+it only once an iPhone is connected. The plugin starts an `idb_companion` for each iPhone it uses,
+and ends it three minutes after its last use, when the iPhone goes away, and when the host quits.
 
 ### How the tools are found
 
