@@ -219,7 +219,7 @@ class IdbCompanionsTest {
  * A process whose output is [readyLine], if any, and that then stays open until destroyed, the
  * way idb_companion does.
  */
-internal class FakeCompanionProcess(val command: List<String>, readyLine: String?) : Process() {
+private class FakeCompanionProcess(val command: List<String>, readyLine: String?) : Process() {
     private val pipe = PipedOutputStream()
     private val output = PipedInputStream(pipe)
     var destroyed = false

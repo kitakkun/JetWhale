@@ -57,6 +57,36 @@ class XcodebuildFailuresTest {
     }
 
     @Test
+    fun `an Xcode whose license has not been accepted is told the command that accepts it`() {
+        val output = "You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license."
+
+        assertEquals("Xcode's license has not been accepted: run 'sudo xcodebuild -license accept' in Terminal, then try again", XcodebuildFailures.xcodeSetupReasonOf(output))
+        assertTrue(XcodebuildFailures.reasonOf(output, simulator).startsWith("Xcode's license has not been accepted"))
+    }
+
+    @Test
+    fun `a Mac whose developer directory is the Command Line Tools is told to install or choose Xcode`() {
+        val output = "xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance"
+
+        assertEquals(
+            "the XCTest runner needs Xcode, and xcodebuild cannot run: install Xcode from the App Store, or choose it with 'sudo xcode-select -s /Applications/Xcode.app', then try again",
+            XcodebuildFailures.xcodeSetupReasonOf(output),
+        )
+    }
+
+    @Test
+    fun `a Mac without developer tools is told to install Xcode`() {
+        val output = "xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun at: /Library/Developer/CommandLineTools/usr/bin/xcrun"
+
+        assertTrue(XcodebuildFailures.xcodeSetupReasonOf(output).orEmpty().startsWith("the XCTest runner needs Xcode"))
+    }
+
+    @Test
+    fun `a build error is not taken for a missing Xcode`() {
+        assertEquals(null, XcodebuildFailures.xcodeSetupReasonOf("error: iOS 26.2 Platform Not Installed."))
+    }
+
+    @Test
     fun `output without an error line is quoted from its end`() {
         assertEquals("the XCTest runner did not start: one / two / three", XcodebuildFailures.reasonOf("zero\none\n\ntwo\nthree\n", simulator))
     }

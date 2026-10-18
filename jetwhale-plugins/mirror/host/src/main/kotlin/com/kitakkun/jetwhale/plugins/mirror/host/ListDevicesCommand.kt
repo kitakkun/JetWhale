@@ -15,7 +15,7 @@ internal class ListDevicesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listDevices"
     override val description =
-        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports. A device that takes no input (taps, swipes, buttons and text) says why in \"inputUnavailableReason\": a physical iOS device needs Xcode, iproxy and a development team set in the mirror, and its input is experimental. A physical iOS device gives screenshots and recordings only when ffmpeg is installed, since both come from its video stream. " +
+        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports. A device that takes no input (taps, swipes, buttons and text) says why in \"inputUnavailableReason\": a physical iOS device needs Xcode, iproxy and a development team set in the mirror, and its input is experimental. A physical iOS device gives screenshots and recordings only when idb and ffmpeg are installed, since both come from its video stream. " +
             "An Android device also reports \"screenOn\" and \"locked\"; a screen that is off shows as black, and $TOOL_PREFIX.setScreen turns it on."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {

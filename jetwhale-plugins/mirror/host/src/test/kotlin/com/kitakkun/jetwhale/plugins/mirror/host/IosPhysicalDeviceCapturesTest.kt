@@ -118,14 +118,16 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
 
-        // The stand-in stream can end before ffmpeg reads any of it, which fails the recording; the
-        // companion must be released either way.
+        // Record, stop, then read the size, as stopping a recording does. The stand-in stream can
+        // end before ffmpeg reads any of it, which fails the recording; the companion must be
+        // released either way.
         try {
             iphone.startRecording(File(folder, "clip.mp4")).stop()
         } catch (_: DeviceControlException) {
         }
+        iphone.screenSize()
 
         assertTrue(companionProcesses.last().stopped.await(COMPANION_STOP_WAIT_SECONDS, TimeUnit.SECONDS), "the companion was still held after the recording")
     }
@@ -143,7 +145,7 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
 
         iphone.captureScreenshot()
 
@@ -170,7 +172,6 @@ class IosPhysicalDeviceCapturesTest {
     private fun iosDevice(ffmpegPath: String?) = IosPhysicalDeviceController(
         udid = "udid-1",
         iosMajorVersion = 26,
-        idbPath = "idb",
         companions = IdbCompanions(
             idbCompanionPath = "idb_companion",
             idbPath = "idb",
@@ -187,7 +188,7 @@ class IosPhysicalDeviceCapturesTest {
         xcTestRunnerClient = null,
     )
 
-    /** An idb stand-in that streams [h264] once, and notes each call in [IDB_CALLS]. */
+    /** An idb stand-in that describes a 360x640 screen, streams [h264] once, and notes each call in [IDB_CALLS]. */
     private fun fakeIdbPath(h264: ByteArray): String {
         val sample = File(folder, "stream.h264").apply { writeBytes(h264) }
         val calls = File(folder, IDB_CALLS)
@@ -197,6 +198,7 @@ class IosPhysicalDeviceCapturesTest {
                 #!/bin/sh
                 echo "${'$'}*" >> '${calls.path}'
                 case "${'$'}1" in
+                  describe) echo '{"screen_dimensions":{"width":$SAMPLE_WIDTH,"height":$SAMPLE_HEIGHT,"density":3}}' ;;
                   video-stream) exec cat '${sample.path}' ;;
                 esac
                 """.trimIndent() + "\n",
@@ -236,7 +238,7 @@ private const val COMPANION_STOP_WAIT_SECONDS = 5L
 private const val IDB_CALLS = "idb-calls.txt"
 
 /** An idb companion that reports its port at once and ends when destroyed. */
-private class ReadyCompanionProcess : Process() {
+internal class ReadyCompanionProcess : Process() {
     private val pipe = PipedOutputStream()
     private val output = PipedInputStream(pipe)
     private var destroyed = false

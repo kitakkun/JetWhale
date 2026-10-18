@@ -4,7 +4,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.ProducerScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -32,6 +38,8 @@ internal const val IPROXY_INSTALL_COMMAND = "brew install libimobiledevice"
 
 internal const val IPROXY_MISSING_REFUSAL = "driving an iPhone needs iproxy, which forwards a port to it over USB: $IPROXY_INSTALL_COMMAND"
 
+private const val JVM_EXITING_REFUSAL = "this process is exiting, so it starts no XCTest runner"
+
 internal const val NO_DEVELOPMENT_TEAM_REFUSAL = "driving an iPhone needs your Apple development team, which signs the XCTest runner that sends its input"
 
 private const val RUNNER_POLL_MILLIS = 250L
@@ -54,9 +62,9 @@ internal class Attachment(
  * replaced. Starting or replacing a device's runner holds that device's lock, so two plugins never
  * start two runners for one device.
  *
- * A runner ends its own test after [idleTimeout] without commands, unless a lease holds it; a lease
- * runs out too, so a runner never outlives the hosts that use it for long. The ones this process
- * started are also ended when it exits.
+ * A runner ends its own test after [idleTimeout] without commands or streamed frames, unless a lease
+ * holds it; a lease runs out too, so a runner never outlives the hosts that use it for long. The ones
+ * this process started are also ended when it exits.
  */
 internal class LocalXcTestRunners(
     private val runnerStateDirectory: RunnerStateDirectory,
@@ -83,6 +91,10 @@ internal class LocalXcTestRunners(
 
     /** Destinations whose last start failed; a background start leaves them alone until [runnerFor] tries again. */
     private val failedDestinations: MutableSet<RunnerDestination> = ConcurrentHashMap.newKeySet()
+
+    /** Set once this process is exiting, from when no runner may start: none would be ended. */
+    @Volatile
+    private var isJvmExiting = false
 
     override fun refusalFor(target: XcTestRunnerTarget): String? {
         val iosMajorVersion = target.iosMajorVersion
@@ -138,8 +150,12 @@ internal class LocalXcTestRunners(
         return until
     }
 
-    /** Kills what this process started, without waiting; for when it exits. */
+    /**
+     * Kills what this process started, without waiting, and starts nothing from now on; for when it
+     * exits. A screen stream that its runner's end breaks would otherwise start another.
+     */
     fun destroyStartedRunnerProcesses() {
+        isJvmExiting = true
         startedRunnerProcesses.values.forEach {
             it.xcodebuild.destroyForcibly()
             it.forwarder?.destroyForcibly()
@@ -222,6 +238,7 @@ internal class LocalXcTestRunners(
     private class LaunchedTest(val xcodebuild: Process, val output: KeptOutput)
 
     private suspend fun startRunner(destination: RunnerDestination): Attachment {
+        if (isJvmExiting) throw XcTestRunnerStartException(JVM_EXITING_REFUSAL, null)
         val xctestrun = builds.xctestrunFor(destination)
         val runnerPort = portSource.freePort()
         val token = UUID.randomUUID().toString()
@@ -229,7 +246,10 @@ internal class LocalXcTestRunners(
         var launchedTest: LaunchedTest? = null
         try {
             launchedTest = launchRunnerTest(xctestrun, destination.udid, runnerPort, token)
+            // Registered before isJvmExiting is read again: an exit that begins meanwhile either
+            // finds this xcodebuild to kill or has set the flag this check sees.
             startedRunnerProcesses[launchedTest.xcodebuild.pid()] = StartedRunnerProcesses(launchedTest.xcodebuild, forward?.process)
+            if (isJvmExiting) throw XcTestRunnerStartException(JVM_EXITING_REFUSAL, null)
             val connection = connector.connect(forward?.localPort ?: runnerPort, token)
             val status = awaitRunnerAnswer(connection, launchedTest, destination)
             recordStartedRunner(destination, launchedTest.xcodebuild, forward, RunnerState(status.protocolVersion, launchedTest.xcodebuild.pid(), forward?.localPort ?: runnerPort, token, destination.developmentTeam))
@@ -347,6 +367,9 @@ internal class LocalXcTestRunners(
     }
 }
 
+/** The most frames a second the runner streams its screen at. */
+private const val MAX_SCREEN_STREAM_FPS = 60
+
 /**
  * The most characters one `/typeText` carries; a longer text goes in parts. The runner types 60
  * characters a second and gives an event 60 seconds, so a part takes about 17 seconds.
@@ -361,7 +384,7 @@ private const val RUNNER_PROJECT_RESOURCE = "/com/kitakkun/jetwhale/plugins/xcte
  * answering is replaced through [runners] and the command sent once more.
  */
 private class AttachedXcTestRunner(
-    private var attachment: Attachment,
+    @Volatile private var attachment: Attachment,
     private val runners: LocalXcTestRunners,
 ) : XcTestRunner {
     override val screen: XcTestRunnerScreen
@@ -435,6 +458,50 @@ private class AttachedXcTestRunner(
 
     override suspend fun activateApp(bundleId: String) {
         send("/activateApp", buildJsonObject { put("bundleId", bundleId) })
+    }
+
+    override fun streamScreenAsJpeg(maxFps: Int): Flow<ByteArray> {
+        require(maxFps in 1..MAX_SCREEN_STREAM_FPS) { "maxFps must be 1 to $MAX_SCREEN_STREAM_FPS, not $maxFps" }
+        return channelFlow {
+            var attachedSinceLastFrame = false
+            while (true) {
+                val sentFrameCount = try {
+                    sendScreenFrames(attachment, maxFps)
+                } catch (_: RunnerUnreachableException) {
+                    0
+                }
+                if (sentFrameCount > 0) attachedSinceLastFrame = false
+                if (attachedSinceLastFrame) throw XcTestRunnerException("the XCTest runner's screen stream ended before its first frame", null)
+                attachment = runners.reattach(attachment)
+                attachedSinceLastFrame = true
+            }
+        }.conflate()
+    }
+
+    /** Sends the frames of [attachment]'s screen stream into this flow until it ends; returns how many. */
+    private suspend fun ProducerScope<ByteArray>.sendScreenFrames(attachment: Attachment, maxFps: Int): Int {
+        val stream = attachment.connection.openScreenStream(maxFps)
+        return coroutineScope {
+            // A read waits on the socket and ignores cancellation; only closing the stream ends it.
+            val reading = async(Dispatchers.IO) {
+                var sentFrameCount = 0
+                while (true) {
+                    val frame = try {
+                        stream.readJpegFrame()
+                    } catch (_: IOException) {
+                        null
+                    } ?: break
+                    send(frame)
+                    sentFrameCount++
+                }
+                sentFrameCount
+            }
+            try {
+                reading.await()
+            } finally {
+                stream.close()
+            }
+        }
     }
 
     override suspend fun keepAlive(duration: Duration): Instant {

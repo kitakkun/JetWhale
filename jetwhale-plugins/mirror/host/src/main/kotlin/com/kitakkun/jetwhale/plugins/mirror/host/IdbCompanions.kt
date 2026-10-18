@@ -26,16 +26,17 @@ private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
 private const val DISCONNECT_DEADLINE_MILLIS = 3_000L
 
 /**
- * The idb companions of iOS devices and simulators: a companion process per device, which idb is
- * then told about. A device needs one started for it; for a simulator, idb would start one itself,
- * but would never stop it. Each companion is started by the first user. When the last one releases
- * it, it is kept for [idleTimeout] before it stops: starting one and connecting idb takes seconds,
- * and switching away from a device and back is the common case. A device or simulator that
- * disappears has its companion stopped at once.
+ * The idb companions of physical iOS devices. idb reaches a simulator by itself, but a device needs
+ * a companion process of its own, which idb is then told about. Each device's companion is started
+ * by the first user. When the last one releases it, it is kept for [idleTimeout] before it stops:
+ * starting one and connecting idb takes seconds, and switching away from a device and back is the
+ * common case. A device that disappears has its companion stopped at once.
+ *
+ * @property idbPath the idb client the companions are connected to, which then reaches the devices.
  */
 internal class IdbCompanions(
     private val idbCompanionPath: String,
-    private val idbPath: String,
+    val idbPath: String,
     private val launcher: ProcessLauncher,
     private val commands: CommandRunner,
     private val ports: PortSource,

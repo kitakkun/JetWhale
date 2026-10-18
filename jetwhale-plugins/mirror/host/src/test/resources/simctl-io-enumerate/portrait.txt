@@ -1,0 +1,193 @@
+Port:
+    UUID: B16E8FAE-A5B6-4C28-BE5F-884C423DF9B4
+    Class: Unknown
+    Port Identifier: com.apple.display.captureservice
+    Power state: On
+
+Port:
+    UUID: D6A66CF3-463B-44E6-BB8A-C907B8123B20
+    Class: Display
+    Port Identifier: com.apple.framebuffer.display
+    Power state: On
+    Display class: 1
+    Default width: 720
+    Default height: 480
+    Default pixel format: 'BGRA'
+
+Port:
+    UUID: A52EDFD7-C5CD-4476-95FC-63879E267257
+    Class: Display
+    Port Identifier: com.apple.framebuffer.display
+    Power state: On
+    Display class: 1
+    Default width: 720
+    Default height: 480
+    Default pixel format: 'BGRA'
+
+Port:
+    UUID: 0B44C638-3F34-42D7-8EFD-16D2BB40CE4D
+    Class: Display
+    Port Identifier: com.apple.framebuffer.display
+    Power state: On
+    Display class: 0
+    Default width: 1206
+    Default height: 2622
+    Default pixel format: 'BGRA'
+    IOSurface port:
+        width              = 1206
+        height             = 2622
+        bytes per row      = 4864
+        size               = 12763136
+        pixel format       = 'BGRA'
+        bytes per element  = 4
+        CPU cache mode     = Default cache
+        Pixel size casting = Yes
+
+Port:
+    UUID: 06BDA31E-009F-44E8-AAB5-F6588BC8AA09
+    Class: DisplayAdapter
+    Port Identifier: com.apple.framebuffer.server
+    Power state: On
+    Creatable Screen Properties:
+    Connected Screens:
+    (1) LCD:
+        Screen ID: 1
+        Name: LCD
+        Unique ID: PurpleMain
+        Device Name: PurpleMain
+        Seed: 55
+        Screen Type: Integrated
+        Pixel Size: {1206, 2622}
+        Dot Pitch: 460
+        Mask URL: file:///Library/Developer/DeviceKit/FramebufferMasks/4E5532ED-1470-47D1-BDF4-7AA90C26957A.pdf
+        Mask ID: 4E5532ED-1470-47D1-BDF4-7AA90C26957A
+        Chrome ID: com.apple.dt.devicekit.chrome.phone11
+        Preferred UI Scale: 3
+        Pixel Format: 'BGRA'
+        Colorspace: DCI-P3
+        HDR Mode: SDR
+        Refresh Rate: 6000
+        UI Orientation: Portrait
+    (2) TVOut:
+        Screen ID: 2
+        Name: TVOut
+        Unique ID: PurpleTVOut
+        Device Name: PurpleTVOut
+        Seed: 56
+        Screen Type: TVOut
+        Pixel Size: {720, 480}
+        Dot Pitch: 72
+        Mask URL: (none)
+        Mask ID: (none)
+        Chrome ID: (none)
+        Preferred UI Scale: 1
+        Pixel Format: 'BGRA'
+        Colorspace: sRGB
+        HDR Mode: SDR
+        Refresh Rate: 6000
+        UI Orientation: Ambiguous
+    (3) Wireless:
+        Screen ID: 3
+        Name: Wireless
+        Unique ID: 01C9960E-B918-4F37-89B2-9FCAAEABD2DB
+        Device Name: wireless0
+        Seed: 57
+        Screen Type: CarPlay
+        Pixel Size: {720, 480}
+        Dot Pitch: 72
+        Mask URL: (none)
+        Mask ID: (none)
+        Chrome ID: (none)
+        Preferred UI Scale: 1
+        Pixel Format: 'BGRA'
+        Colorspace: sRGB
+        HDR Mode: SDR
+        Refresh Rate: 6000
+        UI Orientation: Ambiguous
+
+Port:
+    UUID: C129C9D1-011A-45E1-9FAB-5957204DA14D
+    Class: Accelerator
+    Port Identifier: com.apple.accelerator.metal
+    Power state: On
+
+Port:
+    UUID: 99289253-337E-415D-9A3E-FFDA75D97004
+    Class: Accelerator
+    Port Identifier: com.apple.accelerator.iosurface
+    Power state: On
+
+Port:
+    UUID: 4AE22CDC-73EA-4CC1-850D-7AE10B699D9D
+    Class: LegacyHID
+    Port Identifier: com.apple.CoreSimulator.HID.LegacyHID
+    Power state: On
+
+Port:
+    UUID: 25FDD449-003B-4D55-A8DE-9AA3A3919625
+    Class: StreamProcessor
+    Port Identifier: com.apple.SimStreamProcessor.default
+    Power state: On
+    Stream processor device
+    Specification:
+        SimStreamProcessorSpecificationPerformanceHint = SimStreamProcessorSpecificationPerformanceHint_Default
+        SimStreamProcessorSpecificationRendererHint = SimStreamProcessorSpecificationRendererHint_OpenGL
+        SimStreamProcessorSpecificationEmulationHint = SimStreamProcessorSpecificationEmulationHint_SerialProcessing
+    Renderer private name: Apple Software Renderer
+    Renderer version: 4.1 APPLE-24.0.2
+    Denylisted: No
+    Memory regions:
+
+Port:
+    UUID: CA8E5394-295A-4F7B-AB73-5D42589E27FF
+    Class: StreamProcessor
+    Port Identifier: com.apple.SimStreamProcessor.default
+    Power state: On
+    Stream processor device
+    Specification:
+        SimStreamProcessorSpecificationPerformanceHint = SimStreamProcessorSpecificationPerformanceHint_MaximizePerformance
+        SimStreamProcessorSpecificationRendererHint = SimStreamProcessorSpecificationRendererHint_Metal
+        SimStreamProcessorSpecificationEmulationHint = SimStreamProcessorSpecificationEmulationHint_NoEmulation
+    Renderer private name: Apple M2 Pro
+    Renderer version: 1.3
+    Denylisted: No
+    Memory regions:
+
+Port:
+    UUID: C289ED2C-63B9-4FC9-90BF-674981653701
+    Class: StreamProcessor
+    Port Identifier: com.apple.SimStreamProcessor.default
+    Power state: On
+    Stream processor device
+    Specification:
+        SimStreamProcessorSpecificationPerformanceHint = SimStreamProcessorSpecificationPerformanceHint_MaximizePerformance
+        SimStreamProcessorSpecificationRendererHint = SimStreamProcessorSpecificationRendererHint_OpenGL
+        SimStreamProcessorSpecificationEmulationHint = SimStreamProcessorSpecificationEmulationHint_NoEmulation
+    Renderer private name: Apple M2 Pro
+    Renderer version: 4.1 Metal - 91.7
+    Denylisted: No
+    Memory regions:
+
+Port:
+    UUID: F59DCD3B-1532-44FE-B995-C913A57500DD
+    Class: Audio
+    Port Identifier: com.apple.CoreSimulator.Audio.HostRoute
+    Power state: On
+    Guest Audio Input -> Default Host Audio Device
+    Guest Audio Output -> Default Host Audio Device
+    Host Audio Devices:
+        BuiltInMicrophoneDevice: MacBook Pro Microphone (1 In / 0 Out)
+        BuiltInSpeakerDevice: MacBook Pro Speakers (0 In / 2 Out)
+
+Port:
+    UUID: 4F3B5107-E04D-4C29-AC7B-BD761B08FCAD
+    Class: Unknown
+    Port Identifier: com.apple.gputools.service.simulator
+    Power state: On
+
+Port:
+    UUID: 17226CA4-BD23-4EFD-BEC9-1A7794531A6E
+    Class: Unknown
+    Port Identifier: com.apple.gputools.GPUToolsAgentService.simulator
+    Power state: On
+

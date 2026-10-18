@@ -29,6 +29,9 @@ final class Commands {
 
     private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
+    /// The commands that act on the device, after which its screen usually changes.
+    private static let inputPaths: Set<String> = ["/tap", "/longPress", "/swipe", "/typeText", "/pressButton", "/openAppSwitcher", "/activateApp"]
+
     // The runner process's own UIScreen reports a 320×480-point screen on an iPhone 17 simulator;
     // XCTest's screenshot has the real size. Taking one costs about 100 ms, so it is taken once.
     private lazy var screen: [String: Any] = {
@@ -40,6 +43,7 @@ final class Commands {
 
     func run(_ path: String, _ body: [String: Any]) -> [String: Any] {
         lastCommandAt = Date()
+        if Self.inputPaths.contains(path) { ScreenStream.resumeFullRate() }
         Self.recordedIssue = nil
         var result: [String: Any] = [:]
         var thrown: Error?

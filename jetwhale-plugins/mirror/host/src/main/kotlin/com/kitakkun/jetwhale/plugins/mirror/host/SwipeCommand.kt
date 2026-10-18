@@ -35,12 +35,11 @@ internal class SwipeCommand(
         if (duration !in 0..MAX_SWIPE_MILLIS) throw JetWhaleMcpArgumentException("durationMillis must be from 0 to $MAX_SWIPE_MILLIS (got $duration)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-        val input = ScreenshotPixelInput(device.controller)
-        val screen = deviceOperation(input::screenshotSize)
+        val screen = deviceOperation(device.controller::screenSize)
         if (maxOf(fromX, toX) >= screen.width || maxOf(fromY, toY) >= screen.height) {
             throw JetWhaleMcpArgumentException("the swipe leaves the ${screen.width}x${screen.height} screen (got $fromX,$fromY -> $toX,$toY)")
         }
-        deviceOperation { input.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = duration) }
+        deviceOperation { device.controller.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = duration) }
         return okJson()
     }
 }
