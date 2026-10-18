@@ -78,7 +78,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * A missing `sessionId`, or a session the tool is not offered in, is answered with an error
      * payload that names the sessions the tool is available in.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The result string, or null when no live instance in that session offers [toolName].
      */
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
         val entry = registrations[toolName] ?: return null
