@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.publish)
+    alias(libs.plugins.jetwhaleProtocol)
 }
 
 // Distinct group so this module's coordinates don't collide with the other plugins' `protocol`.
@@ -16,6 +17,12 @@ kotlin {
     abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.actions.protocol"
+}
+
+jetwhaleProtocol {
+    pluginId.set("com.kitakkun.jetwhale.actions")
+    protocolRevision.set(1)
+    contractQualifiedName.set("com.kitakkun.jetwhale.plugins.actions.protocol.ActionsPluginContract")
 }
 
 dependencies {

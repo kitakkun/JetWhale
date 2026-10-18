@@ -295,6 +295,72 @@ it at the top of the sidebar, above the app picker, so it works before any app c
 recreated per app. Its MCP tools take `sessionId: "host"`. See `ExampleHostOnlyPlugin` in
 `jetwhale-plugins/example/host`.
 
+### 5. Declare the protocol revision
+
+The module that holds your messages is the plugin's **protocol module**: the agent and the host
+plugin both depend on it. Apply `com.kitakkun.jetwhale.protocol` to it, and the build tells you when a
+change to those messages would break the wire between an agent and a host plugin built from different
+versions of it:
+
+```kotlin
+// the plugin's protocol module — build.gradle.kts
+plugins {
+    kotlin("multiplatform") version "<kotlinVersion>"
+    kotlin("plugin.serialization") version "<kotlinVersion>"
+    id("com.kitakkun.jetwhale.protocol") version "<version>"
+}
+
+version = "1.0.0" // your plugin's release version, which the generated contract carries
+
+kotlin {
+    jvm() // required: the wire schema is read from the JVM classes
+    // ...and the targets your agent runs on
+}
+
+jetwhaleProtocol {
+    pluginId.set("com.example.myplugin")
+    protocolRevision.set(1)
+    contractQualifiedName.set("com.example.myplugin.protocol.MyPluginContract")
+}
+```
+
+Then run `./gradlew dumpWireSchema` and commit the `wire/` directory it writes. A module built with
+`kotlin("jvm")` works the same way.
+
+| Property | What it is |
+|----------|------------|
+| `pluginId` | The id in your plugin manifest. |
+| `protocolRevision` | An integer from 1, raised by one with each breaking change of the wire. It never goes down. |
+| `contractQualifiedName` | Where the plugin generates `MyPluginContract`, a `JetWhalePluginContract` holding the plugin id, the module's `version` as the release version, the revision and a hash of the dump. |
+
+`wire/<project>.wire` lists each message by its serial name and every type it reaches, as sorted text
+meant to be read in a diff. `checkWireSchema` runs in `check` and fails while the dump is not what the
+compiled classes produce. When it does, run `dumpWireSchema`: it rewrites the dump, or refuses with
+each breaking change, its path, and the revision to set.
+
+A change is **breaking** when a side built before it, or after it, could fail to decode or route what
+the other sends:
+
+- **Additive:** adding or removing an optional field (one with a default), making a required field
+  optional, renaming an optional field, and adding, removing or renaming an event.
+- **Breaking:** adding or removing a required field, renaming one (even with `@JsonNames` for the old
+  name), changing a field's type or nullability, making an optional field required, making a required
+  field optional under `@EncodeDefault(NEVER)`, adding or removing an enum entry or a sealed subtype,
+  adding, removing or renaming a request, changing a reply type, and turning an event into a request
+  or back.
+- **No change:** renaming a Kotlin class the wire does not name, and reordering fields.
+
+The check cannot see which side sends a message, so a change that only one side sends still counts as
+breaking. Nor can it see a change of meaning, such as a default that now means something else or a
+custom serializer that writes its value differently: raise the revision for one by hand. It refuses
+what the payload format cannot send at all, an open polymorphic or contextual property, and a generic
+class reached with two different type arguments, which would give one name two shapes.
+
+To catch a dump edited by hand as well, have CI pass `-PjetwhaleWireSchemaBaselineDir=<dir>` to
+`checkWireSchema`, with the base branch's `wire/*.wire` files laid out under `<dir>` as in your
+repository. The check then also refuses a committed dump that could not have followed the base
+branch's, and a module's first dump at another revision than 1.
+
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 
 A host plugin can contribute tools to the host's [MCP server](/guide/mcp-server) by implementing

@@ -310,6 +310,10 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/MockRule$Compa
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/network/protocol/NetworkPluginContractKt {
+	public static final fun getNetworkPluginContract ()Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginContract;
+}
+
 public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig$Companion;
 	public fun <init> (Ljava/util/List;)V
