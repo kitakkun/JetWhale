@@ -42,7 +42,7 @@ class MirrorToolLocatorTest {
     @Test
     fun `the login shell is not started when every tool is found without it`() {
         assumeShellScriptsLaunch()
-        listOf("adb", "idb", "idb_companion", "ffmpeg").forEach { createExecutableIn(wellKnownDirectory, it) }
+        listOf("adb", "idb", "idb_companion", "ffmpeg", "iproxy").forEach { createExecutableIn(wellKnownDirectory, it) }
 
         val located = locator(loginShellPathVariableResolver = loginShellPrinting(loginShellDirectory.path)).locateTools()
 
