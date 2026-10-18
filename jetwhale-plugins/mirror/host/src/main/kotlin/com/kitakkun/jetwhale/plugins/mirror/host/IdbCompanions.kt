@@ -162,12 +162,8 @@ internal class IdbCompanions(
     private suspend fun stop(companion: RunningCompanion) {
         companion.process.destroy()
         if (!companion.process.waitFor(3, TimeUnit.SECONDS)) companion.process.destroyForcibly()
-        disconnectIdb(companion.port)
-    }
-
-    private suspend fun disconnectIdb(port: Int) {
         try {
-            commands.runChecked(listOf(idbPath, "disconnect", "localhost", "$port"))
+            commands.runChecked(listOf(idbPath, "disconnect", "localhost", "${companion.port}"))
         } catch (_: DeviceControlException) {
             // A failed disconnect leaves only a stale entry in idb's target list.
         }
