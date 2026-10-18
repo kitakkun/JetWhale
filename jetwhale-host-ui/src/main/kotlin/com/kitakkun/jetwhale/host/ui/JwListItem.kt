@@ -33,7 +33,8 @@ import androidx.compose.ui.unit.dp
  *
  * @param text the row's label, ellipsized to one line.
  * @param selected whether this is the current item.
- * @param onClick what selecting the row does.
+ * @param onClick what selecting the row does. ↑/↓ moving onto the row runs it too, so it must select
+ * rather than act; a row whose click runs a command takes the overload without [selected].
  * @param enabled false fades the row and ignores clicks.
  * @param muted draws the row in the secondary text color while keeping it interactive — an item
  * that is present but not current, say. Distinct from [enabled], which removes the interaction.
@@ -60,26 +61,84 @@ public fun JwListItem(
         enabled = enabled,
         muted = muted,
     ) {
-        leadingContent?.invoke()
-        Column(modifier = Modifier.weight(1f)) {
+        LabeledContent(
+            text = text,
+            supportingText = supportingText,
+            enabled = enabled,
+            leadingContent = leadingContent,
+            trailingContent = trailingContent,
+        )
+    }
+}
+
+/**
+ * A row whose click runs a command — opens a dialog, fills an editor, folds a group — instead of
+ * selecting an item. It looks like the selectable overload with nothing selected. ↑/↓ walk onto and
+ * past it like any other row without running [onClick]; a click, Enter or Space runs it.
+ *
+ * @param text the row's label, ellipsized to one line.
+ * @param onClick the command.
+ * @param enabled false fades the row and ignores clicks.
+ * @param muted draws the row in the secondary text color while keeping it interactive.
+ * @param supportingText a second line under [text].
+ * @param leadingContent content before the text, usually a [JwIcon].
+ * @param trailingContent badges or an overflow menu at the far end.
+ */
+@Composable
+public fun JwListItem(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    muted: Boolean = false,
+    supportingText: String? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
+) {
+    ListItemRow(
+        selected = null,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        muted = muted,
+    ) {
+        LabeledContent(
+            text = text,
+            supportingText = supportingText,
+            enabled = enabled,
+            leadingContent = leadingContent,
+            trailingContent = trailingContent,
+        )
+    }
+}
+
+@Composable
+private fun RowScope.LabeledContent(
+    text: String,
+    supportingText: String?,
+    enabled: Boolean,
+    leadingContent: (@Composable () -> Unit)?,
+    trailingContent: (@Composable RowScope.() -> Unit)?,
+) {
+    leadingContent?.invoke()
+    Column(modifier = Modifier.weight(1f)) {
+        JwText(
+            text = text,
+            style = JwTheme.textStyles.body,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (supportingText != null) {
             JwText(
-                text = text,
-                style = JwTheme.textStyles.body,
+                text = supportingText,
+                style = JwTheme.textStyles.bodySmall,
+                color = if (enabled) JwTheme.colors.textSecondary else JwTheme.colors.textDisabled,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (supportingText != null) {
-                JwText(
-                    text = supportingText,
-                    style = JwTheme.textStyles.bodySmall,
-                    color = if (enabled) JwTheme.colors.textSecondary else JwTheme.colors.textDisabled,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
-        trailingContent?.invoke(this)
     }
+    trailingContent?.invoke(this)
 }
 
 /**
@@ -91,7 +150,8 @@ public fun JwListItem(
  * default-sized [JwIconButton] is, so give one inside a row [JwIconButtonDefaults.inlineSize].
  *
  * @param selected whether this is the current item.
- * @param onClick what selecting the row does.
+ * @param onClick what selecting the row does. ↑/↓ moving onto the row runs it too, so it must select
+ * rather than act.
  * @param enabled false fades the row and ignores clicks.
  * @param muted draws the row in the secondary text color while keeping it interactive.
  * @param content the row content.
@@ -105,17 +165,40 @@ public fun JwListItem(
     muted: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
+    ListItemRow(
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        muted = muted,
+        content = content,
+    )
+}
+
+/**
+ * The row behind every [JwListItem]. A null [selected] makes it a command row: it is never tinted
+ * or reported as selected, and ↑/↓ arriving on it leave [onClick] alone.
+ */
+@Composable
+private fun ListItemRow(
+    selected: Boolean?,
+    modifier: Modifier,
+    enabled: Boolean,
+    muted: Boolean,
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit,
+) {
     val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val background = when {
-        selected -> JwTheme.colors.selection
+        selected == true -> JwTheme.colors.selection
         hovered && enabled -> JwTheme.colors.hover
         else -> Color.Transparent
     }
     val contentColor = when {
         !enabled -> JwTheme.colors.textDisabled
         muted -> JwTheme.colors.textSecondary
-        selected -> JwTheme.colors.onSelection
+        selected == true -> JwTheme.colors.onSelection
         else -> JwTheme.colors.onSurface
     }
     Row(
@@ -125,13 +208,14 @@ public fun JwListItem(
             .jwFocusRing(interactionSource, JwShapes.small)
             .clip(JwShapes.small)
             .background(background)
+            .jwListRowKeys(onSelect = { if (selected != null) onClick() }, onKey = { false })
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 enabled = enabled,
                 onClick = onClick,
             )
-            .semantics { this.selected = selected }
+            .semantics { if (selected != null) this.selected = selected }
             .padding(horizontal = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),

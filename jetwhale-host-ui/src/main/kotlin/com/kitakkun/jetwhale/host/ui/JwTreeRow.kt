@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collapse
@@ -61,8 +62,9 @@ private val ChevronSize = 14.dp
  * @param expandable whether the node has children to show.
  * @param expanded whether its children are showing; ignored when not [expandable].
  * @param selected whether this is the current node.
- * @param onClick what selecting the row does.
- * @param onToggleExpanded called when the chevron is clicked.
+ * @param onClick what selecting the row does. ↑/↓ moving onto the row runs it too, so it must select
+ * rather than act.
+ * @param onToggleExpanded called when the chevron is clicked, and on → or ← while the row has focus.
  * @param enabled false fades the row and ignores clicks, including the chevron's.
  * @param muted draws the row in the secondary text color while keeping it fully interactive — for
  * a node that exists but is not currently shown, say. Distinct from [enabled], which removes the
@@ -109,6 +111,7 @@ public fun JwTreeRow(
             .height(JwTreeRowDefaults.height)
             .jwFocusRing(interactionSource, JwShapes.small)
             .background(background)
+            .jwListRowKeys(onSelect = onClick, onKey = expandCollapseKeys(expandable && enabled, expanded, onToggleExpanded))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(
@@ -175,4 +178,11 @@ public fun JwTreeRow(
             trailingContent?.invoke(this)
         }
     }
+}
+
+/** → expands a collapsed row and ← collapses an expanded one; any other key passes on. */
+private fun expandCollapseKeys(toggleable: Boolean, expanded: Boolean, onToggleExpanded: () -> Unit): (Key) -> Boolean = { key ->
+    val toggles = toggleable && key == if (expanded) Key.DirectionLeft else Key.DirectionRight
+    if (toggles) onToggleExpanded()
+    toggles
 }
