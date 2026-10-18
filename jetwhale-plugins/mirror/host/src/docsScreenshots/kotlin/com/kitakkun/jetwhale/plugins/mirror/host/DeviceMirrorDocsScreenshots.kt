@@ -101,7 +101,7 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
         PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
             MirrorScreen(
                 devices = DEVICES,
-                capabilities = DeviceCapabilities(input = true, buttons = DeviceButton.entries, recording = true, screenPower = true),
+                capabilities = DeviceCapabilities(inputRefusal = null, buttons = DeviceButton.entries, recording = true, screenPower = true),
                 missingTools = emptyList(),
                 selectedId = PIXEL_EMULATOR.id,
                 state = MirrorState.Streaming,
@@ -150,6 +150,10 @@ private object NoMirrorActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override val developmentTeam: String? get() = null
+
+    override fun updateDevelopmentTeam(team: String?) = Unit
 }
 
 private object NoGridRecordingActions : GridRecordingActions {

@@ -121,7 +121,7 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
 
         kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
             volume.forEach { button ->
-                JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
+                JwIconButton(tooltip = "${button.label}: a simulator's volume buttons cannot be pressed from here", onClick = {}, enabled = false) {
                     JwIcon(imageVector = button.icon, contentDescription = null)
                 }
             }

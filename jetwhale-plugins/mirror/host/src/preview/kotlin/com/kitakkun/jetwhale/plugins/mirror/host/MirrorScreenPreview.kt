@@ -12,6 +12,8 @@ import org.jetbrains.skia.Color
 import org.jetbrains.skia.ColorType
 import java.io.File
 
+private const val PREVIEW_NO_TEAM_REFUSAL = "driving an iPhone needs your Apple development team, which signs the XCTest runner that sends its input"
+
 private val previewDevices = listOf(
     DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null),
     DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5"),
@@ -19,7 +21,7 @@ private val previewDevices = listOf(
 )
 
 private val androidCapabilities = DeviceCapabilities(
-    input = true,
+    inputRefusal = null,
     buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Power),
     recording = true,
     screenPower = true,
@@ -96,6 +98,10 @@ private object NoActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override val developmentTeam: String? get() = null
+
+    override fun updateDevelopmentTeam(team: String?) = Unit
 }
 
 @Preview
@@ -152,7 +158,7 @@ private fun MirrorScreenNoFramesPreview() {
     JwTheme(darkTheme = false) {
         MirrorScreen(
             devices = previewDevices,
-            capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false),
+            capabilities = DeviceCapabilities(inputRefusal = PREVIEW_NO_TEAM_REFUSAL, buttons = emptyList(), recording = false, screenPower = false),
             missingTools = listOf("adb was not found, so Android devices are not listed. Install the Android SDK platform tools."),
             selectedId = "00008110-DEVICE",
             state = MirrorState.NoFrames(noFramesHints(DeviceKind.IosDevice)),
@@ -293,7 +299,7 @@ private fun DeviceToolbarPreview() {
             DeviceToolbar(
                 pane = previewPane(
                     device = previewDevices[1],
-                    capabilities = DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home), recording = true, screenPower = false),
+                    capabilities = DeviceCapabilities(inputRefusal = null, buttons = listOf(DeviceButton.Home), recording = true, screenPower = false),
                     recordingSinceMillis = null,
                 ),
                 actions = NoActions,
@@ -314,3 +320,15 @@ private fun previewPane(device: DeviceListing, capabilities: DeviceCapabilities,
     screenPower = ScreenPower(awake = true, locked = false).takeIf { capabilities.screenPower },
     recordingSinceMillis = recordingSinceMillis,
 )
+
+@Preview
+@Composable
+private fun IphoneInputBannerPreview() {
+    JwTheme(darkTheme = false) {
+        Column {
+            IphoneInputBanner(inputRefusal = PREVIEW_NO_TEAM_REFUSAL, developmentTeam = null, onUpdateDevelopmentTeam = {})
+            IphoneInputBanner(inputRefusal = "driving an iPhone needs iproxy, which forwards a port to it over USB: brew install libimobiledevice", developmentTeam = "ABCDE12345", onUpdateDevelopmentTeam = {})
+            IphoneInputBanner(inputRefusal = null, developmentTeam = "ABCDE12345", onUpdateDevelopmentTeam = {})
+        }
+    }
+}
