@@ -102,6 +102,9 @@ include(":jetwhale-plugins:actions:agent-compose")
 include(":jetwhale-plugins:actions:host")
 include(":jetwhale-plugins:mirror:host")
 include(":jetwhale-plugins:ios-xctest-runner:client")
+include(":jetwhale-plugins:mainthread:protocol")
+include(":jetwhale-plugins:mainthread:agent")
+include(":jetwhale-plugins:mainthread:host")
 
 include(":test-annotations")
 
