@@ -1,0 +1,22 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.coroutines:agent>
+final class com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.<init>|<init>(){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final fun <#A1: kotlin/Any?> track(kotlinx.coroutines.flow/Flow<#A1>, kotlin/String): kotlinx.coroutines.flow/Flow<#A1> // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.track|track(kotlinx.coroutines.flow.Flow<0:0>;kotlin.String){0§<kotlin.Any?>}[0]
+    final fun register(kotlinx.coroutines/CoroutineScope, kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.register|register(kotlinx.coroutines.CoroutineScope;kotlin.String){}[0]
+    final fun register(kotlinx.coroutines/Job, kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.register|register(kotlinx.coroutines.Job;kotlin.String){}[0]
+    final fun track(kotlinx.coroutines/CoroutineDispatcher, kotlin/String, kotlin.time/Duration): kotlinx.coroutines/CoroutineDispatcher // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.track|track(kotlinx.coroutines.CoroutineDispatcher;kotlin.String;kotlin.time.Duration){}[0]
+    final fun unregister(kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.agent/JetWhaleCoroutineInspectorAgentPlugin.unregister|unregister(kotlin.String){}[0]
+}
