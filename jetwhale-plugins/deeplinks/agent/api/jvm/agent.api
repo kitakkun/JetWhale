@@ -1,0 +1,24 @@
+public abstract interface class com/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener$Companion;
+	public abstract fun getCanOpen ()Z
+	public abstract fun open (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinks_jvmKt {
+	public static final fun platformDefault (Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener$Companion;)Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/agent/JetWhaleDeepLinkAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/JetWhaleDeepLinkAgentPlugin$Companion;
+	public fun <init> (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/DeepLinkOpener;)V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/agent/JetWhaleDeepLinkAgentPlugin$Companion {
+	public final fun platformDefaults ()Lcom/kitakkun/jetwhale/plugins/deeplinks/agent/JetWhaleDeepLinkAgentPlugin;
+}
+
