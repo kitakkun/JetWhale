@@ -164,6 +164,12 @@ Navigating to `PLUGIN` also selects that session in the sidebar, which is what a
 `jetwhale.screenshot` of the same plugin shows. The call waits up to two seconds for the window to
 confirm, and reports `applied: false` with a reason if it does not.
 
+`HOME` and `PLUGIN` are the window's *content*; `SETTINGS`, `INFO`, `LOG_VIEWER` and `MCP_TOOLS`
+open over it. A dialog the user has open stays open when the content under it changes, so a `HOME`
+or `PLUGIN` request is confirmed against the content and reports the dialog still on top as
+`overlay`. `jetwhale.getStatus` reports both: `ui.destination` is what is on top, `ui.content` what
+is under it.
+
 `MCP_TOOLS` opens the [MCP tools browser](/guide/mcp-server#the-mcp-tools-browser) with no plugin or
 session filter. Like the Settings pages, it is for the person at the window: `jetwhale.screenshot`
 and the other UI tools read plugin screens only, so an agent cannot read the browser's call history

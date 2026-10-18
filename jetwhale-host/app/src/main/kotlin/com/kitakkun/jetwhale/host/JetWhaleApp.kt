@@ -54,6 +54,8 @@ import com.kitakkun.jetwhale.host.navigation.openInfo
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.openSettings
 import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
+import com.kitakkun.jetwhale.host.navigation.showBelowOverlays
+import com.kitakkun.jetwhale.host.navigation.showHome
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -191,10 +193,10 @@ private fun ThemedHostWindow(
                         onClickPluginSettings = { backStack.openSettings(SettingsScreenPage.InstalledPlugins) },
                         onClickInfo = backStack::openInfo,
                         onClickInactivePlugin = { pluginId, pluginName, sessionId, notInApp ->
-                            backStack.addSingleTop(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
+                            backStack.showBelowOverlays(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
                         },
                         onClickPlugin = { pluginId, sessionId ->
-                            backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
+                            backStack.showBelowOverlays(PluginNavKey(pluginId, sessionId))
                         },
                         onOpenMcpTools = backStack::openMcpTools,
                         onClickPopout = { pluginId, pluginName, sessionId ->
@@ -208,9 +210,7 @@ private fun ThemedHostWindow(
                         },
                         isPoppedOut = backStack::isPluginPoppedOut,
                         onClickBringBack = backStack::bringPluginBackToMainWindow,
-                        onNavigateHome = {
-                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
-                        },
+                        onNavigateHome = backStack::showHome,
                         onNavigateSettings = backStack::openSettings,
                         onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                         onSelectedSessionChange = { selectedSession ->
