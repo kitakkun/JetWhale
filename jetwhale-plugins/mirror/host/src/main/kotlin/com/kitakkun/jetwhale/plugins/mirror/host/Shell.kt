@@ -140,6 +140,7 @@ internal data class MirrorToolPaths(
     val idbCompanionPath: String?,
     val xcrunPath: String?,
     val ffmpegPath: String?,
+    val iproxyPath: String?,
 )
 
 /** The tools [MirrorToolLocator] found, and the directories it searched for them, in the order it searched them. */
@@ -164,7 +165,7 @@ internal class MirrorToolLocator(
     fun locateTools(): MirrorToolSearchResult {
         val directories = (directoriesOn(hostPathVariable) + wellKnownDirectories).distinct()
         val toolPaths = findToolPathsIn(directories)
-        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath).any { it == null }
+        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath, toolPaths.iproxyPath).any { it == null }
         val loginShellPathVariable = if (isAnySearchedToolMissing) loginShellPathVariableResolver?.resolveLoginShellPathVariable() else null
         if (loginShellPathVariable == null) return MirrorToolSearchResult(toolPaths, directories)
         val directoriesWithLoginShell = (directories + directoriesOn(loginShellPathVariable)).distinct()
@@ -179,6 +180,7 @@ internal class MirrorToolLocator(
             idbCompanionPath = findToolPath("idb_companion", directories),
             xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
             ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", directories),
+            iproxyPath = findToolPath("iproxy", directories),
         )
     }
 

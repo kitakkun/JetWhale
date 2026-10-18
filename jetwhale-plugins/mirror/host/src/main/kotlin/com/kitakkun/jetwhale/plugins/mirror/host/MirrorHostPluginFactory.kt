@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunners
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -62,8 +63,8 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
 /**
  * The directories this plugin's tools are commonly installed in on macOS and Linux, for the user
  * whose home is [homeDirectory], searched whether or not a PATH lists them:
- * - Homebrew's, where it links idb_companion, ffmpeg and the adb of its android-platform-tools cask:
- *   `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
+ * - Homebrew's, where it links idb_companion, ffmpeg, libimobiledevice's iproxy and the adb of its
+ *   android-platform-tools cask: `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
  * - `~/.local/bin`, where pipx and uv install idb's client;
  * - pip's per-user directories on macOS, newest Python first, where `pip3 install fb-idb` puts idb
  *   when it cannot write to the Python it runs under, as with Xcode's;
@@ -103,6 +104,28 @@ private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start
     }
 }
 
+/** How long `xcode-select -p` may take. It prints the developer directory it has on record, at once. */
+private val XCODE_SELECT_TIMEOUT = 10.seconds
+
+private val idbCanSendSimulatorInput: Deferred<Boolean> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    if (toolPaths.await().xcrunPath == null) return@async false
+    val developerDirectoryPath = try {
+        runCommandChecked(XCODE_SELECT_TIMEOUT, "/usr/bin/xcode-select", "-p").stdoutText.trim()
+    } catch (_: DeviceControlException) {
+        return@async false
+    }
+    isSimulatorKitInPrivateFrameworks(File(developerDirectoryPath))
+}
+
+/** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
+private val runnerSigningTeam = RunnerSigningTeam()
+
+private val xcTestRunners: Deferred<XcTestRunners?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val located = toolPaths.await()
+    val xcrunPath = located.xcrunPath ?: return@async null
+    XcTestRunners.onThisMac(stateDirectory = File(appDataDirectory(), "xctest-runner"), xcrunPath = xcrunPath, iproxyPath = located.iproxyPath, settings = runnerSigningTeam)
+}
+
 private val liveInstances = AtomicInteger()
 
 private val emulatorScreens: EmulatorScreens by lazy {
@@ -129,8 +152,9 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, companions, emulatorScreens),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
+            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, idbCanSendSimulatorInput, emulatorScreens),
+            developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
+            captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
             scope = pluginScope,
         )
@@ -170,3 +194,10 @@ private class MirrorHostPlugin :
         )
     }
 }
+
+/**
+ * The host's app data: `jetwhale.appDataDir` (a sandbox for development launches) or `~/.jetwhale`.
+ * Captures go under this plugin's directory there unless the user picks a folder, and the XCTest
+ * runners keep their builds and shared state there, where every plugin finds them.
+ */
+private fun appDataDirectory(): File = File(System.getProperty("jetwhale.appDataDir")?.takeIf(String::isNotBlank) ?: "${System.getProperty("user.home")}/.jetwhale")
