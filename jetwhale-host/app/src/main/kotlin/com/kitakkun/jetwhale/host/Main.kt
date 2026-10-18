@@ -56,8 +56,6 @@ import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.milliseconds
 import ch.qos.logback.classic.Logger as LogbackLogger
 
-private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
-
 fun main(args: Array<String>) = runBlocking {
     defaultToSystemAppearance(System.getProperties())
     val cliOptions = CommandLineArgumentsParser().parse(args)
@@ -72,6 +70,7 @@ fun main(args: Array<String>) = runBlocking {
     }
 
     cliOptions.logLevel?.let(::applyLogLevel)
+    installUncaughtExceptionLogger()
 
     val appGraph: JetWhaleAppGraph = createGraphFactory<JetWhaleAppGraph.Factory>()
         .create(
@@ -79,9 +78,16 @@ fun main(args: Array<String>) = runBlocking {
             mcpPermissionOverride = cliOptions.mcpPermissionOverride,
             additionalPluginDirectories = AdditionalPluginDirectories(cliOptions.pluginDirs),
             hostLaunch = hostLaunchOf(args),
+            safeModeRequest = cliOptions.safeModeRequest,
         )
 
+    // java.util.logging's console handler keeps the System.err it finds at the first record, so
+    // nothing may log through it before this.
     appGraph.logCaptureService.startCapture()
+
+    // Before plugins start: safe mode is decided once from the startup-crash count this computes,
+    // and a crash before this point is not counted.
+    appGraph.crashRecoveryService.reportUncleanExitAndWriteRunMarker()
 
     appGraph.applicationLifecycleOwner.initialize()
 
@@ -153,6 +159,8 @@ private fun configureAppMetadata() {
         }
     }
 }
+
+private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 /** Restores the geometry of the previous run; an unplaced or absent one opens centered. */
 private fun PersistedWindowState?.toWindowState(): WindowState {
@@ -282,6 +290,21 @@ private fun ApplicationLifecycleDialog(
         ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
         ApplicationLifecycleOwner.ApplicationState.STOPPED,
         -> Unit
+    }
+}
+
+/**
+ * Sends every exception no one caught to the log (and so to the log file and the log viewer), then
+ * lets the previous handler — the JVM's, which prints it — run as before.
+ *
+ * Only main() installs it; the IntelliJ plugin, which bundles this file, never calls main().
+ */
+@Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
+private fun installUncaughtExceptionLogger() {
+    val previous = Thread.getDefaultUncaughtExceptionHandler()
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        LoggerFactory.getLogger("com.kitakkun.jetwhale.host.Uncaught").error("Uncaught exception in thread \"${thread.name}\"", throwable)
+        previous?.uncaughtException(thread, throwable)
     }
 }
 

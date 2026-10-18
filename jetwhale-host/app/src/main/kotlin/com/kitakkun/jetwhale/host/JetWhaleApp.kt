@@ -17,7 +17,10 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -29,6 +32,8 @@ import com.kitakkun.jetwhale.host.component.HostRestartFailedBanner
 import com.kitakkun.jetwhale.host.component.HostSetAsideBanner
 import com.kitakkun.jetwhale.host.component.HostUpdateBanner
 import com.kitakkun.jetwhale.host.component.PluginJarArrivalBanner
+import com.kitakkun.jetwhale.host.component.SafeModeBanner
+import com.kitakkun.jetwhale.host.component.UncleanExitBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
@@ -36,6 +41,7 @@ import com.kitakkun.jetwhale.host.model.HostLaunch
 import com.kitakkun.jetwhale.host.model.HostUpdateStatus
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarRequest
+import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
@@ -68,8 +74,12 @@ import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
+import java.awt.datatransfer.StringSelection
+import java.io.File
 import java.io.IOException
 import java.nio.file.Path
+import java.util.logging.Level
+import java.util.logging.Logger
 
 // The window's entry point takes its whole dependency graph as a context parameter, which a
 // `@Preview` has no way to build.
@@ -247,6 +257,7 @@ private fun HostWindowContent(
     val postponeMutation = rememberMutation(appGraph.postponeArrivedPluginJarMutationKey)
     val coroutineScope = rememberCoroutineScope()
     Column(modifier = modifier) {
+        CrashRecoveryBanners()
         HostUpdateNotices(onClickOpenUpdateSettings = onClickOpenUpdateSettings)
         AnimatedVisibility(
             visible = arrivedJars.isNotEmpty(),
@@ -261,6 +272,67 @@ private fun HostWindowContent(
             )
         }
         JetWhaleNavDisplay(backStack)
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun CrashRecoveryBanners() {
+    val dismissUncleanExitReportMutation = rememberMutation(appGraph.dismissUncleanExitReportMutationKey)
+    val leaveSafeModeMutation = rememberMutation(appGraph.leaveSafeModeMutationKey)
+    val setPluginEnabledMutation = rememberMutation(appGraph.setPluginEnabledMutationKey)
+    val coroutineScope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
+    val canOpenFiles = remember { Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) }
+    val openFileOrCopyPath: (path: String) -> Unit = { path ->
+        if (canOpenFiles) {
+            val failure = try {
+                Desktop.getDesktop().open(File(path))
+                null
+            } catch (e: IOException) {
+                e
+            } catch (e: IllegalArgumentException) {
+                // Desktop.open throws this for a file that no longer exists, such as a crash log
+                // deleted since startup.
+                e
+            } catch (e: SecurityException) {
+                e
+            }
+            failure?.let { Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open $path", it) }
+        } else {
+            coroutineScope.launch { clipboard.setClipEntry(ClipEntry(StringSelection(path))) }
+        }
+    }
+
+    SoilDataBoundary(
+        state1 = rememberSubscription(appGraph.uncleanExitReportSubscriptionKey),
+        state2 = rememberSubscription(appGraph.safeModeSubscriptionKey),
+        fallback = SoilFallbackDefaults.none(),
+    ) { uncleanExitReport, safeMode ->
+        Column {
+            uncleanExitReport?.let { report ->
+                UncleanExitBanner(
+                    report = report,
+                    canOpenFiles = canOpenFiles,
+                    onClickCrashLog = openFileOrCopyPath,
+                    onClickLogs = openFileOrCopyPath,
+                    onClickDisablePlugin = { pluginId ->
+                        coroutineScope.launch {
+                            setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(pluginId = pluginId, enabled = false))
+                            dismissUncleanExitReportMutation.mutateAsync(Unit)
+                        }
+                    },
+                    onDismiss = { coroutineScope.launch { dismissUncleanExitReportMutation.mutateAsync(Unit) } },
+                )
+            }
+            safeMode?.let {
+                SafeModeBanner(
+                    safeMode = safeMode,
+                    onClickStartPlugins = { coroutineScope.launch { leaveSafeModeMutation.mutateAsync(Unit) } },
+                )
+            }
+        }
     }
 }
 

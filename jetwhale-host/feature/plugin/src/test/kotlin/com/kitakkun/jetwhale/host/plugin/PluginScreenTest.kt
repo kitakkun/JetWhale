@@ -86,6 +86,7 @@ private fun pluginScene(): PluginComposeScene {
         semanticsOwners = emptySet(),
         isMcpCapture = mutableStateOf(false),
         pointerIcon = mutableStateOf(PointerIcon.Default),
+        failure = mutableStateOf(null),
     )
 }
 
