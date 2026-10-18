@@ -107,6 +107,7 @@ include(":test-annotations")
 
 include(":tools:qa-agent")
 include(":tools:docs-screenshots")
+include(":tools:mcp-workflow")
 
 include(":demo:shared")
 include(":demo:android")
