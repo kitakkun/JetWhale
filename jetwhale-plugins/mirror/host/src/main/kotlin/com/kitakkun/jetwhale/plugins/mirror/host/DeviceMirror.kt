@@ -66,6 +66,7 @@ private const val SCREENSHOT_POLL_MILLIS = 250L
  * failures in a row. A failure that passes (adb restarting, a fold in progress) costs a few seconds;
  * one that lasts (no ffmpeg) costs one attempt a minute.
  */
+@Suppress("KOTRAIL_HELPER_FAR_FROM_CALLER") // A table of timings, kept with the mirror's other timing constants.
 private val SCREENSHOT_FALLBACK_MILLIS = listOf(5_000L, 15_000L, 60_000L)
 
 /** How long a stream waits for its view to be laid out; a first layout takes a frame or two. */
@@ -111,6 +112,12 @@ internal interface MirrorActions {
     fun wake()
 
     fun sleep()
+
+    /** The Apple development team that signs the XCTest runner driving iPhones; null until set. */
+    val developmentTeam: String?
+
+    /** Sets the development team, or forgets it when [team] is null. */
+    fun updateDevelopmentTeam(team: String?)
 }
 
 /**
@@ -121,6 +128,7 @@ internal interface MirrorActions {
 @Stable
 internal class DeviceMirror(
     private val discovery: DeviceDiscovery,
+    private val developmentTeamSetting: DevelopmentTeamSetting,
     val captures: MirrorCaptures,
     val notices: MirrorNotices,
     private val scope: CoroutineScope,
@@ -454,6 +462,13 @@ internal class DeviceMirror(
 
     override fun inputText(text: String) = control { it.inputText(text) }
 
+    override val developmentTeam: String? get() = developmentTeamSetting.developmentTeam
+
+    override fun updateDevelopmentTeam(team: String?) {
+        developmentTeamSetting.updateDevelopmentTeam(team)
+        (selectedDevice?.controller as? IosPhysicalDeviceController)?.startRunnerInBackground()
+    }
+
     override fun saveScreenshot() {
         val device = selectedDevice ?: return
         scope.launch { notices.show(MirrorNotice.screenshotsSaved(listOf(screenshotResultOf(device)))) }
@@ -679,6 +694,8 @@ internal class DeviceMirror(
                 throw e
             } catch (e: DeviceControlException) {
                 notices.show(MirrorNotice.failure(e.message.orEmpty(), retry = null))
+            } catch (e: Exception) {
+                notices.show(MirrorNotice.failure("Unexpected error: $e", retry = null))
             }
         }
     }

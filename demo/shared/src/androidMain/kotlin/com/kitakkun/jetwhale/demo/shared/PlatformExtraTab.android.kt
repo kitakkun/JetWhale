@@ -56,7 +56,6 @@ actual fun PlatformExtraTabScreen() {
         val target = baseUrl.trimEnd('/')
         scope.launch {
             // A demo request may fail in any way; the log shows whatever it was.
-            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             val line = try {
                 "$label → ${withContext(Dispatchers.IO) { block(target) }}"
             } catch (e: CancellationException) {

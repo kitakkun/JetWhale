@@ -18,9 +18,9 @@ class JetWhaleHostService : Disposable {
 
     init {
         // This jar is installed at <plugin>/lib/<name>.jar and the host next to it under <plugin>/host.
-        val ownJar = PathManager.getJarPathForClass(JetWhaleHostService::class.java)
+        val ownJarPath = PathManager.getJarPathForClass(JetWhaleHostService::class.java)
             ?: error("JetWhale plugin jar location is unknown")
-        val hostDirectory = Path(ownJar).parent.parent.resolve("host")
+        val hostDirectory = Path(ownJarPath).parent.parent.resolve("host")
         val jars = hostDirectory.listDirectoryEntries("*.jar").map { it.toUri().toURL() }
         hostClassLoader = HostClassLoader(jars.toTypedArray(), JetWhaleHostService::class.java.classLoader)
         host = inHostLoader {

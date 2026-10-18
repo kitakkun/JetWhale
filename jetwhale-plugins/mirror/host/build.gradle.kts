@@ -40,11 +40,13 @@ dependencies {
     // two messages are encoded by hand rather than pulling in grpc-java. H.264 is decoded by the
     // ffmpeg installed on the machine.
     implementation(libs.okhttp)
+    implementation(projects.jetwhalePlugins.iosXctestRunner.client)
     "previewImplementation"(projects.jetwhaleHostUi)
     "previewImplementation"(compose.desktop.currentOs)
     "previewImplementation"(libs.jetbrainsComposePreview)
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)
+    testImplementation(projects.tools.docsScreenshots)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.okhttpMockwebserver)
     testImplementation(libs.kotlinxSerializationJson)

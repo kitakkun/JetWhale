@@ -48,12 +48,12 @@ data class HostReleaseMetadata(
          * It checks no signature, so it is only for the metadata that came inside the installed
          * package. A downloaded release's metadata is read through [HostReleaseMetadataReader].
          */
-        fun decode(text: String): HostReleaseMetadataResult {
+        fun decode(metadataJson: String): HostReleaseMetadataResult {
             val metadata = try {
-                val format = json.decodeFromString(MetadataFormat.serializer(), text).format
+                val format = json.decodeFromString(MetadataFormat.serializer(), metadataJson).format
                 if (format < 1) return HostReleaseMetadataResult.Malformed("format $format is not a metadata format")
                 if (format > FORMAT) return HostReleaseMetadataResult.NewerFormat(format)
-                json.decodeFromString(serializer(), text)
+                json.decodeFromString(serializer(), metadataJson)
             } catch (e: SerializationException) {
                 return HostReleaseMetadataResult.Malformed(e.message.orEmpty())
             } catch (e: IllegalArgumentException) {

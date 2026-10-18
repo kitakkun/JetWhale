@@ -39,9 +39,9 @@ class IosSimulatorDeviceControllerTest {
     }
 
     @Test
-    fun `a simulator's idb calls go through a companion started for it, which stops once nothing uses it`() = runTest {
+    fun `a simulator's idb input without its runner goes through a companion started for it, which stops once nothing uses it`() = runTest {
         assumeShellScriptsLaunch()
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = fakeIdb.path, companions = companions())
+        val simulator = simulatorWithoutRunner()
 
         simulator.tap(x = 603, y = 1311)
 
@@ -54,7 +54,7 @@ class IosSimulatorDeviceControllerTest {
     @Test
     fun `a simulator's live stream holds its companion until the mirror releases the simulator`() = runTest {
         assumeShellScriptsLaunch()
-        val simulator = IosSimulatorDeviceController(udid = "SIM-1", xcrunPath = "xcrun", idbPath = fakeIdb.path, companions = companions())
+        val simulator = simulatorWithoutRunner()
 
         simulator.openVideoStream(wanted = null)
         delay(idleTimeout * 2)
@@ -65,13 +65,21 @@ class IosSimulatorDeviceControllerTest {
         assertTrue(startedCompanions.single().destroyed)
     }
 
-    private fun TestScope.companions() = IdbCompanions(
-        idbCompanionPath = "idb_companion",
-        idbPath = "idb",
-        launcher = { command -> FakeCompanionProcess(command, readyLine = """{"grpc_port":${command.last()}}""").also(startedCompanions::add) },
-        commands = { },
-        ports = { 10_000 },
-        idleTimeout = idleTimeout,
-        scope = backgroundScope,
+    private fun TestScope.simulatorWithoutRunner() = IosSimulatorDeviceController(
+        udid = "SIM-1",
+        iosMajorVersion = 26,
+        xcrunPath = "xcrun",
+        idbPath = fakeIdb.path,
+        companions = IdbCompanions(
+            idbCompanionPath = "idb_companion",
+            idbPath = "idb",
+            launcher = { command -> FakeCompanionProcess(command, readyLine = """{"grpc_port":${command.last()}}""").also(startedCompanions::add) },
+            commands = { },
+            ports = { 10_000 },
+            idleTimeout = idleTimeout,
+            scope = backgroundScope,
+        ),
+        idbCanSendSimulatorInput = true,
+        runnerInput = null,
     )
 }

@@ -270,30 +270,46 @@ private fun HostNavigationRequestEffect(
 
                 is HostNavigationRequest.McpTools -> currentOnOpenMcpTools(null, null, request.tab.toMcpToolsTab())
 
-                is HostNavigationRequest.Plugin -> {
-                    val announceFollow = {
-                        if (request.followsAgent) {
-                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
-                        }
-                    }
-                    if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                        currentOnClickPlugin(request.pluginId, HostSession.ID)
-                        announceFollow()
-                        return@collect
-                    }
-                    val targetSession = navigationTargetSession(request.sessionId, currentUiState.selectedSession, currentSessions)
-                        ?: return@collect
-                    if (targetSession.id != currentUiState.selectedSessionId) {
-                        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
-                    }
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                    currentOnClickPlugin(request.pluginId, targetSession.id)
-                    announceFollow()
-                }
+                is HostNavigationRequest.Plugin -> openRequestedPlugin(
+                    request = request,
+                    uiState = currentUiState,
+                    sessions = currentSessions,
+                    screenChannel = screenChannel,
+                    onClickPlugin = currentOnClickPlugin,
+                    onFollowAgent = currentOnFollowAgent,
+                )
             }
         }
     }
+}
+
+context(screenContext: ToolingScaffoldScreenContext)
+private fun openRequestedPlugin(
+    request: HostNavigationRequest.Plugin,
+    uiState: ToolingScaffoldUiState,
+    sessions: List<DebugSession>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onFollowAgent: (pluginName: String) -> Unit,
+) {
+    val announceFollow = {
+        if (request.followsAgent) {
+            onFollowAgent(uiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+        }
+    }
+    if (HostSession.isHost(uiState.sessionIdFor(request.pluginId))) {
+        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+        onClickPlugin(request.pluginId, HostSession.ID)
+        announceFollow()
+        return
+    }
+    val targetSession = navigationTargetSession(request.sessionId, uiState.selectedSession, sessions) ?: return
+    if (targetSession.id != uiState.selectedSessionId) {
+        screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
+    }
+    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+    onClickPlugin(request.pluginId, targetSession.id)
+    announceFollow()
 }
 
 /**

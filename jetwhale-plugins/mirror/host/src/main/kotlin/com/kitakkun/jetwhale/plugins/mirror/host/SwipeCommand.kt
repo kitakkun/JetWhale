@@ -16,7 +16,7 @@ internal class SwipeCommand(
     private val mirror: MirrorDevices,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.swipe"
-    override val description = "Swipes across the device screen between two points in the pixels of $TOOL_PREFIX.captureScreenshot. Not available for a physical iOS device."
+    override val description = "Swipes across the device screen between two points in the pixels of $TOOL_PREFIX.captureScreenshot. Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val fromX by int("Start, horizontal, in screenshot pixels.")
@@ -34,7 +34,7 @@ internal class SwipeCommand(
         if (minOf(fromX, fromY, toX, toY) < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got $fromX,$fromY -> $toX,$toY)")
         if (duration !in 0..MAX_SWIPE_MILLIS) throw JetWhaleMcpArgumentException("durationMillis must be from 0 to $MAX_SWIPE_MILLIS (got $duration)")
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        if (!device.controller.capabilities.input) throw JetWhaleMcpArgumentException(VIEW_ONLY)
+        device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
         val screen = deviceOperation { device.controller.screenSize() }
         if (maxOf(fromX, toX) >= screen.width || maxOf(fromY, toY) >= screen.height) {
             throw JetWhaleMcpArgumentException("the swipe leaves the ${screen.width}x${screen.height} screen (got $fromX,$fromY -> $toX,$toY)")

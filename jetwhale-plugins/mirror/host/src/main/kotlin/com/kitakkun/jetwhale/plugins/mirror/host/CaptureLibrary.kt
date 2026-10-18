@@ -130,13 +130,3 @@ private fun shortId(id: String): String = MessageDigest.getInstance("SHA-256")
     .take(SHORT_ID_LENGTH)
 
 private fun safeName(name: String): String = name.replace(Regex("[^A-Za-z0-9._-]+"), "-").trim('-').ifEmpty { "device" }
-
-/**
- * Where captures go unless the user picks a folder: beside the host's own data for this plugin,
- * which the host keeps under `jetwhale.appDataDir` (a sandbox for development launches) or
- * `~/.jetwhale`.
- */
-internal fun defaultCapturesRoot(): File {
-    val appData = System.getProperty("jetwhale.appDataDir")?.takeIf(String::isNotBlank) ?: "${System.getProperty("user.home")}/.jetwhale"
-    return File(appData, "plugin-data/com.kitakkun.jetwhale.mirror/captures")
-}
