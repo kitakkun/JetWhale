@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent.okhttp
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkConditionPlan
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -69,15 +70,12 @@ private class JetWhaleNetworkOkHttpInterceptor(
         val started = TimeSource.Monotonic.markNow()
 
         recordRequest(request, txId)
+        val conditionPlan = agent.planNetworkCondition(request.method, request.url.toString())
         val mock = agent.findMock(request.method, request.url.toString())
 
-        val response = if (mock != null) {
-            serveMock(request, mock)
-        } else {
-            sendRequest(chain, request, txId, started)
-        }
-        recordResponse(response, fromMock = mock != null, txId = txId, started = started)
-        return response
+        val response = sendOrServeMockThroughSimulatedNetwork(chain, request, conditionPlan, mock, txId, started)
+        recordResponse(response, fromMock = mock != null, conditionPlan = conditionPlan, txId = txId, started = started)
+        return conditionPlan?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
     }
 
     private fun recordRequest(request: Request, txId: String) {
@@ -94,6 +92,28 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 timestampMs = System.currentTimeMillis(),
             ),
         )
+    }
+
+    private fun sendOrServeMockThroughSimulatedNetwork(
+        chain: Interceptor.Chain,
+        request: Request,
+        conditionPlan: NetworkConditionPlan?,
+        mock: MockResponseSpec?,
+        txId: String,
+        started: TimeSource.Monotonic.ValueTimeMark,
+    ): Response = try {
+        val shapedRequest = conditionPlan?.let { simulateNetworkBeforeExchange(it, request) } ?: request
+        if (mock != null) serveMock(request, mock) else chain.proceed(shapedRequest)
+    } catch (e: Throwable) {
+        agent.recordFailure(
+            HttpRequestFailure(
+                txId = txId,
+                message = e.message ?: e.toString(),
+                durationMs = started.elapsedNow().inWholeMilliseconds,
+                condition = conditionPlan?.toAppliedNetworkCondition(),
+            ),
+        )
+        throw e
     }
 
     private fun serveMock(request: Request, mock: MockResponseSpec): Response {
@@ -133,20 +153,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
         else -> ""
     }
 
-    private fun sendRequest(chain: Interceptor.Chain, request: Request, txId: String, started: TimeSource.Monotonic.ValueTimeMark): Response = try {
-        chain.proceed(request)
-    } catch (e: Throwable) {
-        agent.recordFailure(
-            HttpRequestFailure(
-                txId = txId,
-                message = e.message ?: e.toString(),
-                durationMs = started.elapsedNow().inWholeMilliseconds,
-            ),
-        )
-        throw e
-    }
-
-    private fun recordResponse(response: Response, fromMock: Boolean, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
+    private fun recordResponse(response: Response, fromMock: Boolean, conditionPlan: NetworkConditionPlan?, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
         val body = captureResponseBodySafely(response, maxBodyChars, maxImageBytes)
         agent.recordResponse(
             CapturedHttpResponse(
@@ -159,6 +166,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 bodyEncoding = body.encoding,
                 durationMs = started.elapsedNow().inWholeMilliseconds,
                 fromMock = fromMock,
+                condition = conditionPlan?.toAppliedNetworkCondition(),
             ),
         )
     }
@@ -269,7 +277,7 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
 }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun Response.isWebSocketUpgrade(): Boolean = code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
+internal fun Response.isWebSocketUpgrade(): Boolean = code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
 
 /** Preserves original header-name case, unlike [Headers.toMultimap] which lowercases keys. */
 private fun Headers.toCapturedMap(): Map<String, List<String>> = groupBy({ it.first }, { it.second })

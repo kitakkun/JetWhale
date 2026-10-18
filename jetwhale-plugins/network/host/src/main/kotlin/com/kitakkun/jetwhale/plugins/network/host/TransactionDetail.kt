@@ -66,23 +66,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
-        ) {
-            StatusBadge(tx)
-            JwText(
-                text = tx.request.method,
-                style = JwTheme.textStyles.subtitle,
-            )
-            if (tx.response?.fromMock == true) {
-                MockChip()
-            }
-            Spacer(Modifier.weight(1f))
-            if (tx.response != null) {
-                JwButton(text = "Mock this", onClick = onCreateMock)
-            }
-        }
+        TransactionTitleRow(tx = tx, onCreateMock = onCreateMock)
         JwText(
             text = tx.request.url,
             style = JwTheme.textStyles.code,
@@ -100,6 +84,13 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
             )
 
             else -> EmptyHint("Pending…")
+        }
+        tx.condition?.let { condition ->
+            JwText(
+                text = "Network condition '${condition.ruleName.ifBlank { condition.ruleId }}': ${condition.summary()}",
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
+            )
         }
 
         val tabs = remember(queryParams) {
@@ -123,6 +114,30 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
             DetailTab.Body -> BodyTab(tx)
             DetailTab.Headers -> HeadersTab(tx)
             DetailTab.Query -> QueryParamBlock(queryParams)
+        }
+    }
+}
+
+@Composable
+private fun TransactionTitleRow(tx: HttpTransaction, onCreateMock: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+    ) {
+        StatusBadge(tx)
+        JwText(
+            text = tx.request.method,
+            style = JwTheme.textStyles.subtitle,
+        )
+        if (tx.response?.fromMock == true) {
+            MockChip()
+        }
+        if (tx.condition != null) {
+            NetworkConditionChip()
+        }
+        Spacer(Modifier.weight(1f))
+        if (tx.response != null) {
+            JwButton(text = "Mock this", onClick = onCreateMock)
         }
     }
 }
