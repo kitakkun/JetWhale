@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -131,6 +132,6 @@ private fun loadedPlugin(pluginId: String, requiresAgent: Boolean) = LoadedHostP
         requiresAgent = requiresAgent,
     ),
     factory = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = throw UnsupportedOperationException()
     },
 )

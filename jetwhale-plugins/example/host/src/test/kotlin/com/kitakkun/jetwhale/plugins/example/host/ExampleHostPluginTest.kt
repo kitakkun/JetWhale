@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.plugins.example.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleAdb
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
@@ -38,11 +40,16 @@ class ExampleHostPluginTest {
 
     @OptIn(InternalJetWhaleHostApi::class)
     private fun sendPing(answer: () -> String): JetWhaleMcpResult {
-        val plugin = ExampleHostPluginFactory().createPlugin()
+        val plugin = ExampleHostPluginFactory().createPlugin(NoAdbContext)
         (plugin as JetWhaleMessagingHostPlugin).bindMessenger(AnsweringMessenger(answer))
         val command = (plugin as JetWhaleMcpCapablePlugin).mcpCommands.single { it.name == "com.kitakkun.jetwhale.example.sendPing" }
         return runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
     }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private object NoAdbContext : JetWhaleHostPluginContext {
+    override val adb: JetWhaleAdb get() = error("the example plugin does not run adb")
 }
 
 private class AnsweringMessenger(private val answer: () -> String) : JetWhaleMessenger {

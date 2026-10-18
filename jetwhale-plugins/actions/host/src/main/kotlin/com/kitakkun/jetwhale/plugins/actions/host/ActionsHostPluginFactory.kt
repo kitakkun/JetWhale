@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.actions.host
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -24,7 +25,7 @@ import kotlinx.serialization.json.JsonObject
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ActionsHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = ActionsHostPlugin()
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = ActionsHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

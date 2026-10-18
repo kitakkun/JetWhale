@@ -1,11 +1,14 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleAdb
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
@@ -32,6 +35,11 @@ class DefaultPluginInstanceServiceEventTest {
         every { storageFor(any()) } returns storage
     }
 
+    @OptIn(ExperimentalJetWhaleApi::class)
+    private val pluginContext = object : JetWhaleHostPluginContext {
+        override val adb: JetWhaleAdb get() = error("no plugin here runs adb")
+    }
+
     private val service = DefaultPluginInstanceService(
         pluginFactoryRepository = SinglePluginFactoryRepository(
             LoadedHostPlugin(
@@ -43,12 +51,13 @@ class DefaultPluginInstanceServiceEventTest {
                     requiresAgent = false,
                 ),
                 factory = object : JetWhaleHostPluginFactory {
-                    override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+                    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
                 },
             ),
         ),
         frameSender = mock<HostPluginFrameSender>(),
         pluginDataStoreRepository = dataStoreRepository,
+        pluginContext = pluginContext,
     )
 
     @Test
