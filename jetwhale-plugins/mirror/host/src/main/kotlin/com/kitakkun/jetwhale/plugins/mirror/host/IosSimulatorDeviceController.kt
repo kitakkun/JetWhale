@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerPointSpace
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerStartException
 import com.kitakkun.jetwhale.plugins.xctestrunner.XcTestRunnerTarget
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
@@ -24,12 +25,17 @@ import kotlin.time.Duration.Companion.seconds
  * ([xcTestRunnerClient]), and through idb when the runner cannot start. idb sends input only when
  * [idbCanSendSimulatorInput]: it streams with every Xcode, but cannot send input with one that moved
  * SimulatorKit.
+ *
+ * idb reaches a simulator through a companion. Left to itself, idb starts one that it never stops,
+ * so the simulator's companion comes from [companions] instead, which stops it once it is unused and
+ * when the host exits. Without `idb_companion` found ([companions] null), idb is left to start its own.
  */
 internal class IosSimulatorDeviceController(
     private val udid: String,
     iosMajorVersion: Int?,
     private val xcrunPath: String,
     private val idbPath: String?,
+    private val companions: IdbCompanions?,
     idbCanSendSimulatorInput: Boolean,
     private val xcTestRunnerClient: XcTestRunnerClient?,
 ) : XcTestRunnerDeviceController,
@@ -48,6 +54,8 @@ internal class IosSimulatorDeviceController(
     )
 
     private var screen: IdbScreen? = null
+
+    private var holdsStreamCompanion = false
 
     @Volatile
     private var fpsCap = MAX_RAW_FPS
@@ -98,7 +106,7 @@ internal class IosSimulatorDeviceController(
         throughRunner = { it.tap(runnerTarget, x, y, space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
-            runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
+            runIdb(IDB_COMMAND_TIMEOUT, idbPath, "ui", "tap", "--udid", udid, "${(x / scale).toInt()}", "${(y / scale).toInt()}")
         },
     )
 
@@ -106,7 +114,7 @@ internal class IosSimulatorDeviceController(
         throughRunner = { it.swipe(runnerTarget, fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis, space = space) },
         throughIdb = { idbPath ->
             val scale = pixelsPerPoint()
-            runCommandChecked(
+            runIdb(
                 IDB_COMMAND_TIMEOUT + durationMillis.milliseconds, idbPath, "ui", "swipe", "--udid", udid, "--duration", "${durationMillis / 1000.0}",
                 "${(fromX / scale).toInt()}", "${(fromY / scale).toInt()}", "${(toX / scale).toInt()}", "${(toY / scale).toInt()}",
             )
@@ -123,13 +131,13 @@ internal class IosSimulatorDeviceController(
                     else -> input.openAppSwitcher(runnerTarget)
                 }
             },
-            throughIdb = { idbPath -> presses.forEach { idbButton -> runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "button", "--udid", udid, idbButton) } },
+            throughIdb = { idbPath -> presses.forEach { idbButton -> runIdb(IDB_COMMAND_TIMEOUT, idbPath, "ui", "button", "--udid", udid, idbButton) } },
         )
     }
 
     override suspend fun inputText(text: String) = sendInput(
         throughRunner = { it.typeText(runnerTarget, text) },
-        throughIdb = { idbPath -> runCommandChecked(IDB_COMMAND_TIMEOUT, idbPath, "ui", "text", "--udid", udid, text) },
+        throughIdb = { idbPath -> runIdb(IDB_COMMAND_TIMEOUT, idbPath, "ui", "text", "--udid", udid, text) },
     )
 
     /** Sends input through the runner, or through idb when the runner cannot start. */
@@ -172,6 +180,10 @@ internal class IosSimulatorDeviceController(
         xcTestRunnerClient?.startRunnerInBackground(runnerTarget)
         val idbPath = requireIdbPath()
         val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
+        if (companions != null && !holdsStreamCompanion) {
+            companions.acquire(udid)
+            holdsStreamCompanion = true
+        }
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
                 // idb names its raw format rbga; the bytes it writes are BGRA.
@@ -202,9 +214,24 @@ internal class IosSimulatorDeviceController(
         }
     }
 
-    override suspend fun release() = Unit
+    override suspend fun release() {
+        if (!holdsStreamCompanion) return
+        holdsStreamCompanion = false
+        companions?.release(udid)
+    }
 
     private fun requireIdbPath(): String = idbPath ?: throw deviceControlError(IDB_MISSING)
+
+    /** Runs [idbPath] with [arguments] as [runCommandChecked] does, holding the simulator's companion meanwhile. */
+    private suspend fun runIdb(timeout: Duration, idbPath: String, vararg arguments: String): CommandResult {
+        companions?.acquire(udid)
+        try {
+            return runCommandChecked(timeout, idbPath, *arguments)
+        } finally {
+            // A cancelled caller still gives its use back, or the companion would never stop when idle.
+            withContext(NonCancellable) { companions?.release(udid) }
+        }
+    }
 
     override suspend fun screenSize(): IntSize {
         if (idbPath != null || xcTestRunnerClient == null) return readSimulatorScreenFromIdb().size
@@ -220,7 +247,7 @@ internal class IosSimulatorDeviceController(
 
     private suspend fun readSimulatorScreenFromIdb(): IdbScreen {
         screen?.let { return it }
-        val description = runCommandChecked(IDB_COMMAND_TIMEOUT, requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
+        val description = runIdb(IDB_COMMAND_TIMEOUT, requireIdbPath(), "describe", "--udid", udid, "--json").stdoutText
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }
