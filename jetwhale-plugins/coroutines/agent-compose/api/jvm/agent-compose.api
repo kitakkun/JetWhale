@@ -1,0 +1,4 @@
+public final class com/kitakkun/jetwhale/plugins/coroutines/agent/compose/TrackCompositionCoroutinesKt {
+	public static final fun TrackCompositionCoroutines (Lcom/kitakkun/jetwhale/plugins/coroutines/agent/JetWhaleCoroutineInspectorAgentPlugin;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
+}
+
