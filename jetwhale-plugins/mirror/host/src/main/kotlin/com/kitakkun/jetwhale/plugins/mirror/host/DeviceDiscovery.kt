@@ -56,7 +56,7 @@ internal class DeviceDiscovery(
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
         val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, sharedCompanions, runnerInput, idbCanSendSimulatorInput)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
-        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { sharedCompanions?.stopCompanionEvenIfInUse(it.id) }
+        gone.forEach { sharedCompanions?.stopCompanionEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         Discovery(devices = devices, missingTools = missingTools(locatedToolPaths, runnerInput))
@@ -93,6 +93,7 @@ internal class DeviceDiscovery(
             iosMajorVersion = majorVersionOf(listing.osVersion),
             xcrunPath = checkNotNull(locatedToolPaths.xcrunPath),
             idbPath = locatedToolPaths.idbPath,
+            companions = sharedCompanions,
             idbCanSendSimulatorInput = idbCanSendSimulatorInput,
             runnerInput = runnerInput,
         )
