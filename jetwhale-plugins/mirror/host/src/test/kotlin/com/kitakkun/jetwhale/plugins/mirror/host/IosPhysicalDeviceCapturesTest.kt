@@ -118,7 +118,7 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
 
         // The stand-in stream can end before ffmpeg reads any of it, which fails the recording; the
         // companion must be released either way.
@@ -143,7 +143,7 @@ class IosPhysicalDeviceCapturesTest {
             idleTimeout = Duration.ZERO,
             scope = companionScope,
         )
-        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, runnerInput = null)
+        val iphone = IosPhysicalDeviceController(udid = "udid-1", iosMajorVersion = 26, idbPath = idbPath, companions = companions, ffmpegPath = ffmpegPath, xcTestRunnerClient = null)
 
         iphone.captureScreenshot()
 
@@ -184,7 +184,7 @@ class IosPhysicalDeviceCapturesTest {
             scope = companionScope,
         ),
         ffmpegPath = ffmpegPath,
-        runnerInput = null,
+        xcTestRunnerClient = null,
     )
 
     /** An idb stand-in that streams [h264] once, and notes each call in [IDB_CALLS]. */

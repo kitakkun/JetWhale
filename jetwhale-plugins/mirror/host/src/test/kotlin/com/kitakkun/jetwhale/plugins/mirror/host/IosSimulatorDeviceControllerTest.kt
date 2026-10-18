@@ -80,6 +80,6 @@ class IosSimulatorDeviceControllerTest {
             scope = backgroundScope,
         ),
         idbCanSendSimulatorInput = true,
-        runnerInput = null,
+        xcTestRunnerClient = null,
     )
 }
