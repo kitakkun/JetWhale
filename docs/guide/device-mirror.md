@@ -222,7 +222,7 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`; an Android device reports `screenOn` and `locked` |
-| `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
+| `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels, and with `includeImage: true` the PNG itself |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
@@ -232,7 +232,11 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops one recording, several (`deviceIds`), or all of them (`all: true`); returns each video's path and length |
 | `com.kitakkun.jetwhale.mirror.listCaptures` | Saved captures, newest first, optionally only one `deviceId`, one `kind` (`Screenshot` or `Recording`), or those taken at or after `since` (epoch milliseconds) |
 
-An agent can read a returned path to look at the capture.
+An agent can read a returned path to look at the capture. A client that shows images to the model
+can instead pass `includeImage: true` to `captureScreenshot`; it is off by default because a
+full-resolution screenshot can be several megabytes. Starting or stopping several recordings at
+once reports each device's result, and fails as a whole only when no device succeeded, including
+when there was no device to start or stop.
 
 ## Limits
 

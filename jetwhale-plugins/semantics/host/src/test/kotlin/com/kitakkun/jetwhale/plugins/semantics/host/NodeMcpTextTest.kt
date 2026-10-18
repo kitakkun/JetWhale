@@ -2,10 +2,11 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -89,11 +90,11 @@ class NodeMcpTextTest {
     fun `getNodeTree returns JSON unless the text format is asked for`() {
         val command = GetNodeTreeCommand(capture = { screen })
 
-        val json = runBlocking { command.execute(JetWhaleMcpArguments(buildJsonObject {})) }
-        val text = runBlocking { command.execute(JetWhaleMcpArguments(buildJsonObject { put("format", "text") })) }
+        val json = runBlocking { command.run(JetWhaleMcpArguments(buildJsonObject {})) }
+        val text = runBlocking { command.run(JetWhaleMcpArguments(buildJsonObject { put("format", "text") })) }
 
-        assertTrue("roots" in Json.parseToJsonElement(json).jsonObject)
-        assertEquals(screen.toMcpText(), text)
+        assertTrue("roots" in checkNotNull(json.structuredContent))
+        assertEquals(screen.toMcpText(), text.text)
     }
 
     @Test
@@ -110,7 +111,7 @@ class NodeMcpTextTest {
         val command = FindNodesCommand(capture = { screen })
 
         val text = runBlocking {
-            command.execute(
+            command.run(
                 JetWhaleMcpArguments(
                     buildJsonObject {
                         put("format", "text")
@@ -118,7 +119,7 @@ class NodeMcpTextTest {
                         put("limit", 1)
                     },
                 ),
-            )
+            ).text
         }
 
         assertEquals("- node #1 root=window tap=50,20\n… 2 more matches", text)
@@ -127,16 +128,19 @@ class NodeMcpTextTest {
     @Test
     fun `findNodes in text with nothing matching says so`() {
         val text = runBlocking {
-            FindNodesCommand(capture = { screen }).execute(
+            FindNodesCommand(capture = { screen }).run(
                 JetWhaleMcpArguments(
                     buildJsonObject {
                         put("format", "text")
                         put("testTag", "missing")
                     },
                 ),
-            )
+            ).text
         }
 
         assertEquals("no matches", text)
     }
 }
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private val JetWhaleMcpResult.text: String get() = (content.single() as JetWhaleMcpContent.Text).text

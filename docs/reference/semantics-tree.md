@@ -60,7 +60,7 @@ for.
 `ImeAction` → `onEditorAction`, `ScrollBy` → `scrollBy`, `ScrollToIndex` →
 `RecyclerView.scrollToPosition` / `ListView.setSelection`, `BringIntoView` →
 `requestRectangleOnScreen`, `RequestFocus` → `requestFocus()`. `Dismiss`, `Expand` and `Collapse`
-have no `View` counterpart and come back `performed: false` saying so.
+have no `View` counterpart, and the call fails saying so.
 
 A window with no Compose in it is not captured: the composition is what announces a window, so a
 plain `AlertDialog` built from views does not appear. A merged capture can also fold an
@@ -315,8 +315,8 @@ Changes one attribute: `rootId`, `nodeId`, `attributeId`, and `value` as a **str
 to the attribute's type — `"GONE"`, `"true"`, `"0.5"`, `"#80FF0000"`, `"24"` — so there is no sealed
 JSON to construct. A `layoutSize` takes one of its constants, case-insensitively, or a pixel figure:
 `"wrap_content"`, `"match_parent"`, `"500"`. The answer carries the attribute as it reads back
-afterwards, which is not always what was asked for: an app may clamp a value or ignore it. The edit
-is temporary.
+afterwards, which is not always what was asked for: an app may clamp a value or ignore it. A change
+the app refuses outright fails with its reason. The edit is temporary.
 
 ```
 findNodes(resourceId: "status")   → { "nodes": [{ "rootId": "android-window-1f2e", "id": -4, "kind": "View" }] }

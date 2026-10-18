@@ -25,6 +25,7 @@ class McpToolSchemaTest {
                 required = false,
             ),
         ),
+        outputSchema = null,
     )
 
     @Test

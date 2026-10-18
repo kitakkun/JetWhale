@@ -96,7 +96,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports the debug server and mcp server endpoints`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals("Started", status.debugServer.state)
         assertEquals(5080, status.debugServer.port)
@@ -107,7 +107,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports the host version and whether it is a snapshot`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals("1.2.3-SNAPSHOT", status.host.version)
         assertTrue(status.host.isSnapshot)
@@ -115,7 +115,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus counts sessions by whether they are still connected`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals(2, status.sessions.total)
         assertEquals(1, status.sessions.active)
@@ -123,7 +123,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports a null ui block before the host window has composed`() = runBlocking {
-        assertNull(command.execute(arguments()).decode().ui)
+        assertNull(command.executeForText(arguments()).decode().ui)
     }
 
     @Test
@@ -134,7 +134,7 @@ class HostStatusCommandTest {
             selectedPluginId = "com.example",
         )
 
-        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        val ui = requireNotNull(command.executeForText(arguments()).decode().ui)
         assertEquals("PLUGIN", ui.destination)
         assertEquals("com.example", ui.pluginId)
         assertEquals("s1", ui.selectedSessionId)
@@ -148,7 +148,7 @@ class HostStatusCommandTest {
             selectedPluginId = null,
         )
 
-        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        val ui = requireNotNull(command.executeForText(arguments()).decode().ui)
         assertEquals("SETTINGS", ui.destination)
         assertEquals("PERMISSIONS", ui.settingsPage)
         assertEquals("AI_AGENTS", ui.settingsSection)
@@ -162,7 +162,7 @@ class HostStatusCommandTest {
             selectedPluginId = null,
         )
 
-        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        val ui = requireNotNull(command.executeForText(arguments()).decode().ui)
         assertEquals("MCP_TOOLS", ui.destination)
         assertEquals("HISTORY", ui.mcpToolsTab)
     }
@@ -171,25 +171,25 @@ class HostStatusCommandTest {
     fun `getStatus reports the theme by the name updateSettings takes`() = runBlocking {
         appAppearanceRepository.setPreferredColorSchemeId(JetWhaleColorSchemeId.BuiltInLight)
 
-        assertEquals("LIGHT", command.execute(arguments()).decode().settings.theme)
+        assertEquals("LIGHT", command.executeForText(arguments()).decode().settings.theme)
     }
 
     @Test
     fun `getStatus reports the theme updateSettings just set`() = runBlocking {
         UpdateSettingsCommand(settingsRepository, appAppearanceRepository, debugWebSocketServer)
-            .execute(JetWhaleMcpArguments(JsonObject(mapOf("theme" to JsonPrimitive("DARK")))))
+            .executeForText(JetWhaleMcpArguments(JsonObject(mapOf("theme" to JsonPrimitive("DARK")))))
 
-        assertEquals("DARK", command.execute(arguments()).decode().settings.theme)
+        assertEquals("DARK", command.executeForText(arguments()).decode().settings.theme)
     }
 
     @Test
     fun `getStatus reports that no install is in flight`() = runBlocking {
-        assertFalse(command.execute(arguments()).decode().plugins.installInProgress)
+        assertFalse(command.executeForText(arguments()).decode().plugins.installInProgress)
     }
 
     @Test
     fun `getStatus reports which permissions the agent has`() = runBlocking {
-        val permissions = command.execute(arguments()).decode().permissions
+        val permissions = command.executeForText(arguments()).decode().permissions
 
         assertEquals(McpHostToolGroup.entries.map(McpHostToolGroup::name).sorted(), permissions.allowedHostGroups)
         assertTrue(permissions.deniedHostGroups.isEmpty())
@@ -205,7 +205,7 @@ class HostStatusCommandTest {
         permissions.setPluginInspectAllowed("com.example.secret", allowed = false)
         permissions.setPluginToolAllowed("com.example.secret.wipe", allowed = false)
 
-        val reported = command.execute(arguments()).decode().permissions
+        val reported = command.executeForText(arguments()).decode().permissions
 
         assertContains(reported.deniedHostGroups, McpHostToolGroup.SETTINGS_AND_SERVERS.name)
         assertFalse(McpHostToolGroup.SETTINGS_AND_SERVERS.name in reported.allowedHostGroups)

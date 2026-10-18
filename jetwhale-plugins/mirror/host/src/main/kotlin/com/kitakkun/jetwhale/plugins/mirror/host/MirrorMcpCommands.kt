@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -41,7 +42,8 @@ internal interface MirrorDevices {
     fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture>
 }
 
-internal fun okJson(): String = buildJsonObject { put("ok", true) }.toString()
+@OptIn(ExperimentalJetWhaleApi::class)
+internal fun okResult(): JetWhaleMcpResult = JetWhaleMcpResult.json(buildJsonObject { put("ok", true) })
 
 /** Runs a device operation for a tool, turning a refusal into an answer the caller can act on. */
 @OptIn(ExperimentalJetWhaleApi::class)

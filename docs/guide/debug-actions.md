@@ -115,7 +115,7 @@ tools. Each takes the `sessionId` of the app's session.
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.actions.listActions` | Every action with its argument JSON Schema, suggested values, and whether it is destructive or belongs to the current screen |
-| `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace |
+| `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace. A run that did not succeed is reported as a failed call |
 
 ## Limits
 

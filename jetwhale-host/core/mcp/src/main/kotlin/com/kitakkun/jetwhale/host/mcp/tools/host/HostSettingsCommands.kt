@@ -53,7 +53,7 @@ class UpdateSettingsCommand(
         BuiltInTheme.entries,
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val newServerPort = arguments[serverPort]?.also { it.requireValidPort("serverPort") }
         val newWssPort = arguments[wssPort]?.also { it.requireValidPort("wssPort") }
         val newMcpServerPort = arguments[mcpServerPort]?.also { it.requireValidPort("mcpServerPort") }
@@ -137,7 +137,7 @@ class RestartDebugServerCommand(
     override val description: String =
         "Host-wide: stops and restarts the debug WebSocket server that agents connect to. This disconnects every session — every sessionId you hold becomes invalid and each app has to reconnect."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         restartDebugServer(settingsRepository, debugWebSocketServer)
         val status = debugWebSocketServer.statusFlow.value.toJson()
         return Json.encodeToString(

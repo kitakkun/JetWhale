@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class DeleteFileEntryCommand(
@@ -16,5 +16,5 @@ internal class DeleteFileEntryCommand(
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by string(PATH_ARGUMENT_DESCRIPTION)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(StorageOperationResult.serializer(), client.delete(fileLocationOf(arguments[root], arguments[path])))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = client.delete(fileLocationOf(arguments[root], arguments[path])).toMcpResult()
 }

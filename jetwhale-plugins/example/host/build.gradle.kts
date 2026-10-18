@@ -14,4 +14,10 @@ dependencies {
     compileOnly(libs.jetbrainsComposePreview)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.example.protocol)
+    testImplementation(projects.jetwhaleHostSdk)
+    testImplementation(projects.jetwhaleHostUi)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.material3)
+    testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxSerializationJson)
 }

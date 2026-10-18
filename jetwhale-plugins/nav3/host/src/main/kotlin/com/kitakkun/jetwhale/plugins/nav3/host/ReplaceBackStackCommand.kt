@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import kotlinx.serialization.json.JsonObject
@@ -19,7 +20,7 @@ internal class ReplaceBackStackCommand(
     private val keys by jsonArray("The new back stack as a JSON array of NavKey objects, root first, e.g. [{\"type\":\"Home\"},{\"type\":\"Detail\",\"id\":\"42\"}]. Must not be empty.")
     private val stackId by stringOrNull("Which back stack to replace. Defaults to the app's only one.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
         val newKeys = arguments[keys]
         if (newKeys.isEmpty()) {
@@ -31,6 +32,6 @@ internal class ReplaceBackStackCommand(
         return controller.mutate(
             stackId = target,
             operations = listOf(NavBackStackOperation.ReplaceAll(keys = newKeys.toList())),
-        ).toMcpJson()
+        ).toMcpResult()
     }
 }

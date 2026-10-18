@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.nav3.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NAV3_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
@@ -67,12 +68,21 @@ internal fun NavBackStackSnapshot.toMcpJson(): JsonObject = buildJsonObject {
     }
 }
 
-/** The outcome of a mutation as a tool result, with the resulting stack so the caller can verify it. */
-internal fun MutationResult.toMcpJson(): String = buildJsonObject {
-    put("applied", error == null)
-    error?.let { put("error", it) }
-    snapshot?.let { put("stack", it.toMcpJson()) }
-}.toString()
+/**
+ * The outcome of a mutation as a tool result, with the resulting stack so the caller can verify it,
+ * or correct a refused mutation against it.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
+internal fun MutationResult.toMcpResult(): JetWhaleMcpResult {
+    val stackJson = snapshot?.toMcpJson()
+    val refusal = error ?: return JetWhaleMcpResult.json(
+        buildJsonObject {
+            put("applied", true)
+            stackJson?.let { put("stack", it) }
+        },
+    )
+    return JetWhaleMcpResult.error(if (stackJson == null) refusal else "$refusal The back stack is now: $stackJson")
+}
 
 /** Short, human-facing label used for the status line after a UI-triggered operation. */
 internal fun NavBackStackOperation.describe(): String = when (this) {

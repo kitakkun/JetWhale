@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.nav3.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
@@ -22,11 +23,11 @@ internal class ListNavKeyTypesCommand(
         "List only the key types whose serial name contains this text, ignoring case: a simple name such as Detail, or part of a qualified one. Lists every type if omitted or blank.",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val keyTypes = controller.keyTypes()
         val keyTypeQuery = NavKeyTypeQuery(arguments[query].orEmpty())
         val matchingKeyTypes = keyTypes.filter(keyTypeQuery::matches)
-        return buildJsonObject {
+        val keyTypesJson = buildJsonObject {
             putJsonArray("keyTypes") { matchingKeyTypes.forEach { add(it.toMcpJson()) } }
             when {
                 keyTypes.isEmpty() -> put(
@@ -39,7 +40,8 @@ internal class ListNavKeyTypesCommand(
                     "No key type matches \"${keyTypeQuery.text}\". The app has ${keyTypes.size}; call listNavKeyTypes without query to list them all.",
                 )
             }
-        }.toString()
+        }
+        return JetWhaleMcpResult.json(keyTypesJson)
     }
 }
 

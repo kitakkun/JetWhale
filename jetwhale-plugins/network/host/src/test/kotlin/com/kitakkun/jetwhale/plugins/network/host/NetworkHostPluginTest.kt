@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -66,7 +68,7 @@ class NetworkHostPluginTest {
         runCurrent()
 
         val getTransaction = (plugin as JetWhaleMcpCapablePlugin).mcpCommands.single { it.name == "$TOOL_PREFIX.getTransaction" }
-        val detail = getTransaction.execute(JetWhaleMcpArguments(buildJsonObject { put("txId", "tx-1") }))
+        val detail = getTransaction.run(JetWhaleMcpArguments(buildJsonObject { put("txId", "tx-1") })).text
         assertFalse("secret-value" in detail, detail)
         assertContains(detail, "callback?token=")
         assertContains(detail, "page=2")
@@ -101,18 +103,20 @@ class NetworkHostPluginTest {
         val listTransactions = mcpCommands.single { it.name == "$TOOL_PREFIX.listTransactions" }
         val getTransaction = mcpCommands.single { it.name == "$TOOL_PREFIX.getTransaction" }
         val txArguments = JetWhaleMcpArguments(buildJsonObject { put("txId", "tx-1") })
-        assertEquals(errorJson(MCP_REDACTION_RULES_UNREAD_ERROR), listTransactions.execute(JetWhaleMcpArguments(buildJsonObject {})))
-        assertEquals(errorJson(MCP_REDACTION_RULES_UNREAD_ERROR), getTransaction.execute(txArguments))
+        assertEquals(JetWhaleMcpResult.error(MCP_REDACTION_RULES_UNREAD_ERROR), listTransactions.run(JetWhaleMcpArguments(buildJsonObject {})))
+        assertEquals(JetWhaleMcpResult.error(MCP_REDACTION_RULES_UNREAD_ERROR), getTransaction.run(txArguments))
 
         agentHasPluginActive = true
         advanceTimeBy(5.seconds)
         runCurrent()
 
-        val detail = getTransaction.execute(txArguments)
+        val detail = getTransaction.run(txArguments).text
         assertFalse("secret-value" in detail, detail)
         assertContains(detail, "login?token=")
         assertContains(detail, "page=2")
     }
+
+    private val JetWhaleMcpResult.text: String get() = (content.single() as JetWhaleMcpContent.Text).text
 
     private companion object {
         const val PLUGIN_ID = "com.kitakkun.jetwhale.network"

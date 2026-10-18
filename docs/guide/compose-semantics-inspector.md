@@ -239,8 +239,8 @@ node's `unit`: pixels on Android and desktop, points on iOS.
 - **A dialog's contents are missing.** On Android a dialog is a separate window: the `Application`
   probe finds it, an in-composition probe registers only its own window. On iOS a dialog stays inside
   the window that showed it.
-- **An action comes back `performed: false`.** The message says why: the node does not expose that
-  action, it is disabled, or its handler declined. Capture again and check the node's `actions`.
+- **An action fails.** The message says why: the node does not expose that action, it is
+  disabled, or its handler declined. Capture again and check the node's `actions`.
 - **Node ids changed between calls.** A node's id is stable while it stays composed (a `View`
   node's, while the view is alive), and ids are unique only within their root. After anything that
   recomposes the screen, capture again rather than reusing ids.
