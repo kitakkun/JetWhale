@@ -153,7 +153,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool,xcTestRunners, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool, xcTestRunners, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,

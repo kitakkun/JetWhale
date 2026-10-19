@@ -65,7 +65,6 @@ internal class IphoneScreenCapturePool(
      * run failed within [failureRetentionPeriod].
      */
     suspend fun acquire(udid: String, deviceName: String): IphoneScreenCaptureRun {
-        synchronized(lock) { heldCaptures[udid]?.capture?.failureWithin(failureRetentionPeriod)?.let { throw it } }
         val executable = helperExecutable.await()
         return synchronized(lock) {
             val existing = heldCaptures[udid]

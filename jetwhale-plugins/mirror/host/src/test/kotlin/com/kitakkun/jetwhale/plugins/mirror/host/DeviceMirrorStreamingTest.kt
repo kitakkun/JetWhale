@@ -41,7 +41,7 @@ class DeviceMirrorStreamingTest {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool =CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
         developmentTeamSetting = emptyDevelopmentTeamSetting(),
         captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
