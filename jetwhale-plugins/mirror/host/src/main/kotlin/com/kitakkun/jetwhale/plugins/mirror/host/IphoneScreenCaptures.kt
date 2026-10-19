@@ -69,12 +69,14 @@ internal class IphoneScreenCapturePool(
         return synchronized(lock) {
             val existing = heldCaptures[udid]
             existing?.capture?.failureWithin(failureRetentionPeriod)?.let { throw it }
-            val current = existing?.takeUnless { it.capture.hasEnded } ?: HeldCapture(udid, startCapture(udid, deviceName, executable)).also {
+            val current = if (existing != null && !existing.capture.hasEnded) {
+                existing.idleStopJob?.cancel()
+                existing.idleStopJob = null
+                existing
+            } else {
                 existing?.idleStopJob?.cancel()
-                heldCaptures[udid] = it
+                HeldCapture(udid, startCapture(udid, deviceName, executable)).also { heldCaptures[udid] = it }
             }
-            current.idleStopJob?.cancel()
-            current.idleStopJob = null
             current.userCount++
             current.capture
         }
@@ -95,7 +97,10 @@ internal class IphoneScreenCapturePool(
     }
 
     /** Whether the iPhone [udid]'s screen is being captured, its frames arriving. */
-    fun isCapturing(udid: String): Boolean = synchronized(lock) { heldCaptures[udid]?.capture?.takeUnless(IphoneScreenCaptureRun::hasEnded)?.frameSize != null }
+    fun isCapturing(udid: String): Boolean = synchronized(lock) {
+        val capture = heldCaptures[udid]?.capture ?: return false
+        !capture.hasEnded && capture.frameSize != null
+    }
 
     /** Stops the capture of an iPhone that is gone, whoever still uses it: it has nothing left to show. */
     fun stopCaptureEvenIfInUse(udid: String): Unit = synchronized(lock) {
