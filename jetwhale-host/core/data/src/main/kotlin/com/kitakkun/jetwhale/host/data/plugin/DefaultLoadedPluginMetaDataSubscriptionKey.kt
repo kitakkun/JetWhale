@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.model.PluginMetaData
+import com.kitakkun.jetwhale.host.model.targetsHostSession
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -27,6 +28,7 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
                     id = loaded.manifest.pluginId,
                     version = loaded.manifest.version,
                     requiresAgent = loaded.manifest.requiresAgent,
+                    targetsHostSession = loaded.manifest.targetsHostSession,
                     activeIconResource = loaded.manifest.icon?.activePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)

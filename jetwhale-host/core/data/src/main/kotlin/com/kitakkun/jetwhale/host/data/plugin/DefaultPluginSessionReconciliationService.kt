@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.model.targetsHostSession
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -30,13 +31,15 @@ class DefaultPluginSessionReconciliationService(
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
-        sessions
-            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-            .map(DebugSession::id)
-            .toSet()
-    } else {
-        setOf(HostSession.ID)
+    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = buildSet {
+        if (requiresAgent(pluginId)) {
+            sessions
+                .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+                .mapTo(this, DebugSession::id)
+        }
+        if (pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.targetsHostSession == true) {
+            add(HostSession.ID)
+        }
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
@@ -51,12 +54,12 @@ class DefaultPluginSessionReconciliationService(
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
-                        val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
+                        val activatedAppSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
                             sessionIds = targetSessionIds(pluginId, activeSessions),
-                        )
-                        if (requiresAgent(pluginId) && activatedSessionIds.isNotEmpty()) {
-                            send(PluginReconciliationEvent.Activated(pluginId, activatedSessionIds))
+                        ).filterNotTo(mutableSetOf(), HostSession::isHost)
+                        if (activatedAppSessionIds.isNotEmpty()) {
+                            send(PluginReconciliationEvent.Activated(pluginId, activatedAppSessionIds))
                         }
                     }
                 }

@@ -20,8 +20,9 @@ interface PluginSessionReconciliationService {
 
     /**
      * The ids of the sessions that should hold an instance of [pluginId] given [sessions]. An
-     * agent-backed plugin targets only sessions whose agent advertised it; a host-only plugin
-     * targets [HostSession] alone, whatever [sessions] holds.
+     * agent-backed plugin targets the sessions whose agent advertised it, plus [HostSession] when it
+     * sets `runsInHostSession`; a host-only plugin targets [HostSession] alone, whatever [sessions]
+     * holds.
      */
     fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String>
 
@@ -38,6 +39,7 @@ sealed interface PluginReconciliationEvent {
     /**
      * [pluginId] was newly activated for [sessionIds]; notify each of those sessions' agents, then
      * start that session's instance preparation ([PluginInstanceService.startPluginInstancePreparation]).
+     * [sessionIds] are app sessions only: [HostSession] has no agent to notify.
      */
     data class Activated(val pluginId: String, val sessionIds: Set<String>) : PluginReconciliationEvent
 

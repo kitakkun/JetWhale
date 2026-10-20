@@ -118,6 +118,7 @@ in the IDE.
 | `version` | ✅ | — | Your plugin's version. |
 | `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
 | `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, one instance in the `host` session, usable with no app connected. |
+| `runsInHostSession` | | `false` | `true` gives a plugin that needs an agent [one more instance, in the `host` session](#plugins-that-also-run-in-the-host-session), next to its instances in app sessions. Ignored when `requiresAgent` is `false`. A host older than this key ignores it. |
 | `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. An agent plugin whose `pluginVersion` falls outside the range is reported back to the agent as *incompatible* and never paired. Omit the object to accept any agent version. |
 | `icon` | | none | `{ "activePath": …, "inactivePath": … }` — see below. |
 
@@ -210,13 +211,14 @@ screen" notice instead of an empty view, and the host does not offer to pop it o
 modifier or it will not compile.
 :::
 
-**The host plugin's `messenger` is a plain, always-connected property.** A host plugin instance
-lives exactly as long as its session's connection, so `messenger` is valid from `onCreate()` through
-`onDispose()` and may be used anywhere — UI callbacks, MCP tool handlers, background jobs. It exposes
-only `trySend` and `request`: there is no offline-buffering vocabulary (`sendOrQueue` / `sendOrFail` /
-send policy), since a host plugin has nothing to buffer across. Launch background work on
-`pluginScope` (also a property): the runtime cancels it when the instance is disposed, so nothing can
-outlive the plugin. State that must survive across sessions does **not** belong in the instance.
+**The host plugin's `messenger` is a plain, always-connected property.** A host plugin instance in
+an app session lives exactly as long as its session's connection, so `messenger` is valid from
+`onCreate()` through `onDispose()` and may be used anywhere — UI callbacks, MCP tool handlers,
+background jobs. It exposes only `trySend` and `request`: there is no offline-buffering vocabulary
+(`sendOrQueue` / `sendOrFail` / send policy), since a host plugin has nothing to buffer across.
+Launch background work on `pluginScope` (also a property): the runtime cancels it when the instance
+is disposed, so nothing can outlive the plugin. State that must survive across sessions does **not**
+belong in the instance.
 
 **On the agent** the `messenger` property is **connection-independent** (it outlives any single
 connection), so app code may send at any time and choose the offline behavior per call: `trySend`
@@ -295,6 +297,34 @@ it at the top of the sidebar, above the app picker, so it works before any app c
 recreated per app. Its MCP tools take `sessionId: "host"`. See `ExampleHostOnlyPlugin` in
 `jetwhale-plugins/example/host`.
 
+#### Plugins that also run in the host session
+
+A plugin that talks to its agent can also run where no app is: set `"runsInHostSession": true` next
+to the default `"requiresAgent": true`. The host then keeps one more instance of it in the session
+`host` for as long as the plugin is enabled, whether or not an app is connected, alongside one
+instance per app session whose agent advertised the plugin.
+
+The host-session instance has no agent. It gets no `configure` and no `onPrepare`, only `onCreate`
+through `onDispose`, and its `messenger` throws an `IllegalStateException`. Check the protected
+`isInHostSession`, available from `onCreate()`, and give that instance work that needs no app: a
+view of the device, say, rather than of the app.
+
+```kotlin
+override fun onCreate() {
+    nodeSource = if (isInHostSession) DeviceNodeSource() else AgentNodeSource(messenger)
+}
+```
+
+Both kinds of instance share the plugin's [storage](#persistent-storage). The sidebar lists the
+plugin twice: once at the top with the plugins that need no app, and once among the selected app's
+plugins when that app includes it. Each entry opens its own instance, so say on screen which one the
+user is looking at. Over MCP the host-session instance answers at `sessionId: "host"` with the same
+tools as the app instances; a tool that needs the agent should refuse there with a
+`JetWhaleMcpArgumentException` that says so.
+
+A host older than `runsInHostSession` ignores it and runs the plugin in app sessions only, and there
+`isInHostSession` is `false`.
+
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 
 A host plugin can contribute tools to the host's [MCP server](/guide/mcp-server) by implementing
@@ -331,8 +361,9 @@ Things to know:
   against the correct session without handling it yourself.
 - **`execute` returns a string** (plain text or JSON). Throw `JetWhaleMcpArgumentException` for
   caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
-- **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
-  a command can `request` the agent directly.
+- **Messaging works from tool handlers.** In an app session `messenger` is valid for the whole
+  instance lifetime, so a command can `request` the agent directly. In the host session there is no
+  agent; see [Plugins that also run in the host session](#plugins-that-also-run-in-the-host-session).
 - **Declare parameters as properties, never inside `execute`.** The list is read once, and declaring
   one afterwards — or declaring the same name twice — throws with a message saying so.
 - **`mcpCommands` is read once** per plugin instance activation and treated as static from then on.
@@ -472,8 +503,8 @@ another plugin tab and back.
 There is no settings/preferences API (render your own controls inside `Content()` and persist them
 with [storage](#persistent-storage)), no logging API (use `println` or your own logging library —
 the host's log viewer captures stdout/stderr), and no way to read the session's app/device metadata.
-A plugin never learns its own session id; if you need facts about the app, `request` them from your
-agent counterpart.
+A plugin never learns its own session id, only whether it runs in the host session
+(`isInHostSession`); if you need facts about the app, `request` them from your agent counterpart.
 
 Members annotated `@InternalJetWhaleHostApi` (`bindMessenger`, `dispatchCreate`, …) show up in
 autocomplete because the runtime calls them across module boundaries. Never call them — the opt-in is
@@ -487,7 +518,7 @@ available from `onCreate()` onwards. Values live on disk under the host's app da
 survive plugin reloads, session changes and host restarts.
 
 The store is **scoped to your `pluginId`**: a plugin can neither name another plugin's id nor reach
-its data.
+its data. Every instance of the plugin shares it, in whichever session it runs.
 
 Anything with a `kotlinx.serialization` serializer can be stored — primitives, collections, and your
 own `@Serializable` classes. The reified overloads resolve the serializer for you:

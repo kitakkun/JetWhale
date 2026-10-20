@@ -39,6 +39,8 @@ import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
+import com.kitakkun.jetwhale.host.rail_plugin_in_app
+import com.kitakkun.jetwhale.host.rail_plugin_in_host_session
 import com.kitakkun.jetwhale.host.settings
 import com.kitakkun.jetwhale.host.sidebar_unfold
 import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
@@ -62,19 +64,17 @@ fun ShrunkToolingDrawerView(
     plugins: ImmutableList<DrawerPluginItemUiState>,
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
-    selectedPluginId: String,
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
     onOpenMcpSettings: () -> Unit,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
-    onClickPlugin: (String) -> Unit,
+    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onClickInfo: () -> Unit,
     onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selectedSessionId = selectedSession?.id
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -109,46 +109,12 @@ fun ShrunkToolingDrawerView(
             )
         }
         JwHorizontalDivider()
-        LazyColumn(
+        RailPluginList(
+            plugins = plugins,
+            selectedAppName = selectedSession?.appDisplayName,
+            onClickPlugin = onClickPlugin,
             modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = JwSpacing.extraSmall),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
-        ) {
-            items(
-                items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
-                key = DrawerPluginItemUiState::id,
-            ) {
-                val usable = selectedSessionId != null || !it.needsApp
-                val selected = selectedPluginId == it.id && usable
-                Box {
-                    JwIconButton(
-                        enabled = usable,
-                        selected = selected,
-                        onClick = { onClickPlugin(it.id) },
-                        tooltip = it.name,
-                    ) {
-                        JwIcon(
-                            painter = when {
-                                selected -> rememberPluginIconSvgPainter(it.activeIconResource)
-                                    ?: painterResource(Res.drawable.puzzle_filled)
-
-                                else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
-                                    ?: painterResource(Res.drawable.puzzle_outlined)
-                            },
-                            contentDescription = null,
-                        )
-                    }
-                    if (it.underAiControl || it.exposesMcpTools) {
-                        RailBadge(
-                            tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
-                            filled = it.underAiControl,
-                            modifier = Modifier.align(Alignment.BottomEnd),
-                        )
-                    }
-                }
-            }
-        }
+        )
         JwHorizontalDivider()
         Column(
             modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
@@ -163,6 +129,64 @@ fun ShrunkToolingDrawerView(
             }
             JwIconButton(onClick = onClickInfo, tooltip = stringResource(Res.string.info)) {
                 JwIcon(imageVector = Icons.Default.Info, contentDescription = null)
+            }
+        }
+    }
+}
+
+/**
+ * The enabled plugins as icons, those of the host section first. A plugin listed twice, once for the
+ * host session and once for the selected app, says in its label which one each icon opens.
+ */
+@Composable
+private fun RailPluginList(
+    plugins: ImmutableList<DrawerPluginItemUiState>,
+    selectedAppName: String?,
+    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val railPlugins = remember(plugins) {
+        plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp)
+    }
+    val pluginIdsListedTwice = remember(railPlugins) { railPlugins.groupingBy(DrawerPluginItemUiState::id).eachCount().filterValues { it > 1 }.keys }
+    LazyColumn(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(vertical = JwSpacing.extraSmall),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
+    ) {
+        items(items = railPlugins, key = DrawerPluginItemUiState::rowKey) {
+            val usable = it.sessionId != null
+            val selected = it.isSelected && usable
+            Box {
+                JwIconButton(
+                    enabled = usable,
+                    selected = selected,
+                    onClick = { onClickPlugin(it) },
+                    tooltip = when {
+                        it.id !in pluginIdsListedTwice -> it.name
+                        it.needsApp -> stringResource(Res.string.rail_plugin_in_app, it.name, selectedAppName.orEmpty())
+                        else -> stringResource(Res.string.rail_plugin_in_host_session, it.name)
+                    },
+                ) {
+                    JwIcon(
+                        painter = when {
+                            selected -> rememberPluginIconSvgPainter(it.activeIconResource)
+                                ?: painterResource(Res.drawable.puzzle_filled)
+
+                            else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
+                                ?: painterResource(Res.drawable.puzzle_outlined)
+                        },
+                        contentDescription = null,
+                    )
+                }
+                if (it.underAiControl || it.exposesMcpTools) {
+                    RailBadge(
+                        tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
+                        filled = it.underAiControl,
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                    )
+                }
             }
         }
     }
@@ -257,18 +281,18 @@ private fun ShrunkToolingDrawerViewPreview() {
                 DrawerPluginItemUiState(
                     name = "Inspector",
                     id = "com.example.inspector",
+                    sessionId = null,
                     activeIconResource = null,
                     inactiveIconResource = null,
                     pluginAvailability = PluginAvailability.Enabled,
+                    isSelected = true,
                     underAiControl = false,
                     exposesMcpTools = true,
                     isHeadless = false,
-                    needsApp = true,
                 ),
             ),
             sessions = persistentListOf(),
             selectedSession = null,
-            selectedPluginId = "com.example.inspector",
             aiActivity = AiActivityUiState.Idle,
             onFollowAiOperationChange = {},
             onOpenMcpSettings = {},

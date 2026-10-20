@@ -10,11 +10,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.serializer
+import java.util.WeakHashMap
 
 /**
  * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
  * messaging — use it for plugins that don't talk to an agent (e.g. a host-only tool, declared with
- * `"requiresAgent": false` in the manifest).
+ * `"requiresAgent": false` in the manifest, which runs in the host session).
  *
  * Add capabilities by combining types:
  * - [JetWhaleMessagingHostPlugin] (extend it instead) — to exchange messages with an agent counterpart.
@@ -45,6 +46,31 @@ public abstract class JetWhaleHostPlugin {
             "storage is only available after the plugin instance has been bound (in or after onCreate())."
         }
 
+    @PublishedApi
+    internal var boundIsInHostSession: Boolean? = null
+        private set
+
+    /**
+     * Whether this instance runs in the host session, which has no app and no agent: true for the
+     * instance of a plugin with `"requiresAgent": false`, and for the host-session instance of one
+     * with `"runsInHostSession": true`; false in an app session. Available from [onCreate].
+     *
+     * False on a host older than this SDK, which cannot say. There a plugin with
+     * `"requiresAgent": false` still runs in the host session only, and one that needs an agent never
+     * runs there.
+     */
+    protected inline val isInHostSession: Boolean
+        get() {
+            val bound = try {
+                boundIsInHostSession
+            } catch (_: NoSuchMethodError) {
+                return false
+            }
+            return checkNotNull(bound) {
+                "isInHostSession is only available after the plugin instance has been bound (in or after onCreate())."
+            }
+        }
+
     /**
      * The schema version of this plugin's persistent [storage]. Bump it together with an
      * [onStorageMigrate] implementation whenever the shape of the stored data changes.
@@ -60,8 +86,10 @@ public abstract class JetWhaleHostPlugin {
      * Migrates the persistent [storage] from [fromVersion] to the current [storageVersion].
      *
      * Called at most once per instance, before the first regular storage operation completes, so
-     * reads never observe pre-migration data. Use [storage] directly to reshape the stored values
-     * (rename keys, convert value shapes, drop obsolete entries).
+     * reads never observe pre-migration data. Instances of the plugin that share the store, such as
+     * one in the host session and one in an app session, take turns, so only the first of them
+     * migrates it. Use [storage] directly to reshape the stored values (rename keys, convert value
+     * shapes, drop obsolete entries).
      *
      * @param fromVersion The version the stored data was written with.
      */
@@ -83,6 +111,12 @@ public abstract class JetWhaleHostPlugin {
     @InternalJetWhaleHostApi
     public fun bindStorage(storage: JetWhalePluginStorage) {
         boundStorage = MigratingPluginStorage(storage)
+    }
+
+    /** Binds whether this instance runs in the host session. Called once, before [onCreate]. */
+    @InternalJetWhaleHostApi
+    public fun bindSessionKind(isInHostSession: Boolean) {
+        boundIsInHostSession = isInHostSession
     }
 
     /**
@@ -114,7 +148,7 @@ public abstract class JetWhaleHostPlugin {
     private inner class MigratingPluginStorage(
         private val raw: JetWhalePluginStorage,
     ) : JetWhalePluginStorage {
-        private val migrationMutex = Mutex()
+        private val migrationMutex = synchronized(migrationMutexesByStore) { migrationMutexesByStore.getOrPut(raw, ::Mutex) }
 
         @Volatile
         private var migrated = false
@@ -192,6 +226,13 @@ public abstract class JetWhaleHostPlugin {
     private companion object {
         /** Reserved key holding the persisted [storageVersion]; never visible to plugin code. */
         const val VERSION_KEY: String = "__jetwhale_storage_version"
+
+        /**
+         * One migration gate per store, shared by every instance of the plugin over it: an instance
+         * in the host session and one in an app session can reach storage at the same moment, and
+         * only the first may run [onStorageMigrate]. The next one then reads the stamped version.
+         */
+        val migrationMutexesByStore: MutableMap<JetWhalePluginStorage, Mutex> = WeakHashMap()
     }
 }
 
