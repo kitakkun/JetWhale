@@ -44,7 +44,7 @@ internal class FakeCaptureHelperProcess(val launchCommand: List<String>, private
 
         override fun close() {
             stdinClosedLatch.countDown()
-            exit(IphoneCaptureExit.Ended.code)
+            exit(IphoneCaptureHelperExit.Ended.code)
         }
     }
 

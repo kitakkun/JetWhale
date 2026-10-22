@@ -61,7 +61,7 @@ class IosInputTest {
     private var helpersReportFrames = true
 
     /** How the capture helpers started for iPhones fail at once, or null when they run. */
-    private var helpersFailWith: IphoneCaptureExit? = null
+    private var helpersFailWith: IphoneCaptureHelperExit? = null
     private val captureScope = CoroutineScope(Job())
 
     @AfterTest
@@ -272,7 +272,7 @@ class IosInputTest {
 
     @Test
     fun `an iPhone that takes input takes its screen size from its runner when its screen cannot be captured`() = runBlocking {
-        helpersFailWith = IphoneCaptureExit.PermissionDenied
+        helpersFailWith = IphoneCaptureHelperExit.PermissionDenied
 
         assertEquals(IntSize(1206, 2622), iphone(ffmpegPath = null).screenSize())
         assertTrue(runners.askedFor.single() is XcTestRunnerTarget.Device)
@@ -280,7 +280,7 @@ class IosInputTest {
 
     @Test
     fun `an iPhone that takes no input and cannot be captured says why its screen cannot be captured`() = runBlocking {
-        helpersFailWith = IphoneCaptureExit.PermissionDenied
+        helpersFailWith = IphoneCaptureHelperExit.PermissionDenied
         runners.refusal = "driving an iPhone needs your Apple development team"
 
         val failure = assertFailsWith<DeviceControlException> { iphone(ffmpegPath = null).screenSize() }
@@ -291,7 +291,7 @@ class IosInputTest {
 
     @Test
     fun `an iPhone whose screen cannot be captured still takes input through its runner`() = runBlocking {
-        helpersFailWith = IphoneCaptureExit.PermissionDenied
+        helpersFailWith = IphoneCaptureHelperExit.PermissionDenied
 
         iphone(ffmpegPath = null).tap(x = 30, y = 60)
 
@@ -309,7 +309,7 @@ class IosInputTest {
 
     @Test
     fun `an iPhone whose runner cannot start says why it has no screen size`() = runBlocking {
-        helpersFailWith = IphoneCaptureExit.PermissionDenied
+        helpersFailWith = IphoneCaptureHelperExit.PermissionDenied
         runners.startFailure = "Developer Mode is off on the iPhone"
 
         val failure = assertFailsWith<DeviceControlException> { iphone(ffmpegPath = null).screenSize() }
@@ -357,7 +357,7 @@ class IosInputTest {
         udid = "00008110",
         deviceName = "Test iPhone",
         iosMajorVersion = 26,
-        iphoneScreenCaptures = IphoneScreenCaptures(
+        iphoneScreenCapturePool = IphoneScreenCapturePool(
             processLauncher = { command ->
                 FakeCaptureHelperProcess(command) {}.also { helper ->
                     helpersFailWith?.let { failureExit ->
@@ -370,7 +370,7 @@ class IosInputTest {
                 }
             },
             idleTimeout = 1.minutes,
-            failureReusePeriod = 1.minutes,
+            failureRetentionPeriod = 1.minutes,
             timeSource = TimeSource.Monotonic,
             scope = captureScope,
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),

@@ -112,7 +112,7 @@ class IosPhysicalDeviceCapturesTest {
                 send(sample)
                 // ffmpeg probes further than the sample reaches before it decodes, so the helper
                 // exits after sending it rather than leave ffmpeg waiting.
-                exit(IphoneCaptureExit.Ended.code)
+                exit(IphoneCaptureHelperExit.Ended.code)
             }
         }
 
@@ -150,7 +150,7 @@ class IosPhysicalDeviceCapturesTest {
         udid = "udid-1",
         deviceName = "Test iPhone",
         iosMajorVersion = 26,
-        iphoneScreenCaptures = IphoneScreenCaptures(
+        iphoneScreenCapturePool = IphoneScreenCapturePool(
             processLauncher = { command ->
                 FakeCaptureHelperProcess(command, onCommand).also { helper ->
                     helper.reportCapturing(IntSize(SAMPLE_WIDTH, SAMPLE_HEIGHT))
@@ -158,7 +158,7 @@ class IosPhysicalDeviceCapturesTest {
                 }
             },
             idleTimeout = idleTimeout,
-            failureReusePeriod = 1.minutes,
+            failureRetentionPeriod = 1.minutes,
             timeSource = TimeSource.Monotonic,
             scope = captureScope,
             helperExecutable = CompletableDeferred(File("jetwhale-iphone-capture")),

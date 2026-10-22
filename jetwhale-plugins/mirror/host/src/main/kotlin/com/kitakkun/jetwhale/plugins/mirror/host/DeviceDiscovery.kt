@@ -32,15 +32,15 @@ internal class Discovery(
  * device that is streaming keeps what its stream holds.
  *
  * iOS input, and a simulator's live video, go through [xcTestRunners], null without Xcode; a
- * physical iPhone's input also needs `iproxy`. An iPhone's screen comes from [iphoneScreenCaptures],
- * also null without Xcode, which stop the capture of an iPhone once it is gone.
+ * physical iPhone's input also needs `iproxy`. An iPhone's screen comes from [iphoneScreenCapturePool],
+ * also null without Xcode, which stops the capture of an iPhone once it is gone.
  *
  * A look waits for every tool it is given, so a tool is reported missing only once it has been
  * looked for.
  */
 internal class DeviceDiscovery(
     private val toolPaths: Deferred<MirrorToolPaths>,
-    private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?>,
+    private val iphoneScreenCapturePool: Deferred<IphoneScreenCapturePool?>,
     private val xcTestRunners: Deferred<XcTestRunners?>,
     private val emulatorScreens: EmulatorScreens,
 ) {
@@ -50,7 +50,7 @@ internal class DeviceDiscovery(
 
     suspend fun discover(): Discovery = looking.withLock {
         val locatedToolPaths = toolPaths.await()
-        val iphoneScreenCaptures = iphoneScreenCaptures.await()
+        val iphoneScreenCapturePool = iphoneScreenCapturePool.await()
         val xcTestRunnerClient = xcTestRunners.await()?.let(::XcTestRunnerClient)
         val looks = listOf(
             listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
@@ -58,9 +58,9 @@ internal class DeviceDiscovery(
             listIosDevices(locatedToolPaths) to setOf(DeviceKind.IosDevice),
         )
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCaptures, xcTestRunnerClient)) }
+        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCapturePool, xcTestRunnerClient)) }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
-        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { iphoneScreenCaptures?.stopCaptureEvenIfInUse(it.id) }
+        gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { iphoneScreenCapturePool?.stopCaptureEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
         val isIphoneListed = devices.any { it.kind == DeviceKind.IosDevice }
@@ -94,7 +94,7 @@ internal class DeviceDiscovery(
         }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, iphoneScreenCaptures: IphoneScreenCaptures?, xcTestRunnerClient: XcTestRunnerClient?): DeviceController = when (listing.kind) {
+    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, iphoneScreenCapturePool: IphoneScreenCapturePool?, xcTestRunnerClient: XcTestRunnerClient?): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
@@ -110,7 +110,7 @@ internal class DeviceDiscovery(
             udid = listing.id,
             deviceName = listing.name,
             iosMajorVersion = majorVersionOf(listing.osVersion),
-            iphoneScreenCaptures = checkNotNull(iphoneScreenCaptures),
+            iphoneScreenCapturePool = checkNotNull(iphoneScreenCapturePool),
             ffmpegPath = locatedToolPaths.ffmpegPath,
             xcTestRunnerClient = xcTestRunnerClient,
         )

@@ -21,7 +21,7 @@ import kotlin.time.Duration
  *
  * [runCommand] runs a command to completion; tests stand it in for the compiler.
  */
-internal class IphoneCaptureHelperBuilds(
+internal class IphoneCaptureHelperBuildCache(
     private val buildsDirectory: File,
     private val source: ByteArray,
     private val xcrunPath: String,
@@ -79,7 +79,7 @@ internal class IphoneCaptureHelperBuilds(
 }
 
 /** The helper's source, as the plugin bundles it beside this class. */
-internal fun readIphoneCaptureHelperSource(): ByteArray = checkNotNull(IphoneCaptureHelperBuilds::class.java.getResourceAsStream(HELPER_SOURCE_FILE_NAME)) { "the plugin bundles no $HELPER_SOURCE_FILE_NAME" }.use { it.readBytes() }
+internal fun readIphoneCaptureHelperSource(): ByteArray = checkNotNull(IphoneCaptureHelperBuildCache::class.java.getResourceAsStream(HELPER_SOURCE_FILE_NAME)) { "the plugin bundles no $HELPER_SOURCE_FILE_NAME" }.use { it.readBytes() }
 
 private fun outputOf(result: CommandResult): String = result.stderr.ifBlank { result.stdoutText }.trim().takeLast(MAX_OUTPUT_CHARS)
 

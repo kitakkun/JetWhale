@@ -24,7 +24,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 
-class IphoneScreenCapturesTest {
+class IphoneScreenCapturePoolTest {
     private val helpers = CopyOnWriteArrayList<FakeCaptureHelperProcess>()
     private val launcher = ProcessLauncher { command -> FakeCaptureHelperProcess(command) {}.also(helpers::add) }
     private val realScope = CoroutineScope(Job())
@@ -40,10 +40,10 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `the first user starts the helper for the iPhone and a second shares it`() = runTest {
-        val captures = captures(this, failureReusePeriod = 5.seconds)
+        val pool = pool(this, failureRetentionPeriod = 5.seconds)
 
-        val first = captures.acquire("udid-1", "Test iPhone")
-        val second = captures.acquire("udid-1", "Test iPhone")
+        val first = pool.acquire("udid-1", "Test iPhone")
+        val second = pool.acquire("udid-1", "Test iPhone")
 
         assertSame(first, second)
         assertEquals(listOf(HELPER_EXECUTABLE.path, "--udid", "udid-1", "--name", "Test iPhone"), helpers.single().launchCommand)
@@ -51,12 +51,12 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a capture keeps running for the idle timeout after its last user and then closes the helper's stdin`() = runTest {
-        val captures = captures(this, failureReusePeriod = 5.seconds)
-        val capture = captures.acquire("udid-1", "Test iPhone")
-        captures.acquire("udid-1", "Test iPhone")
+        val pool = pool(this, failureRetentionPeriod = 5.seconds)
+        val capture = pool.acquire("udid-1", "Test iPhone")
+        pool.acquire("udid-1", "Test iPhone")
 
-        captures.release(capture)
-        captures.release(capture)
+        pool.release(capture)
+        pool.release(capture)
         delay(idleTimeout - 1.seconds)
         assertFalse(helpers.single().stdinClosed)
 
@@ -66,12 +66,12 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a user who comes back within the idle timeout keeps the running capture`() = runTest {
-        val captures = captures(this, failureReusePeriod = 5.seconds)
-        val capture = captures.acquire("udid-1", "Test iPhone")
-        captures.release(capture)
+        val pool = pool(this, failureRetentionPeriod = 5.seconds)
+        val capture = pool.acquire("udid-1", "Test iPhone")
+        pool.release(capture)
         delay(idleTimeout / 2)
 
-        assertSame(capture, captures.acquire("udid-1", "Test iPhone"))
+        assertSame(capture, pool.acquire("udid-1", "Test iPhone"))
         delay(idleTimeout * 2)
 
         assertFalse(helpers.single().stdinClosed)
@@ -79,28 +79,28 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `an iPhone that is gone has its capture stopped at once even while in use`() = runTest {
-        val captures = captures(this, failureReusePeriod = 5.seconds)
-        captures.acquire("udid-1", "Test iPhone")
+        val pool = pool(this, failureRetentionPeriod = 5.seconds)
+        pool.acquire("udid-1", "Test iPhone")
 
-        captures.stopCaptureEvenIfInUse("udid-1")
+        pool.stopCaptureEvenIfInUse("udid-1")
 
         assertTrue(helpers.single().stdinClosed)
     }
 
     @Test
     fun `stopping everything stops every iPhone's capture`() = runTest {
-        val captures = captures(this, failureReusePeriod = 5.seconds)
-        captures.acquire("udid-1", "Test iPhone")
-        captures.acquire("udid-2", "Other iPhone")
+        val pool = pool(this, failureRetentionPeriod = 5.seconds)
+        pool.acquire("udid-1", "Test iPhone")
+        pool.acquire("udid-2", "Other iPhone")
 
-        captures.stopAll()
+        pool.stopAll()
 
         assertEquals(listOf(true, true), helpers.map(FakeCaptureHelperProcess::stdinClosed))
     }
 
     @Test
     fun `a started capture says so, and the frames' size once the first is sent`() = runBlocking {
-        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = pool(realScope, failureRetentionPeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         helper.reportCapturing(IntSize(1170, 2532))
@@ -112,7 +112,7 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a reader asks the helper for a key frame and reads the access units from it on`() = runBlocking {
-        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = pool(realScope, failureRetentionPeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         val subscription = capture.subscribe()
@@ -125,47 +125,47 @@ class IphoneScreenCapturesTest {
 
     @Test
     fun `a helper that fails tells whoever waits for it to start what to do`() = runBlocking {
-        val capture = captures(realScope, failureReusePeriod = 5.seconds).acquire("udid-1", "Test iPhone")
+        val capture = pool(realScope, failureRetentionPeriod = 5.seconds).acquire("udid-1", "Test iPhone")
         val helper = helpers.single()
 
         helper.report("""{"event":"error","message":"no capture device showed the iPhone within 15 s","reason":"deviceNotFound"}""")
-        helper.exit(IphoneCaptureExit.DeviceNotFound.code)
+        helper.exit(IphoneCaptureHelperExit.DeviceNotFound.code)
 
         val failure = assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
         assertContains(failure.message.orEmpty(), "Connect it by USB")
     }
 
     @Test
-    fun `after a failure the iPhone is not tried again until the failure reuse has passed`() = runBlocking {
-        val captures = captures(realScope, failureReusePeriod = 5.seconds)
-        val capture = captures.acquire("udid-1", "Test iPhone")
-        helpers.single().exit(IphoneCaptureExit.PermissionDenied.code)
+    fun `after a failure the iPhone is not tried again until the failure retention period has passed`() = runBlocking {
+        val pool = pool(realScope, failureRetentionPeriod = 5.seconds)
+        val capture = pool.acquire("udid-1", "Test iPhone")
+        helpers.single().exit(IphoneCaptureHelperExit.PermissionDenied.code)
         val failure = assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
 
-        val reusedFailure = assertFailsWith<DeviceControlException> { captures.acquire("udid-1", "Test iPhone") }
-        assertEquals(failure.message, reusedFailure.message)
+        val retainedFailure = assertFailsWith<DeviceControlException> { pool.acquire("udid-1", "Test iPhone") }
+        assertEquals(failure.message, retainedFailure.message)
         assertEquals(1, helpers.size)
 
         timeSource += 6.seconds
-        captures.acquire("udid-1", "Test iPhone")
+        pool.acquire("udid-1", "Test iPhone")
         assertEquals(2, helpers.size)
     }
 
     @Test
     fun `a stopped capture ends its readers and is no failure to try again after`() = runBlocking {
-        val captures = captures(realScope, failureReusePeriod = 5.seconds)
-        val capture = captures.acquire("udid-1", "Test iPhone")
+        val pool = pool(realScope, failureRetentionPeriod = 5.seconds)
+        val capture = pool.acquire("udid-1", "Test iPhone")
         val subscription = capture.subscribe()
 
-        captures.stopCaptureEvenIfInUse("udid-1")
+        pool.stopCaptureEvenIfInUse("udid-1")
 
         assertFailsWith<DeviceControlException> { withTimeout(TEST_TIMEOUT) { capture.awaitStarted() } }
         assertEquals(-1, subscription.stream.read())
-        captures.acquire("udid-1", "Test iPhone")
+        pool.acquire("udid-1", "Test iPhone")
         assertEquals(2, helpers.size)
     }
 
-    private fun captures(scope: CoroutineScope, failureReusePeriod: Duration) = IphoneScreenCaptures(launcher, idleTimeout, failureReusePeriod, timeSource, scope, CompletableDeferred(HELPER_EXECUTABLE))
+    private fun pool(scope: CoroutineScope, failureRetentionPeriod: Duration) = IphoneScreenCapturePool(launcher, idleTimeout, failureRetentionPeriod, timeSource, scope, CompletableDeferred(HELPER_EXECUTABLE))
 }
 
 private val HELPER_EXECUTABLE = File("/builds/jetwhale-iphone-capture")

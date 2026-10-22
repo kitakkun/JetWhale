@@ -486,8 +486,8 @@ struct HelperFailure: Error {
 }
 
 /// Ends the helper once, however many reasons to end arrive.
-final class Ending {
-    private let queue = DispatchQueue(label: "com.kitakkun.jetwhale.iphone-capture.ending")
+final class HelperTermination {
+    private let queue = DispatchQueue(label: "com.kitakkun.jetwhale.iphone-capture.termination")
     private let output: StreamOutput
     private var ended = false
     var session: AVCaptureSession?
@@ -524,7 +524,7 @@ final class Ending {
 }
 
 /// Reads stdin until it closes, which ends the helper, taking each line as a command.
-func readCommands(ending: Ending, onKeyFrameAsked: @escaping () -> Void) {
+func readCommands(termination: HelperTermination, onKeyFrameAsked: @escaping () -> Void) {
     let thread = Thread {
         var pending = Data()
         var buffer = [UInt8](repeating: 0, count: 1024)
@@ -539,18 +539,18 @@ func readCommands(ending: Ending, onKeyFrameAsked: @escaping () -> Void) {
                 if line == "keyframe" { onKeyFrameAsked() } else if !line.isEmpty { log("ignoring the unknown command \(line)") }
             }
         }
-        ending.end(nil)
+        termination.end(nil)
     }
     thread.start()
 }
 
 /// Ends the helper on SIGTERM and SIGINT, and lets a write to a closed stdout fail rather than kill it.
-func endOnSignals(ending: Ending) -> [DispatchSourceSignal] {
+func endOnSignals(termination: HelperTermination) -> [DispatchSourceSignal] {
     signal(SIGPIPE, SIG_IGN)
     return [SIGTERM, SIGINT].map { code in
         signal(code, SIG_IGN)
         let source = DispatchSource.makeSignalSource(signal: code, queue: .global())
-        source.setEventHandler { ending.end(nil) }
+        source.setEventHandler { termination.end(nil) }
         source.resume()
         return source
     }
@@ -615,9 +615,9 @@ func findCaptureDevice(_ arguments: Arguments) throws -> (device: AVCaptureDevic
     }
 }
 
-/// Starts a capture session that passes [device]'s frames to [pipeline], and has [ending] stop it
+/// Starts a capture session that passes [device]'s frames to [pipeline], and has [termination] stop it
 /// and end the helper when the session fails or the device goes away.
-func startCaptureSession(of device: AVCaptureDevice, matchedBy: String, into pipeline: FramePipeline, ending: Ending) throws {
+func startCaptureSession(of device: AVCaptureDevice, matchedBy: String, into pipeline: FramePipeline, termination: HelperTermination) throws {
     let input: AVCaptureDeviceInput
     do {
         input = try AVCaptureDeviceInput(device: device)
@@ -640,19 +640,19 @@ func startCaptureSession(of device: AVCaptureDevice, matchedBy: String, into pip
     session.addInput(input)
     session.addOutput(output)
     session.commitConfiguration()
-    ending.session = session
+    termination.session = session
 
     NotificationCenter.default.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: session, queue: nil) { notification in
         let error = notification.userInfo?[AVCaptureSessionErrorKey] as? NSError
-        ending.end(HelperFailure(.captureFailed, "the capture session failed: \(error?.localizedDescription ?? "unknown error")"))
+        termination.end(HelperFailure(.captureFailed, "the capture session failed: \(error?.localizedDescription ?? "unknown error")"))
     }
     NotificationCenter.default.addObserver(forName: AVCaptureDevice.wasDisconnectedNotification, object: device, queue: nil) { _ in
-        ending.end(HelperFailure(.deviceNotFound, "the iPhone was disconnected"))
+        termination.end(HelperFailure(.deviceNotFound, "the iPhone was disconnected"))
     }
     DispatchQueue.global().async {
         session.startRunning()
         guard session.isRunning else {
-            ending.end(HelperFailure(.captureFailed, "the capture session did not start"))
+            termination.end(HelperFailure(.captureFailed, "the capture session did not start"))
             return
         }
         reportEvent(["event": "started", "uniqueId": device.uniqueID, "name": device.localizedName, "matchedBy": matchedBy])
@@ -674,7 +674,7 @@ func printDryRun(_ arguments: Arguments) {
 }
 
 @main
-enum IphoneScreenCapture {
+enum IphoneCaptureHelper {
     static func main() {
         let arguments: Arguments
         do {
@@ -695,19 +695,19 @@ enum IphoneScreenCapture {
         }
 
         let output = StreamOutput()
-        let ending = Ending(output: output)
-        let signalSources = endOnSignals(ending: ending)
-        let pipeline = FramePipeline(writer: AccessUnitWriter(output: output, onReaderGone: { ending.end(nil) }))
-        readCommands(ending: ending, onKeyFrameAsked: pipeline.askForKeyFrame)
+        let termination = HelperTermination(output: output)
+        let signalSources = endOnSignals(termination: termination)
+        let pipeline = FramePipeline(writer: AccessUnitWriter(output: output, onReaderGone: { termination.end(nil) }))
+        readCommands(termination: termination, onKeyFrameAsked: pipeline.askForKeyFrame)
         do {
             // Camera access comes first: the screen capture devices, once allowed, switch the
             // iPhone's USB connection over, which is not worth doing for a capture that cannot run.
             try requireCameraAccess()
             try allowScreenCaptureDevices()
             let (device, matchedBy) = try findCaptureDevice(arguments)
-            try startCaptureSession(of: device, matchedBy: matchedBy, into: pipeline, ending: ending)
+            try startCaptureSession(of: device, matchedBy: matchedBy, into: pipeline, termination: termination)
         } catch {
-            ending.end(error as? HelperFailure ?? HelperFailure(.captureFailed, "\(error)"))
+            termination.end(error as? HelperFailure ?? HelperFailure(.captureFailed, "\(error)"))
         }
         withExtendedLifetime(signalSources) { RunLoop.main.run() }
     }

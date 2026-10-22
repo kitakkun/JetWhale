@@ -15,7 +15,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
-class IphoneCaptureHelperBuildsTest {
+class IphoneCaptureHelperBuildCacheTest {
     private val buildsDirectory: File = Files.createTempDirectory("mirror-iphone-capture-builds").toFile()
     private val commands = mutableListOf<List<String>>()
     private var compilerVersion = "Apple Swift version 6.4 (swiftlang-6.4.0.34.1)"
@@ -29,10 +29,10 @@ class IphoneCaptureHelperBuildsTest {
 
     @Test
     fun `the helper is compiled once for a compiler and a source, then found`() = runBlocking {
-        val builds = builds(source = "first")
+        val buildCache =buildCache(source = "first")
 
-        val built = builds.findOrBuildHelperExecutable()
-        val found = builds.findOrBuildHelperExecutable()
+        val built = buildCache.findOrBuildHelperExecutable()
+        val found = buildCache.findOrBuildHelperExecutable()
 
         assertEquals(built, found)
         assertTrue(found.canExecute())
@@ -41,7 +41,7 @@ class IphoneCaptureHelperBuildsTest {
 
     @Test
     fun `the helper is compiled as a library with an entry point, optimized, in Swift 5 mode`() = runBlocking {
-        val executable = builds(source = "first").findOrBuildHelperExecutable()
+        val executable = buildCache(source = "first").findOrBuildHelperExecutable()
 
         val compileCommand = commands.single(::isCompileCommand)
         assertEquals(listOf("/usr/bin/xcrun", "swiftc", "-O", "-parse-as-library", "-swift-version", "5", "-o"), compileCommand.take(7))
@@ -51,10 +51,10 @@ class IphoneCaptureHelperBuildsTest {
 
     @Test
     fun `a new compiler compiles the helper again and deletes the old compiler's build`() = runBlocking {
-        val old = builds(source = "first").findOrBuildHelperExecutable()
+        val old = buildCache(source = "first").findOrBuildHelperExecutable()
 
         compilerVersion = "Apple Swift version 6.5 (swiftlang-6.5.0.1.1)"
-        val new = builds(source = "first").findOrBuildHelperExecutable()
+        val new = buildCache(source = "first").findOrBuildHelperExecutable()
 
         assertTrue(new.canExecute())
         assertFalse(old.parentFile.exists())
@@ -62,13 +62,13 @@ class IphoneCaptureHelperBuildsTest {
 
     @Test
     fun `another source's build is kept until it has gone unused for its lifetime`() = runBlocking {
-        val other = builds(source = "first").findOrBuildHelperExecutable()
+        val other = buildCache(source = "first").findOrBuildHelperExecutable()
 
-        builds(source = "second").findOrBuildHelperExecutable()
+        buildCache(source = "second").findOrBuildHelperExecutable()
         assertTrue(other.canExecute())
 
         now = now.plusSeconds(31.days.inWholeSeconds)
-        builds(source = "third").findOrBuildHelperExecutable()
+        buildCache(source = "third").findOrBuildHelperExecutable()
         assertFalse(other.parentFile.exists())
     }
 
@@ -76,7 +76,7 @@ class IphoneCaptureHelperBuildsTest {
     fun `a failed compile says what the compiler printed and leaves no build behind`() = runBlocking {
         compileFails = true
 
-        val failure = assertFailsWith<DeviceControlException> { builds(source = "first").findOrBuildHelperExecutable() }
+        val failure = assertFailsWith<DeviceControlException> { buildCache(source = "first").findOrBuildHelperExecutable() }
 
         assertContains(failure.message.orEmpty(), "error: cannot find 'AVCaptureDevice' in scope")
         assertEquals(emptyList(), buildsDirectory.listFiles().orEmpty().toList())
@@ -84,25 +84,25 @@ class IphoneCaptureHelperBuildsTest {
 
     @Test
     fun `a build whose executable is gone is compiled again`() = runBlocking {
-        val executable = builds(source = "first").findOrBuildHelperExecutable()
+        val executable = buildCache(source = "first").findOrBuildHelperExecutable()
         executable.delete()
 
-        assertTrue(builds(source = "first").findOrBuildHelperExecutable().canExecute())
+        assertTrue(buildCache(source = "first").findOrBuildHelperExecutable().canExecute())
         assertEquals(2, commands.count(::isCompileCommand))
     }
 
     @Test
     fun `without a working Swift compiler the failure says so`() = runBlocking {
-        val builds = IphoneCaptureHelperBuilds(buildsDirectory, "first".toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC)) {
+        val buildCache =IphoneCaptureHelperBuildCache(buildsDirectory, "first".toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC)) {
             CommandResult(exitCode = 1, stdout = ByteArray(0), stderr = "xcrun: error: invalid active developer path")
         }
 
-        val failure = assertFailsWith<DeviceControlException> { builds.findOrBuildHelperExecutable() }
+        val failure = assertFailsWith<DeviceControlException> { buildCache.findOrBuildHelperExecutable() }
 
         assertContains(failure.message.orEmpty(), "invalid active developer path")
     }
 
-    private fun builds(source: String) = IphoneCaptureHelperBuilds(buildsDirectory, source.toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC), runCommand = ::runFakeCommand)
+    private fun buildCache(source: String) = IphoneCaptureHelperBuildCache(buildsDirectory, source.toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC), runCommand = ::runFakeCommand)
 
     /** Stands in for swiftc: prints [compilerVersion], or writes the executable it is asked for. */
     private fun runFakeCommand(command: List<String>): CommandResult {

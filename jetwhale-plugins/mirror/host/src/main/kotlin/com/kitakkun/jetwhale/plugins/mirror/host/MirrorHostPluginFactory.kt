@@ -79,14 +79,14 @@ internal class WellKnownToolDirectories(private val homeDirectory: File) {
 private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
 
 /**
- * How long an iPhone's screen capture outlives its last reader. Starting one takes seconds and
+ * How long an iPhone's screen capture outlives its last user. Starting one takes seconds and
  * drops iproxy's connection to the iPhone, so switching back soon reuses it; meanwhile the iPhone
  * shows the 9:41 status bar and plays its sound through this Mac.
  */
-private val IPHONE_CAPTURE_IDLE_TIMEOUT = 30.seconds
+private val IPHONE_SCREEN_CAPTURE_IDLE_TIMEOUT = 30.seconds
 
 /** How long a failed capture of an iPhone answers for it, so callers one after the other wait for the iPhone once. */
-private val IPHONE_CAPTURE_FAILURE_REUSE_PERIOD = 5.seconds
+private val IPHONE_SCREEN_CAPTURE_FAILURE_RETENTION_PERIOD = 5.seconds
 
 /** Builds of the iPhone capture helper not run for this long are deleted by the next build. */
 private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
@@ -98,20 +98,20 @@ private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
  */
 private val HELPER_BUILD_COMMAND_TIMEOUT = 5.minutes
 
-private val iphoneScreenCaptures: Deferred<IphoneScreenCaptures?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+private val iphoneScreenCapturePool: Deferred<IphoneScreenCapturePool?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
     val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
-    val builds = IphoneCaptureHelperBuilds(
+    val helperBuildCache = IphoneCaptureHelperBuildCache(
         buildsDirectory = File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/iphone-capture"),
         source = readIphoneCaptureHelperSource(),
         xcrunPath = xcrunPath,
         unusedBuildLifetime = UNUSED_HELPER_BUILD_LIFETIME,
         clock = Clock.systemUTC(),
     ) { command -> runCommand(HELPER_BUILD_COMMAND_TIMEOUT, *command.toTypedArray()) }
-    val helperExecutable = toolLocationScope.async(start = CoroutineStart.LAZY) { builds.findOrBuildHelperExecutable() }
-    IphoneScreenCaptures(
+    val helperExecutable = toolLocationScope.async(start = CoroutineStart.LAZY) { helperBuildCache.findOrBuildHelperExecutable() }
+    IphoneScreenCapturePool(
         processLauncher = SystemProcessLauncher,
-        idleTimeout = IPHONE_CAPTURE_IDLE_TIMEOUT,
-        failureReusePeriod = IPHONE_CAPTURE_FAILURE_REUSE_PERIOD,
+        idleTimeout = IPHONE_SCREEN_CAPTURE_IDLE_TIMEOUT,
+        failureRetentionPeriod = IPHONE_SCREEN_CAPTURE_FAILURE_RETENTION_PERIOD,
         timeSource = TimeSource.Monotonic,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         helperExecutable = helperExecutable,
@@ -153,7 +153,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, iphoneScreenCaptures, xcTestRunners, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool,xcTestRunners, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
@@ -169,7 +169,7 @@ private class MirrorHostPlugin :
                 mirror.dispose()
             } finally {
                 // await() would start the lazy Deferred, locating the tools only to stop nothing.
-                if (liveInstances.decrementAndGet() == 0 && iphoneScreenCaptures.isCompleted) iphoneScreenCaptures.await()?.stopAll()
+                if (liveInstances.decrementAndGet() == 0 && iphoneScreenCapturePool.isCompleted) iphoneScreenCapturePool.await()?.stopAll()
             }
         }
     }
