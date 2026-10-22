@@ -29,7 +29,7 @@ class IphoneCaptureHelperBuildCacheTest {
 
     @Test
     fun `the helper is compiled once for a compiler and a source, then found`() = runBlocking {
-        val buildCache =buildCache(source = "first")
+        val buildCache = buildCache(source = "first")
 
         val built = buildCache.findOrBuildHelperExecutable()
         val found = buildCache.findOrBuildHelperExecutable()
@@ -93,7 +93,7 @@ class IphoneCaptureHelperBuildCacheTest {
 
     @Test
     fun `without a working Swift compiler the failure says so`() = runBlocking {
-        val buildCache =IphoneCaptureHelperBuildCache(buildsDirectory, "first".toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC)) {
+        val buildCache = IphoneCaptureHelperBuildCache(buildsDirectory, "first".toByteArray(), "/usr/bin/xcrun", unusedBuildLifetime = 30.days, clock = Clock.fixed(now, ZoneOffset.UTC)) {
             CommandResult(exitCode = 1, stdout = ByteArray(0), stderr = "xcrun: error: invalid active developer path")
         }
 
