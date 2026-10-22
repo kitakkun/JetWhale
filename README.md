@@ -96,6 +96,9 @@ app and register it in `startJetWhale { }`:
   the app's debug menu as typed actions the host and AI agents can run
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Soil Inspector](https://kitakkun.github.io/JetWhale/guide/soil-inspector)** — the app's
+  [Soil](https://github.com/soil-kt/soil) queries, mutations and subscriptions with their state and
+  values, and invalidating, resuming or removing cached entries
 - **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* — the
   live screens of Android devices and emulators, iOS simulators and iPhones, one at a time or in a
   grid, with screenshots and recordings per device; Android devices and simulators also take input.
