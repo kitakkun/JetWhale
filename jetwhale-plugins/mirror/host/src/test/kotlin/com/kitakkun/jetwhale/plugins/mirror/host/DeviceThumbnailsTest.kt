@@ -285,8 +285,6 @@ private class FakeScreen(private val gate: CompletableDeferred<Unit>? = null) : 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
-
-    override suspend fun release() = Unit
 }
 
 /** [screen], except that its first capture runs a command that outlasts its time limit. */

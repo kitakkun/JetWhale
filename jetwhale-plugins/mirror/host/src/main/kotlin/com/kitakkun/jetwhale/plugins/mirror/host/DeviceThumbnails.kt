@@ -53,9 +53,9 @@ internal sealed interface ThumbnailState {
  *
  * A tile runs [keepFresh] for as long as it is composed, so only visible devices are captured and
  * leaving the grid stops all of it. Captures go through the device's ordinary screenshot path, not
- * the single-device mirror's stream; for a physical iOS device that path opens a short stream of its
- * own, since idb cannot screenshot one. At most
- * [maxConcurrentCaptures] run at once across all devices, and each device has at most one.
+ * the single-device mirror's stream; for a physical iOS device that path reads a key frame from the
+ * capture of its screen. At most [maxConcurrentCaptures] run at once across all devices, and each
+ * device has at most one.
  *
  * A tile may still be drawing the previous image when a new one arrives, so each device keeps its
  * current and previous image, and an image is closed only once two newer ones have replaced it.

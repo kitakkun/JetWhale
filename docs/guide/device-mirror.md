@@ -32,7 +32,7 @@ missing, the device list says which one and what it would enable.
 |-----------|----------|
 | Android emulators and devices | `adb` from the Android SDK platform-tools |
 | iOS simulators (macOS) | Xcode alone: `simctl` for screenshots and recordings, and an XCTest runner for live video and input — see [Input on iOS](#input-on-ios) |
-| iPhones and iPads connected by USB (macOS) | Xcode, which lists them; [idb](https://fbidb.io) for live video, screenshots and recordings: `brew install facebook/fb/idb`, which installs the command-line client and its companion; for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
+| iPhones and iPads connected by USB (macOS) | Xcode alone for live video, screenshots and recordings, with the iPhone set up as in [iPhones over USB](#iphones-over-usb); for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
@@ -41,9 +41,30 @@ iPhone cannot be mirrored. iOS simulators, and Android emulators that expose the
 stream, need no ffmpeg; an emulator without that stream is decoded like a device, and so is a
 foldable emulator folded through `adb shell cmd device_state state`.
 
-idb is needed only for an iPhone's video, screenshots and recordings, and the device list asks for
-it only once an iPhone is connected. The plugin starts an `idb_companion` for each iPhone it uses,
-and ends it three minutes after its last use, when the iPhone goes away, and when the host quits.
+### iPhones over USB
+
+The plugin reads a physical iPhone's screen the way QuickTime Player does: macOS offers the screen of
+an iPhone connected by USB as a camera. For its live view, screenshots and recordings, the iPhone
+must be:
+
+- **Connected by a cable.** An iPhone paired only over Wi-Fi is not listed.
+- **Trusting this Mac.** Answer **Trust** on the iPhone when you first connect it.
+- **Unlocked**, with its screen on.
+
+The first time you open an iPhone, the plugin builds a small capture helper with Xcode's Swift
+compiler, which takes a few seconds and happens again only when Xcode or the helper changes. macOS
+then asks whether **JetWhale Debugger** may access the camera; allow it. You can change the answer
+later in **System Settings → Privacy & Security → Camera**. When the host runs from a terminal or an
+IDE, macOS asks on behalf of that app instead. If the mirror says that macOS stopped the capture
+helper, reinstall JetWhale Debugger from the latest release: an older install does not declare that
+it uses the camera, so macOS cannot ask.
+
+While the plugin reads its screen, the iPhone shows a 9:41 status bar and plays its sound on this
+Mac, as it does for QuickTime Player. Both return to normal about 30 seconds after nothing shows the
+iPhone any more.
+
+Input needs more: a development team, `iproxy` and Developer Mode — see
+[Input on a physical iPhone](#input-on-a-physical-iphone).
 
 ### How the tools are found
 
@@ -54,12 +75,8 @@ macOS and Linux the plugin looks for each tool in these places, in order:
 2. The host's own `PATH`.
 3. The directories these tools are usually installed in, whether or not a `PATH` lists them:
    - `/opt/homebrew/bin` and `/usr/local/bin`, Homebrew's on Apple silicon and on Intel Macs:
-     `idb_companion`, `ffmpeg`, `iproxy` from libimobiledevice, and adb from the
-     `android-platform-tools` cask
-   - `~/.local/bin`, where pipx and `uv tool install` put idb's client
-   - `~/Library/Python/<version>/bin`, newest Python first, where `pip3 install fb-idb` puts it when
-     it cannot write to its Python's own directories, as with the Python that comes with Xcode
-   - `~/.pyenv/shims`, where it lands when pip runs under a pyenv Python
+     `ffmpeg`, `iproxy` from libimobiledevice, and adb from the `android-platform-tools` cask
+   - `~/.local/bin`, where you can link a tool that only your login shell finds, as shown below
 4. The `PATH` your login shell sets up, only when a tool is still missing after these.
 
 On Windows an app gets your `PATH` however it is started, so the plugin uses it as it is.
@@ -73,20 +90,19 @@ within 5 seconds, exits with an error or prints no `PATH`, the plugin goes on wi
 before.
 
 The tools the plugin starts get the directories it searched as their `PATH`, so a tool that looks
-for others on `PATH` finds them too: a pyenv or asdf shim finds the program it stands for, and idb
-finds `idb_companion`.
+for others on `PATH` finds them too, as an asdf shim finds the program it stands for.
 
 If your startup files live in a folder macOS protects, such as Documents, Desktop or iCloud Drive —
 for example when `.zshrc` is a link to a file kept in Documents — macOS asks whether JetWhale
 Debugger may access that folder when the shell starts. The shell waits for the answer, so an answer
 given after 5 seconds takes effect from the next run of the host. If you choose **Don't Allow**, the
-shell cannot read those files, and the tools they put on `PATH`, through pyenv or asdf for example,
-are not found. Either make the tool reachable from one of the directories in step 3, for example by
+shell cannot read those files, and the tools they put on `PATH`, through asdf for example, are not
+found. Either make the tool reachable from one of the directories in step 3, for example by
 linking it in a terminal:
 
 ```shell
 mkdir -p ~/.local/bin
-ln -s "$(command -v idb)" ~/.local/bin/idb
+ln -s "$(command -v ffmpeg)" ~/.local/bin/ffmpeg
 ```
 
 or allow the access later under **System Settings → Privacy & Security → Files & Folders**. Then
@@ -249,12 +265,11 @@ An agent can read a returned path to look at the capture.
 
 - **Input on a physical iPhone is experimental** and needs a development team, `iproxy` and the
   iPhone settings in [Input on a physical iPhone](#input-on-a-physical-iphone). Without them it is
-  view-only, and MCP refuses input with the reason. Screenshots and recordings, taken from its video
-  stream, work either way, and need ffmpeg.
-- **If an iPhone stays black**, unlock it and keep its screen on; allow **Camera** access for the app
-  that runs JetWhale (the host, or the terminal or IDE that launched it) in **System Settings →
-  Privacy & Security → Camera**, since macOS delivers a USB device's screen as a camera; and check
-  that it is connected by USB and trusts this Mac. The mirror lists the same hints.
+  view-only, and MCP refuses input with the reason. Screenshots and recordings, taken from the
+  capture of its screen, work either way, and need ffmpeg.
+- **If an iPhone stays black**, unlock it and keep its screen on, and check that it is connected by
+  USB and trusts this Mac; the mirror lists the same hints. A missing Camera permission is reported
+  as such: see [iPhones over USB](#iphones-over-usb).
 - **A simulator's volume buttons** are shown disabled: XCTest cannot press them on a simulator.
 - **Android stops a recording on its own after 180 seconds.**
 - **On Android, text with a line break is refused**; type each line separately.

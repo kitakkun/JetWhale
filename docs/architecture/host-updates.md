@@ -490,7 +490,10 @@ Updates section is hidden (`LocalEmbeddedInIde`), and no banner shows.
 - The host runs in the app's own process, `com.kitakkun.jetwhale.host`, with the bundle's name and
   icon, its Dock tile and its menu bar, so a pinned JetWhale Debugger tile is the running host's.
   No separate executable is signed or approved, and what macOS grants the app, such as Local
-  Network access for the host's mDNS advertising, applies to every host version.
+  Network access for the host's mDNS advertising, applies to every host version. That includes
+  Camera access, which macOS charges to the app when Device Mirror's helper reads a USB iPhone's
+  screen; the bundle declares `NSCameraUsageDescription` for it, since macOS stops a process that
+  asks on behalf of an app without one.
 - Since macOS 14, an app that is not active may not be allowed to bring its window forward on its
   own. On a bring-to-front request the host restores its window if it is minimized and calls
   `toFront`, `requestFocus` and, where the platform supports it, `Desktop.requestForeground(true)`

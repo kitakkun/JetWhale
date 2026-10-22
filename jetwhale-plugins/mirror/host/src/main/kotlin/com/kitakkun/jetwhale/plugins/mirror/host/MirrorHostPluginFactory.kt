@@ -17,10 +17,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.time.Clock
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -63,45 +66,56 @@ private val toolPaths: Deferred<MirrorToolPaths> = toolLocationScope.async(start
 /**
  * The directories this plugin's tools are commonly installed in on macOS and Linux, for the user
  * whose home is [homeDirectory], searched whether or not a PATH lists them:
- * - Homebrew's, where it links idb_companion, ffmpeg, libimobiledevice's iproxy and the adb of its
+ * - Homebrew's, where it links ffmpeg, libimobiledevice's iproxy and the adb of its
  *   android-platform-tools cask: `/opt/homebrew` on Apple silicon, `/usr/local` on Intel Macs;
- * - `~/.local/bin`, where pipx and uv install idb's client;
- * - pip's per-user directories on macOS, newest Python first, where `pip3 install fb-idb` puts idb
- *   when it cannot write to the Python it runs under, as with Xcode's;
- * - pyenv's shims, where idb lands when pip runs under a pyenv Python.
+ * - `~/.local/bin`, the user's own, where the guide has a tool linked that only the login shell's
+ *   PATH reaches.
  */
 @VisibleForTesting
 internal class WellKnownToolDirectories(private val homeDirectory: File) {
-    fun list(): List<String> {
-        val pipUserDirectories = File(homeDirectory, "Library/Python").listFiles(File::isDirectory).orEmpty()
-            .sortedWith(compareByDescending<File> { it.name.substringBefore('.').toIntOrNull() }.thenByDescending { it.name.substringAfter('.').toIntOrNull() })
-            .map { File(it, "bin").path }
-        return listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path) + pipUserDirectories + File(homeDirectory, ".pyenv/shims").path
-    }
+    fun list(): List<String> = listOf("/opt/homebrew/bin", "/usr/local/bin", File(homeDirectory, ".local/bin").path)
 }
 
 private val ffmpegPath: Deferred<String?> = toolLocationScope.async(start = CoroutineStart.LAZY) { toolPaths.await().ffmpegPath }
 
-/** How long a device's idb companion outlives its last user, so switching back to it is instant. */
-private val COMPANION_IDLE_TIMEOUT = 3.minutes
+/**
+ * How long an iPhone's screen capture outlives its last user. Starting one takes seconds and
+ * drops iproxy's connection to the iPhone, so switching back soon reuses it; meanwhile the iPhone
+ * shows the 9:41 status bar and plays its sound through this Mac.
+ */
+private val IPHONE_SCREEN_CAPTURE_IDLE_TIMEOUT = 30.seconds
 
-// A host-only plugin gets an instance per debug session, but a device has one screen: the instances
-// share the companions, so two of them watching one iPhone start one companion.
-private val companions: Deferred<IdbCompanions?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
-    val located = toolPaths.await()
-    val idbPath = located.idbPath ?: return@async null
-    val idbCompanionPath = located.idbCompanionPath ?: return@async null
-    IdbCompanions(
-        idbCompanionPath = idbCompanionPath,
-        idbPath = idbPath,
-        launcher = SystemProcessLauncher,
-        commands = { command -> runCommandChecked(IDB_COMMAND_TIMEOUT, *command.toTypedArray()) },
-        ports = LocalPorts,
-        idleTimeout = COMPANION_IDLE_TIMEOUT,
+/** How long a failed capture of an iPhone answers for it, so callers one after the other wait for the iPhone once. */
+private val IPHONE_SCREEN_CAPTURE_FAILURE_RETENTION_PERIOD = 5.seconds
+
+/** Builds of the iPhone capture helper not run for this long are deleted by the next build. */
+private val UNUSED_HELPER_BUILD_LIFETIME = 30.days
+
+/**
+ * How long a command that builds the iPhone capture helper may take. A build takes a few seconds, but
+ * a failed one is remembered until the host restarts, so a slow Mac gets as long as the XCTest
+ * runner's builds do.
+ */
+private val HELPER_BUILD_COMMAND_TIMEOUT = 5.minutes
+
+private val iphoneScreenCapturePool: Deferred<IphoneScreenCapturePool?> = toolLocationScope.async(start = CoroutineStart.LAZY) {
+    val xcrunPath = toolPaths.await().xcrunPath ?: return@async null
+    val helperBuildCache = IphoneCaptureHelperBuildCache(
+        buildsDirectory = File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/iphone-capture"),
+        source = readIphoneCaptureHelperSource(),
+        xcrunPath = xcrunPath,
+        unusedBuildLifetime = UNUSED_HELPER_BUILD_LIFETIME,
+        clock = Clock.systemUTC(),
+    ) { command -> runCommand(HELPER_BUILD_COMMAND_TIMEOUT, *command.toTypedArray()) }
+    val helperExecutable = toolLocationScope.async(start = CoroutineStart.LAZY) { helperBuildCache.findOrBuildHelperExecutable() }
+    IphoneScreenCapturePool(
+        processLauncher = SystemProcessLauncher,
+        idleTimeout = IPHONE_SCREEN_CAPTURE_IDLE_TIMEOUT,
+        failureRetentionPeriod = IPHONE_SCREEN_CAPTURE_FAILURE_RETENTION_PERIOD,
+        timeSource = TimeSource.Monotonic,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-    ).also { shared ->
-        Runtime.getRuntime().addShutdownHook(Thread(shared::destroyAllNow))
-    }
+        helperExecutable = helperExecutable,
+    )
 }
 
 /** The team the runners sign with for iPhones; every Mirror instance in this host shows the same one. */
@@ -139,7 +153,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, companions, xcTestRunners, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool, xcTestRunners, emulatorScreens),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,
@@ -154,9 +168,8 @@ private class MirrorHostPlugin :
             try {
                 mirror.dispose()
             } finally {
-                // await() starts a lazy Deferred, so awaiting companions that no look has asked for
-                // would locate the tools only to release nothing.
-                if (liveInstances.decrementAndGet() == 0 && companions.isCompleted) companions.await()?.releaseAll()
+                // await() would start the lazy Deferred, locating the tools only to stop nothing.
+                if (liveInstances.decrementAndGet() == 0 && iphoneScreenCapturePool.isCompleted) iphoneScreenCapturePool.await()?.stopAll()
             }
         }
     }
