@@ -50,6 +50,9 @@ fun PluginSettingsScreenRoot(page: SettingsScreenPage) {
                 onApproveUntrustedJar = { path ->
                     screenChannel.send(PluginSettingsScreenAction.UntrustedJarApproved(path))
                 },
+                onRemovePluginVersion = { jarPath ->
+                    screenChannel.send(PluginSettingsScreenAction.RemovePluginVersion(jarPath))
+                },
                 onClickInstallFromMaven = {
                     showMavenDialog = true
                 },

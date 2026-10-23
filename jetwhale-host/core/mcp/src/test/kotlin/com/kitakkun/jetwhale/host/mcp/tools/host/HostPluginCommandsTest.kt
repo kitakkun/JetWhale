@@ -52,6 +52,7 @@ class HostPluginCommandsTest {
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { this@mock.loadedPlugins } returns this@HostPluginCommandsTest.loadedPlugins
+        every { loadedPluginVersions } calls { this@HostPluginCommandsTest.loadedPlugins.mapValues { (_, plugin) -> listOf(plugin) } }
         every { failedJarsFlow } returns failedJars
     }
     private val enabledPluginsRepository = mock<EnabledPluginsRepository>(MockMode.autoUnit) {
@@ -136,7 +137,7 @@ class HostPluginCommandsTest {
     fun `setPluginEnabled reports a session that becomes ready while the flag is being written`() = runTest {
         val events = MutableSharedFlow<PluginInstanceEvent>()
         val readyWhileWriting = mock<EnabledPluginsRepository> {
-            everySuspend { setPluginEnabled(any(), any()) } calls { events.emit(PluginInstanceEvent.Ready("com.example.local", "host")) }
+            everySuspend { setPluginEnabled(any(), any()) } calls { events.emit(PluginInstanceEvent.Ready("com.example.local", "host", version = "1.0.0")) }
         }
         val command = SetPluginEnabledCommand(
             pluginFactoryRepository,
@@ -187,6 +188,7 @@ class HostPluginCommandsTest {
 }
 
 private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean) = LoadedHostPlugin(
+    jarPath = "/plugins/plugin.jar",
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = name,

@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDiscoveryAdvertiser
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
+import com.kitakkun.jetwhale.host.model.PluginStorageService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -65,6 +65,7 @@ class DefaultDebugWebSocketServerTest {
     private val enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(PLUGIN_ID))
     private val pluginFactoryRepository = SinglePluginFactoryRepository(
         LoadedHostPlugin(
+            jarPath = "/plugins/plugin.jar",
             manifest = JetWhaleHostPluginManifest(
                 pluginId = PLUGIN_ID,
                 pluginName = "Test",
@@ -79,7 +80,7 @@ class DefaultDebugWebSocketServerTest {
     private val pluginInstanceService = DefaultPluginInstanceService(
         pluginFactoryRepository = pluginFactoryRepository,
         frameSender = DefaultHostPluginFrameSender(ktorWebSocketServer),
-        pluginDataStoreRepository = mock<PluginDataStoreRepository> {
+        pluginStorageService = mock<PluginStorageService> {
             every { storageFor(any()) } returns mock()
         },
     )

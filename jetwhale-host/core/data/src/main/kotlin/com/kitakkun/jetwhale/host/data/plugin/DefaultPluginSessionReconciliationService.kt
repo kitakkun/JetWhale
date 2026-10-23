@@ -30,13 +30,12 @@ class DefaultPluginSessionReconciliationService(
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
-        sessions
-            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-            .map(DebugSession::id)
-            .toSet()
+    override fun agentVersionsByTargetSession(pluginId: String, sessions: List<DebugSession>): Map<String, String?> = if (requiresAgent(pluginId)) {
+        sessions.mapNotNull { session ->
+            session.installedPlugins.firstOrNull { it.pluginId == pluginId }?.let { advertised -> session.id to advertised.pluginVersion }
+        }.toMap()
     } else {
-        setOf(HostSession.ID)
+        mapOf(HostSession.ID to null)
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
@@ -47,13 +46,13 @@ class DefaultPluginSessionReconciliationService(
                 // Loading a plugin is a trigger of its own: the enabled set only grows, so
                 // installing a jar whose pluginId is already enabled changes neither flow above,
                 // and the plugin would never get an instance.
-                pluginFactoryRepository.loadedPluginsFlow,
+                pluginFactoryRepository.loadedPluginVersionsFlow,
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
-                            sessionIds = targetSessionIds(pluginId, activeSessions),
+                            agentVersionsBySession = agentVersionsByTargetSession(pluginId, activeSessions),
                         )
                         if (requiresAgent(pluginId) && activatedSessionIds.isNotEmpty()) {
                             send(PluginReconciliationEvent.Activated(pluginId, activatedSessionIds))

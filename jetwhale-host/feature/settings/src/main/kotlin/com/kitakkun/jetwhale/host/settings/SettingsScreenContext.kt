@@ -32,6 +32,7 @@ import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallJobsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.RemovePluginJarMutationKey
 import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
@@ -65,6 +66,7 @@ class SettingsPresenterContext(
     val cancelPluginInstallMutationKey: CancelPluginInstallMutationKey,
     val dismissPluginInstallMutationKey: DismissPluginInstallMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
+    val removePluginJarMutationKey: RemovePluginJarMutationKey,
     val signPluginTrustRegistryMutationKey: SignPluginTrustRegistryMutationKey,
     val followAiOperationMutationKey: FollowAiOperationMutationKey,
     val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
