@@ -122,6 +122,7 @@ class DefaultFollowAiOperationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                logViewerOpen = false,
             ),
         )
         val following = startFollowing()
@@ -139,6 +140,7 @@ class DefaultFollowAiOperationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                logViewerOpen = false,
             ),
         )
         val following = startFollowing()
@@ -155,6 +157,7 @@ class DefaultFollowAiOperationServiceTest {
             HostDestination(
                 kind = HostDestinationKind.HOME,
                 poppedOutPlugins = listOf(PoppedOutPlugin("plugin-1", "session-1")),
+                logViewerOpen = false,
             ),
         )
         val following = startFollowing()

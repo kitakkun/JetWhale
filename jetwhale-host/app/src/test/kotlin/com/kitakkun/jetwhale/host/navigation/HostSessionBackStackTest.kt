@@ -29,6 +29,24 @@ class HostSessionBackStackTest {
     }
 
     @Test
+    fun `switching apps moves the app plugin under the log viewer to the new app`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, appPlugin, LogViewerNavKey)
+
+        backStack.followPluginToSession(newSessionId = "app-2", isPluginAvailableOnNewSession = { true })
+
+        assertEquals(listOf(EmptyPluginNavKey, appPlugin.copy(sessionId = "app-2"), LogViewerNavKey), backStack.toList())
+    }
+
+    @Test
+    fun `switching to an app without the plugin under the log viewer closes only the plugin`() {
+        val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, appPlugin, LogViewerNavKey)
+
+        backStack.followPluginToSession(newSessionId = "app-2", isPluginAvailableOnNewSession = { false })
+
+        assertEquals(listOf(EmptyPluginNavKey, LogViewerNavKey), backStack.toList())
+    }
+
+    @Test
     fun `the server stopping removes the apps' screens and keeps the tools'`() {
         val toolPopout = PluginPopoutNavKey(pluginId = "com.example.device", sessionId = HostSession.ID, pluginName = "Device")
         val appPopout = PluginPopoutNavKey(pluginId = "com.example.network", sessionId = "app-1", pluginName = "Network")

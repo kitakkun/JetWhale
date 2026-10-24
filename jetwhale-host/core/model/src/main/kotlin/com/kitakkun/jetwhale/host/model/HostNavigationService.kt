@@ -51,13 +51,13 @@ enum class HostSettingsPage(val section: HostSettingsSection) {
 /** A tab of the MCP tools browser, named as the browser labels it. */
 enum class HostMcpToolsTab { TOOLS, HISTORY }
 
-enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, LICENSES, LOG_VIEWER, MCP_TOOLS }
+enum class HostDestinationKind { HOME, PLUGIN, DISABLED_PLUGIN, SETTINGS, INFO, LICENSES, MCP_TOOLS }
 
 data class PoppedOutPlugin(val pluginId: String, val sessionId: String)
 
 /**
- * What the main host window currently shows. Popped-out plugins live in their own windows and are
- * listed separately.
+ * What the main host window currently shows. Popped-out plugins and the log viewer live in windows
+ * of their own and are reported separately.
  *
  * [settingsPage] and [mcpToolsTab] are where that screen was opened; a page or tab picked inside it
  * afterwards is not tracked here.
@@ -69,6 +69,7 @@ data class HostDestination(
     val settingsPage: HostSettingsPage? = null,
     val mcpToolsTab: HostMcpToolsTab? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
+    val logViewerOpen: Boolean,
 )
 
 data class HostViewState(
