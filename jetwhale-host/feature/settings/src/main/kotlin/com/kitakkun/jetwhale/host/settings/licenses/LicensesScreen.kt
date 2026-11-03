@@ -67,7 +67,7 @@ fun LicensesScreen(
     onClickBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedLibrary by remember { mutableStateOf<Library?>(null) }
+    var shownLibrary by remember { mutableStateOf<Library?>(null) }
     JwSurface(
         modifier = modifier.fillMaxSize(LICENSES_DIALOG_WINDOW_FRACTION),
         color = JwTheme.colors.elevatedBackground,
@@ -92,8 +92,7 @@ fun LicensesScreen(
                     JwListItem(
                         text = library.name,
                         supportingText = library.artifactId,
-                        selected = library == selectedLibrary,
-                        onClick = { selectedLibrary = library },
+                        onClick = { shownLibrary = library },
                         trailingContent = {
                             library.licenses.forEach { license -> JwTag(text = license.spdxId ?: license.name) }
                         },
@@ -102,14 +101,14 @@ fun LicensesScreen(
             }
         }
     }
-    selectedLibrary?.let { library ->
+    shownLibrary?.let { library ->
         LibraryDetailDialog(
             name = library.name,
             version = library.artifactVersion.orEmpty(),
             description = library.description,
             website = library.website,
             licenses = library.licenses,
-            onDismissRequest = { selectedLibrary = null },
+            onDismissRequest = { shownLibrary = null },
         )
     }
 }

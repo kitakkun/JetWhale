@@ -1,9 +1,14 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
@@ -88,6 +93,23 @@ class DrawerPluginListTest {
     }
 
     @Test
+    fun `walking the plugins with the arrow keys passes the fold row without folding it`() = runComposeUiTest {
+        val explained = mutableListOf<String>()
+        showDrawer(
+            listOf(plugin("Network", PluginAvailability.Enabled), plugin("Recorder", PluginAvailability.Disabled)),
+            onClickInactivePlugin = { explained += it.name },
+        )
+
+        onNodeWithText("Network").performClick()
+        press(Key.DirectionDown)
+        onNodeWithText("1 disabled").assertIsFocused()
+        onNodeWithText("Recorder").assertExists()
+
+        press(Key.DirectionDown)
+        assertEquals(listOf("Recorder"), explained)
+    }
+
+    @Test
     fun `an app with no plugins says so instead of leaving the area blank`() = runComposeUiTest {
         showDrawer(listOf(plugin("Device Mirror", PluginAvailability.Enabled).copy(needsApp = false)))
 
@@ -101,6 +123,12 @@ class DrawerPluginListTest {
 
         onNodeWithText("1 not in this app").assertExists()
         onNodeWithText("This app has no plugins yet.").assertDoesNotExist()
+    }
+
+    private fun ComposeUiTest.press(key: Key) {
+        onNode(isFocused()).performKeyInput { pressKey(key) }
+        mainClock.advanceTimeByFrame()
+        waitForIdle()
     }
 
     private fun ComposeUiTest.showDrawer(

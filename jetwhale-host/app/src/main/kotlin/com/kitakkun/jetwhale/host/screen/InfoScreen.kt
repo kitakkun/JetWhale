@@ -83,7 +83,6 @@ fun InfoScreen(
         JwHorizontalDivider()
         JwListItem(
             text = stringResource(Res.string.oss_licenses),
-            selected = false,
             onClick = onClickOSSLicenses,
             trailingContent = {
                 JwIcon(

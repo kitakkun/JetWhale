@@ -46,6 +46,7 @@ dependencies {
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(libs.material3)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 }
 
 tasks.named("check") {
