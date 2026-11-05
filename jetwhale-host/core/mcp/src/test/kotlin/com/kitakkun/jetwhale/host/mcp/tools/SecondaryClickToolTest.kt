@@ -39,7 +39,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
 import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
@@ -285,11 +285,11 @@ class SecondaryClickToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        val sceneService = mock<PluginComposeSceneService> {
+        val pluginInstanceService = mock<PluginInstanceService> {
             everySuspend { getOrCreatePluginScene(any(), any()) } returns scene
         }
         val permissionsRepository = FakeMcpPermissionsRepository(permissions)
-        SecondaryClickMcpTool(sceneService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
+        SecondaryClickMcpTool(pluginInstanceService, permissionsRepository).register(McpToolRegistrar(server, FakeMcpActivityRepository(), permissionsRepository))
         val request = CallToolRequest(
             CallToolRequestParams(
                 name = "jetwhale.secondaryClick",

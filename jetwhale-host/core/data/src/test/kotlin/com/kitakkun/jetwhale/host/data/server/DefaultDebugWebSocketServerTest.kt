@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDiscoveryAdvertiser
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -82,6 +83,7 @@ class DefaultDebugWebSocketServerTest {
         pluginDataStoreRepository = mock<PluginDataStoreRepository> {
             every { storageFor(any()) } returns mock()
         },
+        pluginComposeSceneFactory = mock<PluginComposeSceneFactory>(),
     )
     private val server = DefaultDebugWebSocketServer(
         adbAutoPortMappingService = adbAutoPortMappingService,

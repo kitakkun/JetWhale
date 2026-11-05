@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginUiResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
@@ -22,7 +23,7 @@ import com.kitakkun.jetwhale.host.mcp.viewport.renderDiscardingPixels
 import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -38,7 +39,7 @@ import kotlinx.serialization.json.JsonObject
 @Inject
 @ContributesIntoSet(AppScope::class)
 class SecondaryClickMcpTool(
-    private val pluginComposeSceneService: PluginComposeSceneService,
+    private val pluginInstanceService: PluginInstanceService,
     private val mcpPermissionsRepository: McpPermissionsRepository,
 ) : JetWhaleMcpTool {
     /** Leaves out the nodes an agent may not see instead of writing them as null. */
@@ -76,7 +77,8 @@ class SecondaryClickMcpTool(
             val y = request.arguments?.get("y")?.jsonFloat
                 ?: return@addTool errorResult("Missing required argument: y")
 
-            val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+            val scene = pluginInstanceService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginUiResult(pluginId, sessionId)
             val outcome = withContext(Dispatchers.Main) {
                 ensureSceneRendered(scene)
                 dispatchSecondaryClick(scene, x, y)

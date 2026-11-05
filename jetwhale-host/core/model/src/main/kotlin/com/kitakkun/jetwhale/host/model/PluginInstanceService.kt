@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.model
 
+import androidx.compose.ui.InternalComposeUiApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -27,6 +29,23 @@ interface PluginInstanceService {
 
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
+
+    /**
+     * What the screen of [pluginId] in [sessionId] can show, following its instance as it starts,
+     * fails, is replaced or goes away. A UI instance's scene is created when it is first needed and
+     * closed when the instance goes, so no state ever carries the scene of an instance that is gone.
+     */
+    fun pluginScreenStateFlow(pluginId: String, sessionId: String): Flow<PluginScreenState>
+
+    /** The scene of [pluginId]'s instance in [sessionId], created on first use; null while no instance with a UI runs there. */
+    @OptIn(InternalComposeUiApi::class)
+    suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene?
+
+    /**
+     * Gives [pluginId]'s instances new scenes and closes the old ones, keeping the instances: an
+     * in-place reload has redefined the code their content runs.
+     */
+    fun recreatePluginScenes(pluginId: String)
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
 

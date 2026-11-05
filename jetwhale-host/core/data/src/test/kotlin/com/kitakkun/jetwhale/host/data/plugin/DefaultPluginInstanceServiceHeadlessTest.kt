@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneFactory
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -88,6 +89,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
         ),
         frameSender = frameSender,
         pluginDataStoreRepository = dataStoreRepository,
+        pluginComposeSceneFactory = mock<PluginComposeSceneFactory>(),
     )
 
     private class UiPlugin :
