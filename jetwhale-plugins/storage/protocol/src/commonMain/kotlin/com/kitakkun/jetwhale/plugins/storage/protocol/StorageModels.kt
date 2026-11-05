@@ -2,7 +2,10 @@ package com.kitakkun.jetwhale.plugins.storage.protocol
 
 import kotlinx.serialization.Serializable
 
-/** The most bytes one [ReadFile] returns; a larger request is truncated to this. */
+/**
+ * The most bytes one [ReadFile] returns, where a larger request is truncated to this, and the most
+ * one [WriteFileChunk] may carry, where a larger chunk is refused.
+ */
 const val MAX_FILE_READ_BYTES: Int = 1024 * 1024
 
 /**

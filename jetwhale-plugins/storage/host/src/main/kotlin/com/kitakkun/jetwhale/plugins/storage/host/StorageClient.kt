@@ -20,6 +20,9 @@ internal interface StorageClient {
 
     suspend fun delete(location: FileLocation): StorageOperationResult
 
+    /** Sends one chunk of an upload; see `WriteFileChunk` for how the agent assembles them. */
+    suspend fun writeFileChunk(location: FileLocation, uploadId: String, offset: Long, bytes: ByteArray, isLast: Boolean): StorageOperationResult
+
     suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement
 
     suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent

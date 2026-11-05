@@ -70,6 +70,28 @@ data class FileContent(
     val error: String?,
 )
 
+/**
+ * One chunk of a file written from the host, at most [MAX_FILE_READ_BYTES] long.
+ *
+ * The chunks of one upload share an [uploadId] and arrive in order. The agent collects them in a
+ * temporary file beside [path] and moves it over [path] only when the chunk marked [isLast]
+ * arrives, so the file at [path] is never seen half-written, and an upload that stops early leaves
+ * it as it was.
+ *
+ * @property uploadId Letters, digits and `-` only; names the temporary file.
+ * @property offset Where this chunk starts; it must equal the bytes received so far.
+ */
+@SerialName("storage/write_file_chunk")
+@Serializable
+data class WriteFileChunk(
+    val rootName: String,
+    val path: List<String>,
+    val uploadId: String,
+    val offset: Long,
+    val contentBase64: String,
+    val isLast: Boolean,
+) : JetWhaleRequest<StorageOperationResult>
+
 /** Deletes the file or directory (with everything in it) at [path]. The root itself cannot be deleted. */
 @SerialName("storage/delete_file_entry")
 @Serializable

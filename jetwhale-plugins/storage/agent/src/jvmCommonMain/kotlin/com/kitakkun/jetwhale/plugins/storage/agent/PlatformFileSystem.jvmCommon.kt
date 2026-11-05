@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 
@@ -34,10 +35,11 @@ internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
 internal expect fun createdEpochMillis(file: File): Long?
 
 /**
- * [file] as an absolute path with every symbolic link in it resolved. A path that cannot be
- * resolved, because it does not exist or a link in it loops or leads where the app may not look,
- * comes back in its canonical form instead; on Windows before JDK 24 that form can still go through
- * a link, so only a resolvable path's result shows where it really leads.
+ * [file] as an absolute path with every symbolic link in it resolved. A path that does not exist yet
+ * is resolved through the part of it that does, so a file about to be created shows where a link
+ * above it leads. A path that cannot be resolved, because a link in it loops or leads where the app
+ * may not look, comes back in its canonical form instead; on Windows before JDK 24 that form can
+ * still go through a link.
  */
 internal expect fun resolvedFile(file: File): File
 
@@ -55,6 +57,25 @@ internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): By
 
 internal actual fun fileSize(path: String): Long = File(path).length()
 
+internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean) {
+    FileOutputStream(path, append).use { it.write(bytes) }
+}
+
+internal actual fun moveReplacing(source: String, target: String) {
+    val targetFile = File(target)
+    if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
+    if (File(source).renameTo(targetFile)) return
+    // File.renameTo fails on Windows when the target exists, so there the target is moved aside
+    // first.
+    val backup = File("$source.replaced")
+    if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
+    if (!File(source).renameTo(targetFile)) {
+        if (!backup.renameTo(targetFile)) throw IOException("'$target' could not be replaced, and its previous content could not be put back; it is at '${backup.path}'")
+        throw IOException("'$target' could not be replaced")
+    }
+    backup.delete()
+}
+
 internal actual fun deleteRecursively(path: String) {
     val file = File(path)
     // exists() follows links, so a dangling link would read as missing.
@@ -63,6 +84,8 @@ internal actual fun deleteRecursively(path: String) {
 }
 
 internal actual fun isSymbolicLink(path: String): Boolean = File(path).isSymbolicLink()
+
+internal actual fun existsAsNonRegularFile(path: String): Boolean = File(path).let { it.exists() && !it.isFile }
 
 internal actual fun resolvesInside(path: String, root: String): Boolean {
     val resolvedRoot = resolvedFile(File(root))
@@ -83,5 +106,8 @@ private fun File.isSymbolicLinkIn(resolvedParent: File): Boolean {
     // Not Files.isSymbolicLink: java.nio.file arrives on Android only at API 26, and this code runs
     // down to API 23.
     val inResolvedParent = File(resolvedParent, name)
-    return resolvedFile(inResolvedParent) != inResolvedParent.absoluteFile
+    if (resolvedFile(inResolvedParent) != inResolvedParent.absoluteFile) return true
+    // A link to a missing target cannot be resolved and comes back as it is, and exists() follows
+    // the link, so a listed name that does not exist can only be such a link.
+    return !exists() && resolvedParent.list().orEmpty().contains(name)
 }

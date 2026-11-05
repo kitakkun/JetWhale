@@ -115,6 +115,17 @@ The preview shows a file's first 256 KB as:
 **Save** downloads the whole file, however large. **Delete** removes a file, or a directory with
 everything in it; a root itself cannot be deleted.
 
+**Upload…** on a directory sends a file from your machine into it, and **Replace…** on a file
+overwrites it with one of yours, asking first when a file is already there. The file is sent in 1 MB
+chunks and swapped in only once all of it has arrived, so the app never sees it half-written.
+
+::: warning Files the app keeps open
+A Preferences DataStore keeps its values in memory, and a SQLite database keeps its connection and
+`-wal` file open. Replacing such a file under a running app may not take effect — the app can keep
+serving what it read, or write it back over yours — and a database replaced beside a stale `-wal`
+can be corrupted. Restart the app after replacing one, or replace it while the app is stopped.
+:::
+
 ### Key-value stores
 
 The stores in a list, and the selected store's entries with their types. Select an entry and press
@@ -138,6 +149,7 @@ Each takes the `sessionId` of the app's session.
 | `com.kitakkun.jetwhale.storage.removeKeyValue` | Remove one entry from a store |
 | `com.kitakkun.jetwhale.storage.measureDirectory` | The total size, file count and directory count below a directory |
 | `com.kitakkun.jetwhale.storage.hashFile` | The SHA-256 of a whole file |
+| `com.kitakkun.jetwhale.storage.writeFile` | Create or replace a file, from text or Base64 |
 
 Paths are relative to a root, with `/` between segments:
 `readFile(root = "Data", path = "shared_prefs/settings.xml")`.

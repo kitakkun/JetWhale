@@ -2,15 +2,21 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
+import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import org.junit.Assume.assumeTrue
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class PlatformFileSystemTest {
     private val directory: File = Files.createTempDirectory("storage-agent-test").toFile()
@@ -130,6 +136,16 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a listing marks a symbolic link whose target is missing`() {
+        Files.createSymbolicLink(File(directory, "dangling").toPath(), File(directory, "missing.txt").toPath())
+
+        val entry = listDirectoryEntries(directory.path).single()
+
+        assertEquals("dangling", entry.name)
+        assertEquals(true, entry.isSymbolicLink)
+    }
+
+    @Test
     fun `a link that loops does not fail the listing of its directory`() {
         Files.createSymbolicLink(File(directory, "loop").toPath(), File("loop").toPath())
 
@@ -176,6 +192,134 @@ class PlatformFileSystemTest {
         File(directory, "notes.txt").writeText("hello")
 
         assertFailsWith<IOException> { listDirectoryEntries("${directory.path}/notes.txt") }
+    }
+
+    @Test
+    fun `an upload in chunks leaves the target untouched until the last chunk and then holds every byte`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        writeUploadChunk(staging.path, target.path, offset = 3, bytes = byteArrayOf(4, 5), isLast = false)
+        assertEquals("old", target.readText())
+
+        writeUploadChunk(staging.path, target.path, offset = 5, bytes = byteArrayOf(6), isLast = true)
+
+        assertContentEquals(byteArrayOf(1, 2, 3, 4, 5, 6), target.readBytes())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `a symbolic link planted at the staging path is refused and its target kept`() {
+        val linkTarget = File(directory, "other.bin").apply { writeText("keep") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        Files.createSymbolicLink(staging.toPath(), linkTarget.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        }
+
+        assertEquals("keep", linkTarget.readText())
+    }
+
+    @Test
+    fun `a dangling symbolic link planted at the staging path is refused without creating its target`() {
+        val outside = File(Files.createTempDirectory("storage-outside").toFile(), "planted.bin")
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        Files.createSymbolicLink(staging.toPath(), outside.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        }
+
+        assertFalse(outside.exists())
+    }
+
+    @Test
+    fun `a directory already at the staging path is refused and left as it was`() {
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1").apply { mkdir() }
+        File(staging, "keep.txt").writeText("keep")
+
+        assertFailsWith<IllegalArgumentException> {
+            writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+
+        assertEquals("keep", File(staging, "keep.txt").readText())
+    }
+
+    @Test
+    fun `a named pipe already at the staging path is refused without opening it`() {
+        assumeTrue("mkfifo exists only on Unix", !onWindows)
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        check(ProcessBuilder("mkfifo", staging.path).start().waitFor() == 0) { "mkfifo failed" }
+
+        // Opening a FIFO for writing blocks until a reader appears; the timeout turns a
+        // regression's hang into a failure.
+        val outcome = CompletableFuture.supplyAsync {
+            runCatching { writeUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true) }
+        }.get(10, TimeUnit.SECONDS)
+
+        assertIs<IllegalArgumentException>(outcome.exceptionOrNull())
+        assertTrue(staging.exists())
+    }
+
+    @Test
+    fun `a chunk at the wrong offset discards the upload and keeps the target`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+
+        assertFailsWith<IllegalArgumentException> {
+            writeUploadChunk(staging.path, target.path, offset = 7, bytes = byteArrayOf(4), isLast = true)
+        }
+
+        assertEquals("old", target.readText())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `a chunk over the size bound discards the upload and keeps the target`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        writeUploadChunk(staging.path, target.path, offset = 0, bytes = ByteArray(MAX_FILE_READ_BYTES), isLast = false)
+
+        assertFailsWith<IllegalArgumentException> {
+            writeUploadChunk(staging.path, target.path, offset = MAX_FILE_READ_BYTES.toLong(), bytes = ByteArray(MAX_FILE_READ_BYTES + 1), isLast = true)
+        }
+
+        assertEquals("old", target.readText())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `an upload into a missing directory fails without creating it`() {
+        val missing = File(directory, "missing")
+
+        assertFailsWith<IOException> {
+            writeUploadChunk("${missing.path}/.a.jetwhale-upload-1", "${missing.path}/a", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+        assertFalse(missing.exists())
+    }
+
+    @Test
+    fun `an upload never replaces a directory`() {
+        File(directory, "cache").mkdir()
+
+        assertFailsWith<IOException> {
+            writeUploadChunk("${directory.path}/.cache.jetwhale-upload-1", "${directory.path}/cache", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+        assertEquals(true, File(directory, "cache").isDirectory)
+    }
+
+    @Test
+    fun `an upload through a symbolic link that leads outside the root is refused`() {
+        val root = File(directory, "root").apply { mkdir() }
+        val outside = File(directory, "outside").apply { mkdir() }
+        Files.createSymbolicLink(File(root, "escape").toPath(), outside.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            FileRoot(name = "Root", path = root.path).uploadPaths(listOf("escape", "planted.txt"), uploadId = "1")
+        }
     }
 
     private fun createJunction(link: File, target: File) {
