@@ -36,6 +36,7 @@ import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableCellText
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
+import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
@@ -47,7 +48,7 @@ private val ListMinWidth = 240.dp
 private val DetailMinWidth = 280.dp
 
 /** Fits "DELETE" so the URL column starts at the same x on every row. */
-private val MethodColumnWidth = 44.dp
+private val MethodColumnWidth = 52.dp
 
 /** Fits a three-digit status so the method column lines up. */
 private val StatusTagWidth = 36.dp
@@ -60,6 +61,7 @@ internal fun TrafficTab(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
     splitPaneState: JwSplitPaneState,
+    columnState: JwTableColumnState,
     onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
@@ -113,6 +115,7 @@ internal fun TrafficTab(
                 TrafficList(
                     transactions = visible,
                     selectedTxId = selectedTxId,
+                    columnState = columnState,
                     onSelectTx = onSelectTx,
                 )
             },
@@ -130,6 +133,7 @@ internal fun TrafficTab(
 private fun TrafficList(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
+    columnState: JwTableColumnState,
     onSelectTx: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -152,6 +156,7 @@ private fun TrafficList(
         onClick = { onSelectTx(it.txId) },
         contextMenuItems = ::transactionContextMenuItems,
         state = listState,
+        columnState = columnState,
         modifier = modifier
             .fillMaxSize()
             .focusable()
@@ -195,7 +200,7 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
         listOf(
             JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
-                JwText(text = it.request.method, style = JwTheme.textStyles.label)
+                JwTableCellText(text = it.request.method, style = JwTheme.textStyles.label)
             },
             JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Scroll) {
                 Row(

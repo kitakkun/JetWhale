@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.jetwhalePlugin)
     alias(libs.plugins.jetwhaleHostLaunch)
     alias(libs.plugins.publish)
