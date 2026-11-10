@@ -30,7 +30,7 @@ import kotlin.time.Instant
 
 /**
  * [MirrorScreen] and [DeviceGrid] rather than the Root: the Root drives a live [DeviceMirror],
- * which needs adb or idb and a device. Each device shows [SampleAppScreenPainter]'s made-up app as
+ * which needs adb or Xcode and a device. Each device shows [SampleAppScreenPainter]'s made-up app as
  * its picture.
  */
 @OptIn(ExperimentalTestApi::class)

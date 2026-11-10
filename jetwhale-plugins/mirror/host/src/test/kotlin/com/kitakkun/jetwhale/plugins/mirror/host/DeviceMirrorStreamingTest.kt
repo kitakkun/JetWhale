@@ -41,7 +41,7 @@ class DeviceMirrorStreamingTest {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, idbPath = null, idbCompanionPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), companions = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
         developmentTeamSetting = emptyDevelopmentTeamSetting(),
         captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
@@ -377,8 +377,6 @@ private class ClosingStream : DeviceController {
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
-
-    override suspend fun release() = Unit
 }
 
 /** A simulator whose runner sends one whole image of its screen and then nothing, as a still screen does. */
@@ -424,8 +422,6 @@ private class WholeImagesSimulator : DeviceController {
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
-
-    override suspend fun release() = Unit
 }
 
 /** An emulator whose gRPC stream sends one frame and then nothing, as a still screen does. */
@@ -465,8 +461,6 @@ private class StillEmulator : DeviceController {
         writer.flush()
         return VideoStream.EmulatorRgba(frames = frames, cancel = writer::close)
     }
-
-    override suspend fun release() = Unit
 }
 
 /** An emulator that folds once its first stream is open, whose streams send nothing until closed. */
@@ -509,8 +503,6 @@ private class FoldingEmulator(private val stateNow: () -> MirrorState) : DeviceC
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
-
-    override suspend fun release() = Unit
 }
 
 /** [stream], completing [firstRead] once something reads from it. */
@@ -551,7 +543,8 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
-        return VideoStream.H264(HeldOpenProcess(sent), ffmpegPath)
+        val screenrecordProcess = HeldOpenProcess(sent)
+        return VideoStream.H264(screenrecordProcess.inputStream, ffmpegPath, screenrecordProcess::destroy)
     }
 
     override suspend fun screenSize(): IntSize = FOLDED_SCREEN
@@ -579,8 +572,6 @@ private class ScreenrecordDevice(private val ffmpegPath: String, private val sen
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
-
-    override suspend fun release() = Unit
 }
 
 /**
@@ -624,8 +615,6 @@ private class FlakyStreamDevice(private val stateNow: () -> MirrorState) : Devic
     override suspend fun pressButton(button: DeviceButton) = Unit
 
     override suspend fun inputText(text: String) = Unit
-
-    override suspend fun release() = Unit
 }
 
 /** A process that writes [output] and then keeps its stdout open until it is destroyed. */

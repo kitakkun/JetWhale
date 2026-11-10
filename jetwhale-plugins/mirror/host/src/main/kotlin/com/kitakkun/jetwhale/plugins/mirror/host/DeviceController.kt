@@ -42,9 +42,6 @@ internal interface DeviceController {
      * screenrecord stops after three minutes); open a new one to continue.
      */
     suspend fun openVideoStream(wanted: IntSize?): VideoStream
-
-    /** Releases what the controller holds for streaming, such as an idb companion. */
-    suspend fun release()
 }
 
 internal interface DeviceRecording {

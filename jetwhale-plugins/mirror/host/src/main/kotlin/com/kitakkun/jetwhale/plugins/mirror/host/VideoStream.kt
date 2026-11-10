@@ -15,8 +15,10 @@ internal sealed interface VideoStream {
     /** Stops the stream; reading it ends. Safe to call more than once. */
     fun close()
 
-    /** Raw H.264, decoded on the host by the ffmpeg at [ffmpegPath]. */
-    class H264(override val process: Process, val ffmpegPath: String) : ProcessVideoStream
+    /** Raw H.264 read from [frames], decoded on the host by the ffmpeg at [ffmpegPath]; [stopSource] ends its source. */
+    class H264(val frames: InputStream, val ffmpegPath: String, private val stopSource: () -> Unit) : VideoStream {
+        override fun close() = stopSource()
+    }
 
     /** An emulator's gRPC screen stream: `Image` messages of RGBA pixels, read by [readEmulatorFramesInto]. */
     class EmulatorRgba(val frames: InputStream, private val cancel: () -> Unit) : VideoStream {
@@ -46,17 +48,6 @@ internal sealed interface VideoStream {
             collecting.join()
             closing.cancel()
         }
-    }
-}
-
-/** A video stream a tool writes to its stdout; closing it ends the process. */
-internal sealed interface ProcessVideoStream : VideoStream {
-    val process: Process
-
-    val frames: InputStream get() = process.inputStream
-
-    override fun close() {
-        process.destroyForcibly()
     }
 }
 

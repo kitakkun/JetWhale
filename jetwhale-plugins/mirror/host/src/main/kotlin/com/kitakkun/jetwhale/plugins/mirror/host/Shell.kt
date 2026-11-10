@@ -20,7 +20,7 @@ internal open class DeviceControlException(message: String, cause: Throwable?) :
 
 internal fun deviceControlError(message: String): DeviceControlException = DeviceControlException(message, null)
 
-/** Starts external processes; tests replace it to run without adb, simctl or idb. */
+/** Starts external processes; tests replace it to run without adb, simctl or the iPhone capture helper. */
 internal fun interface ProcessLauncher {
     fun start(command: List<String>): Process
 }
@@ -28,7 +28,7 @@ internal fun interface ProcessLauncher {
 internal object SystemProcessLauncher : ProcessLauncher {
     /**
      * The PATH the started processes get, or null to leave them the host's. A tool can search PATH
-     * itself: a pyenv or asdf shim looks there for what it runs, and idb for idb_companion.
+     * itself, as an asdf shim does for what it runs.
      */
     @Volatile
     var launchedProcessPathVariable: String? = null
@@ -146,8 +146,6 @@ internal suspend fun runCommandChecked(timeout: Duration, vararg command: String
 /** The paths of the external tools this plugin drives; a missing tool is null. */
 internal data class MirrorToolPaths(
     val adbPath: String?,
-    val idbPath: String?,
-    val idbCompanionPath: String?,
     val xcrunPath: String?,
     val ffmpegPath: String?,
     val iproxyPath: String?,
@@ -175,7 +173,7 @@ internal class MirrorToolLocator(
     fun locateTools(): MirrorToolSearchResult {
         val directories = (directoriesOn(hostPathVariable) + wellKnownDirectories).distinct()
         val toolPaths = findToolPathsIn(directories)
-        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.idbPath, toolPaths.idbCompanionPath, toolPaths.ffmpegPath, toolPaths.iproxyPath).any { it == null }
+        val isAnySearchedToolMissing = listOf(toolPaths.adbPath, toolPaths.ffmpegPath, toolPaths.iproxyPath).any { it == null }
         val loginShellPathVariable = if (isAnySearchedToolMissing) loginShellPathVariableResolver?.resolveLoginShellPathVariable() else null
         if (loginShellPathVariable == null) return MirrorToolSearchResult(toolPaths, directories)
         val directoriesWithLoginShell = (directories + directoriesOn(loginShellPathVariable)).distinct()
@@ -186,8 +184,6 @@ internal class MirrorToolLocator(
         val adbFileName = if (runsOnWindows) "adb.exe" else "adb"
         return MirrorToolPaths(
             adbPath = findToolPath(adbFileName, androidSdkDirectories.map { "$it/platform-tools" }) ?: findToolPath(adbFileName, directories),
-            idbPath = findToolPath("idb", directories),
-            idbCompanionPath = findToolPath("idb_companion", directories),
             xcrunPath = "/usr/bin/xcrun".takeIf(::isExecutable),
             ffmpegPath = findToolPath(if (runsOnWindows) "ffmpeg.exe" else "ffmpeg", directories),
             iproxyPath = findToolPath("iproxy", directories),

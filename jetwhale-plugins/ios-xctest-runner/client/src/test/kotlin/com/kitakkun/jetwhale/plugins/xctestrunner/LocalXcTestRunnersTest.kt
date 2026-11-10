@@ -377,7 +377,6 @@ class LocalXcTestRunnersTest {
         stream.offer("frame-1")
         withTimeout(5.seconds) { firstFrameTaken.await() }
         listOf("frame-2", "frame-3", "frame-4").forEach(stream::offer)
-        // The fifth read begins only once the fourth frame has been passed on.
         withTimeout(5.seconds) { stream.readsBegun.first { it >= 5 } }
         collectorCaughtUp.complete(Unit)
 

@@ -60,6 +60,4 @@ internal class EndingStream(private val power: ScreenPower?) : DeviceController 
         if (opened.incrementAndGet() == 2) reopened.complete(Unit)
         return VideoStream.EmulatorRgba(frames = ByteArrayInputStream(ByteArray(0)), cancel = {})
     }
-
-    override suspend fun release() = Unit
 }

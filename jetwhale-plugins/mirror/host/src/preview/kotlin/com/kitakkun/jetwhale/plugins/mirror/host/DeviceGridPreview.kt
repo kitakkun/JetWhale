@@ -18,7 +18,7 @@ private val gridDevices = listOf(
 private val gridStates = mapOf(
     "emulator-5554" to ThumbnailState.ScreenOff,
     "0A1B2C3D-SIMULATOR" to ThumbnailState.Loading,
-    "00008110-DEVICE" to ThumbnailState.Failed("idb could not reach the device; unlock it and trust this Mac"),
+    "00008110-DEVICE" to ThumbnailState.Failed("The iPhone's screen was not found among this Mac's capture devices. Connect it by USB, unlock it and trust this Mac."),
 )
 
 @Preview

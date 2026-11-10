@@ -87,7 +87,7 @@ class AndroidDeviceControllerTest {
         controller.swipe(fromX = 1, fromY = 2, toX = 3, toY = 4, durationMillis = 250)
         controller.pressButton(DeviceButton.Home)
         controller.inputText("hello")
-        (controller.openVideoStream(wanted = null) as VideoStream.H264).process.waitFor()
+        (controller.openVideoStream(wanted = null) as VideoStream.H264).frames.readAllBytes()
 
         val given = commands.readLines().filterNot { "dumpsys" in it }
         assertEquals(
@@ -146,7 +146,7 @@ class AndroidDeviceControllerTest {
         assumeShellScriptsLaunch()
         dumpsysDeviceState.writeText(dumpsysDeviceStateOf("folded-by-override"))
         emulatorWithStream(FOLDED) { emulator, server ->
-            assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).process.waitFor()
+            assertIs<VideoStream.H264>(emulator.openVideoStream(wanted = null)).frames.readAllBytes()
 
             assertEquals(0, server.requestCount)
             assertEquals("-s emulator-5554 exec-out screenrecord --output-format=h264 --display-id $COVER_PANEL --time-limit 180 -", commands.readLines().last())

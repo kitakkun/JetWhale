@@ -423,8 +423,6 @@ private class FakeController(
 
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
-    override suspend fun release() = Unit
-
     /** Every input that reached the controller, refused or not. */
     var inputAttempts = 0
 

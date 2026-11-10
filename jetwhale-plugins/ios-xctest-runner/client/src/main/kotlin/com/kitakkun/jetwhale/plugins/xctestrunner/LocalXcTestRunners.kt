@@ -247,7 +247,7 @@ internal class LocalXcTestRunners(
         try {
             launchedTest = launchRunnerTest(xctestrun, destination.udid, runnerPort, token)
             // Registered before isJvmExiting is read again: an exit that begins meanwhile either
-            // finds this xcodebuild to kill or has set the flag this check sees.
+            // finds this xcodebuild to kill or has set the flag the next check sees.
             startedRunnerProcesses[launchedTest.xcodebuild.pid()] = StartedRunnerProcesses(launchedTest.xcodebuild, forward?.process)
             if (isJvmExiting) throw XcTestRunnerStartException(JVM_EXITING_REFUSAL, null)
             val connection = connector.connect(forward?.localPort ?: runnerPort, token)

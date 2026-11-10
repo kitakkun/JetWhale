@@ -56,10 +56,10 @@ internal fun ffmpegRemuxCommand(ffmpegPath: String, outputPath: String): List<St
 )
 
 /**
- * Writes the raw H.264 that [sourceProcess] prints into [outputFile] as an mp4, through the ffmpeg
- * at [ffmpegPath], until [stop].
+ * Writes the raw H.264 read from [h264] into [outputFile] as an mp4, through the ffmpeg at
+ * [ffmpegPath], until [stop]. [endSource] ends [h264] after what it has already sent.
  */
-internal class H264FileRecorder(private val sourceProcess: Process, ffmpegPath: String, private val outputFile: File) {
+internal class H264FileRecorder(h264: InputStream, ffmpegPath: String, private val outputFile: File, private val endSource: () -> Unit) {
     private val ffmpegProcess = SystemProcessLauncher.start(ffmpegRemuxCommand(ffmpegPath, outputFile.absolutePath))
     private val errors = StringBuilder()
     private val log = thread(isDaemon = true, name = "mirror-recording-ffmpeg-log") {
@@ -68,15 +68,14 @@ internal class H264FileRecorder(private val sourceProcess: Process, ffmpegPath: 
         } catch (_: IOException) {
         }
     }
-    private val feeding = thread(isDaemon = true, name = "mirror-recording-ffmpeg-input") { feed(sourceProcess.inputStream, ffmpegProcess) }
+    private val feeding = thread(isDaemon = true, name = "mirror-recording-ffmpeg-input") { feed(h264, ffmpegProcess) }
 
     /**
      * Ends the source, which ends ffmpeg's input; ffmpeg then writes the mp4's index and exits.
      * Killing ffmpeg instead would leave a file without an index, which does not play.
      */
     fun stop(): File {
-        sourceProcess.destroy()
-        if (!sourceProcess.waitFor(FFMPEG_EXIT_WAIT_MILLIS, TimeUnit.MILLISECONDS)) sourceProcess.destroyForcibly()
+        endSource()
         feeding.join(FFMPEG_EXIT_WAIT_MILLIS)
         val finished = ffmpegProcess.waitFor(RECORDING_FINISH_WAIT_MILLIS, TimeUnit.MILLISECONDS)
         if (!finished) ffmpegProcess.destroyForcibly()

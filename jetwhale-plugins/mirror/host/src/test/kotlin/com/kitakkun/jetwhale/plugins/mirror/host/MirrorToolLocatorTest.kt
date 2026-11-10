@@ -22,27 +22,27 @@ class MirrorToolLocatorTest {
 
     @Test
     fun `a tool on the host's PATH is found before one in a well-known directory`() {
-        val hostPathIdb = createExecutableIn(hostPathDirectory, "idb")
-        createExecutableIn(wellKnownDirectory, "idb")
+        val hostPathIproxy = createExecutableIn(hostPathDirectory, "iproxy")
+        createExecutableIn(wellKnownDirectory, "iproxy")
 
         val located = locator(loginShellPathVariableResolver = null).locateTools()
 
-        assertEquals(hostPathIdb, located.toolPaths.idbPath?.let(::File))
+        assertEquals(hostPathIproxy, located.toolPaths.iproxyPath?.let(::File))
     }
 
     @Test
     fun `a tool in a well-known directory is found when the host's PATH lacks it`() {
-        val wellKnownIdb = createExecutableIn(wellKnownDirectory, "idb")
+        val wellKnownIproxy = createExecutableIn(wellKnownDirectory, "iproxy")
 
         val located = locator(loginShellPathVariableResolver = null).locateTools()
 
-        assertEquals(wellKnownIdb, located.toolPaths.idbPath?.let(::File))
+        assertEquals(wellKnownIproxy, located.toolPaths.iproxyPath?.let(::File))
     }
 
     @Test
     fun `the login shell is not started when every tool is found without it`() {
         assumeShellScriptsLaunch()
-        listOf("adb", "idb", "idb_companion", "ffmpeg", "iproxy").forEach { createExecutableIn(wellKnownDirectory, it) }
+        listOf("adb", "ffmpeg", "iproxy").forEach { createExecutableIn(wellKnownDirectory, it) }
 
         val located = locator(loginShellPathVariableResolver = loginShellPrinting(loginShellDirectory.path)).locateTools()
 
@@ -63,12 +63,12 @@ class MirrorToolLocatorTest {
     @Test
     fun `a tool found before the login shell is read stays where it was found`() {
         assumeShellScriptsLaunch()
-        val wellKnownIdb = createExecutableIn(wellKnownDirectory, "idb")
-        createExecutableIn(loginShellDirectory, "idb")
+        val wellKnownIproxy = createExecutableIn(wellKnownDirectory, "iproxy")
+        createExecutableIn(loginShellDirectory, "iproxy")
 
         val located = locator(loginShellPathVariableResolver = loginShellPrinting(loginShellDirectory.path)).locateTools()
 
-        assertEquals(wellKnownIdb, located.toolPaths.idbPath?.let(::File))
+        assertEquals(wellKnownIproxy, located.toolPaths.iproxyPath?.let(::File))
         assertEquals(1, shellRunLogFile.readLines().size)
     }
 
@@ -99,16 +99,12 @@ class MirrorToolLocatorTest {
     }
 
     @Test
-    fun `the well-known directories are Homebrew's then pipx's then pip's per-user ones newest Python first then pyenv's shims`() {
+    fun `the well-known directories are Homebrew's then the user's local bin`() {
         val home = File(folder, "home")
-        listOf("3.9", "3.12", "3.10").forEach { File(home, "Library/Python/$it/bin").mkdirs() }
 
         val directories = WellKnownToolDirectories(home).list()
 
-        val expected = listOf("/opt/homebrew/bin", "/usr/local/bin", File(home, ".local/bin").path) +
-            listOf("3.12", "3.10", "3.9").map { File(home, "Library/Python/$it/bin").path } +
-            File(home, ".pyenv/shims").path
-        assertEquals(expected, directories)
+        assertEquals(listOf("/opt/homebrew/bin", "/usr/local/bin", File(home, ".local/bin").path), directories)
     }
 
     private fun locator(loginShellPathVariableResolver: LoginShellPathVariableResolver?) = MirrorToolLocator(
