@@ -6,11 +6,19 @@ import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
+import com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
+import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
+import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.StringFormat
 import java.util.Collections
 import kotlin.time.Duration
@@ -31,6 +39,19 @@ internal fun agentWithEvents(redaction: NetworkRedactionRules): Pair<JetWhaleNet
 internal fun JetWhaleNetworkAgentPlugin.seedMockRules(rules: List<MockRule>) {
     val field = JetWhaleNetworkAgentPlugin::class.java.getDeclaredField("mockRules").apply { isAccessible = true }
     (field.get(this) as MutableStateFlow<List<MockRule>>).value = rules
+}
+
+/** Delivers a SetNetworkConditions request to the agent's handlers through a real peer pair. */
+@OptIn(InternalJetWhaleApi::class)
+internal fun JetWhaleNetworkAgentPlugin.applyNetworkConditions(rules: List<NetworkConditionRule>) = runBlocking {
+    val scope = CoroutineScope(SupervisorJob())
+    lateinit var agentPeer: JetWhalePluginPeer
+    val hostPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { agentPeer.onFrame(it) })
+    agentPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = hostPeer::onFrame)
+    val agent = this@applyNetworkConditions
+    agentPeer.configure { agent.registerHandlers(this) }
+    hostPeer.messenger.request(SetNetworkConditions(rules))
+    scope.cancel()
 }
 
 /** Records every event the agent sends, decoded back to its typed form. */

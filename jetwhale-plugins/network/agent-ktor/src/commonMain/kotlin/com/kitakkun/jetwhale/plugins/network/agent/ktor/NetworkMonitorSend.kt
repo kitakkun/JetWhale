@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkConditionPlan
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
@@ -37,8 +38,9 @@ import kotlin.time.TimeSource
 internal data class BodyCaptureLimits(val maxBodyChars: Int, val maxImageBytes: Int)
 
 /**
- * Runs one request/response round trip through the agent: records the request, serves a matching
- * mock instead of hitting the network, and records the response or failure.
+ * Runs one request/response round trip through the agent: records the request, applies the
+ * matching network condition, serves a matching mock instead of hitting the network, and records
+ * the response or failure.
  *
  * Shared by both entry points of this module. [proceed] is the caller's way to continue the send —
  * `Send.Sender.proceed` for the client plugin, `Sender.execute` for the [io.ktor.client.plugins.HttpSend]
@@ -53,9 +55,8 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
 ): HttpClientCall {
     val txId = newTransactionId()
     val started = TimeSource.Monotonic.markNow()
-    val mock = recordRequestAndFindMock(request, txId, limits)
-
-    val call = sendOrServeMock(client, request, mock, txId, started, proceed)
+    val plannedExchange = recordRequestAndPlanExchange(request, txId, limits)
+    val call = sendOrServeMockThroughSimulatedNetwork(client, request, plannedExchange, txId, started, proceed)
 
     val (callToReturn, body) = captureResponseBodySafely(call, limits)
     recordResponse(
@@ -68,22 +69,62 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
             bodyTruncated = body.truncated,
             bodyEncoding = body.encoding,
             durationMs = started.elapsedNow().inWholeMilliseconds,
-            fromMock = mock != null,
+            fromMock = plannedExchange.mock != null,
+            condition = plannedExchange.conditionPlan?.toAppliedNetworkCondition(),
         ),
     )
-    return callToReturn
+    // Paced after capture: save() reads the whole body into memory, so a body paced before it would
+    // reach the app already buffered.
+    return plannedExchange.conditionPlan?.downloadBytesPerSecond?.let(callToReturn::withResponseBodyPacedTo) ?: callToReturn
 }
 
-/** Records the outgoing request, then answers with the mock registered for it, if any. */
-private fun JetWhaleNetworkAgentPlugin.recordRequestAndFindMock(
-    request: HttpRequestBuilder,
-    txId: String,
-    limits: BodyCaptureLimits,
-): MockResponseSpec? {
+/**
+ * How one request is to be answered.
+ *
+ * @property conditionPlan The network condition the request travels through; null when none applies.
+ * @property mock The response that stands in for the server; null when the request is really sent.
+ */
+private class PlannedExchange(val url: String, val conditionPlan: NetworkConditionPlan?, val mock: MockResponseSpec?)
+
+/**
+ * Records the outgoing request and decides how it is answered. The condition shapes the network and
+ * the mock stands in for the server, so a mocked response still travels through the simulated
+ * network.
+ */
+private fun JetWhaleNetworkAgentPlugin.recordRequestAndPlanExchange(request: HttpRequestBuilder, txId: String, limits: BodyCaptureLimits): PlannedExchange {
     val method = request.method.value
     val url = request.url.buildString()
     recordRequest(request, txId = txId, method = method, url = url, limits = limits)
-    return findMock(method, url)
+    return PlannedExchange(url = url, conditionPlan = planNetworkCondition(method, url), mock = findMock(method, url))
+}
+
+/**
+ * Carries out [plannedExchange]: the simulated network, then the mock or the real send. A failure, real or
+ * injected, is recorded before it is rethrown.
+ */
+private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMockThroughSimulatedNetwork(
+    client: HttpClient,
+    request: HttpRequestBuilder,
+    plannedExchange: PlannedExchange,
+    txId: String,
+    started: TimeMark,
+    proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
+): HttpClientCall {
+    val conditionPlan = plannedExchange.conditionPlan
+    return try {
+        conditionPlan?.let { simulateNetworkBeforeExchange(it, request, plannedExchange.url, mocked = plannedExchange.mock != null) }
+        if (plannedExchange.mock != null) serveMock(client, request, plannedExchange.mock) else proceed(request)
+    } catch (e: Throwable) {
+        recordFailure(
+            HttpRequestFailure(
+                txId = txId,
+                message = e.message ?: e.toString(),
+                durationMs = started.elapsedNow().inWholeMilliseconds,
+                condition = conditionPlan?.toAppliedNetworkCondition(),
+            ),
+        )
+        throw e
+    }
 }
 
 private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, limits: BodyCaptureLimits) {
@@ -122,33 +163,6 @@ private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String
  */
 private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
     if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
-}
-
-/**
- * Serves [mock] when there is one; otherwise continues the send, recording a thrown failure
- * before rethrowing it.
- */
-private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMock(
-    client: HttpClient,
-    request: HttpRequestBuilder,
-    mock: MockResponseSpec?,
-    txId: String,
-    started: TimeMark,
-    proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
-): HttpClientCall {
-    if (mock != null) return serveMock(client, request, mock)
-    return try {
-        proceed(request)
-    } catch (e: Throwable) {
-        recordFailure(
-            HttpRequestFailure(
-                txId = txId,
-                message = e.message ?: e.toString(),
-                durationMs = started.elapsedNow().inWholeMilliseconds,
-            ),
-        )
-        throw e
-    }
 }
 
 @OptIn(InternalAPI::class)

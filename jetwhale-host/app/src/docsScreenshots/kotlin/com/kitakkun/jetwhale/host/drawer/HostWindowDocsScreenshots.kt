@@ -203,9 +203,11 @@ private fun NetworkInspectorContent() {
             transactions = TRANSACTIONS,
             mockRules = emptyList(),
             mockingEnabled = true,
+            conditionRules = emptyList(),
             onClearTransactions = {},
             onToggleMocking = {},
             onMockRulesChanged = {},
+            onConditionRulesChanged = {},
         )
     }
 }

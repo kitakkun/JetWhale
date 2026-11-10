@@ -203,6 +203,7 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
                     horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
                 ) {
                     if (it.response?.fromMock == true) MockChip()
+                    if (it.condition != null) NetworkConditionChip()
                     JwTableCellText(text = it.request.url, style = urlStyle)
                 }
             },
