@@ -3,10 +3,15 @@ package com.kitakkun.jetwhale.host.mcp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import dev.mokkery.answering.returns
+import dev.mokkery.every
 import dev.mokkery.mock
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -94,6 +99,34 @@ class McpToolRegistryTest {
     }
 
     @Test
+    fun `a plugin command that throws answers with an error result naming the plugin`() = runBlocking {
+        val plugin = ThrowingToolPlugin()
+        val registry = McpToolRegistry(
+            mock<PluginInstanceService> { every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin },
+        )
+        registry.register("com.example.a", "session-1", plugin)
+
+        val result = checkNotNull(registry.dispatch("a.boom", mapOf("sessionId" to JsonPrimitive("session-1"))))
+
+        assertEquals(true, result.isError)
+        assertEquals("the tool of plugin 'com.example.a' failed: java.lang.IllegalStateException: command boom", errorOf(result))
+    }
+
+    @Test
+    fun `a plugin command rejecting its arguments answers with an error result`() = runBlocking {
+        val plugin = ThrowingToolPlugin()
+        val registry = McpToolRegistry(
+            mock<PluginInstanceService> { every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin },
+        )
+        registry.register("com.example.a", "session-1", plugin)
+
+        val result = checkNotNull(registry.dispatch("a.rejects", mapOf("sessionId" to JsonPrimitive("session-1"))))
+
+        assertEquals(true, result.isError)
+        assertEquals("count must be positive", errorOf(result))
+    }
+
+    @Test
     fun `pluginIdFor resolves the owner of a tool for a session`() {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
@@ -107,7 +140,7 @@ class McpToolRegistryTest {
         registry.register("com.example.a", "session-2", FakeTooledPlugin("a.greet"))
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
-        val error = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.greet", emptyMap()))).jsonObject.getValue("error").jsonPrimitive.content
+        val error = errorOf(checkNotNull(registry.dispatch("a.greet", emptyMap())))
 
         assertContains(error, "'sessionId' is required")
         assertContains(error, "session-1, session-2")
@@ -117,7 +150,7 @@ class McpToolRegistryTest {
     fun `a plugin tool called in a session it is not offered in answers with an error naming the sessions it runs in`() = runBlocking {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
-        val error = Json.parseToJsonElement(checkNotNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-9"))))).jsonObject.getValue("error").jsonPrimitive.content
+        val error = errorOf(checkNotNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-9")))))
 
         assertContains(error, "'a.greet' is not available in session 'session-9'")
         assertContains(error, "session-1")
@@ -137,6 +170,26 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
         }
     }
 }
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class ThrowingToolPlugin :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "a.boom"
+            override val description = "Throws"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = error("command boom")
+        },
+        object : JetWhaleMcpCommand() {
+            override val name = "a.rejects"
+            override val description = "Rejects its arguments"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = throw JetWhaleMcpArgumentException("count must be positive")
+        },
+    )
+}
+
+private fun errorOf(result: CallToolResult): String = Json.parseToJsonElement((result.content.single() as TextContent).text).jsonObject.getValue("error").jsonPrimitive.content
 
 private const val ROUNDS = 200
 private const val THREADS = 8

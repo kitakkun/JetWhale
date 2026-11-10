@@ -47,6 +47,7 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
             buildList {
                 add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
                 add("-Djetwhale.appDataDir=${sandboxDirProvider.get()}")
+                add("-XX:ErrorFile=${sandboxDirProvider.get()}/logs/hs_err_pid%p.log")
                 // Allow the dev hot-reload to self-attach a JVM agent (byte-buddy-agent) for in-place
                 // class redefinition; self-attach is disabled by default on JDK 9+.
                 add("-Djdk.attach.allowAttachSelf=true")

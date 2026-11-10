@@ -22,6 +22,9 @@ interface PluginInstanceService {
      */
     val headlessPluginsFlow: StateFlow<HeadlessPlugins>
 
+    /** Exceptions plugin instances let escape from their coroutines; cleared when an instance goes away. */
+    val pluginFailuresFlow: StateFlow<PluginFailures>
+
     /** Returns all currently loaded plugin instances. */
     fun getLoadedPluginInstances(): List<LoadedPluginInstance>
 

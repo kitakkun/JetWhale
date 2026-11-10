@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.PluginFailures
 import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
@@ -114,6 +115,7 @@ fun toolingScaffoldPresenter(
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
     headlessPlugins: HeadlessPlugins,
+    pluginFailures: PluginFailures,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
     mcpServerStatus: McpServerStatus,
@@ -135,7 +137,7 @@ fun toolingScaffoldPresenter(
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, pluginFailures, activeInvocation) {
         derivedStateOf {
             drawerPluginItems(
                 loadedPlugins = loadedPlugins,
@@ -143,6 +145,7 @@ fun toolingScaffoldPresenter(
                 enabledPluginIds = enabledPluginIds,
                 mcpCapablePlugins = mcpCapablePlugins,
                 headlessPlugins = headlessPlugins,
+                pluginFailures = pluginFailures,
                 activeInvocation = activeInvocation,
             )
         }
@@ -218,26 +221,27 @@ private fun drawerPluginItems(
     enabledPluginIds: Set<String>,
     mcpCapablePlugins: McpCapablePlugins,
     headlessPlugins: HeadlessPlugins,
+    pluginFailures: PluginFailures,
     activeInvocation: McpToolInvocation?,
 ): ImmutableList<DrawerPluginItemUiState> = loadedPlugins.map { metaData ->
+    val pluginAvailability = when {
+        metaData.requiresAgent && selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } != true -> PluginAvailability.Unavailable
+        metaData.id in enabledPluginIds -> PluginAvailability.Enabled
+        else -> PluginAvailability.Disabled
+    }
     val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
-    val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
-    val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
 
     DrawerPluginItemUiState(
         id = metaData.id,
         name = metaData.name,
         activeIconResource = metaData.activeIconResource,
         inactiveIconResource = metaData.inactiveIconResource,
-        pluginAvailability = when {
-            metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
-            isEnabledInSettings -> PluginAvailability.Enabled
-            else -> PluginAvailability.Disabled
-        },
+        pluginAvailability = pluginAvailability,
         underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
         exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
         isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
         needsApp = metaData.requiresAgent,
+        failureMessage = pluginFailures.latestFor(sessionId, metaData.id)?.message,
     )
 }.toImmutableList()
 

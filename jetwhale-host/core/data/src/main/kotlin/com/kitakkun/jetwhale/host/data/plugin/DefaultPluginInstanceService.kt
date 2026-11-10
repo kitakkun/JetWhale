@@ -7,6 +7,8 @@ import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginFailure
+import com.kitakkun.jetwhale.host.model.PluginFailures
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
@@ -24,6 +26,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -36,8 +39,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -54,6 +59,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  *   cannot outrace disposal. Null for a pure plugin. For a plugin that requires an agent it waits,
  *   unstarted, for [PluginInstanceService.startPluginInstancePreparation].
  * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
+ * @property live Cleared when disposal starts, so a failure reported after it leaves no tag on an
+ *   instance that is gone.
  */
 private class LoadedInstance(
     val factory: JetWhaleHostPluginFactory,
@@ -61,6 +68,7 @@ private class LoadedInstance(
     val peer: JetWhalePluginPeer?,
     val prepareJob: Job?,
     val instanceScope: CoroutineScope,
+    val live: AtomicBoolean,
 )
 
 @OptIn(InternalJetWhaleHostApi::class)
@@ -86,6 +94,16 @@ class DefaultPluginInstanceService(
 
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
+
+    override val pluginFailuresFlow: StateFlow<PluginFailures>
+        field = MutableStateFlow(PluginFailures.Empty)
+
+    /**
+     * Held while a failure is checked against its instance's `live` flag and published, and while
+     * disposal clears that flag and the failure, so a failure that found its instance live cannot
+     * land after disposal cleared it.
+     */
+    private val failuresLock = Any()
 
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
@@ -144,7 +162,12 @@ class DefaultPluginInstanceService(
                     "its messenger will never reach an agent.",
             )
         }
-        val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
+        val live = AtomicBoolean(true)
+        val instanceScope = CoroutineScope(
+            scope.coroutineContext +
+                SupervisorJob(scope.coroutineContext[Job]) +
+                CoroutineExceptionHandler { _, throwable -> publishPluginFailure(pluginId, sessionId, live, throwable) },
+        )
         plugin.bindPluginScope(instanceScope)
 
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
@@ -170,7 +193,7 @@ class DefaultPluginInstanceService(
         } else {
             null
         }
-        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope)
+        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope, live)
     }
 
     /**
@@ -246,8 +269,31 @@ class DefaultPluginInstanceService(
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach(::disposeInstance)
     }
 
+    /**
+     * Keeps what a plugin's own coroutine let escape, so it is logged against the plugin and shown in
+     * the drawer instead of vanishing into the thread's default handler.
+     */
+    private fun publishPluginFailure(pluginId: String, sessionId: String, instanceLive: AtomicBoolean, throwable: Throwable) {
+        logger.log(Level.WARNING, "Plugin '$pluginId' in session '$sessionId' threw from one of its coroutines", throwable)
+        val failure = PluginFailure(pluginId = pluginId, sessionId = sessionId, message = throwable.toString())
+        synchronized(failuresLock) {
+            if (!instanceLive.get()) return
+            pluginFailuresFlow.update { failures ->
+                val sessionFailures = failures.failuresBySession[sessionId].orEmpty() + (pluginId to failure)
+                PluginFailures(failures.failuresBySession + (sessionId to sessionFailures))
+            }
+        }
+    }
+
     private fun disposeInstance(key: PluginInstanceKey) {
         val removed = loadedPlugins.remove(key) ?: return
+        synchronized(failuresLock) {
+            removed.live.set(false)
+            pluginFailuresFlow.update { failures ->
+                val sessionFailures = failures.failuresBySession[key.sessionId].orEmpty() - key.pluginId
+                PluginFailures(if (sessionFailures.isEmpty()) failures.failuresBySession - key.sessionId else failures.failuresBySession + (key.sessionId to sessionFailures))
+            }
+        }
         // onDispose is the plugin's code; whatever it throws, its scope is still cancelled and its
         // peer closed.
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")

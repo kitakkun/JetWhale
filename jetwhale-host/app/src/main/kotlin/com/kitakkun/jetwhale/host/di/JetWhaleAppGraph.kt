@@ -11,8 +11,10 @@ import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ArrivedPluginJarsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.CheckForHostUpdateMutationKey
+import com.kitakkun.jetwhale.host.model.CrashRecoveryService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.DismissUncleanExitReportMutationKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FollowAiOperationService
 import com.kitakkun.jetwhale.host.model.HostLaunch
@@ -20,6 +22,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostReleaseSource
 import com.kitakkun.jetwhale.host.model.HostUpdateStateSubscriptionKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
+import com.kitakkun.jetwhale.host.model.LeaveSafeModeMutationKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -28,10 +31,14 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarMutationKey
 import com.kitakkun.jetwhale.host.model.RestartToUpdateMutationKey
+import com.kitakkun.jetwhale.host.model.SafeModeRequest
+import com.kitakkun.jetwhale.host.model.SafeModeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
+import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.TryHostVersionAgainMutationKey
+import com.kitakkun.jetwhale.host.model.UncleanExitReportSubscriptionKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.screen.DisabledPluginScreenContext
@@ -76,6 +83,12 @@ interface JetWhaleAppGraph : ScreenContext {
     val arrivedPluginJarsSubscriptionKey: ArrivedPluginJarsSubscriptionKey
     val trustPluginMutationKey: TrustPluginMutationKey
     val postponeArrivedPluginJarMutationKey: PostponeArrivedPluginJarMutationKey
+    val crashRecoveryService: CrashRecoveryService
+    val uncleanExitReportSubscriptionKey: UncleanExitReportSubscriptionKey
+    val dismissUncleanExitReportMutationKey: DismissUncleanExitReportMutationKey
+    val safeModeSubscriptionKey: SafeModeSubscriptionKey
+    val leaveSafeModeMutationKey: LeaveSafeModeMutationKey
+    val setPluginEnabledMutationKey: SetPluginEnabledMutationKey
     val windowStateRepository: WindowStateRepository
     val hostLaunch: HostLaunch
     val debuggerSettingsRepository: DebuggerSettingsRepository
@@ -91,6 +104,7 @@ interface JetWhaleAppGraph : ScreenContext {
             @Provides mcpPermissionOverride: McpPermissionOverride,
             @Provides additionalPluginDirectories: AdditionalPluginDirectories,
             @Provides hostLaunch: HostLaunch,
+            @Provides safeModeRequest: SafeModeRequest,
         ): JetWhaleAppGraph
     }
 

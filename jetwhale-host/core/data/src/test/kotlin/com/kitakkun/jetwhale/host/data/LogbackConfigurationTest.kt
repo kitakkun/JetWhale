@@ -20,6 +20,13 @@ class LogbackConfigurationTest {
     }
 
     @Test
+    fun `timestamps carry the calendar year, not the week-based one that turns over in late December`() {
+        val config = checkNotNull(LogbackConfigurationTest::class.java.getResource("/logback.xml")).readText()
+
+        assertFalse("YYYY" in config)
+    }
+
+    @Test
     fun `Ktor logs only at info and above`() {
         val routing = LoggerFactory.getLogger("io.ktor.server.routing.Routing")
 
