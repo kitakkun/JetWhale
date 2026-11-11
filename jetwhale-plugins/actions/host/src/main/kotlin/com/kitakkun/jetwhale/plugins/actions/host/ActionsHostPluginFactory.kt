@@ -35,6 +35,8 @@ private class ActionsHostPlugin :
     ActionsClient {
 
     private val browser by lazy { ActionsBrowser(client = this, scope = pluginScope) }
+    private val listActionsCommand by lazy { ListActionsCommand(browser) }
+    private val runActionCommand by lazy { RunActionCommand(browser) }
 
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: ActionsChanged -> browser.adopt(event.catalog) }
@@ -54,10 +56,8 @@ private class ActionsHostPlugin :
 
     @Composable
     override fun Content() {
-        ActionsScreenRoot(browser)
+        ActionsScreenRoot(browser, listActionsCommand, runActionCommand)
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
-        listOf(ListActionsCommand(browser), RunActionCommand(browser))
-    }
+    override val mcpCommands: List<JetWhaleMcpCommand> by lazy { listOf(listActionsCommand, runActionCommand) }
 }

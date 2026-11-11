@@ -73,6 +73,7 @@ private fun SkikoComposeUiTest.setSemanticsInspectorContent(darkTheme: Boolean) 
                 actionStatus = null,
                 highlightStatus = null,
                 viewAttributes = PROMO_BANNER_ATTRIBUTES,
+                mcpCommands = previewMcpCommands,
                 onCapture = {},
                 onPerformAction = {},
                 onSelectedNodeChange = {},

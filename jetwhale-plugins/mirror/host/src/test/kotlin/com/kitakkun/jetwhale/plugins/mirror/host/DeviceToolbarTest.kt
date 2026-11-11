@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
@@ -51,14 +53,15 @@ class DeviceToolbarTest {
                 }
             }
         }
-        val controlLabels = listOf("Home", "Volume up", "Screen off", "Record", "Screenshot")
+        val controlLabels = listOf(emulator.name, "Home", "Volume up", "Screen off", "Record", "Screenshot")
         mapOf(
+            toolbarMcpCommands.listDevices to listOf(emulator.name),
             toolbarMcpCommands.pressButton to listOf("Home", "Volume up"),
             toolbarMcpCommands.setScreen to listOf("Screen off"),
             toolbarMcpCommands.startRecording to listOf("Record"),
             toolbarMcpCommands.stopRecording to listOf("Record"),
             toolbarMcpCommands.captureScreenshot to listOf("Screenshot"),
-            toolbarMcpCommands.listDevices to emptyList(),
+            toolbarMcpCommands.listCaptures to emptyList(),
         ).forEach { (command, ringedLabels) ->
             runningCommandNames = setOf(command.name)
             mainClock.advanceTimeByFrame()
@@ -67,10 +70,13 @@ class DeviceToolbarTest {
         }
     }
 
-    /** Whether the AI accent shows on the control: nothing else in the toolbar is drawn in it. */
+    /**
+     * Whether the AI accent shows on the control [label] names, by its content description or, for the device
+     * picker, its text: nothing else in the toolbar is drawn in it.
+     */
     private fun SemanticsNodeInteractionsProvider.isControlRinged(label: String): Boolean {
         val aiAccent = JwColors.light().aiAccent
-        val pixels = onNodeWithContentDescription(label).captureToImage().toPixelMap()
+        val pixels = onNode(hasContentDescription(label) or hasText(label)).captureToImage().toPixelMap()
         return (0 until pixels.width).any { x ->
             (0 until pixels.height).any { y ->
                 val pixel = pixels[x, y]

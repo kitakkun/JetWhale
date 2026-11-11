@@ -120,6 +120,9 @@ back stack.
 A typical flow is `listNavKeyTypes` → fill a template → `pushNavKey`. Every mutating tool returns the
 resulting stack, so the confirmation is already in hand.
 
+While an agent runs a tool, the back stack is ringed for `getBackStack` and every tool that changes
+the stack, and the right-hand pane with the key types for `listNavKeyTypes`.
+
 ## Limits
 
 - **It never leaves the stack empty.** `NavDisplay` cannot render an empty back stack, so an operation

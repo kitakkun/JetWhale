@@ -25,7 +25,7 @@ internal enum class StorageTab(val label: String) {
 
 /** Binds the host-owned state — the browser and the persisted tab — to [StorageInspectorScreen]. */
 @Composable
-internal fun StorageInspectorScreenRoot(browser: StorageBrowser, modifier: Modifier = Modifier) {
+internal fun StorageInspectorScreenRoot(browser: StorageBrowser, mcpCommands: StorageMcpCommands, modifier: Modifier = Modifier) {
     var tab by rememberPersistent("tab", default = StorageTab.Files)
     StorageInspectorScreen(
         tab = tab,
@@ -39,6 +39,7 @@ internal fun StorageInspectorScreenRoot(browser: StorageBrowser, modifier: Modif
         storeContent = browser.storeContent,
         status = browser.status,
         actions = browser,
+        mcpCommands = mcpCommands,
         onSelectTab = { tab = it },
         modifier = modifier,
     )
@@ -57,6 +58,7 @@ internal fun StorageInspectorScreen(
     storeContent: KeyValueStoreContent?,
     status: StorageStatus?,
     actions: StorageInspectorActions,
+    mcpCommands: StorageMcpCommands,
     onSelectTab: (StorageTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -88,6 +90,7 @@ internal fun StorageInspectorScreen(
                 directoryMeasurement = directoryMeasurement,
                 fileSha256 = fileSha256,
                 actions = actions,
+                mcpCommands = mcpCommands,
             )
 
             StorageTab.KeyValue -> KeyValuePane(
@@ -95,6 +98,7 @@ internal fun StorageInspectorScreen(
                 selectedStore = selectedStore,
                 content = storeContent,
                 actions = actions,
+                mcpCommands = mcpCommands,
             )
         }
     }

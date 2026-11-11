@@ -28,9 +28,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
@@ -44,6 +46,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -63,6 +66,7 @@ internal interface ThumbnailSource {
     suspend fun loadThumbnail(capture: Capture): ImageBitmap?
 }
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun CapturesPanel(
     captures: List<Capture>,
@@ -72,13 +76,14 @@ internal fun CapturesPanel(
     selected: Capture?,
     thumbnails: ThumbnailSource,
     actions: CapturesActions,
+    mcpCommands: MirrorMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     val days = captures.map { DayFormat.format(Instant.ofEpochMilli(it.info.capturedAtEpochMillis)) }.distinct()
     val shown = captures.filter { day == null || DayFormat.format(Instant.ofEpochMilli(it.info.capturedAtEpochMillis)) == day }
     Column(modifier.fillMaxSize()) {
         CaptureFilters(allDevices, kind, day, days, actions)
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileRunning(mcpCommands.listCaptures, shape = RectangleShape)) {
             if (shown.isEmpty()) {
                 JwEmptyState(title = "No captures", description = "Screenshots and recordings of this device appear here as soon as they are taken.")
             } else {

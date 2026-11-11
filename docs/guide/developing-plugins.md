@@ -446,6 +446,8 @@ One control can stand for several commands: a screen that is both tapped and swi
 finishes within a frame still rings its control for 1.5 seconds. The modifier reads the SDK's
 `LocalRunningMcpCommandNames`, the names of this plugin instance's commands an agent is running now
 or finished less than 1.5 seconds ago; read the local directly only for an indication of your own.
+`ExampleHostPlugin` in `jetwhale-plugins/example/host` builds its two commands once and hands them to
+both `mcpCommands` and its UI this way.
 
 ### Theming and components: `jetwhale-host-ui`
 

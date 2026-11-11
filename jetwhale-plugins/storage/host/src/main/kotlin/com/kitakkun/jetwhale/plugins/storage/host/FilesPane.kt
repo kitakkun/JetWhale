@@ -23,12 +23,14 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isAltPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.ContentScale
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
@@ -40,6 +42,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
@@ -56,9 +59,6 @@ private const val TREE_FRACTION = 0.35f
 /** A hex dump of more than this many bytes is too long to scroll through usefully. */
 private const val HEX_PREVIEW_BYTES = 16 * 1024
 
-/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
-private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
-
 @Composable
 internal fun FilesPane(
     treeRows: List<FileTreeRow>,
@@ -68,6 +68,7 @@ internal fun FilesPane(
     directoryMeasurement: DirectoryMeasurement?,
     fileSha256: String?,
     actions: StorageInspectorActions,
+    mcpCommands: StorageMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize()) {
@@ -86,11 +87,12 @@ internal fun FilesPane(
             directoryMeasurement = directoryMeasurement,
             fileSha256 = fileSha256,
             actions = actions,
+            mcpCommands = mcpCommands,
         )
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalJetWhaleApi::class)
 @Composable
 private fun FileTreeSplit(
     treeRows: List<FileTreeRow>,
@@ -100,11 +102,16 @@ private fun FileTreeSplit(
     directoryMeasurement: DirectoryMeasurement?,
     fileSha256: String?,
     actions: StorageInspectorActions,
+    mcpCommands: StorageMcpCommands,
 ) {
     JwSplitPane(
         state = rememberJwSplitPaneState(TREE_FRACTION),
         first = {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(
+                Modifier
+                    .fillMaxSize()
+                    .jwAiOperatingRingWhileRunning(mcpCommands.listLocations, mcpCommands.listDirectory, mcpCommands.deleteFileEntry, shape = RectangleShape),
+            ) {
                 items(treeRows, key = FileTreeRow::location) { row ->
                     var altPressed by remember { mutableStateOf(false) }
                     JwTreeRow(
@@ -134,24 +141,29 @@ private fun FileTreeSplit(
             }
         },
         second = {
-            if (selectedRow == null) {
-                JwEmptyState(title = "Nothing selected", description = "Pick a file to preview it, or a directory to see where it is.")
-            } else {
-                EntryDetail(
-                    row = selectedRow,
-                    facts = EntryFacts(
+            Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.readFile, mcpCommands.hashFile, mcpCommands.measureDirectory, shape = RectangleShape)) {
+                if (selectedRow == null) {
+                    JwEmptyState(title = "Nothing selected", description = "Pick a file to preview it, or a directory to see where it is.")
+                } else {
+                    EntryDetail(
                         row = selectedRow,
-                        root = fileRoots.firstOrNull { it.name == selectedRow.location.rootName },
-                        loadedFile = loadedFile?.takeIf { it.location == selectedRow.location },
-                        directoryMeasurement = directoryMeasurement,
-                        fileSha256 = fileSha256,
-                    ),
-                    actions = actions,
-                )
+                        facts = EntryFacts(
+                            row = selectedRow,
+                            root = fileRoots.firstOrNull { it.name == selectedRow.location.rootName },
+                            loadedFile = loadedFile?.takeIf { it.location == selectedRow.location },
+                            directoryMeasurement = directoryMeasurement,
+                            fileSha256 = fileSha256,
+                        ),
+                        actions = actions,
+                    )
+                }
             }
         },
     )
 }
+
+/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
+private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
 
 @Composable
 private fun EntryDetail(

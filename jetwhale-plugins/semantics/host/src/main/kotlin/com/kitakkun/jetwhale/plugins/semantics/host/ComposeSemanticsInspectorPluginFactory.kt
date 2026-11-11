@@ -82,6 +82,7 @@ private class ComposeSemanticsInspectorHostPlugin :
             errorMessage = errorMessage,
             actionStatus = actionStatus,
             viewAttributes = viewAttributes.state,
+            mcpCommands = semanticsMcpCommands,
             onCapture = { options ->
                 try {
                     capture(options)
@@ -140,23 +141,17 @@ private class ComposeSemanticsInspectorHostPlugin :
 
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
 
-    override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
-        listOf(
-            GetNodeTreeCommand(capture = ::capture),
-            FindNodesCommand(capture = ::capture),
-            NodeAtCommand(capture = ::capture),
-            PerformNodeActionCommand(
-                lastSnapshot = { snapshot },
-                capture = ::capture,
-                perform = ::performAction,
-            ),
-            GetViewAttributesCommand(getAttributes = viewAttributes::readAttributes),
-            SetViewAttributeCommand(
-                getAttributes = viewAttributes::readAttributes,
-                setAttribute = viewAttributes::writeAttribute,
-            ),
+    private val semanticsMcpCommands by lazy {
+        SemanticsMcpCommands(
+            capture = ::capture,
+            lastSnapshot = { snapshot },
+            perform = ::performAction,
+            getAttributes = viewAttributes::readAttributes,
+            setAttribute = viewAttributes::writeAttribute,
         )
     }
+
+    override val mcpCommands: List<JetWhaleMcpCommand> get() = semanticsMcpCommands.all
 }
 
 /** Comfortably more than one frame at 60 Hz, and still below what a user notices. */

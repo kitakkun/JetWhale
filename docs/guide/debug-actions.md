@@ -117,6 +117,8 @@ tools. Each takes the `sessionId` of the app's session.
 | `com.kitakkun.jetwhale.actions.listActions` | Every action with its argument JSON Schema, suggested values, and whether it is destructive or belongs to the current screen |
 | `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace |
 
+While an agent runs either tool, the action list is ringed.
+
 ## Limits
 
 - **Actions are not tools of their own.** The tool list of an MCP connection is fixed when it opens,

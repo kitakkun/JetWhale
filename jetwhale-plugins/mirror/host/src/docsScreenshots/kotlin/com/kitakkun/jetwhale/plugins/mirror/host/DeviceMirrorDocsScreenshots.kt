@@ -124,6 +124,7 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
                         selected = CAPTURES.first(),
                         thumbnails = SampleAppThumbnails,
                         actions = NoCapturesActions,
+                        mcpCommands = previewMcpCommands,
                     )
                 },
             )
