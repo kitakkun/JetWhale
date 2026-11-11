@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostMcpToolsTab
@@ -129,7 +130,12 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports what the host window shows once it has composed`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example", sessionId = "s1"),
+            destination = HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "com.example",
+                sessionId = "s1",
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example", "s1"),
+            ),
             selectedSessionId = "s1",
             selectedPluginId = "com.example",
         )
@@ -141,9 +147,27 @@ class HostStatusCommandTest {
     }
 
     @Test
+    fun `getStatus reports the content under a dialog the host window has open`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(
+                kind = HostDestinationKind.SETTINGS,
+                settingsPage = HostSettingsPage.APPEARANCE,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example", "s1"),
+            ),
+            selectedSessionId = "s1",
+            selectedPluginId = "com.example",
+        )
+
+        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        assertEquals("SETTINGS", ui.destination)
+        assertEquals("PLUGIN", ui.content.destination)
+        assertEquals("com.example", ui.content.pluginId)
+    }
+
+    @Test
     fun `getStatus reports the settings page the window opened on`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS),
+            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS, content = HostContent(HostDestinationKind.HOME)),
             selectedSessionId = null,
             selectedPluginId = null,
         )
@@ -157,7 +181,7 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports the tab the MCP tools browser opened on`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.HISTORY),
+            destination = HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.HISTORY, content = HostContent(HostDestinationKind.HOME)),
             selectedSessionId = null,
             selectedPluginId = null,
         )
