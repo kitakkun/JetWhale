@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.demo.shared
 import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.actions.agent.JetWhaleDebugActionsAgentPlugin
+import com.kitakkun.jetwhale.plugins.coroutines.agent.JetWhaleCoroutineInspectorAgentPlugin
 import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
@@ -35,6 +36,10 @@ object DIModule {
     val semanticsAgentPlugin: JetWhaleSemanticsAgentPlugin by lazy { JetWhaleSemanticsAgentPlugin() }
 
     val storageAgentPlugin: JetWhaleStorageAgentPlugin by lazy(JetWhaleStorageAgentPlugin::platformDefaults)
+
+    val coroutineInspectorAgentPlugin: JetWhaleCoroutineInspectorAgentPlugin by lazy { JetWhaleCoroutineInspectorAgentPlugin() }
+
+    val coroutineDemo: CoroutineDemo by lazy { CoroutineDemo(coroutineInspectorAgentPlugin) }
 
     /** A demo Ktor client wired to the Network Inspector so its traffic shows up in the debugger. */
     val httpClient: HttpClient by lazy {
