@@ -28,9 +28,11 @@ internal class ReplaceBackStackCommand(
         newKeys.forEachIndexed { index, element ->
             if (element !is JsonObject) throw JetWhaleMcpArgumentException("keys[$index] is not a JSON object")
         }
-        return controller.mutate(
-            stackId = target,
-            operations = listOf(NavBackStackOperation.ReplaceAll(keys = newKeys.toList())),
-        ).toMcpJson()
+        return markingAiOperationOn(Nav3UiTarget.BackStack(target)) {
+            controller.mutate(
+                stackId = target,
+                operations = listOf(NavBackStackOperation.ReplaceAll(keys = newKeys.toList())),
+            ).toMcpJson()
+        }
     }
 }

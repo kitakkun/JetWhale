@@ -20,18 +20,20 @@ internal class GetBackStackCommand(
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val requested = arguments[stackId]
         val stacks = controller.stacks().filter { requested == null || it.stackId == requested }
-        return buildJsonObject {
-            putJsonArray("stacks") { stacks.forEach { add(it.toMcpJson()) } }
-            if (stacks.isEmpty()) {
-                put(
-                    "note",
-                    if (requested == null) {
-                        "The app has no Navigation 3 back stack registered; it must call TrackNavBackStack (or registerBackStack) first."
-                    } else {
-                        "No back stack is registered as '$requested'."
-                    },
-                )
-            }
-        }.toString()
+        return markingAiOperationOn(*stacks.map { Nav3UiTarget.BackStack(it.stackId) }.toTypedArray()) {
+            buildJsonObject {
+                putJsonArray("stacks") { stacks.forEach { add(it.toMcpJson()) } }
+                if (stacks.isEmpty()) {
+                    put(
+                        "note",
+                        if (requested == null) {
+                            "The app has no Navigation 3 back stack registered; it must call TrackNavBackStack (or registerBackStack) first."
+                        } else {
+                            "No back stack is registered as '$requested'."
+                        },
+                    )
+                }
+            }.toString()
+        }
     }
 }

@@ -22,11 +22,11 @@ internal class ListNavKeyTypesCommand(
         "List only the key types whose serial name contains this text, ignoring case: a simple name such as Detail, or part of a qualified one. Lists every type if omitted or blank.",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(Nav3UiTarget.PushPane) {
         val keyTypes = controller.keyTypes()
         val keyTypeQuery = NavKeyTypeQuery(arguments[query].orEmpty())
         val matchingKeyTypes = keyTypes.filter(keyTypeQuery::matches)
-        return buildJsonObject {
+        buildJsonObject {
             putJsonArray("keyTypes") { matchingKeyTypes.forEach { add(it.toMcpJson()) } }
             when {
                 keyTypes.isEmpty() -> put(
