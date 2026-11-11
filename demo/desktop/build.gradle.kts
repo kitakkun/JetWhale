@@ -18,6 +18,9 @@ dependencies {
     implementation(projects.demo.shared)
     implementation(compose.desktop.currentOs)
     implementation(projects.jetwhalePlugins.semantics.agent)
+    implementation(libs.kotlinxCoroutinesDebug)
+    // Provides Dispatchers.Main on the desktop JVM, which the main-thread coroutine demo runs on.
+    implementation(libs.kotlinxCoroutinesSwing)
 
     implementation(libs.ktorServerNetty)
 }
