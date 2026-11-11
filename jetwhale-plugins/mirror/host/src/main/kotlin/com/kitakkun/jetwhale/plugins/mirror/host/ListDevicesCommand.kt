@@ -18,11 +18,11 @@ internal class ListDevicesCommand(
         "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports. A device that takes no input (taps, swipes, buttons and text) says why in \"inputUnavailableReason\": a physical iOS device needs Xcode, iproxy and a development team set in the mirror, and its input is experimental. A physical iOS device gives screenshots and recordings only when ffmpeg is installed and macOS allows the host Camera access, since both come from the capture of its screen. " +
             "An Android device also reports \"screenOn\" and \"locked\"; a screen that is off shows as black, and $TOOL_PREFIX.setScreen turns it on."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(MirrorUiTarget.DevicePicker) {
         val devices = mirror.refresh()
         val selected = mirror.selectedId
         val screenPowers = devices.associate { it.id to readableScreenPower(it.controller) }
-        return buildJsonObject {
+        buildJsonObject {
             putJsonArray("devices") {
                 devices.forEach { device ->
                     val capabilities = device.controller.capabilities

@@ -230,17 +230,6 @@ class DeviceGridTest {
     }
 }
 
-/** Notice actions for tests that show no notice. */
-private object IgnoredNotices : MirrorNoticeActions {
-    override val notice: MirrorNotice? get() = null
-
-    override fun dismissAndRun(action: NoticeAction) = Unit
-
-    override fun dismiss() = Unit
-
-    override fun hold(held: Boolean) = Unit
-}
-
 private val NotRecording = GridRecordingState(recordingDeviceIds = emptySet(), recordableDevices = emptyList(), warningSuppressed = false)
 
 private object IgnoredRecordingActions : GridRecordingActions {

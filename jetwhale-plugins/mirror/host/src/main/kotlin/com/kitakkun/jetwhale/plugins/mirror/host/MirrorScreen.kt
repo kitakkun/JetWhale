@@ -49,7 +49,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +75,7 @@ private const val MAX_CONCURRENT_THUMBNAIL_CAPTURES = 2
  * list refreshes and the selected device streams for as long as this is in composition.
  */
 @Composable
-internal fun MirrorScreenRoot(mirror: DeviceMirror, mcpCommands: MirrorMcpCommands, modifier: Modifier = Modifier) {
+internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifier) {
     LaunchedEffect(mirror) { mirror.keepDevicesCurrent() }
     LaunchedEffect(mirror.captures) { mirror.captures.restoreFolder() }
     var showGrid by rememberPersistent("showGrid", default = false)
@@ -121,7 +121,7 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, mcpCommands: MirrorMcpComman
         if (showGrid) {
             DeviceGridRoot(mirror, thumbnails, notices, onShowSingle = { showGrid = false })
         } else {
-            SingleMirrorRoot(mirror, mcpCommands, thumbnails, notices, showCaptures, onToggleCaptures = { showCaptures = !showCaptures }, onShowGrid = { showGrid = true })
+            SingleMirrorRoot(mirror, thumbnails, notices, showCaptures, onToggleCaptures = { showCaptures = !showCaptures }, onShowGrid = { showGrid = true })
         }
     }
 }
@@ -147,7 +147,6 @@ private fun openCapture(capture: Capture, mirror: DeviceMirror, showPanel: () ->
 @Composable
 private fun SingleMirrorRoot(
     mirror: DeviceMirror,
-    mcpCommands: MirrorMcpCommands,
     thumbnails: DeviceThumbnails,
     notices: MirrorNoticeActions,
     showCaptures: Boolean,
@@ -169,7 +168,6 @@ private fun SingleMirrorRoot(
         recordingSinceMillis = mirror.selectedId?.let(mirror.recordingsStartedAtMillis::get),
         surface = mirror.surface,
         actions = mirror,
-        mcpCommands = mcpCommands,
         showCaptures = showCaptures,
         livenessOf = { id -> livenessOf(id, mirror, thumbnails, selectedIsStreaming = true) },
         onToggleCaptures = onToggleCaptures,
@@ -183,7 +181,6 @@ private fun SingleMirrorRoot(
                 selected = captures.selected,
                 thumbnails = captures,
                 actions = captures,
-                mcpCommands = mcpCommands,
             )
         },
     )
@@ -222,7 +219,6 @@ internal fun MirrorScreen(
     recordingSinceMillis: Long?,
     surface: MirrorSurface,
     actions: MirrorActions,
-    mcpCommands: MirrorMcpCommands,
     showCaptures: Boolean,
     livenessOf: (String) -> DeviceLiveness,
     onToggleCaptures: () -> Unit,
@@ -241,7 +237,7 @@ internal fun MirrorScreen(
         } else {
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
             val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis)
-            DevicePane(pane, surface, actions, mcpCommands, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
+            DevicePane(pane, surface, actions, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
 }
@@ -265,7 +261,6 @@ private fun DevicePane(
     pane: DevicePaneState,
     surface: MirrorSurface,
     actions: MirrorActions,
-    mcpCommands: MirrorMcpCommands,
     notices: MirrorNoticeActions,
     showCaptures: Boolean,
     livenessOf: (String) -> DeviceLiveness,
@@ -274,25 +269,25 @@ private fun DevicePane(
     capturesPanel: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        DeviceToolbar(pane, actions, mcpCommands, showCaptures, livenessOf, onToggleCaptures, onShowGrid)
+        DeviceToolbar(pane, actions, showCaptures, livenessOf, onToggleCaptures, onShowGrid)
         if (showCaptures) {
             JwSplitPane(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 state = rememberJwSplitPaneState(VIDEO_FRACTION),
-                first = { LiveView(pane, surface, actions, mcpCommands, notices) },
+                first = { LiveView(pane, surface, actions, notices) },
                 second = capturesPanel,
             )
         } else {
-            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions, mcpCommands, notices) }
+            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions, notices) }
         }
     }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, mcpCommands: MirrorMcpCommands, notices: MirrorNoticeActions) {
+private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, notices: MirrorNoticeActions) {
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileRunning(mcpCommands.tap, mcpCommands.swipe, shape = RectangleShape)) {
+        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileOperated(MirrorUiTarget.Screen, shape = RectangleShape)) {
             MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.inputRefusal == null, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
             val switching = surface.deviceId != pane.device.id
             when {
@@ -311,7 +306,7 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             )
         }
         if (pane.device.kind == DeviceKind.IosDevice) IphoneInputBanner(pane.capabilities.inputRefusal, actions.developmentTeam, actions::updateDevelopmentTeam)
-        if (pane.capabilities.inputRefusal == null) TextInput(mcpCommands, onSend = actions::inputText)
+        if (pane.capabilities.inputRefusal == null) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }
 }
@@ -356,7 +351,7 @@ private fun ScreenOffOverlay(onWake: () -> Unit) {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun TextInput(mcpCommands: MirrorMcpCommands, onSend: (String) -> Unit) {
+private fun TextInput(onSend: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
@@ -367,7 +362,7 @@ private fun TextInput(mcpCommands: MirrorMcpCommands, onSend: (String) -> Unit) 
             value = text,
             onValueChange = { text = it },
             placeholder = "Text to type on the device",
-            modifier = Modifier.weight(1f).jwAiOperatingRingWhileRunning(mcpCommands.inputText, shape = JwShapes.small),
+            modifier = Modifier.weight(1f).jwAiOperatingRingWhileOperated(MirrorUiTarget.TextInput, shape = JwShapes.small),
         )
         JwButton(
             text = "Type",

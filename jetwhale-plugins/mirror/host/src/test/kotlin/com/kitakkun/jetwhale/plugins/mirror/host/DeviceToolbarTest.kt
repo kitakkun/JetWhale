@@ -16,7 +16,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.ui.JwColors
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlin.math.abs
@@ -43,30 +43,31 @@ class DeviceToolbarTest {
     }
 
     @Test
-    fun `a control is ringed only while an agent runs the command that does the same`() = runComposeUiTest {
+    fun `a control is ringed only while an agent operates its target`() = runComposeUiTest {
         mainClock.autoAdvance = false
-        var runningCommandNames by mutableStateOf(emptySet<String>())
+        var operatedUiTargets by mutableStateOf(emptySet<Any>())
         setContent {
             JwTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets) {
                     Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false))
                 }
             }
         }
-        val controlLabels = listOf(emulator.name, "Home", "Volume up", "Screen off", "Record", "Screenshot")
+        val controlLabels = listOf(emulator.name, "Home", "Back", "Volume up", "Screen off", "Record", "Screenshot")
         mapOf(
-            toolbarMcpCommands.listDevices to listOf(emulator.name),
-            toolbarMcpCommands.pressButton to listOf("Home", "Volume up"),
-            toolbarMcpCommands.setScreen to listOf("Screen off"),
-            toolbarMcpCommands.startRecording to listOf("Record"),
-            toolbarMcpCommands.stopRecording to listOf("Record"),
-            toolbarMcpCommands.captureScreenshot to listOf("Screenshot"),
-            toolbarMcpCommands.listCaptures to emptyList(),
-        ).forEach { (command, ringedLabels) ->
-            runningCommandNames = setOf(command.name)
+            MirrorUiTarget.DevicePicker to listOf(emulator.name),
+            MirrorUiTarget.HardwareButton(DeviceButton.Home) to listOf("Home"),
+            MirrorUiTarget.HardwareButton(DeviceButton.VolumeUp) to listOf("Volume up"),
+            MirrorUiTarget.ScreenPowerButton to listOf("Screen off"),
+            MirrorUiTarget.RecordingButton to listOf("Record"),
+            MirrorUiTarget.ScreenshotButton to listOf("Screenshot"),
+            MirrorUiTarget.Screen to emptyList(),
+            MirrorUiTarget.CaptureList to emptyList(),
+        ).forEach { (target, ringedLabels) ->
+            operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedLabels, controlLabels.filter { isControlRinged(it) }, "while ${command.name} runs")
+            assertEquals(ringedLabels, controlLabels.filter { isControlRinged(it) }, "while $target is operated")
         }
     }
 
@@ -106,8 +107,6 @@ class DeviceToolbarTest {
     }
 }
 
-private val toolbarMcpCommands = MirrorMcpCommands(NoMirrorDevices)
-
 @Composable
 private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, screenPower: ScreenPower?) {
     DeviceToolbar(
@@ -120,58 +119,9 @@ private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, scr
             recordingSinceMillis = null,
         ),
         actions = NoMirrorActions,
-        mcpCommands = toolbarMcpCommands,
         showCaptures = false,
         livenessOf = { DeviceLiveness.Live },
         onToggleCaptures = {},
         onShowGrid = {},
     )
-}
-
-private object NoMirrorDevices : MirrorDevices {
-    override val selectedId: String? = null
-
-    override suspend fun refresh(): List<MirrorDevice> = emptyList()
-
-    override fun resolve(deviceId: String?): MirrorDevice = error("A toolbar test has no devices")
-
-    override suspend fun saveScreenshot(device: MirrorDevice): Capture = error("A toolbar test has no devices")
-
-    override suspend fun startRecording(device: MirrorDevice) = Unit
-
-    override suspend fun startRecordings(deviceIds: List<String>?): List<RecordingResult> = emptyList()
-
-    override suspend fun stopRecording(deviceId: String?): Capture = error("A toolbar test has no devices")
-
-    override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = emptyList()
-
-    override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = emptyList()
-}
-
-private object NoMirrorActions : MirrorActions {
-    override fun select(deviceId: String) = Unit
-
-    override fun tap(x: Int, y: Int) = Unit
-
-    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) = Unit
-
-    override fun pressButton(button: DeviceButton) = Unit
-
-    override fun inputText(text: String) = Unit
-
-    override fun saveScreenshot() = Unit
-
-    override fun recordSelectedDevice() = Unit
-
-    override fun stopSelectedRecording() = Unit
-
-    override fun wake() = Unit
-
-    override fun sleep() = Unit
-
-    override fun retryLiveVideo() = Unit
-
-    override val developmentTeam: String? get() = null
-
-    override fun updateDevelopmentTeam(team: String?) = Unit
 }

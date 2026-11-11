@@ -15,10 +15,10 @@ internal class InputTextCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val text by string("The text to type.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(MirrorUiTarget.TextInput) {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
         deviceOperation { device.controller.inputText(arguments[text]) }
-        return okJson()
+        okJson()
     }
 }

@@ -33,13 +33,15 @@ internal class SwipeCommand(
         val duration = arguments[durationMillis] ?: DEFAULT_SWIPE_MILLIS
         if (minOf(fromX, fromY, toX, toY) < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got $fromX,$fromY -> $toX,$toY)")
         if (duration !in 0..MAX_SWIPE_MILLIS) throw JetWhaleMcpArgumentException("durationMillis must be from 0 to $MAX_SWIPE_MILLIS (got $duration)")
-        val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-        val screen = deviceOperation(device.controller::screenSize)
-        if (maxOf(fromX, toX) >= screen.width || maxOf(fromY, toY) >= screen.height) {
-            throw JetWhaleMcpArgumentException("the swipe leaves the ${screen.width}x${screen.height} screen (got $fromX,$fromY -> $toX,$toY)")
+        return markingAiOperationOn(MirrorUiTarget.Screen) {
+            val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
+            device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
+            val screen = deviceOperation(device.controller::screenSize)
+            if (maxOf(fromX, toX) >= screen.width || maxOf(fromY, toY) >= screen.height) {
+                throw JetWhaleMcpArgumentException("the swipe leaves the ${screen.width}x${screen.height} screen (got $fromX,$fromY -> $toX,$toY)")
+            }
+            deviceOperation { device.controller.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = duration) }
+            okJson()
         }
-        deviceOperation { device.controller.swipe(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = duration) }
-        return okJson()
     }
 }

@@ -28,14 +28,17 @@ internal class StopRecordingCommand(
         if (listOf(single != null, several != null, everyDevice).count { it } > 1) {
             throw JetWhaleMcpArgumentException("pass one of deviceId, deviceIds or all=true")
         }
-        if (several == null && !everyDevice) {
-            val capture = deviceOperation { mirror.stopRecording(single) }
-            return buildJsonObject {
-                put("path", capture.file.absolutePath)
-                capture.info.durationMillis?.let { put("durationMillis", it) }
-            }.toString()
+        return markingAiOperationOn(MirrorUiTarget.RecordingButton) {
+            if (several == null && !everyDevice) {
+                val capture = deviceOperation { mirror.stopRecording(single) }
+                buildJsonObject {
+                    put("path", capture.file.absolutePath)
+                    capture.info.durationMillis?.let { put("durationMillis", it) }
+                }.toString()
+            } else {
+                val results = mirror.stopRecordings(several)
+                buildJsonObject { put("results", buildJsonArray { results.forEach { add(it.toJson()) } }) }.toString()
+            }
         }
-        val results = mirror.stopRecordings(several)
-        return buildJsonObject { put("results", buildJsonArray { results.forEach { add(it.toJson()) } }) }.toString()
     }
 }

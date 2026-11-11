@@ -15,8 +15,11 @@ internal class PressButtonCommand(
     private val button by enum("The button to press.", DeviceButton.entries)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        deviceOperation { device.controller.pressButton(arguments[button]) }
-        return okJson()
+        val pressed = arguments[button]
+        return markingAiOperationOn(MirrorUiTarget.HardwareButton(pressed)) {
+            val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
+            deviceOperation { device.controller.pressButton(pressed) }
+            okJson()
+        }
     }
 }
