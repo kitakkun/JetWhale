@@ -57,14 +57,14 @@ class ComposeSemanticsInspectorScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        val edges = mapOf(
+        val edgePixelCaptures = mapOf(
             "node tree" to { onNode(hasScrollToIndexAction()).captureTopEdgePixels() },
             "top row" to { onNode(hasClickAction() and hasText("top", substring = true)).captureTopEdgePixels() },
             "selected row" to { onNode(hasClickAction() and hasText("Send", substring = true)).captureTopEdgePixels() },
             "node actions" to { onNodeWithText("Run an action on the app").captureLeftEdgePixels() },
             "view attributes" to { onNodeWithText("View attributes").captureLeftEdgePixels() },
         )
-        val idleEdgePixels = edges.mapValues { (_, capture) -> capture() }
+        val idleEdgePixels = edgePixelCaptures.mapValues { (_, capture) -> capture() }
 
         mapOf(
             SemanticsUiTarget.NodeTree to listOf("node tree"),
@@ -72,11 +72,11 @@ class ComposeSemanticsInspectorScreenTest {
             SemanticsUiTarget.Node(rootId = "window", nodeId = 1) to listOf("top row"),
             SemanticsUiTarget.ViewAttributes(rootId = "window", nodeId = selectedView.id) to listOf("view attributes"),
             SemanticsUiTarget.ViewAttributes(rootId = "window", nodeId = 1) to emptyList(),
-        ).forEach { (target, ringedNames) ->
+        ).forEach { (target, ringedElementNames) ->
             operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedNames, edges.filter { (name, capture) -> capture() != idleEdgePixels.getValue(name) }.keys.toList(), "while $target is operated")
+            assertEquals(ringedElementNames, edgePixelCaptures.filter { (elementName, capture) -> capture() != idleEdgePixels.getValue(elementName) }.keys.toList(), "while $target is operated")
         }
     }
 

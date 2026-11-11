@@ -61,7 +61,7 @@ class DeviceToolbarTest {
             MirrorUiTarget.ScreenPowerButton to listOf("Screen off"),
             MirrorUiTarget.RecordingButton to listOf("Record"),
             MirrorUiTarget.ScreenshotButton to listOf("Screenshot"),
-            MirrorUiTarget.Screen to emptyList(),
+            MirrorUiTarget.LiveView to emptyList(),
             MirrorUiTarget.CaptureList to emptyList(),
         ).forEach { (target, ringedLabels) ->
             operatedUiTargets = setOf(target)

@@ -137,21 +137,21 @@ class StorageMcpCommandsTest {
 
     @Test
     fun `a file or store command marks the entry or store it names, and listLocations both lists`() {
-        val notes = StorageUiTarget.FileEntry(location("Files", "notes.txt"))
-        val settings = StorageUiTarget.KeyValueStore("settings")
-        val removeOnboarded = buildJsonObject {
+        val notesFileEntry = StorageUiTarget.FileEntry(location("Files", "notes.txt"))
+        val settingsStore = StorageUiTarget.KeyValueStore("settings")
+        val removeOnboardedArguments = buildJsonObject {
             put("store", "settings")
             put("key", "onboarded")
         }
 
         assertEquals(listOf<Any>(StorageUiTarget.FileTree, StorageUiTarget.StoreList), ListStorageLocationsCommand(client).markedTargets(buildJsonObject { }))
         assertEquals(listOf<Any>(StorageUiTarget.FileEntry(location("Files", "datastore"))), ListDirectoryCommand(client).markedTargets(file("datastore")))
-        assertEquals(listOf<Any>(notes), ReadFileCommand(client).markedTargets(file("notes.txt")))
-        assertEquals(listOf<Any>(notes), HashFileCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(notesFileEntry), ReadFileCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(notesFileEntry), HashFileCommand(client).markedTargets(file("notes.txt")))
         assertEquals(listOf<Any>(StorageUiTarget.FileEntry(location("Files", "datastore"))), MeasureDirectoryCommand(client).markedTargets(file("datastore")))
-        assertEquals(listOf<Any>(notes), DeleteFileEntryCommand(client).markedTargets(file("notes.txt")))
-        assertEquals(listOf<Any>(settings), ReadKeyValueStoreCommand(client).markedTargets(buildJsonObject { put("store", "settings") }))
-        assertEquals(listOf<Any>(settings), RemoveKeyValueCommand(client).markedTargets(removeOnboarded))
+        assertEquals(listOf<Any>(notesFileEntry), DeleteFileEntryCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(settingsStore), ReadKeyValueStoreCommand(client).markedTargets(buildJsonObject { put("store", "settings") }))
+        assertEquals(listOf<Any>(settingsStore), RemoveKeyValueCommand(client).markedTargets(removeOnboardedArguments))
     }
 
     private fun file(path: String): JsonObject = buildJsonObject {

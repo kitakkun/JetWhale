@@ -287,7 +287,7 @@ private fun DevicePane(
 @Composable
 private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, notices: MirrorNoticeActions) {
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileOperated(MirrorUiTarget.Screen, shape = RectangleShape)) {
+        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileOperated(MirrorUiTarget.LiveView, shape = RectangleShape)) {
             MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.inputRefusal == null, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
             val switching = surface.deviceId != pane.device.id
             when {

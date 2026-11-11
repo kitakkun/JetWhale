@@ -7,8 +7,8 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 internal sealed interface MirrorUiTarget {
     data object DevicePicker : MirrorUiTarget
 
-    /** The live view, where a tap or a swipe lands. */
-    data object Screen : MirrorUiTarget
+    /** Where a tap or a swipe lands. */
+    data object LiveView : MirrorUiTarget
 
     data class HardwareButton(val button: DeviceButton) : MirrorUiTarget
 

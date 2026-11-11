@@ -33,20 +33,20 @@ import kotlin.time.Clock
 class DefaultAiOperatedUiTargetsService(
     private val clock: Clock,
 ) : AiOperatedUiTargetsService {
-    private val operationsByInstance = MutableStateFlow<Map<PluginInstanceKey, Map<Any, UiTargetOperations>>>(emptyMap())
+    private val operationsByPluginInstance = MutableStateFlow<Map<PluginInstanceKey, Map<Any, UiTargetOperations>>>(emptyMap())
 
     override fun reporterFor(pluginId: String, sessionId: String): AiOperatedUiTargetsReporter = PluginInstanceReporter(PluginInstanceKey(pluginId, sessionId))
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun operatedUiTargetsFlow(pluginId: String, sessionId: String): Flow<Set<Any>> {
-        val instance = PluginInstanceKey(pluginId, sessionId)
-        return operationsByInstance
-            .map { it[instance].orEmpty() }
+        val pluginInstanceKey = PluginInstanceKey(pluginId, sessionId)
+        return operationsByPluginInstance
+            .map { it[pluginInstanceKey].orEmpty() }
             .distinctUntilChanged()
             .transformLatest { operationsByTarget ->
                 while (true) {
                     val nowEpochMillis = clock.now().toEpochMilliseconds()
-                    emit(operationsByTarget.filterValues { isOperated(it, nowEpochMillis) }.keys)
+                    emit(operationsByTarget.filterValues { isTargetOperated(it, nowEpochMillis) }.keys)
                     val nextHoldEndEpochMillis = operationsByTarget.values
                         .filter { it.runningCount == 0 }
                         .mapNotNull { it.lastEndedAtEpochMillis?.plus(AI_OPERATION_INDICATOR_LINGER.inWholeMilliseconds) }
@@ -59,45 +59,45 @@ class DefaultAiOperatedUiTargetsService(
             .distinctUntilChanged()
     }
 
-    private inner class PluginInstanceReporter(private val instance: PluginInstanceKey) : AiOperatedUiTargetsReporter() {
+    private inner class PluginInstanceReporter(private val pluginInstanceKey: PluginInstanceKey) : AiOperatedUiTargetsReporter() {
         override fun reportOperationStarted(targets: Set<Any>) {
-            recordOperationsStarted(instance, targets)
+            recordOperationsStarted(pluginInstanceKey, targets)
         }
 
         override fun reportOperationEnded(targets: Set<Any>) {
-            recordOperationsEnded(instance, targets)
+            recordOperationsEnded(pluginInstanceKey, targets)
         }
     }
 
-    private fun recordOperationsStarted(instance: PluginInstanceKey, targets: Set<Any>) {
-        operationsByInstance.update { all ->
-            val operationsByTarget = all[instance].orEmpty().toMutableMap()
+    private fun recordOperationsStarted(pluginInstanceKey: PluginInstanceKey, targets: Set<Any>) {
+        operationsByPluginInstance.update { all ->
+            val operationsByTarget = all[pluginInstanceKey].orEmpty().toMutableMap()
             targets.forEach { target ->
                 val operations = operationsByTarget[target]
                 operationsByTarget[target] = UiTargetOperations(runningCount = (operations?.runningCount ?: 0) + 1, lastEndedAtEpochMillis = operations?.lastEndedAtEpochMillis)
             }
-            withoutEndedHolds(all + (instance to operationsByTarget), clock.now().toEpochMilliseconds())
+            withoutEndedHolds(all + (pluginInstanceKey to operationsByTarget), clock.now().toEpochMilliseconds())
         }
     }
 
-    private fun recordOperationsEnded(instance: PluginInstanceKey, targets: Set<Any>) {
-        operationsByInstance.update { all ->
+    private fun recordOperationsEnded(pluginInstanceKey: PluginInstanceKey, targets: Set<Any>) {
+        operationsByPluginInstance.update { all ->
             val nowEpochMillis = clock.now().toEpochMilliseconds()
-            val operationsByTarget = all[instance].orEmpty().toMutableMap()
+            val operationsByTarget = all[pluginInstanceKey].orEmpty().toMutableMap()
             targets.forEach { target ->
                 val operations = operationsByTarget.getValue(target)
                 operationsByTarget[target] = UiTargetOperations(runningCount = operations.runningCount - 1, lastEndedAtEpochMillis = nowEpochMillis)
             }
-            withoutEndedHolds(all + (instance to operationsByTarget), nowEpochMillis)
+            withoutEndedHolds(all + (pluginInstanceKey to operationsByTarget), nowEpochMillis)
         }
     }
 
     /** Drops the targets no longer operated, so the state holds only what some UI may still show. */
     private fun withoutEndedHolds(all: Map<PluginInstanceKey, Map<Any, UiTargetOperations>>, nowEpochMillis: Long): Map<PluginInstanceKey, Map<Any, UiTargetOperations>> = all
-        .mapValues { (_, operationsByTarget) -> operationsByTarget.filterValues { isOperated(it, nowEpochMillis) } }
+        .mapValues { (_, operationsByTarget) -> operationsByTarget.filterValues { isTargetOperated(it, nowEpochMillis) } }
         .filterValues { it.isNotEmpty() }
 
-    private fun isOperated(operations: UiTargetOperations, nowEpochMillis: Long): Boolean = operations.runningCount > 0 ||
+    private fun isTargetOperated(operations: UiTargetOperations, nowEpochMillis: Long): Boolean = operations.runningCount > 0 ||
         operations.lastEndedAtEpochMillis.let { it != null && nowEpochMillis < it + AI_OPERATION_INDICATOR_LINGER.inWholeMilliseconds }
 
 }

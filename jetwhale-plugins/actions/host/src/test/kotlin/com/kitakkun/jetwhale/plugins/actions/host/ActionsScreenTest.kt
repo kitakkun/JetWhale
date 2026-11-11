@@ -58,22 +58,22 @@ class ActionsScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        val edges = mapOf(
+        val edgePixelCaptures = mapOf(
             "action list" to { onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText(signIn.title))).captureBottomEdgePixels() },
             "sign-in row" to { actionRow(signIn.title).captureTopEdgePixels() },
             "sign-out row" to { actionRow(signOut.title).captureTopEdgePixels() },
         )
-        val idleEdgePixels = edges.mapValues { (_, capture) -> capture() }
+        val idleEdgePixels = edgePixelCaptures.mapValues { (_, capture) -> capture() }
 
         mapOf(
             ActionsUiTarget.ActionList to listOf("action list"),
             ActionsUiTarget.ActionRow(signIn.id) to listOf("sign-in row"),
             ActionsUiTarget.ActionRow("Account / Delete") to emptyList(),
-        ).forEach { (target, ringedNames) ->
+        ).forEach { (target, ringedControlNames) ->
             operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedNames, edges.filter { (name, capture) -> capture() != idleEdgePixels.getValue(name) }.keys.toList(), "while $target is operated")
+            assertEquals(ringedControlNames, edgePixelCaptures.filter { (controlName, capture) -> capture() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while $target is operated")
         }
     }
 

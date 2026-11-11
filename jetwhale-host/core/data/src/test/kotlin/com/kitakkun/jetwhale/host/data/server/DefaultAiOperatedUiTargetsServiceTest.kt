@@ -124,9 +124,9 @@ class DefaultAiOperatedUiTargetsServiceTest {
         val service = newService()
         val emissions = collectOperatedUiTargets(service)
 
-        val work = launchMarkedWork(service.reporterFor(PLUGIN_ID, SESSION_ID), listOf(TestUiTarget.Screen)) { delay(10_000) }
+        val workJob = launchMarkedWork(service.reporterFor(PLUGIN_ID, SESSION_ID), listOf(TestUiTarget.Screen)) { delay(10_000) }
         advanceTimeBy(1_000)
-        work.cancel()
+        workJob.cancel()
 
         advanceTimeBy(LINGER_MILLIS - 1)
         assertEquals(setOf<Any>(TestUiTarget.Screen), emissions.last())

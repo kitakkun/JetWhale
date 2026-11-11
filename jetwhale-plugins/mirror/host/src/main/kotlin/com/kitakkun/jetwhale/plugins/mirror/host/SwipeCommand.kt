@@ -33,7 +33,7 @@ internal class SwipeCommand(
         val duration = arguments[durationMillis] ?: DEFAULT_SWIPE_MILLIS
         if (minOf(fromX, fromY, toX, toY) < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got $fromX,$fromY -> $toX,$toY)")
         if (duration !in 0..MAX_SWIPE_MILLIS) throw JetWhaleMcpArgumentException("durationMillis must be from 0 to $MAX_SWIPE_MILLIS (got $duration)")
-        return markingAiOperationOn(MirrorUiTarget.Screen) {
+        return markingAiOperationOn(MirrorUiTarget.LiveView) {
             val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
             device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
             val screen = deviceOperation(device.controller::screenSize)

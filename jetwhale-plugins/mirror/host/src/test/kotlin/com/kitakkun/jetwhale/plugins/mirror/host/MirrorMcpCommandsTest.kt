@@ -322,7 +322,7 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
-    fun `a tap and a swipe mark the screen`() {
+    fun `a tap and a swipe mark the live view`() {
         val tapMarked = TapCommand(mirror).markedTargets(
             buildJsonObject {
                 put("x", 10)
@@ -331,8 +331,8 @@ class MirrorMcpCommandsTest {
         )
         val swipeMarked = SwipeCommand(mirror).markedTargets(swipe(fromX = 540, toY = 600, durationMillis = null))
 
-        assertEquals(listOf<Any>(MirrorUiTarget.Screen), tapMarked)
-        assertEquals(listOf<Any>(MirrorUiTarget.Screen), swipeMarked)
+        assertEquals(listOf<Any>(MirrorUiTarget.LiveView), tapMarked)
+        assertEquals(listOf<Any>(MirrorUiTarget.LiveView), swipeMarked)
     }
 
     @Test

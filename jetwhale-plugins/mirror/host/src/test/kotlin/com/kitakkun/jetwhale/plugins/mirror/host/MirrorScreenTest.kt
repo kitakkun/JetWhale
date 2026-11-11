@@ -33,7 +33,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class MirrorScreenTest {
     @Test
-    fun `the live view between the toolbar and the text input is ringed while an agent operates the screen`() = runComposeUiTest {
+    fun `the live view between the toolbar and the text input is ringed while an agent operates it`() = runComposeUiTest {
         mainClock.autoAdvance = false
         var operatedUiTargets by mutableStateOf(emptySet<Any>())
         setContent {
@@ -56,29 +56,29 @@ class MirrorScreenTest {
                             onToggleCaptures = {},
                             onShowGrid = {},
                             capturesPanel = {},
-                            modifier = Modifier.testTag(SCREEN_TAG),
+                            modifier = Modifier.testTag(MIRROR_SCREEN_TAG),
                         )
                     }
                 }
             }
         }
         mainClock.advanceTimeByFrame()
-        assertEquals(emptyList(), accentPixels(), "nothing is ringed before the screen is operated")
+        assertEquals(emptyList(), accentPixelPositions(), "nothing is ringed before the screen is operated")
 
-        operatedUiTargets = setOf(MirrorUiTarget.Screen)
+        operatedUiTargets = setOf(MirrorUiTarget.LiveView)
         mainClock.advanceTimeByFrame()
 
-        val ringPixels = accentPixels()
+        val ringPixelPositions = accentPixelPositions()
         val toolbarBottom = onNodeWithContentDescription("Screenshot").fetchSemanticsNode().boundsInRoot.bottom
         val textInputTop = onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot.top
-        val screenBounds = onNodeWithTag(SCREEN_TAG).fetchSemanticsNode().boundsInRoot
-        assertTrue(ringPixels.isNotEmpty(), "the live view is not ringed")
-        assertTrue(ringPixels.all { (_, y) -> y >= toolbarBottom && y < textInputTop }, "the ring leaves the live view")
-        assertTrue(ringPixels.any { (x, _) -> x < screenBounds.left + EDGE_WIDTH_PX } && ringPixels.any { (x, _) -> x >= screenBounds.right - EDGE_WIDTH_PX }, "the ring does not span the screen's width")
+        val mirrorScreenBounds = onNodeWithTag(MIRROR_SCREEN_TAG).fetchSemanticsNode().boundsInRoot
+        assertTrue(ringPixelPositions.isNotEmpty(), "the live view is not ringed")
+        assertTrue(ringPixelPositions.all { (_, y) -> y >= toolbarBottom && y < textInputTop }, "the ring leaves the live view")
+        assertTrue(ringPixelPositions.any { (x, _) -> x < mirrorScreenBounds.left + EDGE_WIDTH_PX } && ringPixelPositions.any { (x, _) -> x >= mirrorScreenBounds.right - EDGE_WIDTH_PX }, "the ring does not span the screen's width")
     }
 
     /** Where the AI accent shows: nothing else on the screen is drawn in it. */
-    private fun ComposeUiTest.accentPixels(): List<Pair<Int, Int>> {
+    private fun ComposeUiTest.accentPixelPositions(): List<Pair<Int, Int>> {
         val pixels: PixelMap = onRoot().captureToImage().toPixelMap()
         val aiAccent = JwColors.light().aiAccent
         return buildList {
@@ -100,6 +100,6 @@ class MirrorScreenTest {
         /** Covers the ring's stroke, which lies just inside the ringed area's bounds. */
         const val EDGE_WIDTH_PX = 3
 
-        const val SCREEN_TAG = "mirror-screen"
+        const val MIRROR_SCREEN_TAG = "mirror-screen"
     }
 }

@@ -220,7 +220,7 @@ class NetworkMcpCommandsTest {
 
     @Test
     fun `each command marks the control or pane a user would read or use for the same thing`() {
-        val noRules = { _: List<MockRule> -> null }
+        val succeedingSyncMockRules = { _: List<MockRule> -> null }
         val rule = MockRule(id = "r1", name = "", enabled = true, matcher = MockMatcher(urlPattern = "/a", matchType = MockMatchType.EXACT), response = MockResponseSpec(statusCode = 200, headers = emptyMap()))
         mapOf(
             listCommand() to NetworkUiTarget.TrafficList,
@@ -228,9 +228,9 @@ class NetworkMcpCommandsTest {
             ClearTransactionsCommand(clearTransactions = { 0 }) to NetworkUiTarget.ClearButton,
             GetMockConfigCommand(mockingEnabled = { true }, mockRules = { emptyList() }) to NetworkUiTarget.MocksTab,
             SetMockingEnabledCommand(syncMockingEnabled = { null }) to NetworkUiTarget.MockingSwitch,
-            AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
-            RemoveMockRuleCommand(mockRules = { listOf(rule) }, syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
-            SetMockRulesCommand(syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
+            AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = succeedingSyncMockRules) to NetworkUiTarget.MockRuleList,
+            RemoveMockRuleCommand(mockRules = { listOf(rule) }, syncMockRules = succeedingSyncMockRules) to NetworkUiTarget.MockRuleList,
+            SetMockRulesCommand(syncMockRules = succeedingSyncMockRules) to NetworkUiTarget.MockRuleList,
         ).forEach { (command, target) ->
             val arguments = mapOf("txId" to JsonPrimitive("a"), "enabled" to JsonPrimitive(true), "urlPattern" to JsonPrimitive("/x"), "id" to JsonPrimitive("r1"), "rules" to Json.encodeToJsonElement(emptyList<MockRule>()))
             assertEquals(listOf<Any>(target), command.markedTargets(JsonObject(arguments)), command.name)
