@@ -61,7 +61,7 @@ class ComposeSemanticsInspectorScreenTest {
             "node actions" to onNodeWithText("Run an action on the app"),
             "view attributes" to onNodeWithText("View attributes"),
         )
-        val idleEdges = controls.mapValues { (_, control) -> control.edgePixels() }
+        val idleEdgePixels = controls.mapValues { (_, control) -> control.captureEdgePixels() }
 
         mapOf(
             testMcpCommands.getNodeTree to listOf("node tree"),
@@ -70,11 +70,11 @@ class ComposeSemanticsInspectorScreenTest {
             testMcpCommands.performNodeAction to listOf("node actions"),
             testMcpCommands.getViewAttributes to listOf("view attributes"),
             testMcpCommands.setViewAttribute to listOf("view attributes"),
-        ).forEach { (command, ringedControls) ->
+        ).forEach { (command, ringedControlNames) ->
             runningCommandNames = setOf(command.name)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedControls, controls.filter { (name, control) -> control.edgePixels() != idleEdges.getValue(name) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while ${command.name} runs")
         }
     }
 
@@ -82,7 +82,7 @@ class ComposeSemanticsInspectorScreenTest {
      * The pixels along the node's edges, where the ring shows of a pane or group the node fills, or that the
      * node starts at the left edge of.
      */
-    private fun SemanticsNodeInteraction.edgePixels(): List<Color> {
+    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
         val pixels = captureToImage().toPixelMap()
         return buildList {
             for (x in 0 until pixels.width) {

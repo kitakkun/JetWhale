@@ -11,9 +11,9 @@ import kotlin.coroutines.EmptyCoroutineContext
 /** The browser behind the commands for previews and docs screenshots, which draw the list but never run a command. */
 private val previewBrowser = ActionsBrowser(client = NoActionsClient, scope = CoroutineScope(EmptyCoroutineContext))
 
-internal val previewListActions = ListActionsCommand(previewBrowser)
+internal val previewListActionsCommand = ListActionsCommand(previewBrowser)
 
-internal val previewRunAction = RunActionCommand(previewBrowser)
+internal val previewRunActionCommand = RunActionCommand(previewBrowser)
 
 private object NoActionsClient : ActionsClient {
     override suspend fun listActions(): ActionCatalog = ActionCatalog(emptyList())

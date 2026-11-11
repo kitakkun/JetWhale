@@ -46,7 +46,7 @@ private const val LIST_FRACTION = 0.35f
  * both persisted across restarts — to [ActionsScreen].
  */
 @Composable
-internal fun ActionsScreenRoot(browser: ActionsBrowser, listActions: ListActionsCommand, runAction: RunActionCommand, modifier: Modifier = Modifier) {
+internal fun ActionsScreenRoot(browser: ActionsBrowser, listActionsCommand: ListActionsCommand, runActionCommand: RunActionCommand, modifier: Modifier = Modifier) {
     var pinned by rememberPersistent("pinned-actions", default = emptyList<String>())
     var lastArguments by rememberPersistent("last-arguments", default = emptyMap<String, String>())
     var query by remember { mutableStateOf("") }
@@ -64,8 +64,8 @@ internal fun ActionsScreenRoot(browser: ActionsBrowser, listActions: ListActions
         pinnedIds = pinned.toSet(),
         rememberedArguments = rememberedArguments,
         actions = browser,
-        listActions = listActions,
-        runAction = runAction,
+        listActionsCommand = listActionsCommand,
+        runActionCommand = runActionCommand,
         onQueryChange = { query = it },
         onTogglePin = { id -> pinned = if (id in pinned) pinned - id else pinned + id },
         onRun = { id, arguments, confirmedDestructive ->
@@ -90,8 +90,8 @@ internal fun ActionsScreen(
     pinnedIds: Set<String>,
     rememberedArguments: Map<String, JsonObject>,
     actions: ActionsScreenActions,
-    listActions: ListActionsCommand,
-    runAction: RunActionCommand,
+    listActionsCommand: ListActionsCommand,
+    runActionCommand: RunActionCommand,
     onQueryChange: (String) -> Unit,
     onTogglePin: (String) -> Unit,
     onRun: (actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) -> Unit,
@@ -127,8 +127,8 @@ internal fun ActionsScreen(
                 pinnedIds = pinnedIds,
                 rememberedArguments = rememberedArguments,
                 actions = actions,
-                listActions = listActions,
-                runAction = runAction,
+                listActionsCommand = listActionsCommand,
+                runActionCommand = runActionCommand,
                 onQueryChange = onQueryChange,
                 onTogglePin = onTogglePin,
                 onRun = onRun,
@@ -157,8 +157,8 @@ private fun ActionsTabContent(
     pinnedIds: Set<String>,
     rememberedArguments: Map<String, JsonObject>,
     actions: ActionsScreenActions,
-    listActions: ListActionsCommand,
-    runAction: RunActionCommand,
+    listActionsCommand: ListActionsCommand,
+    runActionCommand: RunActionCommand,
     onQueryChange: (String) -> Unit,
     onTogglePin: (String) -> Unit,
     onRun: (actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) -> Unit,
@@ -182,7 +182,7 @@ private fun ActionsTabContent(
                 onQueryChange = onQueryChange,
                 onSelect = actions::select,
                 onTogglePin = onTogglePin,
-                modifier = Modifier.jwAiOperatingRingWhileRunning(listActions, runAction, shape = RectangleShape),
+                modifier = Modifier.jwAiOperatingRingWhileRunning(listActionsCommand, runActionCommand, shape = RectangleShape),
             )
         },
         second = {

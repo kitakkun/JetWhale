@@ -88,7 +88,7 @@ class Nav3NavigatorScreenTest {
             "back stack" to onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Home()"))),
             "push pane" to onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Push a NavKey"))),
         )
-        val idleEdges = panes.mapValues { (_, pane) -> pane.edgePixels() }
+        val idleEdgePixels = panes.mapValues { (_, pane) -> pane.captureEdgePixels() }
 
         mapOf(
             screenMcpCommands.getBackStack to listOf("back stack"),
@@ -98,16 +98,16 @@ class Nav3NavigatorScreenTest {
             screenMcpCommands.moveNavKeyToTop to listOf("back stack"),
             screenMcpCommands.replaceBackStack to listOf("back stack"),
             screenMcpCommands.listNavKeyTypes to listOf("push pane"),
-        ).forEach { (command, ringedPanes) ->
+        ).forEach { (command, ringedPaneNames) ->
             runningCommandNames = setOf(command.name)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedPanes, panes.filter { (name, pane) -> pane.edgePixels() != idleEdges.getValue(name) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedPaneNames, panes.filter { (paneName, pane) -> pane.captureEdgePixels() != idleEdgePixels.getValue(paneName) }.keys.toList(), "while ${command.name} runs")
         }
     }
 
     /** The pixels along the node's edges, where the ring of a pane the node fills is drawn. */
-    private fun SemanticsNodeInteraction.edgePixels(): List<Color> {
+    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
         val pixels = captureToImage().toPixelMap()
         return buildList {
             for (x in 0 until pixels.width) {

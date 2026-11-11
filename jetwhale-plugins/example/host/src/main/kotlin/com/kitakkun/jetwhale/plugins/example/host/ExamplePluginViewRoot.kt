@@ -34,8 +34,8 @@ import com.kitakkun.jetwhale.host.ui.JwToolbar
 @Composable
 internal fun ExamplePluginViewRoot(
     eventLogs: List<String>,
-    sendPing: SendPingCommand,
-    getEventLogs: GetEventLogsCommand,
+    sendPingCommand: SendPingCommand,
+    getEventLogsCommand: GetEventLogsCommand,
     onClickSendPing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -44,8 +44,8 @@ internal fun ExamplePluginViewRoot(
     ExamplePluginView(
         eventLogs = eventLogs,
         persistedInput = persistedInput,
-        sendPing = sendPing,
-        getEventLogs = getEventLogs,
+        sendPingCommand = sendPingCommand,
+        getEventLogsCommand = getEventLogsCommand,
         onClickSendPing = onClickSendPing,
         onClickTriggerUIError = { error("Example Error") },
         onPersistedInputChange = { persistedInput = it },

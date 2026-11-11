@@ -41,7 +41,7 @@ class NetworkInspectorScreenTest {
                 "transaction detail" to onNode(isVerticallyScrollable and hasAnyDescendant(hasText("Select a request to see details"))),
                 "clear button" to onNodeWithText("Clear"),
             ),
-            ringedControlsByCommand = mapOf(
+            ringedControlNamesByCommand = mapOf(
                 testMcpCommands.listTransactions to listOf("traffic list"),
                 testMcpCommands.getTransaction to listOf("transaction detail"),
                 testMcpCommands.clearTransactions to listOf("clear button"),
@@ -64,7 +64,7 @@ class NetworkInspectorScreenTest {
                 "mocking switch" to onNode(hasContentDescription("Mocking enabled")),
                 "mock rules" to onNodeWithText("No mock rules. Add one to override matching responses."),
             ),
-            ringedControlsByCommand = mapOf(
+            ringedControlNamesByCommand = mapOf(
                 testMcpCommands.getMockConfig to listOf("mocks pane"),
                 testMcpCommands.setMockingEnabled to listOf("mocking switch"),
                 testMcpCommands.addMockRule to listOf("mock rules"),
@@ -78,20 +78,20 @@ class NetworkInspectorScreenTest {
 
     private fun ComposeUiTest.assertEachCommandRings(
         controls: Map<String, SemanticsNodeInteraction>,
-        ringedControlsByCommand: Map<JetWhaleMcpCommand, List<String>>,
+        ringedControlNamesByCommand: Map<JetWhaleMcpCommand, List<String>>,
         runningCommandNames: MutableState<Set<String>>,
     ) {
-        val idleEdges = controls.mapValues { (_, control) -> control.edgePixels() }
-        ringedControlsByCommand.forEach { (command, ringedControls) ->
+        val idleEdgePixels = controls.mapValues { (_, control) -> control.captureEdgePixels() }
+        ringedControlNamesByCommand.forEach { (command, ringedControlNames) ->
             runningCommandNames.value = setOf(command.name)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedControls, controls.filter { (name, control) -> control.edgePixels() != idleEdges.getValue(name) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while ${command.name} runs")
         }
     }
 
     /** The pixels along the node's edges, where the ring of a control the node fills is drawn. */
-    private fun SemanticsNodeInteraction.edgePixels(): List<Color> {
+    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
         val pixels = captureToImage().toPixelMap()
         return buildList {
             for (x in 0 until pixels.width) {

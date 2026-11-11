@@ -26,8 +26,8 @@ import kotlin.test.assertTrue
 class ActionsScreenTest {
     private val signIn = action("Account / Sign in", destructive = false, parameters = emptyList())
     private val browser = ActionsBrowser(FakeActionsClient(actions = listOf(signIn), options = emptyMap(), result = succeeded), CoroutineScope(EmptyCoroutineContext))
-    private val listActions = ListActionsCommand(browser)
-    private val runAction = RunActionCommand(browser)
+    private val listActionsCommand = ListActionsCommand(browser)
+    private val runActionCommand = RunActionCommand(browser)
 
     @Test
     fun `the action list is ringed only while an agent lists or runs actions`() = runComposeUiTest {
@@ -49,8 +49,8 @@ class ActionsScreenTest {
                         pinnedIds = emptySet(),
                         rememberedArguments = emptyMap(),
                         actions = browser,
-                        listActions = listActions,
-                        runAction = runAction,
+                        listActionsCommand = listActionsCommand,
+                        runActionCommand = runActionCommand,
                         onQueryChange = {},
                         onTogglePin = {},
                         onRun = { _, _, _ -> },
@@ -60,23 +60,23 @@ class ActionsScreenTest {
         }
         mainClock.advanceTimeByFrame()
         val actionList = onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText(signIn.title)))
-        val idleEdges = actionList.edgePixels()
+        val idleEdgePixels = actionList.captureEdgePixels()
 
-        listOf(listActions, runAction).forEach { command ->
+        listOf(listActionsCommand, runActionCommand).forEach { command ->
             runningCommandNames = setOf(command.name)
             mainClock.advanceTimeByFrame()
 
-            assertTrue(actionList.edgePixels() != idleEdges, "the action list is not ringed while ${command.name} runs")
+            assertTrue(actionList.captureEdgePixels() != idleEdgePixels, "the action list is not ringed while ${command.name} runs")
         }
 
         runningCommandNames = emptySet()
         mainClock.advanceTimeByFrame()
 
-        assertTrue(actionList.edgePixels() == idleEdges, "the action list stays ringed once no command runs")
+        assertTrue(actionList.captureEdgePixels() == idleEdgePixels, "the action list stays ringed once no command runs")
     }
 
     /** The pixels along the node's edges, where the ring of a pane the node fills is drawn. */
-    private fun SemanticsNodeInteraction.edgePixels(): List<Color> {
+    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
         val pixels = captureToImage().toPixelMap()
         return buildList {
             for (x in 0 until pixels.width) {
