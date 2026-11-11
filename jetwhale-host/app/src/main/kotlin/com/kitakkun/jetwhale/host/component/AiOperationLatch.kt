@@ -6,11 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.kitakkun.jetwhale.host.model.AI_OPERATION_INDICATOR_LINGER
 import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
-
-/** How long the indicator stays on after a tool call starts; a newer call restarts it. */
-private val AI_OPERATION_INDICATOR_LINGER = 1500.milliseconds
 
 /**
  * Whether an AI agent should read as operating right now, given [startedCount] from

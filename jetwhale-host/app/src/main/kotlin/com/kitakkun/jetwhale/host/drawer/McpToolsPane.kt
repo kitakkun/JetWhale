@@ -38,6 +38,7 @@ import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRing
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
@@ -58,7 +59,7 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
                 shape,
             )
             .then(
-                if (running) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = 2.dp, cornerRadius = 4.dp) else Modifier,
+                if (running) Modifier.jwAiOperatingRing(shape) else Modifier,
             )
             .padding(horizontal = 7.dp, vertical = 2.dp),
     ) {

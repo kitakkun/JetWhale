@@ -41,5 +41,6 @@ dependencies {
     implementation(libs.jmdns)
     compileOnly(libs.androidxAnnotation)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(libs.ktorClientMock)
 }

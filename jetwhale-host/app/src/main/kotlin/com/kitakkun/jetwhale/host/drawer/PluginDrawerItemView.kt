@@ -25,16 +25,14 @@ import com.kitakkun.jetwhale.host.ui.JwIconButton
 import com.kitakkun.jetwhale.host.ui.JwIconButtonDefaults
 import com.kitakkun.jetwhale.host.ui.JwIcons
 import com.kitakkun.jetwhale.host.ui.JwListItem
-import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRing
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-
-/** Matches the small shape the row is clipped to. */
-private val AiRingCornerRadius = 4.dp
 
 /**
  * How far an inactive row is faded. The list's own muted color sits too close to a normal row's in the
@@ -113,7 +111,7 @@ fun PluginDrawerItemView(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiRingCornerRadius),
+                    .jwAiOperatingRing(JwShapes.small),
             )
         }
     }

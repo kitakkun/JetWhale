@@ -419,6 +419,34 @@ raised. Masking only in the drawing layer is not enough: the semantics tree woul
 the original string. The interactive window never observes the raised state, so there is no
 on-screen flicker.
 
+### Marking the control an agent is driving
+
+While an agent runs one of your commands, the host marks *which* plugin it is driving. To show
+*what inside* the plugin, put `Modifier.jwAiOperatingRingWhileRunning` from
+[`jetwhale-host-ui`](#theming-and-components-jetwhale-host-ui) on the control that does what the
+command does, passing the same instance you list in `mcpCommands`. It draws the rotating ring the
+host marks AI operations with while the command runs, and nothing otherwise:
+
+```kotlin
+@OptIn(ExperimentalJetWhaleApi::class)
+@Composable
+fun InspectButton(inspectWidget: InspectWidgetCommand, onInspect: () -> Unit) {
+    JwIconButton(
+        tooltip = "Inspect",
+        onClick = onInspect,
+        modifier = Modifier.jwAiOperatingRingWhileRunning(inspectWidget, shape = JwShapes.small),
+    ) {
+        JwIcon(imageVector = InspectIcon, contentDescription = null)
+    }
+}
+```
+
+One control can stand for several commands: a screen that is both tapped and swiped takes
+`Modifier.jwAiOperatingRingWhileRunning(tap, swipe, shape = RectangleShape)`. A command that
+finishes within a frame still rings its control for 1.5 seconds. The modifier reads the SDK's
+`LocalRunningMcpCommandNames`, the names of this plugin instance's commands an agent is running now
+or finished less than 1.5 seconds ago; read the local directly only for an indication of your own.
+
 ### Theming and components: `jetwhale-host-ui`
 
 The host wraps your `Content()` in its theme before calling it: **`JwTheme`** from
@@ -437,6 +465,7 @@ of the same tool rather than a foreign app embedded in it:
 | Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwDialog`, `JwHorizontalDivider` / `JwVerticalDivider` |
 | Rows and labels | `JwTable`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
 | Spacing and sizes | `JwSpacing`, `JwMetrics`, and each component's `Defaults` object |
+| Marking what an AI agent is operating | `Modifier.jwAiOperatingRingWhileRunning`, `Modifier.jwAiOperatingRing` |
 
 Every component is sized for a desktop tool window — 28dp controls, 13sp body text, 4dp corners —
 and takes its colors from the theme, so it follows the user's light/dark/custom choice without any

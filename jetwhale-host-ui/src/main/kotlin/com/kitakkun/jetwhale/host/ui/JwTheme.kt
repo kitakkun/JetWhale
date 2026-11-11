@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleDarkTheme
 
-private val LocalJwColors = staticCompositionLocalOf<JwColors> { error("JwTheme is not applied above this composable") }
+internal val LocalJwColors = staticCompositionLocalOf<JwColors> { error("JwTheme is not applied above this composable") }
 private val LocalJwTextStyles = staticCompositionLocalOf<JwTextStyles> { error("JwTheme is not applied above this composable") }
 
 /**
