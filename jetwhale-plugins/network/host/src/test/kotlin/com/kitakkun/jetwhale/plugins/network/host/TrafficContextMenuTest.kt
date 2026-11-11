@@ -119,6 +119,7 @@ private fun ComposeUiTest.setTraffic(request: Pair<String, BodyEncoding>, respon
                     transactions = listOf(transaction),
                     selectedTxId = null,
                     splitPaneState = rememberJwSplitPaneState(0.42f),
+                    mcpCommands = testMcpCommands,
                     onSelectTx = {},
                     onClear = {},
                     onCreateMock = {},

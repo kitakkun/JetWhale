@@ -212,6 +212,12 @@ mock rules through these tools. Each takes the `sessionId` of the app's session.
   read the app's rules, normally right after the app connects, `listTransactions` and
   `getTransaction` return an error and captures show a notice instead of the traffic.
 
+While an agent runs a tool, the inspector rings what the tool reads or changes: the traffic list for
+`listTransactions`, the detail pane for `getTransaction`, **Clear** for `clearTransactions`, the
+**Mocks** tab for `getMockConfig`, the **Mocking enabled** switch for `setMockingEnabled`, and the rule
+list for `addMockRule`, `removeMockRule` and `setMockRules`. The ring marks the pane, not the
+transaction or rule the tool names.
+
 ## Limits
 
 - The host keeps the **latest 500 transactions** per session; older ones are dropped as traffic

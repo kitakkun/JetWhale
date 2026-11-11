@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
@@ -26,6 +29,7 @@ import com.kitakkun.jetwhale.host.ui.JwDropdownButton
 import com.kitakkun.jetwhale.host.ui.JwFormField
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSwitch
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -34,6 +38,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -41,10 +46,12 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import java.util.UUID
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun MocksTab(
     rules: List<MockRule>,
     mockingEnabled: Boolean,
+    mcpCommands: NetworkMcpCommands,
     onToggleMocking: (Boolean) -> Unit,
     onChanged: (List<MockRule>) -> Unit,
     modifier: Modifier = Modifier,
@@ -54,6 +61,7 @@ internal fun MocksTab(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .jwAiOperatingRingWhileRunning(mcpCommands.getMockConfig, shape = RectangleShape)
             .verticalScroll(rememberScrollState())
             .padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
@@ -62,7 +70,12 @@ internal fun MocksTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            JwSwitch(mockingEnabled, contentDescription = "Mocking enabled", onCheckedChange = onToggleMocking)
+            JwSwitch(
+                mockingEnabled,
+                contentDescription = "Mocking enabled",
+                onCheckedChange = onToggleMocking,
+                modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.setMockingEnabled, shape = CircleShape),
+            )
             JwText(
                 text = "Mocking enabled",
                 style = JwTheme.textStyles.body,
@@ -70,22 +83,29 @@ internal fun MocksTab(
             Spacer(Modifier.weight(1f))
             JwButton(text = "Add rule", onClick = { editing = blankRule() }, style = JwButtonStyle.Primary)
         }
-        if (rules.isEmpty()) {
-            JwText(
-                text = "No mock rules. Add one to override matching responses.",
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-            )
-        }
-        rules.forEach { rule ->
-            MockRuleRow(
-                rule = rule,
-                onToggle = { enabled ->
-                    onChanged(rules.map { if (it.id == rule.id) it.copy(enabled = enabled) else it })
-                },
-                onEdit = { editing = rule },
-                onDelete = { onChanged(rules.filterNot { it.id == rule.id }) },
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .jwAiOperatingRingWhileRunning(mcpCommands.addMockRule, mcpCommands.removeMockRule, mcpCommands.setMockRules, shape = JwShapes.medium),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
+        ) {
+            if (rules.isEmpty()) {
+                JwText(
+                    text = "No mock rules. Add one to override matching responses.",
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
+                )
+            }
+            rules.forEach { rule ->
+                MockRuleRow(
+                    rule = rule,
+                    onToggle = { enabled ->
+                        onChanged(rules.map { if (it.id == rule.id) it.copy(enabled = enabled) else it })
+                    },
+                    onEdit = { editing = rule },
+                    onDelete = { onChanged(rules.filterNot { it.id == rule.id }) },
+                )
+            }
         }
     }
 

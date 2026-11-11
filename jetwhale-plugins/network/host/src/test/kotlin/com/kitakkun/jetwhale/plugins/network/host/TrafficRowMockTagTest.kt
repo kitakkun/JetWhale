@@ -30,6 +30,7 @@ class TrafficRowMockTagTest {
                         ),
                         selectedTxId = null,
                         splitPaneState = rememberJwSplitPaneState(0.42f),
+                        mcpCommands = testMcpCommands,
                         onSelectTx = {},
                         onClear = {},
                         onCreateMock = {},

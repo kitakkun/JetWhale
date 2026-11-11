@@ -19,17 +19,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
@@ -41,6 +44,7 @@ import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import kotlinx.coroutines.launch
 
 private val ListMinWidth = 240.dp
@@ -55,11 +59,13 @@ private val StatusTagWidth = 36.dp
 /** Fits "1234ms". */
 private val DurationColumnWidth = 52.dp
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun TrafficTab(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
     splitPaneState: JwSplitPaneState,
+    mcpCommands: NetworkMcpCommands,
     onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
@@ -101,7 +107,7 @@ internal fun TrafficTab(
                 style = JwTheme.textStyles.labelSmall,
                 color = JwTheme.colors.textSecondary,
             )
-            JwButton(text = "Clear", onClick = onClear)
+            JwButton(text = "Clear", onClick = onClear, modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.clearTransactions, shape = JwShapes.small))
         }
         JwHorizontalDivider()
         JwSplitPane(
@@ -114,12 +120,14 @@ internal fun TrafficTab(
                     transactions = visible,
                     selectedTxId = selectedTxId,
                     onSelectTx = onSelectTx,
+                    modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.listTransactions, shape = RectangleShape),
                 )
             },
             second = {
                 TrafficDetailPane(
                     transaction = transactions.firstOrNull { it.txId == selectedTxId },
                     onCreateMock = onCreateMock,
+                    modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.getTransaction, shape = RectangleShape),
                 )
             },
         )

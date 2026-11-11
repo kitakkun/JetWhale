@@ -116,6 +116,7 @@ private class NetworkHostPlugin :
                 transactions = if (isMcpCapture && redactionRules != null) transactions.map(redactionRules::redact) else transactions,
                 mockRules = mockRules,
                 mockingEnabled = mockingEnabled,
+                mcpCommands = networkMcpCommands,
                 onClearTransactions = transactions::clear,
                 onToggleMocking = { enabled ->
                     pluginScope.launch { syncMockingEnabled(enabled) }
@@ -150,20 +151,19 @@ private class NetworkHostPlugin :
         return null
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
-        ListTransactionsCommand(transactions = transactions::toList, mcpRedactionRules = { mcpRedactionRules }),
-        GetTransactionCommand(transactions = transactions::toList, mcpRedactionRules = { mcpRedactionRules }),
-        ClearTransactionsCommand(
-            clearTransactions = {
-                val cleared = transactions.size
-                transactions.clear()
-                cleared
-            },
-        ),
-        GetMockConfigCommand(mockingEnabled = { mockingEnabled }, mockRules = mockRules::toList),
-        SetMockingEnabledCommand(syncMockingEnabled = ::syncMockingEnabled),
-        AddMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
-        RemoveMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
-        SetMockRulesCommand(syncMockRules = ::syncMockRules),
+    private val networkMcpCommands = NetworkMcpCommands(
+        transactions = transactions::toList,
+        mcpRedactionRules = { mcpRedactionRules },
+        removeAllTransactions = {
+            val cleared = transactions.size
+            transactions.clear()
+            cleared
+        },
+        mockingEnabled = { mockingEnabled },
+        mockRules = mockRules::toList,
+        syncMockingEnabled = ::syncMockingEnabled,
+        syncMockRules = ::syncMockRules,
     )
+
+    override val mcpCommands: List<JetWhaleMcpCommand> get() = networkMcpCommands.all
 }

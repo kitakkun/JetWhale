@@ -14,6 +14,7 @@ private fun TrafficTabPreview() {
             transactions = transactions,
             selectedTxId = transactions.first().txId,
             splitPaneState = rememberJwSplitPaneState(PREVIEW_SPLIT_POSITION),
+            mcpCommands = previewMcpCommands,
             onSelectTx = {},
             onClear = {},
             onCreateMock = {},

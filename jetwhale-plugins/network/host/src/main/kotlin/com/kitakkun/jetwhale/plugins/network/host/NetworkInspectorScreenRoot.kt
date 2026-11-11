@@ -31,10 +31,11 @@ import java.util.UUID
  * [NetworkInspectorScreen] is a pure function of its arguments.
  */
 @Composable
-fun NetworkInspectorScreenRoot(
+internal fun NetworkInspectorScreenRoot(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
+    mcpCommands: NetworkMcpCommands,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
@@ -47,6 +48,7 @@ fun NetworkInspectorScreenRoot(
         mockRules = mockRules,
         mockingEnabled = mockingEnabled,
         trafficSplitPaneState = trafficSplitPaneState,
+        mcpCommands = mcpCommands,
         onClearTransactions = onClearTransactions,
         onToggleMocking = onToggleMocking,
         onMockRulesChanged = onMockRulesChanged,

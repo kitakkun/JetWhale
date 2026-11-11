@@ -30,11 +30,3 @@ public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginF
 	public fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
 }
 
-public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {
-	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenRootKt {
-	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
-}
-
