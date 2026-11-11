@@ -44,7 +44,6 @@ private fun Nav3NavigatorScreenPreview() {
             selectedStackId = "main",
             status = Nav3Status(message = "Pushed Detail(id=42)", isError = false),
             draft = """{"type": "Detail", "id": "42"}""",
-            mcpCommands = previewMcpCommands,
             onSelectStack = {},
             onApplyOperation = { _, _ -> },
             onRefresh = {},

@@ -45,8 +45,6 @@ private class Nav3HostPlugin :
     private var selectedStackId: String? by mutableStateOf(null)
     private var status: Nav3Status? by mutableStateOf(null)
 
-    private val nav3McpCommands = Nav3McpCommands(controller = this)
-
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: BackStackChanged -> applySnapshot(event.snapshot) }
         onEvent { event: BackStackUnregistered ->
@@ -90,7 +88,6 @@ private class Nav3HostPlugin :
             keyTypes = navKeyTypes,
             selectedStackId = selectedStackId,
             status = status,
-            mcpCommands = nav3McpCommands,
             onSelectStack = { selectedStackId = it },
             onApplyOperation = ::applyFromUi,
             onRefresh = {
@@ -131,5 +128,13 @@ private class Nav3HostPlugin :
         }
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> get() = nav3McpCommands.all
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        GetBackStackCommand(this),
+        ListNavKeyTypesCommand(this),
+        PushNavKeyCommand(this),
+        PopBackStackCommand(this),
+        RemoveNavKeyCommand(this),
+        MoveNavKeyToTopCommand(this),
+        ReplaceBackStackCommand(this),
+    )
 }

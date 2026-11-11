@@ -14,14 +14,14 @@ internal class SendPingCommand(
     override val name = "com.kitakkun.jetwhale.example.sendPing"
     override val description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(ExampleUiTarget.SendPingButton) {
         val pongReceived = try {
             requestPing()
             true
         } catch (_: JetWhaleMessagingException) {
             false
         }
-        return buildJsonObject {
+        buildJsonObject {
             put("pongReceived", pongReceived)
         }.toString()
     }

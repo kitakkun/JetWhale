@@ -17,7 +17,9 @@ internal class GetEventLogsCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val limit = arguments[this.limit]
-        val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
-        return Json.encodeToJsonElement(logs).toString()
+        return markingAiOperationOn(ExampleUiTarget.EventLog) {
+            val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
+            Json.encodeToJsonElement(logs).toString()
+        }
     }
 }

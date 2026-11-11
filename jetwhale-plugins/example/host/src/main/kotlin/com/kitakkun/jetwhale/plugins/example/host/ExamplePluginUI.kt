@@ -29,7 +29,7 @@ import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 
 /**
  * The reference plugin UI: built from `jetwhale-host-ui` alone, so it doubles as the smallest
@@ -40,8 +40,6 @@ import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 internal fun ExamplePluginView(
     eventLogs: List<String>,
     persistedInput: String,
-    sendPingCommand: SendPingCommand,
-    getEventLogsCommand: GetEventLogsCommand,
     onClickSendPing: () -> Unit,
     onClickTriggerUIError: () -> Unit,
     onPersistedInputChange: (String) -> Unit,
@@ -55,7 +53,7 @@ internal fun ExamplePluginView(
                     text = "Send ping to debuggee",
                     onClick = onClickSendPing,
                     style = JwButtonStyle.Primary,
-                    modifier = Modifier.jwAiOperatingRingWhileRunning(sendPingCommand, shape = JwShapes.small),
+                    modifier = Modifier.jwAiOperatingRingWhileOperated(ExampleUiTarget.SendPingButton, shape = JwShapes.small),
                 )
                 JwButton(text = "Throw UI error", onClick = onClickTriggerUIError, tone = JwTone.Error)
             },
@@ -70,7 +68,7 @@ internal fun ExamplePluginView(
             }
         }
         JwHorizontalDivider()
-        val eventLogRing = Modifier.jwAiOperatingRingWhileRunning(getEventLogsCommand, shape = RectangleShape)
+        val eventLogRing = Modifier.jwAiOperatingRingWhileOperated(ExampleUiTarget.EventLog, shape = RectangleShape)
         if (eventLogs.isEmpty()) {
             JwEmptyState(
                 title = "No messages yet",
@@ -91,10 +89,6 @@ internal fun ExamplePluginView(
     }
 }
 
-/** The commands for the previews, which draw the controls but never run a command. */
-private val previewSendPingCommand = SendPingCommand(requestPing = {})
-private val previewGetEventLogsCommand = GetEventLogsCommand(eventLogs = emptyList())
-
 @Preview
 @Composable
 private fun ExamplePluginViewPreview() {
@@ -102,8 +96,6 @@ private fun ExamplePluginViewPreview() {
         ExamplePluginView(
             eventLogs = listOf("ping sent", "pong received"),
             persistedInput = "a draft that survived a restart",
-            sendPingCommand = previewSendPingCommand,
-            getEventLogsCommand = previewGetEventLogsCommand,
             onClickSendPing = {},
             onClickTriggerUIError = {},
             onPersistedInputChange = {},
@@ -118,8 +110,6 @@ private fun ExamplePluginViewEmptyPreview() {
         ExamplePluginView(
             eventLogs = emptyList(),
             persistedInput = "",
-            sendPingCommand = previewSendPingCommand,
-            getEventLogsCommand = previewGetEventLogsCommand,
             onClickSendPing = {},
             onClickTriggerUIError = {},
             onPersistedInputChange = {},

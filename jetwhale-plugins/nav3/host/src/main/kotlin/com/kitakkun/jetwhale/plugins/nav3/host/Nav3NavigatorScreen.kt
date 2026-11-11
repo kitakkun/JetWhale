@@ -21,9 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
@@ -46,7 +44,6 @@ import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
@@ -68,7 +65,6 @@ private const val BACK_STACK_PANE_FRACTION = 0.55f
 /** Room for a small key's JSON without scrolling, so the editor reads as an editor when empty. */
 private val EditorMinHeight = 120.dp
 
-@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun Nav3NavigatorScreen(
     stacks: List<NavBackStackSnapshot>,
@@ -76,7 +72,6 @@ internal fun Nav3NavigatorScreen(
     selectedStackId: String?,
     status: Nav3Status?,
     draft: String,
-    mcpCommands: Nav3McpCommands,
     onSelectStack: (String) -> Unit,
     onApplyOperation: (stackId: String, operation: NavBackStackOperation) -> Unit,
     onRefresh: () -> Unit,
@@ -120,15 +115,6 @@ internal fun Nav3NavigatorScreen(
                         snapshot = selected,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
                         onCopyKeyToEditor = { onDraftChange(PrettyJson.encodeToString(JsonElement.serializer(), it)) },
-                        modifier = Modifier.jwAiOperatingRingWhileRunning(
-                            mcpCommands.getBackStack,
-                            mcpCommands.pushNavKey,
-                            mcpCommands.popBackStack,
-                            mcpCommands.removeNavKey,
-                            mcpCommands.moveNavKeyToTop,
-                            mcpCommands.replaceBackStack,
-                            shape = RectangleShape,
-                        ),
                     )
                 },
                 second = {
@@ -137,7 +123,6 @@ internal fun Nav3NavigatorScreen(
                         draft = draft,
                         onDraftChange = onDraftChange,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.listNavKeyTypes, shape = RectangleShape),
                     )
                 },
             )
