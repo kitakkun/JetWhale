@@ -57,8 +57,6 @@ class ComposeSemanticsInspectorScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        // A node row's ring reaches the tree's sides but not its top, where the root's header row sits, and a pane's
-        // ring never reaches a node row's top edge. A group's header starts at the group's left edge, below its top.
         val edges = mapOf(
             "node tree" to { onNode(hasScrollToIndexAction()).captureTopEdgePixels() },
             "top row" to { onNode(hasClickAction() and hasText("top", substring = true)).captureTopEdgePixels() },

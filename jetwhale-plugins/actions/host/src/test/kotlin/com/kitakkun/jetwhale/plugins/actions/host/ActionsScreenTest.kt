@@ -58,7 +58,6 @@ class ActionsScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        // The list's bottom edge is the pane's, which a row's ring never reaches; a row's top edge lies inside the pane, away from its ring.
         val edges = mapOf(
             "action list" to { onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText(signIn.title))).captureBottomEdgePixels() },
             "sign-in row" to { actionRow(signIn.title).captureTopEdgePixels() },

@@ -18,6 +18,6 @@ internal class DeleteFileEntryCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val location = fileLocationOf(arguments[root], arguments[path])
-        return markingAiOperationOn(StorageUiTarget.FileTree) { McpJson.encodeToString(StorageOperationResult.serializer(), client.delete(location)) }
+        return markingAiOperationOn(StorageUiTarget.FileEntry(location)) { McpJson.encodeToString(StorageOperationResult.serializer(), client.delete(location)) }
     }
 }

@@ -34,7 +34,7 @@ import kotlin.test.assertEquals
 class NetworkInspectorScreenTest {
     @Test
     fun `each control on the traffic tab is ringed only while an agent operates its target`() = runNetworkInspectorScreen { operatedUiTargets ->
-        assertEachCommandRings(
+        assertEachTargetRings(
             controls = mapOf(
                 "traffic list" to onNode(hasScrollToIndexAction()),
                 "transaction detail" to onNode(isVerticallyScrollable and hasAnyDescendant(hasText("Select a request to see details"))),
@@ -57,7 +57,7 @@ class NetworkInspectorScreenTest {
         onNodeWithText("Mocks").performClick()
         mainClock.advanceTimeByFrame()
 
-        assertEachCommandRings(
+        assertEachTargetRings(
             controls = mapOf(
                 "mocks pane" to onNode(isVerticallyScrollable and hasAnyDescendant(hasText("Add rule"))),
                 "mocking switch" to onNode(hasContentDescription("Mocking enabled")),
@@ -73,7 +73,7 @@ class NetworkInspectorScreenTest {
         )
     }
 
-    private fun ComposeUiTest.assertEachCommandRings(
+    private fun ComposeUiTest.assertEachTargetRings(
         controls: Map<String, SemanticsNodeInteraction>,
         ringedControlNamesByTarget: Map<NetworkUiTarget, List<String>>,
         operatedUiTargets: MutableState<Set<Any>>,

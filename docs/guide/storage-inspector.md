@@ -143,10 +143,10 @@ Paths are relative to a root, with `/` between segments:
 `readFile(root = "Data", path = "shared_prefs/settings.xml")`.
 
 While an agent runs a tool, the inspector rings what the tool reads or changes: the row of the file
-or directory a tool names for `listDirectory`, `readFile`, `measureDirectory` and `hashFile`, and the
-pane beside the tree too while that entry is selected; the tree for `deleteFileEntry`; the store's row
-for `readKeyValueStore` and `removeKeyValue`, and its entries too while that store is selected; and
-both the tree and the store list for `listLocations`.
+or directory a tool names for `listDirectory`, `readFile`, `measureDirectory`, `hashFile` and
+`deleteFileEntry`, and the pane beside the tree too while that entry is selected; the store's row for
+`readKeyValueStore` and `removeKeyValue`, and its entries too while that store is selected; and both
+the tree and the store list for `listLocations`.
 
 ## Limits
 

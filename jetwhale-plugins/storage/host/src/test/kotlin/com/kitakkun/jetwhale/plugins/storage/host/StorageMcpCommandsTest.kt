@@ -149,7 +149,7 @@ class StorageMcpCommandsTest {
         assertEquals(listOf<Any>(notes), ReadFileCommand(client).markedTargets(file("notes.txt")))
         assertEquals(listOf<Any>(notes), HashFileCommand(client).markedTargets(file("notes.txt")))
         assertEquals(listOf<Any>(StorageUiTarget.FileEntry(location("Files", "datastore"))), MeasureDirectoryCommand(client).markedTargets(file("datastore")))
-        assertEquals(listOf<Any>(StorageUiTarget.FileTree), DeleteFileEntryCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(notes), DeleteFileEntryCommand(client).markedTargets(file("notes.txt")))
         assertEquals(listOf<Any>(settings), ReadKeyValueStoreCommand(client).markedTargets(buildJsonObject { put("store", "settings") }))
         assertEquals(listOf<Any>(settings), RemoveKeyValueCommand(client).markedTargets(removeOnboarded))
     }
