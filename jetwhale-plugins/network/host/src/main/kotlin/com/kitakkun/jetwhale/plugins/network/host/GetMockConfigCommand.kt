@@ -17,8 +17,10 @@ internal class GetMockConfigCommand(
     override val name = "$TOOL_PREFIX.getMockConfig"
     override val description = "Returns the current mock configuration: the global enabled flag and all mock rules."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = buildJsonObject {
-        put("enabled", mockingEnabled())
-        put("rules", Json.encodeToJsonElement(mockRules()))
-    }.toString()
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(NetworkUiTarget.MocksTab) {
+        buildJsonObject {
+            put("enabled", mockingEnabled())
+            put("rules", Json.encodeToJsonElement(mockRules()))
+        }.toString()
+    }
 }

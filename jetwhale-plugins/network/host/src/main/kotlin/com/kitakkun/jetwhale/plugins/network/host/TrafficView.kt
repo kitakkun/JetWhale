@@ -44,7 +44,7 @@ import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import kotlinx.coroutines.launch
 
 private val ListMinWidth = 240.dp
@@ -65,7 +65,6 @@ internal fun TrafficTab(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
     splitPaneState: JwSplitPaneState,
-    mcpCommands: NetworkMcpCommands,
     onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
@@ -107,7 +106,7 @@ internal fun TrafficTab(
                 style = JwTheme.textStyles.labelSmall,
                 color = JwTheme.colors.textSecondary,
             )
-            JwButton(text = "Clear", onClick = onClear, modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.clearTransactions, shape = JwShapes.small))
+            JwButton(text = "Clear", onClick = onClear, modifier = Modifier.jwAiOperatingRingWhileOperated(NetworkUiTarget.ClearButton, shape = JwShapes.small))
         }
         JwHorizontalDivider()
         JwSplitPane(
@@ -120,14 +119,14 @@ internal fun TrafficTab(
                     transactions = visible,
                     selectedTxId = selectedTxId,
                     onSelectTx = onSelectTx,
-                    modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.listTransactions, shape = RectangleShape),
+                    modifier = Modifier.jwAiOperatingRingWhileOperated(NetworkUiTarget.TrafficList, shape = RectangleShape),
                 )
             },
             second = {
                 TrafficDetailPane(
                     transaction = transactions.firstOrNull { it.txId == selectedTxId },
                     onCreateMock = onCreateMock,
-                    modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.getTransaction, shape = RectangleShape),
+                    modifier = Modifier.jwAiOperatingRingWhileOperated(NetworkUiTarget.TransactionDetail, shape = RectangleShape),
                 )
             },
         )

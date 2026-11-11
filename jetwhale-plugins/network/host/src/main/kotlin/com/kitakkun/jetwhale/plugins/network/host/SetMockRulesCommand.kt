@@ -23,7 +23,7 @@ internal class SetMockRulesCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val newRules = arguments[rules]
-        return when (val failure = syncMockRules(newRules)) {
+        return when (val failure = markingAiOperationOn(NetworkUiTarget.MockRuleList) { syncMockRules(newRules) }) {
             null -> buildJsonObject { put("rules", Json.encodeToJsonElement(newRules)) }.toString()
             else -> syncErrorJson(failure)
         }

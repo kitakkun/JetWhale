@@ -62,7 +62,6 @@ private fun runFilteredTrafficTab(block: ComposeUiTest.(transactions: SnapshotSt
                     transactions = transactions,
                     selectedTxId = null,
                     splitPaneState = rememberJwSplitPaneState(0.42f),
-                    mcpCommands = testMcpCommands,
                     onSelectTx = {},
                     onClear = {},
                     onCreateMock = {},

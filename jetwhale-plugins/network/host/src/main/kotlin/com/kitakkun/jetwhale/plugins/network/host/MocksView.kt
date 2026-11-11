@@ -38,7 +38,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -51,7 +51,6 @@ import java.util.UUID
 internal fun MocksTab(
     rules: List<MockRule>,
     mockingEnabled: Boolean,
-    mcpCommands: NetworkMcpCommands,
     onToggleMocking: (Boolean) -> Unit,
     onChanged: (List<MockRule>) -> Unit,
     modifier: Modifier = Modifier,
@@ -61,7 +60,7 @@ internal fun MocksTab(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .jwAiOperatingRingWhileRunning(mcpCommands.getMockConfig, shape = RectangleShape)
+            .jwAiOperatingRingWhileOperated(NetworkUiTarget.MocksTab, shape = RectangleShape)
             .verticalScroll(rememberScrollState())
             .padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
@@ -74,7 +73,7 @@ internal fun MocksTab(
                 mockingEnabled,
                 contentDescription = "Mocking enabled",
                 onCheckedChange = onToggleMocking,
-                modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.setMockingEnabled, shape = CircleShape),
+                modifier = Modifier.jwAiOperatingRingWhileOperated(NetworkUiTarget.MockingSwitch, shape = CircleShape),
             )
             JwText(
                 text = "Mocking enabled",
@@ -86,7 +85,7 @@ internal fun MocksTab(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .jwAiOperatingRingWhileRunning(mcpCommands.addMockRule, mcpCommands.removeMockRule, mcpCommands.setMockRules, shape = JwShapes.medium),
+                .jwAiOperatingRingWhileOperated(NetworkUiTarget.MockRuleList, shape = JwShapes.medium),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
         ) {
             if (rules.isEmpty()) {

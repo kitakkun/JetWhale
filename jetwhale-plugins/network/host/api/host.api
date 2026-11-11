@@ -31,15 +31,10 @@ public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginF
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {
-	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lcom/kitakkun/jetwhale/plugins/network/host/NetworkMcpCommands;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenRootKt {
-	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/plugins/network/host/NetworkMcpCommands;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class com/kitakkun/jetwhale/plugins/network/host/NetworkMcpCommands {
-	public static final field $stable I
-	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;)V
+	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 

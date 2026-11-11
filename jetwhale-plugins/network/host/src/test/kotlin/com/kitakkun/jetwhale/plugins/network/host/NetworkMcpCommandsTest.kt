@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -217,6 +219,25 @@ class NetworkMcpCommandsTest {
     }
 
     @Test
+    fun `each command marks the control or pane a user would read or use for the same thing`() {
+        val noRules = { _: List<MockRule> -> null }
+        val rule = MockRule(id = "r1", name = "", enabled = true, matcher = MockMatcher(urlPattern = "/a", matchType = MockMatchType.EXACT), response = MockResponseSpec(statusCode = 200, headers = emptyMap()))
+        mapOf(
+            listCommand() to NetworkUiTarget.TrafficList,
+            GetTransactionCommand(transactions = { transactions }, mcpRedactionRules = { emptyList() }) to NetworkUiTarget.TransactionDetail,
+            ClearTransactionsCommand(clearTransactions = { 0 }) to NetworkUiTarget.ClearButton,
+            GetMockConfigCommand(mockingEnabled = { true }, mockRules = { emptyList() }) to NetworkUiTarget.MocksTab,
+            SetMockingEnabledCommand(syncMockingEnabled = { null }) to NetworkUiTarget.MockingSwitch,
+            AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
+            RemoveMockRuleCommand(mockRules = { listOf(rule) }, syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
+            SetMockRulesCommand(syncMockRules = noRules) to NetworkUiTarget.MockRuleList,
+        ).forEach { (command, target) ->
+            val arguments = mapOf("txId" to JsonPrimitive("a"), "enabled" to JsonPrimitive(true), "urlPattern" to JsonPrimitive("/x"), "id" to JsonPrimitive("r1"), "rules" to Json.encodeToJsonElement(emptyList<MockRule>()))
+            assertEquals(listOf<Any>(target), command.markedTargets(JsonObject(arguments)), command.name)
+        }
+    }
+
+    @Test
     fun `declaring a parameter after the schema was read fails fast`() {
         val command = object : JetWhaleMcpCommand() {
             override val name = "test.late"
@@ -247,4 +268,19 @@ class NetworkMcpCommandsTest {
         }
         assertTrue("declared twice" in assertNotNull(exception.message), exception.message)
     }
+}
+
+/** The UI targets the command marks while it runs. */
+@OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
+private fun JetWhaleMcpCommand.markedTargets(arguments: JsonObject): List<Any> {
+    val marked = mutableListOf<Any>()
+    val reporter = object : AiOperatedUiTargetsReporter() {
+        override fun reportOperationStarted(targets: Set<Any>) {
+            marked.addAll(targets)
+        }
+
+        override fun reportOperationEnded(targets: Set<Any>) = Unit
+    }
+    runBlocking(reporter) { execute(JetWhaleMcpArguments(arguments)) }
+    return marked
 }

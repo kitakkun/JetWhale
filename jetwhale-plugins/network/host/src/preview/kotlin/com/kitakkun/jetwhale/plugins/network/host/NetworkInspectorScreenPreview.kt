@@ -14,7 +14,6 @@ private fun NetworkInspectorScreenPreview() {
             mockRules = emptyList(),
             mockingEnabled = true,
             trafficSplitPaneState = rememberJwSplitPaneState(0.42f),
-            mcpCommands = previewMcpCommands,
             onClearTransactions = {},
             onToggleMocking = {},
             onMockRulesChanged = {},
