@@ -45,8 +45,6 @@ class DebugActionsDocsScreenshots {
                     pinnedIds = setOf(WIPE_LOCAL_DATA.id),
                     rememberedArguments = mapOf(LOG_IN_AS.id to arguments("email" to "pro@example.com", "tier" to "PRO")),
                     actions = NoActionsScreenActions,
-                    listActionsCommand = previewListActionsCommand,
-                    runActionCommand = previewRunActionCommand,
                     onQueryChange = {},
                     onTogglePin = {},
                     onRun = { _, _, _ -> },

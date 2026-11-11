@@ -23,11 +23,11 @@ internal class ListActionsCommand(
     override val description =
         "Lists the debug actions the app offers right now — logging in as a test user, resetting state, opening a deep link — with the JSON Schema of each action's arguments and, where the app suggests values, the current choices. Actions marked scoped belong to the screen on show and disappear when it goes, so list again after navigating. Run one with runAction."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(ActionsUiTarget.ActionList) {
         browser.load()
         val actions = browser.catalog?.actions.orEmpty()
         val choicesById = actions.associate { it.id to browser.loadOptions(it) }
-        return buildJsonObject {
+        buildJsonObject {
             putJsonArray("actions") {
                 actions.forEach { action ->
                     val choices = choicesById.getValue(action.id)

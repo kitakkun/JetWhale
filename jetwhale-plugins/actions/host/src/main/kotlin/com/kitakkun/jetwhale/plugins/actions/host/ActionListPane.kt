@@ -18,19 +18,23 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionDescriptor
 
 /**
  * The searchable list of actions — the palette. Enter in the search field picks the first match,
  * so ⌘K, a few letters and Enter reach any action from the keyboard.
  */
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun ActionListPane(
     actions: List<ActionDescriptor>,
@@ -61,7 +65,11 @@ internal fun ActionListPane(
         )
         LazyColumn(Modifier.fillMaxSize()) {
             items(actions, key = ActionDescriptor::id) { action ->
-                JwListItem(selected = action.id == selectedId, onClick = { onSelect(action.id) }) {
+                JwListItem(
+                    selected = action.id == selectedId,
+                    onClick = { onSelect(action.id) },
+                    modifier = Modifier.jwAiOperatingRingWhileOperated(ActionsUiTarget.ActionRow(action.id), shape = JwShapes.small),
+                ) {
                     Column(Modifier.weight(1f)) {
                         JwText(text = action.title, maxLines = 1)
                         action.group?.let { JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1) }

@@ -8,36 +8,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionCatalog
 import kotlinx.coroutines.CoroutineScope
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
-import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class ActionsScreenTest {
     private val signIn = action("Account / Sign in", destructive = false, parameters = emptyList())
-    private val browser = ActionsBrowser(FakeActionsClient(actions = listOf(signIn), options = emptyMap(), result = succeeded), CoroutineScope(EmptyCoroutineContext))
-    private val listActionsCommand = ListActionsCommand(browser)
-    private val runActionCommand = RunActionCommand(browser)
+    private val signOut = action("Account / Sign out", destructive = false, parameters = emptyList())
+    private val browser = ActionsBrowser(FakeActionsClient(actions = listOf(signIn, signOut), options = emptyMap(), result = succeeded), CoroutineScope(EmptyCoroutineContext))
 
     @Test
-    fun `the action list is ringed only while an agent lists or runs actions`() = runComposeUiTest {
+    fun `the action list is ringed while an agent operates it, and an action's row while the agent runs that action`() = runComposeUiTest {
         mainClock.autoAdvance = false
-        var runningCommandNames by mutableStateOf(emptySet<String>())
+        var operatedUiTargets by mutableStateOf(emptySet<Any>())
         setContent {
             JwTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets) {
                     ActionsScreen(
-                        catalog = ActionCatalog(listOf(signIn)),
+                        catalog = ActionCatalog(listOf(signIn, signOut)),
                         selectedAction = null,
                         tab = ActionsTab.ACTIONS,
                         history = emptyList(),
@@ -49,8 +50,6 @@ class ActionsScreenTest {
                         pinnedIds = emptySet(),
                         rememberedArguments = emptyMap(),
                         actions = browser,
-                        listActionsCommand = listActionsCommand,
-                        runActionCommand = runActionCommand,
                         onQueryChange = {},
                         onTogglePin = {},
                         onRun = { _, _, _ -> },
@@ -59,36 +58,40 @@ class ActionsScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        val actionList = onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText(signIn.title)))
-        val idleEdgePixels = actionList.captureEdgePixels()
+        // The list's bottom edge is the pane's, which a row's ring never reaches; a row's top edge lies inside the pane, away from its ring.
+        val edges = mapOf(
+            "action list" to { onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText(signIn.title))).captureBottomEdgePixels() },
+            "sign-in row" to { actionRow(signIn.title).captureTopEdgePixels() },
+            "sign-out row" to { actionRow(signOut.title).captureTopEdgePixels() },
+        )
+        val idleEdgePixels = edges.mapValues { (_, capture) -> capture() }
 
-        listOf(listActionsCommand, runActionCommand).forEach { command ->
-            runningCommandNames = setOf(command.name)
+        mapOf(
+            ActionsUiTarget.ActionList to listOf("action list"),
+            ActionsUiTarget.ActionRow(signIn.id) to listOf("sign-in row"),
+            ActionsUiTarget.ActionRow("Account / Delete") to emptyList(),
+        ).forEach { (target, ringedNames) ->
+            operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertTrue(actionList.captureEdgePixels() != idleEdgePixels, "the action list is not ringed while ${command.name} runs")
+            assertEquals(ringedNames, edges.filter { (name, capture) -> capture() != idleEdgePixels.getValue(name) }.keys.toList(), "while $target is operated")
         }
-
-        runningCommandNames = emptySet()
-        mainClock.advanceTimeByFrame()
-
-        assertTrue(actionList.captureEdgePixels() == idleEdgePixels, "the action list stays ringed once no command runs")
     }
 
-    /** The pixels along the node's edges, where the ring of a pane the node fills is drawn. */
-    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
+    private fun SemanticsNodeInteractionsProvider.actionRow(title: String): SemanticsNodeInteraction = onNode(hasClickAction() and hasText(title))
+
+    private fun SemanticsNodeInteraction.captureTopEdgePixels(): List<Color> = captureHorizontalBandPixels { 0 until EDGE_WIDTH_PX }
+
+    private fun SemanticsNodeInteraction.captureBottomEdgePixels(): List<Color> = captureHorizontalBandPixels { height -> height - EDGE_WIDTH_PX until height }
+
+    /** The pixels of the rows [rowsOf] picks, short of the corners, where the ring of an enclosing pane also falls. */
+    private fun SemanticsNodeInteraction.captureHorizontalBandPixels(rowsOf: (height: Int) -> IntRange): List<Color> {
         val pixels = captureToImage().toPixelMap()
-        return buildList {
-            for (x in 0 until pixels.width) {
-                for (y in 0 until pixels.height) {
-                    if (x < EDGE_WIDTH_PX || y < EDGE_WIDTH_PX || x >= pixels.width - EDGE_WIDTH_PX || y >= pixels.height - EDGE_WIDTH_PX) add(pixels[x, y])
-                }
-            }
-        }
+        return rowsOf(pixels.height).flatMap { y -> (EDGE_WIDTH_PX until pixels.width - EDGE_WIDTH_PX).map { x -> pixels[x, y] } }
     }
 
     private companion object {
-        /** Covers the ring's stroke, which lies just inside the ringed pane's bounds. */
+        /** Covers the ring's stroke, which lies just inside the ringed element's bounds. */
         const val EDGE_WIDTH_PX = 3
     }
 }
