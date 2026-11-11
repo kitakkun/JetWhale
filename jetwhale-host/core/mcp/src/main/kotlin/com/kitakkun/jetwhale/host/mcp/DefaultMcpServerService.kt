@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.AiOperatedUiTargetsService
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
@@ -55,12 +56,13 @@ class DefaultMcpServerService(
     private val mcpPermissionsRepository: McpPermissionsRepository,
     private val builtInTools: Set<JetWhaleMcpTool>,
     private val statusHolder: McpServerStatusHolder,
+    aiOperatedUiTargetsService: AiOperatedUiTargetsService,
 ) : McpServerService {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private var lifecycleObserverJob: Job? = null
 
-    private val toolRegistry = McpToolRegistry(pluginInstanceService)
+    private val toolRegistry = McpToolRegistry(pluginInstanceService, aiOperatedUiTargetsService)
     private var ktorServer: EmbeddedServer<*, *>? = null
     private val running = AtomicBoolean(false)
 

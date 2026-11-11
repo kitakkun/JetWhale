@@ -107,6 +107,7 @@ class HostMcpCommandTest {
             builtInTools = setOf(command),
             mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             statusHolder = McpServerStatusHolder(),
+            aiOperatedUiTargetsService = FakeAiOperatedUiTargetsService(),
         )
         val port = ServerSocket(0).use(ServerSocket::getLocalPort)
         service.start("localhost", port)

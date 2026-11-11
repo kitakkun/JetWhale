@@ -16,21 +16,19 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.model.AiOperatedUiTargetsService
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.model.RunningMcpCommandsService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -45,7 +43,7 @@ import kotlinx.coroutines.withContext
 class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginInstanceService: PluginInstanceService,
-    private val runningMcpCommandsService: RunningMcpCommandsService,
+    private val aiOperatedUiTargetsService: AiOperatedUiTargetsService,
 ) : PluginComposeSceneService {
     /** A scene together with the plugin instance it composes, so a replaced instance invalidates it. */
     private class CachedScene(
@@ -85,18 +83,14 @@ class DefaultPluginComposeSceneService(
                 platformContext = windowUpdatableContext,
             )
             val isMcpCapture = mutableStateOf(false)
-            val runningMcpCommandNamesFlow = runningMcpCommandsService.runningCommandNamesFlow(
-                pluginId = pluginId,
-                sessionId = sessionId,
-                commandNames = (pluginInstance as? JetWhaleMcpCapablePlugin)?.mcpCommands.orEmpty().mapTo(HashSet(), JetWhaleMcpCommand::name),
-            )
+            val operatedUiTargetsFlow = aiOperatedUiTargetsService.operatedUiTargetsFlow(pluginId = pluginId, sessionId = sessionId)
 
             composeScene.setContent {
-                val runningMcpCommandNames by runningMcpCommandNamesFlow.collectAsState(initial = emptySet())
+                val operatedUiTargets by operatedUiTargetsFlow.collectAsState(initial = emptySet())
                 CompositionLocalProvider(
                     LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
                     LocalIsMcpCapture provides isMcpCapture.value,
-                    LocalRunningMcpCommandNames provides runningMcpCommandNames,
+                    LocalAiOperatedUiTargets provides operatedUiTargets,
                 ) {
                     pluginBridgeProvider.PluginEntryPoint {
                         val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint

@@ -49,12 +49,8 @@ class DefaultMcpServerServiceTest {
 
     private val mcpActivityRepository = FakeMcpActivityRepository()
 
-    private val service = DefaultMcpServerService(
-        pluginInstanceService = pluginInstanceService,
-        mcpActivityRepository = mcpActivityRepository,
-        mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+    private val service = serverServiceWith(
         builtInTools = emptySet(),
-        statusHolder = McpServerStatusHolder(),
     )
 
     private val host = "localhost"
@@ -62,16 +58,12 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `listTools returns all registered built-in tools`() = runBlocking {
-        val serviceWithTools = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTools = serverServiceWith(
             builtInTools = setOf(
                 FakeMcpTool("fake.toolA"),
                 FakeMcpTool("fake.toolB"),
                 FakeMcpTool("fake.toolC"),
             ),
-            statusHolder = McpServerStatusHolder(),
         )
         val toolsPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTools.start(host, toolsPort)
@@ -89,12 +81,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `built-in tool response is returned correctly via MCP`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(FakeMcpTool("fake.echo", response = "pong")),
-            statusHolder = McpServerStatusHolder(),
         )
         val echoPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, echoPort)
@@ -350,16 +338,12 @@ class DefaultMcpServerServiceTest {
     @Test
     fun `a tool call is reported as running while it executes and cleared afterwards`() = runBlocking {
         var runningDuringCall: List<String> = emptyList()
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(
                 FakeMcpTool("fake.observed") {
                     runningDuringCall = mcpActivityRepository.activityFlow.value.runningInvocations.map(McpToolInvocation::toolName)
                 },
             ),
-            statusHolder = McpServerStatusHolder(),
         )
         val observedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, observedPort)
@@ -380,12 +364,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a tool call records the plugin and session it targets`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(FakeMcpTool("fake.targeted")),
-            statusHolder = McpServerStatusHolder(),
         )
         val targetedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, targetedPort)
@@ -411,12 +391,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a failing tool call still stops being reported as running`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(FailingMcpTool("fake.failing")),
-            statusHolder = McpServerStatusHolder(),
         )
         val failingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, failingPort)
@@ -436,12 +412,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a completed tool call is added to the recent-call history`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(FakeMcpTool("fake.recorded")),
-            statusHolder = McpServerStatusHolder(),
         )
         val recordedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, recordedPort)
@@ -469,12 +441,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a non-text response block is recorded as a placeholder instead of its payload`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(MediaMcpTool("fake.captured")),
-            statusHolder = McpServerStatusHolder(),
         )
         val capturedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, capturedPort)
@@ -495,12 +463,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a tool call that reports an error without throwing is recorded as a failure`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(ErrorResultMcpTool("fake.rejected")),
-            statusHolder = McpServerStatusHolder(),
         )
         val rejectedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, rejectedPort)
@@ -524,12 +488,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a structured response is recorded alongside the text content`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(StructuredMcpTool("fake.structured")),
-            statusHolder = McpServerStatusHolder(),
         )
         val structuredPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, structuredPort)
@@ -552,12 +512,8 @@ class DefaultMcpServerServiceTest {
 
     @Test
     fun `a throwing tool call is recorded in history as a failure`() = runBlocking {
-        val serviceWithTool = DefaultMcpServerService(
-            pluginInstanceService = pluginInstanceService,
-            mcpActivityRepository = mcpActivityRepository,
-            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        val serviceWithTool = serverServiceWith(
             builtInTools = setOf(FailingMcpTool("fake.failing")),
-            statusHolder = McpServerStatusHolder(),
         )
         val failingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, failingPort)
@@ -632,6 +588,15 @@ class DefaultMcpServerServiceTest {
             service.stop()
         }
     }
+
+    private fun serverServiceWith(builtInTools: Set<JetWhaleMcpTool>) = DefaultMcpServerService(
+        pluginInstanceService = pluginInstanceService,
+        mcpActivityRepository = mcpActivityRepository,
+        mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        builtInTools = builtInTools,
+        statusHolder = McpServerStatusHolder(),
+        aiOperatedUiTargetsService = FakeAiOperatedUiTargetsService(),
+    )
 }
 
 private class FakeMcpTool(

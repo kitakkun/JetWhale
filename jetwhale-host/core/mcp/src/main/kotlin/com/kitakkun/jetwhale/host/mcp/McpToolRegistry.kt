@@ -1,15 +1,19 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.AiOperatedUiTargetsService
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -25,7 +29,10 @@ import java.util.concurrent.ConcurrentHashMap
  * invoked, the caller must supply a `sessionId` argument so the registry can route the
  * call to the correct plugin instance.
  */
-class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
+class McpToolRegistry(
+    private val pluginInstanceService: PluginInstanceService,
+    private val aiOperatedUiTargetsService: AiOperatedUiTargetsService,
+) {
 
     /**
      * Maps a tool name to its descriptor and the set of (sessionId → pluginId) pairs
@@ -78,8 +85,12 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * A missing `sessionId`, or a session the tool is not offered in, is answered with an error
      * payload that names the sessions the tool is available in.
      *
+     * The command runs with the plugin instance's [AiOperatedUiTargetsReporter] in its coroutine
+     * context, so its marked blocks reach that instance's UI.
+     *
      * @return The result string, or null if not found or plugin returned null.
      */
+    @OptIn(InternalJetWhaleHostApi::class)
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
         val entry = registrations[toolName] ?: return null
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content
@@ -92,7 +103,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         ) as? JetWhaleMcpCapablePlugin ?: return null
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
-            command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+            withContext(aiOperatedUiTargetsService.reporterFor(pluginId = pluginId, sessionId = sessionId)) {
+                command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+            }
         } catch (e: JetWhaleMcpArgumentException) {
             errorPayload(e.message.orEmpty())
         }
