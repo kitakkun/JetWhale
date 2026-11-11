@@ -15,7 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
@@ -29,6 +31,7 @@ import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
@@ -48,12 +51,14 @@ private val KeyValueColumns: List<JwTableColumn<KeyValueEntry>> = listOf(
     JwTableColumn.text(header = "Value", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Wrap, text = KeyValueEntry::value),
 )
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun KeyValuePane(
     stores: List<KeyValueStoreInfo>,
     selectedStore: String?,
     content: KeyValueStoreContent?,
     actions: StorageInspectorActions,
+    mcpCommands: StorageMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize()) {
@@ -67,7 +72,7 @@ internal fun KeyValuePane(
         JwSplitPane(
             state = rememberJwSplitPaneState(STORE_LIST_FRACTION),
             first = {
-                LazyColumn(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.listLocations, shape = RectangleShape)) {
                     items(stores, key = KeyValueStoreInfo::name) { store ->
                         JwListItem(
                             text = store.name,
@@ -78,7 +83,9 @@ internal fun KeyValuePane(
                 }
             },
             second = {
-                if (selectedStore != null) StoreEntries(storeName = selectedStore, content = content, actions = actions)
+                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.readKeyValueStore, mcpCommands.removeKeyValue, shape = RectangleShape)) {
+                    if (selectedStore != null) StoreEntries(storeName = selectedStore, content = content, actions = actions)
+                }
             },
         )
     }
