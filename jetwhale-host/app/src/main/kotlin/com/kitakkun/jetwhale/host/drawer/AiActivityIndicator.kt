@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOutSine
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -38,22 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.ai_agent_connected
@@ -94,75 +82,11 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRing
 import com.kitakkun.jetwhale.host.ui.jwFocusRing
 import org.jetbrains.compose.resources.stringResource
 
 private const val PULSE_PERIOD_MILLIS = 1100
-private const val AI_BORDER_ROTATION_PERIOD_MILLIS = 2000
-
-/**
- * A border whose highlight sweeps continuously around the shape, marking the element an AI agent is
- * currently operating. The gradient runs colour → transparent → colour so its ends meet, and the
- * whole ring rotates.
- *
- * The ring is drawn by clipping to the gap between the outer shape and an inset copy, then filling
- * that gap with a rotating sweep gradient — so the shape stays put while only the highlight travels.
- */
-@Composable
-fun Modifier.aiOperatingBorder(
-    color: Color,
-    width: Dp,
-    cornerRadius: Dp,
-): Modifier {
-    val transition = rememberInfiniteTransition(label = "ai-operating-border")
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(AI_BORDER_ROTATION_PERIOD_MILLIS, easing = LinearEasing),
-        ),
-        label = "ai-operating-border-angle",
-    )
-    val brushColors = listOf(color, Color.Transparent, color, Color.Transparent, color)
-    return drawWithCache {
-        val strokePx = width.toPx()
-        val radius = cornerRadius.toPx()
-        val ring = Path().apply {
-            fillType = PathFillType.EvenOdd
-            addRoundRect(
-                RoundRect(
-                    left = 0f,
-                    top = 0f,
-                    right = size.width,
-                    bottom = size.height,
-                    cornerRadius = CornerRadius(radius),
-                ),
-            )
-            addRoundRect(
-                RoundRect(
-                    left = strokePx,
-                    top = strokePx,
-                    right = size.width - strokePx,
-                    bottom = size.height - strokePx,
-                    cornerRadius = CornerRadius((radius - strokePx).coerceAtLeast(0f)),
-                ),
-            )
-        }
-        val cover = size.maxDimension * 2f
-        onDrawWithContent {
-            drawContent()
-            clipPath(ring) {
-                rotate(angle) {
-                    drawRect(
-                        brush = Brush.sweepGradient(brushColors, center = center),
-                        topLeft = Offset(center.x - cover / 2f, center.y - cover / 2f),
-                        size = Size(cover, cover),
-                    )
-                }
-            }
-        }
-    }
-}
 
 /**
  * Pulses only while an operation is in flight. An always-running animation would keep the host
@@ -188,9 +112,6 @@ private val AiDetailsMaxWidth = 280.dp
 
 /** Wide enough for the endpoint and the Claude Code command to read on few lines. */
 private val AiConnectHelpWidth = 360.dp
-
-/** The ring's corner on the header card, matching the small shape of the card it rings. */
-private val AiBannerRingCornerRadius = 6.dp
 
 /**
  * The sidebar header's AI card, the window's one place for an AI agent over MCP. It is always there,
@@ -241,7 +162,7 @@ private fun AiActivityCard(
             .jwFocusRing(interactionSource, JwShapes.small)
             .clip(JwShapes.small)
             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
-            .then(if (operating) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius) else Modifier),
+            .then(if (operating) Modifier.jwAiOperatingRing(JwShapes.small) else Modifier),
     ) {
         Row(
             modifier = Modifier
@@ -297,7 +218,7 @@ fun AiActivityIndicator(
                     .jwFocusRing(interactionSource, JwShapes.small)
                     .clip(JwShapes.small)
                     .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClickLabel = description, onClick = { detailsShown = true })
-                    .then(if (uiState.isOperating) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius) else Modifier),
+                    .then(if (uiState.isOperating) Modifier.jwAiOperatingRing(JwShapes.small) else Modifier),
             ) {
                 JwIcon(
                     imageVector = Icons.Default.SmartToy,

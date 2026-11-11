@@ -261,6 +261,11 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 
 An agent can read a returned path to look at the capture.
 
+While an agent runs a tool, the single view rings the control that does the same: the live view
+for a tap or a swipe, the hardware buttons for a press, the text field for typed text, the screen
+button for `setScreen`, and the record and screenshot buttons for captures. The ring marks the
+control, not the device: a tool that names another device rings the same control.
+
 ## Limits
 
 - **Input on a physical iPhone is experimental** and needs a development team, `iproxy` and the

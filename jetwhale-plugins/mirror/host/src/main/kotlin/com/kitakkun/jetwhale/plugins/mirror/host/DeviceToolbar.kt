@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
@@ -38,6 +39,7 @@ import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -47,6 +49,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +67,7 @@ import kotlin.time.Clock
 internal fun DeviceToolbar(
     pane: DevicePaneState,
     actions: MirrorActions,
+    mcpCommands: MirrorMcpCommands,
     showCaptures: Boolean,
     livenessOf: (String) -> DeviceLiveness,
     onToggleCaptures: () -> Unit,
@@ -80,16 +84,16 @@ internal fun DeviceToolbar(
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
-            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions)
-            VolumeGroup(pane.device.kind, pane.capabilities, actions)
-            ScreenPowerButton(pane.screenPower, actions)
+            ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions, mcpCommands)
+            VolumeGroup(pane.device.kind, pane.capabilities, actions, mcpCommands)
+            ScreenPowerButton(pane.screenPower, actions, mcpCommands)
             Row(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 JwVerticalDivider(Modifier.height(CAPTURE_DIVIDER_HEIGHT).padding(end = JwSpacing.extraSmall))
-                CaptureActions(pane.capabilities, pane.recordingSinceMillis, actions)
+                CaptureActions(pane.capabilities, pane.recordingSinceMillis, actions, mcpCommands)
                 JwIconButton(tooltip = if (showCaptures) "Hide captures" else "Captures", onClick = onToggleCaptures, selected = showCaptures) {
                     JwIcon(imageVector = CapturesIcon, contentDescription = null)
                 }
@@ -101,10 +105,15 @@ internal fun DeviceToolbar(
 
 private val NAVIGATION_AND_POWER_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
 
+/**
+ * Rings the group as a whole while an agent presses a button: [MirrorMcpCommands.pressButton] is one
+ * command for every button, and which one it presses is not known here.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
+private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions, mcpCommands: MirrorMcpCommands) {
     if (buttons.isEmpty()) return
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.jwAiOperatingRingWhileRunning(mcpCommands.pressButton, shape = JwShapes.small), verticalAlignment = Alignment.CenterVertically) {
         buttons.forEach { button ->
             JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
                 JwIcon(imageVector = button.icon, contentDescription = null)
@@ -114,10 +123,10 @@ private fun ButtonGroup(buttons: List<DeviceButton>, actions: MirrorActions) {
 }
 
 @Composable
-private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, actions: MirrorActions) {
+private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, actions: MirrorActions, mcpCommands: MirrorMcpCommands) {
     val volume = listOf(DeviceButton.VolumeUp, DeviceButton.VolumeDown)
     when {
-        volume.any { it in capabilities.buttons } -> ButtonGroup(capabilities.buttons.filter(volume::contains), actions)
+        volume.any { it in capabilities.buttons } -> ButtonGroup(capabilities.buttons.filter(volume::contains), actions, mcpCommands)
 
         kind == DeviceKind.IosSimulator -> Row(verticalAlignment = Alignment.CenterVertically) {
             volume.forEach { button ->
@@ -131,34 +140,42 @@ private fun VolumeGroup(kind: DeviceKind, capabilities: DeviceCapabilities, acti
     }
 }
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions) {
+private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions, mcpCommands: MirrorMcpCommands) {
+    val ring = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.setScreen, shape = JwShapes.small)
     when (screenPower?.awake) {
-        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = null) }
-        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = null) }
+        true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep, modifier = ring) { JwIcon(imageVector = ScreenOffIcon, contentDescription = null) }
+        false -> JwIconButton(tooltip = "Wake", onClick = actions::wake, modifier = ring) { JwIcon(imageVector = WakeIcon, contentDescription = null) }
         null -> Unit
     }
 }
 
+/**
+ * Starting and stopping a recording both ring whichever of the two buttons is shown, so the ring stays
+ * on the control while it switches from one to the other.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, actions: MirrorActions) {
+private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, actions: MirrorActions, mcpCommands: MirrorMcpCommands) {
+    val recordingRing = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.startRecording, mcpCommands.stopRecording, shape = JwShapes.small)
     when {
-        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::stopSelectedRecording)
+        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, modifier = recordingRing, onStop = actions::stopSelectedRecording)
 
-        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::recordSelectedDevice) {
+        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::recordSelectedDevice, modifier = recordingRing) {
             JwIcon(imageVector = RecordIcon, contentDescription = null)
         }
 
         else -> Unit
     }
-    JwIconButton(tooltip = "Screenshot", onClick = actions::saveScreenshot) {
+    JwIconButton(tooltip = "Screenshot", onClick = actions::saveScreenshot, modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.captureScreenshot, shape = JwShapes.small)) {
         JwIcon(imageVector = ScreenshotIcon, contentDescription = null)
     }
 }
 
 /** A running recording can't be missed: red, counting, and a click away from stopping. */
 @Composable
-private fun RecordingButton(sinceMillis: Long, onStop: () -> Unit) {
+private fun RecordingButton(sinceMillis: Long, modifier: Modifier, onStop: () -> Unit) {
     val elapsed by produceState(recordingElapsed(System.currentTimeMillis() - sinceMillis), sinceMillis) {
         while (true) {
             delay(RECORDING_TICK_MILLIS)
@@ -171,7 +188,7 @@ private fun RecordingButton(sinceMillis: Long, onStop: () -> Unit) {
             onClick = onStop,
             tone = JwTone.Error,
             leadingIcon = { RecordingDot() },
-            modifier = Modifier.semantics { contentDescription = "Stop recording, $elapsed recorded" },
+            modifier = modifier.semantics { contentDescription = "Stop recording, $elapsed recorded" },
         )
     }
 }
