@@ -9,14 +9,17 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -133,6 +136,21 @@ class DefaultAiOperatedUiTargetsServiceTest {
 
         advanceTimeBy(2)
         assertEquals(emptySet(), emissions.last())
+    }
+
+    @Test
+    fun `a target is dropped when its hold runs out, without waiting for another report`() = runBlocking<Unit> {
+        val fixedClock = object : Clock {
+            override fun now(): Instant = Instant.fromEpochMilliseconds(START_EPOCH_MILLIS)
+        }
+        val service = DefaultAiOperatedUiTargetsService(clock = fixedClock)
+        val reporter = service.reporterFor(PLUGIN_ID, SESSION_ID)
+        reporter.reportOperationStarted(setOf(TestUiTarget.Screen))
+        reporter.reportOperationEnded(setOf(TestUiTarget.Screen))
+        val operatedUiTargetsFlow = service.operatedUiTargetsFlow(pluginId = PLUGIN_ID, sessionId = SESSION_ID)
+
+        assertEquals(setOf<Any>(TestUiTarget.Screen), operatedUiTargetsFlow.first())
+        withTimeout(LINGER_MILLIS * 4) { operatedUiTargetsFlow.first { it.isEmpty() } }
     }
 
     private fun TestScope.newService() = DefaultAiOperatedUiTargetsService(

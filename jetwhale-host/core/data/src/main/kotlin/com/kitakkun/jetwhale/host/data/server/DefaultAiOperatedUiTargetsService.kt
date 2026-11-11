@@ -8,7 +8,10 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,12 +19,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
 /**
  * Counts the running operations of each UI target per plugin instance, and remembers when the last
  * one ended. A target is operated from its first start until [AI_OPERATION_INDICATOR_LINGER] after
- * its last end, so overlapping operations of one target read as one.
+ * its last end, so overlapping operations of one target read as one. Once that hold runs out the
+ * target is dropped, whether or not anything collects the flow, so the state keeps no plugin's objects
+ * past it: they would keep a disposed plugin's class loader reachable.
  *
  * Reports arrive from plugin coroutines on any thread; every change is a compare-and-set of the
  * whole state.
@@ -34,6 +40,8 @@ class DefaultAiOperatedUiTargetsService(
     private val clock: Clock,
 ) : AiOperatedUiTargetsService {
     private val operationsByPluginInstance = MutableStateFlow<Map<PluginInstanceKey, Map<Any, UiTargetOperations>>>(emptyMap())
+
+    private val holdExpiryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun reporterFor(pluginId: String, sessionId: String): AiOperatedUiTargetsReporter = PluginInstanceReporter(PluginInstanceKey(pluginId, sessionId))
 
@@ -81,14 +89,18 @@ class DefaultAiOperatedUiTargetsService(
     }
 
     private fun recordOperationsEnded(pluginInstanceKey: PluginInstanceKey, targets: Set<Any>) {
+        val endedAtEpochMillis = clock.now().toEpochMilliseconds()
         operationsByPluginInstance.update { all ->
-            val nowEpochMillis = clock.now().toEpochMilliseconds()
             val operationsByTarget = all[pluginInstanceKey].orEmpty().toMutableMap()
             targets.forEach { target ->
                 val operations = operationsByTarget.getValue(target)
-                operationsByTarget[target] = UiTargetOperations(runningCount = operations.runningCount - 1, lastEndedAtEpochMillis = nowEpochMillis)
+                operationsByTarget[target] = UiTargetOperations(runningCount = operations.runningCount - 1, lastEndedAtEpochMillis = endedAtEpochMillis)
             }
-            withoutEndedHolds(all + (pluginInstanceKey to operationsByTarget), nowEpochMillis)
+            withoutEndedHolds(all + (pluginInstanceKey to operationsByTarget), endedAtEpochMillis)
+        }
+        holdExpiryScope.launch {
+            delay(AI_OPERATION_INDICATOR_LINGER)
+            operationsByPluginInstance.update { withoutEndedHolds(it, endedAtEpochMillis + AI_OPERATION_INDICATOR_LINGER.inWholeMilliseconds) }
         }
     }
 
