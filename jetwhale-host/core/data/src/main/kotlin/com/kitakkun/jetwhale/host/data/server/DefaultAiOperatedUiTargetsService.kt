@@ -99,7 +99,6 @@ class DefaultAiOperatedUiTargetsService(
 
     private fun isTargetOperated(operations: UiTargetOperations, nowEpochMillis: Long): Boolean = operations.runningCount > 0 ||
         operations.lastEndedAtEpochMillis.let { it != null && nowEpochMillis < it + AI_OPERATION_INDICATOR_LINGER.inWholeMilliseconds }
-
 }
 
 private data class PluginInstanceKey(val pluginId: String, val sessionId: String)

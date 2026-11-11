@@ -24,8 +24,8 @@ import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwListItem
-import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
