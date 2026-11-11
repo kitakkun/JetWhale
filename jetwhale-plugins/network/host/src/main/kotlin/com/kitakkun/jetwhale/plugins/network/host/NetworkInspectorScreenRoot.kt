@@ -31,7 +31,7 @@ import java.util.UUID
  * [NetworkInspectorScreen] is a pure function of its arguments.
  */
 @Composable
-internal fun NetworkInspectorScreenRoot(
+fun NetworkInspectorScreenRoot(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,

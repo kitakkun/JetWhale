@@ -36,6 +36,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.plugins.network.host.HttpTransaction
 import com.kitakkun.jetwhale.plugins.network.host.NetworkInspectorScreenRoot
+import com.kitakkun.jetwhale.plugins.network.host.NetworkMcpCommands
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -203,12 +204,24 @@ private fun NetworkInspectorContent() {
             transactions = TRANSACTIONS,
             mockRules = emptyList(),
             mockingEnabled = true,
+            mcpCommands = NETWORK_MCP_COMMANDS,
             onClearTransactions = {},
             onToggleMocking = {},
             onMockRulesChanged = {},
         )
     }
 }
+
+/** The inspector's commands for a screenshot, where no agent runs them and only their names are read. */
+private val NETWORK_MCP_COMMANDS = NetworkMcpCommands(
+    transactions = { TRANSACTIONS },
+    mcpRedactionRules = { emptyList() },
+    removeAllTransactions = { 0 },
+    mockingEnabled = { true },
+    mockRules = { emptyList() },
+    syncMockingEnabled = { null },
+    syncMockRules = { null },
+)
 
 /** A numbered marker on the window, centered on [center], in pixels of the captured image. */
 private class Callout(val number: Int, val center: Offset)

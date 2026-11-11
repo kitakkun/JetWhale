@@ -19,7 +19,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import java.util.UUID
 
 @Composable
-internal fun NetworkInspectorScreen(
+fun NetworkInspectorScreen(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,

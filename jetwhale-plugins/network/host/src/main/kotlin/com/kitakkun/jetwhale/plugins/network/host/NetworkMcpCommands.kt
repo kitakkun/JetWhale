@@ -12,10 +12,11 @@ internal const val TOOL_PREFIX = "com.kitakkun.jetwhale.network"
 
 /**
  * Each of the Network Inspector's MCP commands, built once, so the UI can ring the control or pane that
- * does what a running command does.
+ * does what a running command does. It is public because [NetworkInspectorScreenRoot] is, and the host's
+ * docs screenshots draw that screen; the commands themselves stay internal.
  */
 @OptIn(ExperimentalJetWhaleApi::class)
-internal class NetworkMcpCommands(
+class NetworkMcpCommands(
     transactions: () -> List<HttpTransaction>,
     mcpRedactionRules: () -> List<RedactionRule>?,
     removeAllTransactions: () -> Int,
@@ -24,16 +25,16 @@ internal class NetworkMcpCommands(
     syncMockingEnabled: suspend (Boolean) -> JetWhaleMessagingException?,
     syncMockRules: suspend (List<MockRule>) -> JetWhaleMessagingException?,
 ) {
-    val listTransactions = ListTransactionsCommand(transactions, mcpRedactionRules)
-    val getTransaction = GetTransactionCommand(transactions, mcpRedactionRules)
-    val clearTransactions = ClearTransactionsCommand(removeAllTransactions)
-    val getMockConfig = GetMockConfigCommand(mockingEnabled, mockRules)
-    val setMockingEnabled = SetMockingEnabledCommand(syncMockingEnabled)
-    val addMockRule = AddMockRuleCommand(mockRules, syncMockRules)
-    val removeMockRule = RemoveMockRuleCommand(mockRules, syncMockRules)
-    val setMockRules = SetMockRulesCommand(syncMockRules)
+    internal val listTransactions = ListTransactionsCommand(transactions, mcpRedactionRules)
+    internal val getTransaction = GetTransactionCommand(transactions, mcpRedactionRules)
+    internal val clearTransactions = ClearTransactionsCommand(removeAllTransactions)
+    internal val getMockConfig = GetMockConfigCommand(mockingEnabled, mockRules)
+    internal val setMockingEnabled = SetMockingEnabledCommand(syncMockingEnabled)
+    internal val addMockRule = AddMockRuleCommand(mockRules, syncMockRules)
+    internal val removeMockRule = RemoveMockRuleCommand(mockRules, syncMockRules)
+    internal val setMockRules = SetMockRulesCommand(syncMockRules)
 
-    val all: List<JetWhaleMcpCommand> = listOf(listTransactions, getTransaction, clearTransactions, getMockConfig, setMockingEnabled, addMockRule, removeMockRule, setMockRules)
+    internal val all: List<JetWhaleMcpCommand> = listOf(listTransactions, getTransaction, clearTransactions, getMockConfig, setMockingEnabled, addMockRule, removeMockRule, setMockRules)
 }
 
 internal fun errorJson(message: String): String = buildJsonObject { put("error", message) }.toString()
