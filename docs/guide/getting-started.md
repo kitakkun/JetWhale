@@ -80,7 +80,10 @@ Your app needs **Kotlin 2.3 or newer**; see
 
 ::: tip
 Only add JetWhale to debug builds (e.g. `debugImplementation` on Android, or your own build-flavor
-wiring). It is a debugging tool and should not ship in release builds.
+wiring). It is a debugging tool and should not ship in release builds. Once shared code calls
+`startJetWhale { }`, a debug-only dependency stops being enough on its own; see
+[Excluding from Release Builds](/guide/excluding-from-release-builds) for a DI-based seam that keeps
+release builds free of JetWhale entirely.
 :::
 
 ## 3. Start JetWhale in your app
