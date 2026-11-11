@@ -52,7 +52,7 @@ internal class GetViewAttributesCommand(
         val rootId = arguments[rootId]
         val nodeId = arguments[nodeId]
         val response = try {
-            getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
+            markingAiOperationOn(SemanticsUiTarget.ViewAttributes(rootId, nodeId)) { getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId)) }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }
@@ -102,7 +102,7 @@ internal class SetViewAttributeCommand(
         val text = arguments[value]
 
         val result = try {
-            val response = getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
+            val response = markingAiOperationOn(SemanticsUiTarget.ViewAttributes(rootId, nodeId)) { getAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId)) }
             val snapshot = response.snapshot
                 ?: return errorJson(response.message ?: "this node has no View attributes")
             val current = snapshot.attributes.firstOrNull { it.id == attributeId }
@@ -111,14 +111,10 @@ internal class SetViewAttributeCommand(
                 )
             if (!current.editable) throw JetWhaleMcpArgumentException("$attributeId is read-only on a ${snapshot.viewClass}")
 
-            setAttribute(
-                SetViewAttribute(
-                    rootId = rootId,
-                    nodeId = nodeId,
-                    attributeId = attributeId,
-                    value = parseViewAttributeValue(attributeId, current.value, text),
-                ),
-            )
+            val parsedValue = parseViewAttributeValue(attributeId, current.value, text)
+            markingAiOperationOn(SemanticsUiTarget.ViewAttributes(rootId, nodeId)) {
+                setAttribute(SetViewAttribute(rootId = rootId, nodeId = nodeId, attributeId = attributeId, value = parsedValue))
+            }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }

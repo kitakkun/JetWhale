@@ -110,7 +110,6 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
                 recordingSinceMillis = null,
                 surface = surface,
                 actions = NoMirrorActions,
-                mcpCommands = previewMcpCommands,
                 showCaptures = showCaptures,
                 livenessOf = { id -> if (id == PIXEL_DEVICE.id) DeviceLiveness.ScreenOff else DeviceLiveness.Live },
                 onToggleCaptures = {},
@@ -124,7 +123,6 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
                         selected = CAPTURES.first(),
                         thumbnails = SampleAppThumbnails,
                         actions = NoCapturesActions,
-                        mcpCommands = previewMcpCommands,
                     )
                 },
             )

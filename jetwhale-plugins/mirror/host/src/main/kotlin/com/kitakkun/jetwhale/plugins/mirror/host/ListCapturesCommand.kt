@@ -20,20 +20,22 @@ internal class ListCapturesCommand(
     private val kind by enumOrNull("Only screenshots or only recordings.", CaptureKind.entries)
     private val since by longOrNull("Only captures taken at or after this time, in epoch milliseconds.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = buildJsonObject {
-        putJsonArray("captures") {
-            mirror.listCaptures(arguments[deviceId], arguments[kind], arguments[since]).forEach { capture ->
-                addJsonObject {
-                    put("path", capture.file.absolutePath)
-                    put("kind", capture.info.kind.name)
-                    put("deviceId", capture.info.deviceId)
-                    put("deviceName", capture.info.deviceName)
-                    put("capturedAtEpochMillis", capture.info.capturedAtEpochMillis)
-                    capture.info.widthPx?.let { put("widthPx", it) }
-                    capture.info.heightPx?.let { put("heightPx", it) }
-                    capture.info.durationMillis?.let { put("durationMillis", it) }
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(MirrorUiTarget.CaptureList) {
+        buildJsonObject {
+            putJsonArray("captures") {
+                mirror.listCaptures(arguments[deviceId], arguments[kind], arguments[since]).forEach { capture ->
+                    addJsonObject {
+                        put("path", capture.file.absolutePath)
+                        put("kind", capture.info.kind.name)
+                        put("deviceId", capture.info.deviceId)
+                        put("deviceName", capture.info.deviceName)
+                        put("capturedAtEpochMillis", capture.info.capturedAtEpochMillis)
+                        capture.info.widthPx?.let { put("widthPx", it) }
+                        capture.info.heightPx?.let { put("heightPx", it) }
+                        capture.info.durationMillis?.let { put("durationMillis", it) }
+                    }
                 }
             }
-        }
-    }.toString()
+        }.toString()
+    }
 }

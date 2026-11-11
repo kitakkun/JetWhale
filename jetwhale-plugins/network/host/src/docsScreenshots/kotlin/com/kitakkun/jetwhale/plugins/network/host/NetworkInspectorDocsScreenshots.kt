@@ -65,7 +65,6 @@ private fun SkikoComposeUiTest.setNetworkInspectorContent(darkTheme: Boolean) {
                 transactions = TRANSACTIONS,
                 mockRules = MOCK_RULES,
                 mockingEnabled = true,
-                mcpCommands = previewMcpCommands,
                 onClearTransactions = {},
                 onToggleMocking = {},
                 onMockRulesChanged = {},

@@ -51,17 +51,19 @@ internal class PerformNodeActionCommand(
         val rootId: String
         try {
             rootId = arguments[this.rootId] ?: resolveRootId(nodeId)
-            result = perform(
-                PerformNodeAction(
-                    rootId = rootId,
-                    nodeId = nodeId,
-                    action = action,
-                    text = arguments[text],
-                    scrollX = (arguments[scrollX] ?: 0).toFloat(),
-                    scrollY = (arguments[scrollY] ?: 0).toFloat(),
-                    index = arguments[index],
-                ),
-            )
+            result = markingAiOperationOn(SemanticsUiTarget.Node(rootId, nodeId)) {
+                perform(
+                    PerformNodeAction(
+                        rootId = rootId,
+                        nodeId = nodeId,
+                        action = action,
+                        text = arguments[text],
+                        scrollX = (arguments[scrollX] ?: 0).toFloat(),
+                        scrollY = (arguments[scrollY] ?: 0).toFloat(),
+                        index = arguments[index],
+                    ),
+                )
+            }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }

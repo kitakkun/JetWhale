@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -76,6 +77,40 @@ public abstract class JetWhaleMcpCommand(
      * @return A result string (plain text or JSON).
      */
     public abstract suspend fun execute(arguments: JetWhaleMcpArguments): String
+
+    /**
+     * Runs [block] as the work that operates [targets], so the plugin's UI can mark the controls that
+     * stand for them while an AI agent drives them. Returns what [block] returns.
+     *
+     * A target is a value the plugin defines; its UI puts `Modifier.jwAiOperatingRingWhileOperated`
+     * from jetwhale-host-ui, given an equal value, on the control that stands for it. Nothing else
+     * connects the two, so make targets `data object`s and `data class`es, which compare by value:
+     * ```kotlin
+     * internal sealed interface WidgetUiTarget {
+     *     data object WidgetList : WidgetUiTarget
+     *     data class WidgetRow(val widgetId: String) : WidgetUiTarget
+     * }
+     *
+     * override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+     *     val id = arguments[widgetId]
+     *     return markingAiOperationOn(WidgetUiTarget.WidgetRow(id)) { widgets.describeAsJson(id) }
+     * }
+     * ```
+     * The targets are in [LocalAiOperatedUiTargets] from the moment [block] starts until 1.5 seconds
+     * after it ends, whether it returns, throws or is cancelled. Outside the host, as in a unit test,
+     * [block] just runs.
+     */
+    @OptIn(InternalJetWhaleHostApi::class)
+    protected suspend fun <T> markingAiOperationOn(vararg targets: Any, block: suspend () -> T): T {
+        val reporter = currentCoroutineContext()[AiOperatedUiTargetsReporter] ?: return block()
+        val operatedTargets = targets.toSet()
+        reporter.reportOperationStarted(operatedTargets)
+        try {
+            return block()
+        } finally {
+            reporter.reportOperationEnded(operatedTargets)
+        }
+    }
 
     public fun toDescriptor(): JetWhaleMcpToolDescriptor {
         parametersSealed = true

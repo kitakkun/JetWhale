@@ -18,7 +18,7 @@ internal class SetMockingEnabledCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val enabled = arguments[this.enabled]
-        return when (val failure = syncMockingEnabled(enabled)) {
+        return when (val failure = markingAiOperationOn(NetworkUiTarget.MockingSwitch) { syncMockingEnabled(enabled) }) {
             null -> buildJsonObject { put("enabled", enabled) }.toString()
             else -> syncErrorJson(failure)
         }

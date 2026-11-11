@@ -23,7 +23,6 @@ private fun MocksTabPreview() {
                 ),
             ),
             mockingEnabled = true,
-            mcpCommands = previewMcpCommands,
             onToggleMocking = {},
             onChanged = {},
         )

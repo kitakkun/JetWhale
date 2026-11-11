@@ -83,7 +83,6 @@ private fun StorageInspectorScreenPreview() {
             storeContent = KeyValueStoreContent(entries = previewEntries, error = null),
             status = StorageStatus(message = "Reloaded from the app.", isError = false),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             onSelectTab = {},
         )
     }
@@ -101,7 +100,6 @@ private fun FilesPaneEmptyPreview() {
             directoryMeasurement = null,
             fileSha256 = null,
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
         )
     }
 }
@@ -115,7 +113,6 @@ private fun KeyValuePanePreview() {
             selectedStore = "settings",
             content = KeyValueStoreContent(entries = previewEntries, error = null),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
         )
     }
 }

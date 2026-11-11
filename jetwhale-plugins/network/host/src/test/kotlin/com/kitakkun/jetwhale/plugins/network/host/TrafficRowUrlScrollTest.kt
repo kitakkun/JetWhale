@@ -120,7 +120,6 @@ private fun runTrafficTab(
                     transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
                     selectedTxId = null,
                     splitPaneState = rememberJwSplitPaneState(SPLIT_POSITION),
-                    mcpCommands = testMcpCommands,
                     onSelectTx = { selected = it },
                     onClear = {},
                     onCreateMock = {},

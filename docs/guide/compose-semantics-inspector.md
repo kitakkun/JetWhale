@@ -215,9 +215,9 @@ whatever moved into that spot; prefer it over `adb shell input tap`. Bounds and 
 node's `unit`: pixels on Android and desktop, points on iOS.
 
 While an agent runs a tool, the inspector rings what the tool reads or drives: the tree for
-`findNodes`, `getNodeTree` and `nodeAt`, the selected node's actions for `performNodeAction`, and its
-View attributes for `getViewAttributes` and `setViewAttribute`. The ring marks the pane, not the node
-the tool names: the selected node's actions are ringed whichever node the agent acts on.
+`findNodes`, `getNodeTree` and `nodeAt`; for `performNodeAction`, the node's row in the tree and,
+while that node is selected, its actions; and for `getViewAttributes` and `setViewAttribute`, the View
+attributes while they show the View the tool names.
 
 ## Limits
 

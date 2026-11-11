@@ -38,6 +38,20 @@ class NodeAtCommandTest {
         assertEquals("dialog", json["node"]?.jsonObject?.get("rootId")?.jsonPrimitive?.content)
         assertEquals(9, json["node"]?.jsonObject?.get("id")?.jsonPrimitive?.content?.toInt())
     }
+
+    @Test
+    fun `nodeAt marks the node tree it reads`() {
+        val command = NodeAtCommand(capture = { snapshot(root("window", node = node(id = 0))) })
+
+        val marked = command.markedTargets(
+            buildJsonObject {
+                put("x", 1)
+                put("y", 1)
+            },
+        )
+
+        assertEquals(setOf<Any>(SemanticsUiTarget.NodeTree), marked)
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

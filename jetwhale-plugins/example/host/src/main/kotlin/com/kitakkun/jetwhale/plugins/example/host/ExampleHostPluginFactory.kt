@@ -32,9 +32,6 @@ private class ExampleHostPlugin :
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()
 
-    private val sendPingCommand = SendPingCommand(requestPing = { messenger.request(Ping) })
-    private val getEventLogsCommand = GetEventLogsCommand(eventLogs)
-
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: ButtonClicked -> eventLogs.add("Event: $event") }
     }
@@ -43,8 +40,6 @@ private class ExampleHostPlugin :
     override fun Content() {
         ExamplePluginViewRoot(
             eventLogs = eventLogs,
-            sendPingCommand = sendPingCommand,
-            getEventLogsCommand = getEventLogsCommand,
             onClickSendPing = {
                 pluginScope.launch {
                     eventLogs.add("Request: Ping")
@@ -64,5 +59,8 @@ private class ExampleHostPlugin :
         )
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(sendPingCommand, getEventLogsCommand)
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        SendPingCommand(requestPing = { messenger.request(Ping) }),
+        GetEventLogsCommand(eventLogs),
+    )
 }

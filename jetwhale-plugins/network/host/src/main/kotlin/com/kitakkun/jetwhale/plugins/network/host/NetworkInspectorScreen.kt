@@ -24,7 +24,6 @@ fun NetworkInspectorScreen(
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
     trafficSplitPaneState: JwSplitPaneState,
-    mcpCommands: NetworkMcpCommands,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
@@ -52,7 +51,6 @@ fun NetworkInspectorScreen(
                 transactions = transactions,
                 selectedTxId = selectedTxId,
                 splitPaneState = trafficSplitPaneState,
-                mcpCommands = mcpCommands,
                 onSelectTx = { selectedTxId = it },
                 onClear = onClearTransactions,
                 onCreateMock = { tx ->
@@ -66,7 +64,6 @@ fun NetworkInspectorScreen(
             else -> MocksTab(
                 rules = mockRules,
                 mockingEnabled = mockingEnabled,
-                mcpCommands = mcpCommands,
                 onToggleMocking = onToggleMocking,
                 onChanged = onMockRulesChanged,
             )

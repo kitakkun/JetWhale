@@ -46,7 +46,7 @@ import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
@@ -76,7 +76,6 @@ internal fun Nav3NavigatorScreen(
     selectedStackId: String?,
     status: Nav3Status?,
     draft: String,
-    mcpCommands: Nav3McpCommands,
     onSelectStack: (String) -> Unit,
     onApplyOperation: (stackId: String, operation: NavBackStackOperation) -> Unit,
     onRefresh: () -> Unit,
@@ -120,15 +119,7 @@ internal fun Nav3NavigatorScreen(
                         snapshot = selected,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
                         onCopyKeyToEditor = { onDraftChange(PrettyJson.encodeToString(JsonElement.serializer(), it)) },
-                        modifier = Modifier.jwAiOperatingRingWhileRunning(
-                            mcpCommands.getBackStack,
-                            mcpCommands.pushNavKey,
-                            mcpCommands.popBackStack,
-                            mcpCommands.removeNavKey,
-                            mcpCommands.moveNavKeyToTop,
-                            mcpCommands.replaceBackStack,
-                            shape = RectangleShape,
-                        ),
+                        modifier = Modifier.jwAiOperatingRingWhileOperated(Nav3UiTarget.BackStack(selected.stackId), shape = RectangleShape),
                     )
                 },
                 second = {
@@ -137,7 +128,7 @@ internal fun Nav3NavigatorScreen(
                         draft = draft,
                         onDraftChange = onDraftChange,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.listNavKeyTypes, shape = RectangleShape),
+                        modifier = Modifier.jwAiOperatingRingWhileOperated(Nav3UiTarget.PushPane, shape = RectangleShape),
                     )
                 },
             )

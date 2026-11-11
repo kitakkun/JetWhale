@@ -20,13 +20,15 @@ internal class TapCommand(
         val x = arguments[x]
         val y = arguments[y]
         if (x < 0 || y < 0) throw JetWhaleMcpArgumentException("coordinates must not be negative (got x=$x, y=$y)")
-        val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
-        device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-        val screen = deviceOperation(device.controller::screenSize)
-        if (x >= screen.width || y >= screen.height) {
-            throw JetWhaleMcpArgumentException("the tap is off the ${screen.width}x${screen.height} screen (got x=$x, y=$y)")
+        return markingAiOperationOn(MirrorUiTarget.LiveView) {
+            val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
+            device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
+            val screen = deviceOperation(device.controller::screenSize)
+            if (x >= screen.width || y >= screen.height) {
+                throw JetWhaleMcpArgumentException("the tap is off the ${screen.width}x${screen.height} screen (got x=$x, y=$y)")
+            }
+            deviceOperation { device.controller.tap(x, y) }
+            okJson()
         }
-        deviceOperation { device.controller.tap(x, y) }
-        return okJson()
     }
 }

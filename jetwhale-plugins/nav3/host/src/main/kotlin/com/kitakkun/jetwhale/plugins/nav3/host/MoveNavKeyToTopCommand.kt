@@ -19,9 +19,11 @@ internal class MoveNavKeyToTopCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
-        return controller.mutate(
-            stackId = target,
-            operations = listOf(NavBackStackOperation.MoveToTop(index = arguments[index])),
-        ).toMcpJson()
+        return markingAiOperationOn(Nav3UiTarget.BackStack(target)) {
+            controller.mutate(
+                stackId = target,
+                operations = listOf(NavBackStackOperation.MoveToTop(index = arguments[index])),
+            ).toMcpJson()
+        }
     }
 }

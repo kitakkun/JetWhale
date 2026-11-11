@@ -38,8 +38,8 @@ internal class ListTransactionsCommand(
         "Only include transactions with this HTTP method (case-insensitive).",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val redactionRules = mcpRedactionRules() ?: return errorJson(MCP_REDACTION_RULES_UNREAD_ERROR)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(NetworkUiTarget.TrafficList) {
+        val redactionRules = mcpRedactionRules() ?: return@markingAiOperationOn errorJson(MCP_REDACTION_RULES_UNREAD_ERROR)
         val limit = arguments[this.limit]
         val afterTxId = arguments[this.afterTxId]
         val filtered = matchingTransactions(arguments, redactionRules)
@@ -50,7 +50,7 @@ internal class ListTransactionsCommand(
             else -> filtered.take(limit)
         }
         val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
-        return buildJsonObject {
+        buildJsonObject {
             put("transactions", JsonArray(page.map { redactionRules.redact(it).toSummaryJson() }))
             nextCursor?.let { put("nextCursor", it) }
         }.toString()

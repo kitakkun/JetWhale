@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.nav3.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -169,6 +171,15 @@ class Nav3McpCommandsTest {
         )
     }
 
+    @Test
+    fun `a stack command marks the back stack it reads or changes, and listNavKeyTypes the push pane`() {
+        val controller = FakeNav3BackStackController(listOf(snapshot("main", "Home"), snapshot("sheet", "Filters")))
+
+        assertEquals(listOf<Any>(Nav3UiTarget.BackStack("main"), Nav3UiTarget.BackStack("sheet")), GetBackStackCommand(controller).markedTargets(buildJsonObject { }))
+        assertEquals(listOf<Any>(Nav3UiTarget.BackStack("sheet")), PopBackStackCommand(controller).markedTargets(buildJsonObject { put("stackId", "sheet") }))
+        assertEquals(listOf<Any>(Nav3UiTarget.PushPane), ListNavKeyTypesCommand(controller).markedTargets(buildJsonObject { }))
+    }
+
     private fun controllerWithKeyTypes() = FakeNav3BackStackController(
         stacks = listOf(snapshot("main", "Home")),
         keyTypes = listOf(keyType("com.example.navigation.ProfileKey"), keyType("com.example.settings.SettingsKey"), keyType("Detail")),
@@ -180,4 +191,19 @@ class Nav3McpCommandsTest {
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.runCommand(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
     Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+}
+
+/** The UI targets the command marks while it runs. */
+@OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
+private fun JetWhaleMcpCommand.markedTargets(arguments: JsonObject): List<Any> {
+    val marked = mutableListOf<Any>()
+    val reporter = object : AiOperatedUiTargetsReporter() {
+        override fun reportOperationStarted(targets: Set<Any>) {
+            marked.addAll(targets)
+        }
+
+        override fun reportOperationEnded(targets: Set<Any>) = Unit
+    }
+    runBlocking(reporter) { execute(JetWhaleMcpArguments(arguments)) }
+    return marked
 }

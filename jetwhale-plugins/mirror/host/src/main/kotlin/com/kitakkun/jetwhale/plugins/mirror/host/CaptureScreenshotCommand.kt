@@ -16,10 +16,10 @@ internal class CaptureScreenshotCommand(
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(MirrorUiTarget.ScreenshotButton) {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         val capture = deviceOperation { mirror.saveScreenshot(device) }
-        return buildJsonObject {
+        buildJsonObject {
             put("path", capture.file.absolutePath)
             capture.info.widthPx?.let { put("widthPx", it) }
             capture.info.heightPx?.let { put("heightPx", it) }

@@ -46,7 +46,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -76,14 +76,13 @@ internal fun CapturesPanel(
     selected: Capture?,
     thumbnails: ThumbnailSource,
     actions: CapturesActions,
-    mcpCommands: MirrorMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     val days = captures.map { DayFormat.format(Instant.ofEpochMilli(it.info.capturedAtEpochMillis)) }.distinct()
     val shown = captures.filter { day == null || DayFormat.format(Instant.ofEpochMilli(it.info.capturedAtEpochMillis)) == day }
     Column(modifier.fillMaxSize()) {
         CaptureFilters(allDevices, kind, day, days, actions)
-        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileRunning(mcpCommands.listCaptures, shape = RectangleShape)) {
+        Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileOperated(MirrorUiTarget.CaptureList, shape = RectangleShape)) {
             if (shown.isEmpty()) {
                 JwEmptyState(title = "No captures", description = "Screenshots and recordings of this device appear here as soon as they are taken.")
             } else {

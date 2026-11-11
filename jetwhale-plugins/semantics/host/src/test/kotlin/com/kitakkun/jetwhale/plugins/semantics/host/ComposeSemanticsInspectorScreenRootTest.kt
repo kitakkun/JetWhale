@@ -38,7 +38,6 @@ class ComposeSemanticsInspectorScreenRootTest {
                         actionStatus = null,
                         highlightStatus = null,
                         viewAttributes = ViewAttributesUiState.Empty,
-                        mcpCommands = testMcpCommands,
                         onCapture = {},
                         onPerformAction = {},
                         onSelectedNodeChange = {},

@@ -174,14 +174,26 @@ private class MirrorHostPlugin :
         }
     }
 
-    private val mirrorMcpCommands by lazy { MirrorMcpCommands(mirror) }
-
     @Composable
     override fun Content() {
-        MirrorScreenRoot(mirror, mirrorMcpCommands)
+        MirrorScreenRoot(mirror)
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> get() = mirrorMcpCommands.all
+    override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
+        listOf(
+            ListDevicesCommand(mirror),
+            CaptureScreenshotCommand(mirror),
+            TapCommand(mirror),
+            SwipeCommand(mirror),
+            PressButtonCommand(mirror),
+            SetScreenCommand(mirror),
+            InputTextCommand(mirror),
+            KeepRunnerAliveCommand(mirror),
+            StartRecordingCommand(mirror),
+            StopRecordingCommand(mirror),
+            ListCapturesCommand(mirror),
+        )
+    }
 }
 
 /**

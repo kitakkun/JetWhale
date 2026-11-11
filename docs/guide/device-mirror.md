@@ -262,8 +262,8 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 An agent can read a returned path to look at the capture.
 
 While an agent runs a tool, the single view rings the control that does the same: the device picker
-for `listDevices`, the live view for a tap or a swipe, the hardware buttons for a press, the text
-field for typed text, the screen button for `setScreen`, the record and screenshot buttons for
+for `listDevices`, the live view for a tap or a swipe, the pressed button for `pressButton`, the
+text field for typed text, the screen button for `setScreen`, the record and screenshot buttons for
 captures, and the Captures panel's list for `listCaptures`. The ring marks the control, not the
 device: a tool that names another device rings the same control.
 

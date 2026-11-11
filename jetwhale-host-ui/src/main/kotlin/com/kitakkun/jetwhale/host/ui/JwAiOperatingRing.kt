@@ -28,8 +28,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -42,34 +41,33 @@ private const val ROTATION_PERIOD_MILLIS = 2000
  * the content. The host rings a plugin's drawer item with it while an AI agent drives the plugin.
  *
  * The ring animates for as long as the modifier is applied, so apply it only while there is an
- * operation to mark. To ring a control inside a plugin while an agent runs one of the plugin's MCP
- * commands, use [jwAiOperatingRingWhileRunning], which decides that itself.
+ * operation to mark. To ring a control inside a plugin while an AI agent operates it through one of
+ * the plugin's MCP commands, use [jwAiOperatingRingWhileOperated], which decides that itself.
  *
  * @param shape the shape of what is ringed, so the ring hugs its corners.
  */
 public fun Modifier.jwAiOperatingRing(shape: Shape): Modifier = this then AiOperatingRingElement(shape, AiOperatingRingVisibility.Always)
 
 /**
- * Draws [jwAiOperatingRing] while an AI agent runs any of [commands], and nothing otherwise. Put it
- * on the control that does what the commands do, so the user sees what inside the plugin the agent
- * is driving. One control can stand for several commands, such as a screen that is both tapped and
- * swiped.
+ * Draws [jwAiOperatingRing] while an AI agent operates [target], and nothing otherwise. Put it on the
+ * control that stands for [target], so the user sees what inside the plugin the agent is driving.
  *
- * It follows [LocalRunningMcpCommandNames], so a command that finishes within a frame still rings
- * the control for a moment. While none of [commands] runs, the modifier draws nothing and requests
- * no frames.
+ * [target] is a value the plugin defines and its MCP commands pass to `markingAiOperationOn` around
+ * the work they do; the two are matched by `equals`. The modifier follows [LocalAiOperatedUiTargets],
+ * so work that finishes within a frame still rings the control for a moment. While [target] is not
+ * operated, the modifier draws nothing and requests no frames.
  *
- * @param commands the commands the control stands for, the same instances the plugin lists in
- * [com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin.mcpCommands].
+ * @param target the plugin-defined value the control stands for, such as a `data object` or a
+ * `data class`.
  * @param shape the shape of the control, so the ring hugs its corners.
  */
 @ExperimentalJetWhaleApi
-public fun Modifier.jwAiOperatingRingWhileRunning(vararg commands: JetWhaleMcpCommand, shape: Shape): Modifier = this then AiOperatingRingElement(shape, AiOperatingRingVisibility.WhileAnyRuns(commands.mapTo(HashSet(), JetWhaleMcpCommand::name)))
+public fun Modifier.jwAiOperatingRingWhileOperated(target: Any, shape: Shape): Modifier = this then AiOperatingRingElement(shape, AiOperatingRingVisibility.WhileOperated(target))
 
 private sealed interface AiOperatingRingVisibility {
     data object Always : AiOperatingRingVisibility
 
-    data class WhileAnyRuns(val commandNames: Set<String>) : AiOperatingRingVisibility
+    data class WhileOperated(val target: Any) : AiOperatingRingVisibility
 }
 
 private data class AiOperatingRingElement(
@@ -147,10 +145,10 @@ private class AiOperatingRingNode(
         val shown = when (val visibility = visibility) {
             is AiOperatingRingVisibility.Always -> true
 
-            is AiOperatingRingVisibility.WhileAnyRuns -> {
-                var running = false
-                observeReads { running = currentValueOf(LocalRunningMcpCommandNames).any(visibility.commandNames::contains) }
-                running
+            is AiOperatingRingVisibility.WhileOperated -> {
+                var operated = false
+                observeReads { operated = visibility.target in currentValueOf(LocalAiOperatedUiTargets) }
+                operated
             }
         }
         if (shown == (rotationJob != null)) return

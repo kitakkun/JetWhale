@@ -25,7 +25,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlin.test.Test
@@ -75,11 +75,11 @@ class Nav3NavigatorScreenTest {
 
     @OptIn(ExperimentalJetWhaleApi::class)
     @Test
-    fun `each command rings exactly the pane that shows what it reads or changes`() = runComposeUiTest {
+    fun `each pane is ringed only while an agent operates its target`() = runComposeUiTest {
         mainClock.autoAdvance = false
-        var runningCommandNames by mutableStateOf(emptySet<String>())
+        var operatedUiTargets by mutableStateOf(emptySet<Any>())
         setContent {
-            CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+            CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets) {
                 Nav3NavigatorScreenContent(keyTypes)
             }
         }
@@ -91,18 +91,14 @@ class Nav3NavigatorScreenTest {
         val idleEdgePixels = panes.mapValues { (_, pane) -> pane.captureEdgePixels() }
 
         mapOf(
-            screenMcpCommands.getBackStack to listOf("back stack"),
-            screenMcpCommands.pushNavKey to listOf("back stack"),
-            screenMcpCommands.popBackStack to listOf("back stack"),
-            screenMcpCommands.removeNavKey to listOf("back stack"),
-            screenMcpCommands.moveNavKeyToTop to listOf("back stack"),
-            screenMcpCommands.replaceBackStack to listOf("back stack"),
-            screenMcpCommands.listNavKeyTypes to listOf("push pane"),
-        ).forEach { (command, ringedPaneNames) ->
-            runningCommandNames = setOf(command.name)
+            Nav3UiTarget.BackStack("main") to listOf("back stack"),
+            Nav3UiTarget.BackStack("other") to emptyList(),
+            Nav3UiTarget.PushPane to listOf("push pane"),
+        ).forEach { (target, ringedPaneNames) ->
+            operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedPaneNames, panes.filter { (paneName, pane) -> pane.captureEdgePixels() != idleEdgePixels.getValue(paneName) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedPaneNames, panes.filter { (paneName, pane) -> pane.captureEdgePixels() != idleEdgePixels.getValue(paneName) }.keys.toList(), "while $target is operated")
         }
     }
 
@@ -124,8 +120,6 @@ class Nav3NavigatorScreenTest {
     }
 }
 
-private val screenMcpCommands = Nav3McpCommands(FakeNav3BackStackController(stacks = emptyList()))
-
 @OptIn(ExperimentalTestApi::class)
 private fun ComposeUiTest.keyTypeSearchField(): SemanticsNodeInteraction = onNode(hasSetTextAction() and hasText("Filter by type name"))
 
@@ -145,7 +139,6 @@ private fun Nav3NavigatorScreenContent(keyTypes: List<NavKeyTypeDescriptor>) {
                 selectedStackId = "main",
                 status = null,
                 draft = "",
-                mcpCommands = screenMcpCommands,
                 onSelectStack = {},
                 onApplyOperation = { _, _ -> },
                 onRefresh = {},

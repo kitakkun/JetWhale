@@ -21,7 +21,7 @@ internal class HashFileCommand(
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val location = fileLocationOf(arguments[root], arguments[path])
         if (location.path.isEmpty()) throw JetWhaleMcpArgumentException("path must name a file below the root")
-        val digest = client.sha256Of(location)
+        val digest = markingAiOperationOn(StorageUiTarget.FileEntry(location)) { client.sha256Of(location) }
         return buildJsonObject {
             digest.sha256Hex?.let { put("sha256", it) }
             digest.error?.let { put("error", it) }

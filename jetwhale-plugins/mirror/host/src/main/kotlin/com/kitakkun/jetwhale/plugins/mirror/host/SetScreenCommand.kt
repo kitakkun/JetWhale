@@ -18,13 +18,13 @@ internal class SetScreenCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val on by boolean("true to turn the screen on, false to turn it off.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(MirrorUiTarget.ScreenPowerButton) {
         val device = deviceOperation { mirror.resolve(arguments[deviceId]) }
         val power = deviceOperation {
             if (arguments[on]) device.controller.wake() else device.controller.sleep()
             device.controller.screenPower()
         }
-        return buildJsonObject {
+        buildJsonObject {
             put("screenOn", power.awake)
             put("locked", power.locked)
         }.toString()

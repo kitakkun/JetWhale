@@ -16,11 +16,11 @@ internal class GetTransactionCommand(
 
     private val txId by string("The transaction id from listTransactions.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val redactionRules = mcpRedactionRules() ?: return errorJson(MCP_REDACTION_RULES_UNREAD_ERROR)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn(NetworkUiTarget.TransactionDetail) {
+        val redactionRules = mcpRedactionRules() ?: return@markingAiOperationOn errorJson(MCP_REDACTION_RULES_UNREAD_ERROR)
         val txId = arguments[this.txId]
         val transaction = transactions().firstOrNull { it.txId == txId }
             ?: throw JetWhaleMcpArgumentException("no transaction with txId: $txId")
-        return redactionRules.redact(transaction).toDetailJson().toString()
+        redactionRules.redact(transaction).toDetailJson().toString()
     }
 }

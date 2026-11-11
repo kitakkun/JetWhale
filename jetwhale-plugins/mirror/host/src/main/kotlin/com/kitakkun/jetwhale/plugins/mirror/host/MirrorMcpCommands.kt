@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -40,27 +39,6 @@ internal interface MirrorDevices {
     suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult>
 
     fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture>
-}
-
-/**
- * Each of Mirror's MCP commands, built once, so the UI can ring the control that does what a running
- * command does.
- */
-@OptIn(ExperimentalJetWhaleApi::class)
-internal class MirrorMcpCommands(mirror: MirrorDevices) {
-    val listDevices = ListDevicesCommand(mirror)
-    val captureScreenshot = CaptureScreenshotCommand(mirror)
-    val tap = TapCommand(mirror)
-    val swipe = SwipeCommand(mirror)
-    val pressButton = PressButtonCommand(mirror)
-    val setScreen = SetScreenCommand(mirror)
-    val inputText = InputTextCommand(mirror)
-    val keepRunnerAlive = KeepRunnerAliveCommand(mirror)
-    val startRecording = StartRecordingCommand(mirror)
-    val stopRecording = StopRecordingCommand(mirror)
-    val listCaptures = ListCapturesCommand(mirror)
-
-    val all: List<JetWhaleMcpCommand> = listOf(listDevices, captureScreenshot, tap, swipe, pressButton, setScreen, inputText, keepRunnerAlive, startRecording, stopRecording, listCaptures)
 }
 
 internal fun okJson(): String = buildJsonObject { put("ok", true) }.toString()

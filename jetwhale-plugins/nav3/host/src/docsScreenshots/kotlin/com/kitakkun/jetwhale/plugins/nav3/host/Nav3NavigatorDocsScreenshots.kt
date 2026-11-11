@@ -34,7 +34,6 @@ class Nav3NavigatorDocsScreenshots {
                     keyTypes = KEY_TYPES,
                     selectedStackId = BACK_STACK.stackId,
                     status = null,
-                    mcpCommands = previewMcpCommands,
                     onSelectStack = {},
                     onApplyOperation = { _, _ -> },
                     onRefresh = {},

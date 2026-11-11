@@ -66,13 +66,15 @@ internal class FindNodesCommand(
         val query = criteria.copy(interactiveOnly = arguments[interactiveOnly] ?: criteria.isEmpty)
 
         val snapshot = try {
-            capture(
-                NodeTreeCaptureOptions(
-                    merged = arguments[merged] ?: true,
-                    includeInvisible = arguments[includeInvisible] ?: false,
-                    maxDepth = null,
-                ),
-            )
+            markingAiOperationOn(SemanticsUiTarget.NodeTree) {
+                capture(
+                    NodeTreeCaptureOptions(
+                        merged = arguments[merged] ?: true,
+                        includeInvisible = arguments[includeInvisible] ?: false,
+                        maxDepth = null,
+                    ),
+                )
+            }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }

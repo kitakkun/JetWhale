@@ -20,10 +20,11 @@ internal class PushNavKeyCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
-        val result = controller.mutate(
-            stackId = target,
-            operations = listOf(NavBackStackOperation.Push(key = arguments[key], index = arguments[index])),
-        )
-        return result.toMcpJson()
+        return markingAiOperationOn(Nav3UiTarget.BackStack(target)) {
+            controller.mutate(
+                stackId = target,
+                operations = listOf(NavBackStackOperation.Push(key = arguments[key], index = arguments[index])),
+            ).toMcpJson()
+        }
     }
 }

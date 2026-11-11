@@ -18,31 +18,26 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runDesktopComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class JwAiOperatingRingTest {
-    private val tap = NamedCommand("com.example.tap")
-    private val swipe = NamedCommand("com.example.swipe")
-
     @Test
-    fun `a control is ringed only while one of its commands runs`() = runDesktopComposeUiTest(width = 100, height = 100) {
+    fun `a control is ringed only while an agent operates its target`() = runDesktopComposeUiTest(width = 100, height = 100) {
         mainClock.autoAdvance = false
-        var runningCommandNames by mutableStateOf(emptySet<String>())
+        var operatedUiTargets by mutableStateOf(emptySet<Any>())
         setContent {
             JwTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets) {
                     Box(
                         Modifier
                             .testTag(CONTROL_TAG)
                             .size(40.dp)
                             .background(Color.White)
-                            .jwAiOperatingRingWhileRunning(tap, swipe, shape = JwShapes.small),
+                            .jwAiOperatingRingWhileOperated(TestUiTarget.Row(id = "a"), shape = JwShapes.small),
                     )
                 }
             }
@@ -50,17 +45,17 @@ class JwAiOperatingRingTest {
         mainClock.advanceTimeByFrame()
         assertFalse(isControlRinged())
 
-        runningCommandNames = setOf(swipe.name)
+        operatedUiTargets = setOf(TestUiTarget.List, TestUiTarget.Row(id = "a"))
         mainClock.advanceTimeByFrame()
         assertTrue(isControlRinged())
 
-        runningCommandNames = setOf("com.example.other")
+        operatedUiTargets = setOf(TestUiTarget.List, TestUiTarget.Row(id = "b"))
         mainClock.advanceTimeByFrame()
         assertFalse(isControlRinged())
     }
 
     @Test
-    fun `a control is not ringed outside the host, where no command names are provided`() = runDesktopComposeUiTest(width = 100, height = 100) {
+    fun `a control is not ringed outside the host, where no operated targets are provided`() = runDesktopComposeUiTest(width = 100, height = 100) {
         mainClock.autoAdvance = false
         setContent {
             JwTheme(darkTheme = false) {
@@ -69,7 +64,7 @@ class JwAiOperatingRingTest {
                         .testTag(CONTROL_TAG)
                         .size(40.dp)
                         .background(Color.White)
-                        .jwAiOperatingRingWhileRunning(tap, shape = JwShapes.small),
+                        .jwAiOperatingRingWhileOperated(TestUiTarget.List, shape = JwShapes.small),
                 )
             }
         }
@@ -84,10 +79,10 @@ class JwAiOperatingRingTest {
         return (0 until pixels.width).any { x -> (0 until pixels.height).any { y -> pixels[x, y] != Color.White } }
     }
 
-    private class NamedCommand(override val name: String) : JetWhaleMcpCommand() {
-        override val description = "Does nothing."
+    private sealed interface TestUiTarget {
+        data object List : TestUiTarget
 
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = ""
+        data class Row(val id: String) : TestUiTarget
     }
 
     private companion object {

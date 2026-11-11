@@ -23,8 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
@@ -34,59 +33,57 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class NetworkInspectorScreenTest {
     @Test
-    fun `each command rings exactly the controls on the traffic tab that do the same`() = runNetworkInspectorScreen { runningCommandNames ->
-        assertEachCommandRings(
+    fun `each control on the traffic tab is ringed only while an agent operates its target`() = runNetworkInspectorScreen { operatedUiTargets ->
+        assertRingedControlsForEachTarget(
             controls = mapOf(
                 "traffic list" to onNode(hasScrollToIndexAction()),
                 "transaction detail" to onNode(isVerticallyScrollable and hasAnyDescendant(hasText("Select a request to see details"))),
                 "clear button" to onNodeWithText("Clear"),
             ),
-            ringedControlNamesByCommand = mapOf(
-                testMcpCommands.listTransactions to listOf("traffic list"),
-                testMcpCommands.getTransaction to listOf("transaction detail"),
-                testMcpCommands.clearTransactions to listOf("clear button"),
-                testMcpCommands.getMockConfig to emptyList(),
-                testMcpCommands.setMockingEnabled to emptyList(),
-                testMcpCommands.addMockRule to emptyList(),
+            ringedControlNamesByTarget = mapOf(
+                NetworkUiTarget.TrafficList to listOf("traffic list"),
+                NetworkUiTarget.TransactionDetail to listOf("transaction detail"),
+                NetworkUiTarget.ClearButton to listOf("clear button"),
+                NetworkUiTarget.MocksTab to emptyList(),
+                NetworkUiTarget.MockingSwitch to emptyList(),
+                NetworkUiTarget.MockRuleList to emptyList(),
             ),
-            runningCommandNames = runningCommandNames,
+            operatedUiTargets = operatedUiTargets,
         )
     }
 
     @Test
-    fun `each command rings exactly the controls on the mocks tab that do the same`() = runNetworkInspectorScreen { runningCommandNames ->
+    fun `each control on the mocks tab is ringed only while an agent operates its target`() = runNetworkInspectorScreen { operatedUiTargets ->
         onNodeWithText("Mocks").performClick()
         mainClock.advanceTimeByFrame()
 
-        assertEachCommandRings(
+        assertRingedControlsForEachTarget(
             controls = mapOf(
                 "mocks pane" to onNode(isVerticallyScrollable and hasAnyDescendant(hasText("Add rule"))),
                 "mocking switch" to onNode(hasContentDescription("Mocking enabled")),
                 "mock rules" to onNodeWithText("No mock rules. Add one to override matching responses."),
             ),
-            ringedControlNamesByCommand = mapOf(
-                testMcpCommands.getMockConfig to listOf("mocks pane"),
-                testMcpCommands.setMockingEnabled to listOf("mocking switch"),
-                testMcpCommands.addMockRule to listOf("mock rules"),
-                testMcpCommands.removeMockRule to listOf("mock rules"),
-                testMcpCommands.setMockRules to listOf("mock rules"),
-                testMcpCommands.listTransactions to emptyList(),
+            ringedControlNamesByTarget = mapOf(
+                NetworkUiTarget.MocksTab to listOf("mocks pane"),
+                NetworkUiTarget.MockingSwitch to listOf("mocking switch"),
+                NetworkUiTarget.MockRuleList to listOf("mock rules"),
+                NetworkUiTarget.TrafficList to emptyList(),
             ),
-            runningCommandNames = runningCommandNames,
+            operatedUiTargets = operatedUiTargets,
         )
     }
 
-    private fun ComposeUiTest.assertEachCommandRings(
+    private fun ComposeUiTest.assertRingedControlsForEachTarget(
         controls: Map<String, SemanticsNodeInteraction>,
-        ringedControlNamesByCommand: Map<JetWhaleMcpCommand, List<String>>,
-        runningCommandNames: MutableState<Set<String>>,
+        ringedControlNamesByTarget: Map<NetworkUiTarget, List<String>>,
+        operatedUiTargets: MutableState<Set<Any>>,
     ) {
         val idleEdgePixels = controls.mapValues { (_, control) -> control.captureEdgePixels() }
-        ringedControlNamesByCommand.forEach { (command, ringedControlNames) ->
-            runningCommandNames.value = setOf(command.name)
+        ringedControlNamesByTarget.forEach { (target, ringedControlNames) ->
+            operatedUiTargets.value = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while $target is operated")
         }
     }
 
@@ -111,19 +108,18 @@ class NetworkInspectorScreenTest {
 }
 
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
-private fun runNetworkInspectorScreen(block: ComposeUiTest.(runningCommandNames: MutableState<Set<String>>) -> Unit) = runComposeUiTest {
+private fun runNetworkInspectorScreen(block: ComposeUiTest.(operatedUiTargets: MutableState<Set<Any>>) -> Unit) = runComposeUiTest {
     mainClock.autoAdvance = false
-    val runningCommandNames = mutableStateOf(emptySet<String>())
+    val operatedUiTargets = mutableStateOf(emptySet<Any>())
     setContent {
         JwTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames.value) {
+            CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets.value) {
                 Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
                     NetworkInspectorScreen(
                         transactions = listOf(HttpTransaction(request = CapturedHttpRequest(txId = "tx-1", method = "GET", url = "https://example.com/items", timestampMs = 0L))),
                         mockRules = emptyList(),
                         mockingEnabled = true,
                         trafficSplitPaneState = rememberJwSplitPaneState(0.42f),
-                        mcpCommands = testMcpCommands,
                         onClearTransactions = {},
                         onToggleMocking = {},
                         onMockRulesChanged = {},
@@ -133,5 +129,5 @@ private fun runNetworkInspectorScreen(block: ComposeUiTest.(runningCommandNames:
         }
     }
     mainClock.advanceTimeByFrame()
-    block(runningCommandNames)
+    block(operatedUiTargets)
 }

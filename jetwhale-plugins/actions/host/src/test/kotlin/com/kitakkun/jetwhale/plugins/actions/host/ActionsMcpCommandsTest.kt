@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.actions.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -115,9 +117,38 @@ class ActionsMcpCommandsTest {
 
         assertTrue(failure.message.orEmpty().contains("listActions"))
     }
+
+    @Test
+    fun `listActions marks the action list, and runAction the row of the action it runs`() {
+        val listMarked = ListActionsCommand(browser).markedTargets(buildJsonObject { })
+        val runMarked = RunActionCommand(browser).markedTargets(
+            buildJsonObject {
+                put("id", loginAs.id)
+                putJsonObject("arguments") { put("email", "qa@example.com") }
+            },
+        )
+
+        assertEquals(listOf<Any>(ActionsUiTarget.ActionList), listMarked)
+        assertEquals(listOf<Any>(ActionsUiTarget.ActionRow(loginAs.id)), runMarked)
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
     Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+}
+
+/** The UI targets the command marks while it runs. */
+@OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
+private fun JetWhaleMcpCommand.markedTargets(arguments: JsonObject): List<Any> {
+    val marked = mutableListOf<Any>()
+    val reporter = object : AiOperatedUiTargetsReporter() {
+        override fun reportOperationStarted(targets: Set<Any>) {
+            marked.addAll(targets)
+        }
+
+        override fun reportOperationEnded(targets: Set<Any>) = Unit
+    }
+    runBlocking(reporter) { execute(JetWhaleMcpArguments(arguments)) }
+    return marked
 }

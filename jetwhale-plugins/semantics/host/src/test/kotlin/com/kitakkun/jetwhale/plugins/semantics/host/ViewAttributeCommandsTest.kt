@@ -99,6 +99,19 @@ class ViewAttributeCommandsTest {
     }
 
     @Test
+    fun `getViewAttributes and setViewAttribute mark the attributes of the View they read or write`() {
+        val readAttributes = { _: Any -> response(attribute("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), group = "Layout")) }
+        val getViewAttributesCommand = GetViewAttributesCommand(getAttributes = readAttributes)
+        val setViewAttributeCommand = SetViewAttributeCommand(getAttributes = readAttributes, setAttribute = { ViewAttributeResult(applied = true) })
+
+        val targetsMarkedByGet = getViewAttributesCommand.markedTargets(arguments("rootId" to "window-1", "nodeId" to -4))
+        val targetsMarkedBySet = setViewAttributeCommand.markedTargets(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "layout.width", "value" to "500"))
+
+        assertEquals(setOf<Any>(SemanticsUiTarget.ViewAttributes(rootId = "window-1", nodeId = -4)), targetsMarkedByGet)
+        assertEquals(setOf<Any>(SemanticsUiTarget.ViewAttributes(rootId = "window-1", nodeId = -4)), targetsMarkedBySet)
+    }
+
+    @Test
     fun `getViewAttributes marks only the read-only attributes, which are the exception`() {
         val command = GetViewAttributesCommand(
             getAttributes = {

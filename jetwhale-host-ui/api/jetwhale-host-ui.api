@@ -25,7 +25,7 @@ public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwTextFiel
 
 public final class com/kitakkun/jetwhale/host/ui/JwAiOperatingRingKt {
 	public static final fun jwAiOperatingRing (Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Shape;)Landroidx/compose/ui/Modifier;
-	public static final fun jwAiOperatingRingWhileRunning (Landroidx/compose/ui/Modifier;[Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Landroidx/compose/ui/graphics/Shape;)Landroidx/compose/ui/Modifier;
+	public static final fun jwAiOperatingRingWhileOperated (Landroidx/compose/ui/Modifier;Ljava/lang/Object;Landroidx/compose/ui/graphics/Shape;)Landroidx/compose/ui/Modifier;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwBannerDefaults {

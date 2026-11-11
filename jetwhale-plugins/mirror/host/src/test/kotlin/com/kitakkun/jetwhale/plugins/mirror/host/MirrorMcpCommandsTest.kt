@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -311,6 +313,39 @@ class MirrorMcpCommandsTest {
 
         assertEquals(listOf(CaptureQuery(deviceId = null, kind = null, sinceEpochMillis = null)), mirror.captureQueries)
     }
+
+    @Test
+    fun `pressButton marks only the button it presses`() {
+        val marked = PressButtonCommand(mirror).markedTargets(buildJsonObject { put("button", "home") })
+
+        assertEquals(listOf<Any>(MirrorUiTarget.HardwareButton(DeviceButton.Home)), marked)
+    }
+
+    @Test
+    fun `a tap and a swipe mark the live view`() {
+        val tapMarked = TapCommand(mirror).markedTargets(
+            buildJsonObject {
+                put("x", 10)
+                put("y", 20)
+            },
+        )
+        val swipeMarked = SwipeCommand(mirror).markedTargets(swipe(fromX = 540, toY = 600, durationMillis = null))
+
+        assertEquals(listOf<Any>(MirrorUiTarget.LiveView), tapMarked)
+        assertEquals(listOf<Any>(MirrorUiTarget.LiveView), swipeMarked)
+    }
+
+    @Test
+    fun `every other command marks the control a user would use for the same thing, and keepRunnerAlive marks none`() {
+        assertEquals(listOf<Any>(MirrorUiTarget.DevicePicker), ListDevicesCommand(mirror).markedTargets(buildJsonObject { }))
+        assertEquals(listOf<Any>(MirrorUiTarget.ScreenPowerButton), SetScreenCommand(mirror).markedTargets(buildJsonObject { put("on", false) }))
+        assertEquals(listOf<Any>(MirrorUiTarget.TextInput), InputTextCommand(mirror).markedTargets(buildJsonObject { put("text", "milk") }))
+        assertEquals(listOf<Any>(MirrorUiTarget.ScreenshotButton), CaptureScreenshotCommand(mirror).markedTargets(buildJsonObject { }))
+        assertEquals(listOf<Any>(MirrorUiTarget.RecordingButton), StartRecordingCommand(mirror).markedTargets(buildJsonObject { }))
+        assertEquals(listOf<Any>(MirrorUiTarget.RecordingButton), StopRecordingCommand(mirror).markedTargets(buildJsonObject { put("all", true) }))
+        assertEquals(listOf<Any>(MirrorUiTarget.CaptureList), ListCapturesCommand(mirror).markedTargets(buildJsonObject { }))
+        assertEquals(emptyList(), KeepRunnerAliveCommand(mirror).markedTargets(buildJsonObject { put("minutes", 10) }))
+    }
 }
 
 private fun swipe(fromX: Int, toY: Int, durationMillis: Int?) = buildJsonObject {
@@ -324,6 +359,26 @@ private fun swipe(fromX: Int, toY: Int, durationMillis: Int?) = buildJsonObject 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
     Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+}
+
+/** The targets the command marks while it runs, whether the device carries it out or refuses it. */
+@OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
+private fun JetWhaleMcpCommand.markedTargets(arguments: JsonObject): List<Any> {
+    val marked = mutableListOf<Any>()
+    val reporter = object : AiOperatedUiTargetsReporter() {
+        override fun reportOperationStarted(targets: Set<Any>) {
+            marked.addAll(targets)
+        }
+
+        override fun reportOperationEnded(targets: Set<Any>) = Unit
+    }
+    runBlocking(reporter) {
+        try {
+            execute(JetWhaleMcpArguments(arguments))
+        } catch (_: JetWhaleMcpArgumentException) {
+        }
+    }
+    return marked
 }
 
 private class FakeMirrorDevices(private val devices: List<MirrorDevice>) : MirrorDevices {

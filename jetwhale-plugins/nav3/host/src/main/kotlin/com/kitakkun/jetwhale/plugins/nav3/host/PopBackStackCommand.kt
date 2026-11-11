@@ -26,6 +26,6 @@ internal class PopBackStackCommand(
             null -> NavBackStackOperation.Pop(count = arguments[count] ?: 1)
             else -> NavBackStackOperation.PopTo(index = requestedIndex, inclusive = arguments[inclusive] ?: false)
         }
-        return controller.mutate(stackId = target, operations = listOf(operation)).toMcpJson()
+        return markingAiOperationOn(Nav3UiTarget.BackStack(target)) { controller.mutate(stackId = target, operations = listOf(operation)).toMcpJson() }
     }
 }

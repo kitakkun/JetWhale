@@ -36,13 +36,14 @@ import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
@@ -68,7 +69,6 @@ internal fun FilesPane(
     directoryMeasurement: DirectoryMeasurement?,
     fileSha256: String?,
     actions: StorageInspectorActions,
-    mcpCommands: StorageMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize()) {
@@ -87,7 +87,6 @@ internal fun FilesPane(
             directoryMeasurement = directoryMeasurement,
             fileSha256 = fileSha256,
             actions = actions,
-            mcpCommands = mcpCommands,
         )
     }
 }
@@ -102,7 +101,6 @@ private fun FileTreeSplit(
     directoryMeasurement: DirectoryMeasurement?,
     fileSha256: String?,
     actions: StorageInspectorActions,
-    mcpCommands: StorageMcpCommands,
 ) {
     JwSplitPane(
         state = rememberJwSplitPaneState(TREE_FRACTION),
@@ -110,7 +108,7 @@ private fun FileTreeSplit(
             LazyColumn(
                 Modifier
                     .fillMaxSize()
-                    .jwAiOperatingRingWhileRunning(mcpCommands.listLocations, mcpCommands.listDirectory, mcpCommands.deleteFileEntry, shape = RectangleShape),
+                    .jwAiOperatingRingWhileOperated(StorageUiTarget.FileTree, shape = RectangleShape),
             ) {
                 items(treeRows, key = FileTreeRow::location) { row ->
                     var altPressed by remember { mutableStateOf(false) }
@@ -124,9 +122,11 @@ private fun FileTreeSplit(
                         onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
                         // The row's click callbacks carry no keyboard modifiers, so whether Alt is
                         // held is read from the press that starts the click.
-                        modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
-                            altPressed = it.keyboardModifiers.isAltPressed
-                        },
+                        modifier = Modifier
+                            .jwAiOperatingRingWhileOperated(StorageUiTarget.FileEntry(row.location), shape = JwShapes.small)
+                            .onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
+                                altPressed = it.keyboardModifiers.isAltPressed
+                            },
                         trailingContent = row.entry?.takeUnless(FileEntry::isDirectory)?.let { entry ->
                             {
                                 JwText(
@@ -141,10 +141,10 @@ private fun FileTreeSplit(
             }
         },
         second = {
-            Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.readFile, mcpCommands.hashFile, mcpCommands.measureDirectory, shape = RectangleShape)) {
-                if (selectedRow == null) {
-                    JwEmptyState(title = "Nothing selected", description = "Pick a file to preview it, or a directory to see where it is.")
-                } else {
+            if (selectedRow == null) {
+                JwEmptyState(title = "Nothing selected", description = "Pick a file to preview it, or a directory to see where it is.")
+            } else {
+                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileOperated(StorageUiTarget.FileEntry(selectedRow.location), shape = RectangleShape)) {
                     EntryDetail(
                         row = selectedRow,
                         facts = EntryFacts(

@@ -24,7 +24,7 @@ internal class RemoveMockRuleCommand(
         val current = mockRules()
         val remaining = current.filterNot { it.id == id }
         if (remaining.size == current.size) throw JetWhaleMcpArgumentException("no mock rule with id: $id")
-        return when (val failure = syncMockRules(remaining)) {
+        return when (val failure = markingAiOperationOn(NetworkUiTarget.MockRuleList) { syncMockRules(remaining) }) {
             null -> buildJsonObject { put("removedId", id) }.toString()
             else -> syncErrorJson(failure)
         }

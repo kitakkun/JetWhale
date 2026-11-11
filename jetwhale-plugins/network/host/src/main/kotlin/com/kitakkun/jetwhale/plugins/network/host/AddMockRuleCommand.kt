@@ -56,7 +56,7 @@ internal class AddMockRuleCommand(
                 delayMs = arguments[delayMs] ?: 0L,
             ),
         )
-        return when (val failure = syncMockRules(mockRules() + rule)) {
+        return when (val failure = markingAiOperationOn(NetworkUiTarget.MockRuleList) { syncMockRules(mockRules() + rule) }) {
             null -> Json.encodeToJsonElement(rule).toString()
             else -> syncErrorJson(failure)
         }

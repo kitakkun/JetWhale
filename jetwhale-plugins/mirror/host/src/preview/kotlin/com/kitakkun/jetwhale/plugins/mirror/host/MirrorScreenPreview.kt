@@ -121,7 +121,6 @@ private fun MirrorScreenStreamingPreview() {
             recordingSinceMillis = null,
             surface = rememberPreviewSurface(),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             showCaptures = false,
             livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
@@ -146,7 +145,6 @@ private fun MirrorScreenScreenOffPreview() {
             recordingSinceMillis = null,
             surface = rememberPreviewSurface(),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             showCaptures = false,
             livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
@@ -171,7 +169,6 @@ private fun MirrorScreenNoFramesPreview() {
             recordingSinceMillis = null,
             surface = remember(::MirrorSurface),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             showCaptures = false,
             livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
@@ -196,7 +193,6 @@ private fun MirrorScreenEmptyPreview() {
             recordingSinceMillis = null,
             surface = remember(::MirrorSurface),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             showCaptures = false,
             livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
@@ -221,7 +217,6 @@ private fun MirrorScreenWithCapturesPreview() {
             recordingSinceMillis = 0L,
             surface = rememberPreviewSurface(),
             actions = NoActions,
-            mcpCommands = previewMcpCommands,
             showCaptures = true,
             livenessOf = { DeviceLiveness.Live },
             onToggleCaptures = {},
@@ -243,7 +238,6 @@ private fun CapturesPanelPreview() {
             selected = previewCaptures.first(),
             thumbnails = NoThumbnails,
             actions = NoCaptureActions,
-            mcpCommands = previewMcpCommands,
         )
     }
 }
@@ -260,7 +254,6 @@ private fun CapturesPanelRecordingPreview() {
             selected = previewCaptures.last(),
             thumbnails = NoThumbnails,
             actions = NoCaptureActions,
-            mcpCommands = previewMcpCommands,
         )
     }
 }
@@ -292,7 +285,6 @@ private fun DeviceToolbarPreview() {
             DeviceToolbar(
                 pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = null),
                 actions = NoActions,
-                mcpCommands = previewMcpCommands,
                 showCaptures = false,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
@@ -301,7 +293,6 @@ private fun DeviceToolbarPreview() {
             DeviceToolbar(
                 pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = 0L),
                 actions = NoActions,
-                mcpCommands = previewMcpCommands,
                 showCaptures = true,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
@@ -314,7 +305,6 @@ private fun DeviceToolbarPreview() {
                     recordingSinceMillis = null,
                 ),
                 actions = NoActions,
-                mcpCommands = previewMcpCommands,
                 showCaptures = false,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},

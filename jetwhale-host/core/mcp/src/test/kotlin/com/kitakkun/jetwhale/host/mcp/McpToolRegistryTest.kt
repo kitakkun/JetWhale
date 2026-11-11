@@ -6,6 +6,8 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import dev.mokkery.answering.returns
+import dev.mokkery.every
 import dev.mokkery.mock
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -21,7 +23,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistryTest {
 
-    private val registry = McpToolRegistry(mock<PluginInstanceService>())
+    private val registry = McpToolRegistry(mock<PluginInstanceService>(), FakeAiOperatedUiTargetsService())
 
     @Test
     fun `no plugins are reported as MCP-capable before anything registers`() {
@@ -52,7 +54,7 @@ class McpToolRegistryTest {
     @Test
     fun `plugins registering at the same time from several threads are all reported`() {
         repeat(ROUNDS) { round ->
-            val registry = McpToolRegistry(mock<PluginInstanceService>())
+            val registry = McpToolRegistry(mock<PluginInstanceService>(), FakeAiOperatedUiTargetsService())
             val start = CountDownLatch(1)
             val threads = (0 until THREADS).map { index ->
                 thread {
@@ -122,6 +124,37 @@ class McpToolRegistryTest {
         assertContains(error, "'a.greet' is not available in session 'session-9'")
         assertContains(error, "session-1")
     }
+
+    @Test
+    fun `a plugin command's marked block is reported for the plugin instance it runs in`() = runBlocking {
+        val aiOperatedUiTargetsService = FakeAiOperatedUiTargetsService()
+        val plugin = ScreenTappingPlugin()
+        val registry = McpToolRegistry(
+            pluginInstanceService = mock<PluginInstanceService> {
+                every { getPluginInstanceForSession("com.example.a", "session-1") } returns plugin
+            },
+            aiOperatedUiTargetsService = aiOperatedUiTargetsService,
+        )
+        registry.register("com.example.a", "session-1", plugin)
+
+        registry.dispatch("a.tap", mapOf("sessionId" to JsonPrimitive("session-1")))
+
+        assertEquals(listOf("com.example.a/session-1 started [screen]", "com.example.a/session-1 ended [screen]"), aiOperatedUiTargetsService.reports)
+    }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class ScreenTappingPlugin :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "a.tap"
+            override val description = "Taps the screen"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = markingAiOperationOn("screen") { "ok" }
+        },
+    )
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

@@ -117,7 +117,8 @@ tools. Each takes the `sessionId` of the app's session.
 | `com.kitakkun.jetwhale.actions.listActions` | Every action with its argument JSON Schema, suggested values, and whether it is destructive or belongs to the current screen |
 | `com.kitakkun.jetwhale.actions.runAction` | Runs an action by id with arguments; returns the outcome, the result and any error with its stack trace |
 
-While an agent runs either tool, the action list is ringed.
+While an agent lists the actions, the action list is ringed; while it runs one, that action's row
+is.
 
 ## Limits
 
