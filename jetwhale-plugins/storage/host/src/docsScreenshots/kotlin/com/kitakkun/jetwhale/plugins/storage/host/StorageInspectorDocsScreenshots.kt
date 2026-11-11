@@ -66,7 +66,6 @@ private fun SkikoComposeUiTest.setStorageInspectorContent(darkTheme: Boolean, ta
                 storeContent = KeyValueStoreContent(entries = PREFERENCES_ENTRIES, error = null),
                 status = null,
                 actions = NoStorageInspectorActions,
-                mcpCommands = previewMcpCommands,
                 onSelectTab = {},
             )
         }

@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.AiOperatedUiTargetsReporter
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -133,6 +135,25 @@ class StorageMcpCommandsTest {
         assertEquals(true, "error" in result)
     }
 
+    @Test
+    fun `a file or store command marks the entry or store it names, and listLocations both lists`() {
+        val notes = StorageUiTarget.FileEntry(location("Files", "notes.txt"))
+        val settings = StorageUiTarget.KeyValueStore("settings")
+        val removeOnboarded = buildJsonObject {
+            put("store", "settings")
+            put("key", "onboarded")
+        }
+
+        assertEquals(listOf<Any>(StorageUiTarget.FileTree, StorageUiTarget.StoreList), ListStorageLocationsCommand(client).markedTargets(buildJsonObject { }))
+        assertEquals(listOf<Any>(StorageUiTarget.FileEntry(location("Files", "datastore"))), ListDirectoryCommand(client).markedTargets(file("datastore")))
+        assertEquals(listOf<Any>(notes), ReadFileCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(notes), HashFileCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(StorageUiTarget.FileEntry(location("Files", "datastore"))), MeasureDirectoryCommand(client).markedTargets(file("datastore")))
+        assertEquals(listOf<Any>(StorageUiTarget.FileTree), DeleteFileEntryCommand(client).markedTargets(file("notes.txt")))
+        assertEquals(listOf<Any>(settings), ReadKeyValueStoreCommand(client).markedTargets(buildJsonObject { put("store", "settings") }))
+        assertEquals(listOf<Any>(settings), RemoveKeyValueCommand(client).markedTargets(removeOnboarded))
+    }
+
     private fun file(path: String): JsonObject = buildJsonObject {
         put("root", "Files")
         put("path", path)
@@ -142,4 +163,19 @@ class StorageMcpCommandsTest {
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
     Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+}
+
+/** The UI targets the command marks while it runs. */
+@OptIn(ExperimentalJetWhaleApi::class, InternalJetWhaleHostApi::class)
+private fun JetWhaleMcpCommand.markedTargets(arguments: JsonObject): List<Any> {
+    val marked = mutableListOf<Any>()
+    val reporter = object : AiOperatedUiTargetsReporter() {
+        override fun reportOperationStarted(targets: Set<Any>) {
+            marked.addAll(targets)
+        }
+
+        override fun reportOperationEnded(targets: Set<Any>) = Unit
+    }
+    runBlocking(reporter) { execute(JetWhaleMcpArguments(arguments)) }
+    return marked
 }

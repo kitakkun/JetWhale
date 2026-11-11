@@ -25,13 +25,14 @@ import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
@@ -58,7 +59,6 @@ internal fun KeyValuePane(
     selectedStore: String?,
     content: KeyValueStoreContent?,
     actions: StorageInspectorActions,
-    mcpCommands: StorageMcpCommands,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize()) {
@@ -72,19 +72,22 @@ internal fun KeyValuePane(
         JwSplitPane(
             state = rememberJwSplitPaneState(STORE_LIST_FRACTION),
             first = {
-                LazyColumn(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.listLocations, shape = RectangleShape)) {
+                LazyColumn(Modifier.fillMaxSize().jwAiOperatingRingWhileOperated(StorageUiTarget.StoreList, shape = RectangleShape)) {
                     items(stores, key = KeyValueStoreInfo::name) { store ->
                         JwListItem(
                             text = store.name,
                             selected = store.name == selectedStore,
                             onClick = { actions.selectStore(store.name) },
+                            modifier = Modifier.jwAiOperatingRingWhileOperated(StorageUiTarget.KeyValueStore(store.name), shape = JwShapes.small),
                         )
                     }
                 }
             },
             second = {
-                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.readKeyValueStore, mcpCommands.removeKeyValue, shape = RectangleShape)) {
-                    if (selectedStore != null) StoreEntries(storeName = selectedStore, content = content, actions = actions)
+                if (selectedStore != null) {
+                    Box(Modifier.fillMaxSize().jwAiOperatingRingWhileOperated(StorageUiTarget.KeyValueStore(selectedStore), shape = RectangleShape)) {
+                        StoreEntries(storeName = selectedStore, content = content, actions = actions)
+                    }
                 }
             },
         )

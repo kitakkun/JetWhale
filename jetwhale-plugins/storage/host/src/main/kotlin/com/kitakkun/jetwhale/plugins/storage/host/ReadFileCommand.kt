@@ -31,7 +31,9 @@ internal class ReadFileCommand(
         val location = fileLocationOf(arguments[root], arguments[path])
         if (location.path.isEmpty()) throw JetWhaleMcpArgumentException("path must name a file below the root")
         val start = arguments[offset] ?: 0
-        val content = client.readFile(location, offset = start, maxBytes = arguments[maxBytes] ?: DEFAULT_READ_BYTES)
+        val content = markingAiOperationOn(StorageUiTarget.FileEntry(location)) {
+            client.readFile(location, offset = start, maxBytes = arguments[maxBytes] ?: DEFAULT_READ_BYTES)
+        }
         content.error?.let { error -> return buildJsonObject { put("error", error) }.toString() }
 
         val bytes = Base64.decode(content.contentBase64)

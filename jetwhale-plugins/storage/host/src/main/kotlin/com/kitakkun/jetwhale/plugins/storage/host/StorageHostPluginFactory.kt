@@ -37,7 +37,6 @@ private class StorageHostPlugin :
     StorageClient {
 
     private val browser by lazy { StorageBrowser(client = this, scope = pluginScope) }
-    private val storageMcpCommands = StorageMcpCommands(client = this)
 
     override suspend fun onPrepare() {
         browser.load()
@@ -59,8 +58,17 @@ private class StorageHostPlugin :
 
     @Composable
     override fun Content() {
-        StorageInspectorScreenRoot(browser, storageMcpCommands)
+        StorageInspectorScreenRoot(browser)
     }
 
-    override val mcpCommands: List<JetWhaleMcpCommand> get() = storageMcpCommands.all
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        ListStorageLocationsCommand(this),
+        ListDirectoryCommand(this),
+        ReadFileCommand(this),
+        DeleteFileEntryCommand(this),
+        ReadKeyValueStoreCommand(this),
+        RemoveKeyValueCommand(this),
+        MeasureDirectoryCommand(this),
+        HashFileCommand(this),
+    )
 }
