@@ -62,7 +62,7 @@ import kotlin.time.Clock
  * The device picker and the device's controls, in groups that wrap to another line as a whole when the window is
  * too narrow for one: every control stays visible, and the capture group keeps to the line's end.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalJetWhaleApi::class)
 @Composable
 internal fun DeviceToolbar(
     pane: DevicePaneState,
@@ -83,7 +83,14 @@ internal fun DeviceToolbar(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
+            DevicePicker(
+                pane.devices,
+                pane.device,
+                livenessOf,
+                onSelect = actions::select,
+                onShowAll = onShowGrid,
+                modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH).jwAiOperatingRingWhileRunning(mcpCommands.listDevices, shape = JwShapes.small),
+            )
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions, mcpCommands)
             VolumeGroup(pane.device.kind, pane.capabilities, actions, mcpCommands)
             ScreenPowerButton(pane.screenPower, actions, mcpCommands)

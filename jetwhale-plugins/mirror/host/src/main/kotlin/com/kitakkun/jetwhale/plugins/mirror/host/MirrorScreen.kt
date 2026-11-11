@@ -183,6 +183,7 @@ private fun SingleMirrorRoot(
                 selected = captures.selected,
                 thumbnails = captures,
                 actions = captures,
+                mcpCommands = mcpCommands,
             )
         },
     )

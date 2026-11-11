@@ -243,6 +243,7 @@ private fun CapturesPanelPreview() {
             selected = previewCaptures.first(),
             thumbnails = NoThumbnails,
             actions = NoCaptureActions,
+            mcpCommands = previewMcpCommands,
         )
     }
 }
@@ -259,6 +260,7 @@ private fun CapturesPanelRecordingPreview() {
             selected = previewCaptures.last(),
             thumbnails = NoThumbnails,
             actions = NoCaptureActions,
+            mcpCommands = previewMcpCommands,
         )
     }
 }
