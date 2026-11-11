@@ -13,28 +13,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwFormField
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 
 /**
  * The reference plugin UI: built from `jetwhale-host-ui` alone, so it doubles as the smallest
  * example of a plugin that looks like part of the host.
  */
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-fun ExamplePluginView(
+internal fun ExamplePluginView(
     eventLogs: List<String>,
     persistedInput: String,
+    sendPing: SendPingCommand,
+    getEventLogs: GetEventLogsCommand,
     onClickSendPing: () -> Unit,
     onClickTriggerUIError: () -> Unit,
     onPersistedInputChange: (String) -> Unit,
@@ -44,7 +51,12 @@ fun ExamplePluginView(
         JwToolbar(
             title = "Example JetWhale Plugin",
             actions = {
-                JwButton(text = "Send ping to debuggee", onClick = onClickSendPing, style = JwButtonStyle.Primary)
+                JwButton(
+                    text = "Send ping to debuggee",
+                    onClick = onClickSendPing,
+                    style = JwButtonStyle.Primary,
+                    modifier = Modifier.jwAiOperatingRingWhileRunning(sendPing, shape = JwShapes.small),
+                )
                 JwButton(text = "Throw UI error", onClick = onClickTriggerUIError, tone = JwTone.Error)
             },
         )
@@ -58,14 +70,16 @@ fun ExamplePluginView(
             }
         }
         JwHorizontalDivider()
+        val eventLogRing = Modifier.jwAiOperatingRingWhileRunning(getEventLogs, shape = RectangleShape)
         if (eventLogs.isEmpty()) {
             JwEmptyState(
                 title = "No messages yet",
                 description = "Send a ping, or click the button in the debuggee, and the exchange is logged here.",
+                modifier = eventLogRing,
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(eventLogRing),
                 contentPadding = PaddingValues(JwSpacing.large),
                 verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             ) {
@@ -77,6 +91,10 @@ fun ExamplePluginView(
     }
 }
 
+/** The commands for the previews, which draw the controls but never run a command. */
+private val previewSendPing = SendPingCommand(requestPing = {})
+private val previewGetEventLogs = GetEventLogsCommand(eventLogs = emptyList())
+
 @Preview
 @Composable
 private fun ExamplePluginViewPreview() {
@@ -84,6 +102,8 @@ private fun ExamplePluginViewPreview() {
         ExamplePluginView(
             eventLogs = listOf("ping sent", "pong received"),
             persistedInput = "a draft that survived a restart",
+            sendPing = previewSendPing,
+            getEventLogs = previewGetEventLogs,
             onClickSendPing = {},
             onClickTriggerUIError = {},
             onPersistedInputChange = {},
@@ -98,6 +118,8 @@ private fun ExamplePluginViewEmptyPreview() {
         ExamplePluginView(
             eventLogs = emptyList(),
             persistedInput = "",
+            sendPing = previewSendPing,
+            getEventLogs = previewGetEventLogs,
             onClickSendPing = {},
             onClickTriggerUIError = {},
             onPersistedInputChange = {},

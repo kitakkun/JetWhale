@@ -32,8 +32,10 @@ import com.kitakkun.jetwhale.host.ui.JwToolbar
  * input — is owned here, so [ExamplePluginView] itself is a pure function of its arguments.
  */
 @Composable
-fun ExamplePluginViewRoot(
+internal fun ExamplePluginViewRoot(
     eventLogs: List<String>,
+    sendPing: SendPingCommand,
+    getEventLogs: GetEventLogsCommand,
     onClickSendPing: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -42,6 +44,8 @@ fun ExamplePluginViewRoot(
     ExamplePluginView(
         eventLogs = eventLogs,
         persistedInput = persistedInput,
+        sendPing = sendPing,
+        getEventLogs = getEventLogs,
         onClickSendPing = onClickSendPing,
         onClickTriggerUIError = { error("Example Error") },
         onPersistedInputChange = { persistedInput = it },
