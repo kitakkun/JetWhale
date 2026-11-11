@@ -12,12 +12,14 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
+import com.kitakkun.jetwhale.host.sdk.LocalAiOperatedUiTargets
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,13 +27,13 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class ComposeSemanticsInspectorScreenTest {
     @Test
-    fun `each command rings exactly the pane or controls that show or do the same`() = runComposeUiTest {
+    fun `each pane, row or group is ringed only while an agent operates its target`() = runComposeUiTest {
         mainClock.autoAdvance = false
-        var runningCommandNames by mutableStateOf(emptySet<String>())
+        var operatedUiTargets by mutableStateOf(emptySet<Any>())
         val selectedView = viewNode(id = -2, viewClass = "android.widget.Button", text = "Send", actions = listOf("OnClick"), isClickable = true)
         setContent {
             JwTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                CompositionLocalProvider(LocalAiOperatedUiTargets provides operatedUiTargets) {
                     Box(Modifier.requiredSize(width = 1000.dp, height = 800.dp)) {
                         ComposeSemanticsInspectorScreen(
                             snapshot = snapshot(root("window", node = node(id = 1, text = "top", children = listOf(selectedView)))),
@@ -41,7 +43,6 @@ class ComposeSemanticsInspectorScreenTest {
                             actionStatus = null,
                             highlightStatus = null,
                             viewAttributes = ViewAttributesUiState.Empty,
-                            mcpCommands = testMcpCommands,
                             flags = SemanticsInspectorFlags(merged = true, interactiveOnly = false, includeInvisible = false, autoRefresh = false, highlightOnDevice = false),
                             selectedKey = NodeKey(rootId = "window", nodeId = selectedView.id),
                             onRefresh = {},
@@ -56,41 +57,40 @@ class ComposeSemanticsInspectorScreenTest {
             }
         }
         mainClock.advanceTimeByFrame()
-        val controls = mapOf(
-            "node tree" to onNode(hasScrollToIndexAction()),
-            "node actions" to onNodeWithText("Run an action on the app"),
-            "view attributes" to onNodeWithText("View attributes"),
+        // A node row's ring reaches the tree's sides but not its top, where the root's header row sits, and a pane's
+        // ring never reaches a node row's top edge. A group's header starts at the group's left edge, below its top.
+        val edges = mapOf(
+            "node tree" to { onNode(hasScrollToIndexAction()).captureTopEdgePixels() },
+            "top row" to { onNode(hasClickAction() and hasText("top", substring = true)).captureTopEdgePixels() },
+            "selected row" to { onNode(hasClickAction() and hasText("Send", substring = true)).captureTopEdgePixels() },
+            "node actions" to { onNodeWithText("Run an action on the app").captureLeftEdgePixels() },
+            "view attributes" to { onNodeWithText("View attributes").captureLeftEdgePixels() },
         )
-        val idleEdgePixels = controls.mapValues { (_, control) -> control.captureEdgePixels() }
+        val idleEdgePixels = edges.mapValues { (_, capture) -> capture() }
 
         mapOf(
-            testMcpCommands.getNodeTree to listOf("node tree"),
-            testMcpCommands.findNodes to listOf("node tree"),
-            testMcpCommands.nodeAt to listOf("node tree"),
-            testMcpCommands.performNodeAction to listOf("node actions"),
-            testMcpCommands.getViewAttributes to listOf("view attributes"),
-            testMcpCommands.setViewAttribute to listOf("view attributes"),
-        ).forEach { (command, ringedControlNames) ->
-            runningCommandNames = setOf(command.name)
+            SemanticsUiTarget.NodeTree to listOf("node tree"),
+            SemanticsUiTarget.Node(rootId = "window", nodeId = selectedView.id) to listOf("selected row", "node actions"),
+            SemanticsUiTarget.Node(rootId = "window", nodeId = 1) to listOf("top row"),
+            SemanticsUiTarget.ViewAttributes(rootId = "window", nodeId = selectedView.id) to listOf("view attributes"),
+            SemanticsUiTarget.ViewAttributes(rootId = "window", nodeId = 1) to emptyList(),
+        ).forEach { (target, ringedNames) ->
+            operatedUiTargets = setOf(target)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while ${command.name} runs")
+            assertEquals(ringedNames, edges.filter { (name, capture) -> capture() != idleEdgePixels.getValue(name) }.keys.toList(), "while $target is operated")
         }
     }
 
-    /**
-     * The pixels along the node's edges, where the ring shows of a pane or group the node fills, or that the
-     * node starts at the left edge of.
-     */
-    private fun SemanticsNodeInteraction.captureEdgePixels(): List<Color> {
+    /** The pixels along the node's top edge, short of the corners, where the ring of an enclosing pane also falls. */
+    private fun SemanticsNodeInteraction.captureTopEdgePixels(): List<Color> {
         val pixels = captureToImage().toPixelMap()
-        return buildList {
-            for (x in 0 until pixels.width) {
-                for (y in 0 until pixels.height) {
-                    if (x < EDGE_WIDTH_PX || y < EDGE_WIDTH_PX || x >= pixels.width - EDGE_WIDTH_PX || y >= pixels.height - EDGE_WIDTH_PX) add(pixels[x, y])
-                }
-            }
-        }
+        return (0 until EDGE_WIDTH_PX).flatMap { y -> (EDGE_WIDTH_PX until pixels.width - EDGE_WIDTH_PX).map { x -> pixels[x, y] } }
+    }
+
+    private fun SemanticsNodeInteraction.captureLeftEdgePixels(): List<Color> {
+        val pixels = captureToImage().toPixelMap()
+        return (0 until EDGE_WIDTH_PX).flatMap { x -> (0 until pixels.height).map { y -> pixels[x, y] } }
     }
 
     private companion object {

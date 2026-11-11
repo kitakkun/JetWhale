@@ -54,7 +54,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
-import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileOperated
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
@@ -86,7 +86,6 @@ internal fun ComposeSemanticsInspectorScreen(
     actionStatus: String?,
     highlightStatus: String?,
     viewAttributes: ViewAttributesUiState,
-    mcpCommands: SemanticsMcpCommands,
     flags: SemanticsInspectorFlags,
     selectedKey: NodeKey?,
     onRefresh: () -> Unit,
@@ -135,7 +134,7 @@ internal fun ComposeSemanticsInspectorScreen(
             modifier = Modifier.fillMaxSize(),
             state = rememberJwSplitPaneState(TREE_PANE_FRACTION),
             first = {
-                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.getNodeTree, mcpCommands.findNodes, mcpCommands.nodeAt, shape = RectangleShape)) {
+                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileOperated(SemanticsUiTarget.NodeTree, shape = RectangleShape)) {
                     if (rows.isEmpty()) {
                         EmptyTreeMessage(snapshot = snapshot, search = search, interactiveOnly = flags.interactiveOnly)
                     } else {
@@ -156,7 +155,6 @@ internal fun ComposeSemanticsInspectorScreen(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
                     viewAttributes = viewAttributes,
-                    mcpCommands = mcpCommands,
                     onPerformAction = onPerformAction,
                     onCommitViewAttribute = onCommitViewAttribute,
                 )
@@ -272,6 +270,7 @@ private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, intera
     JwEmptyState(title = title, description = description)
 }
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 private fun TreeList(
     rows: List<TreeRow>,
@@ -292,6 +291,7 @@ private fun TreeList(
                     onSelect = { onSelect(NodeKey(row.rootId, row.node.id)) },
                     onHoverChange = { hovered -> onHoverChange(NodeKey(row.rootId, row.node.id), hovered) },
                     onToggleExpanded = { onToggleExpanded(NodeKey(row.rootId, row.node.id)) },
+                    modifier = Modifier.jwAiOperatingRingWhileOperated(SemanticsUiTarget.Node(row.rootId, row.node.id), shape = JwShapes.small),
                 )
             }
         }
@@ -378,7 +378,6 @@ private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
     viewAttributes: ViewAttributesUiState,
-    mcpCommands: SemanticsMcpCommands,
     onPerformAction: (PerformNodeAction) -> Unit,
     onCommitViewAttribute: (ViewAttribute, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -410,7 +409,7 @@ private fun NodeDetail(
             rootId = rootId,
             node = node,
             onPerformAction = onPerformAction,
-            modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.performNodeAction, shape = JwShapes.small),
+            modifier = Modifier.jwAiOperatingRingWhileOperated(SemanticsUiTarget.Node(rootId, node.id), shape = JwShapes.small),
         )
 
         // idb's `ui tap` takes the same points the node reports, so no conversion is needed.
@@ -430,7 +429,7 @@ private fun NodeDetail(
             ViewAttributesPanel(
                 state = viewAttributes,
                 onCommit = onCommitViewAttribute,
-                modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.getViewAttributes, mcpCommands.setViewAttribute, shape = JwShapes.small),
+                modifier = Modifier.jwAiOperatingRingWhileOperated(SemanticsUiTarget.ViewAttributes(rootId, node.id), shape = JwShapes.small),
             )
         }
     }

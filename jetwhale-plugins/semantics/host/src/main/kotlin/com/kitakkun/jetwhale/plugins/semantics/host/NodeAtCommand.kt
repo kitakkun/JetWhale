@@ -37,7 +37,7 @@ internal class NodeAtCommand(
         val pointY = arguments[y].toFloat()
 
         val snapshot = try {
-            capture(NodeTreeCaptureOptions(merged = arguments[merged] ?: true))
+            markingAiOperationOn(SemanticsUiTarget.NodeTree) { capture(NodeTreeCaptureOptions(merged = arguments[merged] ?: true)) }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }

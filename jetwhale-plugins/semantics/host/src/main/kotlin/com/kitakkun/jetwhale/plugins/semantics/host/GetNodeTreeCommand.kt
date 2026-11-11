@@ -48,13 +48,15 @@ internal class GetNodeTreeCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val snapshot = try {
-            capture(
-                NodeTreeCaptureOptions(
-                    merged = arguments[merged] ?: true,
-                    includeInvisible = arguments[includeInvisible] ?: false,
-                    maxDepth = arguments[maxDepth],
-                ),
-            )
+            markingAiOperationOn(SemanticsUiTarget.NodeTree) {
+                capture(
+                    NodeTreeCaptureOptions(
+                        merged = arguments[merged] ?: true,
+                        includeInvisible = arguments[includeInvisible] ?: false,
+                        maxDepth = arguments[maxDepth],
+                    ),
+                )
+            }
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }
