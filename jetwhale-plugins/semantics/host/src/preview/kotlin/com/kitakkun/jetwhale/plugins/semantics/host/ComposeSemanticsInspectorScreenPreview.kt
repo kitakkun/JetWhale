@@ -51,6 +51,7 @@ private fun ComposeSemanticsInspectorScreenPreview() {
             actionStatus = null,
             highlightStatus = null,
             viewAttributes = ViewAttributesUiState.Empty,
+            mcpCommands = previewMcpCommands,
             flags = SemanticsInspectorFlags(
                 merged = true,
                 interactiveOnly = false,

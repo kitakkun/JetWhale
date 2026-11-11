@@ -5,10 +5,9 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,13 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwCheckbox
@@ -44,26 +44,25 @@ import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwStatusLine
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwText
-import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
+import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
-import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 import kotlinx.coroutines.launch
 import java.awt.datatransfer.StringSelection
 import kotlin.math.roundToInt
@@ -77,6 +76,7 @@ internal data class SemanticsInspectorFlags(
     val highlightOnDevice: Boolean,
 )
 
+@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun ComposeSemanticsInspectorScreen(
     snapshot: NodeTreeSnapshot?,
@@ -86,6 +86,7 @@ internal fun ComposeSemanticsInspectorScreen(
     actionStatus: String?,
     highlightStatus: String?,
     viewAttributes: ViewAttributesUiState,
+    mcpCommands: SemanticsMcpCommands,
     flags: SemanticsInspectorFlags,
     selectedKey: NodeKey?,
     onRefresh: () -> Unit,
@@ -134,18 +135,20 @@ internal fun ComposeSemanticsInspectorScreen(
             modifier = Modifier.fillMaxSize(),
             state = rememberJwSplitPaneState(TREE_PANE_FRACTION),
             first = {
-                if (rows.isEmpty()) {
-                    EmptyTreeMessage(snapshot = snapshot, search = search, interactiveOnly = flags.interactiveOnly)
-                } else {
-                    TreeList(
-                        rows = rows,
-                        selectedKey = selectedKey,
-                        onSelect = onSelectKey,
-                        onHoverChange = onHoverChange,
-                        onToggleExpanded = { key ->
-                            if (collapsedKeys.remove(key) == null) collapsedKeys[key] = Unit
-                        },
-                    )
+                Box(Modifier.fillMaxSize().jwAiOperatingRingWhileRunning(mcpCommands.getNodeTree, mcpCommands.findNodes, mcpCommands.nodeAt, shape = RectangleShape)) {
+                    if (rows.isEmpty()) {
+                        EmptyTreeMessage(snapshot = snapshot, search = search, interactiveOnly = flags.interactiveOnly)
+                    } else {
+                        TreeList(
+                            rows = rows,
+                            selectedKey = selectedKey,
+                            onSelect = onSelectKey,
+                            onHoverChange = onHoverChange,
+                            onToggleExpanded = { key ->
+                                if (collapsedKeys.remove(key) == null) collapsedKeys[key] = Unit
+                            },
+                        )
+                    }
                 }
             },
             second = {
@@ -153,6 +156,7 @@ internal fun ComposeSemanticsInspectorScreen(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
                     viewAttributes = viewAttributes,
+                    mcpCommands = mcpCommands,
                     onPerformAction = onPerformAction,
                     onCommitViewAttribute = onCommitViewAttribute,
                 )
@@ -368,12 +372,13 @@ private fun UiNode.actionSummary(): String = when {
     else -> actions.firstOrNull() ?: ""
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalJetWhaleApi::class)
 @Composable
 private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
     viewAttributes: ViewAttributesUiState,
+    mcpCommands: SemanticsMcpCommands,
     onPerformAction: (PerformNodeAction) -> Unit,
     onCommitViewAttribute: (ViewAttribute, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -384,8 +389,6 @@ private fun NodeDetail(
     }
 
     val scope = rememberCoroutineScope()
-    var textInput by remember(rootId, node.id) { mutableStateOf(node.editableText ?: "") }
-    var indexInput by remember(rootId, node.id) { mutableStateOf("") }
 
     val clipboard = LocalClipboard.current
     Column(
@@ -403,63 +406,12 @@ private fun NodeDetail(
 
         JwHorizontalDivider()
 
-        JwSectionHeader(title = "Run an action on the app", contentPadding = PaddingValues(0.dp))
-        NodeActionButtons(rootId = rootId, node = node, onPerformAction = onPerformAction)
-
-        if (node.actions.contains("SetText")) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                JwTextField(
-                    value = textInput,
-                    onValueChange = { textInput = it },
-                    placeholder = "Text",
-                    modifier = Modifier.weight(1f),
-                )
-                JwButton(
-                    text = "Set text",
-                    onClick = {
-                        onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.SetText, text = textInput))
-                    },
-                    style = JwButtonStyle.Primary,
-                )
-            }
-        }
-
-        if (node.isScrollable) {
-            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                JwButton(
-                    text = "Scroll down",
-                    onClick = {
-                        onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = SCROLL_STEP_PX))
-                    },
-                )
-                JwButton(
-                    text = "Scroll up",
-                    onClick = {
-                        onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = -SCROLL_STEP_PX))
-                    },
-                )
-            }
-        }
-
-        if (node.actions.contains("ScrollToIndex")) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                JwTextField(
-                    value = indexInput,
-                    onValueChange = { indexInput = it },
-                    placeholder = "Item index",
-                    modifier = Modifier.weight(1f),
-                )
-                JwButton(
-                    text = "Scroll to index",
-                    onClick = {
-                        indexInput.toIntOrNull()?.let { index ->
-                            onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollToIndex, index = index))
-                        }
-                    },
-                    enabled = indexInput.toIntOrNull() != null,
-                )
-            }
-        }
+        NodeActions(
+            rootId = rootId,
+            node = node,
+            onPerformAction = onPerformAction,
+            modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.performNodeAction, shape = JwShapes.small),
+        )
 
         // idb's `ui tap` takes the same points the node reports, so no conversion is needed.
         val tapTool = if (node is AppleNode) "idb ui tap" else "adb shell input tap"
@@ -475,12 +427,14 @@ private fun NodeDetail(
 
         if (node is ViewNode) {
             JwHorizontalDivider()
-            ViewAttributesPanel(state = viewAttributes, onCommit = onCommitViewAttribute)
+            ViewAttributesPanel(
+                state = viewAttributes,
+                onCommit = onCommitViewAttribute,
+                modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.getViewAttributes, mcpCommands.setViewAttribute, shape = JwShapes.small),
+            )
         }
     }
 }
-
-private const val SCROLL_STEP_PX = 400f
 
 @Composable
 private fun NodeProperties(rootId: String, node: UiNode) {
@@ -530,52 +484,6 @@ private fun NodeProperties(rootId: String, node: UiNode) {
             PropertyRow("operable", "no — ${node.whyNotOperable()}", wrap = true)
         }
     }
-}
-
-@Composable
-private fun NodeActionButtons(
-    rootId: String,
-    node: UiNode,
-    onPerformAction: (PerformNodeAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
-    ) {
-        ActionButton("Click", node, NodeAction.Click, rootId, onPerformAction)
-        ActionButton("Long click", node, NodeAction.LongClick, rootId, onPerformAction)
-        ActionButton("Focus", node, NodeAction.RequestFocus, rootId, onPerformAction)
-        ActionButton("Dismiss", node, NodeAction.Dismiss, rootId, onPerformAction)
-        ActionButton("Expand", node, NodeAction.Expand, rootId, onPerformAction)
-        ActionButton("Collapse", node, NodeAction.Collapse, rootId, onPerformAction)
-        // Offered even for a node whose reported bounds are empty: those are the clipped bounds,
-        // and a node clipped away entirely is exactly the one this brings back.
-        JwButton(
-            text = "Bring into view",
-            onClick = { onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.BringIntoView)) },
-        )
-    }
-}
-
-@Composable
-private fun ActionButton(
-    label: String,
-    node: UiNode,
-    action: NodeAction,
-    rootId: String,
-    onPerformAction: (PerformNodeAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val exposed = action.advertisedAs?.let(node.actions::contains) ?: true
-    if (!exposed) return
-    JwButton(
-        text = label,
-        onClick = { onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = action)) },
-        modifier = modifier,
-        enabled = node.isEnabled,
-    )
 }
 
 /**

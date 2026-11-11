@@ -214,6 +214,11 @@ findNodes()                            → the new screen's interactive nodes
 whatever moved into that spot; prefer it over `adb shell input tap`. Bounds and tap points are in the
 node's `unit`: pixels on Android and desktop, points on iOS.
 
+While an agent runs a tool, the inspector rings what the tool reads or drives: the tree for
+`findNodes`, `getNodeTree` and `nodeAt`, the selected node's actions for `performNodeAction`, and its
+View attributes for `getViewAttributes` and `setViewAttribute`. The ring marks the pane, not the node
+the tool names: the selected node's actions are ringed whichever node the agent acts on.
+
 ## Limits
 
 - **No web probe.** `ComposeViewport` exposes no owner for the agent to read; a custom scene can still
