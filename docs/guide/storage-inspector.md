@@ -142,11 +142,11 @@ Each takes the `sessionId` of the app's session.
 Paths are relative to a root, with `/` between segments:
 `readFile(root = "Data", path = "shared_prefs/settings.xml")`.
 
-While an agent runs a tool, the inspector rings the pane that shows what the tool reads or changes:
-the tree for `listDirectory` and `deleteFileEntry`, the pane beside it for `readFile`,
-`measureDirectory` and `hashFile`, the selected store's entries for `readKeyValueStore` and
-`removeKeyValue`, and both the tree and the store list for `listLocations`. The ring marks the pane,
-not the file or entry the tool names.
+While an agent runs a tool, the inspector rings what the tool reads or changes: the row of the file
+or directory a tool names for `listDirectory`, `readFile`, `measureDirectory` and `hashFile`, and the
+pane beside the tree too while that entry is selected; the tree for `deleteFileEntry`; the store's row
+for `readKeyValueStore` and `removeKeyValue`, and its entries too while that store is selected; and
+both the tree and the store list for `listLocations`.
 
 ## Limits
 

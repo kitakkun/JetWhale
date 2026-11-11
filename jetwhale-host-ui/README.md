@@ -27,7 +27,7 @@ this library is made of.
 | Rows and labels | `JwTable` + `JwTableColumn`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
 | Text and icons | `JwText`, `JwIcon`, `JwProgressIndicator` |
 | Controls | `JwButton` (text and slot overloads), `JwIconButton`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwTriStateCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
-| AI activity | `Modifier.jwAiOperatingRing`, and `Modifier.jwAiOperatingRingWhileRunning` for a control an AI agent drives through one of the plugin's MCP commands |
+| AI activity | `Modifier.jwAiOperatingRing`, and `Modifier.jwAiOperatingRingWhileOperated` for a control that stands for a target the plugin's MCP commands mark with `markingAiOperationOn` |
 
 Every component is sized for a desktop tool window — `JwMetrics.controlHeight` (28dp) controls,
 13sp body text, 4dp corners — and takes its colors from the theme, so it follows the user's

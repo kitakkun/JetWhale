@@ -422,32 +422,54 @@ on-screen flicker.
 ### Marking the control an agent is driving
 
 While an agent runs one of your commands, the host marks *which* plugin it is driving. To show
-*what inside* the plugin, put `Modifier.jwAiOperatingRingWhileRunning` from
-[`jetwhale-host-ui`](#theming-and-components-jetwhale-host-ui) on the control that does what the
-command does, passing the same instance you list in `mcpCommands`. It draws the rotating ring the
-host marks AI operations with while the command runs, and nothing otherwise:
+*what inside* the plugin, name the parts of your UI an agent can operate with values of your own,
+and connect each command to a part through the same value:
+
+- the command wraps the work it does in `markingAiOperationOn(target) { … }`;
+- the UI puts `Modifier.jwAiOperatingRingWhileOperated(target, shape)` from
+  [`jetwhale-host-ui`](#theming-and-components-jetwhale-host-ui) on the control that stands for it.
+
+Neither side references the other: the two values are matched by `equals`, so make targets
+`data object`s, and `data class`es for a target that names an item, such as one widget among many:
 
 ```kotlin
+internal sealed interface WidgetUiTarget {
+    data object WidgetList : WidgetUiTarget
+    data class WidgetRow(val widgetId: String) : WidgetUiTarget
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
+    // name, description and widgetId as above
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+        val id = arguments[widgetId]
+        return markingAiOperationOn(WidgetUiTarget.WidgetRow(id)) { widgets.describeAsJson(id = id, verbose = false) }
+    }
+}
+
 @OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-fun InspectButton(inspectWidget: InspectWidgetCommand, onInspect: () -> Unit) {
-    JwIconButton(
-        tooltip = "Inspect",
-        onClick = onInspect,
-        modifier = Modifier.jwAiOperatingRingWhileRunning(inspectWidget, shape = JwShapes.small),
-    ) {
-        JwIcon(imageVector = InspectIcon, contentDescription = null)
-    }
+fun WidgetRow(widget: Widget, onSelect: () -> Unit) {
+    JwListItem(
+        text = widget.name,
+        selected = false,
+        onClick = onSelect,
+        modifier = Modifier.jwAiOperatingRingWhileOperated(WidgetUiTarget.WidgetRow(widget.id), shape = JwShapes.small),
+    )
 }
 ```
 
-One control can stand for several commands: a screen that is both tapped and swiped takes
-`Modifier.jwAiOperatingRingWhileRunning(tap, swipe, shape = RectangleShape)`. A command that
-finishes within a frame still rings its control for 1.5 seconds. The modifier reads the SDK's
-`LocalRunningMcpCommandNames`, the names of this plugin instance's commands an agent is running now
-or finished less than 1.5 seconds ago; read the local directly only for an indication of your own.
-`ExampleHostPlugin` in `jetwhale-plugins/example/host` builds its two commands once and hands them to
-both `mcpCommands` and its UI this way.
+The ring is on from the moment the block starts until 1.5 seconds after it ends, whether it returns,
+throws or is cancelled, so work that finishes within a frame still shows. Blocks that overlap on one
+target keep it on until the last one ends. A block can name several targets, such as a list command
+that changes two panes, and several controls can stand for one target, such as an item's row and
+the pane that shows the selected item. Outside the host, as in a unit test, the block just runs.
+
+The modifier reads the SDK's `LocalAiOperatedUiTargets`, the targets of this plugin instance that an
+agent is operating now or finished with less than 1.5 seconds ago; read the local directly only for
+an indication of your own. `ExampleHostPlugin` in `jetwhale-plugins/example/host` marks its ping
+button and event log this way.
 
 ### Theming and components: `jetwhale-host-ui`
 
@@ -467,7 +489,7 @@ of the same tool rather than a foreign app embedded in it:
 | Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwDialog`, `JwHorizontalDivider` / `JwVerticalDivider` |
 | Rows and labels | `JwTable`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
 | Spacing and sizes | `JwSpacing`, `JwMetrics`, and each component's `Defaults` object |
-| Marking what an AI agent is operating | `Modifier.jwAiOperatingRingWhileRunning`, `Modifier.jwAiOperatingRing` |
+| Marking what an AI agent is operating | `Modifier.jwAiOperatingRingWhileOperated`, `Modifier.jwAiOperatingRing` |
 
 Every component is sized for a desktop tool window — 28dp controls, 13sp body text, 4dp corners —
 and takes its colors from the theme, so it follows the user's light/dark/custom choice without any
