@@ -54,6 +54,7 @@ fun PluginDrawerItemView(
     selected: Boolean,
     underAiControl: Boolean,
     exposesMcpTools: Boolean,
+    versionBadge: String?,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
@@ -81,6 +82,9 @@ fun PluginDrawerItemView(
                 )
             },
             trailingContent = {
+                versionBadge?.let { version ->
+                    JwTag(text = version)
+                }
                 if (exposesMcpTools) {
                     McpBadge(
                         operating = underAiControl,
@@ -154,6 +158,7 @@ private fun PluginDrawerItemViewPreview() {
             selected = true,
             underAiControl = true,
             exposesMcpTools = true,
+            versionBadge = "1.3.0",
             activeIconResource = null,
             inactiveIconResource = null,
             onClick = {},

@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.InstalledPluginVersion
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginIconResource
@@ -16,22 +18,31 @@ import soil.query.buildSubscriptionKey
 @ContributesBinding(AppScope::class)
 class DefaultLoadedPluginMetaDataSubscriptionKey(
     private val pluginFactoryRepository: PluginFactoryRepository,
+    private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : LoadedPluginsMetaDataSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("default_loaded_plugin_meta_data_subscription_key"),
     subscribe = {
-        pluginFactoryRepository.loadedPluginsFlow.map { pluginMap ->
-            pluginMap.map { (_, loaded) ->
-                val classLoader = loaded.factory.javaClass.classLoader
+        pluginFactoryRepository.loadedPluginVersionsFlow.map { versionsById ->
+            versionsById.values.mapNotNull { versions ->
+                val newestVersion = versions.firstOrNull() ?: return@mapNotNull null
+                val classLoader = newestVersion.factory.javaClass.classLoader
                 PluginMetaData(
-                    name = loaded.manifest.pluginName,
-                    id = loaded.manifest.pluginId,
-                    version = loaded.manifest.version,
-                    requiresAgent = loaded.manifest.requiresAgent,
-                    activeIconResource = loaded.manifest.icon?.activePath?.let {
+                    name = newestVersion.manifest.pluginName,
+                    id = newestVersion.manifest.pluginId,
+                    version = newestVersion.manifest.version,
+                    installedVersions = versions.map {
+                        InstalledPluginVersion(
+                            version = it.manifest.version,
+                            jarPath = it.jarPath,
+                            removable = appDataDirectoryProvider.isManagedPluginJarPath(it.jarPath),
+                        )
+                    },
+                    requiresAgent = newestVersion.manifest.requiresAgent,
+                    activeIconResource = newestVersion.manifest.icon?.activePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },
-                    inactiveIconResource = loaded.manifest.icon?.inactivePath?.let {
+                    inactiveIconResource = newestVersion.manifest.icon?.inactivePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },

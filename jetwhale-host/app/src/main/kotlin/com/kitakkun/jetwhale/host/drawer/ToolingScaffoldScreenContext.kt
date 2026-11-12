@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.drawer
 
 import com.kitakkun.jetwhale.host.architecture.PresenterContext
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
+import com.kitakkun.jetwhale.host.model.BoundPluginVersionsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugSessionsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DismissPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
@@ -47,6 +48,7 @@ class ToolingScaffoldScreenContext(
     val mcpCapablePluginsSubscriptionKey: McpCapablePluginsSubscriptionKey,
     val settingsSubscriptionKey: SettingsSubscriptionKey,
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
+    val boundPluginVersionsSubscriptionKey: BoundPluginVersionsSubscriptionKey,
     val sidebarWidthSubscriptionKey: SidebarWidthSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val pluginInstallJobsSubscriptionKey: PluginInstallJobsSubscriptionKey,

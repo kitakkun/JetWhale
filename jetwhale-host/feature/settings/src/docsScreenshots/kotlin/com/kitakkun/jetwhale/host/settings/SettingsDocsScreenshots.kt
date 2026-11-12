@@ -68,6 +68,7 @@ class SettingsDocsScreenshots {
                 ),
                 onClickAddPlugin = {},
                 onApproveUntrustedJar = {},
+                onRemovePluginVersion = {},
                 onClickInstallFromMaven = {},
                 onClickInstallOfficialPlugin = {},
                 onCancelInstall = {},

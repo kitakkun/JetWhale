@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
+import com.kitakkun.jetwhale.host.model.PluginStorageService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -27,7 +27,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     private val sessionId = "session-1"
 
     private val storage = mock<JetWhalePluginStorage>()
-    private val dataStoreRepository = mock<PluginDataStoreRepository> {
+    private val storageService = mock<PluginStorageService> {
         every { storageFor(any()) } returns storage
     }
     private val frameSender = mock<HostPluginFrameSender>()
@@ -36,7 +36,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     fun `a plugin with no UI is reported as headless for the session it was created for`() {
         val service = serviceWith { object : JetWhaleHostPlugin() {} }
 
-        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf(sessionId to null))
 
         assertEquals(mapOf(sessionId to setOf(pluginId)), service.headlessPluginsFlow.value.pluginIdsBySession)
     }
@@ -45,7 +45,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     fun `a plugin that renders a UI is not reported as headless`() {
         val service = serviceWith { UiPlugin() }
 
-        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf(sessionId to null))
 
         assertEquals(emptyMap(), service.headlessPluginsFlow.value.pluginIdsBySession)
     }
@@ -53,7 +53,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     @Test
     fun `unloading a session drops its headless entry`() {
         val service = serviceWith { object : JetWhaleHostPlugin() {} }
-        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf(sessionId to null))
 
         service.unloadPluginInstanceForSession(sessionId)
 
@@ -63,7 +63,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     @Test
     fun `the server stopping disposes the apps' instances and keeps the host session's`() {
         val service = serviceWith { object : JetWhaleHostPlugin() {} }
-        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId, HostSession.ID))
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, mapOf(sessionId to null, HostSession.ID to null))
 
         service.clearAppSessionPluginInstances()
 
@@ -74,6 +74,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(
         pluginFactoryRepository = SinglePluginFactoryRepository(
             LoadedHostPlugin(
+                jarPath = "/plugins/plugin.jar",
                 manifest = JetWhaleHostPluginManifest(
                     pluginId = pluginId,
                     pluginName = "Test",
@@ -87,7 +88,7 @@ class DefaultPluginInstanceServiceHeadlessTest {
             ),
         ),
         frameSender = frameSender,
-        pluginDataStoreRepository = dataStoreRepository,
+        pluginStorageService = storageService,
     )
 
     private class UiPlugin :

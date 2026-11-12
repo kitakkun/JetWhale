@@ -265,6 +265,7 @@ private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsP
     cancelPluginInstallMutationKey = object : CancelPluginInstallMutationKey, MutationKey<Unit, String> by noop("cancel_plugin_install") {},
     dismissPluginInstallMutationKey = object : DismissPluginInstallMutationKey, MutationKey<Unit, String> by noop("dismiss_plugin_install") {},
     trustPluginMutationKey = noop("trust_plugin"),
+    removePluginJarMutationKey = noop("remove_plugin_jar"),
     signPluginTrustRegistryMutationKey = object :
         SignPluginTrustRegistryMutationKey,
         MutationKey<Unit, Boolean> by noop("sign_plugin_trust_registry") {},

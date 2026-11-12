@@ -8,10 +8,13 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.model.PluginVersionOrder
 import com.kitakkun.jetwhale.host.model.TrustedPluginEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import java.io.ByteArrayOutputStream
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
@@ -33,7 +36,7 @@ internal class FakeTrustService(private val onApprove: suspend (jarPath: String,
     override val signingEnabledFlow: StateFlow<Boolean> = MutableStateFlow(false)
     override suspend fun loadTrustedPlugins() = Unit
 
-    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?) {
+    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?, replaceOtherVersions: Boolean) {
         approvals += jarPath to approvedSha256
         onApprove(jarPath, approvedSha256)
     }
@@ -44,6 +47,8 @@ internal class FakeTrustService(private val onApprove: suspend (jarPath: String,
     override suspend fun revokeTrust(jarPath: String) {
         revoked += jarPath
     }
+
+    override suspend fun removePluginJar(jarPath: String) = Unit
 
     override suspend fun setSigningEnabled(enabled: Boolean) = Unit
 }
@@ -68,6 +73,8 @@ internal class FakeTrustRepository : PluginTrustRepository {
 internal class FakeFactoryRepository : PluginFactoryRepository {
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
     override val loadedPlugins: Map<String, LoadedHostPlugin> = emptyMap()
+    override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = MutableStateFlow(emptyMap())
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> = emptyMap()
     override val failedJarsFlow = MutableStateFlow(emptyList<FailedPluginJar>())
     override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
     override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
@@ -80,6 +87,8 @@ internal class FakeFactoryRepository : PluginFactoryRepository {
 internal class SinglePluginFactoryRepository(plugin: LoadedHostPlugin) : PluginFactoryRepository {
     override val loadedPlugins: Map<String, LoadedHostPlugin> = mapOf(plugin.manifest.pluginId to plugin)
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> = mapOf(plugin.manifest.pluginId to listOf(plugin))
+    override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = MutableStateFlow(loadedPluginVersions)
     override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
     override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
@@ -87,6 +96,49 @@ internal class SinglePluginFactoryRepository(plugin: LoadedHostPlugin) : PluginF
     override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
     override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
     override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+}
+
+/**
+ * Serves the plugin versions a test loads, one per jar. Reloading a jar loads the version a test
+ * passed to [rebuild] for it.
+ */
+internal class JarPluginFactoryRepository : PluginFactoryRepository {
+    private val pluginsByJarPath = MutableStateFlow<Map<String, LoadedHostPlugin>>(emptyMap())
+    private val rebuiltPluginsByJarPath = mutableMapOf<String, LoadedHostPlugin>()
+
+    override val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>> = pluginsByJarPath.map { it.toVersionsById() }
+    override val loadedPluginVersions: Map<String, List<LoadedHostPlugin>> get() = pluginsByJarPath.value.toVersionsById()
+    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = loadedPluginVersionsFlow.map { versions -> versions.mapValues { (_, newestFirst) -> newestFirst.first() } }
+    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = loadedPluginVersions.mapValues { (_, newestFirst) -> newestFirst.first() }
+    override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
+
+    fun load(plugin: LoadedHostPlugin) {
+        pluginsByJarPath.update { it + (plugin.jarPath to plugin) }
+    }
+
+    fun rebuild(plugin: LoadedHostPlugin) {
+        rebuiltPluginsByJarPath[plugin.jarPath] = plugin
+    }
+
+    override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
+
+    override suspend fun unloadPluginJar(pluginJarPath: String) {
+        pluginsByJarPath.update { it - pluginJarPath }
+    }
+
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = listOfNotNull(pluginsByJarPath.value[pluginJarPath]?.manifest?.pluginId)
+
+    override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> {
+        val rebuilt = rebuiltPluginsByJarPath.getValue(pluginJarPath)
+        load(rebuilt)
+        return listOf(rebuilt.manifest.pluginId)
+    }
+
+    override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+
+    private fun Map<String, LoadedHostPlugin>.toVersionsById(): Map<String, List<LoadedHostPlugin>> = values
+        .groupBy { it.manifest.pluginId }
+        .mapValues { (_, versions) -> versions.sortedWith(compareByDescending(PluginVersionOrder) { it.manifest.version }) }
 }
 
 internal object NoProgress : PluginInstallProgressRepository {

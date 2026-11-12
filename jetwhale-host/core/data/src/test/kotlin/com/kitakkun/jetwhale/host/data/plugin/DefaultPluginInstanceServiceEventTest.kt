@@ -3,8 +3,8 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
+import com.kitakkun.jetwhale.host.model.PluginStorageService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -28,13 +28,14 @@ class DefaultPluginInstanceServiceEventTest {
     private val pluginId = "com.example.plugin"
 
     private val storage = mock<JetWhalePluginStorage>()
-    private val dataStoreRepository = mock<PluginDataStoreRepository> {
+    private val storageService = mock<PluginStorageService> {
         every { storageFor(any()) } returns storage
     }
 
     private val service = DefaultPluginInstanceService(
         pluginFactoryRepository = SinglePluginFactoryRepository(
             LoadedHostPlugin(
+                jarPath = "/plugins/plugin.jar",
                 manifest = JetWhaleHostPluginManifest(
                     pluginId = pluginId,
                     pluginName = "Test",
@@ -48,13 +49,13 @@ class DefaultPluginInstanceServiceEventTest {
             ),
         ),
         frameSender = mock<HostPluginFrameSender>(),
-        pluginDataStoreRepository = dataStoreRepository,
+        pluginStorageService = storageService,
     )
 
     @Test
     fun `the server stopping reports every app session's instance as disposed and none of the host's`() = runBlocking {
         val appSessions = List(APP_SESSIONS_IN_ONE_STOP) { "session-$it" }.toSet()
-        service.initializePluginInstancesForSessionsIfNeeded(pluginId, appSessions + HostSession.ID)
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, (appSessions + HostSession.ID).associateWith { null })
         val disposed = async(start = CoroutineStart.UNDISPATCHED) {
             service.pluginInstanceEventFlow.filterIsInstance<PluginInstanceEvent.Disposed>().take(appSessions.size).toList()
         }

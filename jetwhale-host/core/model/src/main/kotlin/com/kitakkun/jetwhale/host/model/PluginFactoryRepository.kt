@@ -10,8 +10,17 @@ import kotlinx.coroutines.flow.Flow
  * hot reload possible (see [PluginHotReloadService]).
  */
 interface PluginFactoryRepository {
+    /** The newest loaded version of each plugin, by `pluginId`. */
     val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
     val loadedPlugins: Map<String, LoadedHostPlugin>
+
+    /**
+     * Every loaded version of each plugin, by `pluginId`, newest first. Versions of one plugin come
+     * from different jars and coexist; a jar replaces another only when both provide the same
+     * `(pluginId, version)`.
+     */
+    val loadedPluginVersionsFlow: Flow<Map<String, List<LoadedHostPlugin>>>
+    val loadedPluginVersions: Map<String, List<LoadedHostPlugin>>
     val failedJarsFlow: Flow<List<FailedPluginJar>>
 
     /**

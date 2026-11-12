@@ -96,7 +96,7 @@ class MavenPluginInstallService(
         }
         try {
             val loadFailure = try {
-                pluginTrustService.trustAndLoad(installedJar.absolutePath, approvedSha256 = null)
+                pluginTrustService.trustAndLoad(installedJar.absolutePath, approvedSha256 = null, replaceOtherVersions = false)
                 pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == installedJar.absolutePath }?.reason
             } catch (e: Exception) {
                 rollBack(installedJar, previousJar, previousTrustedSha256)
@@ -124,7 +124,7 @@ class MavenPluginInstallService(
         }
         appDataDirectoryProvider.moveStagedJarIntoPluginDirectory(previousJar, installedJar)
         if (previousTrustedSha256 != null) {
-            pluginTrustService.trustAndLoad(installedJar.absolutePath, previousTrustedSha256)
+            pluginTrustService.trustAndLoad(installedJar.absolutePath, previousTrustedSha256, replaceOtherVersions = false)
         } else {
             pluginTrustRepository.revoke(installedJar.absolutePath)
         }
