@@ -59,7 +59,7 @@ export default defineConfig({
       {
         text: 'Plugins',
         link: '/guide/network-inspector',
-        activeMatch: '^/guide/(network-inspector|compose-semantics-inspector|nav3-navigator|debug-actions|storage-inspector|device-mirror)',
+        activeMatch: '^/guide/(network-inspector|compose-semantics-inspector|nav3-navigator|debug-actions|storage-inspector|soil-inspector|device-mirror)',
       },
       { text: 'Plugin Development', link: '/guide/developing-plugins' },
       { text: 'Reference', link: '/reference/protocol', activeMatch: '^/reference/' },
@@ -106,6 +106,7 @@ export default defineConfig({
           { text: 'Nav3 Navigator', link: '/guide/nav3-navigator' },
           { text: 'Debug Actions', link: '/guide/debug-actions' },
           { text: 'Storage Inspector', link: '/guide/storage-inspector' },
+          { text: 'Soil Inspector', link: '/guide/soil-inspector' },
           { text: 'Device Mirror', link: '/guide/device-mirror' },
         ],
       },

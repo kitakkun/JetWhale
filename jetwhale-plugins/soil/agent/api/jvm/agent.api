@@ -1,0 +1,21 @@
+public final class com/kitakkun/jetwhale/plugins/soil/agent/JetWhaleSoilAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public fun <init> (Lsoil/query/SwrClient;Lsoil/query/SwrCachePolicy;Lcom/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers;)V
+	public synthetic fun <init> (Lsoil/query/SwrClient;Lsoil/query/SwrCachePolicy;Lcom/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers$Companion;
+}
+
+public final class com/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers$Builder {
+	public final fun idClass (Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;)V
+	public final fun namespace (Ljava/lang/String;Lkotlinx/serialization/KSerializer;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers$Companion {
+	public final fun getNone ()Lcom/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers;
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/soil/agent/SoilValueSerializers;
+}
+

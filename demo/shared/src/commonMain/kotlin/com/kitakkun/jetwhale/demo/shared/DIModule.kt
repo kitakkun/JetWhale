@@ -9,11 +9,16 @@ import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
+import com.kitakkun.jetwhale.plugins.soil.agent.JetWhaleSoilAgentPlugin
 import com.kitakkun.jetwhale.plugins.storage.agent.JetWhaleStorageAgentPlugin
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.header
+import soil.query.SwrCachePlus
+import soil.query.SwrCachePlusPolicy
+import soil.query.SwrCacheScope
+import soil.query.annotation.ExperimentalSoilQueryApi
 
 object DIModule {
     val exampleAgentPlugin: ExampleAgentPlugin by lazy { ExampleAgentPlugin() }
@@ -35,6 +40,16 @@ object DIModule {
     val semanticsAgentPlugin: JetWhaleSemanticsAgentPlugin by lazy { JetWhaleSemanticsAgentPlugin() }
 
     val storageAgentPlugin: JetWhaleStorageAgentPlugin by lazy(JetWhaleStorageAgentPlugin::platformDefaults)
+
+    /** Kept beside [swrClient] so the Soil Inspector can also list what Soil caches after a screen leaves. */
+    @OptIn(ExperimentalSoilQueryApi::class)
+    val swrCachePolicy: SwrCachePlusPolicy by lazy { SwrCachePlusPolicy(coroutineScope = SwrCacheScope()) }
+
+    @OptIn(ExperimentalSoilQueryApi::class)
+    val swrClient: SwrCachePlus by lazy { SwrCachePlus(swrCachePolicy) }
+
+    @OptIn(ExperimentalSoilQueryApi::class)
+    val soilAgentPlugin: JetWhaleSoilAgentPlugin by lazy { JetWhaleSoilAgentPlugin(swrClient, swrCachePolicy, demoSoilValueSerializers) }
 
     /** A demo Ktor client wired to the Network Inspector so its traffic shows up in the debugger. */
     val httpClient: HttpClient by lazy {

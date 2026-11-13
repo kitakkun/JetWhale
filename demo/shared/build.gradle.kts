@@ -56,6 +56,8 @@ kotlin {
             implementation(projects.jetwhalePlugins.semantics.agent)
             implementation(projects.jetwhalePlugins.storage.agent)
             implementation(projects.jetwhalePlugins.actions.agentCompose)
+            implementation(projects.jetwhalePlugins.soil.agent)
+            implementation(libs.soilQueryCompose)
             implementation(libs.ktorClientCio)
         }
 
