@@ -69,7 +69,7 @@ class IdeHost : AutoCloseable {
 
             CompositionLocalProvider(LocalEmbeddedInIde provides true) {
                 context(appGraph) {
-                    JetWhaleApp()
+                    JetWhaleApp(menuBar = {})
                 }
             }
         }

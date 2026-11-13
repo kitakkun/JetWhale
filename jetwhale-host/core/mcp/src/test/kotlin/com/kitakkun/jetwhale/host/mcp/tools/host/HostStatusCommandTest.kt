@@ -129,7 +129,7 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports what the host window shows once it has composed`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example", sessionId = "s1"),
+            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example", sessionId = "s1", logViewerOpen = false),
             selectedSessionId = "s1",
             selectedPluginId = "com.example",
         )
@@ -141,9 +141,22 @@ class HostStatusCommandTest {
     }
 
     @Test
+    fun `getStatus reports an open log viewer next to what the main window shows`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.APPEARANCE, logViewerOpen = true),
+            selectedSessionId = null,
+            selectedPluginId = null,
+        )
+
+        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        assertEquals("SETTINGS", ui.destination)
+        assertTrue(ui.logViewerOpen)
+    }
+
+    @Test
     fun `getStatus reports the settings page the window opened on`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS),
+            destination = HostDestination(kind = HostDestinationKind.SETTINGS, settingsPage = HostSettingsPage.PERMISSIONS, logViewerOpen = false),
             selectedSessionId = null,
             selectedPluginId = null,
         )
@@ -157,7 +170,7 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports the tab the MCP tools browser opened on`() = runBlocking {
         currentView.value = HostViewState(
-            destination = HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.HISTORY),
+            destination = HostDestination(kind = HostDestinationKind.MCP_TOOLS, mcpToolsTab = HostMcpToolsTab.HISTORY, logViewerOpen = false),
             selectedSessionId = null,
             selectedPluginId = null,
         )

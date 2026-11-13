@@ -164,6 +164,10 @@ Navigating to `PLUGIN` also selects that session in the sidebar, which is what a
 `jetwhale.screenshot` of the same plugin shows. The call waits up to two seconds for the window to
 confirm, and reports `applied: false` with a reason if it does not.
 
+The log viewer opens in a window of its own and leaves the main window as it is. `LOG_VIEWER` is
+confirmed by `logViewerOpen: true` in the result, while `destination` reports what the main window
+shows; `jetwhale.getStatus` reports the two the same way, in its `ui` block.
+
 `MCP_TOOLS` opens the [MCP tools browser](/guide/mcp-server#the-mcp-tools-browser) with no plugin or
 session filter. Like the Settings pages, it is for the person at the window: `jetwhale.screenshot`
 and the other UI tools read plugin screens only, so an agent cannot read the browser's call history

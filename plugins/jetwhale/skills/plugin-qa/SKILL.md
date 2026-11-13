@@ -349,7 +349,7 @@ List the tools before planning around one, and do not read a refusal as a bug in
 | `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled, plus the official catalog under `availableOfficial` |
 | `jetwhale.installOfficialPlugin` | install a plugin from that catalog — catalog entries only, and `setPluginEnabled` still has to follow |
 | `jetwhale.setPluginEnabled` | enable the plugin under test; reports which sessions got an instance |
-| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER` / `MCP_TOOLS`) |
+| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `MCP_TOOLS`), or open the log viewer's own window (`LOG_VIEWER`, reported as `logViewerOpen` beside the main window's destination) |
 | `jetwhale.getLogs` / `jetwhale.clearLogs` | the **host's** own log — clear, reproduce, read |
 | `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports, theme and server lifecycle |
 

@@ -50,6 +50,7 @@ class DefaultHostNavigationServiceTest {
                 kind = HostDestinationKind.PLUGIN,
                 pluginId = "plugin-1",
                 sessionId = "session-1",
+                logViewerOpen = false,
             ),
         )
 
@@ -62,7 +63,7 @@ class DefaultHostNavigationServiceTest {
 
     @Test
     fun `a later selection update keeps the reported destination`() = runBlocking {
-        service.updateDestination(HostDestination(kind = HostDestinationKind.SETTINGS))
+        service.updateDestination(HostDestination(kind = HostDestinationKind.SETTINGS, logViewerOpen = false))
         service.updateSelection(selectedSessionId = "session-2", selectedPluginId = null)
 
         val view = requireNotNull(service.currentView.value)
