@@ -2,10 +2,15 @@ package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.ui.JwMetrics
@@ -89,7 +94,7 @@ class DrawerPluginListTest {
 
     @Test
     fun `an app with no plugins says so instead of leaving the area blank`() = runComposeUiTest {
-        showDrawer(listOf(plugin("Device Mirror", PluginAvailability.Enabled).copy(needsApp = false)))
+        showDrawer(listOf(plugin("Device Mirror", PluginAvailability.Enabled).copy(sessionId = HostSession.ID)))
 
         onNodeWithText("Device Mirror").assertExists()
         onNodeWithText("This app has no plugins yet.").assertExists()
@@ -103,15 +108,63 @@ class DrawerPluginListTest {
         onNodeWithText("This app has no plugins yet.").assertDoesNotExist()
     }
 
+    @Test
+    fun `a plugin that runs in the host session and in the app has a row in each section, each opening its own session`() = runComposeUiTest {
+        val opened = mutableListOf<String?>()
+        showDrawer(
+            listOf(plugin("Inspector", PluginAvailability.Enabled).copy(sessionId = HostSession.ID), plugin("Inspector", PluginAvailability.Enabled)),
+            onClickPlugin = { opened += it.sessionId },
+        )
+
+        val rows = onAllNodesWithText("Inspector")
+        rows[0].performClick()
+        rows[1].performClick()
+
+        assertEquals(listOf<String?>(HostSession.ID, session.id), opened)
+    }
+
+    @Test
+    fun `only the row of the session that was opened shows as selected`() = runComposeUiTest {
+        showDrawer(
+            listOf(
+                plugin("Inspector", PluginAvailability.Enabled).copy(sessionId = HostSession.ID, isSelected = true),
+                plugin("Inspector", PluginAvailability.Enabled),
+            ),
+        )
+
+        val rows = onAllNodesWithText("Inspector")
+        rows[0].assertIsSelected()
+        rows[1].assertIsNotSelected()
+    }
+
+    @Test
+    fun `each row of a plugin pops out its own session's instance`() = runComposeUiTest {
+        val poppedOut = mutableListOf<String?>()
+        showDrawer(
+            listOf(plugin("Inspector", PluginAvailability.Enabled).copy(sessionId = HostSession.ID), plugin("Inspector", PluginAvailability.Enabled)),
+            isPoppedOut = { HostSession.isHost(it.sessionId) },
+            onClickPopout = { poppedOut += it.sessionId },
+        )
+
+        onAllNodesWithContentDescription("Plugin actions")[1].performClick()
+        onNodeWithText("Pop out").performClick()
+        onAllNodesWithContentDescription("Plugin actions")[0].performClick()
+
+        assertEquals(listOf<String?>(session.id), poppedOut)
+        onNodeWithText("Bring back").assertExists()
+        onNodeWithText("Pop out").assertDoesNotExist()
+    }
+
     private fun ComposeUiTest.showDrawer(
         plugins: List<DrawerPluginItemUiState>,
         onClickPlugin: (DrawerPluginItemUiState) -> Unit = {},
         onClickInactivePlugin: (DrawerPluginItemUiState) -> Unit = {},
+        isPoppedOut: (DrawerPluginItemUiState) -> Boolean = { false },
+        onClickPopout: (DrawerPluginItemUiState) -> Unit = {},
     ) {
         setContent {
             JwTheme(darkTheme = false) {
                 ExpandedToolingDrawerView(
-                    selectedPluginId = "",
                     plugins = plugins.toImmutableList(),
                     hasFailedJars = false,
                     selectedSession = session,
@@ -131,8 +184,8 @@ class DrawerPluginListTest {
                     onClickPlugin = onClickPlugin,
                     onClickInactivePlugin = onClickInactivePlugin,
                     onSelectSession = {},
-                    onClickPopout = {},
-                    isPoppedOut = { false },
+                    onClickPopout = onClickPopout,
+                    isPoppedOut = isPoppedOut,
                     onClickBringBack = {},
                     onSetPluginEnabled = { _, _ -> },
                 )
@@ -144,11 +197,12 @@ class DrawerPluginListTest {
 private fun plugin(name: String, availability: PluginAvailability) = DrawerPluginItemUiState(
     name = name,
     id = "com.example.${name.lowercase()}",
+    sessionId = "app-1",
     activeIconResource = null,
     inactiveIconResource = null,
     pluginAvailability = availability,
+    isSelected = false,
     underAiControl = false,
     exposesMcpTools = false,
     isHeadless = false,
-    needsApp = true,
 )

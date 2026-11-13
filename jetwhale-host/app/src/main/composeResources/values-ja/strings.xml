@@ -121,6 +121,8 @@
     <string name="unnamed_app">名前のないアプリ (%1$s)</string>
     <string name="plugin_not_in_app">このアプリにはこのプラグインが含まれていません</string>
     <string name="plugin_disabled_tooltip">無効 — クリックして有効化</string>
+    <string name="rail_plugin_in_host_session">%1$s · アプリなし</string>
+    <string name="rail_plugin_in_app">%1$s · %2$s</string>
     <string name="plugin_disabled_title">%1$s は無効です</string>
     <string name="plugin_enable_failed">プラグインを有効にできませんでした。もう一度お試しください。</string>
     <string name="plugins_folded_disabled">無効 %1$d 件</string>

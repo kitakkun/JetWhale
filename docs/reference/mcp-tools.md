@@ -10,7 +10,7 @@ from. Start here.
 
 | Tool | What it does |
 |------|--------------|
-| `jetwhale.listSessions` | Lists the debug sessions: first `host`, which is always there and holds the plugins that need no app, then every connected app. Takes no arguments |
+| `jetwhale.listSessions` | Lists the debug sessions: first `host`, which is always there and holds the plugins that need no app and those that run there as well as in apps, then every connected app. Takes no arguments |
 | `jetwhale.listPlugins` | Lists the plugins available in a session. Takes a `sessionId` |
 
 Neither is gated by a permission; see [Permissions](/guide/mcp-server#permissions).
@@ -107,7 +107,7 @@ state, and what the window is showing.
 | `jetwhale.getStatus` | One snapshot of the host: version, servers, session and plugin counts, settings, current screen |
 | `jetwhale.getLogs` | Reads the host's own captured stdout/stderr, filterable by level and substring |
 | `jetwhale.clearLogs` | Discards every captured host log entry |
-| `jetwhale.listInstalledPlugins` | Lists installed plugins and their enabled state, official plugins still available, and any failed or untrusted jar |
+| `jetwhale.listInstalledPlugins` | Lists installed plugins, their enabled state and where they run (`requiresAgent`: in the apps that include them; `runsInHostSession`: in `host`), official plugins still available, and any failed or untrusted jar |
 | `jetwhale.setPluginEnabled` | Enables or disables an installed plugin, like the sidebar toggle |
 | `jetwhale.installOfficialPlugin` | Installs a plugin from the official catalog; see [Installing plugins from an AI agent](/guide/mcp-server#installing-plugins-from-an-ai-agent) |
 | `jetwhale.updateSettings` | Changes host settings; only the arguments you supply are touched |
@@ -155,7 +155,7 @@ because macOS takes the window frame's appearance once, when the host starts.
 |----------|----------|-----------------|
 | `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER`, `MCP_TOOLS` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
-| `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the sidebar. |
+| `sessionId` | no | Only for `PLUGIN`. A plugin that needs no app always opens in `host`. A plugin that runs in `host` as well as in apps takes `host` or an app's session id; without one it opens in the app selected in the sidebar when that app includes it, and in `host` otherwise. Any other plugin defaults to the app selected in the sidebar. |
 | `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`, opening the section's first page. Defaults to `GENERAL`. `SERVER` is the section the window titles **Connection**. |
 | `settingsPage` | no | Only for `SETTINGS`: `APPEARANCE`, `APPLICATION`, `DEBUG_SERVER`, `SSL_CERTIFICATE`, `ADB_SUPPORT`, `MCP_SERVER`, `PERMISSIONS`, `ACTIVITY`, `INSTALLED_PLUGINS`, `ADD_PLUGINS`, `SECURITY`, the pages of the settings menu. Takes the place of `settingsSection`; if both are given, the page has to be in that section. |
 | `mcpToolsTab` | no | Only for `MCP_TOOLS`: `TOOLS` or `HISTORY`. Defaults to `TOOLS`. |

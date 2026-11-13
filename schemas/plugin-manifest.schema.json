@@ -34,7 +34,11 @@
           },
           "requiresAgent": {
             "type": "boolean",
-            "description": "Whether this plugin needs an agent counterpart. true (default): available only for sessions whose agent advertised this pluginId. false: host-only (no agent, no messaging), instantiated for every active session."
+            "description": "Whether this plugin needs an agent counterpart. true (default): instantiated in each app session whose agent advertised this pluginId. false: host-only (no agent, no messaging), instantiated once in the host session, which needs no app."
+          },
+          "runsInHostSession": {
+            "type": "boolean",
+            "description": "For a plugin that needs an agent: whether it also gets an instance in the host session, next to its instances in app sessions. That instance has no agent, so it gets no messenger. false (default): app sessions only. Ignored when requiresAgent is false. Hosts older than this key ignore it."
           },
           "agentVersionRange": {
             "type": "object",

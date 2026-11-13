@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -35,7 +36,6 @@ class SidebarWidthTest {
         setContent {
             JwTheme(darkTheme = false) {
                 ExpandedToolingDrawerView(
-                    selectedPluginId = "",
                     plugins = persistentListOf(),
                     hasFailedJars = false,
                     selectedSession = null,
@@ -93,8 +93,7 @@ class SidebarWidthTest {
             JwTheme(darkTheme = false) {
                 Box(modifier = Modifier.height(800.dp)) {
                     ExpandedToolingDrawerView(
-                        selectedPluginId = "",
-                        plugins = persistentListOf(plugin("Device Mirror", needsApp = false), plugin("Network", needsApp = true)),
+                        plugins = persistentListOf(plugin("Device Mirror", sessionId = HostSession.ID), plugin("Network", sessionId = session.id)),
                         hasFailedJars = false,
                         selectedSession = session,
                         sessions = persistentListOf(session),
@@ -128,14 +127,15 @@ class SidebarWidthTest {
     }
 }
 
-private fun plugin(name: String, needsApp: Boolean) = DrawerPluginItemUiState(
+private fun plugin(name: String, sessionId: String) = DrawerPluginItemUiState(
     name = name,
     id = "com.example.${name.lowercase().replace(' ', '.')}",
+    sessionId = sessionId,
     activeIconResource = null,
     inactiveIconResource = null,
     pluginAvailability = PluginAvailability.Enabled,
+    isSelected = false,
     underAiControl = false,
     exposesMcpTools = false,
     isHeadless = false,
-    needsApp = needsApp,
 )

@@ -30,6 +30,7 @@ import dev.mokkery.verifySuspend
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -47,11 +48,11 @@ class HostNavigationCommandTest {
         name = "Pixel",
         isActive = true,
         transportSecurity = SessionTransportSecurity.LOOPBACK,
-        installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.agent", "1.0.0")),
+        installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.agent", "1.0.0"), JetWhalePluginInfo("com.example.both", "1.0.0")),
     )
 
     private val currentView = MutableStateFlow<HostViewState?>(null)
-    private val enabledPluginIds = MutableStateFlow(setOf("com.example.agent", "com.example.hostonly"))
+    private val enabledPluginIds = MutableStateFlow(setOf("com.example.agent", "com.example.hostonly", "com.example.both"))
 
     private val hostNavigationService = mock<HostNavigationService>(MockMode.autoUnit) {
         every { this@mock.currentView } returns this@HostNavigationCommandTest.currentView
@@ -61,9 +62,10 @@ class HostNavigationCommandTest {
     }
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { loadedPlugins } returns mapOf(
-            "com.example.agent" to loadedPlugin("com.example.agent"),
-            "com.example.hostonly" to loadedPlugin("com.example.hostonly"),
-            "com.example.disabled" to loadedPlugin("com.example.disabled"),
+            "com.example.agent" to loadedPlugin("com.example.agent", requiresAgent = true, runsInHostSession = false),
+            "com.example.hostonly" to loadedPlugin("com.example.hostonly", requiresAgent = false, runsInHostSession = false),
+            "com.example.disabled" to loadedPlugin("com.example.disabled", requiresAgent = true, runsInHostSession = false),
+            "com.example.both" to loadedPlugin("com.example.both", requiresAgent = true, runsInHostSession = true),
         )
     }
     private val enabledPluginsRepository = mock<EnabledPluginsRepository> {
@@ -72,6 +74,7 @@ class HostNavigationCommandTest {
     private val reconciliationService = mock<PluginSessionReconciliationService> {
         every { requiresAgent("com.example.agent") } returns true
         every { requiresAgent("com.example.hostonly") } returns false
+        every { requiresAgent("com.example.both") } returns true
     }
 
     private val command = HostNavigationCommand(
@@ -340,6 +343,82 @@ class HostNavigationCommandTest {
         }
         assertContains(error, "needs an app")
     }
+
+    @Test
+    fun `navigate opens a plugin that also runs in apps in the host session when asked to`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = HostSession.ID),
+        )
+
+        val result = command
+            .execute(
+                arguments(
+                    "destination" to JsonPrimitive("PLUGIN"),
+                    "pluginId" to JsonPrimitive("com.example.both"),
+                    "sessionId" to JsonPrimitive(HostSession.ID),
+                ),
+            )
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals(HostSession.ID, result.sessionId)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", HostSession.ID, followsAgent = false)) }
+    }
+
+    @Test
+    fun `navigate opens a plugin that also runs in apps in the app that was named`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = "session-1"),
+        )
+
+        val result = command
+            .execute(
+                arguments(
+                    "destination" to JsonPrimitive("PLUGIN"),
+                    "pluginId" to JsonPrimitive("com.example.both"),
+                    "sessionId" to JsonPrimitive("session-1"),
+                ),
+            )
+            .decode()
+
+        assertTrue(result.applied)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", "session-1", followsAgent = false)) }
+    }
+
+    @Test
+    fun `navigate opens a plugin that also runs in apps in the selected app when no session is named and that app includes it`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = HostSession.ID),
+        )
+        launch {
+            currentView.value = viewState(HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = "session-1"))
+        }
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.both")))
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals("session-1", result.sessionId)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", "session-1", followsAgent = false)) }
+    }
+
+    @Test
+    fun `navigate opens a plugin that also runs in apps in the host session when no session is named and the selected app lacks it`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.both", sessionId = HostSession.ID),
+            selectedSessionId = "session-closed",
+            selectedPluginId = "com.example.both",
+        )
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.both")))
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals(HostSession.ID, result.sessionId)
+        verifySuspend { hostNavigationService.navigate(HostNavigationRequest.Plugin("com.example.both", HostSession.ID, followsAgent = false)) }
+    }
 }
 
 private inline fun assertFailsWithArgumentException(block: () -> Unit): String = try {
@@ -355,12 +434,14 @@ private fun viewState(destination: HostDestination) = HostViewState(
     selectedPluginId = destination.pluginId,
 )
 
-private fun loadedPlugin(pluginId: String) = LoadedHostPlugin(
+private fun loadedPlugin(pluginId: String, requiresAgent: Boolean, runsInHostSession: Boolean) = LoadedHostPlugin(
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = pluginId,
         version = "1.0.0",
         factoryClass = "$pluginId.Factory",
+        requiresAgent = requiresAgent,
+        runsInHostSession = runsInHostSession,
     ),
     factory = object : JetWhaleHostPluginFactory {
         override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()

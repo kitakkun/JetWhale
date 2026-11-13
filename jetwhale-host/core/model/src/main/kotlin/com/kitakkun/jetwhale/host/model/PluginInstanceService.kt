@@ -38,10 +38,11 @@ interface PluginInstanceService {
 
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.
-     * Each new instance is wired to its own messaging peer.
+     * Each new instance of a messaging plugin in an app session is wired to its own messaging peer;
+     * an instance in [HostSession] gets none, since no agent joins it.
      *
-     * A new instance of a plugin that requires an agent does not run its `onPrepare` until
-     * [startPluginInstancePreparation] is called for it.
+     * A new instance does not run its `onPrepare` until [startPluginInstancePreparation] is called
+     * for it.
      * @return The set of session IDs for which new plugin instances were initialized.
      */
     fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String>

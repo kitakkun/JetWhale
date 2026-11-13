@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -31,6 +32,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DefaultPluginSessionReconciliationServiceTest {
     private val pluginId = "com.example.plugin"
@@ -65,6 +67,21 @@ class DefaultPluginSessionReconciliationServiceTest {
             version = "1.0.0",
             factoryClass = "com.example.DeviceFactory",
             requiresAgent = false,
+        ),
+        factory = object : JetWhaleHostPluginFactory {
+            override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+        },
+    )
+
+    private val bothSessionsPluginId = "com.example.inspector"
+
+    private val bothSessionsPlugin = LoadedHostPlugin(
+        manifest = JetWhaleHostPluginManifest(
+            pluginId = bothSessionsPluginId,
+            pluginName = "Inspector",
+            version = "1.0.0",
+            factoryClass = "com.example.InspectorFactory",
+            runsInHostSession = true,
         ),
         factory = object : JetWhaleHostPluginFactory {
             override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
@@ -132,6 +149,72 @@ class DefaultPluginSessionReconciliationServiceTest {
         assertEquals(setOf(HostSession.ID), service.targetSessionIds(hostOnlyPluginId, listOf(activeSession)))
         assertEquals(setOf(sessionId), service.targetSessionIds(pluginId, listOf(activeSession)))
         assertEquals(emptySet(), service.targetSessionIds(pluginId, emptyList()))
+    }
+
+    @Test
+    fun `a plugin that runs in the host session too targets it and the apps that advertise it`() {
+        val factoryRepository = FakePluginFactoryRepository().apply { load(bothSessionsPlugin) }
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf())),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(emptySet()),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = FakePluginInstanceService(factoryRepository),
+        )
+        val advertisingSession = activeSession.copy(id = "session-2", installedPlugins = persistentListOf(JetWhalePluginInfo(bothSessionsPluginId, "1.0.0")))
+
+        assertEquals(setOf(HostSession.ID, "session-2"), service.targetSessionIds(bothSessionsPluginId, listOf(activeSession, advertisingSession)))
+        assertEquals(setOf(HostSession.ID), service.targetSessionIds(bothSessionsPluginId, emptyList()))
+    }
+
+    @Test
+    fun `runsInHostSession changes nothing for a plugin that needs no agent`() {
+        val factoryRepository = FakePluginFactoryRepository().apply {
+            load(
+                hostOnlyPlugin.copy(
+                    manifest = JetWhaleHostPluginManifest(
+                        pluginId = hostOnlyPluginId,
+                        pluginName = "Device",
+                        version = "1.0.0",
+                        factoryClass = "com.example.DeviceFactory",
+                        requiresAgent = false,
+                        runsInHostSession = true,
+                    ),
+                ),
+            )
+        }
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf())),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(emptySet()),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = FakePluginInstanceService(factoryRepository),
+        )
+
+        assertEquals(setOf(HostSession.ID), service.targetSessionIds(hostOnlyPluginId, listOf(activeSession)))
+    }
+
+    @Test
+    fun `the host session's instance exists with no app connected and is never announced to an agent`() = runBlocking {
+        val factoryRepository = FakePluginFactoryRepository().apply { load(bothSessionsPlugin) }
+        val instanceService = FakePluginInstanceService(factoryRepository)
+        val sessions = MutableStateFlow<ImmutableList<DebugSession>>(persistentListOf())
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(sessions),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(bothSessionsPluginId)),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = instanceService,
+        )
+        val events = Channel<PluginReconciliationEvent>(Channel.UNLIMITED)
+        val collectJob = launch { service.reconciliationEvents().collect(events::send) }
+
+        assertEquals(setOf(HostSession.ID), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+
+        sessions.value = persistentListOf(activeSession.copy(installedPlugins = persistentListOf(JetWhalePluginInfo(bothSessionsPluginId, "1.0.0"))))
+
+        assertEquals(setOf(sessionId), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+        assertEquals(PluginReconciliationEvent.Activated(bothSessionsPluginId, setOf(sessionId)), withTimeout(TIMEOUT_MILLIS) { events.receive() })
+        assertNull(events.tryReceive().getOrNull())
+
+        collectJob.cancel()
     }
 
     private class FakeDebugSessionRepository(

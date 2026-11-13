@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.ui.unit.Dp
 import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpClientSetup
 import kotlinx.collections.immutable.ImmutableList
 
@@ -70,11 +69,10 @@ data class ToolingScaffoldUiState(
     val selectedSession: DebugSession? get() = sessions.find { it.id == selectedSessionId }
 
     /**
-     * The session the drawer's plugin [pluginId] opens in: [HostSession] for a plugin that needs no
-     * app, otherwise the selected app, or null while no app is selected.
+     * The row that opening [pluginId] without naming a session lands on: the row among the selected
+     * app's plugins when the drawer lists one, otherwise the plugin's row in the host section. Null
+     * when the drawer does not list the plugin.
      */
-    fun sessionIdFor(pluginId: String): String? = when (plugins.find { it.id == pluginId }?.needsApp) {
-        false -> HostSession.ID
-        else -> selectedSession?.id
-    }
+    fun defaultPluginRow(pluginId: String): DrawerPluginItemUiState? = plugins.find { it.id == pluginId && it.needsApp }
+        ?: plugins.find { it.id == pluginId }
 }

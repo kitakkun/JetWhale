@@ -44,7 +44,7 @@ class HostPluginCommandsTest {
     private val officialPluginId = OfficialPluginCatalog.plugins.first().pluginId
 
     private val loadedPlugins = mutableMapOf(
-        "com.example.local" to loadedPlugin("com.example.local", "Local Plugin", requiresAgent = false),
+        "com.example.local" to loadedPlugin("com.example.local", "Local Plugin", requiresAgent = false, runsInHostSession = false),
     )
     private val failedJars = MutableStateFlow(listOf(FailedPluginJar("/plugins/broken.jar", "bad manifest")))
     private val untrustedJars = MutableStateFlow(listOf("/plugins/unknown.jar"))
@@ -89,6 +89,19 @@ class HostPluginCommandsTest {
     }
 
     @Test
+    fun `listInstalledPlugins reports which plugins run in the host session`() = runBlocking {
+        loadedPlugins["com.example.inspector"] = loadedPlugin("com.example.inspector", "Inspector", requiresAgent = true, runsInHostSession = true)
+        loadedPlugins["com.example.network"] = loadedPlugin("com.example.network", "Network", requiresAgent = true, runsInHostSession = false)
+
+        val result = listInstalledPlugins.execute(arguments()).decodeList()
+
+        assertEquals(
+            mapOf("com.example.inspector" to true, "com.example.local" to true, "com.example.network" to false),
+            result.installed.associate { it.pluginId to it.runsInHostSession },
+        )
+    }
+
+    @Test
     fun `listInstalledPlugins marks an official plugin that is not installed`() = runBlocking {
         val official = listInstalledPlugins.execute(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
 
@@ -97,7 +110,7 @@ class HostPluginCommandsTest {
 
     @Test
     fun `listInstalledPlugins marks an official plugin that is already installed`() = runBlocking {
-        loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true)
+        loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true, runsInHostSession = false)
 
         val official = listInstalledPlugins.execute(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
 
@@ -176,7 +189,7 @@ class HostPluginCommandsTest {
 
     @Test
     fun `installOfficialPlugin reports an already installed plugin without reinstalling it`() = runBlocking {
-        loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true)
+        loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true, runsInHostSession = false)
 
         val result = installOfficialPlugin
             .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
@@ -186,13 +199,14 @@ class HostPluginCommandsTest {
     }
 }
 
-private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean) = LoadedHostPlugin(
+private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean, runsInHostSession: Boolean) = LoadedHostPlugin(
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = name,
         version = "1.0.0",
         factoryClass = "$pluginId.Factory",
         requiresAgent = requiresAgent,
+        runsInHostSession = runsInHostSession,
     ),
     factory = object : JetWhaleHostPluginFactory {
         override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()

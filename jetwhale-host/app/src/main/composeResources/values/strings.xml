@@ -122,6 +122,8 @@
     <string name="unnamed_app">Unnamed app (%1$s)</string>
     <string name="plugin_not_in_app">This app doesn't include this plugin</string>
     <string name="plugin_disabled_tooltip">Disabled — click to enable</string>
+    <string name="rail_plugin_in_host_session">%1$s · without an app</string>
+    <string name="rail_plugin_in_app">%1$s · %2$s</string>
     <string name="plugin_disabled_title">%1$s is disabled</string>
     <string name="plugin_enable_failed">Couldn't enable the plugin. Try again.</string>
     <string name="plugins_folded_disabled">%1$d disabled</string>
