@@ -1,0 +1,14 @@
+# This compilation carries the previews, so it is where the screens are checked for having one.
+rules:
+  compose.previewRequired: off
+  compose.previewCoverage:
+    enabled: true
+    # The screens of a plugin are internal; the default public-only scope would check the
+    # plugin entry point and nothing else.
+    visibility: internal
+    packages: [com.kitakkun.jetwhale.plugins.mainthread.host]
+    # The plugin's Content and the Root below it only wire host-bound state (DI,
+    # rememberPersistent, effects) to the stateless screen, which is the one that gets the preview.
+    excludeNames:
+      - com.kitakkun.jetwhale.plugins.mainthread.host.*.Content
+      - com.kitakkun.jetwhale.plugins.mainthread.host.*Root

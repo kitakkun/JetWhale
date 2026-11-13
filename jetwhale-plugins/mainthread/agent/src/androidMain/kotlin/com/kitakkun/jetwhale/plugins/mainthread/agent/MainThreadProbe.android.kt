@@ -1,0 +1,296 @@
+package com.kitakkun.jetwhale.plugins.mainthread.agent
+
+import android.app.Activity
+import android.app.Application
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
+import android.os.StrictMode
+import android.os.SystemClock
+import android.util.Printer
+import android.view.FrameMetrics
+import android.view.Window
+import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+
+internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, extraLabel: () -> String?, isHostConnected: () -> Boolean): MainThreadProbe = AndroidMainThreadProbe(recorder, extraLabel, isHostConnected)
+
+private const val OUTSIDE_MESSAGE_LABEL = "Outside a Looper message (input dispatch or a native callback)"
+
+private const val LOOPER_DISPATCHING_PREFIX = ">>>>>"
+private const val LOOPER_FINISHED_PREFIX = "<<<<<"
+
+/**
+ * Watches Android's main thread through the platform's own hooks, each put back as it was on [stop]:
+ * the main Looper's message logging times every message, a sampler thread reads the main thread's
+ * stack while one runs long, a StrictMode thread policy reports disk access and slow calls on the
+ * main thread, and FrameMetrics reports each frame of the resumed activities.
+ */
+private class AndroidMainThreadProbe(
+    private val recorder: MainThreadRecorder,
+    private val extraLabel: () -> String?,
+    private val isHostConnected: () -> Boolean,
+) : MainThreadProbe {
+    private val mainLooper = Looper.getMainLooper()
+    private val mainHandler = Handler(mainLooper)
+    private val sampler = StackSampler(recorder, mainThread = { mainLooper.thread }, onTick = ::postHeartbeatOrRecordStall)
+
+    @Volatile private var heartbeatPostedAt: Long? = null
+
+    private var started = false
+    private var previousPrinter: Printer? = null
+    private var previousPolicy: StrictMode.ThreadPolicy? = null
+
+    @Volatile private var appOwnsStrictMode = false
+
+    @Volatile private var networkThrowsBeforeReport = false
+
+    private var violationExecutor: ExecutorService? = null
+
+    private var frameTimingSession: FrameTimingSession? = null
+
+    override val capabilities: MonitorCapabilities
+        get() = MonitorCapabilities(
+            platform = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+            taskTiming = true,
+            stackSampling = true,
+            strictMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !appOwnsStrictMode,
+            frameTiming = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N,
+            note = when {
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.P -> "StrictMode violations need Android 9 (API 28) or later."
+                appOwnsStrictMode -> "The app sets its own StrictMode thread policy, so it is left alone and its violations are not collected here."
+                networkThrowsBeforeReport -> "Network access on the main thread is not listed: Android's default policy throws NetworkOnMainThreadException before StrictMode reports it."
+                else -> null
+            },
+        )
+
+    override fun start() {
+        if (started) return
+        started = true
+        previousPrinter = readMainLooperPrinter()
+        mainLooper.setMessageLogging(::recordLooperLine)
+        sampler.start()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::installStrictMode)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            frameTimingSession = currentApplicationOrNull()?.let { FrameTimingSession(it, recorder, mainHandler) }
+        }
+    }
+
+    override fun stop() {
+        if (!started) return
+        started = false
+        mainLooper.setMessageLogging(previousPrinter)
+        sampler.stop()
+        heartbeatPostedAt = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::restoreStrictMode)
+        frameTimingSession?.close()
+        frameTimingSession = null
+    }
+
+    private fun recordLooperLine(line: String) {
+        previousPrinter?.println(line)
+        when {
+            line.startsWith(LOOPER_DISPATCHING_PREFIX) -> recorder.recordTaskStart(line, extraLabel())
+            line.startsWith(LOOPER_FINISHED_PREFIX) -> recorder.recordTaskEnd()
+        }
+    }
+
+    /**
+     * Android dispatches input — and so a Compose click handler — from inside the Looper's native
+     * poll, not as a message, so the printer never brackets it. A heartbeat posted at the front of
+     * the main queue runs as soon as the thread gets back to its queue; when it has waited past the
+     * threshold with no message running, the main thread is busy outside a message.
+     *
+     * Each heartbeat wakes the main thread, a tick apart even while the app is idle, so none is
+     * posted while no host is connected; work outside messages goes unrecorded until one is.
+     */
+    private fun postHeartbeatOrRecordStall() {
+        val postedAt = heartbeatPostedAt
+        if (postedAt == null) {
+            if (!isHostConnected()) return
+            heartbeatPostedAt = SystemClock.uptimeMillis()
+            mainHandler.postAtFrontOfQueue {
+                heartbeatPostedAt = null
+                recorder.recordStallEnd()
+            }
+            return
+        }
+        val waited = SystemClock.uptimeMillis() - postedAt
+        if (waited >= recorder.currentSettings.longTaskThresholdMillis) {
+            recorder.recordStall(OUTSIDE_MESSAGE_LABEL, busyForMillis = waited)
+        }
+    }
+
+    // A thread policy applies only to the thread that sets it, so this and restoreStrictMode run on
+    // the main thread.
+    private fun installStrictMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val previous = StrictMode.getThreadPolicy()
+        val previousText = previous.toString()
+        // A policy's penalties, penaltyDeath included, apply to every violation it detects, so
+        // detecting more under the app's own policy would punish violations it never asked about.
+        if (previousText !in platformDefaultPolicyTexts) {
+            appOwnsStrictMode = true
+            return
+        }
+        networkThrowsBeforeReport = previousText == deathOnNetworkPolicyText
+        previousPolicy = previous
+        val executor = Executors.newSingleThreadExecutor().also { violationExecutor = it }
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder(previous)
+                .detectDiskReads()
+                .detectDiskWrites()
+                .detectNetwork()
+                .detectCustomSlowCalls()
+                .detectResourceMismatches()
+                .detectUnbufferedIo()
+                .penaltyListener(executor) { violation ->
+                    recorder.recordViolation(
+                        kind = violationKindOf(violation.javaClass.name),
+                        message = violation.message ?: violation.javaClass.simpleName,
+                        stack = violation.stackTrace.map(::frameText),
+                    )
+                }
+                .build(),
+        )
+    }
+
+    private fun restoreStrictMode() {
+        previousPolicy?.let(StrictMode::setThreadPolicy)
+        previousPolicy = null
+        appOwnsStrictMode = false
+        networkThrowsBeforeReport = false
+        violationExecutor?.shutdown()
+        violationExecutor = null
+    }
+}
+
+/**
+ * The policy ActivityThread installs for every app since Android 3.0, which makes network access on
+ * the main thread throw. Policies are compared as strings, since a policy has no equals and its mask
+ * is hidden.
+ */
+private val deathOnNetworkPolicyText: String by lazy {
+    StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString()
+}
+
+/** The thread policies an app has when it sets none: LAX, or [deathOnNetworkPolicyText]. */
+private val platformDefaultPolicyTexts: Set<String> by lazy {
+    setOf(StrictMode.ThreadPolicy.LAX.toString(), deathOnNetworkPolicyText)
+}
+
+/**
+ * Frame timing for one activation: its own listener thread, lifecycle callbacks and listeners. A
+ * session only ever cleans up what it created, so closing one whose cleanup is still queued cannot
+ * touch the session that replaced it.
+ */
+private class FrameTimingSession(
+    private val application: Application,
+    private val recorder: MainThreadRecorder,
+    private val mainHandler: Handler,
+) {
+    private val thread = HandlerThread("jetwhale-frame-metrics")
+    private val handler by lazy { Handler(thread.looper) }
+
+    // Touched only on the main thread, where Android delivers activity lifecycle callbacks.
+    private val listenersByWindow = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
+    private var closed = false
+
+    private val callbacks = object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityResumed(activity: Activity) = addFrameMetricsListener(activity)
+
+        override fun onActivityPaused(activity: Activity) = removeFrameMetricsListener(activity)
+
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+        override fun onActivityStarted(activity: Activity) = Unit
+
+        override fun onActivityStopped(activity: Activity) = Unit
+
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+        override fun onActivityDestroyed(activity: Activity) = Unit
+    }
+
+    init {
+        thread.start()
+        application.registerActivityLifecycleCallbacks(callbacks)
+        mainHandler.post { resumedActivitiesOrEmpty().forEach(::addFrameMetricsListener) }
+    }
+
+    fun close() {
+        application.unregisterActivityLifecycleCallbacks(callbacks)
+        mainHandler.post {
+            closed = true
+            listenersByWindow.forEach { (window, listener) -> runCatching { window.removeOnFrameMetricsAvailableListener(listener) } }
+            listenersByWindow.clear()
+            thread.quitSafely()
+        }
+    }
+
+    private fun addFrameMetricsListener(activity: Activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || closed) return
+        val window = activity.window ?: return
+        if (window in listenersByWindow) return
+        // A window drawn in software reports no frames: Android ignores a listener added to one
+        // already attached, then throws when that listener is removed.
+        val decor = window.peekDecorView()
+        if (decor != null && decor.isAttachedToWindow && !decor.isHardwareAccelerated) return
+        // Its replacement, Context.getDisplay(), needs API 30, and the agent runs from API 23.
+        @Suppress("DEPRECATION")
+        val refreshIntervalMillis = 1000.0 / activity.windowManager.defaultDisplay.refreshRate
+        val listener = Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
+            recorder.recordFrame(metrics.getMetric(FrameMetrics.TOTAL_DURATION) / 1_000_000.0, refreshIntervalMillis)
+        }
+        window.addOnFrameMetricsAvailableListener(listener, handler)
+        listenersByWindow[window] = listener
+    }
+
+    private fun removeFrameMetricsListener(activity: Activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        val window = activity.window ?: return
+        listenersByWindow.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
+    }
+}
+
+/**
+ * The printer the app installed on the main Looper, if any, so it keeps receiving every line.
+ * Looper has no getter for it; if the field cannot be read, there is assumed to be none.
+ */
+private fun readMainLooperPrinter(): Printer? = try {
+    Looper::class.java.getDeclaredField("mLogging").apply { isAccessible = true }.get(Looper.getMainLooper()) as? Printer
+} catch (_: ReflectiveOperationException) {
+    null
+} catch (_: SecurityException) {
+    null
+}
+
+/** The app's Application, found without the app passing one in, the way the agent runtime does. */
+private fun currentApplicationOrNull(): Application? = try {
+    Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
+} catch (_: ReflectiveOperationException) {
+    null
+}
+
+/**
+ * The activities resumed right now, read from ActivityThread's records. There is no public API for
+ * this; if the records cannot be read, frames are measured from the next activity that resumes.
+ */
+private fun resumedActivitiesOrEmpty(): List<Activity> = try {
+    val activityThreadClass = Class.forName("android.app.ActivityThread")
+    val activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null)
+    val activityRecords = activityThreadClass.getDeclaredField("mActivities").apply { isAccessible = true }.get(activityThread) as Map<*, *>
+    activityRecords.values.mapNotNull { activityRecord ->
+        val activityRecordClass = activityRecord?.javaClass ?: return@mapNotNull null
+        val paused = activityRecordClass.getDeclaredField("paused").apply { isAccessible = true }.getBoolean(activityRecord)
+        val activity = activityRecordClass.getDeclaredField("activity").apply { isAccessible = true }.get(activityRecord) as? Activity
+        activity?.takeUnless { paused }
+    }
+} catch (_: ReflectiveOperationException) {
+    emptyList()
+} catch (_: ClassCastException) {
+    emptyList()
+}
