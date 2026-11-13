@@ -43,6 +43,7 @@ fun initializeJetWhale() {
             register(DIModule.semanticsAgentPlugin)
             register(DIModule.storageAgentPlugin)
             register(DIModule.debugActionsAgentPlugin)
+            register(DIModule.backgroundWorkAgentPlugin)
         }
     }
 }

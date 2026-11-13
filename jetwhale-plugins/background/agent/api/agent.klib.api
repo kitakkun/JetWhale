@@ -1,0 +1,33 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.background:agent>
+abstract interface com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource { // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource|null[0]
+    abstract val info // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.info|{}info[0]
+        abstract fun <get-info>(): com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.info.<get-info>|<get-info>(){}[0]
+
+    abstract fun observe(): kotlinx.coroutines.flow/Flow<kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem>> // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.observe|observe(){}[0]
+    abstract suspend fun cancel(com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget): kotlin/String // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.cancel|cancel(com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget){}[0]
+    abstract suspend fun runNow(kotlin/String): kotlin/String // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.runNow|runNow(kotlin.String){}[0]
+
+    final object Companion // com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.Companion|null[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin|null[0]
+    constructor <init>(kotlin/Function0<kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource>>) // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.<init>|<init>(kotlin.Function0<kotlin.collections.List<com.kitakkun.jetwhale.plugins.background.agent.BackgroundWorkSource>>){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.Companion|null[0]
+        final fun platformDefaults(): com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin // com.kitakkun.jetwhale.plugins.background.agent/JetWhaleBackgroundWorkAgentPlugin.Companion.platformDefaults|platformDefaults(){}[0]
+    }
+}
+
+final fun (com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource.Companion).com.kitakkun.jetwhale.plugins.background.agent/platformDefaults(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.agent/BackgroundWorkSource> // com.kitakkun.jetwhale.plugins.background.agent/platformDefaults|platformDefaults@com.kitakkun.jetwhale.plugins.background.agent.BackgroundWorkSource.Companion(){}[0]
