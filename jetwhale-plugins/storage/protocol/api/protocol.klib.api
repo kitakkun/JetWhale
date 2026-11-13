@@ -529,3 +529,6 @@ final const val com.kitakkun.jetwhale.plugins.storage.protocol/MAX_FILE_READ_BYT
     final fun <get-MAX_FILE_READ_BYTES>(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/MAX_FILE_READ_BYTES.<get-MAX_FILE_READ_BYTES>|<get-MAX_FILE_READ_BYTES>(){}[0]
 final const val com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID // com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID|{}STORAGE_PLUGIN_ID[0]
     final fun <get-STORAGE_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID.<get-STORAGE_PLUGIN_ID>|<get-STORAGE_PLUGIN_ID>(){}[0]
+
+final val com.kitakkun.jetwhale.plugins.storage.protocol/StoragePluginContract // com.kitakkun.jetwhale.plugins.storage.protocol/StoragePluginContract|{}StoragePluginContract[0]
+    final fun <get-StoragePluginContract>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract // com.kitakkun.jetwhale.plugins.storage.protocol/StoragePluginContract.<get-StoragePluginContract>|<get-StoragePluginContract>(){}[0]

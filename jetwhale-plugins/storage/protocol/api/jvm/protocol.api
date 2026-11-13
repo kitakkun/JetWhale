@@ -500,3 +500,7 @@ public final class com/kitakkun/jetwhale/plugins/storage/protocol/StorageOperati
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/StoragePluginContractKt {
+	public static final fun getStoragePluginContract ()Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginContract;
+}
+

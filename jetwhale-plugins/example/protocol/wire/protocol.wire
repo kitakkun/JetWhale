@@ -1,0 +1,11 @@
+revision 1
+
+event example/button_clicked
+request example/ping -> example/pong
+
+class example/button_clicked
+  count: int
+
+object example/ping
+
+object example/pong

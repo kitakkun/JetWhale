@@ -605,6 +605,23 @@ final class com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata { // 
     }
 }
 
+final class com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract { // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Int, kotlin/String?) // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.<init>|<init>(kotlin.String;kotlin.String;kotlin.Int;kotlin.String?){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val protocolRevision // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.protocolRevision|{}protocolRevision[0]
+        final fun <get-protocolRevision>(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.protocolRevision.<get-protocolRevision>|<get-protocolRevision>(){}[0]
+    final val releaseVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.releaseVersion|{}releaseVersion[0]
+        final fun <get-releaseVersion>(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.releaseVersion.<get-releaseVersion>|<get-releaseVersion>(){}[0]
+    final val wireSchemaHash // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.wireSchemaHash|{}wireSchemaHash[0]
+        final fun <get-wireSchemaHash>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.wireSchemaHash.<get-wireSchemaHash>|<get-wireSchemaHash>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract.toString|toString(){}[0]
+}
+
 final class com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo { // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo|null[0]
     constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.<init>|<init>(kotlin.String;kotlin.String){}[0]
 

@@ -1,0 +1,74 @@
+revision 1
+
+event nav3/back_stack_changed
+event nav3/back_stack_unregistered
+request nav3/get_nav_state -> nav3/nav_state
+request nav3/mutate_back_stack -> nav3/mutation_result
+
+sealed com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation by type
+  nav3/op/move_to_top
+  nav3/op/pop
+  nav3/op/pop_to
+  nav3/op/push
+  nav3/op/remove_at
+  nav3/op/replace_all
+
+class com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+  entries: list<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot>
+  stackId: string
+
+class com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor
+  name: string
+  nullable: boolean
+  optional: boolean
+  type: string
+
+class com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
+  display: string
+  key: json?
+  typeName: string
+
+class com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
+  fields: list<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor>
+  serialName: string
+  template: json
+
+class nav3/back_stack_changed
+  snapshot: com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+
+class nav3/back_stack_unregistered
+  stackId: string
+
+object nav3/get_nav_state
+
+class nav3/mutate_back_stack
+  operations: list<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation>
+  stackId: string
+
+class nav3/mutation_result
+  error: string?
+  snapshot: com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot?
+
+class nav3/nav_state
+  keyTypes: list<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor>
+  stacks: list<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot>
+
+class nav3/op/move_to_top
+  index: int
+
+class nav3/op/pop
+  count: int
+
+class nav3/op/pop_to
+  inclusive: boolean
+  index: int
+
+class nav3/op/push
+  index: int?
+  key: json
+
+class nav3/op/remove_at
+  index: int
+
+class nav3/op/replace_all
+  keys: list<json>

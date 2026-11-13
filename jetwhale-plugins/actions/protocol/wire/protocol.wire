@@ -1,0 +1,75 @@
+revision 1
+
+event actions/actions_changed
+request actions/cancel_run -> actions/cancel_result
+request actions/get_options -> actions/options
+request actions/list_actions -> actions/catalog
+request actions/run_action -> com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
+
+class actions/actions_changed
+  catalog: actions/catalog
+
+class actions/cancel_result
+  cancelled: boolean
+
+class actions/cancel_run
+  runId: string
+
+class actions/catalog
+  actions: list<com.kitakkun.jetwhale.plugins.actions.protocol.ActionDescriptor>
+
+class actions/get_options
+  actionId: string
+  parameter: string
+
+object actions/list_actions
+
+class actions/options
+  error: string?
+  values: list<string>
+
+class actions/run_action
+  actionId: string
+  arguments: json-object
+  confirmedDestructive: boolean
+  runId: string
+
+class com.kitakkun.jetwhale.plugins.actions.protocol.ActionDescriptor
+  description: string?
+  destructive: boolean
+  group: string?
+  id: string
+  parameters: list<com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter>
+  scoped: boolean
+  title: string
+
+enum com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
+  CANCELLED
+  FAILURE
+  SUCCESS
+  TIMEOUT
+
+class com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
+  description: string?
+  enumValues: list<string>
+  hasOptions: boolean
+  name: string
+  nullable: boolean
+  optional: boolean
+  type: com.kitakkun.jetwhale.plugins.actions.protocol.ParameterType
+
+class com.kitakkun.jetwhale.plugins.actions.protocol.ActionResult
+  durationMillis: long
+  error: string?
+  json: json?
+  outcome: com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
+  stackTrace: string?
+  text: string?
+
+enum com.kitakkun.jetwhale.plugins.actions.protocol.ParameterType
+  BOOLEAN
+  ENUM
+  INTEGER
+  JSON
+  NUMBER
+  STRING

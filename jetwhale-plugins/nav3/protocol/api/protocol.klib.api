@@ -464,3 +464,6 @@ final const val com.kitakkun.jetwhale.plugins.nav3.protocol/DEFAULT_NAV_STACK_ID
     final fun <get-DEFAULT_NAV_STACK_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/DEFAULT_NAV_STACK_ID.<get-DEFAULT_NAV_STACK_ID>|<get-DEFAULT_NAV_STACK_ID>(){}[0]
 final const val com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID // com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID|{}NAV3_PLUGIN_ID[0]
     final fun <get-NAV3_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID.<get-NAV3_PLUGIN_ID>|<get-NAV3_PLUGIN_ID>(){}[0]
+
+final val com.kitakkun.jetwhale.plugins.nav3.protocol/Nav3PluginContract // com.kitakkun.jetwhale.plugins.nav3.protocol/Nav3PluginContract|{}Nav3PluginContract[0]
+    final fun <get-Nav3PluginContract>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginContract // com.kitakkun.jetwhale.plugins.nav3.protocol/Nav3PluginContract.<get-Nav3PluginContract>|<get-Nav3PluginContract>(){}[0]

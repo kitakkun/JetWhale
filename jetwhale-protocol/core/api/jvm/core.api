@@ -587,6 +587,17 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegoti
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginContract {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getProtocolRevision ()I
+	public final fun getReleaseVersion ()Ljava/lang/String;
+	public final fun getWireSchemaHash ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V

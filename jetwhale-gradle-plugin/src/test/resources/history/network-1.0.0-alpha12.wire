@@ -1,0 +1,110 @@
+revision 1
+
+request network/get_mock_config -> network/mock_config
+request network/get_redaction_config -> network/redaction_config
+event network/request_failed
+event network/request_sent
+event network/response_received
+request network/set_mock_rules -> network/ack
+request network/set_mocking_enabled -> network/ack
+
+enum com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
+  BASE64
+  TEXT
+
+class com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
+  body: string? = …
+  bodyEncoding: com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding = …
+  bodyTruncated: boolean = …
+  headers: map<string, list<string>> = …
+  method: string
+  timestampMs: long
+  txId: string
+  url: string
+
+class com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+  body: string? = …
+  bodyEncoding: com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding = …
+  bodyTruncated: boolean = …
+  durationMs: long
+  fromMock: boolean = …
+  headers: map<string, list<string>> = …
+  statusCode: int
+  statusDescription: string = …
+  txId: string
+
+class com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
+  durationMs: long
+  message: string
+  txId: string
+
+enum com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
+  CONTAINS
+  EXACT
+  REGEX
+
+class com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
+  matchType: com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType = …
+  method: string? = …
+  urlPattern: string
+
+class com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+  body: string = …
+  bodyEncoding: com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding = …
+  delayMs: long = …
+  headers: map<string, string> = …
+  statusCode: int = …
+
+class com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+  enabled: boolean = …
+  id: string
+  matcher: com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
+  name: string = …
+  response: com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+
+class com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
+  name: string
+  scope: com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
+  strategy: com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
+  target: com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
+
+enum com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope
+  EVERYWHERE
+  MCP_ONLY
+
+enum com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy
+  MASK
+  PLACEHOLDER
+
+enum com.kitakkun.jetwhale.plugins.network.protocol.RedactionTarget
+  BODY_FIELD
+  HEADER
+  URL_QUERY_PARAM
+
+object network/ack
+
+object network/get_mock_config
+
+object network/get_redaction_config
+
+class network/mock_config
+  enabled: boolean
+  rules: list<com.kitakkun.jetwhale.plugins.network.protocol.MockRule>
+
+class network/redaction_config
+  mcpOnlyRules: list<com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule>
+
+class network/request_failed
+  failure: com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
+
+class network/request_sent
+  request: com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
+
+class network/response_received
+  response: com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+
+class network/set_mock_rules
+  rules: list<com.kitakkun.jetwhale.plugins.network.protocol.MockRule>
+
+class network/set_mocking_enabled
+  enabled: boolean

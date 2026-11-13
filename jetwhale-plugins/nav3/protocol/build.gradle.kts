@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.publish)
+    alias(libs.plugins.jetwhaleProtocol)
 }
 
 // Distinct group so these plugin modules don't share coordinates with the other plugins' modules
@@ -17,6 +18,12 @@ kotlin {
     abiValidation()
 
     android.namespace = "com.kitakkun.jetwhale.plugins.nav3.protocol"
+}
+
+jetwhaleProtocol {
+    pluginId.set("com.kitakkun.jetwhale.nav3")
+    protocolRevision.set(1)
+    contractQualifiedName.set("com.kitakkun.jetwhale.plugins.nav3.protocol.Nav3PluginContract")
 }
 
 dependencies {
