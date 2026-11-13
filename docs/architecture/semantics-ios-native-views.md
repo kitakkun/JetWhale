@@ -228,16 +228,18 @@ Swift-callable start API first; see the next section.
 Nothing in the walker depends on Compose being present, so the same `iosMain` code serves a plain
 SwiftUI or UIKit app. What such an app lacks is a way to *start* the agent and install the probe
 from Swift: `startJetWhale { … }` is a receiver-lambda DSL and the plugin is a Kotlin class, neither
-of which the Objective-C bridge carries usefully. The [Swift SDK design](https://github.com/kitakkun/JetWhale/blob/docs/swift-sdk-design/docs/architecture/swift-sdk-design.md)
-(proposed in #165, not merged yet) covers the start API; this section covers packaging.
+of which the Objective-C bridge carries usefully. The [Swift SDK design](./swift-sdk-design.md) covers
+the start API; this section covers packaging.
 
 ### One framework, one package
 
-Ship a single Swift Package with one binary target, `JetWhale.xcframework`, built from a small
-Kotlin **umbrella module** (`jetwhale-swift-sdk`) that depends on `jetwhale-agent-runtime`, the
+Ship a single Swift Package with one binary target, `JetWhaleKotlin.xcframework`, built from a
+small Kotlin **umbrella module** (`jetwhale-swift-sdk`) that depends on `jetwhale-agent-runtime`, the
 official plugins' agent modules, and a `commonMain` façade with an export-clean surface. The
 umbrella exports those modules into the framework (`export(...)` in the `framework { }` block), so
-Swift sees one module, `JetWhale`, rather than one framework per Gradle module.
+Swift sees one Kotlin module, `JetWhaleKotlin`, rather than one framework per Gradle module. Apps
+import the package's Swift target, `JetWhale`, which wraps it (below); the two need different names,
+since a package holds one target per name and the binary's module would clash with the Swift one.
 
 One framework rather than one per plugin, because Kotlin/Native frameworks do not compose: two
 frameworks built from separate Kotlin compilations each carry their own copy of the Kotlin runtime
@@ -295,7 +297,7 @@ first package, which ships the official plugins only.
 ### What has to exist before this ships
 
 1. The Kotlin façade: `JetWhaleSwiftConfig`, `startJetWhaleFromConfig`, and per-plugin registration
-   methods. Swift SDK design, items 1 and 3.
+   methods. Swift SDK design, item 2.
 2. The umbrella module and its dynamic XCFramework build.
 3. The release workflow step that publishes the zip and rewrites `Package.swift`.
 4. The Compose split above, if the first consumers are Swift-only apps.
