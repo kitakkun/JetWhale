@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>The JetWhale demo asks for the camera only to show the Permissions plugin.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The JetWhale demo asks for location only to show the Permissions plugin.</string>
 	<!-- Required so the agent can reach the host over the local network (wss on the LAN and the
 	     trust-on-first-use CA fetch). iOS prompts the user for this on first connection. -->
 	<key>NSLocalNetworkUsageDescription</key>

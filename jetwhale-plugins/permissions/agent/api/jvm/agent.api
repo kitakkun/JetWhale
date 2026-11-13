@@ -1,0 +1,6 @@
+public final class com/kitakkun/jetwhale/plugins/permissions/agent/JetWhalePermissionsAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public fun <init> ()V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
