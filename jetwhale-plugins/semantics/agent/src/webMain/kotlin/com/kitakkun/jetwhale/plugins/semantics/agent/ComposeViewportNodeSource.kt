@@ -7,8 +7,11 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import kotlinx.browser.document
 import kotlinx.browser.window
+import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.ShadowRoot
 import org.w3c.dom.events.Event
 import kotlin.time.Duration
 
@@ -55,7 +58,7 @@ internal class ComposeViewportNodeSource(
             elementIds = elementIds,
             canvasLeft = canvasLeft,
             canvasTop = canvasTop,
-            pageViewport = NodeBounds(left = 0f, top = 0f, right = window.innerWidth.toFloat(), bottom = window.innerHeight.toFloat()),
+            canvasClipBounds = canvas.clipBounds(),
         )
         elementIds.releaseElementsRemovedFromDom()
         return ComposeRoot(
@@ -117,6 +120,31 @@ internal class ComposeViewportNodeSource(
         return HighlightResult(shown = true)
     }
 }
+
+/**
+ * Where this element can be seen right now, in CSS pixels from the browser viewport's corner: the
+ * browser viewport, cut down by every ancestor that clips its overflow, through the viewport's
+ * shadow root and up the app's own elements. Empty while CSS hides the element.
+ *
+ * The walk stops below `<body>`: the document's own overflow is the browser viewport's, which a
+ * `<body>` with `overflow: hidden` hands on to it rather than clipping itself.
+ */
+private fun HTMLElement.clipBounds(): NodeBounds {
+    if (window.getComputedStyle(this).visibility != "visible") return NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
+    var area = NodeBounds(left = 0f, top = 0f, right = window.innerWidth.toFloat(), bottom = window.innerHeight.toFloat())
+    var ancestor = parentElementOrShadowHost()
+    while (ancestor != null && ancestor != document.body && ancestor != document.documentElement) {
+        val style = window.getComputedStyle(ancestor)
+        if (style.getPropertyValue("overflow-x") != "visible" || style.getPropertyValue("overflow-y") != "visible") {
+            val rect = ancestor.getBoundingClientRect()
+            area = area.intersect(NodeBounds(left = rect.left.toFloat(), top = rect.top.toFloat(), right = rect.right.toFloat(), bottom = rect.bottom.toFloat()))
+        }
+        ancestor = ancestor.parentElementOrShadowHost()
+    }
+    return area
+}
+
+private fun Element.parentElementOrShadowHost(): Element? = parentElement ?: (parentNode as? ShadowRoot)?.host
 
 private const val VIEWPORT_GONE: String = "the viewport is no longer in the page"
 

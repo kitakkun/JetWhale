@@ -22,8 +22,9 @@ import org.w3c.dom.asList
  *
  * @param canvasLeft where the canvas sits in the browser's viewport now, in CSS pixels; with
  *   [canvasTop], what turns a node's bounds in the composition into its bounds on screen.
- * @param pageViewport the part of the page on screen, which clips every node's on-screen bounds:
- *   a node scrolled out of the browser's viewport cannot be touched.
+ * @param canvasClipBounds where the canvas can be seen, in the browser viewport's coordinates, which
+ *   clips every node's on-screen bounds: a node scrolled out of the browser's viewport or clipped
+ *   by an element around the canvas cannot be touched.
  */
 internal class AccessibilityDomCapture(
     private val options: NodeTreeCaptureOptions,
@@ -31,7 +32,7 @@ internal class AccessibilityDomCapture(
     private val elementIds: AccessibilityElementIds,
     private val canvasLeft: Float,
     private val canvasTop: Float,
-    private val pageViewport: NodeBounds,
+    private val canvasClipBounds: NodeBounds,
 ) {
     /**
      * The node [element] stands for, with its subtree, or `null` when it is filtered out: it has no
@@ -54,7 +55,7 @@ internal class AccessibilityDomCapture(
             top = bounds.top + canvasTop,
             right = bounds.right + canvasLeft,
             bottom = bounds.bottom + canvasTop,
-        ).intersect(pageViewport)
+        ).intersect(canvasClipBounds)
         val visible = !bounds.isEmpty && !boundsInScreen.isEmpty
         if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
@@ -121,7 +122,7 @@ private fun composeRoleOf(ariaRole: String?): String? = when (ariaRole) {
     else -> null
 }
 
-private fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
+internal fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
     val left = maxOf(left, other.left)
     val top = maxOf(top, other.top)
     val right = minOf(right, other.right)

@@ -176,8 +176,9 @@ ComposeViewport <body>                    ← the root; one per ComposeViewport
 Coordinates are **CSS pixels**, the unit browser tools such as Playwright and the Chrome DevTools
 Protocol take, and the root's `density` is `1`: a CSS pixel is what Compose for Web calls a dp. A
 node's `bounds` are measured from the composition's corner, the root's `windowOffset` is where the
-canvas sits in the browser's viewport, and a node's screen bounds are clipped to that viewport, so a
-node scrolled out of the page is not hittable. `merged` has no effect: the page holds the merged tree
+canvas sits in the browser's viewport, and a node's screen bounds are clipped to that viewport and to
+any element around the canvas that clips it, and are empty while CSS hides the viewport: a node
+scrolled out of sight is neither visible nor hittable. `merged` has no effect: the page holds the merged tree
 only.
 
 That is all Compose 1.11 writes, so everything else reads as its default: as far as a capture can
@@ -198,6 +199,8 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
   the page: while a dialog is open the capture shows its content alone, and once it closes Compose
   stops writing, so captures come back empty from then on.
 - **HTML embedded with `HtmlElementView` is not captured**; the tree holds Compose nodes only.
+- **A `ComposeViewport` inside another component's shadow root is not found.** The probe looks
+  through the document, which a shadow root keeps its content out of.
 - **A viewport created with `isA11YEnabled = false` keeps no accessibility DOM.** It is registered
   all the same, and its captures come back with a warning saying so.
 

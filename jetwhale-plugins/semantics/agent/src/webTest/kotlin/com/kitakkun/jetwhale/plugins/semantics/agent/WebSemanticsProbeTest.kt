@@ -41,7 +41,10 @@ import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.MutationObserver
 import org.w3c.dom.Node
+import org.w3c.dom.OPEN
 import org.w3c.dom.ShadowRoot
+import org.w3c.dom.ShadowRootInit
+import org.w3c.dom.ShadowRootMode
 import org.w3c.dom.asList
 import kotlin.coroutines.resume
 import kotlin.test.AfterTest
@@ -223,6 +226,49 @@ class WebSemanticsProbeTest {
     }
 
     @Test
+    fun `a node that an element around the canvas clips away is not visible`() = runTestInRealTime {
+        val clippingContainer = renderViewportClippedTo(heightPx = 15) {
+            Column {
+                Box(Modifier.size(20.dp).testTag("first"))
+                Box(Modifier.size(40.dp, 30.dp).testTag("second"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+
+        val root = captureOnceTaggedNodeWritten(clippingContainer, testTag = "second")
+
+        assertEquals(NodeBounds(left = VIEWPORT_LEFT, top = VIEWPORT_TOP, right = VIEWPORT_LEFT + 20f, bottom = VIEWPORT_TOP + 15f), root.nodeWithTag("first").boundsInScreen)
+        assertTrue(root.allNodes().none { (it as? ComposeNode)?.testTag == "second" }, "a node clipped away entirely is left out")
+    }
+
+    @Test
+    fun `the nodes of a viewport that CSS hides are not visible`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) { Counter() }
+        probe = installJetWhaleSemanticsProbe()
+        captureOnceTaggedNodeWritten(container, testTag = "counter")
+
+        container.style.visibility = "hidden"
+        val withInvisible = viewportSource().capture(NodeTreeCaptureOptions(includeInvisible = true))
+        val withoutInvisible = viewportSource().capture(NodeTreeCaptureOptions())
+
+        assertFalse(withInvisible.nodeWithTag("counter").isVisible)
+        assertNull(withoutInvisible?.node)
+    }
+
+    @Test
+    fun `a viewport removed before the probe hears of it is not registered`() = runTestInRealTime {
+        probe = installJetWhaleSemanticsProbe()
+        val shadowHost = viewportShadowHostWithoutCompose()
+
+        awaitMutation(document) {
+            requireNotNull(document.body).appendChild(shadowHost)
+            shadowHost.remove()
+        }
+
+        assertEquals(emptyList(), ComposeNodeSourceRegistry.sources)
+    }
+
+    @Test
     fun `a viewport without an accessibility DOM says why its capture is empty`() = runTestInRealTime {
         val container = renderViewport(isA11YEnabled = false) { Counter() }
         awaitShadowRoot(container)
@@ -271,6 +317,20 @@ class WebSemanticsProbeTest {
         containers += container
         ComposeViewport(container, configure = { this.isA11YEnabled = isA11YEnabled }, content = content)
         return container
+    }
+
+    /** Renders a viewport the size [renderViewport] gives it, inside an element that clips it to [heightPx]. */
+    @OptIn(ExperimentalComposeUiApi::class)
+    private fun renderViewportClippedTo(heightPx: Int, content: @Composable () -> Unit): HTMLElement {
+        val clippingContainer = document.createElement("div") as HTMLElement
+        clippingContainer.style.cssText = "position: absolute; left: ${VIEWPORT_LEFT}px; top: ${VIEWPORT_TOP}px; width: 300px; height: ${heightPx}px; overflow: hidden;"
+        val container = document.createElement("div") as HTMLElement
+        container.style.cssText = "width: 300px; height: 200px;"
+        clippingContainer.appendChild(container)
+        requireNotNull(document.body).appendChild(clippingContainer)
+        containers += clippingContainer
+        ComposeViewport(container, configure = {}, content = content)
+        return clippingContainer
     }
 
     /** Captures the viewport in [container] once Compose has written the node tagged [testTag] into its accessibility DOM. */
@@ -340,6 +400,16 @@ private suspend fun awaitCondition(target: Node, condition: () -> Boolean) {
         observer.observe(target, subtreeMutationObserverInit(includeAttributeAndTextChanges = true))
         continuation.invokeOnCancellation { observer.disconnect() }
     }
+}
+
+/** The elements `ComposeViewport` builds that the probe recognizes a viewport by, with nothing of Compose's behind them. */
+private fun viewportShadowHostWithoutCompose(): HTMLElement {
+    val shadowHost = document.createElement("div") as HTMLElement
+    val canvasContainer = document.createElement("div")
+    canvasContainer.appendChild(document.createElement("canvas"))
+    canvasContainer.appendChild(document.createElement("div").also { it.id = "cmp_a11y_root" })
+    shadowHost.attachShadow(ShadowRootInit(ShadowRootMode.OPEN)).appendChild(canvasContainer)
+    return shadowHost
 }
 
 private fun HTMLElement.viewportShadowRoot(): ShadowRoot? = querySelectorAll("div").asList().firstNotNullOfOrNull { (it as? Element)?.shadowRoot }

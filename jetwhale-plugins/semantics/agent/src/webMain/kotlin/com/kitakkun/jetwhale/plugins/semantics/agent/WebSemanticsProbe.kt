@@ -69,9 +69,12 @@ private object WebSemanticsProbe {
         /**
          * Registers every viewport at or under [element]. `ComposeViewport` builds the whole of its
          * DOM before the document hears of it, so by the time [observer] reports the element added,
-         * the shadow root and what Compose puts in it are already there to recognize.
+         * the shadow root and what Compose puts in it are already there to recognize. An element
+         * removed again before the observer heard of it is reported added all the same, and left
+         * alone here.
          */
         private fun trackViewportsIn(element: Element) {
+            if (!element.isConnected) return
             val candidates = listOf(element) + element.querySelectorAll("div").asList().mapNotNull { it as? Element }
             candidates.forEach { candidate ->
                 if (trackedViewports.none { it.shadowHost == candidate }) {
