@@ -4,10 +4,12 @@ The Compose Semantics Inspector reads the **semantics tree of your running app**
 labels, its bounds and the actions it exposes — and lets you browse it in the host and hand it to an
 AI agent over [MCP](/guide/mcp-server). On Android and desktop that is the Compose tree, with the
 Android `View`s around it; on iOS it is the accessibility tree, which carries UIKit, SwiftUI and
-Compose content alike. A capture takes about 14 ms, so an agent can read the screen between every
-action instead of guessing at pixels.
+Compose content alike; on the web it is the accessibility DOM Compose keeps in the page for screen
+readers. A capture takes about 14 ms, so an agent can read the screen between every action instead
+of guessing at pixels.
 
-**Works with:** Android, desktop (JVM) and iOS. Not the web; see [Limits](#limits).
+**Works with:** Android, desktop (JVM), iOS and the web (JS and Wasm). The web carries the least; see
+[Limits](#limits).
 
 ![The Compose Semantics Inspector: the Android views and Compose nodes of a captured screen, with a button selected and its semantics and actions on the right](../images/compose-semantics-inspector/tree-light.webp){.light-only width=688}
 ![The Compose Semantics Inspector: the Android views and Compose nodes of a captured screen, with a button selected and its semantics and actions on the right](../images/compose-semantics-inspector/tree-dark.webp){.dark-only width=688}
@@ -78,6 +80,16 @@ import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsPro
 installJetWhaleSemanticsProbe()   // once at startup, on the main thread
 ```
 
+```kotlin [Web]
+import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsProbe
+
+fun main() {
+    installJetWhaleSemanticsProbe()   // once at startup
+    startJetWhale { /* … */ }
+    ComposeViewport { App() }
+}
+```
+
 :::
 
 | Target | What the probe covers |
@@ -86,6 +98,7 @@ installJetWhaleSemanticsProbe()   // once at startup, on the main thread
 | **Android**, in a composition | Only the window that composition lives in, for as long as it stays composed. A `Dialog` or `Popup` is a window of its own and needs its own call, or the `Application` probe. |
 | **Desktop (JVM)** | The window it is called in, through `ComposeWindow.semanticsOwners`, so dialogs and popups inside it appear and disappear by themselves. A second `Window { }` needs its own call. The API is `@ExperimentalComposeUiApi`, so opt in at the call site or the module does not compile. |
 | **iOS** | Every window the app has, following `UIWindowDidBecomeVisible` / `UIWindowDidBecomeHidden` for later ones, through the accessibility protocol. Call it before or after `startJetWhale`. A pure Swift app cannot call it yet: the call has to sit in Kotlin the app links, as in the demo's `cmpAppViewController()`. |
+| **Web (JS and Wasm)** | Every `ComposeViewport` in the page, watching the document for ones created or removed later, through the accessibility DOM Compose keeps in each viewport's shadow root. Call it before or after `ComposeViewport` and `startJetWhale`. A viewport created with `isA11YEnabled = false` keeps no such DOM, and its captures say so in a warning. |
 
 The two Android probes can be combined: registrations are counted per window, so neither pulls a
 window out from under the other.
@@ -171,13 +184,14 @@ changed live, so you can try a change without a rebuild. The full list is in the
 
 Turn on **Highlight** and the app draws a translucent box over the selected node; hovering a row
 shows that node instead while the pointer is on it. It works for Compose and `View` nodes alike, and
-a node in a dialog is highlighted in the dialog's own window.
+a node in a dialog is highlighted in the dialog's own window. On the web the box is an element over
+the viewport's canvas.
 
 - **It is off by default, on purpose.** The box is drawn into the app, so anything that takes a
   screenshot of the device while it is up captures it too — a `screencap`, the
   [Device Mirror](/guide/device-mirror), a QA run. Turn it off before you capture.
 - **It never appears in the captured tree**, since it is a window overlay drawn after the root
-  view's children.
+  view's children; on the web it sits outside the accessibility DOM a capture reads.
 - **It follows the node, or goes away**, as the window redraws, scrolls or relayouts; a node
   scrolled out of a lazy list gets its box back when it returns while still selected.
 - **It clears itself.** The app drops a highlight it has not heard about for 30 seconds, so a host
@@ -212,7 +226,7 @@ findNodes()                            → the new screen's interactive nodes
 
 `performNodeAction` runs the node's own action, so it needs no coordinates and cannot land on
 whatever moved into that spot; prefer it over `adb shell input tap`. Bounds and tap points are in the
-node's `unit`: pixels on Android and desktop, points on iOS.
+node's `unit`: pixels on Android and desktop, points on iOS, CSS pixels on the web.
 
 While an agent runs a tool, the inspector rings what the tool reads or drives: the tree for
 `findNodes`, `getNodeTree` and `nodeAt`, the selected node's actions for `performNodeAction`, and its
@@ -221,8 +235,13 @@ the tool names: the selected node's actions are ringed whichever node the agent 
 
 ## Limits
 
-- **No web probe.** `ComposeViewport` exposes no owner for the agent to read; a custom scene can still
-  be registered by hand — see [Custom scenes](/reference/semantics-tree#custom-scenes-and-threading).
+- **On the web** a capture holds only what Compose 1.11 writes into the page for screen readers:
+  text, content description, test tag, role, bounds and a click. No node reads as disabled,
+  focused, selected, toggled or scrollable, a field's content is not read, and `Click` is the only
+  action; it runs even on a disabled node. While a `Dialog` or `Popup` is open the capture shows only
+  its content, and once it closes Compose stops updating the page, so captures come back empty. A
+  capture waits for Compose to finish writing the page, up to about a second after a change. See
+  [Web nodes](/reference/semantics-tree#web-nodes).
 - **A window with no Compose in it is not captured**, such as a plain `AlertDialog` built from views:
   this plugin inspects Compose apps, not views in general.
 - **A merged capture can fold an `AndroidView` away** with the node an ancestor merges; capture
@@ -236,7 +255,10 @@ the tool names: the selected node's actions are ringed whichever node the agent 
 ## Troubleshooting
 
 - **"No root is registered."** No probe is installed. Add one as in
-  [Install a probe](#install-a-probe). On JS and Wasm this is expected.
+  [Install a probe](#install-a-probe).
+- **On the web a capture warns that the viewport keeps no accessibility DOM.** The viewport was
+  created with `isA11YEnabled = false`, which turns off what the probe reads. Leave it at its
+  default.
 - **On iOS the tree is empty, and `includeInvisible` shows only the window and a few views with empty
   bounds.** Application accessibility is off: on a device where nothing turned it on, or on a
   simulator where the probe was installed with `enableSimulatorApplicationAccessibility = false`. See

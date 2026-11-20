@@ -82,8 +82,9 @@ private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? = getAllSemanti
  * Registers a [SemanticsOwner] the caller already holds and keeps alive itself.
  *
  * The Android and desktop probes find owners for you; reach for this when you host a `ComposeScene`
- * yourself and so already hold one. iOS and web have no probe because Compose Multiplatform exposes
- * no owner for their entry points — see the Compose Semantics Inspector guide.
+ * yourself and so already hold one. Compose Multiplatform exposes no owner for the iOS and web entry
+ * points, so their probes read the platform's accessibility tree instead — see the Compose Semantics
+ * Inspector guide.
  *
  * @see SemanticsOwnerNodeSource
  */

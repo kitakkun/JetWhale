@@ -24,13 +24,11 @@ kotlin {
     jvm()
     jvmToolchain(17)
 
+    // Browser only: the web probe and its tests need the page's DOM, which Node does not have, and
+    // Compose's wasm runtime does not load under Node.
     js {
         browser()
-        nodejs()
     }
-
-    // Browser only: Compose's wasm runtime does not load under Node, so a wasmJs Node test fails
-    // before reaching any assertion.
     wasmJs {
         browser()
     }
@@ -54,8 +52,15 @@ kotlin {
         androidMain.dependencies {
             compileOnly(libs.androidxRecyclerView)
         }
+        webMain.dependencies {
+            implementation(libs.kotlinxBrowser)
+        }
         commonTest.dependencies {
             implementation(libs.kotlinTest)
+        }
+        webTest.dependencies {
+            implementation(libs.jetbrainsComposeFoundation)
+            implementation(libs.kotlinxCoroutinesTest)
         }
     }
 }

@@ -34,14 +34,14 @@ import kotlin.time.TimeSource
  * It answers host requests — capture the semantics tree, invoke one node's action, read or write a
  * `View` node's platform attributes, and draw a box over one node on the device — by delegating to
  * the [ComposeNodeSource]s registered in [ComposeNodeSourceRegistry]. The last two need the optional
- * [ViewAttributeSource] and [NodeHighlightSource] capabilities, which only the Android window source
- * has. Register the plugin with the agent runtime, and install a platform probe so the registry has
- * roots to read:
+ * [ViewAttributeSource] and [NodeHighlightSource] capabilities: attributes only the Android window
+ * source has, highlighting the Android window and web viewport sources. Register the plugin with the
+ * agent runtime, and install a platform probe so the registry has roots to read:
  *
  * ```kotlin
  * // Android, Application.onCreate()
  * installJetWhaleSemanticsProbe(this)
- * // iOS, at startup on the main thread
+ * // iOS, at startup on the main thread; the web (JS and Wasm), at startup
  * installJetWhaleSemanticsProbe()
  * startJetWhale {
  *     plugins { register(JetWhaleSemanticsAgentPlugin()) }
@@ -181,6 +181,6 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
 
         internal const val NO_PROBE_WARNING: String =
             "No root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +
-                "on Android, installJetWhaleSemanticsProbe() on iOS, or call JetWhaleSemanticsProbe() inside your composition."
+                "on Android, installJetWhaleSemanticsProbe() on iOS and the web, or call JetWhaleSemanticsProbe() inside your composition."
     }
 }
