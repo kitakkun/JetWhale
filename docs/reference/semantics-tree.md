@@ -187,9 +187,13 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
   plain text without marking the field as one, so the only way to capture no password is to capture
   no field's content: a field is `editable`, with no `text` or `editableText`.
 - **`Click` is the only action.** It runs the node's `OnClick` through the listener Compose put on
-  the element. The page does not say whether a node is disabled and that listener does not check, so
-  **`Click` runs a disabled node's `onClick`**, as a screen reader's activation would. Every other
-  action, `BringIntoView` included, comes back `performed: false` saying so.
+  the element, and that node's alone, not those of the clickable nodes around it. The page does not
+  say whether a node is disabled and that listener does not check, so **`Click` runs a disabled
+  node's `onClick`**, as a screen reader's activation would. Every other action, `BringIntoView`
+  included, comes back `performed: false` saying so.
+- **A clickable heading or collection does not read as clickable.** Compose marks it `heading`,
+  `list` or `grid` instead of `button`, so a capture cannot tell. `Click` is still sent to such a
+  node, with a message saying it does nothing if the node has no `OnClick`.
 - **A `Dialog` or `Popup` takes the capture over.** Compose 1.11 writes only the newest layer into
   the page: while a dialog is open the capture shows its content alone, and once it closes Compose
   stops writing, so captures come back empty from then on.

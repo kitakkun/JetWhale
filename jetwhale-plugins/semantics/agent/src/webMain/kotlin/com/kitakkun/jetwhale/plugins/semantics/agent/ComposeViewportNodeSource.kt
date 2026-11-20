@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.browser.window
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
 import kotlin.time.Duration
 
 /**
@@ -29,7 +30,7 @@ internal class ComposeViewportNodeSource(
 ) : RegistryAwareNodeSource,
     NodeHighlightSource {
     private val accessibilityDom = AccessibilityDom(accessibilityRoot)
-    private val elementIds = AccessibilityElementIds()
+    private val elementIds = AccessibilityElementIds(accessibilityDom)
     private val changeWatcher = AccessibilityDomChangeWatcher(accessibilityDom)
     private val highlightBox = NodeHighlightBox(accessibilityDom)
     private var unregistered = false
@@ -56,21 +57,20 @@ internal class ComposeViewportNodeSource(
             canvasTop = canvasTop,
             pageViewport = NodeBounds(left = 0f, top = 0f, right = window.innerWidth.toFloat(), bottom = window.innerHeight.toFloat()),
         )
+        elementIds.releaseElementsRemovedFromDom()
         return ComposeRoot(
             rootId = sourceId,
             label = label,
             density = 1f,
             windowOffsetX = canvasLeft,
             windowOffsetY = canvasTop,
-            node = accessibilityDom.semanticsRootElement?.let { semanticsRootElement ->
-                elementIds.runCaptureReleasingUnseenElements { capture.composeNodeOf(semanticsRootElement, depth = 0) }
-            },
+            node = accessibilityDom.semanticsRootElement?.let { capture.composeNodeOf(it, depth = 0) },
         )
     }
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult {
         if (!accessibilityDom.isConnected) return NodeActionResult(performed = false, message = VIEWPORT_GONE)
-        val element = elementIds.elementOf(request.nodeId)?.takeIf(accessibilityDom::contains)
+        val element = elementIds.elementOf(request.nodeId)
             ?: return NodeActionResult(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left this viewport; capture the tree again)",
@@ -78,12 +78,16 @@ internal class ComposeViewportNodeSource(
         if (request.action != NodeAction.Click) {
             return NodeActionResult.notSupported("${request.action} is not available on the web: Compose's accessibility DOM carries a node's click and no other action")
         }
-        if (!element.isClickableNode) return NodeActionResult.notSupported("the node is not clickable")
+        val roleHidingClick = element.getAttribute("role")?.takeIf { it in ROLES_HIDING_CLICK }
+        if (!element.isClickableNode && roleHidingClick == null) return NodeActionResult.notSupported("the node is not clickable")
         // Compose's click listener runs the node's OnClick without checking whether the node is
         // enabled, and the page does not say, so a disabled node is clicked too.
-        element.click()
+        element.dispatchEvent(nonBubblingClickEvent())
         changeWatcher.expectChangeFromAction()
-        return NodeActionResult(performed = true)
+        return NodeActionResult(
+            performed = true,
+            message = roleHidingClick?.let { "the page marks this node `$it`, which hides whether it takes a click: the click was sent, and does nothing if the node has no OnClick" },
+        )
     }
 
     override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult {
@@ -91,7 +95,7 @@ internal class ComposeViewportNodeSource(
             highlightBox.clear()
             return HighlightResult(shown = false, message = VIEWPORT_GONE.takeIf { nodeId != null })
         }
-        val resolveBounds = { elementIds.elementOf(nodeId)?.takeIf(accessibilityDom::contains)?.let(accessibilityDom::boundsOf) }
+        val resolveBounds = { elementIds.elementOf(nodeId)?.let(accessibilityDom::boundsOf) }
         val bounds = resolveBounds()
         if (bounds == null) {
             highlightBox.clear()
@@ -115,3 +119,17 @@ internal class ComposeViewportNodeSource(
 }
 
 private const val VIEWPORT_GONE: String = "the viewport is no longer in the page"
+
+/**
+ * The roles Compose writes over `button` for a node that also has `OnClick`, still wiring the click
+ * listener into its element: a clickable heading or collection reads as one of these alone.
+ */
+private val ROLES_HIDING_CLICK: Set<String> = setOf("heading", "list", "grid")
+
+/**
+ * A click for one element alone. `HTMLElement.click()` bubbles, and Compose nests the elements as
+ * it nests the nodes and puts a listener on every clickable one, so a click on a button inside a
+ * clickable row would run the row's `OnClick` as well.
+ */
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun nonBubblingClickEvent(): Event = js("new MouseEvent('click', { bubbles: false, cancelable: true })")

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import androidx.compose.ui.window.ComposeViewport
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -117,13 +119,65 @@ class WebSemanticsProbeTest {
         probe = installJetWhaleSemanticsProbe()
         val before = captureOnceTaggedNodeWritten(container, testTag = "counter").nodeWithTag("counter")
 
-        val result = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = before.id, action = NodeAction.Click))
+        val result = performNodeAction(nodeId = before.id, action = NodeAction.Click)
         val after = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("counter")
 
         assertTrue(result.performed, result.message)
         assertEquals("Count 0", before.text)
         assertEquals("Count 1", after.text)
         assertEquals(before.id, after.id, "the node keeps its id while it stays composed")
+    }
+
+    @Test
+    fun `a click runs the node it names and not the clickable node around it`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            var rowClicks by remember { mutableIntStateOf(0) }
+            var buttonClicks by remember { mutableIntStateOf(0) }
+            Column {
+                Column(Modifier.clickable { rowClicks++ }) {
+                    BasicText("Button", Modifier.testTag("button").clickable { buttonClicks++ })
+                }
+                BasicText("row=$rowClicks button=$buttonClicks", Modifier.testTag("clicks"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val button = captureOnceTaggedNodeWritten(container, testTag = "button").nodeWithTag("button")
+
+        performNodeAction(nodeId = button.id, action = NodeAction.Click)
+
+        assertEquals("row=0 button=1", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("clicks").text)
+    }
+
+    @Test
+    fun `a click reaches a clickable heading that the page marks only as a heading`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            var clicks by remember { mutableIntStateOf(0) }
+            Column {
+                BasicText("Section", Modifier.testTag("section").semantics { heading() }.clickable { clicks++ })
+                BasicText("clicks=$clicks", Modifier.testTag("clicks"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val section = captureOnceTaggedNodeWritten(container, testTag = "section").nodeWithTag("section")
+
+        val result = performNodeAction(nodeId = section.id, action = NodeAction.Click)
+
+        assertFalse(section.isClickable, "the heading role hides the click from a capture")
+        assertTrue(result.performed, result.message)
+        assertEquals("clicks=1", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("clicks").text)
+    }
+
+    @Test
+    fun `a shallow capture keeps the ids of the nodes it did not reach`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) { Counter() }
+        probe = installJetWhaleSemanticsProbe()
+        val counter = captureOnceTaggedNodeWritten(container, testTag = "counter").nodeWithTag("counter")
+
+        viewportSource().capture(NodeTreeCaptureOptions(maxDepth = 0))
+        val result = performNodeAction(nodeId = counter.id, action = NodeAction.Click)
+
+        assertTrue(result.performed, result.message)
+        assertEquals(counter.id, viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("counter").id)
     }
 
     @Test
@@ -147,7 +201,7 @@ class WebSemanticsProbeTest {
         probe = installJetWhaleSemanticsProbe()
         val counter = captureOnceTaggedNodeWritten(container, testTag = "counter").nodeWithTag("counter")
 
-        val result = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = counter.id, action = NodeAction.LongClick))
+        val result = performNodeAction(nodeId = counter.id, action = NodeAction.LongClick)
 
         assertFalse(result.performed)
         assertTrue(result.message.orEmpty().contains("not available on the web"), result.message)
@@ -233,6 +287,8 @@ class WebSemanticsProbeTest {
     }
 
     private fun viewportSource(): ComposeNodeSource = ComposeNodeSourceRegistry.sources.single()
+
+    private suspend fun performNodeAction(nodeId: Int, action: NodeAction): NodeActionResult = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = nodeId, action = action))
 
     /** The highlight boxes over the viewport in [container], told from Compose's own elements by the z-index they are drawn above everything with. */
     private fun highlightBoxesIn(container: HTMLElement): List<HTMLElement> = container.viewportShadowRoot()

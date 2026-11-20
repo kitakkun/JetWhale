@@ -12,46 +12,28 @@ import org.w3c.dom.HTMLElement
  * Ids are assigned here on first sight, counting up from `0`: still non-negative like the semantics
  * ids every other platform reports for a Compose node.
  *
- * Elements are held for as long as the latest capture reported them, and
- * [runCaptureReleasingUnseenElements] lets go of the ones Compose has since removed, so an id never
- * keeps a dead element alive past the next capture.
+ * An id stays valid for as long as its element is in [accessibilityDom], whether or not the latest
+ * capture reached it: a capture cut short by its depth limit says nothing about the nodes below.
+ * [releaseElementsRemovedFromDom] lets go of the elements Compose has removed, so an id never keeps
+ * a dead element alive past the next capture.
  */
-internal class AccessibilityElementIds {
+internal class AccessibilityElementIds(private val accessibilityDom: AccessibilityDom) {
     private val idsByElement = HashMap<HTMLElement, Int>()
     private val elementsById = HashMap<Int, HTMLElement>()
     private var nextId = 0
-    private var seenInCapture: MutableSet<HTMLElement>? = null
-
-    /**
-     * Runs one capture. Every element [idOf] sees inside [block] is kept; every element the previous
-     * capture reported and this one did not is released.
-     *
-     * A capture that throws releases nothing, so the ids of the snapshot the host still shows keep
-     * resolving.
-     */
-    fun <T> runCaptureReleasingUnseenElements(block: () -> T): T {
-        val seen = HashSet<HTMLElement>()
-        seenInCapture = seen
-        val result = try {
-            block()
-        } finally {
-            seenInCapture = null
-        }
-        val unseen = idsByElement.keys.filter { it !in seen }
-        unseen.forEach { element -> idsByElement.remove(element)?.let(elementsById::remove) }
-        return result
-    }
 
     /** The id for [element], assigning one on first sight. */
-    fun idOf(element: HTMLElement): Int {
-        seenInCapture?.add(element)
-        return idsByElement.getOrPut(element) {
-            val id = nextId++
-            elementsById[id] = element
-            id
-        }
+    fun idOf(element: HTMLElement): Int = idsByElement.getOrPut(element) {
+        val id = nextId++
+        elementsById[id] = element
+        id
     }
 
-    /** The element [id] names, or `null` once it has left the latest capture. */
-    fun elementOf(id: Int): HTMLElement? = elementsById[id]
+    /** The element [id] names, or `null` once Compose has removed it from the accessibility DOM. */
+    fun elementOf(id: Int): HTMLElement? = elementsById[id]?.takeIf(accessibilityDom::contains)
+
+    fun releaseElementsRemovedFromDom() {
+        val removedElements = idsByElement.keys.filterNot(accessibilityDom::contains)
+        removedElements.forEach { element -> idsByElement.remove(element)?.let(elementsById::remove) }
+    }
 }

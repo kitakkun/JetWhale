@@ -78,9 +78,10 @@ internal class AccessibilityDomCapture(
 }
 
 /**
- * Whether Compose wired a click listener into this element. It does for every node with `OnClick`,
- * and marks such a node `button` unless its role says it is a field, a heading or a collection; of
- * those, only a field takes a click, which focuses it.
+ * Whether the page shows that Compose wired a click listener into this element. It does for every
+ * node with `OnClick`, and marks such a node `button` unless its role says it is a field, a heading
+ * or a collection. A field always takes a click, which focuses it; a heading or a collection may or
+ * may not, which the page does not say.
  */
 internal val HTMLElement.isClickableNode: Boolean
     get() = getAttribute("role") == "button" || isEditableNode
