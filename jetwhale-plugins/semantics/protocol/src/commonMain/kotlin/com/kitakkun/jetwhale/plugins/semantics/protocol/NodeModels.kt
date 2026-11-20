@@ -14,9 +14,10 @@ import kotlinx.serialization.Serializable
  * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. On iOS
  * the tree is the window's accessibility tree, in which UIKit views, SwiftUI nodes and Compose
  * elements all appear as [AppleNode]s, and [merged] has no effect: the accessibility tree is the
- * merged one. These options apply to every type identically: depth counts every node, and a node
- * with empty bounds or hidden by its platform is invisible — left out by default, and kept with
- * `isVisible = false` under [includeInvisible].
+ * merged one. On the web the tree is the accessibility DOM Compose keeps in the page, which holds
+ * the merged tree alone, so [merged] has no effect there either. These options apply to every type
+ * identically: depth counts every node, and a node with empty bounds or hidden by its platform is
+ * invisible — left out by default, and kept with `isVisible = false` under [includeInvisible].
  *
  * @property merged `true` captures the merged tree — the one accessibility services see, where a
  *   `Button`'s label is folded into the clickable node. `false` captures the unmerged tree, which
@@ -61,16 +62,18 @@ data class NodeTreeSnapshot(
  * popup is a window of its own, so a snapshot has more than one entry while one is open. On iOS a
  * root is a `UIWindow` read through its accessibility tree, and a dialog or a sheet stays inside
  * the window that presented it. On desktop a root is one composition, and its tree is the
- * semantics tree alone.
+ * semantics tree alone. On the web a root is one `ComposeViewport`, read through the accessibility
+ * DOM Compose keeps for it in the page.
  *
  * @property rootId Stable while the root stays attached; address nodes with it in
  *   [PerformNodeAction].
  * @property label Human-readable origin, e.g. `MainActivity` or `PopupWindow`.
  * @property density Device density (px per dp) of this root, for converting the pixel bounds below
- *   to dp; `1` on iOS, where bounds are points.
+ *   to dp; `1` on iOS, where bounds are points, and on the web, where they are CSS pixels.
  * @property windowOffsetX Where this root's window sits on screen, in the root's unit (pixels,
- *   points on iOS). Node bounds are reported in both root and screen coordinates, so this is only
- *   needed to reason about the window itself.
+ *   points on iOS, CSS pixels from the browser viewport's corner on the web). Node bounds are
+ *   reported in both root and screen coordinates, so this is only needed to reason about the
+ *   window itself.
  * @property windowOffsetY See [windowOffsetX].
  * @property node The root node, or `null` when the root has no content yet.
  * @property isTouchModal `true` when this window takes touches that land outside it, which is what
@@ -107,8 +110,9 @@ data class NodeRef(
 sealed interface UiNode {
     /**
      * Addresses the node within its root and stays valid while the node is on screen. A
-     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] or an [AppleNode]
-     * reports a negative id assigned by the agent, so the two can never collide.
+     * [ComposeNode] reports its semantics id, which is non-negative (on the web, where the page
+     * carries none, a non-negative id the agent assigns); a [ViewNode] or an [AppleNode] reports a
+     * negative id assigned by the agent, so the two can never collide.
      */
     val id: Int
 
@@ -125,7 +129,7 @@ sealed interface UiNode {
 
     /**
      * Bounds in this root's coordinate space, in the platform's own unit: pixels on Android and
-     * desktop, points on iOS (where [ComposeRoot.density] is `1`).
+     * desktop, points on iOS and CSS pixels on the web (where [ComposeRoot.density] is `1`).
      */
     val bounds: NodeBounds
 
@@ -307,7 +311,7 @@ data class AppleNode(
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 
-/** A rectangle in pixels — in points on iOS, where the root's `density` is `1`. */
+/** A rectangle in pixels — in points on iOS and CSS pixels on the web, where the root's `density` is `1`. */
 @Serializable
 data class NodeBounds(
     val left: Float,

@@ -14,6 +14,7 @@ does, carrying its label and its `OnClick` action.
 | Android | Compose, plus the Android `View`s around and inside the composition | One window; a dialog or popup is a root of its own | pixels (`"px"`) |
 | Desktop (JVM) | Compose, through the window's `SemanticsOwner`s | One composition; a dialog or popup is a root of its own | pixels |
 | iOS | The accessibility protocol, which UIKit, SwiftUI and Compose all publish into | One `UIWindow`; a sheet or alert stays inside the window that showed it | points (`"pt"`) |
+| Web (JS and Wasm) | The accessibility DOM Compose keeps in the page for screen readers | One `ComposeViewport` | CSS pixels (`"px"`) |
 
 Every node in the MCP JSON names its `unit`, and every root reports its own `windowOffset`. A node's
 `type` is `"compose"`, `"view"` or `"apple"`; all three fill the same fields — `text`,
@@ -149,6 +150,64 @@ that has one:
 A secure field's contents are never captured: a password field stays `isEditable` with no
 `editableText`, on Android as on iOS.
 
+## Web nodes
+
+Compose for Web hands out no `SemanticsOwner` either, so on JS and Wasm the capture reads what a
+`ComposeViewport` writes into the page for screen readers: the **accessibility DOM** in the
+viewport's shadow root, one element per node of the merged semantics tree, nested as the nodes are.
+Every viewport in the page is a root of its own, and its nodes are `"compose"` nodes:
+
+```
+ComposeViewport <body>                    ← the root; one per ComposeViewport
+└─ node                                   ← the semantics tree's root node
+   ├─ node "Hello" · greeting             ← a Text, testTag and all
+   └─ Button · desc="Send"                ← any clickable node reads as a Button
+```
+
+| | on the web |
+|---|---|
+| `id` | **non-negative**, assigned by the agent because the page carries no semantics id, and stable while the node stays composed |
+| `text` | the element's own text; a line break comes back as `\n` |
+| `contentDescription` | the element's `aria-label` |
+| `testTag` | the element's `id`, where Compose writes `Modifier.testTag` |
+| `role` | the ARIA role read back as a Compose role: `Button`, `Checkbox`, `Switch`, `RadioButton`, `Tab`, `Image` or `DropdownList`. Compose marks every clickable node `button`, so `Button` stands for any clickable one, a `Checkbox` included |
+| `clickable` / `editable` | from the role and `contenteditable` |
+
+Coordinates are **CSS pixels**, the unit browser tools such as Playwright and the Chrome DevTools
+Protocol take, and the root's `density` is `1`: a CSS pixel is what Compose for Web calls a dp. A
+node's `bounds` are measured from the composition's corner, the root's `windowOffset` is where the
+canvas sits in the browser's viewport, and a node's screen bounds are clipped to that viewport, so a
+node scrolled out of the page is not hittable. `merged` has no effect: the page holds the merged tree
+only.
+
+That is all Compose 1.11 writes, so everything else reads as its default: as far as a capture can
+tell, no node is disabled, focused, selected, toggled or scrollable. And:
+
+- **A field's content is not read.** Compose 1.11 writes a password field's text into the page in
+  plain text without marking the field as one, so the only way to capture no password is to capture
+  no field's content: a field is `editable`, with no `text` or `editableText`.
+- **`Click` is the only action.** It runs the node's `OnClick` through the listener Compose put on
+  the element. The page does not say whether a node is disabled and that listener does not check, so
+  **`Click` runs a disabled node's `onClick`**, as a screen reader's activation would. Every other
+  action, `BringIntoView` included, comes back `performed: false` saying so.
+- **A `Dialog` or `Popup` takes the capture over.** Compose 1.11 writes only the newest layer into
+  the page: while a dialog is open the capture shows its content alone, and once it closes Compose
+  stops writing, so captures come back empty from then on.
+- **HTML embedded with `HtmlElementView` is not captured**; the tree holds Compose nodes only.
+- **A viewport created with `isA11YEnabled = false` keeps no accessibility DOM.** It is registered
+  all the same, and its captures come back with a warning saying so.
+
+Compose does not write the DOM as the semantics change: it waits until they have been still for
+100 ms, and while they keep changing it writes once a second. So a capture waits until the DOM has
+been still for 150 ms and, after a `Click`, until Compose has written it again, for at most 1.2 s. A
+capture just after a change takes that much longer, an action that changes nothing makes the next
+capture wait the full 1.2 s, and a screen in constant motion is read as Compose last wrote it, up to
+a second old.
+
+The [highlight](/guide/compose-semantics-inspector#highlighting-on-the-device) is an element over the
+canvas in the viewport's shadow root, outside the accessibility DOM, so it never appears in a
+capture. It moves as Compose rewrites its node and goes when the node does.
+
 ## Reachability
 
 Before it acts, an agent wants to know one thing: `operable`. A node is operable when it offers
@@ -255,7 +314,8 @@ Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertT
 `ScrollBy`, `ScrollToIndex`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`, plus `BringIntoView`,
 which works on any node. Only what a node lists in `actions` can be invoked, except `BringIntoView`.
 On an Android `View` node it runs the [view's own equivalent](#android-view-nodes); on iOS, the
-[accessibility protocol's](#ios-nodes).
+[accessibility protocol's](#ios-nodes); on the web, `Click` alone, through the
+[accessibility DOM](#web-nodes).
 
 It needs no coordinates and cannot land on whatever moved into that spot meanwhile, so prefer it
 over `adb shell input tap`. It is also the more reliable route: on the emulator used for the
@@ -326,13 +386,14 @@ setViewAttribute(rootId: "android-window-1f2e", nodeId: -4, attributeId: "textCo
 
 ## Custom scenes and threading
 
-There is no probe on JS or Wasm: `ComposeViewport` builds its scene internally, as iOS does, and the
-browser has no accessibility tree the agent could read instead. Desktop was in the same position
-until Compose Multiplatform 1.10 exposed `ComposeWindow.semanticsOwners`. The capture and action
-layer is common code, so a probe is a small addition once an owner can be reached.
+On iOS and the web the probes read the platform's accessibility tree, because the iOS view controller
+and `ComposeViewport` build their scenes internally and hand out no owner. Desktop was in the same
+position until Compose Multiplatform 1.10 exposed `ComposeWindow.semanticsOwners`. The capture and
+action layer for an owner is common code, so a probe that reads one is a small addition once an
+owner can be reached.
 
-Until then, `registerSemanticsOwner` is the seam for any host you build yourself on top of
-`ComposeScene`, including `ImageComposeScene`, whose `semanticsOwners` *is* available there:
+`registerSemanticsOwner` is the seam for any host you build yourself on top of `ComposeScene`,
+including `ImageComposeScene`, whose `semanticsOwners` *is* available there:
 
 ```kotlin
 import com.kitakkun.jetwhale.plugins.semantics.agent.ComposeNodeSourceRegistry

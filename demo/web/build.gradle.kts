@@ -32,6 +32,7 @@ kotlin {
                 implementation(libs.jetbrainsComposeRuntime)
                 implementation(libs.material3)
                 implementation(projects.demo.shared)
+                implementation(projects.jetwhalePlugins.semantics.agent)
             }
         }
     }

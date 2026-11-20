@@ -4,9 +4,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.kitakkun.jetwhale.demo.shared.App
 import com.kitakkun.jetwhale.demo.shared.initializeJetWhale
+import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsProbe
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    installJetWhaleSemanticsProbe()
     initializeJetWhale()
     ComposeViewport {
         App()

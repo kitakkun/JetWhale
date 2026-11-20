@@ -68,7 +68,7 @@ export const movedAnchors: Record<string, string> = {
   '/guide/compose-semantics-inspector#why-not-the-cli': '/reference/semantics-tree#measurements',
   '/guide/compose-semantics-inspector#are-the-coordinates-right': '/reference/semantics-tree#measurements',
   '/guide/compose-semantics-inspector#platform-support': '/guide/compose-semantics-inspector#install-a-probe',
-  '/guide/compose-semantics-inspector#web': '/reference/semantics-tree#custom-scenes-and-threading',
+  '/guide/compose-semantics-inspector#web': '/reference/semantics-tree#web-nodes',
 
   '/guide/network-inspector#ktor': '/guide/network-inspector#add-the-agent-to-your-app',
   '/guide/network-inspector#attaching-to-a-client-you-didn-t-build': '/guide/network-inspector#add-the-agent-to-your-app',
