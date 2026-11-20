@@ -134,14 +134,33 @@ private fun HTMLElement.clipBounds(): NodeBounds {
     var area = NodeBounds(left = 0f, top = 0f, right = window.innerWidth.toFloat(), bottom = window.innerHeight.toFloat())
     var ancestor = parentElementOrShadowHost()
     while (ancestor != null && ancestor != document.body && ancestor != document.documentElement) {
-        val style = window.getComputedStyle(ancestor)
-        if (style.getPropertyValue("overflow-x") != "visible" || style.getPropertyValue("overflow-y") != "visible") {
-            val rect = ancestor.getBoundingClientRect()
-            area = area.intersect(NodeBounds(left = rect.left.toFloat(), top = rect.top.toFloat(), right = rect.right.toFloat(), bottom = rect.bottom.toFloat()))
-        }
+        area = area.clippedByOverflowOf(ancestor)
         ancestor = ancestor.parentElementOrShadowHost()
     }
     return area
+}
+
+/**
+ * These bounds cut down to what [element] lets its overflow show, axis by axis: an axis whose
+ * overflow is `visible` is not clipped, which `overflow: clip` allows on one axis alone. The clip is
+ * the element's padding box, inside its borders and scrollbars.
+ */
+private fun NodeBounds.clippedByOverflowOf(element: Element): NodeBounds {
+    val style = window.getComputedStyle(element)
+    val clipsX = style.getPropertyValue("overflow-x") != "visible"
+    val clipsY = style.getPropertyValue("overflow-y") != "visible"
+    if (!clipsX && !clipsY) return this
+    val rect = element.getBoundingClientRect()
+    val paddingBoxLeft = (rect.left + element.clientLeft).toFloat()
+    val paddingBoxTop = (rect.top + element.clientTop).toFloat()
+    return intersect(
+        NodeBounds(
+            left = if (clipsX) paddingBoxLeft else left,
+            top = if (clipsY) paddingBoxTop else top,
+            right = if (clipsX) paddingBoxLeft + element.clientWidth else right,
+            bottom = if (clipsY) paddingBoxTop + element.clientHeight else bottom,
+        ),
+    )
 }
 
 private fun Element.parentElementOrShadowHost(): Element? = parentElement ?: (parentNode as? ShadowRoot)?.host

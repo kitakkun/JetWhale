@@ -226,8 +226,8 @@ class WebSemanticsProbeTest {
     }
 
     @Test
-    fun `a node that an element around the canvas clips away is not visible`() = runTestInRealTime {
-        val clippingContainer = renderViewportClippedTo(heightPx = 15) {
+    fun `a node that an element around the canvas clips away is not visible even under its border`() = runTestInRealTime {
+        val clippingContainer = renderViewportInsideClippingContainer(clippingContainerStyle = "height: 15px; overflow: hidden; border-bottom: 20px solid black;") {
             Column {
                 Box(Modifier.size(20.dp).testTag("first"))
                 Box(Modifier.size(40.dp, 30.dp).testTag("second"))
@@ -239,6 +239,22 @@ class WebSemanticsProbeTest {
 
         assertEquals(NodeBounds(left = VIEWPORT_LEFT, top = VIEWPORT_TOP, right = VIEWPORT_LEFT + 20f, bottom = VIEWPORT_TOP + 15f), root.nodeWithTag("first").boundsInScreen)
         assertTrue(root.allNodes().none { (it as? ComposeNode)?.testTag == "second" }, "a node clipped away entirely is left out")
+    }
+
+    @Test
+    fun `an element that clips only the other axis leaves a node below it visible`() = runTestInRealTime {
+        val clippingContainer = renderViewportInsideClippingContainer(clippingContainerStyle = "height: 15px; overflow-x: clip; overflow-y: visible;") {
+            Column {
+                Box(Modifier.size(20.dp).testTag("first"))
+                Box(Modifier.size(40.dp, 30.dp).testTag("second"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+
+        val second = captureOnceTaggedNodeWritten(clippingContainer, testTag = "second").nodeWithTag("second")
+
+        assertTrue(second.isVisible)
+        assertEquals(VIEWPORT_TOP + 50f, second.boundsInScreen.bottom)
     }
 
     @Test
@@ -319,11 +335,14 @@ class WebSemanticsProbeTest {
         return container
     }
 
-    /** Renders a viewport the size [renderViewport] gives it, inside an element that clips it to [heightPx]. */
+    /**
+     * Renders a viewport the size [renderViewport] gives it, at the same place, inside a container
+     * styled with [clippingContainerStyle] on top of its position and width, and returns the container.
+     */
     @OptIn(ExperimentalComposeUiApi::class)
-    private fun renderViewportClippedTo(heightPx: Int, content: @Composable () -> Unit): HTMLElement {
+    private fun renderViewportInsideClippingContainer(clippingContainerStyle: String, content: @Composable () -> Unit): HTMLElement {
         val clippingContainer = document.createElement("div") as HTMLElement
-        clippingContainer.style.cssText = "position: absolute; left: ${VIEWPORT_LEFT}px; top: ${VIEWPORT_TOP}px; width: 300px; height: ${heightPx}px; overflow: hidden;"
+        clippingContainer.style.cssText = "position: absolute; left: ${VIEWPORT_LEFT}px; top: ${VIEWPORT_TOP}px; width: 300px; $clippingContainerStyle"
         val container = document.createElement("div") as HTMLElement
         container.style.cssText = "width: 300px; height: 200px;"
         clippingContainer.appendChild(container)
