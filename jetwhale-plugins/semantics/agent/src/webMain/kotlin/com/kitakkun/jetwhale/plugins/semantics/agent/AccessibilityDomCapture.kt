@@ -57,7 +57,7 @@ internal class AccessibilityDomCapture(
             bottom = bounds.bottom + canvasTop,
         ).intersect(canvasClipBounds)
         val visible = !bounds.isEmpty && !boundsInScreen.isEmpty
-        if (!visible && !options.includeInvisible && children.isEmpty()) return null
+        if (!options.keepsNode(isVisible = visible, hasKeptChildren = children.isNotEmpty())) return null
 
         return ComposeNode(
             id = id,
@@ -77,6 +77,12 @@ internal class AccessibilityDomCapture(
         )
     }
 }
+
+/**
+ * Whether a capture keeps a node: it is visible, the options keep invisible nodes, or a node below
+ * it was kept, which leaves it in the tree so the descendant is not reparented.
+ */
+internal fun NodeTreeCaptureOptions.keepsNode(isVisible: Boolean, hasKeptChildren: Boolean): Boolean = isVisible || includeInvisible || hasKeptChildren
 
 /**
  * Whether the page shows that Compose wired a click listener into this element. It does for every

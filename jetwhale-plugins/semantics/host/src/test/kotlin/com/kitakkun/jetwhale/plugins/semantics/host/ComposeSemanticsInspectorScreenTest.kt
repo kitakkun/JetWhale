@@ -12,7 +12,9 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -76,6 +78,46 @@ class ComposeSemanticsInspectorScreenTest {
 
             assertEquals(ringedControlNames, controls.filter { (controlName, control) -> control.captureEdgePixels() != idleEdgePixels.getValue(controlName) }.keys.toList(), "while ${command.name} runs")
         }
+    }
+
+    @Test
+    fun `an HTML node is tagged HTML in the tree and its attributes are listed in the details pane`() = runComposeUiTest {
+        val selectedField = htmlNode(
+            id = -3,
+            tagName = "input",
+            elementId = "name",
+            attributes = mapOf("placeholder" to "Your name"),
+            actions = listOf("SetText"),
+            isEditable = true,
+        )
+        setContent {
+            JwTheme(darkTheme = false) {
+                Box(Modifier.requiredSize(width = 1000.dp, height = 800.dp)) {
+                    ComposeSemanticsInspectorScreen(
+                        snapshot = snapshot(root("web-viewport-1", node = node(id = 0, children = listOf(selectedField)))),
+                        capturing = false,
+                        roundTripMs = null,
+                        errorMessage = null,
+                        actionStatus = null,
+                        highlightStatus = null,
+                        viewAttributes = ViewAttributesUiState.Empty,
+                        mcpCommands = testMcpCommands,
+                        flags = SemanticsInspectorFlags(merged = true, interactiveOnly = false, includeInvisible = false, autoRefresh = false, highlightOnDevice = false),
+                        selectedKey = NodeKey(rootId = "web-viewport-1", nodeId = selectedField.id),
+                        onRefresh = {},
+                        onFlagsChange = {},
+                        onSelectKey = {},
+                        onHoverChange = { _, _ -> },
+                        onPerformAction = {},
+                        onCommitViewAttribute = { _, _ -> },
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("HTML").assertExists()
+        onNodeWithText("Your name").assertExists()
+        onAllNodesWithText("adb shell input tap", substring = true).assertCountEquals(0)
     }
 
     /**

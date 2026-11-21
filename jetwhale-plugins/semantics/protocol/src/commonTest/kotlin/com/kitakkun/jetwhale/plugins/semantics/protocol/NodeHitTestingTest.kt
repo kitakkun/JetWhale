@@ -178,6 +178,28 @@ class NodeHitTestingTest {
     }
 
     @Test
+    fun `an HTML element laid over the canvas takes the tap from the Compose button under it`() {
+        val roots = NodeHitTesting.resolve(
+            listOf(
+                root(
+                    button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f)),
+                    HtmlNode(
+                        id = -1,
+                        tagName = "button",
+                        bounds = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
+                        boundsInScreen = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
+                        actions = listOf("OnClick"),
+                        isClickable = true,
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(NodeRef(ROOT_ID, -1), roots.node(1).obscuredBy)
+        assertTrue(roots.node(-1).isHittable)
+    }
+
+    @Test
     fun `nodeAt reports the topmost accepting node`() {
         val roots = listOf(
             root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f))),

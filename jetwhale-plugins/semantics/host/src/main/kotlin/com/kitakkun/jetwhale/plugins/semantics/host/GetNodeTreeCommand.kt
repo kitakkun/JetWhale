@@ -17,11 +17,13 @@ internal class GetNodeTreeCommand(
     override val name = "$TOOL_PREFIX.getNodeTree"
     override val description =
         "Captures the running app's UI node tree right now — Compose semantics, plus Android Views on Android, " +
-            "and on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose) — and returns it as JSON: " +
+            "on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose), and on the web the HTML elements " +
+            "embedded with HtmlElementView, as the last children of their viewport's root node — and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
             "Each node carries id, text, contentDescription, \"actions\" — the action names performNodeAction accepts for it (BringIntoView works on any node and is not listed) — screen \"bounds\" in the node's \"unit\" " +
             "(px, or pt on iOS), a \"tap\" point (the centre of the bounds), and per kind a role and testTag (Compose), " +
-            "a viewClass and resourceId (Android View), or a className and accessibilityIdentifier (iOS). " +
+            "a viewClass and resourceId (Android View), a className and accessibilityIdentifier (iOS), or a tagName, " +
+            "elementId, cssClasses and attributes (HTML). " +
             "A root is a window: on Android a dialog or popup is a window of its own, on iOS it stays inside the app's. " +
             "Prefer findNodes when you are looking for a specific element, and performNodeAction over tapping coordinates."
 

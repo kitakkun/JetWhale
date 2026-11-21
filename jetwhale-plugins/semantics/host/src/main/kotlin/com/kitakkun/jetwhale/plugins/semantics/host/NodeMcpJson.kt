@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
@@ -114,6 +115,14 @@ private fun JsonObjectBuilder.putKindFields(node: UiNode) {
             node.accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
             node.accessibilityValue?.let { put("accessibilityValue", it) }
             if (node.traits.isNotEmpty()) put("traits", JsonArray(node.traits.map { JsonPrimitive(it) }))
+        }
+
+        is HtmlNode -> {
+            put("kind", "HTML")
+            put("tagName", node.tagName)
+            node.elementId?.let { put("elementId", it) }
+            if (node.cssClasses.isNotEmpty()) put("cssClasses", JsonArray(node.cssClasses.map { JsonPrimitive(it) }))
+            if (node.attributes.isNotEmpty()) put("attributes", JsonObject(node.attributes.mapValues { (_, value) -> JsonPrimitive(value) }))
         }
 
         is ComposeNode -> {

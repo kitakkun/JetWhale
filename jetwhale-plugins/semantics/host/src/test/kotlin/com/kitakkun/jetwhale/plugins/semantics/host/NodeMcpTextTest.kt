@@ -86,6 +86,26 @@ class NodeMcpTextTest {
     }
 
     @Test
+    fun `an HTML node is named by its tag and carries its id, classes and attributes`() {
+        val field = htmlNode(
+            id = -3,
+            tagName = "input",
+            elementId = "name",
+            cssClasses = listOf("field", "wide"),
+            attributes = mapOf("type" to "text", "placeholder" to "Your name"),
+            editableText = "Ada",
+            actions = listOf("OnClick", "SetText", "InsertTextAtCursor"),
+            isClickable = true,
+            isEditable = true,
+        )
+
+        assertEquals(
+            "- input #-3 input=\"Ada\" elementId=name class=field,wide type=\"text\" placeholder=\"Your name\" [clickable] [editable] actions=Click,SetText,InsertText tap=50,20",
+            field.toMcpTextLine(rootId = null),
+        )
+    }
+
+    @Test
     fun `getNodeTree returns JSON unless the text format is asked for`() {
         val command = GetNodeTreeCommand(capture = { screen })
 

@@ -216,6 +216,36 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `displayLabel names an HTML node the way a CSS selector would and adds its label`() {
+        assertEquals(
+            "input#name.field.wide · Ada",
+            htmlNode(id = -1, tagName = "input", elementId = "name", cssClasses = listOf("field", "wide"), editableText = "Ada").displayLabel(),
+        )
+        assertEquals("div", htmlNode(id = -2, tagName = "div").displayLabel())
+    }
+
+    @Test
+    fun `an HTML node answers a testTag query with its element id and a role query with its role attribute`() {
+        val target = htmlNode(id = -1, tagName = "div", elementId = "save-button", attributes = mapOf("role" to "button"))
+
+        assertTrue(target.matches(NodeQuery(testTag = "save-button", exact = true)))
+        assertTrue(target.matches(NodeQuery(role = "Button", exact = true)))
+        assertFalse(target.matches(NodeQuery(testTag = "other")))
+        assertFalse(htmlNode(id = -2, tagName = "button").matches(NodeQuery(role = "button")))
+    }
+
+    @Test
+    fun `matchesFreeText searches an HTML node's tag, id, classes and attributes`() {
+        val target = htmlNode(id = -1, tagName = "input", elementId = "email", cssClasses = listOf("form-field"), attributes = mapOf("placeholder" to "Work address"))
+
+        assertTrue(target.matchesFreeText("input"))
+        assertTrue(target.matchesFreeText("email"))
+        assertTrue(target.matchesFreeText("form-field"))
+        assertTrue(target.matchesFreeText("work address"))
+        assertFalse(target.matchesFreeText("textarea"))
+    }
+
+    @Test
     fun `displayLabel prefers the node's own label and falls back to role then id`() {
         assertEquals("Button · Send", node(id = 1, role = "Button", text = "Send").displayLabel())
         assertEquals("Send", node(id = 1, text = "Send").displayLabel())

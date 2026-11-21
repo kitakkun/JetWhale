@@ -83,7 +83,9 @@ object NodeHitTesting {
  * Compose guarantees the order this relies on: its semantics children come from the layout's
  * z-sorted children, so `Modifier.zIndex` is already accounted for. An Android `ViewGroup` is
  * captured in child order instead, which is paint order until a view is raised by `elevation` or
- * `translationZ` — a raised sibling can therefore be missed as an obstruction.
+ * `translationZ` — a raised sibling can therefore be missed as an obstruction. HTML elements are
+ * captured in document order, which is paint order until CSS positioning or `z-index` raises one,
+ * with the same caveat.
  */
 private fun UiNode.topmostAt(screenX: Float, screenY: Float): UiNode? {
     if (!isVisible || !boundsInScreen.contains(screenX, screenY)) return null
@@ -137,6 +139,7 @@ private fun UiNode.withHits(isHittable: Boolean, obscuredBy: NodeRef?, children:
     is ComposeNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
     is ViewNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
     is AppleNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
+    is HtmlNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
 }
 
 /**

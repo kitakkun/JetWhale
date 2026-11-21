@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
@@ -30,6 +31,7 @@ private fun UiNode.withChildren(children: List<UiNode>): UiNode = when (this) {
     is ComposeNode -> copy(children = children)
     is ViewNode -> copy(children = children)
     is AppleNode -> copy(children = children)
+    is HtmlNode -> copy(children = children)
 }
 
 /** Depth-first walk, this node first. */

@@ -27,11 +27,14 @@ internal class FindNodesCommand(
 
     private val text by stringOrNull("Match the node's text (or a text field's current content).")
     private val contentDescription by stringOrNull("Match the node's contentDescription.")
-    private val testTag by stringOrNull("Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.")
+    private val testTag by stringOrNull(
+        "Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches accessibilityIdentifier, " +
+            "where a Compose testTag and a SwiftUI .accessibilityIdentifier both land, and on an HTML element its id.",
+    )
     private val resourceId by stringOrNull(
         "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. Compared whole, not by substring.",
     )
-    private val role by stringOrNull("Match the node's semantics role, e.g. Button, Checkbox, Tab, Image.")
+    private val role by stringOrNull("Match the node's semantics role, e.g. Button, Checkbox, Tab, Image, or an HTML element's role attribute.")
     private val interactiveOnly by booleanOrNull(
         "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
     )
