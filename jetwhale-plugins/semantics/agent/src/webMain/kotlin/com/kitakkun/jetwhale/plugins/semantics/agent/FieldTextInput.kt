@@ -58,9 +58,12 @@ internal class FieldTextInput(private val accessibilityDom: AccessibilityDom) {
         accessibilityDom.dispatchNonBubblingClick(element)
         val started = TimeSource.Monotonic.markNow()
         while (started.elapsedNow() < FIELD_INPUT_WAIT) {
-            val input = fieldInput()
+            val input = focusedFieldInput()
+            val inputBounds = focusedFieldInputBounds()
             val nodeBounds = accessibilityDom.boundsOf(element)
-            if (input != null && nodeBounds != null && fieldInputBox()?.isPlacedOver(nodeBounds) == true) return input
+            val isInputOverField = inputBounds != null && nodeBounds != null &&
+                inputBounds.centerX in nodeBounds.left..nodeBounds.right && inputBounds.centerY in nodeBounds.top..nodeBounds.bottom
+            if (input != null && isInputOverField) return input
             delay(POLL_INTERVAL)
         }
         return null
@@ -70,25 +73,23 @@ internal class FieldTextInput(private val accessibilityDom: AccessibilityDom) {
      * The input Compose keeps for the focused field, which it marks with `inputmode`. The other
      * `<textarea>` it puts there, briefly, to catch clipboard events, has no such attribute.
      */
-    private fun fieldInput(): HTMLElement? = accessibilityDom.canvasContainer?.children?.asList()?.firstOrNull { it.hasAttribute("inputmode") } as? HTMLElement
+    private fun focusedFieldInput(): HTMLElement? = accessibilityDom.canvasContainer?.children?.asList()?.firstOrNull { it.hasAttribute("inputmode") } as? HTMLElement
 
     /**
      * Where Compose places its input, from the composition's origin, as it sets it on the canvas's
-     * container. The input's own rectangle is no substitute: its CSS keeps it inside the browser's
-     * viewport, wherever the field is.
+     * container, or `null` while the input has no area, as before Compose first places it. The
+     * input's own rectangle is no substitute: its CSS keeps it inside the browser's viewport,
+     * wherever the field is.
      */
-    private fun fieldInputBox(): NodeBounds? {
+    private fun focusedFieldInputBounds(): NodeBounds? {
         val style = (accessibilityDom.canvasContainer as? HTMLElement)?.style ?: return null
         val left = style.getPropertyValue("--compose-internal-web-backing-input-left").toFloatOrNull() ?: return null
         val top = style.getPropertyValue("--compose-internal-web-backing-input-top").toFloatOrNull() ?: return null
         val width = style.getPropertyValue("--compose-internal-web-backing-input-width").toFloatOrNull() ?: return null
         val height = style.getPropertyValue("--compose-internal-web-backing-input-height").toFloatOrNull() ?: return null
-        return NodeBounds(left = left, top = top, right = left + width, bottom = top + height)
+        return NodeBounds(left = left, top = top, right = left + width, bottom = top + height).takeUnless(NodeBounds::isEmpty)
     }
 }
-
-/** Whether this box has been placed, which Compose marks by giving it a height, with its center in [bounds]. */
-private fun NodeBounds.isPlacedOver(bounds: NodeBounds): Boolean = height > 0f && centerX in bounds.left..bounds.right && centerY in bounds.top..bounds.bottom
 
 private val NOT_A_FIELD: NodeActionResult = NodeActionResult.notSupported("the node is not a text field")
 

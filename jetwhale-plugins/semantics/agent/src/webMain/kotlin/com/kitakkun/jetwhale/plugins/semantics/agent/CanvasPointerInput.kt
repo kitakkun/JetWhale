@@ -23,13 +23,13 @@ internal class CanvasPointerInput(private val canvas: HTMLElement, private val a
      * Turns the mouse wheel at the node's center by [scrollX] and [scrollY] CSS pixels, which
      * Compose for Web scrolls by as many dp, the same length. Each axis takes an event of its own,
      * because Compose reads a wheel event along its larger delta only, and the second waits out
-     * [WHEEL_LATCH]: until then Compose would hand it to whatever the first one scrolled.
+     * [WHEEL_LATCH_PERIOD]: until then Compose would hand it to whatever the first one scrolled.
      */
     suspend fun scrollBy(element: HTMLElement, scrollX: Float, scrollY: Float): NodeActionResult {
         if (scrollX == 0f && scrollY == 0f) return NodeActionResult(performed = false, message = "ScrollBy needs a scrollX or scrollY other than 0")
         val bounds = accessibilityDom.boundsOf(element)?.takeUnless(NodeBounds::isEmpty) ?: return NODE_WITHOUT_AREA
         if (scrollY != 0f) dispatchAtCenterOf(bounds) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = 0.0, deltaY = scrollY.toDouble()) }
-        if (scrollX != 0f && scrollY != 0f) delay(WHEEL_LATCH)
+        if (scrollX != 0f && scrollY != 0f) delay(WHEEL_LATCH_PERIOD)
         if (scrollX != 0f) dispatchAtCenterOf(bounds) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = scrollX.toDouble(), deltaY = 0.0) }
         return NodeActionResult(
             performed = true,
@@ -77,7 +77,7 @@ private val NODE_WITHOUT_AREA: NodeActionResult = NodeActionResult(
  * the event's axis: for as long as that scroll animates, at most 100 ms, and no less than 50 ms.
  * The rest is margin for slow frames.
  */
-private val WHEEL_LATCH: Duration = 300.milliseconds
+private val WHEEL_LATCH_PERIOD: Duration = 300.milliseconds
 
 /** Compose for Web takes a press for a long one after 500 ms; the rest is margin for the timers of a busy page. */
 private val LONG_PRESS_HOLD: Duration = 750.milliseconds

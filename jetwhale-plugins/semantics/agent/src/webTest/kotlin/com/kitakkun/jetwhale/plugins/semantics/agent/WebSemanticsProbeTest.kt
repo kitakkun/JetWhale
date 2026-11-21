@@ -212,13 +212,13 @@ class WebSemanticsProbeTest {
         probe = installJetWhaleSemanticsProbe()
         val counter = captureOnceTaggedNodeWritten(container, testTag = "counter").nodeWithTag("counter")
 
-        val bringIntoView = performNodeAction(nodeId = counter.id, action = NodeAction.BringIntoView)
-        val dismiss = performNodeAction(nodeId = counter.id, action = NodeAction.Dismiss)
+        val bringIntoViewResult = performNodeAction(nodeId = counter.id, action = NodeAction.BringIntoView)
+        val dismissResult = performNodeAction(nodeId = counter.id, action = NodeAction.Dismiss)
 
-        assertFalse(bringIntoView.performed)
-        assertTrue(bringIntoView.message.orEmpty().contains("not available on the web"), bringIntoView.message)
-        assertFalse(dismiss.performed)
-        assertTrue(dismiss.message.orEmpty().contains("not available on the web"), dismiss.message)
+        assertFalse(bringIntoViewResult.performed)
+        assertTrue(bringIntoViewResult.message.orEmpty().contains("not available on the web"), bringIntoViewResult.message)
+        assertFalse(dismissResult.performed)
+        assertTrue(dismissResult.message.orEmpty().contains("not available on the web"), dismissResult.message)
     }
 
     @Test
@@ -276,15 +276,15 @@ class WebSemanticsProbeTest {
         probe = installJetWhaleSemanticsProbe()
         val field = captureOnceTaggedNodeWritten(container, testTag = "field").nodeWithTag("field")
 
-        val first = typeText(nodeId = field.id, action = NodeAction.SetText, text = "new")
-        val afterFirst = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
-        val second = typeText(nodeId = field.id, action = NodeAction.SetText, text = "newer")
-        val afterSecond = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
+        val firstResult = typeText(nodeId = field.id, action = NodeAction.SetText, text = "new")
+        val valueAfterFirst = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
+        val secondResult = typeText(nodeId = field.id, action = NodeAction.SetText, text = "newer")
+        val valueAfterSecond = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
 
-        assertTrue(first.performed, first.message)
-        assertEquals("value=new", afterFirst)
-        assertTrue(second.performed, second.message)
-        assertEquals("value=newer", afterSecond)
+        assertTrue(firstResult.performed, firstResult.message)
+        assertEquals("value=new", valueAfterFirst)
+        assertTrue(secondResult.performed, secondResult.message)
+        assertEquals("value=newer", valueAfterSecond)
     }
 
     @Test
@@ -326,12 +326,12 @@ class WebSemanticsProbeTest {
     @Test
     fun `text for a disabled field is refused and stays out of the field that has focus`() = runTestInRealTime {
         val container = renderViewport(isA11YEnabled = true) {
-            val focusedState = rememberTextFieldState("")
-            val disabledState = rememberTextFieldState("")
+            val focusedFieldState = rememberTextFieldState("")
+            val disabledFieldState = rememberTextFieldState("")
             Column {
-                BasicTextField(focusedState, Modifier.testTag("focused"))
-                BasicTextField(disabledState, Modifier.testTag("disabled"), enabled = false)
-                BasicText("focused=${focusedState.text} disabled=${disabledState.text}", Modifier.testTag("values"))
+                BasicTextField(focusedFieldState, Modifier.testTag("focused"))
+                BasicTextField(disabledFieldState, Modifier.testTag("disabled"), enabled = false)
+                BasicText("focused=${focusedFieldState.text} disabled=${disabledFieldState.text}", Modifier.testTag("values"))
             }
         }
         probe = installJetWhaleSemanticsProbe()
