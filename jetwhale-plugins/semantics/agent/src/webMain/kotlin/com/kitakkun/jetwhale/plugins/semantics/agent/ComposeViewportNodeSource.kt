@@ -95,14 +95,20 @@ internal class ComposeViewportNodeSource(
                     message = roleHidingClick?.let { "the page marks this node `$it`, which hides whether it takes a click: the click was sent, and does nothing if the node has no OnClick" },
                 )
             }
+
             NodeAction.LongClick -> canvasPointerInput.longClick(element)
+
             NodeAction.ScrollBy -> canvasPointerInput.scrollBy(element, scrollX = request.scrollX, scrollY = request.scrollY)
+
             NodeAction.SetText -> request.text?.let { fieldTextInput.replaceText(element, it) } ?: NodeActionResult.missingArgument(NodeAction.SetText, "text")
+
             NodeAction.InsertText -> request.text?.let { fieldTextInput.insertTextAtCursor(element, it) } ?: NodeActionResult.missingArgument(NodeAction.InsertText, "text")
+
             NodeAction.BringIntoView -> NodeActionResult.notSupported(
                 "BringIntoView is not available on the web: the page gives a node's bounds only as far as they show, which does not tell how far its containers " +
                     "would have to scroll. Scroll a container with ScrollBy and capture again",
             )
+
             NodeAction.ImeAction,
             NodeAction.ScrollToIndex,
             NodeAction.RequestFocus,
