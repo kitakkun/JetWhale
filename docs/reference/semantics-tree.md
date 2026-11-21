@@ -14,10 +14,10 @@ does, carrying its label and its `OnClick` action.
 | Android | Compose, plus the Android `View`s around and inside the composition | One window; a dialog or popup is a root of its own | pixels (`"px"`) |
 | Desktop (JVM) | Compose, through the window's `SemanticsOwner`s | One composition; a dialog or popup is a root of its own | pixels |
 | iOS | The accessibility protocol, which UIKit, SwiftUI and Compose all publish into | One `UIWindow`; a sheet or alert stays inside the window that showed it | points (`"pt"`) |
-| Web (JS and Wasm) | The accessibility DOM Compose keeps in the page for screen readers | One `ComposeViewport` | CSS pixels (`"px"`) |
+| Web (JS and Wasm) | The accessibility DOM Compose keeps in the page for screen readers, plus the HTML elements embedded with `HtmlElementView` | One `ComposeViewport` | CSS pixels (`"px"`) |
 
 Every node in the MCP JSON names its `unit`, and every root reports its own `windowOffset`. A node's
-`type` is `"compose"`, `"view"` or `"apple"`; all three fill the same fields — `text`,
+`type` is `"compose"`, `"view"`, `"apple"` or `"html"`; all four fill the same fields — `text`,
 `contentDescription`, `bounds`, `actions`, and the `enabled` / `clickable` / `editable` /
 `scrollable` flags — so a consumer that only reads the tree needs no special cases. Host and agent
 have to be built against the same protocol version: a node type the other side does not know fails
@@ -148,20 +148,22 @@ that has one:
 | `LongClick` | not available | | |
 
 A secure field's contents are never captured: a password field stays `isEditable` with no
-`editableText`, on Android as on iOS.
+`editableText`, on Android as on iOS, and in [HTML](#html-elements) on the web.
 
 ## Web nodes
 
 Compose for Web hands out no `SemanticsOwner` either, so on JS and Wasm the capture reads what a
 `ComposeViewport` writes into the page for screen readers: the **accessibility DOM** in the
 viewport's shadow root, one element per node of the merged semantics tree, nested as the nodes are.
-Every viewport in the page is a root of its own, and its nodes are `"compose"` nodes:
+Every viewport in the page is a root of its own. Its nodes are `"compose"` nodes, followed by the
+[HTML elements](#html-elements) the app embeds:
 
 ```
 ComposeViewport <body>                    ← the root; one per ComposeViewport
 └─ node                                   ← the semantics tree's root node
    ├─ node "Hello" · greeting             ← a Text, testTag and all
-   └─ Button · desc="Send"                ← any clickable node reads as a Button
+   ├─ Button · desc="Send"                ← any clickable node reads as a Button
+   └─ input#email.field                   ← an HtmlElementView's element, after the Compose content
 ```
 
 | | on the web |
@@ -182,7 +184,7 @@ scrolled out of sight is neither visible nor hittable. `merged` has no effect: t
 only.
 
 That is all Compose 1.11 writes, so everything else reads as its default: as far as a capture can
-tell, no node is disabled, focused, selected, toggled or scrollable. And:
+tell, no Compose node is disabled, focused, selected, toggled or scrollable. And:
 
 - **A field's content is not read.** Compose 1.11 writes a password field's text into the page in
   plain text without marking the field as one, so the only way to capture no password is to capture
@@ -198,7 +200,6 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
 - **A `Dialog` or `Popup` takes the capture over.** Compose 1.11 writes only the newest layer into
   the page: while a dialog is open the capture shows its content alone, and once it closes Compose
   stops writing, so captures come back empty from then on.
-- **HTML embedded with `HtmlElementView` is not captured**; the tree holds Compose nodes only.
 - **A `ComposeViewport` inside another component's shadow root is not found.** The probe looks
   through the document, which a shadow root keeps its content out of.
 - **A viewport created with `isA11YEnabled = false` keeps no accessibility DOM.** It is registered
@@ -206,7 +207,7 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
 
 Compose does not write the DOM as the semantics change: it waits until they have been still for
 100 ms, and while they keep changing it writes once a second. So a capture waits until the DOM has
-been still for 150 ms and, after a `Click`, until Compose has written it again, for at most 1.2 s. A
+been still for 150 ms and, after an action, until Compose has written it again, for at most 1.2 s. A
 capture just after a change takes that much longer, an action that changes nothing makes the next
 capture wait the full 1.2 s, and a screen in constant motion is read as Compose last wrote it, up to
 a second old.
@@ -214,6 +215,53 @@ a second old.
 The [highlight](/guide/compose-semantics-inspector#highlighting-on-the-device) is an element over the
 canvas in the viewport's shadow root, outside the accessibility DOM, so it never appears in a
 capture. It moves as Compose rewrites its node and goes when the node does.
+
+### HTML elements
+
+An element the app embeds with `HtmlElementView` sits over the canvas, outside the accessibility
+DOM, and is reported as an `"html"` node with the elements inside it as its children. It is a child
+of the viewport's **root node**, after the Compose content, and not of the composable that hosts it:
+Compose gives an `HtmlElementView` no semantics node of its own on the web, and nothing in the page
+links the element to one. The elements follow one another in the order Compose stacks them, the
+last on top, which is also how they take a tap ahead of the canvas. The `div` Compose wraps each
+element in is left out.
+
+| | an HTML element |
+|---|---|
+| `id` | **negative**, assigned by the agent, and stable while the element stays in the page |
+| `tagName` | the tag in lower case, such as `input` |
+| `elementId` | the element's `id` attribute; a `testTag` query matches it |
+| `cssClasses` | the element's classes |
+| `attributes` | whichever of `type`, `name`, `href`, `role`, `placeholder`, `title` and `alt` it has; a `role` query matches `role` |
+| `text` | the element's own text, not its children's, with runs of whitespace read as one space |
+| `editableText` | what an `<input>` of a text type, a `<textarea>` or a `contenteditable` element holds |
+| `contentDescription` | `aria-label` |
+| `toggleableState` | a checkbox's or radio button's state, or `aria-checked` |
+| `enabled` / `focused` / `selected` | `:disabled`, the focused element, and `aria-selected` |
+| `clickable` | an interactive tag (a link, a button, a form control, `<label>`, `<summary>`), a clickable ARIA role, `contenteditable`, or an `onclick` handler |
+| `scrollable` | the element scrolls its overflow and has some to scroll |
+
+Bounds are CSS pixels like the rest of the viewport, and a node's screen bounds are clipped to what
+Compose shows of the element as well, so one scrolled partly out of a list reads as partly visible.
+
+- **A field's content is read, unless the page masks it.** An `<input type="password">`, and a
+  field drawn as discs through `-webkit-text-security`, stay `editable` with no `editableText`; any
+  other field's content is captured, as an Android `EditText`'s is. Compose fields are treated
+  differently because Compose does not mark its password fields in the page, as described above;
+  HTML does. A field's child elements are its content and are not reported as nodes of their own,
+  and neither are the shapes inside an `<svg>`.
+- **`Click` calls the element's `click()`.** It bubbles, so a handler a framework put on an ancestor
+  runs, and the element does what a click does: a checkbox toggles, a link is followed. A disabled
+  element is refused. A listener added with `addEventListener`, which is how most frameworks handle
+  clicks, cannot be seen from the page, so `Click` is advertised only where the element is clickable
+  by the table above, but it is sent to any element, with a note when the page shows no handler.
+- **`SetText` and `InsertText` type into a field.** The field takes focus, its content changes —
+  `InsertText` puts the text in at the cursor, or at the end of a field that keeps none — and an
+  `input` event follows, then a `change` event on an `<input>` or `<textarea>`. The value is written
+  through `HTMLInputElement`'s or `HTMLTextAreaElement`'s own setter, so React's `onChange` sees it.
+  A disabled or read-only field is refused. Every other action comes back `performed: false`.
+- **A capture is bounded**: at most 1,000 elements per viewport, and nothing deeper than 32 levels
+  in the tree.
 
 ## Reachability
 
@@ -269,7 +317,8 @@ match case-insensitively by substring unless `exact` is set; `resourceId` is alw
 because it is an identifier rather than a label. With no criteria it lists everything interactive on
 screen, a good way to answer "what can I do here?". Add `operableOnly: true` to narrow that to what
 the user could operate right now. An Android `View` node is marked `"kind": "View"` and carries its
-`viewClass` and `resourceId`.
+`viewClass` and `resourceId`; an HTML element is marked `"kind": "HTML"` and carries its `tagName`,
+`elementId`, `cssClasses` and `attributes`.
 
 ### `com.kitakkun.jetwhale.semantics.getNodeTree`
 
@@ -298,9 +347,10 @@ root compose-root-1f2e "MainActivity" unit=px density=2.0
 ```
 
 Each line starts with the node's role (a Compose node), its class (an Android View or an iOS node),
-or `node` when it has neither, then `#id`; with the root line's `rootId`, that is the pair
-`performNodeAction` takes. What follows is only what is present: the text in quotes, `desc=`,
-`input=` (a text field's content), `toggle=`, `tag=` / `resId=` / `axId=`, the surprising side of each
+its tag name (an HTML element), or `node` when it has none of these, then `#id`; with the root
+line's `rootId`, that is the pair `performNodeAction` takes. What follows is only what is present:
+the text in quotes, `desc=`, `input=` (a text field's content), `toggle=`, `tag=` / `resId=` /
+`axId=` / `elementId=`, an HTML element's `class=` and attributes, the surprising side of each
 flag in brackets (`[clickable]`, `[disabled]`, `[unhittable]`, …), `actions=` (the names
 `performNodeAction` accepts), and the `tap` point in the root's `unit`. Text is quoted as a JSON
 string, so a quote or a line break in it cannot break the line. Bounds are left out; ask for JSON
@@ -321,8 +371,9 @@ Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertT
 `ScrollBy`, `ScrollToIndex`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`, plus `BringIntoView`,
 which works on any node. Only what a node lists in `actions` can be invoked, except `BringIntoView`.
 On an Android `View` node it runs the [view's own equivalent](#android-view-nodes); on iOS, the
-[accessibility protocol's](#ios-nodes); on the web, `Click` alone, through the
-[accessibility DOM](#web-nodes).
+[accessibility protocol's](#ios-nodes); on the web, `Click` alone on a Compose node, through the
+[accessibility DOM](#web-nodes), and `Click`, `SetText` and `InsertText` on an
+[HTML element](#html-elements).
 
 It needs no coordinates and cannot land on whatever moved into that spot meanwhile, so prefer it
 over `adb shell input tap`. It is also the more reliable route: on the emulator used for the

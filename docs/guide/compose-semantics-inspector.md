@@ -5,8 +5,8 @@ labels, its bounds and the actions it exposes — and lets you browse it in the 
 AI agent over [MCP](/guide/mcp-server). On Android and desktop that is the Compose tree, with the
 Android `View`s around it; on iOS it is the accessibility tree, which carries UIKit, SwiftUI and
 Compose content alike; on the web it is the accessibility DOM Compose keeps in the page for screen
-readers. A capture takes about 14 ms, so an agent can read the screen between every action instead
-of guessing at pixels.
+readers, with the HTML elements the app embeds. A capture takes about 14 ms, so an agent can read
+the screen between every action instead of guessing at pixels.
 
 **Works with:** Android, desktop (JVM), iOS and the web (JS and Wasm). The web carries the least; see
 [Limits](#limits).
@@ -159,8 +159,10 @@ Select your app, open **Compose Semantics Inspector**, and press **Refresh**.
 
 Select a node to see its full semantics, with a button for every action it exposes, and **Copy
 `adb shell input tap`** (**Copy `idb ui tap`** for an iOS node) for when you do want the input
-system. A row marked **not operable** offers something to do that a user could not do right now,
-because the node is disabled or a touch would not reach it; see
+system. Rows from outside Compose carry a tag that says where they come from: **View** for an
+Android `View`, **iOS** for an iOS node and **HTML** for an HTML element on the web, whose attributes
+are listed with its semantics. A row marked **not operable** offers something to do that a user
+could not do right now, because the node is disabled or a touch would not reach it; see
 [Reachability](/reference/semantics-tree#reachability). The host also shows what the capture cost on
 the device and the round trip.
 
@@ -183,9 +185,9 @@ changed live, so you can try a change without a rebuild. The full list is in the
 ### Highlighting on the device
 
 Turn on **Highlight** and the app draws a translucent box over the selected node; hovering a row
-shows that node instead while the pointer is on it. It works for Compose and `View` nodes alike, and
-a node in a dialog is highlighted in the dialog's own window. On the web the box is an element over
-the viewport's canvas.
+shows that node instead while the pointer is on it. It works for Compose, `View` and HTML nodes
+alike, and a node in a dialog is highlighted in the dialog's own window. On the web the box is an
+element over the viewport's canvas.
 
 - **It is off by default, on purpose.** The box is drawn into the app, so anything that takes a
   screenshot of the device while it is up captures it too — a `screencap`, the
@@ -236,11 +238,13 @@ the tool names: the selected node's actions are ringed whichever node the agent 
 ## Limits
 
 - **On the web** a capture holds only what Compose 1.11 writes into the page for screen readers:
-  text, content description, test tag, role, bounds and a click. No node reads as disabled,
-  focused, selected, toggled or scrollable, a field's content is not read, and `Click` is the only
-  action; it runs even on a disabled node. While a `Dialog` or `Popup` is open the capture shows only
-  its content, and once it closes Compose stops updating the page, so captures come back empty. A
-  capture waits for Compose to finish writing the page, up to about a second after a change. See
+  text, content description, test tag, role, bounds and a click. No Compose node reads as disabled,
+  focused, selected, toggled or scrollable, a Compose field's content is not read, and `Click` is the
+  only action; it runs even on a disabled node. While a `Dialog` or `Popup` is open the capture shows
+  only its content, and once it closes Compose stops updating the page, so captures come back empty.
+  A capture waits for Compose to finish writing the page, up to about a second after a change. An
+  HTML element embedded with `HtmlElementView` appears under the viewport's root node rather than
+  under the composable that hosts it, which the page does not say. See
   [Web nodes](/reference/semantics-tree#web-nodes).
 - **A window with no Compose in it is not captured**, such as a plain `AlertDialog` built from views:
   this plugin inspects Compose apps, not views in general.
@@ -250,7 +254,8 @@ the tool names: the selected node's actions are ringed whichever node the agent 
   `ScrollToIndex`, `LongClick` is not available, and a Compose `role` is folded into label and
   traits; see [iOS nodes](/reference/semantics-tree#ios-nodes).
 - **A secure field's contents are never captured**: a password field reads as editable, with no
-  text.
+  text. On the web no Compose field's content is captured at all, since Compose does not mark its
+  password fields there.
 
 ## Troubleshooting
 
