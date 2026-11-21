@@ -18,7 +18,9 @@ import org.w3c.dom.asList
  * `contenteditable` on an editable node, and its bounds. A click listener runs the node's `OnClick`.
  * That is the whole of what a capture can report. The page says nothing of a node's enabled,
  * focused, selected, toggled or scrollable state, or of any other action, so those read as their
- * defaults.
+ * defaults. A field lists `SetText` and `InsertTextAtCursor` besides its click, as an editable
+ * Compose field does. The page does not say which fields are read-only or disabled, so those list
+ * them too, and typing into one comes back not performed.
  *
  * @param canvasLeft where the canvas sits in the browser's viewport now, in CSS pixels; with
  *   [canvasTop], what turns a node's bounds in the composition into its bounds on screen.
@@ -69,7 +71,11 @@ internal class AccessibilityDomCapture(
             testTag = element.id.takeIf(String::isNotEmpty),
             bounds = bounds,
             boundsInScreen = boundsInScreen,
-            actions = listOfNotNull(NodeAction.Click.advertisedAs.takeIf { element.isClickableNode }),
+            actions = listOfNotNull(
+                NodeAction.Click.advertisedAs.takeIf { element.isClickableNode },
+                NodeAction.SetText.advertisedAs.takeIf { element.isEditableNode },
+                NodeAction.InsertText.advertisedAs.takeIf { element.isEditableNode },
+            ),
             isClickable = element.isClickableNode,
             isEditable = element.isEditableNode,
             isVisible = visible,
@@ -87,7 +93,7 @@ internal class AccessibilityDomCapture(
 internal val HTMLElement.isClickableNode: Boolean
     get() = getAttribute("role") == "button" || isEditableNode
 
-private val HTMLElement.isEditableNode: Boolean
+internal val HTMLElement.isEditableNode: Boolean
     get() = getAttribute("contenteditable") == "true"
 
 /** The child elements that are nodes; the others are the `<br>`s Compose writes into a text with line breaks. */

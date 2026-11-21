@@ -187,11 +187,6 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
 - **A field's content is not read.** Compose 1.11 writes a password field's text into the page in
   plain text without marking the field as one, so the only way to capture no password is to capture
   no field's content: a field is `editable`, with no `text` or `editableText`.
-- **`Click` is the only action.** It runs the node's `OnClick` through the listener Compose put on
-  the element, and that node's alone, not those of the clickable nodes around it. The page does not
-  say whether a node is disabled and that listener does not check, so **`Click` runs a disabled
-  node's `onClick`**, as a screen reader's activation would. Every other action, `BringIntoView`
-  included, comes back `performed: false` saying so.
 - **A clickable heading or collection does not read as clickable.** Compose marks it `heading`,
   `list` or `grid` instead of `button`, so a capture cannot tell. `Click` is still sent to such a
   node, with a message saying it does nothing if the node has no `OnClick`.
@@ -204,12 +199,34 @@ tell, no node is disabled, focused, selected, toggled or scrollable. And:
 - **A viewport created with `isA11YEnabled = false` keeps no accessibility DOM.** It is registered
   all the same, and its captures come back with a warning saying so.
 
+`performNodeAction` drives a node through what the page offers: the click listener Compose put on
+its element, and otherwise the input Compose reads from the canvas and from the field it focuses,
+which the agent synthesizes:
+
+| Action | On the web |
+|---|---|
+| `Click` | the listener Compose put on the element: that node's `OnClick` alone, not those of the clickable nodes around it. The listener does not check whether the node is enabled and the page does not say, so **`Click` runs a disabled node's `onClick`**, as a screen reader's activation would |
+| `LongClick` | the mouse's primary button pressed on the canvas at the node's center, held for 750 ms, past Compose's 500 ms, and released |
+| `ScrollBy` | the mouse wheel turned on the canvas at the node's center, by `scrollX` and `scrollY` CSS pixels, which Compose scrolls by as many dp. A scroll on both axes takes two turns: the horizontal one waits for Compose to write the DOM after the vertical one, and goes to the node's center as that left it |
+| `SetText` / `InsertText` | listed on every field. The agent clicks the field to focus it and types into the `<input>` or `<textarea>` Compose opens beside the canvas for the focused field, with a `beforeinput` event; `SetText` selects the whole input first, which reads nothing of it. A read-only or disabled field opens none, and after waiting up to 1.2 s for one the action comes back `performed: false` |
+| `BringIntoView` | not available: the page gives a node's bounds only as far as they show, which does not tell how far its containers would have to scroll. Scroll a container with `ScrollBy` and capture again |
+| any other | not available |
+
+The page does not say which nodes take a long click or scroll, so no node lists `OnLongClick` or
+reads `scrollable`, and `LongClick` and `ScrollBy` go to any node with an area, saying so in their
+`message`. Being pointer input, they reach whatever Compose draws at the node's center: the node, a
+child of it that handles the input itself, or a container around it, so `ScrollBy` on a list item
+scrolls the list. A node with `OnClick` alone takes a long press as a click. Unlike `Click`, they
+can land on a node drawn over the one asked for.
+
 Compose does not write the DOM as the semantics change: it waits until they have been still for
 100 ms, and while they keep changing it writes once a second. So a capture waits until the DOM has
-been still for 150 ms and, after a `Click`, until Compose has written it again, for at most 1.2 s. A
-capture just after a change takes that much longer, an action that changes nothing makes the next
-capture wait the full 1.2 s, and a screen in constant motion is read as Compose last wrote it, up to
-a second old.
+been still for 150 ms and, after an action, until Compose has written it again, for at most 1.2 s.
+`LongClick` and `ScrollBy` wait the same way before they act, so the pointer lands where the node is
+now rather than where the previous action left the DOM, and actions on one viewport run one at a
+time. A capture just after a change takes that
+much longer, an action that changes nothing makes the next capture wait the full 1.2 s, and a screen
+in constant motion is read as Compose last wrote it, up to a second old.
 
 The [highlight](/guide/compose-semantics-inspector#highlighting-on-the-device) is an element over the
 canvas in the viewport's shadow root, outside the accessibility DOM, so it never appears in a
@@ -321,8 +338,8 @@ Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertT
 `ScrollBy`, `ScrollToIndex`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`, plus `BringIntoView`,
 which works on any node. Only what a node lists in `actions` can be invoked, except `BringIntoView`.
 On an Android `View` node it runs the [view's own equivalent](#android-view-nodes); on iOS, the
-[accessibility protocol's](#ios-nodes); on the web, `Click` alone, through the
-[accessibility DOM](#web-nodes).
+[accessibility protocol's](#ios-nodes); on the web, the element's click or input the agent
+synthesizes, and there `LongClick` and `ScrollBy` work on any node too; see [Web nodes](#web-nodes).
 
 It needs no coordinates and cannot land on whatever moved into that spot meanwhile, so prefer it
 over `adb shell input tap`. It is also the more reliable route: on the emulator used for the

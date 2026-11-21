@@ -237,10 +237,12 @@ the tool names: the selected node's actions are ringed whichever node the agent 
 
 - **On the web** a capture holds only what Compose 1.11 writes into the page for screen readers:
   text, content description, test tag, role, bounds and a click. No node reads as disabled,
-  focused, selected, toggled or scrollable, a field's content is not read, and `Click` is the only
-  action; it runs even on a disabled node. While a `Dialog` or `Popup` is open the capture shows only
-  its content, and once it closes Compose stops updating the page, so captures come back empty. A
-  capture waits for Compose to finish writing the page, up to about a second after a change. See
+  focused, selected, toggled or scrollable, and a field's content is not read. `Click`,
+  `LongClick`, `ScrollBy`, `SetText` and `InsertText` work, all but `Click` through input the agent
+  synthesizes on the page; `Click` runs even on a disabled node, and `BringIntoView` is not
+  available. While a `Dialog` or `Popup` is open the capture shows only its content, and once it
+  closes Compose stops updating the page, so captures come back empty. A capture waits for Compose
+  to finish writing the page, up to about a second after a change. See
   [Web nodes](/reference/semantics-tree#web-nodes).
 - **A window with no Compose in it is not captured**, such as a plain `AlertDialog` built from views:
   this plugin inspects Compose apps, not views in general.

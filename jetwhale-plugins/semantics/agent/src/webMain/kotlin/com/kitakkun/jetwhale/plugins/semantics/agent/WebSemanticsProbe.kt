@@ -25,8 +25,10 @@ import kotlin.js.toList
  * instead: the accessibility DOM a `ComposeViewport` keeps in its shadow root for screen readers,
  * one element per node of the merged semantics tree. That DOM carries a node's text, content
  * description, test tag, role, bounds and click, and nothing more, so that is what a capture
- * reports and `Click` the one action it runs. A viewport created with `isA11YEnabled = false` keeps
- * no such DOM; it is registered all the same, and its captures say why they come back empty.
+ * reports. `Click` runs through the element. `LongClick` and `ScrollBy` are a mouse press and a
+ * wheel turned on the canvas at the node's center, and `SetText` and `InsertText` are typed into
+ * the input Compose opens for a focused field. A viewport created with `isA11YEnabled = false`
+ * keeps no such DOM; it is registered all the same, and its captures say why they come back empty.
  *
  * The install is process-wide and idempotent: calling it twice returns the same handle. Closing it
  * unregisters every viewport and stops watching the document.

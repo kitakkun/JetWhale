@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.MutationObserver
+import org.w3c.dom.events.Event
 
 /**
  * The accessibility DOM of one `ComposeViewport`: the `#cmp_a11y_root` element Compose keeps in the
@@ -36,6 +37,16 @@ internal class AccessibilityDom(private val accessibilityRoot: HTMLElement) {
         return AutoCloseable(observer::disconnect)
     }
 
+    /**
+     * Runs the click listener Compose put on [element], and only that one. `HTMLElement.click()`
+     * bubbles, and Compose nests the elements as it nests the nodes and puts a listener on every
+     * clickable one, so a click on a button inside a clickable row would run the row's `OnClick`
+     * as well.
+     */
+    fun dispatchNonBubblingClick(element: HTMLElement) {
+        element.dispatchEvent(nonBubblingClickEvent())
+    }
+
     /** Where [element]'s node sits in the composition, in CSS pixels, or `null` when the DOM has no root element. */
     fun boundsOf(element: HTMLElement): NodeBounds? {
         val origin = semanticsRootElement?.getBoundingClientRect() ?: return null
@@ -48,3 +59,6 @@ internal class AccessibilityDom(private val accessibilityRoot: HTMLElement) {
         )
     }
 }
+
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun nonBubblingClickEvent(): Event = js("new MouseEvent('click', { bubbles: false, cancelable: true })")

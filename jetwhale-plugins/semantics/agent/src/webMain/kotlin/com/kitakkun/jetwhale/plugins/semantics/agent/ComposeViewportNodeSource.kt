@@ -9,10 +9,11 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.ShadowRoot
-import org.w3c.dom.events.Event
 import kotlin.time.Duration
 
 /**
@@ -36,6 +37,9 @@ internal class ComposeViewportNodeSource(
     private val elementIds = AccessibilityElementIds(accessibilityDom)
     private val changeWatcher = AccessibilityDomChangeWatcher(accessibilityDom)
     private val highlightBox = NodeHighlightBox(accessibilityDom)
+    private val canvasPointerInput = CanvasPointerInput(canvas, accessibilityDom, changeWatcher)
+    private val fieldTextInput = FieldTextInput(accessibilityDom, changeWatcher)
+    private val actionMutex = Mutex()
     private var unregistered = false
 
     override fun onUnregistered() {
@@ -71,26 +75,56 @@ internal class ComposeViewportNodeSource(
         )
     }
 
-    override suspend fun performAction(request: PerformNodeAction): NodeActionResult {
+    /**
+     * Runs one action at a time: the viewport has one mouse and one focused field, and an action
+     * holds them across suspensions, as a long click holds the button down.
+     */
+    override suspend fun performAction(request: PerformNodeAction): NodeActionResult = actionMutex.withLock {
+        // A pointer lands where the DOM last placed the node, which right after an earlier action
+        // is where the node was before it; and until an earlier scroll ends, Compose hands every
+        // wheel event to the scrollable it moved.
+        if (request.action in ACTIONS_AIMED_BY_NODE_BOUNDS) changeWatcher.awaitSettled()
         if (!accessibilityDom.isConnected) return NodeActionResult(performed = false, message = VIEWPORT_GONE)
         val element = elementIds.elementOf(request.nodeId)
             ?: return NodeActionResult(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left this viewport; capture the tree again)",
             )
-        if (request.action != NodeAction.Click) {
-            return NodeActionResult.notSupported("${request.action} is not available on the web: Compose's accessibility DOM carries a node's click and no other action")
+        when (request.action) {
+            NodeAction.Click -> {
+                val roleHidingClick = element.getAttribute("role")?.takeIf { it in ROLES_HIDING_CLICK }
+                if (!element.isClickableNode && roleHidingClick == null) return NodeActionResult.notSupported("the node is not clickable")
+                // Compose's click listener runs OnClick without checking that the node is enabled,
+                // which the page does not say, so a disabled node is clicked too.
+                changeWatcher.expectChangeFromAction()
+                accessibilityDom.dispatchNonBubblingClick(element)
+                NodeActionResult(
+                    performed = true,
+                    message = roleHidingClick?.let { "the page marks this node `$it`, which hides whether it takes a click: the click was sent, and does nothing if the node has no OnClick" },
+                )
+            }
+
+            NodeAction.LongClick -> canvasPointerInput.longClick(element)
+
+            NodeAction.ScrollBy -> canvasPointerInput.scrollBy(element, scrollX = request.scrollX, scrollY = request.scrollY)
+
+            NodeAction.SetText -> request.text?.let { fieldTextInput.replaceText(element, it) } ?: NodeActionResult.missingArgument(NodeAction.SetText, "text")
+
+            NodeAction.InsertText -> request.text?.let { fieldTextInput.insertTextAtCursor(element, it) } ?: NodeActionResult.missingArgument(NodeAction.InsertText, "text")
+
+            NodeAction.BringIntoView -> NodeActionResult.notSupported(
+                "BringIntoView is not available on the web: the page gives a node's bounds only as far as they show, which does not tell how far its containers " +
+                    "would have to scroll. Scroll a container with ScrollBy and capture again",
+            )
+
+            NodeAction.ImeAction,
+            NodeAction.ScrollToIndex,
+            NodeAction.RequestFocus,
+            NodeAction.Dismiss,
+            NodeAction.Expand,
+            NodeAction.Collapse,
+            -> NodeActionResult.notSupported("${request.action} is not available on the web: the page carries a node's click alone, and no input event stands in for this action")
         }
-        val roleHidingClick = element.getAttribute("role")?.takeIf { it in ROLES_HIDING_CLICK }
-        if (!element.isClickableNode && roleHidingClick == null) return NodeActionResult.notSupported("the node is not clickable")
-        // Compose's click listener runs the node's OnClick without checking whether the node is
-        // enabled, and the page does not say, so a disabled node is clicked too.
-        element.dispatchEvent(nonBubblingClickEvent())
-        changeWatcher.expectChangeFromAction()
-        return NodeActionResult(
-            performed = true,
-            message = roleHidingClick?.let { "the page marks this node `$it`, which hides whether it takes a click: the click was sent, and does nothing if the node has no OnClick" },
-        )
     }
 
     override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult {
@@ -120,6 +154,18 @@ internal class ComposeViewportNodeSource(
         return HighlightResult(shown = true)
     }
 }
+
+/**
+ * The actions that find their target by where the DOM places the node: a pointer lands at its
+ * center, and text goes to the input Compose places over it.
+ */
+private val ACTIONS_AIMED_BY_NODE_BOUNDS: Set<NodeAction> = setOf(NodeAction.LongClick, NodeAction.ScrollBy, NodeAction.SetText, NodeAction.InsertText)
+
+/**
+ * The roles Compose writes over `button` for a node that also has `OnClick`, still wiring the click
+ * listener into its element: a clickable heading or collection reads as one of these alone.
+ */
+private val ROLES_HIDING_CLICK: Set<String> = setOf("heading", "list", "grid")
 
 /**
  * Where this element can be seen right now, in CSS pixels from the browser viewport's corner: the
@@ -166,17 +212,3 @@ private fun NodeBounds.clippedByOverflowOf(element: Element): NodeBounds {
 private fun Element.parentElementOrShadowHost(): Element? = parentElement ?: (parentNode as? ShadowRoot)?.host
 
 private const val VIEWPORT_GONE: String = "the viewport is no longer in the page"
-
-/**
- * The roles Compose writes over `button` for a node that also has `OnClick`, still wiring the click
- * listener into its element: a clickable heading or collection reads as one of these alone.
- */
-private val ROLES_HIDING_CLICK: Set<String> = setOf("heading", "list", "grid")
-
-/**
- * A click for one element alone. `HTMLElement.click()` bubbles, and Compose nests the elements as
- * it nests the nodes and puts a listener on every clickable one, so a click on a button inside a
- * clickable row would run the row's `OnClick` as well.
- */
-@OptIn(ExperimentalWasmJsInterop::class)
-private fun nonBubblingClickEvent(): Event = js("new MouseEvent('click', { bubbles: false, cancelable: true })")
