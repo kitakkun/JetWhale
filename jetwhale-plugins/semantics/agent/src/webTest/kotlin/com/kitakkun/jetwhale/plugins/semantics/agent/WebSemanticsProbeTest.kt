@@ -5,6 +5,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -39,6 +41,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
@@ -63,7 +68,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class WebSemanticsProbeTest {
     private val containers = mutableListOf<HTMLElement>()
@@ -262,6 +269,78 @@ class WebSemanticsProbeTest {
 
         assertTrue(result.performed, result.message)
         assertEquals("clicks=0 long=1", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("clicks").text)
+    }
+
+    @Test
+    fun `ScrollBy turns the wheel horizontally over the row it named after the vertical turn moved that row`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val columnScrollState = rememberScrollState()
+            val rowScrollStates = List(5) { rememberScrollState() }
+            val density = LocalDensity.current
+            Column {
+                Column(Modifier.size(100.dp).verticalScroll(columnScrollState)) {
+                    rowScrollStates.forEachIndexed { index, rowScrollState ->
+                        Row(Modifier.size(100.dp, 40.dp).testTag("row-$index").horizontalScroll(rowScrollState)) {
+                            Box(Modifier.size(400.dp, 40.dp))
+                        }
+                    }
+                }
+                val scrolled = (listOf(columnScrollState) + rowScrollStates).map { with(density) { it.value.toDp().value.roundToInt() } }
+                BasicText("column=${scrolled[0]} rows=${scrolled.drop(1).joinToString(",")}", Modifier.testTag("scrolled"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val secondRow = captureOnceTaggedNodeWritten(container, testTag = "row-1").nodeWithTag("row-1")
+
+        val result = scrollNodeBy(nodeId = secondRow.id, scrollX = 30f, scrollY = 40f)
+
+        assertTrue(result.performed, result.message)
+        assertEquals("column=40 rows=0,30,0,0,0", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("scrolled").text)
+    }
+
+    @Test
+    fun `actions sent together run one after the other`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val firstFieldState = rememberTextFieldState("")
+            val secondFieldState = rememberTextFieldState("")
+            Column {
+                BasicTextField(firstFieldState, Modifier.testTag("first"))
+                BasicTextField(secondFieldState, Modifier.testTag("second"))
+                BasicText("first=${firstFieldState.text} second=${secondFieldState.text}", Modifier.testTag("values"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val root = captureOnceTaggedNodeWritten(container, testTag = "second")
+
+        val results = coroutineScope {
+            listOf("first" to "one", "second" to "two").map { (testTag, text) ->
+                async { typeText(nodeId = root.nodeWithTag(testTag).id, action = NodeAction.SetText, text = text) }
+            }.awaitAll()
+        }
+
+        assertTrue(results.all(NodeActionResult::performed), results.toString())
+        assertEquals("first=one second=two", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("values").text)
+    }
+
+    @Test
+    fun `a capture after a LongClick whose effect Compose wrote during the hold does not wait for another write`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            var longClicks by remember { mutableIntStateOf(0) }
+            Column {
+                BasicText("Hold", Modifier.size(60.dp, 30.dp).testTag("hold").combinedClickable(onLongClick = { longClicks++ }, onClick = {}))
+                BasicText("long=$longClicks", Modifier.testTag("long-clicks"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val hold = captureOnceTaggedNodeWritten(container, testTag = "hold").nodeWithTag("hold")
+
+        performNodeAction(nodeId = hold.id, action = NodeAction.LongClick)
+        val captureStarted = TimeSource.Monotonic.markNow()
+        val longClicksText = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("long-clicks").text
+        val captureDuration = captureStarted.elapsedNow()
+
+        assertEquals("long=1", longClicksText)
+        assertTrue(captureDuration < 600.milliseconds, "the capture took $captureDuration")
     }
 
     @Test

@@ -25,7 +25,7 @@ import kotlin.time.TimeSource
  * Nothing here reads a field's content. A field's text is replaced by selecting all of its input,
  * not by measuring what it holds.
  */
-internal class FieldTextInput(private val accessibilityDom: AccessibilityDom) {
+internal class FieldTextInput(private val accessibilityDom: AccessibilityDom, private val changeWatcher: AccessibilityDomChangeWatcher) {
     /** Replaces the content of [element]'s field with [text]. */
     suspend fun replaceText(element: HTMLElement, text: String): NodeActionResult {
         if (!element.isEditableNode) return NOT_A_FIELD
@@ -36,6 +36,7 @@ internal class FieldTextInput(private val accessibilityDom: AccessibilityDom) {
         }
         // For `insertReplacementText` Compose replaces the range selected in its input; for
         // `insertText` it keeps to a selection of its own when it has one.
+        changeWatcher.expectChangeFromAction()
         input.dispatchEvent(beforeInputEvent(inputType = "insertReplacementText", data = text))
         return NodeActionResult(performed = true)
     }
@@ -44,6 +45,7 @@ internal class FieldTextInput(private val accessibilityDom: AccessibilityDom) {
     suspend fun insertTextAtCursor(element: HTMLElement, text: String): NodeActionResult {
         if (!element.isEditableNode) return NOT_A_FIELD
         val input = focusInputOver(element) ?: return FIELD_WITHOUT_INPUT
+        changeWatcher.expectChangeFromAction()
         input.dispatchEvent(beforeInputEvent(inputType = "insertText", data = text))
         return NodeActionResult(performed = true)
     }

@@ -207,7 +207,7 @@ which the agent synthesizes:
 |---|---|
 | `Click` | the listener Compose put on the element: that node's `OnClick` alone, not those of the clickable nodes around it. The listener does not check whether the node is enabled and the page does not say, so **`Click` runs a disabled node's `onClick`**, as a screen reader's activation would |
 | `LongClick` | the mouse's primary button pressed on the canvas at the node's center, held for 750 ms, past Compose's 500 ms, and released |
-| `ScrollBy` | the mouse wheel turned on the canvas at the node's center, by `scrollX` and `scrollY` CSS pixels, which Compose scrolls by as many dp. A scroll on both axes takes two turns 0.3 s apart: any sooner, Compose sends the second to whatever the first one scrolled |
+| `ScrollBy` | the mouse wheel turned on the canvas at the node's center, by `scrollX` and `scrollY` CSS pixels, which Compose scrolls by as many dp. A scroll on both axes takes two turns: the horizontal one waits for Compose to write the DOM after the vertical one, and goes to the node's center as that left it |
 | `SetText` / `InsertText` | listed on every field. The agent clicks the field to focus it and types into the `<input>` or `<textarea>` Compose opens beside the canvas for the focused field, with a `beforeinput` event; `SetText` selects the whole input first, which reads nothing of it. A read-only or disabled field opens none, and after waiting up to 1.2 s for one the action comes back `performed: false` |
 | `BringIntoView` | not available: the page gives a node's bounds only as far as they show, which does not tell how far its containers would have to scroll. Scroll a container with `ScrollBy` and capture again |
 | any other | not available |
@@ -223,7 +223,8 @@ Compose does not write the DOM as the semantics change: it waits until they have
 100 ms, and while they keep changing it writes once a second. So a capture waits until the DOM has
 been still for 150 ms and, after an action, until Compose has written it again, for at most 1.2 s.
 `LongClick` and `ScrollBy` wait the same way before they act, so the pointer lands where the node is
-now rather than where the previous action left the DOM. A capture just after a change takes that
+now rather than where the previous action left the DOM, and actions on one viewport run one at a
+time. A capture just after a change takes that
 much longer, an action that changes nothing makes the next capture wait the full 1.2 s, and a screen
 in constant motion is read as Compose last wrote it, up to a second old.
 

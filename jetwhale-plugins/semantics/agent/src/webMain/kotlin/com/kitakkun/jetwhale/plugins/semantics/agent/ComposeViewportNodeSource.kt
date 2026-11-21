@@ -9,6 +9,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.ShadowRoot
@@ -35,8 +37,9 @@ internal class ComposeViewportNodeSource(
     private val elementIds = AccessibilityElementIds(accessibilityDom)
     private val changeWatcher = AccessibilityDomChangeWatcher(accessibilityDom)
     private val highlightBox = NodeHighlightBox(accessibilityDom)
-    private val canvasPointerInput = CanvasPointerInput(canvas, accessibilityDom)
-    private val fieldTextInput = FieldTextInput(accessibilityDom)
+    private val canvasPointerInput = CanvasPointerInput(canvas, accessibilityDom, changeWatcher)
+    private val fieldTextInput = FieldTextInput(accessibilityDom, changeWatcher)
+    private val actionMutex = Mutex()
     private var unregistered = false
 
     override fun onUnregistered() {
@@ -72,7 +75,11 @@ internal class ComposeViewportNodeSource(
         )
     }
 
-    override suspend fun performAction(request: PerformNodeAction): NodeActionResult {
+    /**
+     * Runs one action at a time: the viewport has one mouse and one focused field, and an action
+     * holds them across suspensions, as a long click holds the button down.
+     */
+    override suspend fun performAction(request: PerformNodeAction): NodeActionResult = actionMutex.withLock {
         // A pointer lands where the DOM last placed the node, which right after an earlier action
         // is where the node was before it; and until an earlier scroll ends, Compose hands every
         // wheel event to the scrollable it moved.
@@ -83,12 +90,13 @@ internal class ComposeViewportNodeSource(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left this viewport; capture the tree again)",
             )
-        val result = when (request.action) {
+        when (request.action) {
             NodeAction.Click -> {
                 val roleHidingClick = element.getAttribute("role")?.takeIf { it in ROLES_HIDING_CLICK }
                 if (!element.isClickableNode && roleHidingClick == null) return NodeActionResult.notSupported("the node is not clickable")
                 // Compose's click listener runs OnClick without checking that the node is enabled,
                 // which the page does not say, so a disabled node is clicked too.
+                changeWatcher.expectChangeFromAction()
                 accessibilityDom.dispatchNonBubblingClick(element)
                 NodeActionResult(
                     performed = true,
@@ -117,8 +125,6 @@ internal class ComposeViewportNodeSource(
             NodeAction.Collapse,
             -> NodeActionResult.notSupported("${request.action} is not available on the web: the page carries a node's click alone, and no input event stands in for this action")
         }
-        if (result.performed) changeWatcher.expectChangeFromAction()
-        return result
     }
 
     override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult {

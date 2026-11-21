@@ -18,19 +18,39 @@ import kotlin.time.Duration.Companion.milliseconds
  * node's ancestors. What takes the event is whatever Compose draws at that point: the node, a child
  * of it that handles the input itself, or a container around it that handles what the node does not.
  */
-internal class CanvasPointerInput(private val canvas: HTMLElement, private val accessibilityDom: AccessibilityDom) {
+internal class CanvasPointerInput(
+    private val canvas: HTMLElement,
+    private val accessibilityDom: AccessibilityDom,
+    private val changeWatcher: AccessibilityDomChangeWatcher,
+) {
     /**
      * Turns the mouse wheel at the node's center by [scrollX] and [scrollY] CSS pixels, which
      * Compose for Web scrolls by as many dp, the same length. Each axis takes an event of its own,
-     * because Compose reads a wheel event along its larger delta only, and the second waits out
-     * [WHEEL_LATCH_PERIOD]: until then Compose would hand it to whatever the first one scrolled.
+     * because Compose reads a wheel event along its larger delta only.
+     *
+     * The horizontal turn waits for Compose to write the DOM after the vertical one, and goes to the
+     * node's center as that write left it. Until the vertical scroll ends, Compose would hand the
+     * horizontal turn to whatever it moved, and the vertical scroll may have moved the node itself,
+     * as it does a row of a list.
      */
     suspend fun scrollBy(element: HTMLElement, scrollX: Float, scrollY: Float): NodeActionResult {
         if (scrollX == 0f && scrollY == 0f) return NodeActionResult(performed = false, message = "ScrollBy needs a scrollX or scrollY other than 0")
         val bounds = accessibilityDom.boundsOf(element)?.takeUnless(NodeBounds::isEmpty) ?: return NODE_WITHOUT_AREA
-        if (scrollY != 0f) dispatchAtCenterOf(bounds) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = 0.0, deltaY = scrollY.toDouble()) }
-        if (scrollX != 0f && scrollY != 0f) delay(WHEEL_LATCH_PERIOD)
-        if (scrollX != 0f) dispatchAtCenterOf(bounds) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = scrollX.toDouble(), deltaY = 0.0) }
+        if (scrollY != 0f) {
+            changeWatcher.expectChangeFromAction()
+            dispatchAtCenterOf(bounds) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = 0.0, deltaY = scrollY.toDouble()) }
+        }
+        if (scrollX != 0f) {
+            val boundsForHorizontalTurn = if (scrollY == 0f) {
+                bounds
+            } else {
+                changeWatcher.awaitSettled()
+                accessibilityDom.boundsOf(element)?.takeIf { accessibilityDom.contains(element) && !it.isEmpty }
+                    ?: return NodeActionResult(performed = true, message = "the vertical turn took the node out of reach, so the wheel did not turn horizontally")
+            }
+            changeWatcher.expectChangeFromAction()
+            dispatchAtCenterOf(boundsForHorizontalTurn) { clientX, clientY -> pixelWheelEvent(clientX, clientY, deltaX = scrollX.toDouble(), deltaY = 0.0) }
+        }
         return NodeActionResult(
             performed = true,
             message = "the page does not say what scrolls: the wheel turned at this node's center and moved whatever scrolls there, the node or a container around it, if anything does",
@@ -40,10 +60,12 @@ internal class CanvasPointerInput(private val canvas: HTMLElement, private val a
     /**
      * Presses the primary mouse button at the node's center, holds it for [LONG_PRESS_HOLD], and
      * releases it. The release is sent even when the hold is cancelled: until Compose sees one, it
-     * drops every move of the real mouse, whose button is up.
+     * drops every move of the real mouse, whose button is up. The DOM is watched for the action's
+     * effect from the press on, because a long click runs while the button is still down.
      */
     suspend fun longClick(element: HTMLElement): NodeActionResult {
         val bounds = accessibilityDom.boundsOf(element)?.takeUnless(NodeBounds::isEmpty) ?: return NODE_WITHOUT_AREA
+        changeWatcher.expectChangeFromAction()
         dispatchAtCenterOf(bounds) { clientX, clientY -> primaryMousePointerEvent("pointerdown", clientX, clientY, buttons = 1) }
         try {
             delay(LONG_PRESS_HOLD)
@@ -71,13 +93,6 @@ private val NODE_WITHOUT_AREA: NodeActionResult = NodeActionResult(
     performed = false,
     message = "the node has no area in its viewport to put a pointer on (it is invisible, unmeasured, or clipped away)",
 )
-
-/**
- * How long Compose keeps handing every wheel event to the scrollable the last one moved, whatever
- * the event's axis: for as long as that scroll animates, at most 100 ms, and no less than 50 ms.
- * The rest is margin for slow frames.
- */
-private val WHEEL_LATCH_PERIOD: Duration = 300.milliseconds
 
 /** Compose for Web takes a press for a long one after 500 ms; the rest is margin for the timers of a busy page. */
 private val LONG_PRESS_HOLD: Duration = 750.milliseconds
