@@ -83,7 +83,7 @@ internal class ComposeViewportNodeSource(
         // A pointer lands where the DOM last placed the node, which right after an earlier action
         // is where the node was before it; and until an earlier scroll ends, Compose hands every
         // wheel event to the scrollable it moved.
-        if (request.action == NodeAction.LongClick || request.action == NodeAction.ScrollBy) changeWatcher.awaitSettled()
+        if (request.action in ACTIONS_AIMED_BY_NODE_BOUNDS) changeWatcher.awaitSettled()
         if (!accessibilityDom.isConnected) return NodeActionResult(performed = false, message = VIEWPORT_GONE)
         val element = elementIds.elementOf(request.nodeId)
             ?: return NodeActionResult(
@@ -154,6 +154,12 @@ internal class ComposeViewportNodeSource(
         return HighlightResult(shown = true)
     }
 }
+
+/**
+ * The actions that find their target by where the DOM places the node: a pointer lands at its
+ * center, and text goes to the input Compose places over it.
+ */
+private val ACTIONS_AIMED_BY_NODE_BOUNDS: Set<NodeAction> = setOf(NodeAction.LongClick, NodeAction.ScrollBy, NodeAction.SetText, NodeAction.InsertText)
 
 /**
  * The roles Compose writes over `button` for a node that also has `OnClick`, still wiring the click

@@ -299,6 +299,28 @@ class WebSemanticsProbeTest {
     }
 
     @Test
+    fun `text for a disabled field is refused even right after an edit moved the focused field to where it was`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val focusedFieldState = rememberTextFieldState("")
+            val disabledFieldState = rememberTextFieldState("")
+            Column {
+                if (focusedFieldState.text.isEmpty()) Box(Modifier.size(100.dp, 40.dp))
+                BasicTextField(disabledFieldState, Modifier.size(100.dp, 40.dp).testTag("disabled"), enabled = false)
+                BasicTextField(focusedFieldState, Modifier.size(100.dp, 40.dp).testTag("focused"))
+                BasicText("focused=${focusedFieldState.text} disabled=${disabledFieldState.text}", Modifier.testTag("values"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val root = captureOnceTaggedNodeWritten(container, testTag = "focused")
+
+        typeText(nodeId = root.nodeWithTag("focused").id, action = NodeAction.SetText, text = "one")
+        val result = typeText(nodeId = root.nodeWithTag("disabled").id, action = NodeAction.SetText, text = "two")
+
+        assertFalse(result.performed)
+        assertEquals("focused=one disabled=", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("values").text)
+    }
+
+    @Test
     fun `actions sent together run one after the other`() = runTestInRealTime {
         val container = renderViewport(isA11YEnabled = true) {
             val firstFieldState = rememberTextFieldState("")
