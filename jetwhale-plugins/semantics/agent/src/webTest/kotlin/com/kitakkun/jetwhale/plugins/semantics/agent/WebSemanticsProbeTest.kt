@@ -1,19 +1,25 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -47,6 +53,7 @@ import org.w3c.dom.ShadowRootInit
 import org.w3c.dom.ShadowRootMode
 import org.w3c.dom.asList
 import kotlin.coroutines.resume
+import kotlin.math.roundToInt
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -184,7 +191,7 @@ class WebSemanticsProbeTest {
     }
 
     @Test
-    fun `a field is editable and clickable but its content is not read`() = runTestInRealTime {
+    fun `a field is editable and clickable and lists the text actions but its content is not read`() = runTestInRealTime {
         val container = renderViewport(isA11YEnabled = true) {
             BasicTextField(rememberTextFieldState("hunter2"), Modifier.testTag("password"))
         }
@@ -194,20 +201,148 @@ class WebSemanticsProbeTest {
 
         assertTrue(passwordField.isEditable)
         assertTrue(passwordField.isClickable)
+        assertEquals(listOf("OnClick", "SetText", "InsertTextAtCursor"), passwordField.actions)
         assertNull(passwordField.text)
         assertNull(passwordField.editableText)
     }
 
     @Test
-    fun `an action other than a click is refused with the reason`() = runTestInRealTime {
+    fun `an action the page has no input for is refused with the reason`() = runTestInRealTime {
         val container = renderViewport(isA11YEnabled = true) { Counter() }
         probe = installJetWhaleSemanticsProbe()
         val counter = captureOnceTaggedNodeWritten(container, testTag = "counter").nodeWithTag("counter")
 
-        val result = performNodeAction(nodeId = counter.id, action = NodeAction.LongClick)
+        val bringIntoView = performNodeAction(nodeId = counter.id, action = NodeAction.BringIntoView)
+        val dismiss = performNodeAction(nodeId = counter.id, action = NodeAction.Dismiss)
+
+        assertFalse(bringIntoView.performed)
+        assertTrue(bringIntoView.message.orEmpty().contains("not available on the web"), bringIntoView.message)
+        assertFalse(dismiss.performed)
+        assertTrue(dismiss.message.orEmpty().contains("not available on the web"), dismiss.message)
+    }
+
+    @Test
+    fun `ScrollBy turns the wheel over the node and scrolls it by as many CSS pixels on each axis`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val verticalScrollState = rememberScrollState()
+            val horizontalScrollState = rememberScrollState()
+            val density = LocalDensity.current
+            Column {
+                Box(Modifier.size(100.dp).testTag("scroller").verticalScroll(verticalScrollState).horizontalScroll(horizontalScrollState)) {
+                    Box(Modifier.size(400.dp))
+                }
+                val scrolledX = with(density) { horizontalScrollState.value.toDp().value.roundToInt() }
+                val scrolledY = with(density) { verticalScrollState.value.toDp().value.roundToInt() }
+                BasicText("x=$scrolledX y=$scrolledY", Modifier.testTag("scrolled"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val scroller = captureOnceTaggedNodeWritten(container, testTag = "scroller").nodeWithTag("scroller")
+
+        val result = scrollNodeBy(nodeId = scroller.id, scrollX = 30f, scrollY = 40f)
+
+        assertTrue(result.performed, result.message)
+        assertEquals("x=30 y=40", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("scrolled").text)
+    }
+
+    @Test
+    fun `LongClick holds a press on the node until its long click runs and does not click it`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            var clicks by remember { mutableIntStateOf(0) }
+            var longClicks by remember { mutableIntStateOf(0) }
+            Column {
+                BasicText("Hold", Modifier.size(60.dp, 30.dp).testTag("hold").combinedClickable(onLongClick = { longClicks++ }, onClick = { clicks++ }))
+                BasicText("clicks=$clicks long=$longClicks", Modifier.testTag("clicks"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val hold = captureOnceTaggedNodeWritten(container, testTag = "hold").nodeWithTag("hold")
+
+        val result = performNodeAction(nodeId = hold.id, action = NodeAction.LongClick)
+
+        assertTrue(result.performed, result.message)
+        assertEquals("clicks=0 long=1", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("clicks").text)
+    }
+
+    @Test
+    fun `SetText replaces the content of a field and replaces it again once the field has focus`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val fieldState = rememberTextFieldState("old text")
+            Column {
+                BasicTextField(fieldState, Modifier.testTag("field"))
+                BasicText("value=${fieldState.text}", Modifier.testTag("value"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val field = captureOnceTaggedNodeWritten(container, testTag = "field").nodeWithTag("field")
+
+        val first = typeText(nodeId = field.id, action = NodeAction.SetText, text = "new")
+        val afterFirst = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
+        val second = typeText(nodeId = field.id, action = NodeAction.SetText, text = "newer")
+        val afterSecond = viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text
+
+        assertTrue(first.performed, first.message)
+        assertEquals("value=new", afterFirst)
+        assertTrue(second.performed, second.message)
+        assertEquals("value=newer", afterSecond)
+    }
+
+    @Test
+    fun `SetText replaces the content of a field that takes a String value`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            var value by remember { mutableStateOf("old text") }
+            Column {
+                BasicTextField(value, { value = it }, Modifier.testTag("field"))
+                BasicText("value=$value", Modifier.testTag("value"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val field = captureOnceTaggedNodeWritten(container, testTag = "field").nodeWithTag("field")
+
+        val result = typeText(nodeId = field.id, action = NodeAction.SetText, text = "new")
+
+        assertTrue(result.performed, result.message)
+        assertEquals("value=new", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text)
+    }
+
+    @Test
+    fun `InsertText types at the cursor of the field`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val fieldState = rememberTextFieldState("abc")
+            Column {
+                BasicTextField(fieldState, Modifier.testTag("field"))
+                BasicText("value=${fieldState.text}", Modifier.testTag("value"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val field = captureOnceTaggedNodeWritten(container, testTag = "field").nodeWithTag("field")
+
+        val result = typeText(nodeId = field.id, action = NodeAction.InsertText, text = "def")
+
+        assertTrue(result.performed, result.message)
+        assertEquals("value=abcdef", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("value").text)
+    }
+
+    @Test
+    fun `text for a disabled field is refused and stays out of the field that has focus`() = runTestInRealTime {
+        val container = renderViewport(isA11YEnabled = true) {
+            val focusedState = rememberTextFieldState("")
+            val disabledState = rememberTextFieldState("")
+            Column {
+                BasicTextField(focusedState, Modifier.testTag("focused"))
+                BasicTextField(disabledState, Modifier.testTag("disabled"), enabled = false)
+                BasicText("focused=${focusedState.text} disabled=${disabledState.text}", Modifier.testTag("values"))
+            }
+        }
+        probe = installJetWhaleSemanticsProbe()
+        val root = captureOnceTaggedNodeWritten(container, testTag = "disabled")
+
+        typeText(nodeId = root.nodeWithTag("focused").id, action = NodeAction.SetText, text = "one")
+        val result = typeText(nodeId = root.nodeWithTag("disabled").id, action = NodeAction.SetText, text = "two")
 
         assertFalse(result.performed)
-        assertTrue(result.message.orEmpty().contains("not available on the web"), result.message)
+        assertTrue(result.message.orEmpty().contains("read-only or disabled"), result.message)
+        assertEquals("focused=one disabled=", viewportSource().capture(NodeTreeCaptureOptions()).nodeWithTag("values").text)
     }
 
     @Test
@@ -368,6 +503,12 @@ class WebSemanticsProbeTest {
     private fun viewportSource(): ComposeNodeSource = ComposeNodeSourceRegistry.sources.single()
 
     private suspend fun performNodeAction(nodeId: Int, action: NodeAction): NodeActionResult = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = nodeId, action = action))
+
+    private suspend fun typeText(nodeId: Int, action: NodeAction, text: String): NodeActionResult = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = nodeId, action = action, text = text))
+
+    private suspend fun scrollNodeBy(nodeId: Int, scrollX: Float, scrollY: Float): NodeActionResult = viewportSource().performAction(
+        PerformNodeAction(rootId = viewportSource().sourceId, nodeId = nodeId, action = NodeAction.ScrollBy, scrollX = scrollX, scrollY = scrollY),
+    )
 
     /** The highlight boxes over the viewport in [container], told from Compose's own elements by the z-index they are drawn above everything with. */
     private fun highlightBoxesIn(container: HTMLElement): List<HTMLElement> = container.viewportShadowRoot()
