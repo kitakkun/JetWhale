@@ -74,8 +74,8 @@ internal class ComposeViewportNodeSource(
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult {
         // A pointer lands where the DOM last placed the node, which right after an earlier action
-        // is where the node was before that action took effect; and until a scroll the action
-        // started has finished, Compose hands every wheel event to the scrollable it moved.
+        // is where the node was before it; and until an earlier scroll ends, Compose hands every
+        // wheel event to the scrollable it moved.
         if (request.action == NodeAction.LongClick || request.action == NodeAction.ScrollBy) changeWatcher.awaitSettled()
         if (!accessibilityDom.isConnected) return NodeActionResult(performed = false, message = VIEWPORT_GONE)
         val element = elementIds.elementOf(request.nodeId)
@@ -87,8 +87,8 @@ internal class ComposeViewportNodeSource(
             NodeAction.Click -> {
                 val roleHidingClick = element.getAttribute("role")?.takeIf { it in ROLES_HIDING_CLICK }
                 if (!element.isClickableNode && roleHidingClick == null) return NodeActionResult.notSupported("the node is not clickable")
-                // Compose's click listener runs the node's OnClick without checking whether the node
-                // is enabled, and the page does not say, so a disabled node is clicked too.
+                // Compose's click listener runs OnClick without checking that the node is enabled,
+                // which the page does not say, so a disabled node is clicked too.
                 accessibilityDom.dispatchNonBubblingClick(element)
                 NodeActionResult(
                     performed = true,
