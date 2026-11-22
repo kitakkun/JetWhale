@@ -34,7 +34,7 @@ internal class ComposeViewportNodeSource(
     private val accessibilityDom = AccessibilityDom(accessibilityRoot)
     private val elementIds = AccessibilityElementIds(accessibilityDom)
     private val changeWatcher = AccessibilityDomChangeWatcher(accessibilityDom)
-    private val highlightBox = NodeHighlightBox(accessibilityDom)
+    private val highlightBox = NodeHighlightBox(accessibilityDom, htmlInteropContainer)
     private var unregistered = false
 
     override fun onUnregistered() {
@@ -106,7 +106,7 @@ internal class ComposeViewportNodeSource(
             return HighlightResult(shown = false, message = VIEWPORT_GONE.takeIf { nodeId != null })
         }
         val resolveBounds = if (nodeId < 0 && htmlInteropContainer != null) {
-            { htmlInteropContainer.boundsOf(nodeId, canvas) }
+            { htmlInteropContainer.visibleBoundsOf(nodeId, canvas) }
         } else {
             { elementIds.elementOf(nodeId)?.let(accessibilityDom::boundsOf) }
         }

@@ -28,7 +28,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -36,6 +38,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.Node
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -307,6 +310,26 @@ class HtmlInteropContainerTest {
     }
 
     @Test
+    fun `InsertText goes in at the caret of a contenteditable element`() = runTestInRealTime {
+        val editor = (document.createElement("div") as HTMLElement).apply {
+            id = "editor"
+            setAttribute("contenteditable", "true")
+            textContent = "Helo"
+        }
+        val root = renderAndCapture(embeddedElements = listOf(editor)) {
+            HtmlElementView(factory = { editor }, modifier = Modifier.size(120.dp, 30.dp))
+        }
+        placeCaret(requireNotNull(editor.firstChild), offset = 3)
+
+        val result = viewportSource().performAction(
+            PerformNodeAction(rootId = viewportSource().sourceId, nodeId = root.htmlNodeWithElementId("editor").id, action = NodeAction.InsertText, text = "l"),
+        )
+
+        assertTrue(result.performed, result.message)
+        assertEquals("Hello", editor.textContent)
+    }
+
+    @Test
     fun `a capture right after SetText already shows what the page's listener changed in Compose`() = runTestInRealTime {
         val field = (document.createElement("input") as HTMLInputElement).apply { id = "name" }
         val root = renderAndCapture(embeddedElements = listOf(field)) {
@@ -339,17 +362,51 @@ class HtmlInteropContainerTest {
         val source = viewportSource() as NodeHighlightSource
 
         val highlightResult = source.highlight(nodeId = node.id, ttl = 30.seconds)
-        val boxRect = viewportContainer.viewportShadowRoot()
-            ?.querySelectorAll("div")?.let { divs -> (0 until divs.length).mapNotNull { divs.item(it) as? HTMLElement } }.orEmpty()
-            .single { it.style.zIndex == "2147483647" }
-            .getBoundingClientRect()
+        val boxRect = highlightBoxRect()
         source.highlight(nodeId = null, ttl = Duration.ZERO)
 
         assertTrue(highlightResult.shown, highlightResult.message)
-        assertEquals(
-            node.boundsInScreen,
-            NodeBounds(left = boxRect.left.toFloat(), top = boxRect.top.toFloat(), right = boxRect.right.toFloat(), bottom = boxRect.bottom.toFloat()),
-        )
+        assertEquals(node.boundsInScreen, boxRect)
+    }
+
+    @Test
+    fun `the highlight box covers only what Compose shows of a clipped element`() = runTestInRealTime {
+        val banner = (document.createElement("div") as HTMLElement).apply { id = "banner" }
+        val root = renderAndCapture(embeddedElements = listOf(banner)) {
+            Box(Modifier.size(120.dp, 10.dp).clipToBounds()) {
+                Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true)) {
+                    HtmlElementView(factory = { banner }, modifier = Modifier.size(120.dp, 30.dp))
+                }
+            }
+        }
+        val source = viewportSource() as NodeHighlightSource
+
+        source.highlight(nodeId = root.htmlNodeWithElementId("banner").id, ttl = 30.seconds)
+        val boxRect = highlightBoxRect()
+        source.highlight(nodeId = null, ttl = Duration.ZERO)
+
+        assertEquals(NodeBounds(left = VIEWPORT_LEFT, top = VIEWPORT_TOP, right = VIEWPORT_LEFT + 120f, bottom = VIEWPORT_TOP + 10f), boxRect)
+    }
+
+    @Test
+    fun `the highlight box follows an embedded element the page moves`() = runTestInRealTime {
+        val banner = (document.createElement("div") as HTMLElement).apply { id = "banner" }
+        val root = renderAndCapture(embeddedElements = listOf(banner)) {
+            HtmlElementView(factory = { banner }, modifier = Modifier.size(60.dp, 30.dp))
+        }
+        val source = viewportSource() as NodeHighlightSource
+        val highlightResult = source.highlight(nodeId = root.htmlNodeWithElementId("banner").id, ttl = 30.seconds)
+        assertTrue(highlightResult.shown, "${highlightResult.message} ${root.htmlNodeWithElementId("banner")}")
+        val before = highlightBoxRect()
+
+        val boxMoved = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeoutOrNull(STEP_TIMEOUT) { awaitCondition(viewportContainers.single()) { highlightBoxRectOrNull()?.left == before.left + 5f } }
+        }
+        banner.style.marginLeft = "5px"
+        val moved = boxMoved.await()
+        source.highlight(nodeId = null, ttl = Duration.ZERO)
+
+        assertTrue(moved != null, "the box did not move with the element: box ${highlightBoxRectOrNull()}, before $before, element ${banner.getBoundingClientRect().let { "${it.left},${it.top},${it.right},${it.bottom}" }}")
     }
 
     private fun runTestInRealTime(block: suspend CoroutineScope.() -> Unit): TestResult = runTest(timeout = 30.seconds) {
@@ -392,12 +449,30 @@ class HtmlInteropContainerTest {
 
     private fun viewportSource(): ComposeNodeSource = ComposeNodeSourceRegistry.sources.single()
 
+    /** Where the one highlight box over a viewport sits, told from Compose's own elements by the z-index it is drawn above everything with. */
+    private fun highlightBoxRect(): NodeBounds = highlightBoxRectOrNull() ?: fail("no highlight box is showing")
+
+    private fun highlightBoxRectOrNull(): NodeBounds? {
+        val box = viewportContainers.mapNotNull(HTMLElement::viewportShadowRoot)
+            .flatMap { shadowRoot -> shadowRoot.querySelectorAll("div").let { divs -> (0 until divs.length).mapNotNull { divs.item(it) as? HTMLElement } } }
+            .singleOrNull { it.style.zIndex == "2147483647" }
+            ?: return null
+        val rect = box.getBoundingClientRect()
+        return NodeBounds(left = rect.left.toFloat(), top = rect.top.toFloat(), right = rect.right.toFloat(), bottom = rect.bottom.toFloat())
+    }
+
     private suspend fun performNodeAction(nodeId: Int, action: NodeAction): NodeActionResult = viewportSource().performAction(PerformNodeAction(rootId = viewportSource().sourceId, nodeId = nodeId, action = action))
 }
 
 private val STEP_TIMEOUT: Duration = 20.seconds
 
 private fun ComposeRoot?.htmlNodeWithElementId(elementId: String): HtmlNode = this?.allNodes().orEmpty().filterIsInstance<HtmlNode>().firstOrNull { it.elementId == elementId } ?: fail("no HTML node with id $elementId in $this")
+
+/** Puts the page's caret at [offset] in the text node [textNode]. */
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun placeCaret(textNode: Node, offset: Int) {
+    js("{ const range = document.createRange(); range.setStart(textNode, offset); range.collapse(true); const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range); }")
+}
 
 /**
  * Gives [field] a `value` property of its own that reads the field and drops every write, the way

@@ -200,6 +200,36 @@ class NodeHitTestingTest {
     }
 
     @Test
+    fun `a button inside an HTML element with no box of its own still takes its tap`() {
+        val roots = NodeHitTesting.resolve(
+            listOf(
+                root(
+                    HtmlNode(
+                        id = -1,
+                        tagName = "div",
+                        bounds = rect(left = 0f, top = 0f, right = 0f, bottom = 0f),
+                        boundsInScreen = rect(left = 0f, top = 0f, right = 0f, bottom = 0f),
+                        isVisible = false,
+                        children = listOf(
+                            HtmlNode(
+                                id = -2,
+                                tagName = "button",
+                                bounds = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
+                                boundsInScreen = rect(left = 0f, top = 0f, right = 100f, bottom = 50f),
+                                actions = listOf("OnClick"),
+                                isClickable = true,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(roots.node(-2).isHittable)
+        assertEquals(NodeRef(ROOT_ID, -2), NodeHitTesting.nodeAt(roots, screenX = 50f, screenY = 25f))
+    }
+
+    @Test
     fun `nodeAt reports the topmost accepting node`() {
         val roots = listOf(
             root(button(id = 1, at = rect(left = 0f, top = 0f, right = 100f, bottom = 50f))),

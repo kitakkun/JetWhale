@@ -86,13 +86,18 @@ object NodeHitTesting {
  * `translationZ` — a raised sibling can therefore be missed as an obstruction. HTML elements are
  * captured in document order, which is paint order until CSS positioning or `z-index` raises one,
  * with the same caveat.
+ *
+ * An HTML element's children are searched even where the element itself does not reach the point:
+ * a child laid out outside its parent's box, or inside a `display: contents` element with no box at
+ * all, still takes the tap, and each child's screen bounds already carry its ancestors' clipping.
  */
 private fun UiNode.topmostAt(screenX: Float, screenY: Float): UiNode? {
-    if (!isVisible || !boundsInScreen.contains(screenX, screenY)) return null
+    val reachesPoint = isVisible && boundsInScreen.contains(screenX, screenY)
+    if (!reachesPoint && this !is HtmlNode) return null
     for (index in children.indices.reversed()) {
         children[index].topmostAt(screenX, screenY)?.let { return it }
     }
-    return takeIf(UiNode::acceptsTouch)
+    return takeIf { reachesPoint && it.acceptsTouch }
 }
 
 private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) -> NodeHitTesting.TouchTarget): UiNode {

@@ -7,11 +7,14 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.browser.document
+import kotlinx.browser.window
+import org.w3c.dom.DOMRect
 import org.w3c.dom.END
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.MutationObserver
 import org.w3c.dom.SelectionMode
 import org.w3c.dom.asList
 import org.w3c.dom.events.Event
@@ -42,17 +45,46 @@ internal class HtmlInteropContainer(private val containerElement: Element) {
         return nodes
     }
 
-    /** Where the element [nodeId] names sits in the composition now, in CSS pixels from [canvas]'s corner, or `null` once it is gone. */
-    fun boundsOf(nodeId: Int, canvas: Element): NodeBounds? {
+    /**
+     * The part of the element [nodeId] names that shows now, in CSS pixels from [canvas]'s corner:
+     * its rectangle cut down to Compose's clip on its wrapper and to every element between the two
+     * that clips its overflow. Empty while none of it shows or CSS hides it, and `null` once the
+     * element is gone.
+     */
+    fun visibleBoundsOf(nodeId: Int, canvas: Element): NodeBounds? {
         val element = htmlNodeIds.elementOf(nodeId) ?: return null
+        if (window.getComputedStyle(element).visibility != "visible") return NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
+        var visibleBounds = element.getBoundingClientRect().toNodeBounds()
+        var ancestor = element.parentElement
+        while (ancestor != null && ancestor.parentElement != containerElement) {
+            visibleBounds = visibleBounds.clippedByOverflowOf(ancestor)
+            ancestor = ancestor.parentElement
+        }
+        (ancestor as? HTMLElement)?.let { wrapper -> visibleBounds = visibleBounds.intersect(wrapper.clipPathBounds()) }
+        if (visibleBounds.isEmpty) return visibleBounds
         val canvasRect = canvas.getBoundingClientRect()
-        val rect = element.getBoundingClientRect()
         return NodeBounds(
-            left = (rect.left - canvasRect.left).toFloat(),
-            top = (rect.top - canvasRect.top).toFloat(),
-            right = (rect.right - canvasRect.left).toFloat(),
-            bottom = (rect.bottom - canvasRect.top).toFloat(),
+            left = visibleBounds.left - canvasRect.left.toFloat(),
+            top = visibleBounds.top - canvasRect.top.toFloat(),
+            right = visibleBounds.right - canvasRect.left.toFloat(),
+            bottom = visibleBounds.bottom - canvasRect.top.toFloat(),
         )
+    }
+
+    /**
+     * Calls [onChangeOrScroll] after each change under the container and each scroll inside it,
+     * either of which can move an embedded element without Compose laying anything out, until the
+     * returned handle is closed.
+     */
+    @OptIn(ExperimentalWasmJsInterop::class)
+    fun watchChangesAndScrolls(onChangeOrScroll: () -> Unit): AutoCloseable {
+        val observer = MutationObserver { _, _ -> onChangeOrScroll() }
+        observer.observe(containerElement, subtreeMutationObserverInit(includeAttributeAndTextChanges = true))
+        val scrollWatch = containerElement.watchScrolls(onChangeOrScroll)
+        return AutoCloseable {
+            observer.disconnect()
+            scrollWatch.close()
+        }
     }
 
     fun performAction(request: PerformNodeAction): NodeActionResult {
@@ -124,10 +156,11 @@ private fun replaceFieldContent(element: Element, text: String) {
 
 /**
  * Puts [text] in at the field's cursor, in focus, then tells the page as typing would. A field that
- * keeps no cursor — an `<input type="email">` or a `contenteditable` element — takes it at the end.
+ * keeps no cursor — an `<input type="email">`, or a `contenteditable` element the page's selection
+ * is not in — takes it at the end. The text goes in before the field takes focus, which would move
+ * the selection into a `contenteditable` element that did not hold it.
  */
 private fun insertIntoField(element: Element, text: String) {
-    (element as? HTMLElement)?.focus()
     when (element) {
         is HTMLInputElement -> {
             val selectionStart = element.selectionStart
@@ -141,10 +174,33 @@ private fun insertIntoField(element: Element, text: String) {
 
         is HTMLTextAreaElement -> element.setRangeText(text, element.selectionStart ?: element.value.length, element.selectionEnd ?: element.value.length, SelectionMode.END)
 
-        else -> element.appendChild(document.createTextNode(text))
+        else -> if (!replaceSelectionInside(element, text)) element.appendChild(document.createTextNode(text))
     }
+    (element as? HTMLElement)?.focus()
     dispatchTypingEvents(element, inputType = "insertText", data = text)
 }
+
+/**
+ * Puts [text] in place of the page's selection, and the caret after it, when the selection lies
+ * inside [editingHost]; reports whether it did.
+ */
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun replaceSelectionInside(editingHost: Element, text: String): Boolean = js(
+    """(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return false;
+        const range = selection.getRangeAt(0);
+        if (!editingHost.contains(range.commonAncestorContainer)) return false;
+        range.deleteContents();
+        const inserted = document.createTextNode(text);
+        range.insertNode(inserted);
+        range.setStartAfter(inserted);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return true;
+    })()""",
+)
 
 /** The `input` event typing fires, then the `change` event a field fires once its value is committed; a `contenteditable` element has none. */
 private fun dispatchTypingEvents(element: Element, inputType: String, data: String) {
@@ -170,8 +226,7 @@ private fun writeValueThroughElementPrototype(field: Element, value: String) {
  * browser reports takes into account. Anything else there is not Compose's and clips nothing here.
  */
 private fun HTMLElement.clipPathBounds(): NodeBounds {
-    val rect = getBoundingClientRect()
-    val wholeRect = NodeBounds(left = rect.left.toFloat(), top = rect.top.toFloat(), right = rect.right.toFloat(), bottom = rect.bottom.toFloat())
+    val wholeRect = getBoundingClientRect().toNodeBounds()
     val insetLengths = INSET_CLIP_PATH.matchEntire(style.getPropertyValue("clip-path").trim())
         ?.groupValues?.get(1)
         ?.split(' ')
@@ -194,6 +249,8 @@ private fun HTMLElement.clipPathBounds(): NodeBounds {
 }
 
 private val INSET_CLIP_PATH: Regex = Regex("""inset\(([^)]*)\)""")
+
+private fun DOMRect.toNodeBounds(): NodeBounds = NodeBounds(left = left.toFloat(), top = top.toFloat(), right = right.toFloat(), bottom = bottom.toFloat())
 
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun inputEvent(inputType: String, data: String): Event = js("new InputEvent('input', { bubbles: true, inputType: inputType, data: data })")
