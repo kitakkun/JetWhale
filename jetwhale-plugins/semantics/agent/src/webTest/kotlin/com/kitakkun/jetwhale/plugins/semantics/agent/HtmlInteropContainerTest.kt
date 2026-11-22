@@ -137,6 +137,22 @@ class HtmlInteropContainerTest {
     }
 
     @Test
+    fun `an element with no box of its own clips nothing under it`() = runTestInRealTime {
+        val boxless = (document.createElement("div") as HTMLElement).apply {
+            id = "boxless"
+            style.cssText = "display: contents; overflow: hidden;"
+            innerHTML = "<button id=\"inner\" style=\"width: 80px; height: 20px;\">Inner</button>"
+        }
+        val root = renderAndCapture(embeddedElements = listOf(boxless)) {
+            HtmlElementView(factory = { boxless }, modifier = Modifier.size(120.dp, 30.dp))
+        }
+
+        val inner = root.htmlNodeWithElementId("inner")
+        assertTrue(inner.isVisible)
+        assertEquals(NodeBounds(left = VIEWPORT_LEFT, top = VIEWPORT_TOP, right = VIEWPORT_LEFT + 80f, bottom = VIEWPORT_TOP + 20f), inner.boundsInScreen)
+    }
+
+    @Test
     fun `the depth limit counts the embedded elements from the root node`() = runTestInRealTime {
         val panel = (document.createElement("div") as HTMLElement).apply {
             id = "panel"

@@ -29,10 +29,12 @@ internal fun HTMLElement.clipBounds(): NodeBounds {
 /**
  * These bounds cut down to what [element] lets its overflow show, axis by axis: an axis whose
  * overflow is `visible` is not clipped, which `overflow: clip` allows on one axis alone. The clip is
- * the element's padding box, inside its borders and scrollbars.
+ * the element's padding box, inside its borders and scrollbars. An element with `display: contents`
+ * has no box, so its overflow clips nothing.
  */
 internal fun NodeBounds.clippedByOverflowOf(element: Element): NodeBounds {
     val style = window.getComputedStyle(element)
+    if (style.getPropertyValue("display") == "contents") return this
     val clipsX = style.getPropertyValue("overflow-x") != "visible"
     val clipsY = style.getPropertyValue("overflow-y") != "visible"
     if (!clipsX && !clipsY) return this
