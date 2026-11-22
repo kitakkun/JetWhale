@@ -256,10 +256,13 @@ Compose shows of the element as well, so one scrolled partly out of a list reads
   clicks, cannot be seen from the page, so `Click` is advertised only where the element is clickable
   by the table above, but it is sent to any element, with a note when the page shows no handler.
 - **`SetText` and `InsertText` type into a field.** The field takes focus, its content changes —
-  `InsertText` puts the text in at the cursor, or at the end of a field that keeps none — and an
-  `input` event follows, then a `change` event on an `<input>` or `<textarea>`. The value is written
-  through `HTMLInputElement`'s or `HTMLTextAreaElement`'s own setter, so React's `onChange` sees it.
-  A disabled or read-only field is refused. Every other action comes back `performed: false`.
+  `InsertText` puts the text in at the cursor (in a `contenteditable` element, at the page's
+  selection when it lies inside), or at the end of a field that keeps none — and an `input` event
+  follows, then a `change` event on an `<input>` or `<textarea>`. The value is written through
+  `HTMLInputElement`'s or `HTMLTextAreaElement`'s own setter, so React's `onChange` sees it. A
+  disabled or read-only field is refused. Every other action comes back `performed: false`.
+- **The highlight covers the part of the element that shows**, and moves when anything under the
+  embedded elements changes or scrolls, as well as when Compose rewrites its own DOM.
 - **A capture is bounded**: at most 1,000 elements per viewport, and nothing deeper than 32 levels
   in the tree.
 
