@@ -152,6 +152,32 @@ class HtmlInteropContainerTest {
         assertEquals(NodeBounds(left = VIEWPORT_LEFT, top = VIEWPORT_TOP, right = VIEWPORT_LEFT + 80f, bottom = VIEWPORT_TOP + 20f), inner.boundsInScreen)
     }
 
+    @OptIn(ExperimentalWasmJsInterop::class)
+    @Test
+    fun `a capture past its element limit neither reports nor measures the elements after it`() = runTestInRealTime {
+        val crowd = (document.createElement("div") as HTMLElement).apply {
+            id = "crowd"
+            innerHTML = (1..1100).joinToString(separator = "") { "<span>$it</span>" }
+        }
+        val after = (document.createElement("button") as HTMLElement).apply { id = "after" }
+        renderAndCapture(embeddedElements = listOf(crowd, after)) {
+            Column {
+                HtmlElementView(factory = { crowd }, modifier = Modifier.size(200.dp, 40.dp))
+                HtmlElementView(factory = { after }, modifier = Modifier.size(60.dp, 20.dp))
+            }
+        }
+
+        val recording = startRecordingComputedStyleTargets()
+        val root = try {
+            viewportSource().capture(NodeTreeCaptureOptions(includeInvisible = true))
+        } finally {
+            stopRecordingComputedStyleTargets(recording)
+        }
+
+        assertEquals(1000, root?.allNodes().orEmpty().count { it is HtmlNode })
+        assertFalse(wasRecordedAsComputedStyleTarget(recording, requireNotNull(after.parentElement)), "the wrapper past the limit was measured")
+    }
+
     @Test
     fun `the depth limit counts the embedded elements from the root node`() = runTestInRealTime {
         val panel = (document.createElement("div") as HTMLElement).apply {
@@ -483,6 +509,28 @@ class HtmlInteropContainerTest {
 private val STEP_TIMEOUT: Duration = 20.seconds
 
 private fun ComposeRoot?.htmlNodeWithElementId(elementId: String): HtmlNode = this?.allNodes().orEmpty().filterIsInstance<HtmlNode>().firstOrNull { it.elementId == elementId } ?: fail("no HTML node with id $elementId in $this")
+
+/** Starts recording every element `window.getComputedStyle` is asked about, until [stopRecordingComputedStyleTargets]. */
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun startRecordingComputedStyleTargets(): JsAny = js(
+    """(() => {
+        const original = window.getComputedStyle;
+        const targets = [];
+        window.getComputedStyle = function (element, pseudoElement) {
+            targets.push(element);
+            return original.call(window, element, pseudoElement);
+        };
+        return { targets: targets, original: original };
+    })()""",
+)
+
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun stopRecordingComputedStyleTargets(recording: JsAny) {
+    js("window.getComputedStyle = recording.original")
+}
+
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun wasRecordedAsComputedStyleTarget(recording: JsAny, element: Element): Boolean = js("recording.targets.includes(element)")
 
 /** Puts the page's caret at [offset] in the text node [textNode]. */
 @OptIn(ExperimentalWasmJsInterop::class)

@@ -37,10 +37,16 @@ internal class HtmlInteropContainer(private val containerElement: Element) {
      */
     fun htmlNodes(options: NodeTreeCaptureOptions, depth: Int, canvasLeft: Float, canvasTop: Float): List<HtmlNode> {
         val capture = HtmlElementCapture(options = options, htmlNodeIds = htmlNodeIds, canvasLeft = canvasLeft, canvasTop = canvasTop)
-        val nodes = containerElement.children.asList().filterIsInstance<HTMLElement>().flatMap { wrapper ->
-            val visibleArea = wrapper.clipBounds().intersect(wrapper.clipPathBounds())
-            wrapper.children.asList().mapNotNull { capture.htmlNodeOf(it, depth, visibleArea) }
-        }
+        val nodes = containerElement.children.asList().asSequence()
+            .filterIsInstance<HTMLElement>()
+            .takeWhile { !capture.hasReachedElementLimit }
+            .flatMap { wrapper ->
+                val visibleArea = wrapper.clipBounds().intersect(wrapper.clipPathBounds())
+                wrapper.children.asList().asSequence()
+                    .takeWhile { !capture.hasReachedElementLimit }
+                    .mapNotNull { capture.htmlNodeOf(it, depth, visibleArea) }
+            }
+            .toList()
         htmlNodeIds.releaseElementsRemovedFromContainer()
         return nodes
     }

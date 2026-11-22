@@ -34,6 +34,9 @@ internal class HtmlElementCapture(
 ) {
     private var capturedElementCount = 0
 
+    /** Whether this capture has taken in as many elements as it reports, so that reading more would be wasted. */
+    val hasReachedElementLimit: Boolean get() = capturedElementCount >= MAX_CAPTURED_ELEMENTS
+
     /**
      * The node [element] stands for, at [depth], with its subtree, or `null` when it is filtered out
      * the way a Compose node is — it has no area on screen and
@@ -45,13 +48,16 @@ internal class HtmlElementCapture(
      */
     fun htmlNodeOf(element: Element, depth: Int, visibleArea: NodeBounds): HtmlNode? {
         val depthLimit = minOf(options.maxDepth ?: MAX_ELEMENT_DEPTH, MAX_ELEMENT_DEPTH)
-        if (depth > depthLimit || capturedElementCount >= MAX_CAPTURED_ELEMENTS) return null
+        if (depth > depthLimit || hasReachedElementLimit) return null
         capturedElementCount++
 
         val nodeId = htmlNodeIds.idOf(element)
         val childHtmlNodes = if (depth < depthLimit && element.hasChildElementsToReport) {
             val childVisibleArea = visibleArea.clippedByOverflowOf(element)
-            element.children.asList().mapNotNull { htmlNodeOf(it, depth + 1, childVisibleArea) }
+            element.children.asList().asSequence()
+                .takeWhile { !hasReachedElementLimit }
+                .mapNotNull { htmlNodeOf(it, depth + 1, childVisibleArea) }
+                .toList()
         } else {
             emptyList()
         }
