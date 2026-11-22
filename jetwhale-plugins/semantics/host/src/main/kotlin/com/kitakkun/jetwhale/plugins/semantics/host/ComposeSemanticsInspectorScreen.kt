@@ -58,6 +58,7 @@ import com.kitakkun.jetwhale.host.ui.jwAiOperatingRingWhileRunning
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
@@ -346,6 +347,7 @@ private fun NodeRow(
             when (row.node) {
                 is ViewNode -> JwTag(text = "View", tone = JwTone.Info)
                 is AppleNode -> JwTag(text = "iOS", tone = JwTone.Info)
+                is HtmlNode -> JwTag(text = "HTML", tone = JwTone.Info)
                 is ComposeNode -> Unit
             }
             if (row.node.isInteractive) {
@@ -413,17 +415,24 @@ private fun NodeDetail(
             modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.performNodeAction, shape = JwShapes.small),
         )
 
-        // idb's `ui tap` takes the same points the node reports, so no conversion is needed.
-        val tapTool = if (node is AppleNode) "idb ui tap" else "adb shell input tap"
-        JwButton(
-            text = "Copy `$tapTool` for these bounds",
-            onClick = {
-                val command = "$tapTool ${node.boundsInScreen.centerX.roundToInt()} ${node.boundsInScreen.centerY.roundToInt()}"
-                scope.launch { clipboard.setClipEntry(ClipEntry(StringSelection(command))) }
-            },
-            enabled = !node.boundsInScreen.isEmpty,
-            style = JwButtonStyle.Text,
-        )
+        // idb's `ui tap` takes the same points the node reports, so no conversion is needed. An
+        // HTML element is in a browser, which neither tool reaches.
+        val tapTool = when (node) {
+            is AppleNode -> "idb ui tap"
+            is HtmlNode -> null
+            is ComposeNode, is ViewNode -> "adb shell input tap"
+        }
+        if (tapTool != null) {
+            JwButton(
+                text = "Copy `$tapTool` for these bounds",
+                onClick = {
+                    val command = "$tapTool ${node.boundsInScreen.centerX.roundToInt()} ${node.boundsInScreen.centerY.roundToInt()}"
+                    scope.launch { clipboard.setClipEntry(ClipEntry(StringSelection(command))) }
+                },
+                enabled = !node.boundsInScreen.isEmpty,
+                style = JwButtonStyle.Text,
+            )
+        }
 
         if (node is ViewNode) {
             JwHorizontalDivider()
@@ -441,25 +450,7 @@ private fun NodeProperties(rootId: String, node: UiNode) {
     Column {
         PropertyRow("id", node.id.toString())
         PropertyRow("rootId", rootId)
-        when (node) {
-            is ViewNode -> {
-                PropertyRow("viewClass", node.viewClass)
-                node.resourceId?.let { PropertyRow("resourceId", "@id/$it") }
-            }
-
-            is ComposeNode -> {
-                node.role?.let { PropertyRow("role", it) }
-                node.testTag?.let { PropertyRow("testTag", it) }
-                node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
-            }
-
-            is AppleNode -> {
-                PropertyRow("className", node.className)
-                node.accessibilityIdentifier?.let { PropertyRow("accessibilityIdentifier", it) }
-                node.accessibilityValue?.let { PropertyRow("accessibilityValue", it, wrap = true) }
-                if (node.traits.isNotEmpty()) PropertyRow("traits", node.traits.joinToString(", "), wrap = true)
-            }
-        }
+        NodeKindProperties(node)
         node.text?.let { PropertyRow("text", it, wrap = true) }
         node.editableText?.let { PropertyRow("editableText", it, wrap = true) }
         node.contentDescription?.let { PropertyRow("contentDescription", it, wrap = true) }
@@ -482,6 +473,37 @@ private fun NodeProperties(rootId: String, node: UiNode) {
         PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
         if (node.isInteractive && !node.isOperable) {
             PropertyRow("operable", "no — ${node.whyNotOperable()}", wrap = true)
+        }
+    }
+}
+
+/** The properties only this kind of node has. */
+@Composable
+private fun NodeKindProperties(node: UiNode) {
+    when (node) {
+        is ViewNode -> {
+            PropertyRow("viewClass", node.viewClass)
+            node.resourceId?.let { PropertyRow("resourceId", "@id/$it") }
+        }
+
+        is ComposeNode -> {
+            node.role?.let { PropertyRow("role", it) }
+            node.testTag?.let { PropertyRow("testTag", it) }
+            node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
+        }
+
+        is AppleNode -> {
+            PropertyRow("className", node.className)
+            node.accessibilityIdentifier?.let { PropertyRow("accessibilityIdentifier", it) }
+            node.accessibilityValue?.let { PropertyRow("accessibilityValue", it, wrap = true) }
+            if (node.traits.isNotEmpty()) PropertyRow("traits", node.traits.joinToString(", "), wrap = true)
+        }
+
+        is HtmlNode -> {
+            PropertyRow("tagName", node.tagName)
+            node.elementId?.let { PropertyRow("elementId", it) }
+            if (node.cssClasses.isNotEmpty()) PropertyRow("cssClasses", node.cssClasses.joinToString(" "), wrap = true)
+            node.attributes.forEach { (name, value) -> PropertyRow(name, value, wrap = true) }
         }
     }
 }

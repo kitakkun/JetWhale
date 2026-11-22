@@ -301,7 +301,7 @@ private val SESSION = DebugSession(
     transportSecurity = SessionTransportSecurity.LOOPBACK,
     installedPlugins = persistentListOf(
         JetWhalePluginInfo(pluginId = NETWORK_PLUGIN_ID, pluginVersion = "1.0.0"),
-        JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.semantics", pluginVersion = "1.1.0"),
+        JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.semantics", pluginVersion = "1.2.0"),
         JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.nav3", pluginVersion = "1.0.0"),
         JetWhalePluginInfo(pluginId = "com.kitakkun.jetwhale.actions", pluginVersion = "1.0.0"),
     ),

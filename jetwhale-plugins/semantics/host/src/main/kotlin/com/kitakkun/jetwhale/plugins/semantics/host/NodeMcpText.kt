@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
@@ -65,6 +66,7 @@ internal fun UiNode.toMcpTextLine(rootId: String?): String = buildList {
         when (this@toMcpTextLine) {
             is ViewNode -> viewClass.substringAfterLast('.')
             is AppleNode -> className
+            is HtmlNode -> tagName
             is ComposeNode -> role ?: "node"
         },
     )
@@ -81,6 +83,12 @@ internal fun UiNode.toMcpTextLine(rootId: String?): String = buildList {
             accessibilityIdentifier?.let { add("axId=$it") }
             accessibilityValue?.let { add("value=${quoted(it)}") }
             if (traits.isNotEmpty()) add("traits=${traits.joinToString(",")}")
+        }
+
+        is HtmlNode -> {
+            elementId?.let { add("elementId=$it") }
+            if (cssClasses.isNotEmpty()) add("class=${cssClasses.joinToString(",")}")
+            attributes.forEach { (name, value) -> add("$name=${quoted(value)}") }
         }
 
         is ComposeNode -> {

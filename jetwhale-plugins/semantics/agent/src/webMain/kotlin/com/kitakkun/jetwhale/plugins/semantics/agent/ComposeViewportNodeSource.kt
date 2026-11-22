@@ -4,14 +4,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
-import kotlinx.browser.document
-import kotlinx.browser.window
-import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
-import org.w3c.dom.ShadowRoot
 import org.w3c.dom.events.Event
 import kotlin.time.Duration
 
@@ -23,6 +18,9 @@ import kotlin.time.Duration
  * takes, and the root's density is `1`: a CSS pixel is what Compose for Web calls a dp. On screen
  * means in the browser's viewport.
  *
+ * The HTML elements the app embeds with `HtmlElementView` follow the Compose content as the root
+ * node's last children, read from [htmlInteropContainer] when the viewport has one.
+ *
  * Everything runs on the page's one thread, so no call hops anywhere.
  */
 internal class ComposeViewportNodeSource(
@@ -30,12 +28,13 @@ internal class ComposeViewportNodeSource(
     private val label: String,
     private val canvas: HTMLElement,
     accessibilityRoot: HTMLElement,
+    private val htmlInteropContainer: HtmlInteropContainer?,
 ) : RegistryAwareNodeSource,
     NodeHighlightSource {
     private val accessibilityDom = AccessibilityDom(accessibilityRoot)
     private val elementIds = AccessibilityElementIds(accessibilityDom)
     private val changeWatcher = AccessibilityDomChangeWatcher(accessibilityDom)
-    private val highlightBox = NodeHighlightBox(accessibilityDom)
+    private val highlightBox = NodeHighlightBox(accessibilityDom, htmlInteropContainer)
     private var unregistered = false
 
     override fun onUnregistered() {
@@ -61,18 +60,26 @@ internal class ComposeViewportNodeSource(
             canvasClipBounds = canvas.clipBounds(),
         )
         elementIds.releaseElementsRemovedFromDom()
+        val rootNode = accessibilityDom.semanticsRootElement?.let { capture.composeNodeOf(it, depth = 0) }
+        val embeddedHtmlNodes = htmlInteropContainer?.htmlNodes(options = options, depth = 1, canvasLeft = canvasLeft, canvasTop = canvasTop).orEmpty()
         return ComposeRoot(
             rootId = sourceId,
             label = label,
             density = 1f,
             windowOffsetX = canvasLeft,
             windowOffsetY = canvasTop,
-            node = accessibilityDom.semanticsRootElement?.let { capture.composeNodeOf(it, depth = 0) },
+            node = rootNode?.copy(children = rootNode.children + embeddedHtmlNodes),
         )
     }
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult {
         if (!accessibilityDom.isConnected) return NodeActionResult(performed = false, message = VIEWPORT_GONE)
+        if (request.nodeId < 0 && htmlInteropContainer != null) {
+            val result = htmlInteropContainer.performAction(request)
+            // The page's own listeners may carry what the element did into Compose state.
+            if (result.performed) changeWatcher.expectChangeFromAction()
+            return result
+        }
         val element = elementIds.elementOf(request.nodeId)
             ?: return NodeActionResult(
                 performed = false,
@@ -98,7 +105,11 @@ internal class ComposeViewportNodeSource(
             highlightBox.clear()
             return HighlightResult(shown = false, message = VIEWPORT_GONE.takeIf { nodeId != null })
         }
-        val resolveBounds = { elementIds.elementOf(nodeId)?.let(accessibilityDom::boundsOf) }
+        val resolveBounds = if (nodeId < 0 && htmlInteropContainer != null) {
+            { htmlInteropContainer.visibleBoundsOf(nodeId, canvas) }
+        } else {
+            { elementIds.elementOf(nodeId)?.let(accessibilityDom::boundsOf) }
+        }
         val bounds = resolveBounds()
         if (bounds == null) {
             highlightBox.clear()
@@ -120,50 +131,6 @@ internal class ComposeViewportNodeSource(
         return HighlightResult(shown = true)
     }
 }
-
-/**
- * Where this element can be seen right now, in CSS pixels from the browser viewport's corner: the
- * browser viewport, cut down by every ancestor that clips its overflow, through the viewport's
- * shadow root and up the app's own elements. Empty while CSS hides the element.
- *
- * The walk stops below `<body>`: the document's own overflow is the browser viewport's, which a
- * `<body>` with `overflow: hidden` hands on to it rather than clipping itself.
- */
-private fun HTMLElement.clipBounds(): NodeBounds {
-    if (window.getComputedStyle(this).visibility != "visible") return NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
-    var area = NodeBounds(left = 0f, top = 0f, right = window.innerWidth.toFloat(), bottom = window.innerHeight.toFloat())
-    var ancestor = parentElementOrShadowHost()
-    while (ancestor != null && ancestor != document.body && ancestor != document.documentElement) {
-        area = area.clippedByOverflowOf(ancestor)
-        ancestor = ancestor.parentElementOrShadowHost()
-    }
-    return area
-}
-
-/**
- * These bounds cut down to what [element] lets its overflow show, axis by axis: an axis whose
- * overflow is `visible` is not clipped, which `overflow: clip` allows on one axis alone. The clip is
- * the element's padding box, inside its borders and scrollbars.
- */
-private fun NodeBounds.clippedByOverflowOf(element: Element): NodeBounds {
-    val style = window.getComputedStyle(element)
-    val clipsX = style.getPropertyValue("overflow-x") != "visible"
-    val clipsY = style.getPropertyValue("overflow-y") != "visible"
-    if (!clipsX && !clipsY) return this
-    val rect = element.getBoundingClientRect()
-    val paddingBoxLeft = (rect.left + element.clientLeft).toFloat()
-    val paddingBoxTop = (rect.top + element.clientTop).toFloat()
-    return intersect(
-        NodeBounds(
-            left = if (clipsX) paddingBoxLeft else left,
-            top = if (clipsY) paddingBoxTop else top,
-            right = if (clipsX) paddingBoxLeft + element.clientWidth else right,
-            bottom = if (clipsY) paddingBoxTop + element.clientHeight else bottom,
-        ),
-    )
-}
-
-private fun Element.parentElementOrShadowHost(): Element? = parentElement ?: (parentNode as? ShadowRoot)?.host
 
 private const val VIEWPORT_GONE: String = "the viewport is no longer in the page"
 

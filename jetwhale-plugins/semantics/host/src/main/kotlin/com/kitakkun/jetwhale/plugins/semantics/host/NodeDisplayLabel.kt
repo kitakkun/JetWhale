@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 
@@ -18,6 +19,13 @@ internal fun UiNode.displayLabel(): String {
         is ViewNode -> buildString {
             append(viewClass.substringAfterLast('.'))
             resourceId?.let { append(" · @id/$it") }
+            label?.let { append(" · $it") }
+        }
+
+        is HtmlNode -> buildString {
+            append(tagName)
+            elementId?.let { append("#$it") }
+            cssClasses.forEach { append(".$it") }
             label?.let { append(" · $it") }
         }
 

@@ -56,7 +56,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
 
     // The host's plugin-manifest.json accepts only the agent versions inside its agentVersionRange,
     // so bump that range together with this.
-    override val pluginVersion: String get() = "1.1.0"
+    override val pluginVersion: String get() = "1.2.0"
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { request: CaptureNodeTree ->

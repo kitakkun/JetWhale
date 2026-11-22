@@ -29,7 +29,8 @@ internal class PerformNodeActionCommand(
             "BringIntoView scrolls whatever surrounds the node — Compose scrollables, Android Views and iOS scroll views alike — " +
             "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +
             "list, a RecyclerView or an iOS table/collection view to an item that may not exist yet. Both land on the next frame: " +
-            "capture the tree again afterwards to see the result."
+            "capture the tree again afterwards to see the result. On an HTML element, Click calls the element's click(), " +
+            "SetText and InsertText type into an input, textarea or contenteditable element, and every other action is refused."
 
     private val nodeId by int("The node's id, as reported by findNodes or getNodeTree.")
     private val action by enum(

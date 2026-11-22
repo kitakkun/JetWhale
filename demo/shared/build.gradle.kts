@@ -63,6 +63,10 @@ kotlin {
             implementation(projects.jetwhalePlugins.network.agentOkhttp)
             implementation(libs.okhttp)
         }
+
+        webMain.dependencies {
+            implementation(libs.kotlinxBrowser)
+        }
     }
 
     val xcFrameworkName = "shared"

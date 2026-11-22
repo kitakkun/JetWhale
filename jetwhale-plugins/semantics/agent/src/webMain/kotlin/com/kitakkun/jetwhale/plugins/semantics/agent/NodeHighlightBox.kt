@@ -15,13 +15,17 @@ import kotlin.time.Duration
  * accessibility DOM, so a capture never reports it.
  *
  * The invariant it holds is that a box on screen is in the right place. Compose moves a node by
- * rewriting the accessibility DOM, so the box is placed again on every rewrite, and taken down once
- * its node is gone from it.
+ * rewriting the accessibility DOM, and an embedded HTML element moves with what changes or scrolls
+ * in [htmlInteropContainer], so the box is placed again on each of those, and taken down once its
+ * node is gone.
  */
-internal class NodeHighlightBox(private val accessibilityDom: AccessibilityDom) {
+internal class NodeHighlightBox(
+    private val accessibilityDom: AccessibilityDom,
+    private val htmlInteropContainer: HtmlInteropContainer?,
+) {
     private var box: HTMLElement? = null
     private var resolveBounds: (() -> NodeBounds?)? = null
-    private var watch: AutoCloseable? = null
+    private var watches: List<AutoCloseable> = emptyList()
     private var expiryTimeoutId: Int? = null
 
     /**
@@ -34,7 +38,10 @@ internal class NodeHighlightBox(private val accessibilityDom: AccessibilityDom) 
             val created = document.createElement("div") as HTMLElement
             created.style.cssText = BOX_STYLE
             accessibilityDom.canvasContainer?.appendChild(created)
-            watch = accessibilityDom.watchChanges(::moveToCurrentBounds)
+            watches = listOfNotNull(
+                accessibilityDom.watchChanges(::moveToCurrentBounds),
+                htmlInteropContainer?.watchChangesAndScrolls(::moveToCurrentBounds),
+            )
             box = created
         }
         this.resolveBounds = resolveBounds
@@ -54,8 +61,8 @@ internal class NodeHighlightBox(private val accessibilityDom: AccessibilityDom) 
     fun clear() {
         expiryTimeoutId?.let(window::clearTimeout)
         expiryTimeoutId = null
-        watch?.close()
-        watch = null
+        watches.forEach(AutoCloseable::close)
+        watches = emptyList()
         box?.remove()
         box = null
         resolveBounds = null

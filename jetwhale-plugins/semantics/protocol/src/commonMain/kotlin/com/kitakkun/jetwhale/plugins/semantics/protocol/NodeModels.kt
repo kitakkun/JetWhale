@@ -15,7 +15,8 @@ import kotlinx.serialization.Serializable
  * the tree is the window's accessibility tree, in which UIKit views, SwiftUI nodes and Compose
  * elements all appear as [AppleNode]s, and [merged] has no effect: the accessibility tree is the
  * merged one. On the web the tree is the accessibility DOM Compose keeps in the page, which holds
- * the merged tree alone, so [merged] has no effect there either. These options apply to every type
+ * the merged tree alone, so [merged] has no effect there either, together with the HTML elements an
+ * app embeds with `HtmlElementView`, as [HtmlNode]s. These options apply to every type
  * identically: depth counts every node, and a node with empty bounds or hidden by its platform is
  * invisible — left out by default, and kept with `isVisible = false` under [includeInvisible].
  *
@@ -100,10 +101,10 @@ data class NodeRef(
 
 /**
  * One node of the captured tree: a Compose semantics node ([ComposeNode]), on Android an
- * interoperating `View` ([ViewNode]), or on iOS anything the window publishes through accessibility
- * ([AppleNode]).
+ * interoperating `View` ([ViewNode]), on iOS anything the window publishes through accessibility
+ * ([AppleNode]), or on the web an HTML element embedded in the composition ([HtmlNode]).
  *
- * Everything declared here a node of either type answers, so a consumer that only reads the tree —
+ * Everything declared here a node of any type answers, so a consumer that only reads the tree —
  * searching it, drawing it, tapping its bounds — never has to know which type it holds.
  */
 @Serializable
@@ -111,8 +112,8 @@ sealed interface UiNode {
     /**
      * Addresses the node within its root and stays valid while the node is on screen. A
      * [ComposeNode] reports its semantics id, which is non-negative (on the web, where the page
-     * carries none, a non-negative id the agent assigns); a [ViewNode] or an [AppleNode] reports a
-     * negative id assigned by the agent, so the two can never collide.
+     * carries none, a non-negative id the agent assigns); a [ViewNode], an [AppleNode] or an
+     * [HtmlNode] reports a negative id assigned by the agent, so the two can never collide.
      */
     val id: Int
 
@@ -311,6 +312,59 @@ data class AppleNode(
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 
+/**
+ * An HTML element a Compose for Web app embeds with `HtmlElementView`, or an element inside one.
+ *
+ * Compose lays these elements over the canvas, outside the accessibility DOM its [ComposeNode]s are
+ * read from, and gives an `HtmlElementView` no semantics node of its own, so nothing in the page
+ * says which Compose node hosts one. Each element an app hands `HtmlElementView` is therefore a child
+ * of its viewport's root node, after the Compose content and in the order Compose stacks the
+ * elements, with the elements inside it as its children. The `div` Compose wraps each one in is its
+ * own scaffolding and is left out.
+ *
+ * Bounds are **CSS pixels**, as for every node on the web. Optional properties default to the
+ * unremarkable state, as on [ComposeNode]. [text] is the element's own text, not its children's.
+ * [editableText] is the content of an `<input>` that takes text, a `<textarea>` or a
+ * `contenteditable` element, except in a masked field — `type="password"`, or masked by
+ * `-webkit-text-security` — which the page marks as such, unlike a Compose password field, whose
+ * content a web capture never reads.
+ *
+ * @property id Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id.
+ * @property tagName The element's tag name in lower case, e.g. `input` — what says the thing is.
+ * @property elementId The element's `id` attribute, which is where the page's own scripts and tests
+ *   find it — the test-tag equivalent of this node type.
+ * @property cssClasses The element's classes, in the order of its `class` attribute.
+ * @property attributes Those of `type`, `name`, `href`, `role`, `placeholder`, `title` and `alt` the
+ *   element has. `value` is never among them: an `<input>`'s `value` attribute is its initial
+ *   content, a password field's included.
+ */
+@Serializable
+@SerialName("html")
+data class HtmlNode(
+    override val id: Int,
+    val tagName: String,
+    val elementId: String? = null,
+    val cssClasses: List<String> = emptyList(),
+    val attributes: Map<String, String> = emptyMap(),
+    override val text: String? = null,
+    override val editableText: String? = null,
+    override val contentDescription: String? = null,
+    override val toggleableState: String? = null,
+    override val bounds: NodeBounds,
+    override val boundsInScreen: NodeBounds,
+    override val actions: List<String> = emptyList(),
+    override val isEnabled: Boolean = true,
+    override val isClickable: Boolean = false,
+    override val isFocused: Boolean = false,
+    override val isSelected: Boolean = false,
+    override val isEditable: Boolean = false,
+    override val isScrollable: Boolean = false,
+    override val isVisible: Boolean = true,
+    override val isHittable: Boolean = true,
+    override val obscuredBy: NodeRef? = null,
+    override val children: List<UiNode> = emptyList(),
+) : UiNode
+
 /** A rectangle in pixels — in points on iOS and CSS pixels on the web, where the root's `density` is `1`. */
 @Serializable
 data class NodeBounds(
@@ -336,7 +390,9 @@ data class NodeBounds(
  * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
  * On an [AppleNode] it is the accessibility protocol's counterpart — [Click] is
  * `accessibilityActivate()`, [Dismiss] is `accessibilityPerformEscape()` — or the `UIView` API when
- * the node is a view that has one.
+ * the node is a view that has one. On an [HtmlNode], [Click] is the element's `click()`, and
+ * [SetText] and [InsertText] write a field's content and send the `input` and `change` events a
+ * page's scripts listen for; the other actions report that they did not run.
  *
  * [BringIntoView] is the one action that is not the node's own: it drives the scrollable
  * containers *around* the node, so it applies to any node with bounds rather than only to those

@@ -148,6 +148,27 @@ class NodeMcpJsonTest {
     }
 
     @Test
+    fun `spells out an HTML node by its tag, id, classes and attributes`() {
+        val json = htmlNode(
+            id = -5,
+            tagName = "a",
+            elementId = "docs-link",
+            cssClasses = listOf("link"),
+            attributes = mapOf("href" to "#docs"),
+            text = "Docs",
+        ).toMcpJson()
+
+        assertEquals("HTML", json["kind"]?.jsonPrimitive?.content)
+        assertEquals("px", json["unit"]?.jsonPrimitive?.content)
+        assertEquals("a", json["tagName"]?.jsonPrimitive?.content)
+        assertEquals("docs-link", json["elementId"]?.jsonPrimitive?.content)
+        assertEquals(listOf("link"), json["cssClasses"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals("#docs", json["attributes"]?.jsonObject?.get("href")?.jsonPrimitive?.content)
+        assertEquals("Docs", json["text"]?.jsonPrimitive?.content)
+        assertEquals(-5, json["id"]?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
     fun `omits the kind of a Compose node, which is what most of a tree is`() {
         val json = node(id = 1, text = "label").toMcpJson()
 

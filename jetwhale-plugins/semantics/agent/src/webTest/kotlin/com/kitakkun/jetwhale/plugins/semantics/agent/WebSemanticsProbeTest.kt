@@ -376,12 +376,12 @@ class WebSemanticsProbeTest {
         .filter { it.style.zIndex == "2147483647" }
 }
 
-private const val VIEWPORT_LEFT = 30f
-private const val VIEWPORT_TOP = 50f
+internal const val VIEWPORT_LEFT = 30f
+internal const val VIEWPORT_TOP = 50f
 
-private fun ComposeRoot?.nodeWithTag(testTag: String): ComposeNode = this?.allNodes().orEmpty().filterIsInstance<ComposeNode>().firstOrNull { it.testTag == testTag } ?: fail("no node tagged $testTag in $this")
+internal fun ComposeRoot?.nodeWithTag(testTag: String): ComposeNode = this?.allNodes().orEmpty().filterIsInstance<ComposeNode>().firstOrNull { it.testTag == testTag } ?: fail("no node tagged $testTag in $this")
 
-private fun ComposeRoot.allNodes(): List<UiNode> = node?.withDescendants().orEmpty()
+internal fun ComposeRoot.allNodes(): List<UiNode> = node?.withDescendants().orEmpty()
 
 private fun UiNode.withDescendants(): List<UiNode> = listOf(this) + children.flatMap(UiNode::withDescendants)
 
@@ -407,7 +407,7 @@ private suspend fun awaitMutation(target: Node, mutate: () -> Unit) {
 
 /** Suspends until [condition] holds, checking it again on every change under [target]. */
 @OptIn(ExperimentalWasmJsInterop::class)
-private suspend fun awaitCondition(target: Node, condition: () -> Boolean) {
+internal suspend fun awaitCondition(target: Node, condition: () -> Boolean) {
     if (condition()) return
     suspendCancellableCoroutine { continuation ->
         val observer = MutationObserver { _, observer ->
@@ -431,4 +431,4 @@ private fun viewportShadowHostWithoutCompose(): HTMLElement {
     return shadowHost
 }
 
-private fun HTMLElement.viewportShadowRoot(): ShadowRoot? = querySelectorAll("div").asList().firstNotNullOfOrNull { (it as? Element)?.shadowRoot }
+internal fun HTMLElement.viewportShadowRoot(): ShadowRoot? = querySelectorAll("div").asList().firstNotNullOfOrNull { (it as? Element)?.shadowRoot }

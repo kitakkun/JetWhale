@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HtmlNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -93,6 +94,34 @@ internal fun appleNode(
     actions = actions,
     isClickable = isClickable,
     children = children,
+)
+
+/** An HTML element embedded in a web composition, as a web capture reports one: a negative id, a tag, and its id and classes. */
+internal fun htmlNode(
+    id: Int,
+    tagName: String,
+    elementId: String? = null,
+    cssClasses: List<String> = emptyList(),
+    attributes: Map<String, String> = emptyMap(),
+    text: String? = null,
+    editableText: String? = null,
+    actions: List<String> = emptyList(),
+    isClickable: Boolean = false,
+    isEditable: Boolean = false,
+    bounds: NodeBounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f),
+): HtmlNode = HtmlNode(
+    id = id,
+    tagName = tagName,
+    elementId = elementId,
+    cssClasses = cssClasses,
+    attributes = attributes,
+    text = text,
+    editableText = editableText,
+    bounds = bounds,
+    boundsInScreen = bounds,
+    actions = actions,
+    isClickable = isClickable,
+    isEditable = isEditable,
 )
 
 internal fun root(

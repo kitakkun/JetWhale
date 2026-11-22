@@ -105,7 +105,8 @@ private object WebSemanticsProbe {
  * it hosts none.
  *
  * `ComposeViewport` builds `viewportContainer > div > shadow host`, and the host's open shadow root
- * holds a `div` with the canvas, followed by the accessibility DOM when accessibility is on.
+ * holds a `div` with the canvas, followed by the accessibility DOM when accessibility is on. The
+ * host's next sibling is the interop container, where Compose puts the HTML elements it embeds.
  */
 private fun Element.createViewportNodeSource(): ComposeNodeSource? {
     val shadowRoot = shadowRoot ?: return null
@@ -121,6 +122,7 @@ private fun Element.createViewportNodeSource(): ComposeNodeSource? {
         label = viewportLabel(),
         canvas = canvas,
         accessibilityRoot = accessibilityRoot,
+        htmlInteropContainer = nextElementSibling?.let(::HtmlInteropContainer),
     )
 }
 
