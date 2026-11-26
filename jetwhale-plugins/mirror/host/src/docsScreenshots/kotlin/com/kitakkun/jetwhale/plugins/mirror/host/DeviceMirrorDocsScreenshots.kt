@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -101,12 +102,14 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
         PluginSceneSurface(darkTheme = darkTheme, storage = InMemoryPluginStorage(emptyMap())) {
             MirrorScreen(
                 devices = DEVICES,
-                capabilities = DeviceCapabilities(inputRefusal = null, buttons = DeviceButton.entries, recording = true, screenPower = true),
+                capabilities = DeviceCapabilities(inputRefusal = null, buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown), recording = true, screenPower = true),
+                hasXrViewControls = false,
                 missingTools = emptyList(),
                 selectedId = PIXEL_EMULATOR.id,
                 state = MirrorState.Streaming,
                 notices = PreviewNotices(notice = null),
                 screenPower = ScreenPower(awake = true, locked = false),
+                xrPassthrough = null,
                 recordingSinceMillis = null,
                 surface = surface,
                 actions = NoMirrorActions,
@@ -152,6 +155,12 @@ private object NoMirrorActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) = Unit
+
+    override fun recenterXrView() = Unit
+
+    override fun setXrPassthrough(on: Boolean) = Unit
 
     override fun retryLiveVideo() = Unit
 

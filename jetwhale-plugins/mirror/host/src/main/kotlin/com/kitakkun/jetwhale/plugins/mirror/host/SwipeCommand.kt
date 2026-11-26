@@ -16,7 +16,9 @@ internal class SwipeCommand(
     private val mirror: MirrorDevices,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.swipe"
-    override val description = "Swipes across the device screen between two points in the pixels of $TOOL_PREFIX.captureScreenshot. Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
+    override val description =
+        "Swipes across the device screen between two points in the pixels of $TOOL_PREFIX.captureScreenshot. On an Android XR emulator the hand pinches at the start, moves and lets go at the end, which scrolls the app under it. " +
+            "Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val fromX by int("Start, horizontal, in screenshot pixels.")

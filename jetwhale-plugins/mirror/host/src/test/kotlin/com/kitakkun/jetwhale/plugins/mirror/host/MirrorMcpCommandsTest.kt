@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -306,6 +307,49 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `turnXrView turns an XR emulator's view by the degrees given, and refuses a turn over the top`() {
+        val xrEmulator = FakeXrController()
+        val xrMirror = FakeMirrorDevices(listOf(MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xrEmulator)))
+
+        TurnXrViewCommand(xrMirror).run(buildJsonObject { put("rightDegrees", -30) })
+        val overTheTop = assertFailsWith<JetWhaleMcpArgumentException> { TurnXrViewCommand(xrMirror).run(buildJsonObject { put("upDegrees", 91) }) }
+
+        assertEquals(listOf("turn right -30.0 up 0.0"), xrEmulator.calls)
+        assertEquals("upDegrees must be from -90 to 90 (got 91)", overTheTop.message)
+    }
+
+    @Test
+    fun `the XR view tools refuse a device without an XR view, naming the one that has it`() {
+        val refused = listOf(
+            TurnXrViewCommand(mirror) to buildJsonObject { put("rightDegrees", 30) },
+            RecenterXrViewCommand(mirror) to buildJsonObject { },
+            SetXrPassthroughCommand(mirror) to buildJsonObject { put("on", true) },
+        ).map { (command, arguments) -> assertFailsWith<JetWhaleMcpArgumentException> { command.run(arguments) }.message }
+
+        assertTrue(refused.all { it == "Pixel 9 has no XR view to move; only an Android XR emulator that takes input has one, and $TOOL_PREFIX.listDevices says why a device takes none" }, refused.toString())
+        assertEquals(emptyList(), emulator.calls)
+    }
+
+    @Test
+    fun `setXrPassthrough answers the passthrough it leaves, and listDevices reports it for an XR emulator only`() {
+        val xrEmulator = FakeXrController()
+        val xrMirror = FakeMirrorDevices(
+            listOf(
+                MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xrEmulator),
+                MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
+            ),
+        )
+
+        val answer = SetXrPassthroughCommand(xrMirror).run(buildJsonObject { put("on", true) })
+        val devices = ListDevicesCommand(xrMirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
+
+        assertTrue(answer.getValue("passthrough").jsonPrimitive.boolean)
+        assertTrue(devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5556" }.getValue("passthrough").jsonPrimitive.boolean)
+        assertEquals("XR emulator", devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5556" }.getValue("kind").jsonPrimitive.content)
+        assertFalse("passthrough" in devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" })
+    }
+
+    @Test
     fun `listCaptures without filters asks for every device's captures`() {
         ListCapturesCommand(mirror).run()
 
@@ -430,5 +474,31 @@ private class FakeController(
         inputAttempts++
         refusal?.let { throw deviceControlError(it) }
         calls += call
+    }
+}
+
+private class FakeXrController :
+    DeviceController by FakeController(DeviceCapabilities(inputRefusal = null, buttons = listOf(DeviceButton.Home, DeviceButton.AllApps), recording = true, screenPower = true)),
+    XrViewController {
+    val calls = mutableListOf<String>()
+
+    private var passthrough = false
+
+    override suspend fun turnView(rightDegrees: Double, upDegrees: Double) {
+        calls += "turn right $rightDegrees up $upDegrees"
+    }
+
+    override suspend fun turnViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) {
+        calls += "drag $dragFromInScreenWidths -> $dragToInScreenWidths"
+    }
+
+    override suspend fun recenterView() {
+        calls += "recenter"
+    }
+
+    override suspend fun isPassthroughOn(): Boolean = passthrough
+
+    override suspend fun setPassthrough(on: Boolean) {
+        passthrough = on
     }
 }

@@ -8,6 +8,12 @@ internal enum class DevicePlatform(val label: String) {
 internal enum class DeviceKind(val platform: DevicePlatform, val label: String) {
     AndroidEmulator(DevicePlatform.Android, "Emulator"),
     AndroidDevice(DevicePlatform.Android, "Device"),
+
+    /** An emulator that places apps in a 3D space, as an Android XR headset does. */
+    AndroidXrEmulator(DevicePlatform.Android, "XR emulator"),
+
+    /** A device that places apps in a 3D space: an Android XR headset. */
+    AndroidXrHeadset(DevicePlatform.Android, "XR headset"),
     IosSimulator(DevicePlatform.Ios, "Simulator"),
     IosDevice(DevicePlatform.Ios, "Device"),
 }
@@ -16,6 +22,9 @@ internal enum class DeviceButton(val label: String) {
     Home("Home"),
     Back("Back"),
     Recents("Recent apps"),
+
+    /** Opens Android XR's launcher, or closes it when it is open. */
+    AllApps("All apps"),
     Power("Power"),
     VolumeUp("Volume up"),
     VolumeDown("Volume down"),

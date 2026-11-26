@@ -12,7 +12,8 @@ internal class CaptureScreenshotCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.captureScreenshot"
     override val description =
-        "Saves the device screen as a PNG among the device's captures and returns its absolute path and size in pixels. The tap and swipe tools take coordinates in these pixels. Read the file to see the screen."
+        "Saves the device screen as a PNG among the device's captures and returns its absolute path and size in pixels. The tap and swipe tools take coordinates in these pixels. Read the file to see the screen. " +
+            "An Android XR emulator's screen is its view of the scene, as it faces now."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
 

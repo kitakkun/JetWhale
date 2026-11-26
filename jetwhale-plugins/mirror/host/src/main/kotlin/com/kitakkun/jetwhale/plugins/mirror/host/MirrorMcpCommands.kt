@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.time.Duration.Companion.milliseconds
 
 internal const val TOOL_PREFIX = "com.kitakkun.jetwhale.mirror"
 
@@ -55,12 +56,15 @@ internal class MirrorMcpCommands(mirror: MirrorDevices) {
     val pressButton = PressButtonCommand(mirror)
     val setScreen = SetScreenCommand(mirror)
     val inputText = InputTextCommand(mirror)
+    val turnXrView = TurnXrViewCommand(mirror)
+    val recenterXrView = RecenterXrViewCommand(mirror)
+    val setXrPassthrough = SetXrPassthroughCommand(mirror)
     val keepRunnerAlive = KeepRunnerAliveCommand(mirror)
     val startRecording = StartRecordingCommand(mirror)
     val stopRecording = StopRecordingCommand(mirror)
     val listCaptures = ListCapturesCommand(mirror)
 
-    val all: List<JetWhaleMcpCommand> = listOf(listDevices, captureScreenshot, tap, swipe, pressButton, setScreen, inputText, keepRunnerAlive, startRecording, stopRecording, listCaptures)
+    val all: List<JetWhaleMcpCommand> = listOf(listDevices, captureScreenshot, tap, swipe, pressButton, setScreen, inputText, turnXrView, recenterXrView, setXrPassthrough, keepRunnerAlive, startRecording, stopRecording, listCaptures)
 }
 
 internal fun okJson(): String = buildJsonObject { put("ok", true) }.toString()
@@ -72,3 +76,15 @@ internal suspend fun <T> deviceOperation(operation: suspend () -> T): T = try {
 } catch (e: DeviceControlException) {
     throw JetWhaleMcpArgumentException(e.message.orEmpty())
 }
+
+/**
+ * How long the XR emulator takes to show its view after a turn or a recenter. The XR view tools wait
+ * this long before they answer, so that a screenshot taken next shows the new view, and a turn sent
+ * next is not undone by a recenter the emulator has yet to apply.
+ */
+internal val XR_VIEW_SETTLE_TIME = 250.milliseconds
+
+/** [device]'s XR view, refusing a device without one. */
+@OptIn(ExperimentalJetWhaleApi::class)
+internal fun requireXrViewController(device: MirrorDevice): XrViewController = device.controller as? XrViewController
+    ?: throw JetWhaleMcpArgumentException("${device.name} has no XR view to move; only an Android XR emulator that takes input has one, and $TOOL_PREFIX.listDevices says why a device takes none")

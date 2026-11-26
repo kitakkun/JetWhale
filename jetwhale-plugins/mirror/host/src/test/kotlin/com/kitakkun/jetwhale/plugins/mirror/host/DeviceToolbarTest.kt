@@ -5,29 +5,38 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
 import com.kitakkun.jetwhale.host.ui.JwColors
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
+import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
+import org.jetbrains.skia.ColorType
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class, ExperimentalJetWhaleApi::class)
 class DeviceToolbarTest {
     @Test
     fun `each device button is announced by its label once`() = runComposeUiTest {
-        setContent { JwTheme(darkTheme = false) { Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false)) } }
+        setContent { JwTheme(darkTheme = false) { Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false), hasXrViewControls = false, xrPassthrough = null) } }
 
         listOf("Home", "Back", "Recent apps", "Power", "Volume up", "Volume down", "Screen off").forEach { label ->
             assertEquals(listOf(label), contentDescriptionOf(label))
@@ -36,7 +45,7 @@ class DeviceToolbarTest {
 
     @Test
     fun `a simulator's disabled volume buttons are announced with the reason once`() = runComposeUiTest {
-        setContent { JwTheme(darkTheme = false) { Toolbar(simulator, simulatorCapabilities, screenPower = null) } }
+        setContent { JwTheme(darkTheme = false) { Toolbar(simulator, simulatorCapabilities, screenPower = null, hasXrViewControls = false, xrPassthrough = null) } }
 
         val label = "Volume up: a simulator's volume buttons cannot be pressed from here"
         assertEquals(listOf(label), contentDescriptionOf(label))
@@ -49,7 +58,7 @@ class DeviceToolbarTest {
         setContent {
             JwTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
-                    Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false))
+                    Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false), hasXrViewControls = false, xrPassthrough = null)
                 }
             }
         }
@@ -68,6 +77,90 @@ class DeviceToolbarTest {
 
             assertEquals(ringedLabels, controlLabels.filter { isControlRinged(it) }, "while ${command.name} runs")
         }
+    }
+
+    @Test
+    fun `an XR emulator's view controls are announced, and each is ringed only while its own tool runs`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        var runningCommandNames by mutableStateOf(emptySet<String>())
+        setContent {
+            JwTheme(darkTheme = false) {
+                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                    Toolbar(xrEmulator, xrEmulatorCapabilities, ScreenPower(awake = true, locked = false), hasXrViewControls = true, xrPassthrough = false)
+                }
+            }
+        }
+        val lookAroundLabel = "Look around: drag the screen to turn the view"
+        val recenterLabel = "Recenter the view"
+        val passthroughLabel = "Passthrough off: show the room"
+        listOf("All apps", lookAroundLabel, recenterLabel, passthroughLabel).forEach { label -> assertEquals(listOf(label), contentDescriptionOf(label)) }
+
+        mapOf(
+            toolbarMcpCommands.turnXrView to lookAroundLabel,
+            toolbarMcpCommands.recenterXrView to recenterLabel,
+            toolbarMcpCommands.setXrPassthrough to passthroughLabel,
+        ).forEach { (command, ringedLabel) ->
+            runningCommandNames = setOf(command.name)
+            mainClock.advanceTimeByFrame()
+
+            assertEquals(listOf(ringedLabel), listOf(lookAroundLabel, recenterLabel, passthroughLabel).filter { isControlRinged(it) }, "while ${command.name} runs")
+        }
+    }
+
+    @Test
+    fun `look around ends when the device under the same id no longer offers it, so a drag swipes again`() = runComposeUiTest {
+        var device by mutableStateOf(xrEmulator)
+        var capabilities by mutableStateOf(xrEmulatorCapabilities)
+        var hasXrViewControls by mutableStateOf(true)
+        val actions = CountingMirrorActions()
+        val surface = MirrorSurface().apply {
+            switchTo(xrEmulator.id)
+            startStream().writeFrame(width = 100, height = 100, colorType = ColorType.BGRA_8888) { true }
+        }
+        setContent {
+            PluginSceneSurface(darkTheme = false, storage = InMemoryPluginStorage(emptyMap())) {
+                MirrorScreen(
+                    devices = listOf(device),
+                    capabilities = capabilities,
+                    hasXrViewControls = hasXrViewControls,
+                    missingTools = emptyList(),
+                    selectedId = device.id,
+                    state = MirrorState.Streaming,
+                    notices = NoNotices,
+                    screenPower = null,
+                    xrPassthrough = null,
+                    recordingSinceMillis = null,
+                    surface = surface,
+                    actions = actions,
+                    mcpCommands = toolbarMcpCommands,
+                    showCaptures = false,
+                    livenessOf = { DeviceLiveness.Live },
+                    onToggleCaptures = {},
+                    onShowGrid = {},
+                    capturesPanel = {},
+                )
+            }
+        }
+        val dragAcrossTheScreen: TouchInjectionScope.() -> Unit = {
+            down(center)
+            moveBy(Offset(80f, 0f))
+            up()
+        }
+        onNodeWithContentDescription("Look around: drag the screen to turn the view").performClick()
+        onRoot().performTouchInput(dragAcrossTheScreen)
+        assertTrue(actions.dragTurns > 0)
+        assertEquals(0, actions.swipes)
+        device = xrEmulator.copy(kind = DeviceKind.AndroidEmulator)
+        capabilities = androidCapabilities
+        hasXrViewControls = false
+        waitForIdle()
+        val turnsWhileLookingAround = actions.dragTurns
+
+        onRoot().performTouchInput(dragAcrossTheScreen)
+
+        assertEquals(turnsWhileLookingAround, actions.dragTurns)
+        assertEquals(1, actions.swipes)
+        surface.close()
     }
 
     /**
@@ -89,6 +182,15 @@ class DeviceToolbarTest {
 
     private val emulator = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
 
+    private val xrEmulator = DeviceListing(id = "emulator-5556", name = "Android XR", kind = DeviceKind.AndroidXrEmulator, osVersion = null)
+
+    private val xrEmulatorCapabilities = DeviceCapabilities(
+        inputRefusal = null,
+        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power),
+        recording = true,
+        screenPower = true,
+    )
+
     private val simulator = DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
     private val androidCapabilities = DeviceCapabilities(inputRefusal = null, buttons = DeviceButton.entries, recording = true, screenPower = true)
@@ -109,21 +211,25 @@ class DeviceToolbarTest {
 private val toolbarMcpCommands = MirrorMcpCommands(NoMirrorDevices)
 
 @Composable
-private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, screenPower: ScreenPower?) {
+private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, screenPower: ScreenPower?, hasXrViewControls: Boolean, xrPassthrough: Boolean?) {
     DeviceToolbar(
         pane = DevicePaneState(
             devices = listOf(device),
             device = device,
             capabilities = capabilities,
+            hasXrViewControls = hasXrViewControls,
             state = MirrorState.Streaming,
             screenPower = screenPower,
+            xrPassthrough = xrPassthrough,
             recordingSinceMillis = null,
         ),
         actions = NoMirrorActions,
         mcpCommands = toolbarMcpCommands,
         showCaptures = false,
+        lookingAround = false,
         livenessOf = { DeviceLiveness.Live },
         onToggleCaptures = {},
+        onToggleLookingAround = {},
         onShowGrid = {},
     )
 }
@@ -148,6 +254,30 @@ private object NoMirrorDevices : MirrorDevices {
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = emptyList()
 }
 
+private object NoNotices : MirrorNoticeActions {
+    override val notice: MirrorNotice? = null
+
+    override fun dismissAndRun(action: NoticeAction) = Unit
+
+    override fun dismiss() = Unit
+
+    override fun hold(held: Boolean) = Unit
+}
+
+/** Counts the swipes and look-around turns a drag on the screen asks for; does nothing else. */
+private class CountingMirrorActions : MirrorActions by NoMirrorActions {
+    var swipes = 0
+    var dragTurns = 0
+
+    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) {
+        swipes++
+    }
+
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) {
+        dragTurns++
+    }
+}
+
 private object NoMirrorActions : MirrorActions {
     override fun select(deviceId: String) = Unit
 
@@ -168,6 +298,12 @@ private object NoMirrorActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) = Unit
+
+    override fun recenterXrView() = Unit
+
+    override fun setXrPassthrough(on: Boolean) = Unit
 
     override fun retryLiveVideo() = Unit
 

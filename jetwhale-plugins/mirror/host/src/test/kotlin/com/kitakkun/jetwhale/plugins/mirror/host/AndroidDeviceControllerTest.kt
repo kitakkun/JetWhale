@@ -184,7 +184,7 @@ class AndroidDeviceControllerTest {
             server.start()
             val running = File(folder, "running").apply { mkdirs() }
             File(running, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\n")
-            check(AndroidDeviceController(adbPath = fakeAdb.path, serial = "emulator-5554", emulatorScreens = EmulatorScreens(listOf(running)), ffmpegPath = "ffmpeg"), server)
+            check(AndroidDeviceController(adbPath = fakeAdb.path, serial = "emulator-5554", emulatorScreens = EmulatorScreens(EmulatorGrpcEndpoints(listOf(running))), ffmpegPath = "ffmpeg"), server)
         }
     }
 

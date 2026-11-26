@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
 import kotlinx.coroutines.CancellationException
@@ -15,6 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.Protocol
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
+import okio.Buffer
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Surface
 import java.io.ByteArrayInputStream
@@ -41,7 +48,7 @@ class DeviceMirrorStreamingTest {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList())),
+        discovery = testDeviceDiscovery(locatedToolPaths()),
         developmentTeamSetting = emptyDevelopmentTeamSetting(),
         captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
@@ -66,6 +73,57 @@ class DeviceMirrorStreamingTest {
         runBlocking { scope.coroutineContext.job.cancelAndJoin() }
         root.deleteRecursively()
         tools.deleteRecursively()
+    }
+
+    // The mirror's state is snapshot state written off the UI thread, which nothing hears change
+    // outside a composition, so the test watches it.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
+    @Test
+    fun `a device listed anew under the same id, as an emulator found to be an XR emulator, is mirrored through its new controller`() = runBlocking {
+        assumeShellScriptsLaunch()
+        MockWebServer().use { xrEmulatorEndpoint ->
+            xrEmulatorEndpoint.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
+            xrEmulatorEndpoint.dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse = grpcReply(
+                    if (request.path.orEmpty().endsWith("/getXrOptions")) encodeXrOptions(XrOptions(environment = 0, passthroughCoefficient = 1f, dimmingValue = 0f)) else ByteArray(0),
+                )
+            }
+            xrEmulatorEndpoint.start()
+            val running = File(tools, "running").apply {
+                mkdirs()
+                File(this, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${xrEmulatorEndpoint.port}\ngrpc.token=secret\n")
+            }
+            val featuresFile = File(tools, "features.txt").apply { writeText("") }
+            val fakeAdb = File(tools, "adb").apply {
+                writeText(
+                    """
+                    #!/bin/sh
+                    case "${'$'}*" in
+                      "devices -l") printf 'List of devices attached\nemulator-5554\tdevice product:sdk_xr model:Android_XR device:emu\n' ;;
+                      *"pm list features"*) cat '${featuresFile.path}' ;;
+                    esac
+                    """.trimIndent() + "\n",
+                )
+                setExecutable(true)
+            }
+            val xrMirror = DeviceMirror(
+                discovery = testDeviceDiscovery(locatedToolPaths(adbPath = fakeAdb.path), emulatorRunningDirectories = listOf(running)),
+                developmentTeamSetting = emptyDevelopmentTeamSetting(),
+                captures = MirrorCaptures(File(root, "xr"), storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
+                notices = notices,
+                scope = scope,
+            )
+            xrMirror.refresh()
+            val session = scope.launch { xrMirror.mirrorSelectedDevice() }
+            withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (xrMirror.state == MirrorState.Idle) delay(MIRROR_STATE_POLL_MILLIS) }
+
+            featuresFile.writeText("feature:android.software.xr.api.spatial=3\n")
+            xrMirror.refresh()
+            Snapshot.sendApplyNotifications()
+
+            withTimeout(STREAM_END_TIMEOUT_MILLIS) { while (xrMirror.xrPassthrough != true) delay(MIRROR_STATE_POLL_MILLIS) }
+            session.cancelAndJoin()
+        }
     }
 
     @Test

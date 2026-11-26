@@ -28,6 +28,16 @@ class DeviceListingsTest {
     }
 
     @Test
+    fun `a device listing the spatial XR feature is an Android XR device, and one listing no feature cannot say yet`() {
+        val xr = "feature:android.hardware.xr.input.hand_tracking\nfeature:android.software.xr.api.openxr=65537\nfeature:android.software.xr.api.spatial=3\n"
+        val phone = "feature:android.hardware.camera\nfeature:android.software.xr.api.openxr=65537\n"
+
+        assertEquals(true, isXrSpatialFeatureListed(xr))
+        assertEquals(false, isXrSpatialFeatureListed(phone))
+        assertNull(isXrSpatialFeatureListed("cmd: Can't find service: package\n"))
+    }
+
+    @Test
     fun `simctl lists booted simulators with the OS version from their runtime`() {
         val json = """
             {"devices": {

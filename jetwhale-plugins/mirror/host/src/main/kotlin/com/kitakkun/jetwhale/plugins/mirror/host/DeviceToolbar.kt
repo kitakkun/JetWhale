@@ -69,8 +69,10 @@ internal fun DeviceToolbar(
     actions: MirrorActions,
     mcpCommands: MirrorMcpCommands,
     showCaptures: Boolean,
+    lookingAround: Boolean,
     livenessOf: (String) -> DeviceLiveness,
     onToggleCaptures: () -> Unit,
+    onToggleLookingAround: () -> Unit,
     onShowGrid: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -94,6 +96,9 @@ internal fun DeviceToolbar(
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions, mcpCommands)
             VolumeGroup(pane.device.kind, pane.capabilities, actions, mcpCommands)
             ScreenPowerButton(pane.screenPower, actions, mcpCommands)
+            if (pane.hasXrViewControls) {
+                XrViewGroup(pane.xrPassthrough, lookingAround, actions, mcpCommands, onToggleLookingAround)
+            }
             Row(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
@@ -110,7 +115,7 @@ internal fun DeviceToolbar(
     }
 }
 
-private val NAVIGATION_AND_POWER_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
+private val NAVIGATION_AND_POWER_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power)
 
 /**
  * Rings the group as a whole while an agent presses a button: [MirrorMcpCommands.pressButton] is one
@@ -155,6 +160,41 @@ private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions,
         true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep, modifier = ring) { JwIcon(imageVector = ScreenOffIcon, contentDescription = null) }
         false -> JwIconButton(tooltip = "Wake", onClick = actions::wake, modifier = ring) { JwIcon(imageVector = WakeIcon, contentDescription = null) }
         null -> Unit
+    }
+}
+
+/**
+ * Where an XR emulator's view faces and what surrounds its scene. While [lookingAround], a drag on the
+ * screen turns the view instead of swiping, and a click still taps, so something off to the side can
+ * be brought into view and clicked without leaving the mode.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
+@Composable
+private fun XrViewGroup(xrPassthrough: Boolean?, lookingAround: Boolean, actions: MirrorActions, mcpCommands: MirrorMcpCommands, onToggleLookingAround: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        JwIconButton(
+            tooltip = if (lookingAround) "Stop looking around" else "Look around: drag the screen to turn the view",
+            onClick = onToggleLookingAround,
+            selected = lookingAround,
+            modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.turnXrView, shape = JwShapes.small),
+        ) {
+            JwIcon(imageVector = LookAroundIcon, contentDescription = null)
+        }
+        JwIconButton(
+            tooltip = "Recenter the view",
+            onClick = actions::recenterXrView,
+            modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.recenterXrView, shape = JwShapes.small),
+        ) {
+            JwIcon(imageVector = RecenterIcon, contentDescription = null)
+        }
+        JwIconButton(
+            tooltip = if (xrPassthrough == true) "Passthrough on: hide the room" else "Passthrough off: show the room",
+            onClick = { actions.setXrPassthrough(on = xrPassthrough != true) },
+            selected = xrPassthrough == true,
+            modifier = Modifier.jwAiOperatingRingWhileRunning(mcpCommands.setXrPassthrough, shape = JwShapes.small),
+        ) {
+            JwIcon(imageVector = PassthroughIcon, contentDescription = null)
+        }
     }
 }
 

@@ -24,9 +24,12 @@ public final class com/kitakkun/jetwhale/plugins/mirror/host/ComposableSingleton
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mirror/host/ComposableSingletons$DeviceToolbarKt;
 	public fun <init> ()V
 	public final fun getLambda$-1627436669$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1857920317$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-2001734309$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-225872081$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-354077150$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-697327530$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1165785319$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1958403856$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$263307235$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$514537695$com_kitakkun_jetwhale_plugins_mirror_host ()Lkotlin/jvm/functions/Function2;
 }

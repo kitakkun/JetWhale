@@ -36,9 +36,9 @@ dependencies {
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     compileOnly(libs.androidxAnnotation)
-    // okhttp speaks the emulator's gRPC screen stream (plain HTTP/2 with prior knowledge), and its
-    // two messages are encoded by hand rather than pulling in grpc-java. H.264 is decoded by the
-    // ffmpeg installed on the machine.
+    // okhttp speaks the emulator's gRPC endpoint as plain HTTP/2 with prior knowledge; the few
+    // messages are encoded by hand rather than pulling in grpc-java. H.264 is decoded by the ffmpeg
+    // installed on the machine.
     implementation(libs.okhttp)
     implementation(projects.jetwhalePlugins.iosXctestRunner.client)
     "previewImplementation"(projects.jetwhaleHostUi)
