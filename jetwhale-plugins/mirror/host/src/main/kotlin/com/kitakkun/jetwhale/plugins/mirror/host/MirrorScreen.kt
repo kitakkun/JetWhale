@@ -263,7 +263,10 @@ internal class DevicePaneState(
     val screenPower: ScreenPower?,
     val xrPassthrough: Boolean?,
     val recordingSinceMillis: Long?,
-)
+) {
+    /** Whether the device's view can be turned, recentered and switched to passthrough from here: an XR emulator that takes input. */
+    val hasXrViewControls: Boolean get() = device.kind == DeviceKind.AndroidXrEmulator && capabilities.inputRefusal == null
+}
 
 @Composable
 private fun DevicePane(
@@ -278,7 +281,7 @@ private fun DevicePane(
     onShowGrid: () -> Unit,
     capturesPanel: @Composable () -> Unit,
 ) {
-    var lookingAround by remember(pane.device.id) { mutableStateOf(false) }
+    var lookingAround by remember(pane.device.id, pane.hasXrViewControls) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         DeviceToolbar(pane, actions, mcpCommands, showCaptures, lookingAround, livenessOf, onToggleCaptures, onToggleLookingAround = { lookingAround = !lookingAround }, onShowGrid)
         if (showCaptures) {

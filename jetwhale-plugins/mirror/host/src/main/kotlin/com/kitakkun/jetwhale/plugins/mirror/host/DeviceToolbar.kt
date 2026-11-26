@@ -96,7 +96,7 @@ internal fun DeviceToolbar(
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_AND_POWER_BUTTONS::contains), actions, mcpCommands)
             VolumeGroup(pane.device.kind, pane.capabilities, actions, mcpCommands)
             ScreenPowerButton(pane.screenPower, actions, mcpCommands)
-            if (pane.device.kind == DeviceKind.AndroidXrEmulator && pane.capabilities.inputRefusal == null) {
+            if (pane.hasXrViewControls) {
                 XrViewGroup(pane.xrPassthrough, lookingAround, actions, mcpCommands, onToggleLookingAround)
             }
             Row(

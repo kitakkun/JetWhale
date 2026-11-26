@@ -167,7 +167,7 @@ class DeviceDiscoveryTest {
     }
 
     @Test
-    fun `an XR emulator that had no gRPC token takes input once it has one, and keeps that controller`() = runBlocking {
+    fun `an XR emulator gets a controller that takes input once a gRPC token appears, keeps it, and loses input once the token goes`() = runBlocking {
         assumeShellScriptsLaunch()
         fakeAdb.writeText(
             """
@@ -186,10 +186,13 @@ class DeviceDiscoveryTest {
         discoveryFile.writeText("port.serial=5554\ngrpc.port=8556\ngrpc.token=secret\n")
         val withToken = discovery.discover().devices.single()
         val lookedAgain = discovery.discover().devices.single()
+        discoveryFile.writeText("port.serial=5554\ngrpc.port=8558\n")
+        val withoutTokenAgain = discovery.discover().devices.single()
 
         assertTrue(withoutToken.controller.capabilities.inputRefusal != null)
         assertNull(withToken.controller.capabilities.inputRefusal)
         assertSame(withToken.controller, lookedAgain.controller)
+        assertTrue(withoutTokenAgain.controller.capabilities.inputRefusal != null)
     }
 
     @Test

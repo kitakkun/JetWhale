@@ -15,11 +15,17 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.LocalRunningMcpCommandNames
 import com.kitakkun.jetwhale.host.ui.JwColors
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.tools.docsscreenshots.InMemoryPluginStorage
+import com.kitakkun.jetwhale.tools.docsscreenshots.PluginSceneSurface
+import org.jetbrains.skia.ColorType
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -97,6 +103,54 @@ class DeviceToolbarTest {
 
             assertEquals(listOf(ringedLabel), listOf(lookAroundLabel, recenterLabel, passthroughLabel).filter { isControlRinged(it) }, "while ${command.name} runs")
         }
+    }
+
+    @Test
+    fun `look around ends when the device under the same id no longer offers it, so a drag swipes again`() = runComposeUiTest {
+        var device by mutableStateOf(xrEmulator)
+        var capabilities by mutableStateOf(xrEmulatorCapabilities)
+        val actions = CountingMirrorActions()
+        val surface = MirrorSurface().apply {
+            switchTo(xrEmulator.id)
+            startStream().writeFrame(width = 100, height = 100, colorType = ColorType.BGRA_8888) { true }
+        }
+        setContent {
+            PluginSceneSurface(darkTheme = false, storage = InMemoryPluginStorage(emptyMap())) {
+                MirrorScreen(
+                    devices = listOf(device),
+                    capabilities = capabilities,
+                    missingTools = emptyList(),
+                    selectedId = device.id,
+                    state = MirrorState.Streaming,
+                    notices = NoNotices,
+                    screenPower = null,
+                    xrPassthrough = null,
+                    recordingSinceMillis = null,
+                    surface = surface,
+                    actions = actions,
+                    mcpCommands = toolbarMcpCommands,
+                    showCaptures = false,
+                    livenessOf = { DeviceLiveness.Live },
+                    onToggleCaptures = {},
+                    onShowGrid = {},
+                    capturesPanel = {},
+                )
+            }
+        }
+        onNodeWithContentDescription("Look around: drag the screen to turn the view").performClick()
+        device = xrEmulator.copy(kind = DeviceKind.AndroidEmulator)
+        capabilities = androidCapabilities
+        waitForIdle()
+
+        onRoot().performTouchInput {
+            down(center)
+            moveBy(Offset(80f, 0f))
+            up()
+        }
+
+        assertEquals(1, actions.swipes)
+        assertEquals(0, actions.dragTurns)
+        surface.close()
     }
 
     /**
@@ -187,6 +241,30 @@ private object NoMirrorDevices : MirrorDevices {
     override suspend fun stopRecordings(deviceIds: List<String>?): List<RecordingResult> = emptyList()
 
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = emptyList()
+}
+
+private object NoNotices : MirrorNoticeActions {
+    override val notice: MirrorNotice? = null
+
+    override fun dismissAndRun(action: NoticeAction) = Unit
+
+    override fun dismiss() = Unit
+
+    override fun hold(held: Boolean) = Unit
+}
+
+/** Counts the swipes and look-around turns a drag on the screen asks for; does nothing else. */
+private class CountingMirrorActions : MirrorActions by NoMirrorActions {
+    var swipes = 0
+    var dragTurns = 0
+
+    override fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int) {
+        swipes++
+    }
+
+    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) {
+        dragTurns++
+    }
 }
 
 private object NoMirrorActions : MirrorActions {
