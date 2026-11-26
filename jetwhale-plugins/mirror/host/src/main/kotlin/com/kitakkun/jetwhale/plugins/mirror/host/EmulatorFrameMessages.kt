@@ -10,15 +10,15 @@ import java.io.InputStream
  * the screen's aspect ratio and fits the frame inside it. Without a size it sends the full screen.
  */
 internal fun encodeImageFormat(wanted: IntSize?): ByteArray = Buffer().apply {
-    writeVarintField(field = 1, value = IMAGE_FORMAT_RGBA8888)
+    writeVarintField(fieldNumber = 1, value = IMAGE_FORMAT_RGBA8888)
     wanted?.let {
-        writeVarintField(field = 3, value = it.width.toLong())
-        writeVarintField(field = 4, value = it.height.toLong())
+        writeVarintField(fieldNumber = 3, value = it.width.toLong())
+        writeVarintField(fieldNumber = 4, value = it.height.toLong())
     }
 }.readByteArray()
 
 /** An `ImageFormat` asking for the whole screen as a PNG. */
-internal fun encodePngImageFormat(): ByteArray = Buffer().writeVarintField(field = 1, value = IMAGE_FORMAT_PNG).readByteArray()
+internal fun encodePngImageFormat(): ByteArray = Buffer().writeVarintField(fieldNumber = 1, value = IMAGE_FORMAT_PNG).readByteArray()
 
 /** The size of one frame an [EmulatorImageReader] read; its pixels are in [EmulatorImageReader.pixels]. */
 internal class EmulatorImage(val width: Int, val height: Int)
@@ -55,7 +55,7 @@ internal class EmulatorImageReader(private val input: InputStream) {
 /** The picture in an `Image` message, as its format encodes it: its `image` field. */
 internal fun parseImageBytes(message: ByteArray): ByteArray = BoundedReader(ByteArrayInputStream(message), message.size).use { reader ->
     var image: ByteArray? = null
-    readImageMessage(reader) { field, length -> image = ByteArray(length.toInt()).also { field.readFully(it, it.size) } }
+    readImageMessage(reader) { message, length -> image = ByteArray(length.toInt()).also { message.readFully(it, it.size) } }
     image ?: throw deviceControlError("the emulator sent a screenshot without a picture")
 }
 

@@ -9,8 +9,8 @@ private const val WIRE_FIXED64 = 1
 internal const val WIRE_LENGTH_DELIMITED = 2
 internal const val WIRE_FIXED32 = 5
 
-/** The key that starts protobuf field [field] of [wireType]. */
-internal fun fieldKey(field: Int, wireType: Int): Long = (field.toLong() shl 3) or wireType.toLong()
+/** The key that starts protobuf field [fieldNumber] of [wireType]. */
+internal fun fieldKey(fieldNumber: Int, wireType: Int): Long = (fieldNumber.toLong() shl 3) or wireType.toLong()
 
 internal fun Buffer.writeVarint(value: Long) {
     var remaining = value
@@ -21,38 +21,38 @@ internal fun Buffer.writeVarint(value: Long) {
     writeByte(remaining.toInt())
 }
 
-internal fun Buffer.writeVarintField(field: Int, value: Long): Buffer = apply {
-    writeVarint(fieldKey(field, WIRE_VARINT))
+internal fun Buffer.writeVarintField(fieldNumber: Int, value: Long): Buffer = apply {
+    writeVarint(fieldKey(fieldNumber, WIRE_VARINT))
     writeVarint(value)
 }
 
-internal fun Buffer.writeFloatField(field: Int, value: Float): Buffer = apply {
-    writeVarint(fieldKey(field, WIRE_FIXED32))
+internal fun Buffer.writeFloatField(fieldNumber: Int, value: Float): Buffer = apply {
+    writeVarint(fieldKey(fieldNumber, WIRE_FIXED32))
     writeIntLe(value.toRawBits())
 }
 
-internal fun Buffer.writeMessageField(field: Int, message: Buffer): Buffer = apply {
-    writeVarint(fieldKey(field, WIRE_LENGTH_DELIMITED))
+internal fun Buffer.writeMessageField(fieldNumber: Int, message: Buffer): Buffer = apply {
+    writeVarint(fieldKey(fieldNumber, WIRE_LENGTH_DELIMITED))
     writeVarint(message.size)
     writeAll(message)
 }
 
-/** Reads at most [limit] bytes of [source], for one protobuf message or field. */
-internal class BoundedReader(private val source: InputStream, private var limit: Int) : InputStream() {
-    fun hasMore(): Boolean = limit > 0
+/** Reads at most [remainingBytes] bytes of [source], for one protobuf message or field. */
+internal class BoundedReader(private val source: InputStream, private var remainingBytes: Int) : InputStream() {
+    fun hasMore(): Boolean = remainingBytes > 0
 
-    fun remaining(): Long = limit.toLong()
+    fun remaining(): Long = remainingBytes.toLong()
 
     override fun read(): Int {
-        if (limit == 0) return -1
-        limit--
+        if (remainingBytes == 0) return -1
+        remainingBytes--
         return source.read()
     }
 
     override fun read(b: ByteArray, off: Int, len: Int): Int {
-        if (limit == 0) return -1
-        val read = source.read(b, off, minOf(len, limit))
-        if (read > 0) limit -= read
+        if (remainingBytes == 0) return -1
+        val read = source.read(b, off, minOf(len, remainingBytes))
+        if (read > 0) remainingBytes -= read
         return read
     }
 
@@ -77,11 +77,11 @@ internal class BoundedReader(private val source: InputStream, private var limit:
     fun readFloat(): Float = Float.fromBits(Buffer().write(ByteArray(4).also { readFully(it, it.size) }).readIntLe())
 
     fun readFully(target: ByteArray, length: Int) {
-        var read = 0
-        while (read < length) {
-            val count = read(target, read, length - read)
+        var bytesRead = 0
+        while (bytesRead < length) {
+            val count = read(target, bytesRead, length - bytesRead)
             if (count < 0) throw EOFException("the emulator's message ended early")
-            read += count
+            bytesRead += count
         }
     }
 

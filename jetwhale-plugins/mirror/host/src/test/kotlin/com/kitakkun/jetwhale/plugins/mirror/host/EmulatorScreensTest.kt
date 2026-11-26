@@ -21,7 +21,7 @@ import kotlin.test.assertSame
 class EmulatorScreensTest {
     @Test
     fun `a discovery file gives the console port the gRPC port and the token`() {
-        val (consolePort, endpoint) = assertNotNull(parseEmulatorDiscovery("avd.id=Pixel\nport.serial=5554\ngrpc.port=8554\ngrpc.token=secret\n"))
+        val (consolePort, endpoint) = assertNotNull(parseEmulatorDiscoveryFile("avd.id=Pixel\nport.serial=5554\ngrpc.port=8554\ngrpc.token=secret\n"))
 
         assertEquals(5554, consolePort)
         assertEquals(8554, endpoint.port)
@@ -30,7 +30,7 @@ class EmulatorScreensTest {
 
     @Test
     fun `a discovery file without a gRPC port names no endpoint`() {
-        assertNull(parseEmulatorDiscovery("port.serial=5554\nport.adb=5555\n"))
+        assertNull(parseEmulatorDiscoveryFile("port.serial=5554\nport.adb=5555\n"))
     }
 
     @Test

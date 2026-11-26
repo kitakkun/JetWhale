@@ -10,7 +10,7 @@ import java.io.File
 import java.io.IOException
 
 /** Where a running emulator's gRPC endpoint listens, and the token it accepts. */
-internal class EmulatorEndpoint(val port: Int, val token: String?)
+internal class EmulatorGrpcEndpoint(val port: Int, val token: String?)
 
 /**
  * The gRPC endpoints of the running emulators that leave their discovery files in
@@ -19,19 +19,19 @@ internal class EmulatorEndpoint(val port: Int, val token: String?)
  */
 internal class EmulatorGrpcEndpoints(private val runningDirectories: List<File>) {
     /** The gRPC endpoint of the emulator with [serial] (e.g. `emulator-5554`), from its discovery file, or null. */
-    fun findEndpoint(serial: String): EmulatorEndpoint? {
+    fun findEndpoint(serial: String): EmulatorGrpcEndpoint? {
         val consolePort = serial.removePrefix("emulator-").toIntOrNull() ?: return null
         return runningDirectories.asSequence()
             .flatMap { it.listFiles { file -> file.name.startsWith("pid_") && file.name.endsWith(".ini") }.orEmpty().asSequence() }
             // An emulator that is shutting down removes its file between the listing and the read.
-            .mapNotNull { file -> file.readTextOrNull()?.let(::parseEmulatorDiscovery) }
+            .mapNotNull { file -> file.readTextOrNull()?.let(::parseEmulatorDiscoveryFile) }
             .firstOrNull { it.first == consolePort }
             ?.second
     }
 
-    /** A call of the `EmulatorController` [method] at [endpoint] with [body], carrying the endpoint's token when it has one. */
-    fun buildRequest(endpoint: EmulatorEndpoint, method: String, body: RequestBody): Request = Request.Builder()
-        .url("http://127.0.0.1:${endpoint.port}/android.emulation.control.EmulatorController/$method")
+    /** A call of the `EmulatorController` [grpcMethod] at [endpoint] with [body], carrying the endpoint's token when it has one. */
+    fun buildRequest(endpoint: EmulatorGrpcEndpoint, grpcMethod: String, body: RequestBody): Request = Request.Builder()
+        .url("http://127.0.0.1:${endpoint.port}/android.emulation.control.EmulatorController/$grpcMethod")
         .header("te", "trailers")
         .apply { endpoint.token?.let { header("authorization", "Bearer $it") } }
         .post(body)
@@ -78,11 +78,11 @@ private fun File.readTextOrNull(): String? = try {
 
 /** The console port and gRPC endpoint in the text of an emulator's discovery file, or null without a gRPC port. */
 @VisibleForTesting
-internal fun parseEmulatorDiscovery(text: String): Pair<Int, EmulatorEndpoint>? {
+internal fun parseEmulatorDiscoveryFile(text: String): Pair<Int, EmulatorGrpcEndpoint>? {
     val values = text.lineSequence().mapNotNull { line -> line.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim() to it[1].trim() } }.toMap()
     val consolePort = values["port.serial"]?.toIntOrNull() ?: return null
     val grpcPort = values["grpc.port"]?.toIntOrNull() ?: return null
-    return consolePort to EmulatorEndpoint(port = grpcPort, token = values["grpc.token"]?.takeIf(String::isNotEmpty))
+    return consolePort to EmulatorGrpcEndpoint(port = grpcPort, token = values["grpc.token"]?.takeIf(String::isNotEmpty))
 }
 
 /** [message] with gRPC's five-byte prefix: not compressed, then its length. */

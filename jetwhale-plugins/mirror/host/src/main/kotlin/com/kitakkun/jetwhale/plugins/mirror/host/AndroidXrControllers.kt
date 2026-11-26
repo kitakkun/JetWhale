@@ -45,8 +45,8 @@ internal class AndroidXrEmulatorDeviceController(
     override suspend fun isPassthroughOn(): Boolean = xrEmulatorClient.readXrOptions().passthroughCoefficient >= 0.5f
 
     override suspend fun setPassthrough(on: Boolean) {
-        // setXrOptions sets every field, so the environment and dimming are written back as they
-        // are.
+        // setXrOptions replaces every field, so the environment and dimming are written back as
+        // read.
         xrEmulatorClient.writeXrOptions(xrEmulatorClient.readXrOptions().copy(passthroughCoefficient = if (on) 1f else 0f))
     }
 }
@@ -67,7 +67,7 @@ private const val XR_EMULATOR_FIELD_OF_VIEW_DEGREES = 80.0
  * cannot reach over gRPC. adb is then the only way in, and on Android XR its taps land on the
  * invisible SystemUI window in front of every app and hide them all.
  */
-internal class AndroidXrViewOnlyDeviceController(
+internal class ViewOnlyAndroidXrDeviceController(
     private val androidDeviceController: AndroidDeviceController,
     private val inputRefusal: String,
 ) : DeviceController by androidDeviceController {

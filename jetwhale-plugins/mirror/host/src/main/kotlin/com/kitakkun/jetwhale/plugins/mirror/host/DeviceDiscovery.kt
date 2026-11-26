@@ -144,11 +144,11 @@ internal class DeviceDiscovery(
             if (xrEmulatorClients.hasToken(listing.id)) {
                 AndroidXrEmulatorDeviceController(androidDeviceController, xrEmulatorClients.clientFor(listing.id))
             } else {
-                AndroidXrViewOnlyDeviceController(androidDeviceController, inputRefusal = XR_EMULATOR_WITHOUT_TOKEN_REFUSAL)
+                ViewOnlyAndroidXrDeviceController(androidDeviceController, inputRefusal = XR_EMULATOR_WITHOUT_TOKEN_REFUSAL)
             }
         }
 
-        DeviceKind.AndroidXrHeadset -> AndroidXrViewOnlyDeviceController(
+        DeviceKind.AndroidXrHeadset -> ViewOnlyAndroidXrDeviceController(
             AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath),
             inputRefusal = XR_HEADSET_INPUT_REFUSAL,
         )

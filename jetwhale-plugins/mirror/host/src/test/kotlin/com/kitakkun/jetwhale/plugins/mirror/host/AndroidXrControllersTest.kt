@@ -240,7 +240,7 @@ class AndroidXrControllersTest {
 
     @Test
     fun `an XR emulator offers All apps beside Home, and a view-only XR device takes no input at all, for its reason`() {
-        val viewOnly = AndroidXrViewOnlyDeviceController(androidDeviceControllerWithoutAdb(), inputRefusal = "no way in")
+        val viewOnly = ViewOnlyAndroidXrDeviceController(androidDeviceControllerWithoutAdb(), inputRefusal = "no way in")
 
         assertTrue(DeviceButton.AllApps in emulator.capabilities.buttons)
         assertNull(emulator.capabilities.inputRefusal)

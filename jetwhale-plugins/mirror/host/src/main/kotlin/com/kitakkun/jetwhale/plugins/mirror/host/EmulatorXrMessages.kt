@@ -19,11 +19,11 @@ internal data class XrOptions(
  */
 internal fun encodeXrHandEvent(x: Int, y: Int, pinching: Boolean): ByteArray {
     val mouseEvent = Buffer().apply {
-        writeVarintField(field = 1, value = x.toLong())
-        writeVarintField(field = 2, value = y.toLong())
-        writeVarintField(field = 3, value = if (pinching) MOUSE_PRIMARY_BUTTON else 0L)
+        writeVarintField(fieldNumber = 1, value = x.toLong())
+        writeVarintField(fieldNumber = 2, value = y.toLong())
+        writeVarintField(fieldNumber = 3, value = if (pinching) MOUSE_PRIMARY_BUTTON else 0L)
     }
-    return Buffer().writeMessageField(field = INPUT_EVENT_XR_HAND, message = mouseEvent).readByteArray()
+    return Buffer().writeMessageField(fieldNumber = INPUT_EVENT_XR_HAND, message = mouseEvent).readByteArray()
 }
 
 /**
@@ -33,22 +33,22 @@ internal fun encodeXrHandEvent(x: Int, y: Int, pinching: Boolean): ByteArray {
  */
 internal fun encodeXrHeadRotation(upRadians: Float, leftRadians: Float): ByteArray {
     val rotation = Buffer().apply {
-        writeFloatField(field = 1, value = upRadians)
-        writeFloatField(field = 2, value = leftRadians)
+        writeFloatField(fieldNumber = 1, value = upRadians)
+        writeFloatField(fieldNumber = 2, value = leftRadians)
     }
-    return Buffer().writeMessageField(field = INPUT_EVENT_XR_HEAD_ROTATION, message = rotation).readByteArray()
+    return Buffer().writeMessageField(fieldNumber = INPUT_EVENT_XR_HEAD_ROTATION, message = rotation).readByteArray()
 }
 
 /** An `InputEvent` carrying the `xr_command` that puts the head back where it started, facing forward. */
 internal fun encodeXrRecenter(): ByteArray {
-    val command = Buffer().writeVarintField(field = 1, value = XR_COMMAND_RECENTER)
-    return Buffer().writeMessageField(field = INPUT_EVENT_XR_COMMAND, message = command).readByteArray()
+    val command = Buffer().writeVarintField(fieldNumber = 1, value = XR_COMMAND_RECENTER)
+    return Buffer().writeMessageField(fieldNumber = INPUT_EVENT_XR_COMMAND, message = command).readByteArray()
 }
 
 internal fun encodeXrOptions(options: XrOptions): ByteArray = Buffer().apply {
-    writeVarintField(field = 1, value = options.environment)
-    writeFloatField(field = 2, value = options.passthroughCoefficient)
-    writeFloatField(field = 4, value = options.dimmingValue)
+    writeVarintField(fieldNumber = 1, value = options.environment)
+    writeFloatField(fieldNumber = 2, value = options.passthroughCoefficient)
+    writeFloatField(fieldNumber = 4, value = options.dimmingValue)
 }.readByteArray()
 
 /** The `XrOptions` in [message]; a field it leaves out has its zero value, as protobuf has it. */

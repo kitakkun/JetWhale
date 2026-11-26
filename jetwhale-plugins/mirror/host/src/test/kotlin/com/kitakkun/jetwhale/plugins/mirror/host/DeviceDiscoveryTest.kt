@@ -138,7 +138,7 @@ class DeviceDiscoveryTest {
 
         assertEquals(DeviceKind.AndroidEmulator, starting.kind)
         assertEquals(DeviceKind.AndroidXrEmulator, started.kind)
-        assertTrue(started.controller is AndroidXrViewOnlyDeviceController)
+        assertTrue(started.controller is ViewOnlyAndroidXrDeviceController)
     }
 
     @Test
@@ -189,10 +189,10 @@ class DeviceDiscoveryTest {
         discoveryFile.writeText("port.serial=5554\ngrpc.port=8558\n")
         val withoutTokenAgain = discovery.discover().devices.single()
 
-        assertIs<AndroidXrViewOnlyDeviceController>(withoutToken.controller)
+        assertIs<ViewOnlyAndroidXrDeviceController>(withoutToken.controller)
         assertIs<AndroidXrEmulatorDeviceController>(withToken.controller)
         assertSame(withToken.controller, lookedAgain.controller)
-        assertIs<AndroidXrViewOnlyDeviceController>(withoutTokenAgain.controller)
+        assertIs<ViewOnlyAndroidXrDeviceController>(withoutTokenAgain.controller)
         val refusal = withoutToken.controller.capabilities.inputRefusal.orEmpty()
         assertTrue("-grpc-use-token" in refusal, refusal)
     }
