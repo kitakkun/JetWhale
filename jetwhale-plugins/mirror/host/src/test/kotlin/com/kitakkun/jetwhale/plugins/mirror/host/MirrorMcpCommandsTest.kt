@@ -326,7 +326,7 @@ class MirrorMcpCommandsTest {
             SetXrPassthroughCommand(mirror) to buildJsonObject { put("on", true) },
         ).map { (command, arguments) -> assertFailsWith<JetWhaleMcpArgumentException> { command.run(arguments) }.message }
 
-        assertTrue(refused.all { it == "Pixel 9 has no XR view to move; only an Android XR emulator has one" }, refused.toString())
+        assertTrue(refused.all { it == "Pixel 9 has no XR view to move; only an Android XR emulator that takes input has one, and $TOOL_PREFIX.listDevices says why a device takes none" }, refused.toString())
         assertEquals(emptyList(), emulator.calls)
     }
 
@@ -488,8 +488,8 @@ private class FakeXrController :
         calls += "turn right $rightDegrees up $upDegrees"
     }
 
-    override suspend fun turnViewWithDrag(dragFrom: Offset, dragTo: Offset) {
-        calls += "drag $dragFrom -> $dragTo"
+    override suspend fun turnViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) {
+        calls += "drag $dragFromInScreenWidths -> $dragToInScreenWidths"
     }
 
     override suspend fun recenterView() {

@@ -84,10 +84,7 @@ internal suspend fun <T> deviceOperation(operation: suspend () -> T): T = try {
  */
 internal val XR_VIEW_SETTLE_TIME = 250.milliseconds
 
-/** [device]'s XR view, refusing a device without one, and one that takes no input, with the reason. */
+/** [device]'s XR view, refusing a device without one. */
 @OptIn(ExperimentalJetWhaleApi::class)
-internal fun xrViewControllerOf(device: MirrorDevice): XrViewController {
-    val xrViewController = device.controller as? XrViewController ?: throw JetWhaleMcpArgumentException("${device.name} has no XR view to move; only an Android XR emulator has one")
-    device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-    return xrViewController
-}
+internal fun requireXrViewController(device: MirrorDevice): XrViewController = device.controller as? XrViewController
+    ?: throw JetWhaleMcpArgumentException("${device.name} has no XR view to move; only an Android XR emulator that takes input has one, and $TOOL_PREFIX.listDevices says why a device takes none")

@@ -43,7 +43,7 @@ internal fun MirrorVideo(
     interactive: Boolean,
     onTap: (x: Int, y: Int) -> Unit,
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
-    onLookAround: ((dragFrom: Offset, dragTo: Offset) -> Unit)?,
+    onLookAround: ((dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val drawn = remember { DrawnFrame() }
@@ -51,7 +51,12 @@ internal fun MirrorVideo(
     val currentOnLookAround by rememberUpdatedState(onLookAround)
     val input = if (interactive && live) {
         Modifier
-            .pointerInput(Unit) { awaitEachGesture { followGesture(drawn, surface, onTap, onSwipe, currentOnLookAround) } }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown().position
+                    followGesture(down, drawn, surface, onTap, onSwipe, currentOnLookAround)
+                }
+            }
             .then(if (onLookAround != null) Modifier.pointerHoverIcon(LOOK_AROUND_POINTER_ICON) else Modifier)
     } else {
         Modifier
@@ -90,17 +95,17 @@ internal fun MirrorVideo(
 }
 
 /**
- * Follows one press on a live frame to its release: a click taps, and a drag swipes once it ends, or,
- * with [onLookAround], reports each move as it happens instead.
+ * Follows the press that went [down] on a live frame to its release: a click taps, and a drag swipes
+ * once it ends, or, with [onLookAround], reports each move as it happens instead.
  */
 private suspend fun AwaitPointerEventScope.followGesture(
+    down: Offset,
     drawn: DrawnFrame,
     surface: MirrorSurface,
     onTap: (x: Int, y: Int) -> Unit,
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
-    onLookAround: ((dragFrom: Offset, dragTo: Offset) -> Unit)?,
+    onLookAround: ((dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) -> Unit)?,
 ) {
-    val down = awaitFirstDown().position
     val fitted = drawn.fitted ?: return
     val device = surface.deviceSize ?: drawn.frameSize
     val start = fitted.toDevicePixel(down, device) ?: return
@@ -128,7 +133,7 @@ private suspend fun AwaitPointerEventScope.awaitReleasePosition(down: Offset): O
  * it moved from and to, measured from [down] in widths of the [frameWidth], until it ends; returns
  * whether it reported any.
  */
-private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragFrom: Offset, dragTo: Offset) -> Unit): Boolean {
+private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) -> Unit): Boolean {
     var last = down
     var reportedTo: Offset? = null
     do {

@@ -161,6 +161,7 @@ private fun SingleMirrorRoot(
     MirrorScreen(
         devices = mirror.devices.map(MirrorDevice::listing),
         capabilities = device?.controller?.capabilities,
+        hasXrViewControls = device?.controller is XrViewController,
         missingTools = mirror.missingTools,
         selectedId = mirror.selectedId,
         state = mirror.state,
@@ -215,6 +216,7 @@ internal fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: Devi
 internal fun MirrorScreen(
     devices: List<DeviceListing>,
     capabilities: DeviceCapabilities?,
+    hasXrViewControls: Boolean,
     missingTools: List<String>,
     selectedId: String?,
     state: MirrorState,
@@ -243,7 +245,7 @@ internal fun MirrorScreen(
         } else {
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
             val ownXrPassthrough = xrPassthrough.takeIf { surface.deviceId == device.id }
-            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, ownXrPassthrough, recordingSinceMillis)
+            val pane = DevicePaneState(devices, device, capabilities, hasXrViewControls, state, ownScreenPower, ownXrPassthrough, recordingSinceMillis)
             DevicePane(pane, surface, actions, mcpCommands, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
@@ -252,6 +254,8 @@ internal fun MirrorScreen(
 /**
  * What the device pane shows about the selected device.
  *
+ * @property hasXrViewControls whether the device's view can be turned, recentered and switched to
+ *   passthrough from here, which takes a controller that drives it: an XR emulator that takes input.
  * @property xrPassthrough whether an XR emulator shows the room through its scene; null for any other device, and until it is read.
  * @property recordingSinceMillis when the selected device's recording started; null while it is not recording.
  */
@@ -259,14 +263,12 @@ internal class DevicePaneState(
     val devices: List<DeviceListing>,
     val device: DeviceListing,
     val capabilities: DeviceCapabilities,
+    val hasXrViewControls: Boolean,
     val state: MirrorState,
     val screenPower: ScreenPower?,
     val xrPassthrough: Boolean?,
     val recordingSinceMillis: Long?,
-) {
-    /** Whether the device's view can be turned, recentered and switched to passthrough from here: an XR emulator that takes input. */
-    val hasXrViewControls: Boolean get() = device.kind == DeviceKind.AndroidXrEmulator && capabilities.inputRefusal == null
-}
+)
 
 @Composable
 private fun DevicePane(
@@ -283,7 +285,17 @@ private fun DevicePane(
 ) {
     var lookingAround by remember(pane.device.id, pane.hasXrViewControls) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        DeviceToolbar(pane, actions, mcpCommands, showCaptures, lookingAround, livenessOf, onToggleCaptures, onToggleLookingAround = { lookingAround = !lookingAround }, onShowGrid)
+        DeviceToolbar(
+            pane = pane,
+            actions = actions,
+            mcpCommands = mcpCommands,
+            showCaptures = showCaptures,
+            lookingAround = lookingAround,
+            livenessOf = livenessOf,
+            onToggleCaptures = onToggleCaptures,
+            onToggleLookingAround = { lookingAround = !lookingAround },
+            onShowGrid = onShowGrid,
+        )
         if (showCaptures) {
             JwSplitPane(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -328,7 +340,7 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             )
         }
         if (pane.device.kind == DeviceKind.IosDevice) IphoneInputBanner(pane.capabilities.inputRefusal, actions.developmentTeam, actions::updateDevelopmentTeam)
-        val isXrDevice = pane.device.kind == DeviceKind.AndroidXrEmulator || pane.device.kind == DeviceKind.AndroidXrDevice
+        val isXrDevice = pane.device.kind == DeviceKind.AndroidXrEmulator || pane.device.kind == DeviceKind.AndroidXrHeadset
         if (isXrDevice) pane.capabilities.inputRefusal?.let { JwBanner(text = "No input: $it", tone = JwTone.Info) }
         if (pane.capabilities.inputRefusal == null) TextInput(mcpCommands, onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)

@@ -13,7 +13,7 @@ internal enum class DeviceKind(val platform: DevicePlatform, val label: String) 
     AndroidXrEmulator(DevicePlatform.Android, "XR emulator"),
 
     /** A device that places apps in a 3D space: an Android XR headset. */
-    AndroidXrDevice(DevicePlatform.Android, "XR device"),
+    AndroidXrHeadset(DevicePlatform.Android, "XR headset"),
     IosSimulator(DevicePlatform.Ios, "Simulator"),
     IosDevice(DevicePlatform.Ios, "Device"),
 }

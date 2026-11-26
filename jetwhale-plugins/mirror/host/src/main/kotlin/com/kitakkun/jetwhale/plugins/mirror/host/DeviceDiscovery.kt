@@ -63,13 +63,14 @@ internal class DeviceDiscovery(
         val iphoneScreenCapturePool = iphoneScreenCapturePool.await()
         val xcTestRunnerClient = xcTestRunners.await()?.let(::XcTestRunnerClient)
         val looks = listOf(
-            listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice, DeviceKind.AndroidXrEmulator, DeviceKind.AndroidXrDevice),
+            listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice, DeviceKind.AndroidXrEmulator, DeviceKind.AndroidXrHeadset),
             listSimulators(locatedToolPaths) to setOf(DeviceKind.IosSimulator),
             listIosDevices(locatedToolPaths) to setOf(DeviceKind.IosDevice),
         )
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
         val devices = listings.map { listing ->
-            known[listing.id]?.takeIf { it.listing == listing && !hasXrEmulatorTokenPresenceChanged(it) } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCapturePool, xcTestRunnerClient))
+            val reusable = known[listing.id]?.takeIf { it.listing == listing && !hasXrEmulatorTokenPresenceChanged(it) }
+            reusable ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCapturePool, xcTestRunnerClient))
         }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { iphoneScreenCapturePool?.stopCaptureEvenIfInUse(it.id) }
@@ -88,17 +89,21 @@ internal class DeviceDiscovery(
             when {
                 isXrDevice != true -> listing
                 listing.kind == DeviceKind.AndroidEmulator -> listing.copy(kind = DeviceKind.AndroidXrEmulator)
-                else -> listing.copy(kind = DeviceKind.AndroidXrDevice)
+                else -> listing.copy(kind = DeviceKind.AndroidXrHeadset)
             }
         }
     }
 
     /**
      * Whether [device] is an XR emulator whose discovery file now holds a gRPC token while its controller
-     * takes no input, or holds none while it takes input, as after the emulator was started again with
+     * cannot drive its view, or holds none while it can, as after the emulator was started again with
      * or without `-grpc-use-token`; it is then given a controller that matches.
      */
-    private suspend fun hasXrEmulatorTokenPresenceChanged(device: MirrorDevice): Boolean = device.kind == DeviceKind.AndroidXrEmulator && (device.controller.capabilities.inputRefusal == null) != (xrEmulatorClients.clientFor(device.id) != null)
+    private suspend fun hasXrEmulatorTokenPresenceChanged(device: MirrorDevice): Boolean {
+        if (device.kind != DeviceKind.AndroidXrEmulator) return false
+        val drivesXrView = device.controller is XrViewController
+        return drivesXrView != xrEmulatorClients.hasToken(device.id)
+    }
 
     /** Whether the Android device with [serial] is an Android XR device, or null while it cannot say, as when it is still starting. */
     private suspend fun readIsXrDevice(adbPath: String, serial: String): Boolean? = try {
@@ -134,12 +139,19 @@ internal class DeviceDiscovery(
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
 
-        DeviceKind.AndroidXrEmulator -> AndroidXrEmulatorDeviceController(
-            androidDeviceController = AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath),
-            xrEmulatorClient = xrEmulatorClients.clientFor(listing.id),
-        )
+        DeviceKind.AndroidXrEmulator -> {
+            val androidDeviceController = AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
+            if (xrEmulatorClients.hasToken(listing.id)) {
+                AndroidXrEmulatorDeviceController(androidDeviceController, xrEmulatorClients.clientFor(listing.id))
+            } else {
+                AndroidXrViewOnlyDeviceController(androidDeviceController, inputRefusal = XR_EMULATOR_WITHOUT_TOKEN_REFUSAL)
+            }
+        }
 
-        DeviceKind.AndroidXrDevice -> AndroidXrHeadsetDeviceController(AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath))
+        DeviceKind.AndroidXrHeadset -> AndroidXrViewOnlyDeviceController(
+            AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath),
+            inputRefusal = XR_HEADSET_INPUT_REFUSAL,
+        )
 
         DeviceKind.IosSimulator -> IosSimulatorDeviceController(
             udid = listing.id,
@@ -174,6 +186,12 @@ internal class DeviceDiscovery(
 }
 
 private const val IPROXY_INSTALL = "brew install libimobiledevice"
+
+private const val XR_EMULATOR_WITHOUT_TOKEN_REFUSAL =
+    "Mirror drives an XR emulator through its gRPC endpoint, but this emulator left no gRPC token in its discovery file; start it with -grpc-use-token"
+
+private const val XR_HEADSET_INPUT_REFUSAL =
+    "Mirror sends no input to an Android XR headset: on Android XR, adb's taps land on an invisible system window in front of every app and hide them all, and only the XR emulator has the gRPC hand input Mirror uses instead"
 
 /** The major version in [osVersion], such as 17 for `iOS 17.5`; null when it has none. */
 @VisibleForTesting

@@ -126,7 +126,7 @@ internal interface MirrorActions {
     fun sleep()
 
     /** Turns the selected XR emulator's view as [XrViewController.turnViewWithDrag] does. */
-    fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset)
+    fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset)
 
     fun recenterXrView()
 
@@ -231,7 +231,7 @@ internal class DeviceMirror(
         try {
             coroutineScope {
                 if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }
-                val xrViewController = (device.controller as? XrViewController)?.takeIf { device.controller.capabilities.inputRefusal == null }
+                val xrViewController = device.controller as? XrViewController
                 if (xrViewController != null) launch { watchXrPassthrough(xrViewController) }
                 streamUntilCancelled(device)
             }
@@ -620,7 +620,9 @@ internal class DeviceMirror(
         screenPower = controller.screenPower()
     }
 
-    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = controlXrView { it.turnViewWithDrag(dragFrom = dragFrom, dragTo = dragTo) }
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) = controlXrView {
+        it.turnViewWithDrag(dragFromInScreenWidths = dragFromInScreenWidths, dragToInScreenWidths = dragToInScreenWidths)
+    }
 
     override fun recenterXrView() = controlXrView(XrViewController::recenterView)
 

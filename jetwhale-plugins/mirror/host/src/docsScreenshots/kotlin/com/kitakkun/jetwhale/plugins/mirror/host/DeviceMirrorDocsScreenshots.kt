@@ -103,6 +103,7 @@ private fun SkikoComposeUiTest.setMirrorScreenContent(darkTheme: Boolean, showCa
             MirrorScreen(
                 devices = DEVICES,
                 capabilities = DeviceCapabilities(inputRefusal = null, buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown), recording = true, screenPower = true),
+                hasXrViewControls = false,
                 missingTools = emptyList(),
                 selectedId = PIXEL_EMULATOR.id,
                 state = MirrorState.Streaming,
@@ -155,7 +156,7 @@ private object NoMirrorActions : MirrorActions {
 
     override fun sleep() = Unit
 
-    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = Unit
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) = Unit
 
     override fun recenterXrView() = Unit
 

@@ -159,7 +159,7 @@ longest gap between frames, and how long decoding, copying and drawing take.
 
 ### Android XR
 
-An Android XR device lists as an **XR emulator** or an **XR device**: the plugin asks each Android
+An Android XR device lists as an **XR emulator** or an **XR headset**: the plugin asks each Android
 device once whether it has Android XR's spatial feature. Its screen is a view into a 3D scene where
 apps float as panels, and adb's `input tap` would land on an invisible system window in front of them
 all and hide every app. So the plugin drives the XR emulator through the emulator's own gRPC endpoint
@@ -185,6 +185,9 @@ input, with a banner under its screen that says to start it with `-grpc-use-toke
 ```shell
 emulator -avd <your XR AVD> -grpc-use-token
 ```
+
+An emulator started again with or without a token while it stays listed gets input or loses it on
+the plugin's next look, within a few seconds.
 
 A physical Android XR headset is shown without input too: adb is the only way in, and its taps would
 hide every app.

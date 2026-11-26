@@ -16,7 +16,7 @@ internal class RecenterXrViewCommand(
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val xrViewController = xrViewControllerOf(deviceOperation { mirror.resolve(arguments[deviceId]) })
+        val xrViewController = requireXrViewController(deviceOperation { mirror.resolve(arguments[deviceId]) })
         deviceOperation(xrViewController::recenterView)
         delay(XR_VIEW_SETTLE_TIME)
         return okJson()

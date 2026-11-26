@@ -13,11 +13,11 @@ internal interface XrViewController {
 
     /**
      * Turns the view so that the scene follows a drag on the screen, as if the drag pulled the scene
-     * along, for the part of the drag from [dragFrom] to [dragTo]. Both are measured from where the
-     * drag started, right and down, in widths of the screen, so a drag reported in any number of
-     * parts turns the view as far as one reported whole.
+     * along, for the part of the drag from [dragFromInScreenWidths] to [dragToInScreenWidths]. Both
+     * are measured from where the drag started, right and down, in widths of the screen, so a drag
+     * reported in any number of parts turns the view as far as one reported whole.
      */
-    suspend fun turnViewWithDrag(dragFrom: Offset, dragTo: Offset)
+    suspend fun turnViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset)
 
     /** Puts the view back where it started, facing forward. */
     suspend fun recenterView()

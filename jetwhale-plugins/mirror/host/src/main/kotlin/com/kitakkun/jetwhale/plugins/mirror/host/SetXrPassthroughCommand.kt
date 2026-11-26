@@ -19,7 +19,7 @@ internal class SetXrPassthroughCommand(
     private val on by boolean("true to show the room, false to show the virtual environment.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val xrViewController = xrViewControllerOf(deviceOperation { mirror.resolve(arguments[deviceId]) })
+        val xrViewController = requireXrViewController(deviceOperation { mirror.resolve(arguments[deviceId]) })
         val passthrough = deviceOperation {
             xrViewController.setPassthrough(arguments[on])
             xrViewController.isPassthroughOn()

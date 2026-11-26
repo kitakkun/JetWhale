@@ -41,7 +41,7 @@ internal fun encodeXrHeadRotation(upRadians: Float, leftRadians: Float): ByteArr
 
 /** An `InputEvent` carrying the `xr_command` that puts the head back where it started, facing forward. */
 internal fun encodeXrRecenter(): ByteArray {
-    val command = Buffer().apply { writeVarintField(field = 1, value = XR_COMMAND_RECENTER) }
+    val command = Buffer().writeVarintField(field = 1, value = XR_COMMAND_RECENTER)
     return Buffer().writeMessageField(field = INPUT_EVENT_XR_COMMAND, message = command).readByteArray()
 }
 
@@ -65,38 +65,6 @@ internal fun parseXrOptions(message: ByteArray): XrOptions = BoundedReader(ByteA
     options
 }
 
-/** An `ImageFormat` asking for the whole screen as a PNG. */
-internal fun encodePngImageFormat(): ByteArray = Buffer().apply { writeVarintField(field = 1, value = IMAGE_FORMAT_PNG) }.readByteArray()
-
-/** The picture in an `Image` message, as its format encodes it: its `image` field. */
-internal fun parseImageBytes(message: ByteArray): ByteArray = BoundedReader(ByteArrayInputStream(message), message.size).use { reader ->
-    while (reader.hasMore()) {
-        val key = reader.readVarint()
-        if (key == fieldKey(4, WIRE_LENGTH_DELIMITED)) {
-            val length = reader.readVarint()
-            if (length > reader.remaining()) throw deviceControlError("the emulator sent a screenshot the mirror cannot parse")
-            return@use ByteArray(length.toInt()).also { reader.readFully(it, it.size) }
-        }
-        reader.skipField(key)
-    }
-    throw deviceControlError("the emulator sent a screenshot without a picture")
-}
-
-private fun Buffer.writeFloatField(field: Int, value: Float): Buffer = apply {
-    writeVarint(fieldKey(field, WIRE_FIXED32))
-    writeIntLe(value.toRawBits())
-}
-
-private fun Buffer.writeMessageField(field: Int, message: Buffer): Buffer = apply {
-    writeVarint(fieldKey(field, WIRE_LENGTH_DELIMITED))
-    writeVarint(message.size)
-    writeAll(message)
-}
-
-private fun BoundedReader.readFloat(): Float = Float.fromBits(Buffer().write(ByteArray(4).also { readFully(it, it.size) }).readIntLe())
-
-private fun fieldKey(field: Int, wireType: Int): Long = (field.toLong() shl 3) or wireType.toLong()
-
 private const val INPUT_EVENT_XR_HAND = 7
 private const val INPUT_EVENT_XR_COMMAND = 9
 private const val INPUT_EVENT_XR_HEAD_ROTATION = 10
@@ -104,5 +72,3 @@ private const val INPUT_EVENT_XR_HEAD_ROTATION = 10
 private const val MOUSE_PRIMARY_BUTTON = 1L
 
 private const val XR_COMMAND_RECENTER = 0L
-
-private const val IMAGE_FORMAT_PNG = 0L

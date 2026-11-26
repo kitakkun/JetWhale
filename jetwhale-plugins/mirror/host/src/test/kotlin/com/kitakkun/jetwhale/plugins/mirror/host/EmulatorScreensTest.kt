@@ -40,9 +40,9 @@ class EmulatorScreensTest {
         File(directory, "pid_2.ini").writeText("port.serial=5554\ngrpc.port=8554\n")
         File(directory, "notes.txt").writeText("port.serial=5554\ngrpc.port=9999\n")
 
-        assertEquals(8554, findEmulatorEndpoint("emulator-5554", listOf(directory))?.port)
-        assertNull(findEmulatorEndpoint("emulator-5558", listOf(directory)))
-        assertNull(findEmulatorEndpoint("R58M123ABC", listOf(directory)))
+        assertEquals(8554, EmulatorGrpcEndpoints(listOf(directory)).findEndpoint("emulator-5554")?.port)
+        assertNull(EmulatorGrpcEndpoints(listOf(directory)).findEndpoint("emulator-5558"))
+        assertNull(EmulatorGrpcEndpoints(listOf(directory)).findEndpoint("R58M123ABC"))
     }
 
     @Test
@@ -110,7 +110,7 @@ class EmulatorScreensTest {
         File(directory, "pid_1.ini").mkdir()
         File(directory, "pid_2.ini").writeText("port.serial=5554\ngrpc.port=8554\n")
 
-        assertEquals(8554, findEmulatorEndpoint("emulator-5554", listOf(directory))?.port)
+        assertEquals(8554, EmulatorGrpcEndpoints(listOf(directory)).findEndpoint("emulator-5554")?.port)
     }
 
     @Test
@@ -135,7 +135,7 @@ class EmulatorScreensTest {
             server.start()
             val directory = Files.createTempDirectory("avd-running").toFile().apply { deleteOnExit() }
             File(directory, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\ngrpc.token=secret\n")
-            val screens = EmulatorScreens(listOf(directory))
+            val screens = EmulatorScreens(EmulatorGrpcEndpoints(listOf(directory)))
 
             assertNull(screens.open("emulator-5554", IntSize(540, 1200)))
             val stream = assertIs<VideoStream.EmulatorRgba>(screens.open("emulator-5554", IntSize(540, 1200)))
@@ -147,7 +147,7 @@ class EmulatorScreensTest {
 
     @Test
     fun `an emulator with no discovery file names no stream`() {
-        assertNull(EmulatorScreens(emptyList()).open("emulator-5554", null))
+        assertNull(EmulatorScreens(EmulatorGrpcEndpoints(emptyList())).open("emulator-5554", null))
     }
 }
 

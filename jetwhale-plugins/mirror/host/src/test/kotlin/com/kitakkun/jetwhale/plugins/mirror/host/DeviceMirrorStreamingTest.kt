@@ -48,7 +48,7 @@ class DeviceMirrorStreamingTest {
     private val scope = CoroutineScope(Dispatchers.Default)
     private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
-        discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = null, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList())),
+        discovery = testDeviceDiscovery(locatedToolPaths()),
         developmentTeamSetting = emptyDevelopmentTeamSetting(),
         captures = MirrorCaptures(root, storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
         notices = notices,
@@ -84,10 +84,9 @@ class DeviceMirrorStreamingTest {
         MockWebServer().use { xrEmulatorEndpoint ->
             xrEmulatorEndpoint.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
             xrEmulatorEndpoint.dispatcher = object : Dispatcher() {
-                override fun dispatch(request: RecordedRequest): MockResponse {
-                    val reply = if (request.path.orEmpty().endsWith("/getXrOptions")) encodeXrOptions(XrOptions(environment = 0, passthroughCoefficient = 1f, dimmingValue = 0f)) else ByteArray(0)
-                    return MockResponse().setHeader("content-type", "application/grpc").setHeader("grpc-status", "0").setBody(Buffer().write(grpcMessage(reply)))
-                }
+                override fun dispatch(request: RecordedRequest): MockResponse = grpcReply(
+                    if (request.path.orEmpty().endsWith("/getXrOptions")) encodeXrOptions(XrOptions(environment = 0, passthroughCoefficient = 1f, dimmingValue = 0f)) else ByteArray(0),
+                )
             }
             xrEmulatorEndpoint.start()
             val running = File(tools, "running").apply {
@@ -108,7 +107,7 @@ class DeviceMirrorStreamingTest {
                 setExecutable(true)
             }
             val xrMirror = DeviceMirror(
-                discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.path, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = listOf(running))),
+                discovery = testDeviceDiscovery(locatedToolPaths(adbPath = fakeAdb.path), emulatorRunningDirectories = listOf(running)),
                 developmentTeamSetting = emptyDevelopmentTeamSetting(),
                 captures = MirrorCaptures(File(root, "xr"), storage = InMemoryPluginStorage(emptyMap()), scope = scope, zone = ZoneOffset.UTC, notices = notices, ffmpegPath = CompletableDeferred(value = null), clipboard = CaptureClipboard(osascriptPath = null)),
                 notices = notices,

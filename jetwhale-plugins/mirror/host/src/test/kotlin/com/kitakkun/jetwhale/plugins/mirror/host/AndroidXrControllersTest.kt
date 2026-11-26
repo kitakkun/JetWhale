@@ -7,6 +7,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.mockwebserver.Dispatcher
@@ -41,7 +42,7 @@ class AndroidXrControllersTest {
 
     private val httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build()
 
-    private val xrEmulatorClient = XrEmulatorClient(serial = "emulator-5554", runningDirectories = listOf(runningDirectory), httpClient = httpClient)
+    private val xrEmulatorClient = XrEmulatorClient(serial = "emulator-5554", grpcEndpoints = EmulatorGrpcEndpoints(listOf(runningDirectory)), httpClient = httpClient)
 
     private val emulator = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient)
 
@@ -144,7 +145,7 @@ class AndroidXrControllersTest {
     fun `dragging the scene right across half the screen turns the view left by half the field of view`() = runBlocking {
         server.enqueue(grpcReply(ByteArray(0)))
 
-        emulator.turnViewWithDrag(dragFrom = Offset.Zero, dragTo = Offset(0.5f, 0f))
+        emulator.turnViewWithDrag(dragFromInScreenWidths = Offset.Zero, dragToInScreenWidths = Offset(0.5f, 0f))
 
         val expected = encodeXrHeadRotation(upRadians = 0f, leftRadians = Math.toRadians(40.0).toFloat())
         assertContentEquals(expected, grpcMessagesOf(server.takeRequest()).single())
@@ -160,7 +161,7 @@ class AndroidXrControllersTest {
         val outAndBack = listOf(0f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f, 0f)
 
         val turns = listOf(whole, inParts, outAndBack).map { dragXs ->
-            dragXs.zipWithNext().forEach { (from, to) -> emulator.turnViewWithDrag(dragFrom = Offset(from, 0f), dragTo = Offset(to, 0f)) }
+            dragXs.zipWithNext().forEach { (from, to) -> emulator.turnViewWithDrag(dragFromInScreenWidths = Offset(from, 0f), dragToInScreenWidths = Offset(to, 0f)) }
             List(dragXs.size - 1) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }.sum()
         }
 
@@ -196,6 +197,32 @@ class AndroidXrControllersTest {
     }
 
     @Test
+    fun `turns asked for while one is being sent are added up and sent as one, so the view stops with the drag`() = runBlocking {
+        val firstTurnArrived = CountDownLatch(1)
+        val firstAnswerReleased = CountDownLatch(1)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                if (request.sequenceNumber == 0) {
+                    firstTurnArrived.countDown()
+                    firstAnswerReleased.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
+                }
+                return grpcReply(ByteArray(0))
+            }
+        }
+        val first = launch(Dispatchers.IO) { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) }
+        assertTrue(firstTurnArrived.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS))
+        val waiting = List(WAITING_TURNS) { launch { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) } }
+        yield()
+
+        firstAnswerReleased.countDown()
+        (waiting + first).joinAll()
+
+        val sent = List(server.requestCount) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }
+        assertEquals(2, sent.size)
+        assertEquals(0.1f * (WAITING_TURNS + 1), sent.sum(), absoluteTolerance = 1e-6f)
+    }
+
+    @Test
     fun `a drag turns the view by the angle it spans at the middle of the view`() {
         assertEquals(0.0, xrEmulatorDegreesAcross(0f))
         assertTrue(abs(xrEmulatorDegreesAcross(0.5f) - 40.0) < 1e-9)
@@ -212,48 +239,21 @@ class AndroidXrControllersTest {
     }
 
     @Test
-    fun `an XR emulator whose endpoint takes no token from here takes no input, and says how to start it`() {
-        val emulatorWithoutToken = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient = null)
-
-        val refusal = emulatorWithoutToken.capabilities.inputRefusal.orEmpty()
-        assertTrue("-grpc-use-token" in refusal, refusal)
-        assertEquals(emptyList(), emulatorWithoutToken.capabilities.buttons)
-        assertEquals(refusal, assertFailsWith<DeviceControlException> { runBlocking { emulatorWithoutToken.tap(1, 1) } }.message)
-    }
-
-    @Test
-    fun `an XR emulator offers All apps beside Home, and a headset takes no input at all`() {
-        val headset = AndroidXrHeadsetDeviceController(androidDeviceControllerWithoutAdb())
+    fun `an XR emulator offers All apps beside Home, and a view-only XR device takes no input at all, for its reason`() {
+        val viewOnly = AndroidXrViewOnlyDeviceController(androidDeviceControllerWithoutAdb(), inputRefusal = "no way in")
 
         assertTrue(DeviceButton.AllApps in emulator.capabilities.buttons)
         assertNull(emulator.capabilities.inputRefusal)
-        val refusal = headset.capabilities.inputRefusal.orEmpty()
-        assertTrue("headset" in refusal, refusal)
-        assertEquals(emptyList(), headset.capabilities.buttons)
-        listOf<suspend () -> Unit>({ headset.tap(1, 1) }, { headset.swipe(fromX = 1, fromY = 1, toX = 2, toY = 2, durationMillis = 100) }, { headset.pressButton(DeviceButton.Back) }, { headset.inputText("a") }).forEach { input ->
-            assertEquals(refusal, assertFailsWith<DeviceControlException> { runBlocking { input() } }.message)
+        assertEquals("no way in", viewOnly.capabilities.inputRefusal)
+        assertEquals(emptyList(), viewOnly.capabilities.buttons)
+        listOf<suspend () -> Unit>({ viewOnly.tap(1, 1) }, { viewOnly.swipe(fromX = 1, fromY = 1, toX = 2, toY = 2, durationMillis = 100) }, { viewOnly.pressButton(DeviceButton.Back) }, { viewOnly.inputText("a") }).forEach { input ->
+            assertEquals("no way in", assertFailsWith<DeviceControlException> { runBlocking { input() } }.message)
         }
     }
 }
 
 /** A controller that is never asked to run adb: every adb call would fail on the missing executable. */
 private fun androidDeviceControllerWithoutAdb() = AndroidDeviceController(adbPath = "/nonexistent/adb", serial = "emulator-5554", emulatorScreens = null, ffmpegPath = null)
-
-private fun grpcReply(message: ByteArray): MockResponse = MockResponse()
-    .setHeader("content-type", "application/grpc")
-    .setHeader("grpc-status", "0")
-    .setBody(Buffer().write(grpcMessage(message)))
-
-/** The messages of a gRPC request body, without their five-byte prefixes. */
-private fun grpcMessagesOf(request: RecordedRequest): List<ByteArray> {
-    val body = request.body
-    return buildList {
-        while (!body.exhausted()) {
-            body.readByte()
-            add(body.readByteArray(body.readInt().toLong()))
-        }
-    }
-}
 
 /**
  * The turn left in a head rotation message, about its y axis: the second float, after the message's
@@ -268,6 +268,8 @@ private fun leftRadiansOf(message: ByteArray): Float = Buffer().write(message).r
 private const val UNANSWERED_CALL_MILLIS = 15_000L
 
 private const val CANCELLED_CALL_END_MILLIS = 2_000L
+
+private const val WAITING_TURNS = 5
 
 /** Far longer than a tap takes to send, so that a second tap sent at once would arrive within it. */
 private const val SECOND_GESTURE_WAIT_MILLIS = 1_000L

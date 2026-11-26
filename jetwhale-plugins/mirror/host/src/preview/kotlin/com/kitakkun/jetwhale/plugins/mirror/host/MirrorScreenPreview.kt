@@ -101,7 +101,7 @@ private object NoActions : MirrorActions {
 
     override fun sleep() = Unit
 
-    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = Unit
+    override fun turnXrViewWithDrag(dragFromInScreenWidths: Offset, dragToInScreenWidths: Offset) = Unit
 
     override fun recenterXrView() = Unit
 
@@ -121,6 +121,7 @@ private fun MirrorScreenStreamingPreview() {
         MirrorScreen(
             devices = previewDevices,
             capabilities = androidCapabilities,
+            hasXrViewControls = false,
             missingTools = emptyList(),
             selectedId = "emulator-5554",
             state = MirrorState.Streaming,
@@ -147,6 +148,7 @@ private fun MirrorScreenScreenOffPreview() {
         MirrorScreen(
             devices = previewDevices,
             capabilities = androidCapabilities,
+            hasXrViewControls = false,
             missingTools = emptyList(),
             selectedId = "emulator-5554",
             state = MirrorState.Streaming,
@@ -173,6 +175,7 @@ private fun MirrorScreenNoFramesPreview() {
         MirrorScreen(
             devices = previewDevices,
             capabilities = DeviceCapabilities(inputRefusal = PREVIEW_NO_TEAM_REFUSAL, buttons = emptyList(), recording = false, screenPower = false),
+            hasXrViewControls = false,
             missingTools = listOf("adb was not found, so Android devices are not listed. Install the Android SDK platform tools."),
             selectedId = "00008110-DEVICE",
             state = MirrorState.NoFrames(noFramesHints(DeviceKind.IosDevice)),
@@ -199,6 +202,7 @@ private fun MirrorScreenEmptyPreview() {
         MirrorScreen(
             devices = emptyList(),
             capabilities = null,
+            hasXrViewControls = false,
             missingTools = emptyList(),
             selectedId = null,
             state = MirrorState.Idle,
@@ -225,6 +229,7 @@ private fun MirrorScreenWithCapturesPreview() {
         MirrorScreen(
             devices = previewDevices,
             capabilities = androidCapabilities,
+            hasXrViewControls = false,
             missingTools = emptyList(),
             selectedId = "emulator-5554",
             state = MirrorState.Streaming,
@@ -367,6 +372,7 @@ private fun previewPane(device: DeviceListing, capabilities: DeviceCapabilities,
     devices = previewDevices,
     device = device,
     capabilities = capabilities,
+    hasXrViewControls = device.kind == DeviceKind.AndroidXrEmulator,
     state = MirrorState.Streaming,
     screenPower = ScreenPower(awake = true, locked = false).takeIf { capabilities.screenPower },
     xrPassthrough = true.takeIf { device.kind == DeviceKind.AndroidXrEmulator },

@@ -138,9 +138,11 @@ private val emulatorRunningDirectories: List<File> by lazy {
     )
 }
 
-private val emulatorScreens: EmulatorScreens by lazy { EmulatorScreens(emulatorRunningDirectories) }
+private val emulatorGrpcEndpoints: EmulatorGrpcEndpoints by lazy { EmulatorGrpcEndpoints(emulatorRunningDirectories) }
 
-private val xrEmulatorClients: XrEmulatorClients by lazy { XrEmulatorClients(emulatorRunningDirectories) }
+private val emulatorScreens: EmulatorScreens by lazy { EmulatorScreens(emulatorGrpcEndpoints) }
+
+private val xrEmulatorClients: XrEmulatorClients by lazy { XrEmulatorClients(emulatorGrpcEndpoints) }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
