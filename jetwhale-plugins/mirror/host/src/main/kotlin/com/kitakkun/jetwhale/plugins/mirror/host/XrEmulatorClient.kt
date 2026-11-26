@@ -78,8 +78,8 @@ internal class XrEmulatorClient(
         try {
             httpClient.newCall(request).execute().use { response ->
                 val reply = response.body.bytes()
-                // A call that fails at once answers with headers only, its status among them; any other
-                // sends the status in trailers after the reply.
+                // A call that fails at once answers with headers only, its status among them; any
+                // other sends the status in trailers after the reply.
                 val status = response.header("grpc-status") ?: response.trailers()["grpc-status"]
                 if (response.code != 200 || status != "0") {
                     val reason = response.header("grpc-message") ?: response.trailers()["grpc-message"] ?: "status ${status ?: response.code}"

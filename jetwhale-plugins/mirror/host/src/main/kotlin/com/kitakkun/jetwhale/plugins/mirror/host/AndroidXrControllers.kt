@@ -18,12 +18,12 @@ internal class AndroidXrEmulatorController(
 ) : DeviceController by androidDeviceController,
     XrViewController {
     override val capabilities = androidDeviceController.capabilities.copy(
-        inputRefusal = XR_EMULATOR_WITHOUT_TOKEN.takeIf { xrEmulator == null },
+        inputRefusal = XR_EMULATOR_WITHOUT_TOKEN_REFUSAL.takeIf { xrEmulator == null },
         buttons = if (xrEmulator == null) emptyList() else listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
     )
 
-    // `screencap` draws the scene on its own, two pixels narrower and a few pixels apart at the
-    // edges from the framebuffer that the stream shows and the hand points into.
+    // `screencap` renders the scene on its own, two pixels narrower and a few pixels off at the
+    // edges from the framebuffer the stream shows and the hand points into.
     override suspend fun captureScreenshot(): ByteArray = xrEmulator?.captureScreenshotPng() ?: androidDeviceController.captureScreenshot()
 
     override suspend fun tap(x: Int, y: Int) = requireXrEmulator().tap(x, y)
@@ -46,16 +46,18 @@ internal class AndroidXrEmulatorController(
 
     override suspend fun recenterView() = requireXrEmulator().recenterHead()
 
-    // The emulator may round the coefficient before applying it, so it shows the room from one half up.
+    // The emulator may round the coefficient to an integer before applying it, so the room shows
+    // from one half up.
     override suspend fun isPassthroughOn(): Boolean = requireXrEmulator().readXrOptions().passthroughCoefficient >= 0.5f
 
     override suspend fun setPassthrough(on: Boolean) {
         val xrEmulator = requireXrEmulator()
-        // Every field of the options is written, so the environment and dimming are written back as they are.
+        // setXrOptions sets every field, so the environment and dimming are written back as they
+        // are.
         xrEmulator.writeXrOptions(xrEmulator.readXrOptions().copy(passthroughCoefficient = if (on) 1f else 0f))
     }
 
-    private fun requireXrEmulator(): XrEmulatorClient = xrEmulator ?: throw deviceControlError(XR_EMULATOR_WITHOUT_TOKEN)
+    private fun requireXrEmulator(): XrEmulatorClient = xrEmulator ?: throw deviceControlError(XR_EMULATOR_WITHOUT_TOKEN_REFUSAL)
 }
 
 /**
@@ -69,7 +71,7 @@ internal fun xrEmulatorDegreesAcross(widths: Float): Double = Math.toDegrees(ata
 /** Measured: a 0.1 radian turn moves the middle of the 2560-pixel-wide view by 152 pixels. */
 private const val XR_EMULATOR_FIELD_OF_VIEW_DEGREES = 80.0
 
-private const val XR_EMULATOR_WITHOUT_TOKEN =
+private const val XR_EMULATOR_WITHOUT_TOKEN_REFUSAL =
     "Mirror drives an XR emulator through its gRPC endpoint, which takes no token Mirror can read; start the emulator with -grpc-use-token"
 
 /**
@@ -78,16 +80,16 @@ private const val XR_EMULATOR_WITHOUT_TOKEN =
  * which has the gRPC hand input Mirror uses instead.
  */
 internal class AndroidXrHeadsetController(private val androidDeviceController: AndroidDeviceController) : DeviceController by androidDeviceController {
-    override val capabilities = androidDeviceController.capabilities.copy(inputRefusal = XR_HEADSET_INPUT, buttons = emptyList())
+    override val capabilities = androidDeviceController.capabilities.copy(inputRefusal = XR_HEADSET_INPUT_REFUSAL, buttons = emptyList())
 
-    override suspend fun tap(x: Int, y: Int) = throw deviceControlError(XR_HEADSET_INPUT)
+    override suspend fun tap(x: Int, y: Int) = throw deviceControlError(XR_HEADSET_INPUT_REFUSAL)
 
-    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = throw deviceControlError(XR_HEADSET_INPUT)
+    override suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = throw deviceControlError(XR_HEADSET_INPUT_REFUSAL)
 
-    override suspend fun pressButton(button: DeviceButton) = throw deviceControlError(XR_HEADSET_INPUT)
+    override suspend fun pressButton(button: DeviceButton) = throw deviceControlError(XR_HEADSET_INPUT_REFUSAL)
 
-    override suspend fun inputText(text: String) = throw deviceControlError(XR_HEADSET_INPUT)
+    override suspend fun inputText(text: String) = throw deviceControlError(XR_HEADSET_INPUT_REFUSAL)
 }
 
-private const val XR_HEADSET_INPUT =
+private const val XR_HEADSET_INPUT_REFUSAL =
     "Mirror sends no input to an Android XR headset: on Android XR, adb's taps land on an invisible system window in front of every app and hide them all, and only the XR emulator has the gRPC hand input Mirror uses instead"
