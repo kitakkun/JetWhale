@@ -80,7 +80,7 @@ internal class IosPhysicalDeviceController(
             DeviceButton.Power -> XcTestRunnerButton.Lock
             DeviceButton.VolumeUp -> XcTestRunnerButton.VolumeUp
             DeviceButton.VolumeDown -> XcTestRunnerButton.VolumeDown
-            DeviceButton.Back, DeviceButton.Recents -> throw deviceControlError("an iPhone has no ${button.label} button to press from here")
+            DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps -> throw deviceControlError("an iPhone has no ${button.label} button to press from here")
         }
         sendInput { input, target -> input.pressButton(target, runnerButton) }
     }

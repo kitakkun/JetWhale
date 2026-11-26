@@ -33,5 +33,5 @@ internal fun noFramesHints(kind: DeviceKind): List<String> = when (kind) {
 
     DeviceKind.IosSimulator -> listOf("Check that the simulator is still booted.")
 
-    DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice -> listOf("Check that the device is unlocked and that `adb exec-out screenrecord --output-format=h264 -` works in a terminal.")
+    DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice, DeviceKind.AndroidXrEmulator, DeviceKind.AndroidXrDevice -> listOf("Check that the device is unlocked and that `adb exec-out screenrecord --output-format=h264 -` works in a terminal.")
 }

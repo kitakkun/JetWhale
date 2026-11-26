@@ -18,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -70,7 +71,7 @@ class DeviceDiscoveryTest {
     @Test
     fun `looks at once hand a device one controller`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
 
         val looks = List(SIMULTANEOUS_LOOKS) { async(Dispatchers.Default) { discovery.discover() } }.awaitAll()
 
@@ -82,7 +83,7 @@ class DeviceDiscoveryTest {
     fun `a look waits for the tools to be located before it reports one missing`() = runTest {
         assumeShellScriptsLaunch()
         val toolPaths = CompletableDeferred<MirrorToolPaths>()
-        val discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
 
         val look = async { discovery.discover() }
         runCurrent()
@@ -97,7 +98,7 @@ class DeviceDiscoveryTest {
     @Test
     fun `a listing that fails keeps the devices it listed before with their controllers`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
         val before = discovery.discover().devices.single()
         fakeAdb.writeText("#!/bin/sh\necho 'daemon not running' >&2\nexit 1\n")
 
@@ -109,11 +110,35 @@ class DeviceDiscoveryTest {
     @Test
     fun `a listing that succeeds without a device drops it`() = runBlocking {
         assumeShellScriptsLaunch()
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
         discovery.discover()
         fakeAdb.writeText("#!/bin/sh\nprintf 'List of devices attached\\n'\n")
 
         assertEquals(emptyList(), discovery.discover().devices)
+    }
+
+    @Test
+    fun `an emulator that lists the spatial XR feature is listed as an XR emulator once it can say so`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val features = File(folder, "features.txt").apply { writeText("") }
+        fakeAdb.writeText(
+            """
+            #!/bin/sh
+            case "${'$'}*" in
+              *"pm list features"*) cat '${features.path}' ;;
+              *) printf 'List of devices attached\nemulator-5554\tdevice product:sdk_xr model:Android_XR device:emu\n' ;;
+            esac
+            """.trimIndent() + "\n",
+        )
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
+
+        val starting = discovery.discover().devices.single()
+        features.writeText("feature:android.software.xr.api.spatial=3\n")
+        val started = discovery.discover().devices.single()
+
+        assertIs<AndroidXrEmulatorController>(started.controller)
+        assertEquals(DeviceKind.AndroidEmulator, starting.kind)
+        assertEquals(DeviceKind.AndroidXrEmulator, started.kind)
     }
 
     @Test
@@ -145,11 +170,12 @@ class DeviceDiscoveryTest {
             ),
         ),
         emulatorScreens = EmulatorScreens(runningDirectories = emptyList()),
+        xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()),
     )
 
     @Test
     fun `a machine without ffmpeg is told that Android devices fall back to screenshots and how to install it`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
 
         val notice = discovery.discover().missingTools.single { "ffmpeg" in it }
 
@@ -159,7 +185,7 @@ class DeviceDiscoveryTest {
 
     @Test
     fun `a machine with ffmpeg is not told about it`() = runBlocking {
-        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = "/usr/bin/true", iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()))
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = "/usr/bin/true", iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
 
         assertTrue(discovery.discover().missingTools.none { "ffmpeg" in it })
     }

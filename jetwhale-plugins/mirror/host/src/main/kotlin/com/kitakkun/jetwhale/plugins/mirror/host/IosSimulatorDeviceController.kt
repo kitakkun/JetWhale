@@ -81,7 +81,7 @@ internal class IosSimulatorDeviceController(
         DeviceButton.Home -> requireXcTestRunnerClient().pressButton(runnerTarget, XcTestRunnerButton.Home)
         DeviceButton.Power -> requireXcTestRunnerClient().pressButton(runnerTarget, XcTestRunnerButton.Lock)
         DeviceButton.Recents -> requireXcTestRunnerClient().openAppSwitcher(runnerTarget)
-        DeviceButton.Back, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> throw deviceControlError("the iOS simulator has no ${button.label} button")
+        DeviceButton.Back, DeviceButton.AllApps, DeviceButton.VolumeUp, DeviceButton.VolumeDown -> throw deviceControlError("the iOS simulator has no ${button.label} button")
     }
 
     override suspend fun inputText(text: String) = requireXcTestRunnerClient().typeText(runnerTarget, text)

@@ -18,6 +18,7 @@ private val previewDevices = listOf(
     DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null),
     DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5"),
     DeviceListing(id = "00008110-DEVICE", name = "iPhone 13", kind = DeviceKind.IosDevice, osVersion = "iOS 26.6.1"),
+    DeviceListing(id = "emulator-5556", name = "Android XR", kind = DeviceKind.AndroidXrEmulator, osVersion = null),
 )
 
 private val androidCapabilities = DeviceCapabilities(
@@ -99,6 +100,12 @@ private object NoActions : MirrorActions {
 
     override fun sleep() = Unit
 
+    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = Unit
+
+    override fun recenterXrView() = Unit
+
+    override fun setXrPassthrough(on: Boolean) = Unit
+
     override fun retryLiveVideo() = Unit
 
     override val developmentTeam: String? get() = null
@@ -118,6 +125,7 @@ private fun MirrorScreenStreamingPreview() {
             state = MirrorState.Streaming,
             notices = PreviewNotices(notice = MirrorNotice.saved(previewCaptures.first())),
             screenPower = ScreenPower(awake = true, locked = false),
+            xrPassthrough = null,
             recordingSinceMillis = null,
             surface = rememberPreviewSurface(),
             actions = NoActions,
@@ -143,6 +151,7 @@ private fun MirrorScreenScreenOffPreview() {
             state = MirrorState.Streaming,
             notices = PreviewNotices(notice = null),
             screenPower = ScreenPower(awake = false, locked = true),
+            xrPassthrough = null,
             recordingSinceMillis = null,
             surface = rememberPreviewSurface(),
             actions = NoActions,
@@ -168,6 +177,7 @@ private fun MirrorScreenNoFramesPreview() {
             state = MirrorState.NoFrames(noFramesHints(DeviceKind.IosDevice)),
             notices = PreviewNotices(notice = null),
             screenPower = null,
+            xrPassthrough = null,
             recordingSinceMillis = null,
             surface = remember(::MirrorSurface),
             actions = NoActions,
@@ -193,6 +203,7 @@ private fun MirrorScreenEmptyPreview() {
             state = MirrorState.Idle,
             notices = PreviewNotices(notice = null),
             screenPower = null,
+            xrPassthrough = null,
             recordingSinceMillis = null,
             surface = remember(::MirrorSurface),
             actions = NoActions,
@@ -218,6 +229,7 @@ private fun MirrorScreenWithCapturesPreview() {
             state = MirrorState.Streaming,
             notices = PreviewNotices(notice = null),
             screenPower = ScreenPower(awake = true, locked = false),
+            xrPassthrough = null,
             recordingSinceMillis = 0L,
             surface = rememberPreviewSurface(),
             actions = NoActions,
@@ -269,7 +281,7 @@ private fun CapturesPanelRecordingPreview() {
 @Composable
 private fun MirrorVideoPreview() {
     JwTheme(darkTheme = true) {
-        MirrorVideo(surface = rememberPreviewSurface(), deviceId = "emulator-5554", interactive = true, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
+        MirrorVideo(surface = rememberPreviewSurface(), deviceId = "emulator-5554", interactive = true, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, onLookAround = null, modifier = Modifier.fillMaxSize())
     }
 }
 
@@ -294,8 +306,10 @@ private fun DeviceToolbarPreview() {
                 actions = NoActions,
                 mcpCommands = previewMcpCommands,
                 showCaptures = false,
+                lookingAround = false,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onToggleLookingAround = {},
                 onShowGrid = {},
             )
             DeviceToolbar(
@@ -303,8 +317,10 @@ private fun DeviceToolbarPreview() {
                 actions = NoActions,
                 mcpCommands = previewMcpCommands,
                 showCaptures = true,
+                lookingAround = false,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onToggleLookingAround = {},
                 onShowGrid = {},
             )
             DeviceToolbar(
@@ -316,8 +332,30 @@ private fun DeviceToolbarPreview() {
                 actions = NoActions,
                 mcpCommands = previewMcpCommands,
                 showCaptures = false,
+                lookingAround = false,
                 livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onToggleLookingAround = {},
+                onShowGrid = {},
+            )
+            DeviceToolbar(
+                pane = previewPane(
+                    device = previewDevices[3],
+                    capabilities = DeviceCapabilities(
+                        inputRefusal = null,
+                        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power),
+                        recording = true,
+                        screenPower = true,
+                    ),
+                    recordingSinceMillis = null,
+                ),
+                actions = NoActions,
+                mcpCommands = previewMcpCommands,
+                showCaptures = false,
+                lookingAround = true,
+                livenessOf = { DeviceLiveness.Live },
+                onToggleCaptures = {},
+                onToggleLookingAround = {},
                 onShowGrid = {},
             )
         }
@@ -330,6 +368,7 @@ private fun previewPane(device: DeviceListing, capabilities: DeviceCapabilities,
     capabilities = capabilities,
     state = MirrorState.Streaming,
     screenPower = ScreenPower(awake = true, locked = false).takeIf { capabilities.screenPower },
+    xrPassthrough = true.takeIf { device.kind == DeviceKind.AndroidXrEmulator },
     recordingSinceMillis = recordingSinceMillis,
 )
 

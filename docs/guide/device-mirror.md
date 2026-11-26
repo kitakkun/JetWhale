@@ -3,7 +3,8 @@
 The Device Mirror shows the live screen of an Android emulator or device, an iOS simulator, or a
 physical iPhone inside the host window. On Android devices and iOS simulators you can tap, swipe,
 type and press hardware buttons on the mirrored screen; a physical iPhone takes input too once you
-set your development team, which is experimental. Every device can take screenshots and recordings,
+set your development team, which is experimental. On the Android XR emulator you can also turn the
+view around the scene and switch passthrough. Every device can take screenshots and recordings,
 kept per device so the ones from a test run are easy to find again. An AI agent can do the same over
 MCP.
 
@@ -34,6 +35,7 @@ missing, the device list says which one and what it would enable.
 | iOS simulators (macOS) | Xcode alone: `simctl` for screenshots and recordings, and an XCTest runner for live video and input — see [Input on iOS](#input-on-ios) |
 | iPhones and iPads connected by USB (macOS) | Xcode alone for live video, screenshots and recordings, with the iPhone set up as in [iPhones over USB](#iphones-over-usb); for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
+| Input on the Android XR emulator | The emulator started with `-grpc-use-token` — see [Android XR](#android-xr) |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
 command. Without it an Android device is shown through screenshots a few times a second, and an
@@ -148,13 +150,45 @@ When no live video is available, the mirror falls back to screenshots and says w
 field; it tries the video again after 5 seconds, then 15, then once a minute. An iOS simulator also
 shows screenshots while its XCTest runner starts, and switches to the runner's video once it is up.
 
-The toolbar's buttons are grouped — navigation, volume, screen power, captures — and wrap as a whole
-in a narrow window. Android has Home, Back, Recent apps, Power, Volume up and Volume down; a simulator
-that takes input has Home, Recent apps and Power; an iPhone that takes input has Home, Power, Volume
-up and Volume down. On Android, **Screen off** and **Wake** turn the screen off and on,
-and Wake lifts a lock screen that has no PIN, pattern or password. **Stats** under the screen shows
-frames received and shown per second, the longest gap between frames, and how long decoding, copying
-and drawing take.
+The toolbar's buttons are grouped — navigation, volume, screen power, the XR view, captures — and
+wrap as a whole in a narrow window. Android has Home, Back, Recent apps, Power, Volume up and Volume
+down, and the Android XR emulator adds All apps; a simulator that takes input has Home, Recent apps
+and Power; an iPhone that takes input has Home, Power, Volume up and Volume down. On Android,
+**Screen off** and **Wake** turn the screen off and on, and Wake lifts a lock screen that has no
+PIN, pattern or password. **Stats** under the screen shows frames received and shown per second, the
+longest gap between frames, and how long decoding, copying and drawing take.
+
+### Android XR
+
+An Android XR device lists as an **XR emulator** or an **XR device**: the plugin asks each Android
+device once whether it has Android XR's spatial feature. Its screen is a view into a 3D scene where
+apps float as panels, and adb's `input tap` would land on an invisible system window in front of them
+all and hide every app. So the plugin drives the XR emulator through the emulator's own gRPC endpoint
+instead:
+
+- **A click is a pinch.** The emulator's hand points at the clicked spot of the view and pinches, as
+  a click on the emulator's own window does, and a drag pinches, moves and lets go, which scrolls the
+  app under it. Text and the buttons go through adb as on any Android device.
+- **Home hides every app**, as the launcher's own Home button does, and **All apps** opens the
+  launcher, or closes it when it is open, as the emulator's own All apps button does.
+- **Look around** (the four arrows) makes a drag on the screen turn the view instead, so the scene
+  follows the pointer; a click still taps, so you can bring an app off to the side into view and use
+  it without leaving the mode. **Recenter** faces forward again, and **Passthrough** shows the
+  emulator's simulated room in place of the virtual environment; the room can take a few seconds to
+  appear the first time.
+- **Screenshots** come from the same picture as the live view, so a point in one is the same point
+  in the other. adb's `screencap` draws the scene on its own, two pixels narrower.
+
+The plugin reaches the gRPC endpoint with the token that the emulator writes when it starts with
+`-grpc-use-token`:
+
+```shell
+emulator -avd <your XR AVD> -grpc-use-token
+```
+
+Without it the endpoint checks signed JWTs instead, which is its default, and the XR emulator is
+shown without input, with a banner under its screen that says how to start it. A physical Android XR
+headset is shown without input too: adb is the only way in, and its taps would hide every app.
 
 ### Input on iOS
 
@@ -247,12 +281,15 @@ their `sessionId`. The `deviceId` can be left out to use the device selected in 
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`, and `runnerKeptAliveUntil` while a lease holds its runner; an Android device reports `screenOn` and `locked` |
+| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, and what they accept: input, buttons, recording. A device that takes no input says why in `inputUnavailableReason`. An iOS device or simulator also reports `osVersion`, and `runnerKeptAliveUntil` while a lease holds its runner; an Android device reports `screenOn` and `locked`, and the Android XR emulator (kind `XR emulator`) `passthrough` |
 | `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
-| `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
+| `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has. On the Android XR emulator, `Home` hides every app and `AllApps` opens or closes the launcher |
 | `com.kitakkun.jetwhale.mirror.inputText` | Types text into the focused field |
+| `com.kitakkun.jetwhale.mirror.turnXrView` | Turns the Android XR emulator's view `rightDegrees` to the right and `upDegrees` up from where it faces; negative values turn left or down. Screenshots and taps follow the view |
+| `com.kitakkun.jetwhale.mirror.recenterXrView` | Turns the Android XR emulator's view back to face forward |
+| `com.kitakkun.jetwhale.mirror.setXrPassthrough` | Shows the Android XR emulator's simulated room (`on: true`) or its virtual environment; returns `passthrough` afterwards |
 | `com.kitakkun.jetwhale.mirror.keepRunnerAlive` | Keeps an iOS device's XCTest runner from stopping after five idle minutes, for the given `minutes`, at most 120; returns at once, with the time the lease ends. Call it again to renew the lease, or with `0` to end it. A lease nobody renews ends on its own |
 | `com.kitakkun.jetwhale.mirror.setScreen` | Turns an Android device's screen on (`on: true`, also lifting a lock screen without a credential) or off; returns `screenOn` and `locked` afterwards, where `locked: true` means the device still needs unlocking |
 | `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording one device's screen, several devices' (`deviceIds`), or every device that can record (`all: true`) |
@@ -263,9 +300,10 @@ An agent can read a returned path to look at the capture.
 
 While an agent runs a tool, the single view rings the control that does the same: the device picker
 for `listDevices`, the live view for a tap or a swipe, the hardware buttons for a press, the text
-field for typed text, the screen button for `setScreen`, the record and screenshot buttons for
-captures, and the Captures panel's list for `listCaptures`. The ring marks the control, not the
-device: a tool that names another device rings the same control.
+field for typed text, the screen button for `setScreen`, Look around, Recenter and Passthrough for
+the XR view tools, the record and screenshot buttons for captures, and the Captures panel's list for
+`listCaptures`. The ring marks the control, not the device: a tool that names another device rings
+the same control.
 
 ## Limits
 
@@ -279,3 +317,5 @@ device: a tool that names another device rings the same control.
 - **A simulator's volume buttons** are shown disabled: XCTest cannot press them on a simulator.
 - **Android stops a recording on its own after 180 seconds.**
 - **On Android, text with a line break is refused**; type each line separately.
+- **The Android XR emulator takes input only when started with `-grpc-use-token`**, and an Android
+  XR headset takes none; see [Android XR](#android-xr). Input on a headset has not been tried.

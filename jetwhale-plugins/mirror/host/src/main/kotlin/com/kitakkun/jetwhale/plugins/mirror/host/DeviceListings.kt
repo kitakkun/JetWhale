@@ -30,6 +30,23 @@ internal fun parseAdbDevices(output: String): List<DeviceListing> = output.lineS
     .toList()
 
 /**
+ * Whether `adb shell pm list features` output lists `android.software.xr.api.spatial`, which an
+ * Android XR device has: it places apps as panels in a 3D space. Null when the output lists no
+ * feature at all, as from a device whose package manager has not started yet.
+ */
+internal fun isXrSpatialFeatureListed(pmListFeaturesOutput: String): Boolean? {
+    val features = pmListFeaturesOutput.lineSequence()
+        .map(String::trim)
+        .filter { it.startsWith("feature:") }
+        .map { it.removePrefix("feature:").substringBefore('=') }
+        .toList()
+    if (features.isEmpty()) return null
+    return XR_SPATIAL_FEATURE in features
+}
+
+private const val XR_SPATIAL_FEATURE = "android.software.xr.api.spatial"
+
+/**
  * The booted simulators in `xcrun simctl list devices booted -j` output. Runtimes are keyed by
  * identifiers like `com.apple.CoreSimulator.SimRuntime.iOS-18-5`, which give the OS version.
  */

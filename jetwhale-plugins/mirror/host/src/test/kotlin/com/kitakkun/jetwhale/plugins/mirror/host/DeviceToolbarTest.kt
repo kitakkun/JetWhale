@@ -27,7 +27,7 @@ import kotlin.test.assertEquals
 class DeviceToolbarTest {
     @Test
     fun `each device button is announced by its label once`() = runComposeUiTest {
-        setContent { JwTheme(darkTheme = false) { Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false)) } }
+        setContent { JwTheme(darkTheme = false) { Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false), xrPassthrough = null) } }
 
         listOf("Home", "Back", "Recent apps", "Power", "Volume up", "Volume down", "Screen off").forEach { label ->
             assertEquals(listOf(label), contentDescriptionOf(label))
@@ -36,7 +36,7 @@ class DeviceToolbarTest {
 
     @Test
     fun `a simulator's disabled volume buttons are announced with the reason once`() = runComposeUiTest {
-        setContent { JwTheme(darkTheme = false) { Toolbar(simulator, simulatorCapabilities, screenPower = null) } }
+        setContent { JwTheme(darkTheme = false) { Toolbar(simulator, simulatorCapabilities, screenPower = null, xrPassthrough = null) } }
 
         val label = "Volume up: a simulator's volume buttons cannot be pressed from here"
         assertEquals(listOf(label), contentDescriptionOf(label))
@@ -49,7 +49,7 @@ class DeviceToolbarTest {
         setContent {
             JwTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
-                    Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false))
+                    Toolbar(emulator, androidCapabilities, ScreenPower(awake = true, locked = false), xrPassthrough = null)
                 }
             }
         }
@@ -67,6 +67,34 @@ class DeviceToolbarTest {
             mainClock.advanceTimeByFrame()
 
             assertEquals(ringedLabels, controlLabels.filter { isControlRinged(it) }, "while ${command.name} runs")
+        }
+    }
+
+    @Test
+    fun `an XR emulator's view controls are announced, and each is ringed only while its own tool runs`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        var runningCommandNames by mutableStateOf(emptySet<String>())
+        setContent {
+            JwTheme(darkTheme = false) {
+                CompositionLocalProvider(LocalRunningMcpCommandNames provides runningCommandNames) {
+                    Toolbar(xrEmulator, xrEmulatorCapabilities, ScreenPower(awake = true, locked = false), xrPassthrough = false)
+                }
+            }
+        }
+        val lookAround = "Look around: drag the screen to turn the view"
+        val recenter = "Recenter the view"
+        val passthrough = "Passthrough off: show the room"
+        listOf("All apps", lookAround, recenter, passthrough).forEach { label -> assertEquals(listOf(label), contentDescriptionOf(label)) }
+
+        mapOf(
+            toolbarMcpCommands.turnXrView to lookAround,
+            toolbarMcpCommands.recenterXrView to recenter,
+            toolbarMcpCommands.setXrPassthrough to passthrough,
+        ).forEach { (command, ringedLabel) ->
+            runningCommandNames = setOf(command.name)
+            mainClock.advanceTimeByFrame()
+
+            assertEquals(listOf(ringedLabel), listOf(lookAround, recenter, passthrough).filter { isControlRinged(it) }, "while ${command.name} runs")
         }
     }
 
@@ -89,6 +117,15 @@ class DeviceToolbarTest {
 
     private val emulator = DeviceListing(id = "emulator-5554", name = "Pixel 9", kind = DeviceKind.AndroidEmulator, osVersion = null)
 
+    private val xrEmulator = DeviceListing(id = "emulator-5556", name = "Android XR", kind = DeviceKind.AndroidXrEmulator, osVersion = null)
+
+    private val xrEmulatorCapabilities = DeviceCapabilities(
+        inputRefusal = null,
+        buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power),
+        recording = true,
+        screenPower = true,
+    )
+
     private val simulator = DeviceListing(id = "0A1B2C3D-SIMULATOR", name = "iPhone 16", kind = DeviceKind.IosSimulator, osVersion = "iOS 18.5")
 
     private val androidCapabilities = DeviceCapabilities(inputRefusal = null, buttons = DeviceButton.entries, recording = true, screenPower = true)
@@ -109,7 +146,7 @@ class DeviceToolbarTest {
 private val toolbarMcpCommands = MirrorMcpCommands(NoMirrorDevices)
 
 @Composable
-private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, screenPower: ScreenPower?) {
+private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, screenPower: ScreenPower?, xrPassthrough: Boolean?) {
     DeviceToolbar(
         pane = DevicePaneState(
             devices = listOf(device),
@@ -117,13 +154,16 @@ private fun Toolbar(device: DeviceListing, capabilities: DeviceCapabilities, scr
             capabilities = capabilities,
             state = MirrorState.Streaming,
             screenPower = screenPower,
+            xrPassthrough = xrPassthrough,
             recordingSinceMillis = null,
         ),
         actions = NoMirrorActions,
         mcpCommands = toolbarMcpCommands,
         showCaptures = false,
+        lookingAround = false,
         livenessOf = { DeviceLiveness.Live },
         onToggleCaptures = {},
+        onToggleLookingAround = {},
         onShowGrid = {},
     )
 }
@@ -168,6 +208,12 @@ private object NoMirrorActions : MirrorActions {
     override fun wake() = Unit
 
     override fun sleep() = Unit
+
+    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = Unit
+
+    override fun recenterXrView() = Unit
+
+    override fun setXrPassthrough(on: Boolean) = Unit
 
     override fun retryLiveVideo() = Unit
 

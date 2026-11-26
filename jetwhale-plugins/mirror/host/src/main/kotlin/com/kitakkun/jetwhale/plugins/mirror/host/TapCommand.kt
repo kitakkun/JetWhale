@@ -10,7 +10,9 @@ internal class TapCommand(
     private val mirror: MirrorDevices,
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.tap"
-    override val description = "Taps the device screen at a point in the pixels of $TOOL_PREFIX.captureScreenshot. Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
+    override val description =
+        "Taps the device screen at a point in the pixels of $TOOL_PREFIX.captureScreenshot. On an Android XR emulator the hand points at that point and pinches, which clicks what the view shows there; " +
+            "$TOOL_PREFIX.turnXrView brings something off to the side into view first. Refused for a device that takes no input; $TOOL_PREFIX.listDevices says which and why."
 
     private val deviceId by stringOrNull(DEVICE_ID_DESCRIPTION)
     private val x by int("Horizontal position in screenshot pixels.")

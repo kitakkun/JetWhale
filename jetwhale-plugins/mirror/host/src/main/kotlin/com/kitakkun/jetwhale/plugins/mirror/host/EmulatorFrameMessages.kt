@@ -26,12 +26,12 @@ internal fun encodeImageFormat(wanted: IntSize?): ByteArray = Buffer().apply {
     }
 }.readByteArray()
 
-private fun Buffer.writeVarintField(field: Int, value: Long) {
+internal fun Buffer.writeVarintField(field: Int, value: Long) {
     writeVarint((field shl 3).toLong() or WIRE_VARINT.toLong())
     writeVarint(value)
 }
 
-private fun Buffer.writeVarint(value: Long) {
+internal fun Buffer.writeVarint(value: Long) {
     var remaining = value
     while (remaining and 0x7fL.inv() != 0L) {
         writeByte(((remaining and 0x7f) or 0x80).toInt())
@@ -89,7 +89,7 @@ internal class EmulatorImageReader(private val input: InputStream) {
 }
 
 /** Reads at most [limit] bytes of [source], for one protobuf message or field. */
-private class BoundedReader(private val source: InputStream, private var limit: Int) : InputStream() {
+internal class BoundedReader(private val source: InputStream, private var limit: Int) : InputStream() {
     fun hasMore(): Boolean = limit > 0
 
     fun remaining(): Long = limit.toLong()
@@ -173,10 +173,10 @@ private const val MAX_FRAME_BYTES = MAX_FRAME_SIDE.toLong() * MAX_FRAME_SIDE * 4
 
 private const val IMAGE_FORMAT_RGBA8888 = 1L
 
-private const val WIRE_VARINT = 0
+internal const val WIRE_VARINT = 0
 private const val WIRE_FIXED64 = 1
-private const val WIRE_LENGTH_DELIMITED = 2
-private const val WIRE_FIXED32 = 5
+internal const val WIRE_LENGTH_DELIMITED = 2
+internal const val WIRE_FIXED32 = 5
 
 private const val KEY_FORMAT = (1L shl 3) or WIRE_LENGTH_DELIMITED.toLong()
 private const val KEY_IMAGE = (4L shl 3) or WIRE_LENGTH_DELIMITED.toLong()

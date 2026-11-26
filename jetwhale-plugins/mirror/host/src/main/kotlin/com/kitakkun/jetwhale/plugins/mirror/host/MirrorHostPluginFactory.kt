@@ -129,16 +129,18 @@ private val xcTestRunners: Deferred<XcTestRunners?> = toolLocationScope.async(st
 
 private val liveInstances = AtomicInteger()
 
-private val emulatorScreens: EmulatorScreens by lazy {
-    EmulatorScreens(
-        emulatorRunningDirectories(
-            osName = System.getProperty("os.name").orEmpty(),
-            home = File(System.getProperty("user.home")),
-            temp = File(System.getProperty("java.io.tmpdir")),
-            runtimeDir = System.getenv("XDG_RUNTIME_DIR"),
-        ),
+private val runningEmulatorDirectories: List<File> by lazy {
+    emulatorRunningDirectories(
+        osName = System.getProperty("os.name").orEmpty(),
+        home = File(System.getProperty("user.home")),
+        temp = File(System.getProperty("java.io.tmpdir")),
+        runtimeDir = System.getenv("XDG_RUNTIME_DIR"),
     )
 }
+
+private val emulatorScreens: EmulatorScreens by lazy { EmulatorScreens(runningEmulatorDirectories) }
+
+private val xrEmulatorClients: XrEmulatorClients by lazy { XrEmulatorClients(runningEmulatorDirectories) }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
@@ -153,7 +155,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         val notices = MirrorNotices(pluginScope)
         DeviceMirror(
-            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool, xcTestRunners, emulatorScreens),
+            discovery = DeviceDiscovery(toolPaths, iphoneScreenCapturePool, xcTestRunners, emulatorScreens, xrEmulatorClients),
             developmentTeamSetting = DevelopmentTeamSetting(storage, pluginScope, runnerSigningTeam),
             captures = MirrorCaptures(File(appDataDirectory(), "plugin-data/com.kitakkun.jetwhale.mirror/captures"), storage, pluginScope, ZoneId.systemDefault(), notices, ffmpegPath, CaptureClipboard(osascriptPath = "/usr/bin/osascript".takeIf { File(it).canExecute() })),
             notices = notices,

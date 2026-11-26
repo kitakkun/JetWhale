@@ -16,7 +16,6 @@ import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 /** Where a running emulator's gRPC endpoint listens, and the token it accepts. */
-@VisibleForTesting
 internal class EmulatorEndpoint(val port: Int, val token: String?)
 
 /**
@@ -72,7 +71,6 @@ internal fun emulatorRunningDirectories(osName: String, home: File, temp: File, 
 }
 
 /** The gRPC endpoint of the emulator with [serial], from the files in [directories], or null. */
-@VisibleForTesting
 internal fun findEmulatorEndpoint(serial: String, directories: List<File>): EmulatorEndpoint? {
     val consolePort = serial.removePrefix("emulator-").toIntOrNull() ?: return null
     return directories.asSequence()
@@ -126,4 +124,4 @@ private fun MirrorSurface.FrameStream.writeRgbaFrame(pixels: ByteArray, image: E
     }
 }
 
-private val GRPC_MEDIA_TYPE = "application/grpc".toMediaType()
+internal val GRPC_MEDIA_TYPE = "application/grpc".toMediaType()

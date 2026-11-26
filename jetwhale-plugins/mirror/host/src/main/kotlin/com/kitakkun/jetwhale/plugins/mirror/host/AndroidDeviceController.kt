@@ -275,6 +275,7 @@ internal fun androidKeycodeOf(button: DeviceButton): String = when (button) {
     DeviceButton.Home -> "KEYCODE_HOME"
     DeviceButton.Back -> "KEYCODE_BACK"
     DeviceButton.Recents -> "KEYCODE_APP_SWITCH"
+    DeviceButton.AllApps -> "KEYCODE_ALL_APPS"
     DeviceButton.Power -> "KEYCODE_POWER"
     DeviceButton.VolumeUp -> "KEYCODE_VOLUME_UP"
     DeviceButton.VolumeDown -> "KEYCODE_VOLUME_DOWN"

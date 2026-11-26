@@ -14,6 +14,7 @@ internal val DeviceButton.icon: ImageVector
         DeviceButton.Home -> HomeIcon
         DeviceButton.Back -> BackIcon
         DeviceButton.Recents -> RecentsIcon
+        DeviceButton.AllApps -> AllAppsIcon
         DeviceButton.Power -> PowerIcon
         DeviceButton.VolumeUp -> VolumeUpIcon
         DeviceButton.VolumeDown -> VolumeDownIcon
@@ -45,6 +46,16 @@ private val RecentsIcon: ImageVector = outlineIcon("Recents") {
     moveTo(9f, 4f)
     lineTo(19f, 4f)
     lineTo(19f, 16f)
+}
+
+/** A grid of dots: the launcher's apps. */
+private val AllAppsIcon: ImageVector = outlineIcon("AllApps") {
+    listOf(6f, 12f, 18f).forEach { y ->
+        listOf(6f, 12f, 18f).forEach { x ->
+            moveTo(x, y)
+            lineTo(x, y)
+        }
+    }
 }
 
 private val PowerIcon: ImageVector = outlineIcon("Power") {
@@ -90,6 +101,54 @@ internal val WakeIcon: ImageVector = outlineIcon("Wake") {
     lineTo(14f, 12f)
     moveTo(10f, 16f)
     lineTo(14f, 16f)
+}
+
+/** Arrows four ways, as the pointer shows over the screen: drag to turn the view. */
+internal val LookAroundIcon: ImageVector = outlineIcon("LookAround") {
+    moveTo(12f, 3f)
+    lineTo(12f, 21f)
+    moveTo(3f, 12f)
+    lineTo(21f, 12f)
+    moveTo(9f, 6f)
+    lineTo(12f, 3f)
+    lineTo(15f, 6f)
+    moveTo(9f, 18f)
+    lineTo(12f, 21f)
+    lineTo(15f, 18f)
+    moveTo(6f, 9f)
+    lineTo(3f, 12f)
+    lineTo(6f, 15f)
+    moveTo(18f, 9f)
+    lineTo(21f, 12f)
+    lineTo(18f, 15f)
+}
+
+/** Cross hairs: put the view back in front. */
+internal val RecenterIcon: ImageVector = outlineIcon("Recenter") {
+    moveTo(12f, 6f)
+    arcTo(horizontalEllipseRadius = 6f, verticalEllipseRadius = 6f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 18f)
+    arcTo(horizontalEllipseRadius = 6f, verticalEllipseRadius = 6f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 6f)
+    moveTo(12f, 2f)
+    lineTo(12f, 6f)
+    moveTo(12f, 18f)
+    lineTo(12f, 22f)
+    moveTo(2f, 12f)
+    lineTo(6f, 12f)
+    moveTo(18f, 12f)
+    lineTo(22f, 12f)
+    moveTo(12f, 12f)
+    lineTo(12f, 12f)
+}
+
+/** An eye: see the room through the scene. */
+internal val PassthroughIcon: ImageVector = outlineIcon("Passthrough") {
+    moveTo(2f, 12f)
+    quadTo(x1 = 12f, y1 = 2f, x2 = 22f, y2 = 12f)
+    quadTo(x1 = 12f, y1 = 22f, x2 = 2f, y2 = 12f)
+    close()
+    moveTo(12f, 9f)
+    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 15f)
+    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 9f)
 }
 
 /** A cross: dismiss. */

@@ -166,6 +166,7 @@ private fun SingleMirrorRoot(
         state = mirror.state,
         notices = notices,
         screenPower = mirror.screenPower,
+        xrPassthrough = mirror.xrPassthrough,
         recordingSinceMillis = mirror.selectedId?.let(mirror.recordingsStartedAtMillis::get),
         surface = mirror.surface,
         actions = mirror,
@@ -219,6 +220,7 @@ internal fun MirrorScreen(
     state: MirrorState,
     notices: MirrorNoticeActions,
     screenPower: ScreenPower?,
+    xrPassthrough: Boolean?,
     recordingSinceMillis: Long?,
     surface: MirrorSurface,
     actions: MirrorActions,
@@ -240,7 +242,8 @@ internal fun MirrorScreen(
             )
         } else {
             val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis)
+            val ownXrPassthrough = xrPassthrough.takeIf { surface.deviceId == device.id }
+            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, ownXrPassthrough, recordingSinceMillis)
             DevicePane(pane, surface, actions, mcpCommands, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
@@ -249,6 +252,7 @@ internal fun MirrorScreen(
 /**
  * What the device pane shows about the selected device.
  *
+ * @property xrPassthrough whether an XR emulator shows the room through its scene; null for any other device, and until it is read.
  * @property recordingSinceMillis when the selected device's recording started; null while it is not recording.
  */
 internal class DevicePaneState(
@@ -257,6 +261,7 @@ internal class DevicePaneState(
     val capabilities: DeviceCapabilities,
     val state: MirrorState,
     val screenPower: ScreenPower?,
+    val xrPassthrough: Boolean?,
     val recordingSinceMillis: Long?,
 )
 
@@ -273,27 +278,36 @@ private fun DevicePane(
     onShowGrid: () -> Unit,
     capturesPanel: @Composable () -> Unit,
 ) {
+    var lookingAround by remember(pane.device.id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        DeviceToolbar(pane, actions, mcpCommands, showCaptures, livenessOf, onToggleCaptures, onShowGrid)
+        DeviceToolbar(pane, actions, mcpCommands, showCaptures, lookingAround, livenessOf, onToggleCaptures, onToggleLookingAround = { lookingAround = !lookingAround }, onShowGrid)
         if (showCaptures) {
             JwSplitPane(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 state = rememberJwSplitPaneState(VIDEO_FRACTION),
-                first = { LiveView(pane, surface, actions, mcpCommands, notices) },
+                first = { LiveView(pane, surface, actions, mcpCommands, notices, lookingAround) },
                 second = capturesPanel,
             )
         } else {
-            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions, mcpCommands, notices) }
+            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions, mcpCommands, notices, lookingAround) }
         }
     }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 @Composable
-private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, mcpCommands: MirrorMcpCommands, notices: MirrorNoticeActions) {
+private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, mcpCommands: MirrorMcpCommands, notices: MirrorNoticeActions, lookingAround: Boolean) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth().jwAiOperatingRingWhileRunning(mcpCommands.tap, mcpCommands.swipe, shape = RectangleShape)) {
-            MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.inputRefusal == null, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
+            MirrorVideo(
+                surface = surface,
+                deviceId = pane.device.id,
+                interactive = pane.capabilities.inputRefusal == null,
+                onTap = actions::tap,
+                onSwipe = actions::swipe,
+                onLookAround = if (lookingAround) actions::turnXrViewWithDrag else null,
+                modifier = Modifier.fillMaxSize(),
+            )
             val switching = surface.deviceId != pane.device.id
             when {
                 surface.showingKeptFrame || (switching && surface.hasKeptFrame(pane.device.id)) -> ReconnectingScrim()
@@ -311,6 +325,8 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             )
         }
         if (pane.device.kind == DeviceKind.IosDevice) IphoneInputBanner(pane.capabilities.inputRefusal, actions.developmentTeam, actions::updateDevelopmentTeam)
+        val isXrDevice = pane.device.kind == DeviceKind.AndroidXrEmulator || pane.device.kind == DeviceKind.AndroidXrDevice
+        if (isXrDevice) pane.capabilities.inputRefusal?.let { JwBanner(text = "No input: $it", tone = JwTone.Info) }
         if (pane.capabilities.inputRefusal == null) TextInput(mcpCommands, onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }

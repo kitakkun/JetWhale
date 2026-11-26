@@ -53,6 +53,9 @@ private const val RESIZE_THRESHOLD = 0.15f
 /** How often a mirrored Android device's screen state is read; a screen turned off shows as black. */
 private const val SCREEN_POWER_POLL_MILLIS = 2_000L
 
+/** How often a mirrored XR emulator's passthrough is read; the emulator's own window can switch it too. */
+private const val XR_PASSTHROUGH_POLL_MILLIS = 2_000L
+
 /** How often a mirrored Android device's screen size is read, to follow a foldable folding. */
 private const val SCREEN_CHANGE_POLL_MILLIS = 2_000L
 
@@ -119,6 +122,13 @@ internal interface MirrorActions {
 
     fun sleep()
 
+    /** Turns the selected XR emulator's view as [XrViewController.turnViewWithDrag] does. */
+    fun turnXrViewWithDrag(dragX: Float, dragY: Float)
+
+    fun recenterXrView()
+
+    fun setXrPassthrough(on: Boolean)
+
     /** Tries the selected device's live video again now, while screenshots stand in for it. */
     fun retryLiveVideo()
 
@@ -164,6 +174,10 @@ internal class DeviceMirror(
     var screenPower: ScreenPower? by mutableStateOf(null)
         private set
 
+    /** Whether the mirrored XR emulator shows the room through its scene; null for any other device, and until it is read. */
+    var xrPassthrough: Boolean? by mutableStateOf(null)
+        private set
+
     private val activeRecordings = ConcurrentHashMap<String, ActiveRecording>()
 
     @Volatile
@@ -205,12 +219,15 @@ internal class DeviceMirror(
         try {
             coroutineScope {
                 if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }
+                val xrView = (device.controller as? XrViewController)?.takeIf { device.controller.capabilities.inputRefusal == null }
+                if (xrView != null) launch { watchXrPassthrough(xrView) }
                 streamUntilCancelled(device)
             }
         } finally {
             (device.controller as? IosSimulatorDeviceController)?.forgetRunnerStartFailure()
             state = MirrorState.Idle
             screenPower = null
+            xrPassthrough = null
         }
     }
 
@@ -251,6 +268,17 @@ internal class DeviceMirror(
                 null
             }
             delay(SCREEN_POWER_POLL_MILLIS)
+        }
+    }
+
+    private suspend fun watchXrPassthrough(xrView: XrViewController) {
+        while (coroutineContext.isActive) {
+            xrPassthrough = try {
+                xrView.isPassthroughOn()
+            } catch (_: DeviceControlException) {
+                null
+            }
+            delay(XR_PASSTHROUGH_POLL_MILLIS)
         }
     }
 
@@ -580,6 +608,15 @@ internal class DeviceMirror(
         screenPower = controller.screenPower()
     }
 
+    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = controlXrView { it.turnViewWithDrag(dragX = dragX, dragY = dragY) }
+
+    override fun recenterXrView() = controlXrView(XrViewController::recenterView)
+
+    override fun setXrPassthrough(on: Boolean) = controlXrView { xrView ->
+        xrView.setPassthrough(on)
+        xrPassthrough = on
+    }
+
     override fun resolve(deviceId: String?): MirrorDevice {
         if (deviceId == null) {
             return selectedDevice ?: throw deviceControlError("no device is connected; start an emulator or simulator, then call $TOOL_PREFIX.listDevices")
@@ -705,6 +742,8 @@ internal class DeviceMirror(
         surface.close()
         failures.firstOrNull()?.let { throw deviceControlError(it.reason) }
     }
+
+    private fun controlXrView(action: suspend (XrViewController) -> Unit) = control { controller -> (controller as? XrViewController)?.let { action(it) } }
 
     private fun control(action: suspend (DeviceController) -> Unit) {
         val device = selectedDevice ?: return

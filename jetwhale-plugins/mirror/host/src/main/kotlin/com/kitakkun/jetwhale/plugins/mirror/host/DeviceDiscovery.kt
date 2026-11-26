@@ -35,6 +35,9 @@ internal class Discovery(
  * physical iPhone's input also needs `iproxy`. An iPhone's screen comes from [iphoneScreenCapturePool],
  * also null without Xcode, which stops the capture of an iPhone once it is gone.
  *
+ * An Android device is asked once whether it is an Android XR device, which takes input in its
+ * own way; an XR emulator's comes through [xrEmulatorClients].
+ *
  * A look waits for every tool it is given, so a tool is reported missing only once it has been
  * looked for.
  */
@@ -43,8 +46,12 @@ internal class DeviceDiscovery(
     private val iphoneScreenCapturePool: Deferred<IphoneScreenCapturePool?>,
     private val xcTestRunners: Deferred<XcTestRunners?>,
     private val emulatorScreens: EmulatorScreens,
+    private val xrEmulatorClients: XrEmulatorClients,
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
+
+    /** Whether each Android device listed is an Android XR device, by serial, once it has said. */
+    private val isXrDeviceBySerial = mutableMapOf<String, Boolean>()
 
     private val looking = Mutex()
 
@@ -53,7 +60,7 @@ internal class DeviceDiscovery(
         val iphoneScreenCapturePool = iphoneScreenCapturePool.await()
         val xcTestRunnerClient = xcTestRunners.await()?.let(::XcTestRunnerClient)
         val looks = listOf(
-            listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice),
+            listAndroid(locatedToolPaths) to setOf(DeviceKind.AndroidEmulator, DeviceKind.AndroidDevice, DeviceKind.AndroidXrEmulator, DeviceKind.AndroidXrDevice),
             listSimulators(locatedToolPaths) to setOf(DeviceKind.IosSimulator),
             listIosDevices(locatedToolPaths) to setOf(DeviceKind.IosDevice),
         )
@@ -69,7 +76,23 @@ internal class DeviceDiscovery(
 
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val adbPath = locatedToolPaths.adbPath ?: return emptyList()
-        return tryList { parseAdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "devices", "-l").stdoutText) }
+        val listings = tryList { parseAdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "devices", "-l").stdoutText) } ?: return null
+        isXrDeviceBySerial.keys.retainAll(listings.map(DeviceListing::id).toSet())
+        return listings.map { listing ->
+            val isXrDevice = isXrDeviceBySerial[listing.id] ?: readIsXrDevice(adbPath, listing.id)?.also { isXrDeviceBySerial[listing.id] = it }
+            when {
+                isXrDevice != true -> listing
+                listing.kind == DeviceKind.AndroidEmulator -> listing.copy(kind = DeviceKind.AndroidXrEmulator)
+                else -> listing.copy(kind = DeviceKind.AndroidXrDevice)
+            }
+        }
+    }
+
+    /** Whether the Android device with [serial] is an Android XR device, or null while it cannot say, as when it is still starting. */
+    private suspend fun readIsXrDevice(adbPath: String, serial: String): Boolean? = try {
+        isXrSpatialFeatureListed(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "-s", serial, "shell", "pm", "list", "features").stdoutText)
+    } catch (_: DeviceControlException) {
+        null
     }
 
     private suspend fun listSimulators(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
@@ -94,10 +117,17 @@ internal class DeviceDiscovery(
         }
     }
 
-    private fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, iphoneScreenCapturePool: IphoneScreenCapturePool?, xcTestRunnerClient: XcTestRunnerClient?): DeviceController = when (listing.kind) {
+    private suspend fun controllerFor(listing: DeviceListing, locatedToolPaths: MirrorToolPaths, iphoneScreenCapturePool: IphoneScreenCapturePool?, xcTestRunnerClient: XcTestRunnerClient?): DeviceController = when (listing.kind) {
         DeviceKind.AndroidEmulator -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath)
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
+
+        DeviceKind.AndroidXrEmulator -> AndroidXrEmulatorController(
+            androidDeviceController = AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath),
+            xrEmulator = xrEmulatorClients.clientFor(listing.id),
+        )
+
+        DeviceKind.AndroidXrDevice -> AndroidXrHeadsetController(AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath))
 
         DeviceKind.IosSimulator -> IosSimulatorDeviceController(
             udid = listing.id,
