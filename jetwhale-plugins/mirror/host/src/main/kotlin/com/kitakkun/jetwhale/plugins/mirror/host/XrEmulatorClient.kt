@@ -1,19 +1,26 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import okio.BufferedSink
 import java.io.File
 import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /** Finds each running Android XR emulator's gRPC endpoint; one HTTP/2 client serves them all. */
 internal class XrEmulatorClients(private val runningDirectories: List<File>) {
@@ -75,8 +82,8 @@ internal class XrEmulatorClient(
         callGrpcMethod("streamInputEvent", TimedInputEventsBody(events))
     }
 
-    private suspend fun callGrpcMethod(method: String, body: RequestBody): ByteArray = withContext(Dispatchers.IO) {
-        val endpoint = findEmulatorEndpoint(serial, runningDirectories)
+    private suspend fun callGrpcMethod(method: String, body: RequestBody): ByteArray {
+        val endpoint = withContext(Dispatchers.IO) { findEmulatorEndpoint(serial, runningDirectories) }
         val token = endpoint?.token ?: throw deviceControlError("$serial left no gRPC endpoint with a token in its discovery file; start it with -grpc-use-token")
         val request = Request.Builder()
             .url("http://127.0.0.1:${endpoint.port}/android.emulation.control.EmulatorController/$method")
@@ -84,21 +91,47 @@ internal class XrEmulatorClient(
             .header("authorization", "Bearer $token")
             .post(body)
             .build()
-        try {
-            httpClient.newCall(request).execute().use { response ->
-                val reply = response.body.bytes()
-                // A call that fails at once answers with headers only, its status among them; any
-                // other sends the status in trailers after the reply.
-                val status = response.header("grpc-status") ?: response.trailers()["grpc-status"]
-                if (response.code != 200 || status != "0") {
-                    val reason = response.header("grpc-message") ?: response.trailers()["grpc-message"] ?: "status ${status ?: response.code}"
-                    throw deviceControlError("the XR emulator refused $method: $reason")
-                }
-                reply.copyOfRange(minOf(GRPC_MESSAGE_PREFIX_BYTES, reply.size), reply.size)
-            }
-        } catch (e: IOException) {
-            throw deviceControlError("the XR emulator's gRPC endpoint did not answer $method: ${e.message}")
+        return suspendCancellableCoroutine { continuation ->
+            val call = httpClient.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(GrpcReplyCallback(method, continuation))
         }
+    }
+}
+
+/**
+ * Resumes [continuation] with the message of a unary gRPC reply to [method], or with why there is
+ * none. The call is enqueued rather than executed because a blocking `execute()` ignores coroutine
+ * cancellation, while cancelling an enqueued call ends it at once, through its reply's body too.
+ */
+private class GrpcReplyCallback(private val method: String, private val continuation: CancellableContinuation<ByteArray>) : Callback {
+    override fun onFailure(call: Call, e: IOException) {
+        continuation.resumeWithException(deviceControlError("the XR emulator's gRPC endpoint did not answer $method: ${e.message}"))
+    }
+
+    override fun onResponse(call: Call, response: Response) {
+        val message = try {
+            response.use(::readReplyMessage)
+        } catch (e: IOException) {
+            continuation.resumeWithException(deviceControlError("the XR emulator's gRPC endpoint did not answer $method: ${e.message}"))
+            return
+        } catch (e: DeviceControlException) {
+            continuation.resumeWithException(e)
+            return
+        }
+        continuation.resume(message)
+    }
+
+    private fun readReplyMessage(response: Response): ByteArray {
+        val reply = response.body.bytes()
+        // A call that fails at once answers with headers only, its status among them; any
+        // other sends the status in trailers after the reply.
+        val status = response.header("grpc-status") ?: response.trailers()["grpc-status"]
+        if (response.code != 200 || status != "0") {
+            val reason = response.header("grpc-message") ?: response.trailers()["grpc-message"] ?: "status ${status ?: response.code}"
+            throw deviceControlError("the XR emulator refused $method: $reason")
+        }
+        return reply.copyOfRange(minOf(GRPC_MESSAGE_PREFIX_BYTES, reply.size), reply.size)
     }
 }
 

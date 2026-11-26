@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -125,7 +126,7 @@ internal interface MirrorActions {
     fun sleep()
 
     /** Turns the selected XR emulator's view as [XrViewController.turnViewWithDrag] does. */
-    fun turnXrViewWithDrag(dragX: Float, dragY: Float)
+    fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset)
 
     fun recenterXrView()
 
@@ -619,7 +620,7 @@ internal class DeviceMirror(
         screenPower = controller.screenPower()
     }
 
-    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = controlXrView { it.turnViewWithDrag(dragX = dragX, dragY = dragY) }
+    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = controlXrView { it.turnViewWithDrag(dragFrom = dragFrom, dragTo = dragTo) }
 
     override fun recenterXrView() = controlXrView(XrViewController::recenterView)
 

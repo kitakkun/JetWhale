@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -487,8 +488,8 @@ private class FakeXrController :
         calls += "turn right $rightDegrees up $upDegrees"
     }
 
-    override suspend fun turnViewWithDrag(dragX: Float, dragY: Float) {
-        calls += "drag $dragX,$dragY"
+    override suspend fun turnViewWithDrag(dragFrom: Offset, dragTo: Offset) {
+        calls += "drag $dragFrom -> $dragTo"
     }
 
     override suspend fun recenterView() {

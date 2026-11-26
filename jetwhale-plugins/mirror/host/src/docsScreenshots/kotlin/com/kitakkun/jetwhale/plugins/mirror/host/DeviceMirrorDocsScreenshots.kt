@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -154,7 +155,7 @@ private object NoMirrorActions : MirrorActions {
 
     override fun sleep() = Unit
 
-    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = Unit
+    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = Unit
 
     override fun recenterXrView() = Unit
 

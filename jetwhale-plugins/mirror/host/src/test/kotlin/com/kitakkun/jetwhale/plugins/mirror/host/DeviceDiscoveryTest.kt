@@ -142,6 +142,57 @@ class DeviceDiscoveryTest {
     }
 
     @Test
+    fun `an emulator started in place of another under the same serial is asked again whether it is an XR device`() = runBlocking {
+        assumeShellScriptsLaunch()
+        val modelFile = File(folder, "model.txt").apply { writeText("Android_XR") }
+        val featuresFile = File(folder, "features.txt").apply { writeText("feature:android.software.xr.api.spatial=3\n") }
+        fakeAdb.writeText(
+            """
+            #!/bin/sh
+            case "${'$'}*" in
+              *"pm list features"*) cat '${featuresFile.path}' ;;
+              *) printf 'List of devices attached\nemulator-5554\tdevice product:sdk model:%s device:emu\n' "${'$'}(cat '${modelFile.path}')" ;;
+            esac
+            """.trimIndent() + "\n",
+        )
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
+
+        val xrEmulator = discovery.discover().devices.single()
+        modelFile.writeText("Pixel_9")
+        featuresFile.writeText("feature:android.hardware.camera\n")
+        val phoneEmulator = discovery.discover().devices.single()
+
+        assertEquals(DeviceKind.AndroidXrEmulator, xrEmulator.kind)
+        assertEquals(DeviceKind.AndroidEmulator, phoneEmulator.kind)
+    }
+
+    @Test
+    fun `an XR emulator that had no gRPC token takes input once it has one, and keeps that controller`() = runBlocking {
+        assumeShellScriptsLaunch()
+        fakeAdb.writeText(
+            """
+            #!/bin/sh
+            case "${'$'}*" in
+              *"pm list features"*) printf 'feature:android.software.xr.api.spatial=3\n' ;;
+              *) printf 'List of devices attached\nemulator-5554\tdevice product:sdk_xr model:Android_XR device:emu\n' ;;
+            esac
+            """.trimIndent() + "\n",
+        )
+        val runningDirectory = File(folder, "running").apply { mkdirs() }
+        val discoveryFile = File(runningDirectory, "pid_1.ini").apply { writeText("port.serial=5554\ngrpc.port=8554\n") }
+        val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = listOf(runningDirectory)))
+
+        val withoutToken = discovery.discover().devices.single()
+        discoveryFile.writeText("port.serial=5554\ngrpc.port=8556\ngrpc.token=secret\n")
+        val withToken = discovery.discover().devices.single()
+        val lookedAgain = discovery.discover().devices.single()
+
+        assertTrue(withoutToken.controller.capabilities.inputRefusal != null)
+        assertNull(withToken.controller.capabilities.inputRefusal)
+        assertSame(withToken.controller, lookedAgain.controller)
+    }
+
+    @Test
     fun `iPhones and iPads on USB are listed through devicectl`() = runBlocking {
         assumeShellScriptsLaunch()
 

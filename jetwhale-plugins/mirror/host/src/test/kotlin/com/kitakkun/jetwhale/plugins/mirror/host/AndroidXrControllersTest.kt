@@ -1,9 +1,12 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.mockwebserver.Dispatcher
@@ -36,7 +39,9 @@ class AndroidXrControllersTest {
         File(this, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\ngrpc.token=secret\n")
     }
 
-    private val xrEmulatorClient = XrEmulatorClient(serial = "emulator-5554", runningDirectories = listOf(runningDirectory), httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build())
+    private val httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build()
+
+    private val xrEmulatorClient = XrEmulatorClient(serial = "emulator-5554", runningDirectories = listOf(runningDirectory), httpClient = httpClient)
 
     private val emulator = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient)
 
@@ -139,10 +144,55 @@ class AndroidXrControllersTest {
     fun `dragging the scene right across half the screen turns the view left by half the field of view`() = runBlocking {
         server.enqueue(grpcReply(ByteArray(0)))
 
-        emulator.turnViewWithDrag(dragX = 0.5f, dragY = 0f)
+        emulator.turnViewWithDrag(dragFrom = Offset.Zero, dragTo = Offset(0.5f, 0f))
 
         val expected = encodeXrHeadRotation(upRadians = 0f, leftRadians = Math.toRadians(40.0).toFloat())
         assertContentEquals(expected, grpcMessagesOf(server.takeRequest()).single())
+    }
+
+    @Test
+    fun `a drag turns the view as far whatever parts it is reported in, and back to nothing when it returns to its start`() = runBlocking {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse = grpcReply(ByteArray(0))
+        }
+        val whole = listOf(0f, 0.5f)
+        val inParts = listOf(0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f)
+        val outAndBack = listOf(0f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f, 0f)
+
+        val turns = listOf(whole, inParts, outAndBack).map { dragXs ->
+            dragXs.zipWithNext().forEach { (from, to) -> emulator.turnViewWithDrag(dragFrom = Offset(from, 0f), dragTo = Offset(to, 0f)) }
+            List(dragXs.size - 1) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }.sum()
+        }
+
+        assertEquals(turns[0], turns[1], absoluteTolerance = 1e-6f)
+        assertEquals(0f, turns[2], absoluteTolerance = 1e-6f)
+    }
+
+    @Test
+    fun `a call to an emulator that does not answer ends as soon as its caller is cancelled, and lets the next gesture through`() = runBlocking {
+        val firstGestureArrived = CountDownLatch(1)
+        val firstAnswerReleased = CountDownLatch(1)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                if (request.sequenceNumber == 0) {
+                    firstGestureArrived.countDown()
+                    firstAnswerReleased.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
+                }
+                return grpcReply(ByteArray(0))
+            }
+        }
+        val callsEnded = CountDownLatch(1)
+        httpClient.dispatcher.idleCallback = Runnable(callsEnded::countDown)
+        try {
+            val unanswered = launch(Dispatchers.IO) { emulator.tap(10, 10) }
+            assertTrue(firstGestureArrived.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS))
+
+            withTimeout(CANCELLED_CALL_END_MILLIS) { unanswered.cancelAndJoin() }
+            assertTrue(callsEnded.await(CANCELLED_CALL_END_MILLIS, TimeUnit.MILLISECONDS))
+            withTimeout(CANCELLED_CALL_END_MILLIS) { emulator.tap(20, 20) }
+        } finally {
+            firstAnswerReleased.countDown()
+        }
     }
 
     @Test
@@ -204,6 +254,20 @@ private fun grpcMessagesOf(request: RecordedRequest): List<ByteArray> {
         }
     }
 }
+
+/**
+ * The turn left in a head rotation message, about its y axis: the second float, after the message's
+ * key and length, and the first float with its key.
+ */
+private fun leftRadiansOf(message: ByteArray): Float = Buffer().write(message).run {
+    skip(2 + 1 + 4 + 1)
+    Float.fromBits(readIntLe())
+}
+
+/** Longer than OkHttp waits for an answer by default, so only cancelling ends the call sooner. */
+private const val UNANSWERED_CALL_MILLIS = 15_000L
+
+private const val CANCELLED_CALL_END_MILLIS = 2_000L
 
 /** Far longer than a tap takes to send, so that a second tap sent at once would arrive within it. */
 private const val SECOND_GESTURE_WAIT_MILLIS = 1_000L

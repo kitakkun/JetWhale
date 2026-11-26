@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -100,7 +101,7 @@ private object NoActions : MirrorActions {
 
     override fun sleep() = Unit
 
-    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = Unit
+    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = Unit
 
     override fun recenterXrView() = Unit
 

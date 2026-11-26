@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.annotation.VisibleForTesting
+import androidx.compose.ui.geometry.Offset
 import kotlin.math.atan
 import kotlin.math.tan
 
@@ -43,7 +44,10 @@ internal class AndroidXrEmulatorDeviceController(
 
     override suspend fun turnView(rightDegrees: Double, upDegrees: Double) = requireXrEmulatorClient().turnHead(upRadians = Math.toRadians(upDegrees).toFloat(), leftRadians = -Math.toRadians(rightDegrees).toFloat())
 
-    override suspend fun turnViewWithDrag(dragX: Float, dragY: Float) = turnView(rightDegrees = -xrEmulatorDegreesAcross(dragX), upDegrees = xrEmulatorDegreesAcross(dragY))
+    override suspend fun turnViewWithDrag(dragFrom: Offset, dragTo: Offset) = turnView(
+        rightDegrees = xrEmulatorDegreesAcross(dragFrom.x) - xrEmulatorDegreesAcross(dragTo.x),
+        upDegrees = xrEmulatorDegreesAcross(dragTo.y) - xrEmulatorDegreesAcross(dragFrom.y),
+    )
 
     override suspend fun recenterView() = requireXrEmulatorClient().recenterHead()
 

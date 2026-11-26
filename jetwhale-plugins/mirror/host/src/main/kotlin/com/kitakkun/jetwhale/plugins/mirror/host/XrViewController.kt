@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.ui.geometry.Offset
+
 /**
  * Moves the view of a device whose screen looks into a 3D scene, as the Android XR emulator's does:
  * where the view faces, and whether the room around it shows through the scene's virtual
@@ -11,9 +13,11 @@ internal interface XrViewController {
 
     /**
      * Turns the view so that the scene follows a drag on the screen, as if the drag pulled the scene
-     * along: [dragX] to the right and [dragY] down, each in widths of the screen.
+     * along, for the part of the drag from [dragFrom] to [dragTo]. Both are measured from where the
+     * drag started, right and down, in widths of the screen, so a drag reported in any number of
+     * parts turns the view as far as one reported whole.
      */
-    suspend fun turnViewWithDrag(dragX: Float, dragY: Float)
+    suspend fun turnViewWithDrag(dragFrom: Offset, dragTo: Offset)
 
     /** Puts the view back where it started, facing forward. */
     suspend fun recenterView()

@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -209,7 +210,7 @@ private object NoMirrorActions : MirrorActions {
 
     override fun sleep() = Unit
 
-    override fun turnXrViewWithDrag(dragX: Float, dragY: Float) = Unit
+    override fun turnXrViewWithDrag(dragFrom: Offset, dragTo: Offset) = Unit
 
     override fun recenterXrView() = Unit
 

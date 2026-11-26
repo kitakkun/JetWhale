@@ -32,15 +32,15 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class MirrorVideoTest {
     @Test
-    fun `a look around that comes back to where it started turns the view and does not tap`() = runComposeUiTest {
+    fun `a look around that comes back to where it started turns the view back to nothing and does not tap`() = runComposeUiTest {
         val surface = MirrorSurface().apply {
             switchTo("xr")
             startStream().writeFrame(width = FRAME_WIDTH, height = FRAME_HEIGHT, colorType = ColorType.BGRA_8888) { true }
         }
         var taps = 0
-        var turns = 0
+        val dragParts = mutableListOf<Pair<Offset, Offset>>()
         setContent {
-            MirrorVideo(surface, deviceId = "xr", interactive = true, onTap = { _, _ -> taps++ }, onSwipe = { _, _, _, _ -> }, onLookAround = { _, _ -> turns++ }, modifier = Modifier.size(SCENE_WIDTH.dp, SCENE_HEIGHT.dp).testTag(VIDEO_TAG))
+            MirrorVideo(surface, deviceId = "xr", interactive = true, onTap = { _, _ -> taps++ }, onSwipe = { _, _, _, _ -> }, onLookAround = { from, to -> dragParts += from to to }, modifier = Modifier.size(SCENE_WIDTH.dp, SCENE_HEIGHT.dp).testTag(VIDEO_TAG))
         }
 
         onNodeWithTag(VIDEO_TAG).performTouchInput {
@@ -50,7 +50,10 @@ class MirrorVideoTest {
             up()
         }
 
-        assertTrue(turns > 0)
+        assertTrue(dragParts.size > 1)
+        assertEquals(Offset.Zero, dragParts.first().first)
+        assertTrue(dragParts.zipWithNext().all { (part, next) -> part.second == next.first }, dragParts.toString())
+        assertEquals(Offset.Zero, dragParts.last().second)
         assertEquals(0, taps)
         surface.close()
     }

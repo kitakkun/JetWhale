@@ -33,7 +33,8 @@ import java.awt.Cursor
  * it reads [MirrorSurface.frameCounter] in its draw phase, so a frame costs a draw and never a
  * recomposition of what surrounds it. When [interactive], a click on a live frame taps the device
  * and a drag swipes it; while [onLookAround] is set, a drag instead reports each move as it happens,
- * in widths of the screen across and down, and a click still taps.
+ * from where the pointer was to where it is, both measured from where the drag started in widths of
+ * the screen across and down, and a click still taps.
  */
 @Composable
 internal fun MirrorVideo(
@@ -42,7 +43,7 @@ internal fun MirrorVideo(
     interactive: Boolean,
     onTap: (x: Int, y: Int) -> Unit,
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
-    onLookAround: ((dragXWidths: Float, dragYWidths: Float) -> Unit)?,
+    onLookAround: ((dragFrom: Offset, dragTo: Offset) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val drawn = remember { DrawnFrame() }
@@ -97,7 +98,7 @@ private suspend fun AwaitPointerEventScope.followGesture(
     surface: MirrorSurface,
     onTap: (x: Int, y: Int) -> Unit,
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
-    onLookAround: ((dragXWidths: Float, dragYWidths: Float) -> Unit)?,
+    onLookAround: ((dragFrom: Offset, dragTo: Offset) -> Unit)?,
 ) {
     val down = awaitFirstDown().position
     val fitted = drawn.fitted ?: return
@@ -123,10 +124,11 @@ private suspend fun AwaitPointerEventScope.awaitReleasePosition(down: Offset): O
 }
 
 /**
- * Reports each move of the press that went down at [down], once it has left the touch slop, in widths
- * of the [frameWidth] across and down, until it ends; returns whether it reported any.
+ * Reports each move of the press that went down at [down], once it has left the touch slop, as where
+ * it moved from and to, measured from [down] in widths of the [frameWidth], until it ends; returns
+ * whether it reported any.
  */
-private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragXWidths: Float, dragYWidths: Float) -> Unit): Boolean {
+private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragFrom: Offset, dragTo: Offset) -> Unit): Boolean {
     var last = down
     var reportedTo: Offset? = null
     do {
@@ -134,7 +136,7 @@ private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, 
         event.changes.firstOrNull()?.let { last = it.position }
         val from = reportedTo ?: down.takeIf { (last - it).getDistance() >= viewConfiguration.touchSlop }
         if (from != null && last != from) {
-            onLookAround((last.x - from.x) / frameWidth, (last.y - from.y) / frameWidth)
+            onLookAround((from - down) / frameWidth, (last - down) / frameWidth)
             reportedTo = last
         }
     } while (event.changes.any(PointerInputChange::pressed))

@@ -50,8 +50,11 @@ internal class DeviceDiscovery(
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
 
-    /** Whether each Android device listed is an Android XR device, by serial, once it has said. */
-    private val isXrDeviceBySerial = mutableMapOf<String, Boolean>()
+    /**
+     * Whether each Android device listed is an Android XR device, once it has said, by its listing:
+     * an emulator started in place of another takes over its serial, but not its model.
+     */
+    private val isXrDeviceByListing = mutableMapOf<DeviceListing, Boolean>()
 
     private val looking = Mutex()
 
@@ -65,7 +68,9 @@ internal class DeviceDiscovery(
             listIosDevices(locatedToolPaths) to setOf(DeviceKind.IosDevice),
         )
         val listings = looks.flatMap { (listed, kinds) -> listed ?: known.values.filter { it.listing.kind in kinds }.map(MirrorDevice::listing) }
-        val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCapturePool, xcTestRunnerClient)) }
+        val devices = listings.map { listing ->
+            known[listing.id]?.takeIf { it.listing == listing && !hasXrEmulatorGainedToken(it) } ?: MirrorDevice(listing, controllerFor(listing, locatedToolPaths, iphoneScreenCapturePool, xcTestRunnerClient))
+        }
         val gone = known.values.filter { known -> devices.none { it.id == known.id } }
         gone.filter { it.listing.kind == DeviceKind.IosDevice }.forEach { iphoneScreenCapturePool?.stopCaptureEvenIfInUse(it.id) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
@@ -77,9 +82,9 @@ internal class DeviceDiscovery(
     private suspend fun listAndroid(locatedToolPaths: MirrorToolPaths): List<DeviceListing>? {
         val adbPath = locatedToolPaths.adbPath ?: return emptyList()
         val listings = tryList { parseAdbDevices(runCommandChecked(DEVICE_LISTING_TIMEOUT, adbPath, "devices", "-l").stdoutText) } ?: return null
-        isXrDeviceBySerial.keys.retainAll(listings.map(DeviceListing::id).toSet())
+        isXrDeviceByListing.keys.retainAll(listings.toSet())
         return listings.map { listing ->
-            val isXrDevice = isXrDeviceBySerial[listing.id] ?: readIsXrDevice(adbPath, listing.id)?.also { isXrDeviceBySerial[listing.id] = it }
+            val isXrDevice = isXrDeviceByListing[listing] ?: readIsXrDevice(adbPath, listing.id)?.also { isXrDeviceByListing[listing] = it }
             when {
                 isXrDevice != true -> listing
                 listing.kind == DeviceKind.AndroidEmulator -> listing.copy(kind = DeviceKind.AndroidXrEmulator)
@@ -87,6 +92,12 @@ internal class DeviceDiscovery(
             }
         }
     }
+
+    /**
+     * Whether [device] is an XR emulator that takes no input for want of a gRPC token, and now has one,
+     * as after it was started again with `-grpc-use-token`; it is then given a controller that uses it.
+     */
+    private suspend fun hasXrEmulatorGainedToken(device: MirrorDevice): Boolean = device.kind == DeviceKind.AndroidXrEmulator && device.controller.capabilities.inputRefusal != null && xrEmulatorClients.clientFor(device.id) != null
 
     /** Whether the Android device with [serial] is an Android XR device, or null while it cannot say, as when it is still starting. */
     private suspend fun readIsXrDevice(adbPath: String, serial: String): Boolean? = try {
