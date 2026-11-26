@@ -49,8 +49,8 @@ internal class XrEmulatorClient(
     private val handGestureLock = Mutex()
 
     /**
-     * Held while a head turn or a recenter is sent, so that they reach the emulator one at a time and
-     * in the order asked; the turns asked for meanwhile wait in [pendingHeadTurns].
+     * Held while a head turn or a recenter is sent, so that one is sent at a time and a recenter goes
+     * after the turns asked for before it; the turns asked for meanwhile wait in [pendingHeadTurns].
      */
     private val headTurnLock = Mutex()
 
