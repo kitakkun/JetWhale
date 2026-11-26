@@ -35,7 +35,6 @@ missing, the device list says which one and what it would enable.
 | iOS simulators (macOS) | Xcode alone: `simctl` for screenshots and recordings, and an XCTest runner for live video and input — see [Input on iOS](#input-on-ios) |
 | iPhones and iPads connected by USB (macOS) | Xcode alone for live video, screenshots and recordings, with the iPhone set up as in [iPhones over USB](#iphones-over-usb); for input, also `iproxy` (`brew install libimobiledevice`) and a development team — see [Input on iOS](#input-on-ios) |
 | Live video from Android devices and iPhones | [ffmpeg](https://ffmpeg.org): `brew install ffmpeg`, `winget install ffmpeg` or `apt install ffmpeg` |
-| Input on the Android XR emulator | The emulator started with `-grpc-use-token` — see [Android XR](#android-xr) |
 
 Android devices and iPhones send their screen as H.264, which the plugin decodes with the `ffmpeg`
 command. Without it an Android device is shown through screenshots a few times a second, and an
@@ -179,16 +178,16 @@ instead:
 - **Screenshots** come from the same picture as the live view, so a point in one is the same point
   in the other. adb's `screencap` draws the scene on its own, two pixels narrower.
 
-The plugin reaches the gRPC endpoint with the token that the emulator writes when it starts with
-`-grpc-use-token`:
+The plugin reaches the gRPC endpoint with the token the emulator writes into its discovery file,
+which an emulator started from the command line does. If the emulator wrote none, it is shown without
+input, with a banner under its screen that says to start it with `-grpc-use-token`:
 
 ```shell
 emulator -avd <your XR AVD> -grpc-use-token
 ```
 
-Without it the endpoint checks signed JWTs instead, which is its default, and the XR emulator is
-shown without input, with a banner under its screen that says how to start it. A physical Android XR
-headset is shown without input too: adb is the only way in, and its taps would hide every app.
+A physical Android XR headset is shown without input too: adb is the only way in, and its taps would
+hide every app.
 
 ### Input on iOS
 
@@ -317,5 +316,5 @@ the same control.
 - **A simulator's volume buttons** are shown disabled: XCTest cannot press them on a simulator.
 - **Android stops a recording on its own after 180 seconds.**
 - **On Android, text with a line break is refused**; type each line separately.
-- **The Android XR emulator takes input only when started with `-grpc-use-token`**, and an Android
-  XR headset takes none; see [Android XR](#android-xr). Input on a headset has not been tried.
+- **The Android XR emulator takes input only through its gRPC endpoint**, and an Android XR headset
+  takes none; see [Android XR](#android-xr). Input on a headset has not been tried.

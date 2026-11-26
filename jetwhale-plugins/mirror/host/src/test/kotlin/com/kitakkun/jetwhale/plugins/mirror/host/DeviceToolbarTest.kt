@@ -81,20 +81,20 @@ class DeviceToolbarTest {
                 }
             }
         }
-        val lookAround = "Look around: drag the screen to turn the view"
-        val recenter = "Recenter the view"
-        val passthrough = "Passthrough off: show the room"
-        listOf("All apps", lookAround, recenter, passthrough).forEach { label -> assertEquals(listOf(label), contentDescriptionOf(label)) }
+        val lookAroundLabel = "Look around: drag the screen to turn the view"
+        val recenterLabel = "Recenter the view"
+        val passthroughLabel = "Passthrough off: show the room"
+        listOf("All apps", lookAroundLabel, recenterLabel, passthroughLabel).forEach { label -> assertEquals(listOf(label), contentDescriptionOf(label)) }
 
         mapOf(
-            toolbarMcpCommands.turnXrView to lookAround,
-            toolbarMcpCommands.recenterXrView to recenter,
-            toolbarMcpCommands.setXrPassthrough to passthrough,
+            toolbarMcpCommands.turnXrView to lookAroundLabel,
+            toolbarMcpCommands.recenterXrView to recenterLabel,
+            toolbarMcpCommands.setXrPassthrough to passthroughLabel,
         ).forEach { (command, ringedLabel) ->
             runningCommandNames = setOf(command.name)
             mainClock.advanceTimeByFrame()
 
-            assertEquals(listOf(ringedLabel), listOf(lookAround, recenter, passthrough).filter { isControlRinged(it) }, "while ${command.name} runs")
+            assertEquals(listOf(ringedLabel), listOf(lookAroundLabel, recenterLabel, passthroughLabel).filter { isControlRinged(it) }, "while ${command.name} runs")
         }
     }
 

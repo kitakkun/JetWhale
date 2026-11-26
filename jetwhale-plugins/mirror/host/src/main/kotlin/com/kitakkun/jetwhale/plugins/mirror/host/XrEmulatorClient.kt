@@ -18,8 +18,8 @@ internal class XrEmulatorClients(private val runningDirectories: List<File>) {
     private val httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build()
 
     /**
-     * The client for the XR emulator with [serial], or null when its gRPC endpoint takes no token this
-     * host can read: an emulator started without `-grpc-use-token` checks a signed JWT instead.
+     * The client for the XR emulator with [serial], or null when its discovery file names no gRPC
+     * endpoint with a token, which `-grpc-use-token` makes it write.
      */
     suspend fun clientFor(serial: String): XrEmulatorClient? = withContext(Dispatchers.IO) {
         val endpoint = findEmulatorEndpoint(serial, runningDirectories) ?: return@withContext null
@@ -38,10 +38,10 @@ internal class XrEmulatorClient(
     private val httpClient: OkHttpClient,
 ) {
     /** Points at ([x], [y]), pinches and lets go, as a click on the emulator's own window does. */
-    suspend fun tap(x: Int, y: Int) = sendHandEvents(xrHandDrag(fromX = x, fromY = y, toX = x, toY = y, durationMillis = TAP_PINCH_MILLIS))
+    suspend fun tap(x: Int, y: Int) = sendHandEvents(xrHandDragEvents(fromX = x, fromY = y, toX = x, toY = y, durationMillis = TAP_PINCH_MILLIS))
 
     /** Pinches at the start, moves the pinch to the end over [durationMillis], and lets go there. */
-    suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendHandEvents(xrHandDrag(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis))
+    suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendHandEvents(xrHandDragEvents(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis))
 
     /** Turns the head from where it faces now: [upRadians] up and [leftRadians] to the left. */
     suspend fun turnHead(upRadians: Float, leftRadians: Float) = sendInputEvents(listOf(TimedInputEvent(afterMillis = 0, message = encodeXrHeadRotation(upRadians = upRadians, leftRadians = leftRadians))))
@@ -49,14 +49,14 @@ internal class XrEmulatorClient(
     /** Puts the head back where it started, facing forward. */
     suspend fun recenterHead() = sendInputEvents(listOf(TimedInputEvent(afterMillis = 0, message = encodeXrRecenter())))
 
-    suspend fun readXrOptions(): XrOptions = parseXrOptions(call("getXrOptions", grpcMessage(ByteArray(0)).toRequestBody(GRPC_MEDIA_TYPE)))
+    suspend fun readXrOptions(): XrOptions = parseXrOptions(callGrpcMethod("getXrOptions", grpcMessage(ByteArray(0)).toRequestBody(GRPC_MEDIA_TYPE)))
 
     suspend fun writeXrOptions(options: XrOptions) {
-        call("setXrOptions", grpcMessage(encodeXrOptions(options)).toRequestBody(GRPC_MEDIA_TYPE))
+        callGrpcMethod("setXrOptions", grpcMessage(encodeXrOptions(options)).toRequestBody(GRPC_MEDIA_TYPE))
     }
 
     /** The framebuffer, whole, as a PNG; the emulator encodes it in a fraction of the time `screencap` takes. */
-    suspend fun captureScreenshotPng(): ByteArray = parseImageBytes(call("getScreenshot", grpcMessage(encodePngImageFormat()).toRequestBody(GRPC_MEDIA_TYPE)))
+    suspend fun captureScreenshotPng(): ByteArray = parseImageBytes(callGrpcMethod("getScreenshot", grpcMessage(encodePngImageFormat()).toRequestBody(GRPC_MEDIA_TYPE)))
 
     private suspend fun sendHandEvents(events: List<XrHandEvent>) = sendInputEvents(events.map { TimedInputEvent(it.afterMillis, encodeXrHandEvent(it.x, it.y, it.pinching)) })
 
@@ -65,10 +65,10 @@ internal class XrEmulatorClient(
      * passed: the emulator handles each as it arrives, so the pauses reach the device as they are.
      */
     private suspend fun sendInputEvents(events: List<TimedInputEvent>) {
-        call("streamInputEvent", TimedInputEventsBody(events))
+        callGrpcMethod("streamInputEvent", TimedInputEventsBody(events))
     }
 
-    private suspend fun call(method: String, body: RequestBody): ByteArray = withContext(Dispatchers.IO) {
+    private suspend fun callGrpcMethod(method: String, body: RequestBody): ByteArray = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url("http://127.0.0.1:$port/android.emulation.control.EmulatorController/$method")
             .header("te", "trailers")
@@ -117,8 +117,8 @@ private class TimedInputEventsBody(private val events: List<TimedInputEvent>) : 
  * display frame at a time, and lets go at the end. A tap is a drag that does not move.
  */
 @VisibleForTesting
-internal fun xrHandDrag(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int): List<XrHandEvent> {
-    val steps = maxOf(1, durationMillis / FRAME_MILLIS)
+internal fun xrHandDragEvents(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int): List<XrHandEvent> {
+    val steps = maxOf(1, durationMillis / DISPLAY_FRAME_MILLIS)
     val moves = (1..steps).map { step ->
         XrHandEvent(
             x = fromX + (toX - fromX) * step / steps,
@@ -144,4 +144,4 @@ private const val TAP_PINCH_MILLIS = 60
 /** How long the hand points before it pinches, so the pinch lands on what it points at. */
 private const val POINT_BEFORE_PINCH_MILLIS = 30L
 
-private const val FRAME_MILLIS = 16
+private const val DISPLAY_FRAME_MILLIS = 16

@@ -129,7 +129,7 @@ private val xcTestRunners: Deferred<XcTestRunners?> = toolLocationScope.async(st
 
 private val liveInstances = AtomicInteger()
 
-private val runningEmulatorDirectories: List<File> by lazy {
+private val emulatorRunningDirectories: List<File> by lazy {
     emulatorRunningDirectories(
         osName = System.getProperty("os.name").orEmpty(),
         home = File(System.getProperty("user.home")),
@@ -138,9 +138,9 @@ private val runningEmulatorDirectories: List<File> by lazy {
     )
 }
 
-private val emulatorScreens: EmulatorScreens by lazy { EmulatorScreens(runningEmulatorDirectories) }
+private val emulatorScreens: EmulatorScreens by lazy { EmulatorScreens(emulatorRunningDirectories) }
 
-private val xrEmulatorClients: XrEmulatorClients by lazy { XrEmulatorClients(runningEmulatorDirectories) }
+private val xrEmulatorClients: XrEmulatorClients by lazy { XrEmulatorClients(emulatorRunningDirectories) }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :

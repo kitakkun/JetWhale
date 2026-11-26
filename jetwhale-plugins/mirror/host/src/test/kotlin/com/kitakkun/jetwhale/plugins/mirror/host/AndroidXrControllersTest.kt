@@ -22,9 +22,9 @@ class AndroidXrControllersTest {
         start()
     }
 
-    private val xrEmulator = XrEmulatorClient(port = server.port, token = "secret", httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build())
+    private val xrEmulatorClient = XrEmulatorClient(port = server.port, token = "secret", httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build())
 
-    private val emulator = AndroidXrEmulatorController(unusedAndroidDeviceController(), xrEmulator)
+    private val emulator = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient)
 
     @AfterTest
     fun cleanUp() {
@@ -48,7 +48,7 @@ class AndroidXrControllersTest {
 
     @Test
     fun `a swipe pinches at the start, moves the pinch to the end in steps and lets go there`() {
-        val events = xrHandDrag(fromX = 800, fromY = 1600, toX = 800, toY = 1200, durationMillis = 160)
+        val events = xrHandDragEvents(fromX = 800, fromY = 1600, toX = 800, toY = 1200, durationMillis = 160)
 
         assertEquals(XrHandEvent(800, 1600, pinching = false, afterMillis = 0), events.first())
         assertEquals(XrHandEvent(800, 1600, pinching = true, afterMillis = 30), events[1])
@@ -111,17 +111,17 @@ class AndroidXrControllersTest {
 
     @Test
     fun `an XR emulator whose endpoint takes no token from here takes no input, and says how to start it`() {
-        val withoutToken = AndroidXrEmulatorController(unusedAndroidDeviceController(), xrEmulator = null)
+        val emulatorWithoutToken = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient = null)
 
-        val refusal = withoutToken.capabilities.inputRefusal.orEmpty()
+        val refusal = emulatorWithoutToken.capabilities.inputRefusal.orEmpty()
         assertTrue("-grpc-use-token" in refusal, refusal)
-        assertEquals(emptyList(), withoutToken.capabilities.buttons)
-        assertEquals(refusal, assertFailsWith<DeviceControlException> { runBlocking { withoutToken.tap(1, 1) } }.message)
+        assertEquals(emptyList(), emulatorWithoutToken.capabilities.buttons)
+        assertEquals(refusal, assertFailsWith<DeviceControlException> { runBlocking { emulatorWithoutToken.tap(1, 1) } }.message)
     }
 
     @Test
     fun `an XR emulator offers All apps beside Home, and a headset takes no input at all`() {
-        val headset = AndroidXrHeadsetController(unusedAndroidDeviceController())
+        val headset = AndroidXrHeadsetDeviceController(androidDeviceControllerWithoutAdb())
 
         assertTrue(DeviceButton.AllApps in emulator.capabilities.buttons)
         assertNull(emulator.capabilities.inputRefusal)
@@ -135,7 +135,7 @@ class AndroidXrControllersTest {
 }
 
 /** A controller that is never asked to run adb: every adb call would fail on the missing executable. */
-private fun unusedAndroidDeviceController() = AndroidDeviceController(adbPath = "/nonexistent/adb", serial = "emulator-5554", emulatorScreens = null, ffmpegPath = null)
+private fun androidDeviceControllerWithoutAdb() = AndroidDeviceController(adbPath = "/nonexistent/adb", serial = "emulator-5554", emulatorScreens = null, ffmpegPath = null)
 
 private fun grpcReply(message: ByteArray): MockResponse = MockResponse()
     .setHeader("content-type", "application/grpc")

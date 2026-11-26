@@ -219,8 +219,8 @@ internal class DeviceMirror(
         try {
             coroutineScope {
                 if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }
-                val xrView = (device.controller as? XrViewController)?.takeIf { device.controller.capabilities.inputRefusal == null }
-                if (xrView != null) launch { watchXrPassthrough(xrView) }
+                val xrViewController = (device.controller as? XrViewController)?.takeIf { device.controller.capabilities.inputRefusal == null }
+                if (xrViewController != null) launch { watchXrPassthrough(xrViewController) }
                 streamUntilCancelled(device)
             }
         } finally {
@@ -271,10 +271,10 @@ internal class DeviceMirror(
         }
     }
 
-    private suspend fun watchXrPassthrough(xrView: XrViewController) {
+    private suspend fun watchXrPassthrough(xrViewController: XrViewController) {
         while (coroutineContext.isActive) {
             xrPassthrough = try {
-                xrView.isPassthroughOn()
+                xrViewController.isPassthroughOn()
             } catch (_: DeviceControlException) {
                 null
             }
@@ -612,8 +612,8 @@ internal class DeviceMirror(
 
     override fun recenterXrView() = controlXrView(XrViewController::recenterView)
 
-    override fun setXrPassthrough(on: Boolean) = controlXrView { xrView ->
-        xrView.setPassthrough(on)
+    override fun setXrPassthrough(on: Boolean) = controlXrView { xrViewController ->
+        xrViewController.setPassthrough(on)
         xrPassthrough = on
     }
 

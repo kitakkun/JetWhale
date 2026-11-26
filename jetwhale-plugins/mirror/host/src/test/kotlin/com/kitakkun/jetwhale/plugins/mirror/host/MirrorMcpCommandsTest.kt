@@ -307,13 +307,13 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `turnXrView turns an XR emulator's view by the degrees given, and refuses a turn over the top`() {
-        val xr = FakeXrController()
-        val xrMirror = FakeMirrorDevices(listOf(MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xr)))
+        val xrEmulator = FakeXrController()
+        val xrMirror = FakeMirrorDevices(listOf(MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xrEmulator)))
 
         TurnXrViewCommand(xrMirror).run(buildJsonObject { put("rightDegrees", -30) })
         val overTheTop = assertFailsWith<JetWhaleMcpArgumentException> { TurnXrViewCommand(xrMirror).run(buildJsonObject { put("upDegrees", 91) }) }
 
-        assertEquals(listOf("turn right -30.0 up 0.0"), xr.calls)
+        assertEquals(listOf("turn right -30.0 up 0.0"), xrEmulator.calls)
         assertEquals("upDegrees must be from -90 to 90 (got 91)", overTheTop.message)
     }
 
@@ -331,10 +331,10 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `setXrPassthrough answers the passthrough it leaves, and listDevices reports it for an XR emulator only`() {
-        val xr = FakeXrController()
+        val xrEmulator = FakeXrController()
         val xrMirror = FakeMirrorDevices(
             listOf(
-                MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xr),
+                MirrorDevice(DeviceListing("emulator-5556", "Android XR", DeviceKind.AndroidXrEmulator, osVersion = null), xrEmulator),
                 MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
             ),
         )

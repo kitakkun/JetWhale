@@ -87,7 +87,7 @@ internal val XR_VIEW_SETTLE_TIME = 250.milliseconds
 /** [device]'s XR view, refusing a device without one, and one that takes no input, with the reason. */
 @OptIn(ExperimentalJetWhaleApi::class)
 internal fun xrViewControllerOf(device: MirrorDevice): XrViewController {
-    val xrView = device.controller as? XrViewController ?: throw JetWhaleMcpArgumentException("${device.name} has no XR view to move; only an Android XR emulator has one")
+    val xrViewController = device.controller as? XrViewController ?: throw JetWhaleMcpArgumentException("${device.name} has no XR view to move; only an Android XR emulator has one")
     device.controller.capabilities.inputRefusal?.let { throw JetWhaleMcpArgumentException(it) }
-    return xrView
+    return xrViewController
 }

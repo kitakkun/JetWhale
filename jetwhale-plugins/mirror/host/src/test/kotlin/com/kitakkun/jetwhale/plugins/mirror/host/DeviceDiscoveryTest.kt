@@ -120,12 +120,12 @@ class DeviceDiscoveryTest {
     @Test
     fun `an emulator that lists the spatial XR feature is listed as an XR emulator once it can say so`() = runBlocking {
         assumeShellScriptsLaunch()
-        val features = File(folder, "features.txt").apply { writeText("") }
+        val featuresFile = File(folder, "features.txt").apply { writeText("") }
         fakeAdb.writeText(
             """
             #!/bin/sh
             case "${'$'}*" in
-              *"pm list features"*) cat '${features.path}' ;;
+              *"pm list features"*) cat '${featuresFile.path}' ;;
               *) printf 'List of devices attached\nemulator-5554\tdevice product:sdk_xr model:Android_XR device:emu\n' ;;
             esac
             """.trimIndent() + "\n",
@@ -133,10 +133,10 @@ class DeviceDiscoveryTest {
         val discovery = DeviceDiscovery(CompletableDeferred(MirrorToolPaths(adbPath = fakeAdb.absolutePath, xcrunPath = null, ffmpegPath = null, iproxyPath = null)), iphoneScreenCapturePool = CompletableDeferred(value = null), xcTestRunners = CompletableDeferred(value = null), emulatorScreens = EmulatorScreens(runningDirectories = emptyList()), xrEmulatorClients = XrEmulatorClients(runningDirectories = emptyList()))
 
         val starting = discovery.discover().devices.single()
-        features.writeText("feature:android.software.xr.api.spatial=3\n")
+        featuresFile.writeText("feature:android.software.xr.api.spatial=3\n")
         val started = discovery.discover().devices.single()
 
-        assertIs<AndroidXrEmulatorController>(started.controller)
+        assertIs<AndroidXrEmulatorDeviceController>(started.controller)
         assertEquals(DeviceKind.AndroidEmulator, starting.kind)
         assertEquals(DeviceKind.AndroidXrEmulator, started.kind)
     }

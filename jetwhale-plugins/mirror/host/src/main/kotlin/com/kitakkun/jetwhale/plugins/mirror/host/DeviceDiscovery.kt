@@ -122,12 +122,12 @@ internal class DeviceDiscovery(
 
         DeviceKind.AndroidDevice -> AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath)
 
-        DeviceKind.AndroidXrEmulator -> AndroidXrEmulatorController(
+        DeviceKind.AndroidXrEmulator -> AndroidXrEmulatorDeviceController(
             androidDeviceController = AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = emulatorScreens, ffmpegPath = locatedToolPaths.ffmpegPath),
-            xrEmulator = xrEmulatorClients.clientFor(listing.id),
+            xrEmulatorClient = xrEmulatorClients.clientFor(listing.id),
         )
 
-        DeviceKind.AndroidXrDevice -> AndroidXrHeadsetController(AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath))
+        DeviceKind.AndroidXrDevice -> AndroidXrHeadsetDeviceController(AndroidDeviceController(adbPath = checkNotNull(locatedToolPaths.adbPath), serial = listing.id, emulatorScreens = null, ffmpegPath = locatedToolPaths.ffmpegPath))
 
         DeviceKind.IosSimulator -> IosSimulatorDeviceController(
             udid = listing.id,

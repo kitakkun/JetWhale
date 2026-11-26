@@ -29,8 +29,8 @@ internal class TurnXrViewCommand(
         val up = arguments[upDegrees] ?: 0
         if (right !in -MAX_RIGHT_DEGREES..MAX_RIGHT_DEGREES) throw JetWhaleMcpArgumentException("rightDegrees must be from -$MAX_RIGHT_DEGREES to $MAX_RIGHT_DEGREES (got $right)")
         if (up !in -MAX_UP_DEGREES..MAX_UP_DEGREES) throw JetWhaleMcpArgumentException("upDegrees must be from -$MAX_UP_DEGREES to $MAX_UP_DEGREES (got $up)")
-        val xrView = xrViewControllerOf(deviceOperation { mirror.resolve(arguments[deviceId]) })
-        deviceOperation { xrView.turnView(rightDegrees = right.toDouble(), upDegrees = up.toDouble()) }
+        val xrViewController = xrViewControllerOf(deviceOperation { mirror.resolve(arguments[deviceId]) })
+        deviceOperation { xrViewController.turnView(rightDegrees = right.toDouble(), upDegrees = up.toDouble()) }
         delay(XR_VIEW_SETTLE_TIME)
         return okJson()
     }
