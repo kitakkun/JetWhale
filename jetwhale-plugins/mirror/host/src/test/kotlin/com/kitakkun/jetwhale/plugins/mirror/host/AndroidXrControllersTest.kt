@@ -75,7 +75,7 @@ class AndroidXrControllersTest {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 if (request.sequenceNumber == 0) {
-                    secondGestureArrivedBeforeFirstAnswer.set(secondGestureArrived.await(SECOND_GESTURE_WAIT_MILLIS, TimeUnit.MILLISECONDS))
+                    secondGestureArrivedBeforeFirstAnswer.set(secondGestureArrived.await(LATER_CALL_WAIT_MILLIS, TimeUnit.MILLISECONDS))
                 } else {
                     secondGestureArrived.countDown()
                 }
@@ -171,55 +171,73 @@ class AndroidXrControllersTest {
 
     @Test
     fun `a call to an emulator that does not answer ends as soon as its caller is cancelled, and lets the next gesture through`() = runBlocking {
-        val firstGestureArrived = CountDownLatch(1)
-        val firstAnswerReleased = CountDownLatch(1)
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                if (request.sequenceNumber == 0) {
-                    firstGestureArrived.countDown()
-                    firstAnswerReleased.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
-                }
-                return grpcReply(ByteArray(0))
-            }
-        }
+        val firstAnswerHoldingDispatcher = FirstAnswerHoldingDispatcher()
+        server.dispatcher = firstAnswerHoldingDispatcher
         val callsEnded = CountDownLatch(1)
         httpClient.dispatcher.idleCallback = Runnable(callsEnded::countDown)
         try {
-            val unanswered = launch(Dispatchers.IO) { emulator.tap(10, 10) }
-            assertTrue(firstGestureArrived.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS))
+            val unansweredTap = launch(Dispatchers.IO) { emulator.tap(10, 10) }
+            assertTrue(firstAnswerHoldingDispatcher.awaitFirstCall())
 
-            withTimeout(CANCELLED_CALL_END_MILLIS) { unanswered.cancelAndJoin() }
+            withTimeout(CANCELLED_CALL_END_MILLIS) { unansweredTap.cancelAndJoin() }
             assertTrue(callsEnded.await(CANCELLED_CALL_END_MILLIS, TimeUnit.MILLISECONDS))
             withTimeout(CANCELLED_CALL_END_MILLIS) { emulator.tap(20, 20) }
         } finally {
-            firstAnswerReleased.countDown()
+            firstAnswerHoldingDispatcher.releaseFirstAnswer()
         }
     }
 
     @Test
     fun `turns asked for while one is being sent are added up and sent as one, so the view stops with the drag`() = runBlocking {
-        val firstTurnArrived = CountDownLatch(1)
-        val firstAnswerReleased = CountDownLatch(1)
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                if (request.sequenceNumber == 0) {
-                    firstTurnArrived.countDown()
-                    firstAnswerReleased.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
-                }
-                return grpcReply(ByteArray(0))
-            }
-        }
-        val first = launch(Dispatchers.IO) { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) }
-        assertTrue(firstTurnArrived.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS))
-        val waiting = List(WAITING_TURNS) { launch { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) } }
+        val firstAnswerHoldingDispatcher = FirstAnswerHoldingDispatcher()
+        server.dispatcher = firstAnswerHoldingDispatcher
+        val firstTurn = launch(Dispatchers.IO) { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) }
+        assertTrue(firstAnswerHoldingDispatcher.awaitFirstCall())
+        val waitingTurns = List(WAITING_TURNS) { launch { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) } }
         yield()
 
-        firstAnswerReleased.countDown()
-        (waiting + first).joinAll()
+        firstAnswerHoldingDispatcher.releaseFirstAnswer()
+        (waitingTurns + firstTurn).joinAll()
 
-        val sent = List(server.requestCount) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }
-        assertEquals(2, sent.size)
-        assertEquals(0.1f * (WAITING_TURNS + 1), sent.sum(), absoluteTolerance = 1e-6f)
+        val sentLeftRadians = List(server.requestCount) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }
+        assertEquals(2, sentLeftRadians.size)
+        assertEquals(0.1f * (WAITING_TURNS + 1), sentLeftRadians.sum(), absoluteTolerance = 1e-6f)
+    }
+
+    @Test
+    fun `a turn cancelled while it waits for the one being sent is never sent, not even with the next turn`() = runBlocking {
+        val firstAnswerHoldingDispatcher = FirstAnswerHoldingDispatcher()
+        server.dispatcher = firstAnswerHoldingDispatcher
+        val firstTurn = launch(Dispatchers.IO) { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) }
+        assertTrue(firstAnswerHoldingDispatcher.awaitFirstCall())
+        val cancelledTurn = launch { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.2f) }
+        yield()
+        cancelledTurn.cancelAndJoin()
+        firstAnswerHoldingDispatcher.releaseFirstAnswer()
+        firstTurn.join()
+
+        xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.3f)
+
+        val sentLeftRadians = List(server.requestCount) { leftRadiansOf(grpcMessagesOf(server.takeRequest()).single()) }
+        assertEquals(listOf(0.1f, 0.3f), sentLeftRadians)
+    }
+
+    @Test
+    fun `a recenter asked for while a turn is being sent goes after it and after the turns waiting for it`() = runBlocking {
+        val firstAnswerHoldingDispatcher = FirstAnswerHoldingDispatcher()
+        server.dispatcher = firstAnswerHoldingDispatcher
+        val firstTurn = launch(Dispatchers.IO) { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.1f) }
+        assertTrue(firstAnswerHoldingDispatcher.awaitFirstCall())
+        val waitingTurn = launch { xrEmulatorClient.turnHead(upRadians = 0f, leftRadians = 0.2f) }
+        yield()
+        val recenter = launch(Dispatchers.IO) { xrEmulatorClient.recenterHead() }
+
+        assertFalse(firstAnswerHoldingDispatcher.awaitLaterCall(LATER_CALL_WAIT_MILLIS))
+        firstAnswerHoldingDispatcher.releaseFirstAnswer()
+        listOf(firstTurn, waitingTurn, recenter).joinAll()
+
+        val sentMessages = List(server.requestCount) { grpcMessagesOf(server.takeRequest()).single() }
+        assertEquals(listOf(false, false, true), sentMessages.map { it.contentEquals(encodeXrRecenter()) })
     }
 
     @Test
@@ -240,16 +258,43 @@ class AndroidXrControllersTest {
 
     @Test
     fun `an XR emulator offers All apps beside Home, and a view-only XR device takes no input at all, for its reason`() {
-        val viewOnly = ViewOnlyAndroidXrDeviceController(androidDeviceControllerWithoutAdb(), inputRefusal = "no way in")
+        val viewOnlyController = ViewOnlyAndroidXrDeviceController(androidDeviceControllerWithoutAdb(), inputRefusal = "no way in")
 
         assertTrue(DeviceButton.AllApps in emulator.capabilities.buttons)
         assertNull(emulator.capabilities.inputRefusal)
-        assertEquals("no way in", viewOnly.capabilities.inputRefusal)
-        assertEquals(emptyList(), viewOnly.capabilities.buttons)
-        listOf<suspend () -> Unit>({ viewOnly.tap(1, 1) }, { viewOnly.swipe(fromX = 1, fromY = 1, toX = 2, toY = 2, durationMillis = 100) }, { viewOnly.pressButton(DeviceButton.Back) }, { viewOnly.inputText("a") }).forEach { input ->
+        assertEquals("no way in", viewOnlyController.capabilities.inputRefusal)
+        assertEquals(emptyList(), viewOnlyController.capabilities.buttons)
+        listOf<suspend () -> Unit>({ viewOnlyController.tap(1, 1) }, { viewOnlyController.swipe(fromX = 1, fromY = 1, toX = 2, toY = 2, durationMillis = 100) }, { viewOnlyController.pressButton(DeviceButton.Back) }, { viewOnlyController.inputText("a") }).forEach { input ->
             assertEquals("no way in", assertFailsWith<DeviceControlException> { runBlocking { input() } }.message)
         }
     }
+}
+
+/**
+ * Answers every call at once except the first, whose answer it holds back until [releaseFirstAnswer]:
+ * the calls made meanwhile either wait for that answer or reach the emulator while it is held.
+ */
+private class FirstAnswerHoldingDispatcher : Dispatcher() {
+    private val firstCallArrived = CountDownLatch(1)
+    private val laterCallArrived = CountDownLatch(1)
+    private val firstAnswerReleased = CountDownLatch(1)
+
+    override fun dispatch(request: RecordedRequest): MockResponse {
+        if (request.sequenceNumber == 0) {
+            firstCallArrived.countDown()
+            firstAnswerReleased.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
+        } else {
+            laterCallArrived.countDown()
+        }
+        return grpcReply(ByteArray(0))
+    }
+
+    fun awaitFirstCall(): Boolean = firstCallArrived.await(UNANSWERED_CALL_MILLIS, TimeUnit.MILLISECONDS)
+
+    /** Whether a call after the first reaches the emulator within [timeoutMillis]. */
+    fun awaitLaterCall(timeoutMillis: Long): Boolean = laterCallArrived.await(timeoutMillis, TimeUnit.MILLISECONDS)
+
+    fun releaseFirstAnswer() = firstAnswerReleased.countDown()
 }
 
 /** A controller that is never asked to run adb: every adb call would fail on the missing executable. */
@@ -271,5 +316,5 @@ private const val CANCELLED_CALL_END_MILLIS = 2_000L
 
 private const val WAITING_TURNS = 5
 
-/** Far longer than a tap takes to send, so that a second tap sent at once would arrive within it. */
-private const val SECOND_GESTURE_WAIT_MILLIS = 1_000L
+/** Far longer than a call takes to reach the emulator, so that one sent at once would arrive within it. */
+private const val LATER_CALL_WAIT_MILLIS = 1_000L

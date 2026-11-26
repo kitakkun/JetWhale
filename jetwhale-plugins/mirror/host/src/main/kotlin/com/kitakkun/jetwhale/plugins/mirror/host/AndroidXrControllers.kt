@@ -22,8 +22,8 @@ internal class AndroidXrEmulatorDeviceController(
         buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.AllApps, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
     )
 
-    // `screencap` renders the scene on its own, two pixels narrower and a few pixels off at the
-    // edges from the framebuffer the stream shows and the hand points into.
+    // `screencap` renders the scene on its own, two pixels narrower than the framebuffer the hand
+    // points into and a few pixels off at the edges.
     override suspend fun captureScreenshot(): ByteArray = xrEmulatorClient.captureScreenshotPng()
 
     override suspend fun tap(x: Int, y: Int) = xrEmulatorClient.tap(x, y)
