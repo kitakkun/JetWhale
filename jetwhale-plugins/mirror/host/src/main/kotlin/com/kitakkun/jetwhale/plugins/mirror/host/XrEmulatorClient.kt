@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
@@ -22,26 +24,31 @@ internal class XrEmulatorClients(private val runningDirectories: List<File>) {
      * endpoint with a token, which `-grpc-use-token` makes it write.
      */
     suspend fun clientFor(serial: String): XrEmulatorClient? = withContext(Dispatchers.IO) {
-        val endpoint = findEmulatorEndpoint(serial, runningDirectories) ?: return@withContext null
-        endpoint.token?.let { XrEmulatorClient(port = endpoint.port, token = it, httpClient = httpClient) }
+        XrEmulatorClient(serial, runningDirectories, httpClient).takeIf { findEmulatorEndpoint(serial, runningDirectories)?.token != null }
     }
 }
 
 /**
- * One Android XR emulator's gRPC endpoint, which does what adb cannot there: a hand that points and
- * pinches at a pixel of the emulator's framebuffer, which is the picture its screen stream shows; the
- * direction the head faces; and passthrough. Coordinates are in that framebuffer's pixels.
+ * The gRPC endpoint of the Android XR emulator with [serial], which does what adb cannot there: a
+ * hand that points and pinches at a pixel of the emulator's framebuffer, which is the picture its
+ * screen stream shows; the direction the head faces; and passthrough. Coordinates are in that
+ * framebuffer's pixels. Each call reads the endpoint from the emulator's discovery file in
+ * [runningDirectories], since an emulator started again under the same serial listens on another
+ * port with another token.
  */
 internal class XrEmulatorClient(
-    private val port: Int,
-    private val token: String,
+    private val serial: String,
+    private val runningDirectories: List<File>,
     private val httpClient: OkHttpClient,
 ) {
+    /** Held for a whole tap or swipe: the emulator has one hand, and two gestures sent at once would mix their points and pinches. */
+    private val handGestureLock = Mutex()
+
     /** Points at ([x], [y]), pinches and lets go, as a click on the emulator's own window does. */
-    suspend fun tap(x: Int, y: Int) = sendHandEvents(xrHandDragEvents(fromX = x, fromY = y, toX = x, toY = y, durationMillis = TAP_PINCH_MILLIS))
+    suspend fun tap(x: Int, y: Int) = handGestureLock.withLock { sendHandEvents(xrHandDragEvents(fromX = x, fromY = y, toX = x, toY = y, durationMillis = TAP_PINCH_MILLIS)) }
 
     /** Pinches at the start, moves the pinch to the end over [durationMillis], and lets go there. */
-    suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = sendHandEvents(xrHandDragEvents(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis))
+    suspend fun swipe(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMillis: Int) = handGestureLock.withLock { sendHandEvents(xrHandDragEvents(fromX = fromX, fromY = fromY, toX = toX, toY = toY, durationMillis = durationMillis)) }
 
     /** Turns the head from where it faces now: [upRadians] up and [leftRadians] to the left. */
     suspend fun turnHead(upRadians: Float, leftRadians: Float) = sendInputEvents(listOf(TimedInputEvent(afterMillis = 0, message = encodeXrHeadRotation(upRadians = upRadians, leftRadians = leftRadians))))
@@ -69,8 +76,10 @@ internal class XrEmulatorClient(
     }
 
     private suspend fun callGrpcMethod(method: String, body: RequestBody): ByteArray = withContext(Dispatchers.IO) {
+        val endpoint = findEmulatorEndpoint(serial, runningDirectories)
+        val token = endpoint?.token ?: throw deviceControlError("$serial left no gRPC endpoint with a token in its discovery file; start it with -grpc-use-token")
         val request = Request.Builder()
-            .url("http://127.0.0.1:$port/android.emulation.control.EmulatorController/$method")
+            .url("http://127.0.0.1:${endpoint.port}/android.emulation.control.EmulatorController/$method")
             .header("te", "trailers")
             .header("authorization", "Bearer $token")
             .post(body)

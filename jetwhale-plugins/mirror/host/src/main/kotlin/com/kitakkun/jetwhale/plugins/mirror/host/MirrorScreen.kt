@@ -155,7 +155,7 @@ private fun SingleMirrorRoot(
     onShowGrid: () -> Unit,
 ) {
     val device = mirror.selectedDevice
-    LaunchedEffect(device?.id) { device?.let { mirror.mirror(it) } }
+    LaunchedEffect(mirror) { mirror.mirrorSelectedDevice() }
     val captures = mirror.captures
     LaunchedEffect(captures.library, device?.listing) { captures.showDevice(device?.listing) }
     MirrorScreen(

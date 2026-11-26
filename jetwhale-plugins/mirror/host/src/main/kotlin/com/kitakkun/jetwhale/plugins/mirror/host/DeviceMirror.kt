@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +15,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -211,6 +213,15 @@ internal class DeviceMirror(
         missingTools = found.missingTools
         if (devices.none { it.id == selectedId }) selectedId = devices.firstOrNull()?.id
         return found.devices
+    }
+
+    /**
+     * Mirrors the selected device until the caller is cancelled, starting over whenever another
+     * device is selected or the selected one is listed anew, as when it turns out to be an XR
+     * device: each listing comes with a controller of its own.
+     */
+    suspend fun mirrorSelectedDevice() {
+        snapshotFlow { selectedDevice }.collectLatest { device -> device?.let { mirror(it) } }
     }
 
     /** Mirrors [device] into [surface] until the caller is cancelled. */

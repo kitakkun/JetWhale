@@ -104,8 +104,7 @@ private suspend fun AwaitPointerEventScope.followGesture(
     val device = surface.deviceSize ?: drawn.frameSize
     val start = fitted.toDevicePixel(down, device) ?: return
     if (onLookAround != null) {
-        val last = lookAroundUntilRelease(down, fitted.bounds.width, onLookAround)
-        if ((last - down).getDistance() < viewConfiguration.touchSlop) onTap(start.x, start.y)
+        if (!lookAroundUntilRelease(down, fitted.bounds.width, onLookAround)) onTap(start.x, start.y)
     } else {
         val last = awaitReleasePosition(down)
         val end = fitted.toDevicePixel(last, device) ?: start
@@ -125,9 +124,9 @@ private suspend fun AwaitPointerEventScope.awaitReleasePosition(down: Offset): O
 
 /**
  * Reports each move of the press that went down at [down], once it has left the touch slop, in widths
- * of the [frameWidth] across and down, until it ends; returns where the pointer was last.
+ * of the [frameWidth] across and down, until it ends; returns whether it reported any.
  */
-private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragXWidths: Float, dragYWidths: Float) -> Unit): Offset {
+private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, frameWidth: Float, onLookAround: (dragXWidths: Float, dragYWidths: Float) -> Unit): Boolean {
     var last = down
     var reportedTo: Offset? = null
     do {
@@ -139,7 +138,7 @@ private suspend fun AwaitPointerEventScope.lookAroundUntilRelease(down: Offset, 
             reportedTo = last
         }
     } while (event.changes.any(PointerInputChange::pressed))
-    return last
+    return reportedTo != null
 }
 
 private class DrawnFrame {

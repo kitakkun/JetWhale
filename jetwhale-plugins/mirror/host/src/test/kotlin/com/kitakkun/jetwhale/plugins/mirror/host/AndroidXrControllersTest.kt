@@ -1,18 +1,28 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okio.Buffer
+import java.io.File
+import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -22,13 +32,55 @@ class AndroidXrControllersTest {
         start()
     }
 
-    private val xrEmulatorClient = XrEmulatorClient(port = server.port, token = "secret", httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build())
+    private val runningDirectory: File = Files.createTempDirectory("avd-running").toFile().apply {
+        File(this, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${server.port}\ngrpc.token=secret\n")
+    }
+
+    private val xrEmulatorClient = XrEmulatorClient(serial = "emulator-5554", runningDirectories = listOf(runningDirectory), httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE)).build())
 
     private val emulator = AndroidXrEmulatorDeviceController(androidDeviceControllerWithoutAdb(), xrEmulatorClient)
 
     @AfterTest
     fun cleanUp() {
         server.close()
+        runningDirectory.deleteRecursively()
+    }
+
+    @Test
+    fun `an emulator started again under the same serial is reached at its new port with its new token`() = runBlocking {
+        server.enqueue(grpcReply(ByteArray(0)))
+        emulator.recenterView()
+        MockWebServer().use { restartedServer ->
+            restartedServer.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
+            restartedServer.enqueue(grpcReply(ByteArray(0)))
+            restartedServer.start()
+            File(runningDirectory, "pid_1.ini").writeText("port.serial=5554\ngrpc.port=${restartedServer.port}\ngrpc.token=renewed\n")
+
+            emulator.recenterView()
+
+            assertEquals("Bearer renewed", restartedServer.takeRequest().getHeader("authorization"))
+        }
+    }
+
+    @Test
+    fun `a tap sent while another is under way waits for it, so the hand makes one gesture at a time`() = runBlocking {
+        val secondGestureArrived = CountDownLatch(1)
+        val secondGestureArrivedBeforeFirstAnswer = AtomicBoolean()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                if (request.sequenceNumber == 0) {
+                    secondGestureArrivedBeforeFirstAnswer.set(secondGestureArrived.await(SECOND_GESTURE_WAIT_MILLIS, TimeUnit.MILLISECONDS))
+                } else {
+                    secondGestureArrived.countDown()
+                }
+                return grpcReply(ByteArray(0))
+            }
+        }
+
+        listOf(launch(Dispatchers.IO) { emulator.tap(10, 10) }, launch(Dispatchers.IO) { emulator.tap(20, 20) }).joinAll()
+
+        assertEquals(2, server.requestCount)
+        assertFalse(secondGestureArrivedBeforeFirstAnswer.get())
     }
 
     @Test
@@ -152,3 +204,6 @@ private fun grpcMessagesOf(request: RecordedRequest): List<ByteArray> {
         }
     }
 }
+
+/** Far longer than a tap takes to send, so that a second tap sent at once would arrive within it. */
+private const val SECOND_GESTURE_WAIT_MILLIS = 1_000L
